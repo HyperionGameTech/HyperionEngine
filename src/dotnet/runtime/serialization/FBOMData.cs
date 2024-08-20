@@ -68,6 +68,44 @@ namespace Hyperion
             }
         }
 
+        public byte? GetUInt8()
+        {
+            byte value;
+
+            if (FBOMData_GetByte(this.ptr, out value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        public static FBOMData FromUInt8(byte value)
+        {
+            FBOMData data = new FBOMData();
+            FBOMData_SetByte(data.ptr, ref value);
+            return data;
+        }
+
+        public ushort? GetUInt16()
+        {
+            ushort value;
+
+            if (FBOMData_GetUInt16(this.ptr, out value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        public static FBOMData FromUInt16(ushort value)
+        {
+            FBOMData data = new FBOMData();
+            FBOMData_SetUInt16(data.ptr, ref value);
+            return data;
+        }
+
         public uint? GetUInt32()
         {
             uint value;
@@ -106,6 +144,44 @@ namespace Hyperion
             return data;
         }
 
+        public sbyte? GetInt8()
+        {
+            sbyte value;
+
+            if (FBOMData_GetInt8(this.ptr, out value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        public static FBOMData FromInt8(sbyte value)
+        {
+            FBOMData data = new FBOMData();
+            FBOMData_SetInt8(data.ptr, ref value);
+            return data;
+        }
+
+        public short? GetInt16()
+        {
+            short value;
+
+            if (FBOMData_GetInt16(this.ptr, out value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        public static FBOMData FromInt16(short value)
+        {
+            FBOMData data = new FBOMData();
+            FBOMData_SetInt16(data.ptr, ref value);
+            return data;
+        }
+
         public int? GetInt32()
         {
             int value;
@@ -141,6 +217,25 @@ namespace Hyperion
         {
             FBOMData data = new FBOMData();
             FBOMData_SetInt64(data.ptr, ref value);
+            return data;
+        }
+
+        public char? GetCHar()
+        {
+            char value;
+
+            if (FBOMData_GetChar(this.ptr, out value))
+            {
+                return value;
+            }
+
+            return null;
+        }
+
+        public static FBOMData FromChar(char value)
+        {
+            FBOMData data = new FBOMData();
+            FBOMData_SetChar(data.ptr, ref value);
             return data;
         }
 
@@ -343,6 +438,18 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMData_TotalSize")]
         private static extern ulong FBOMData_TotalSize(IntPtr dataPtr);
 
+        [DllImport("hyperion", EntryPoint = "FBOMData_GetUInt8")]
+        private static extern bool FBOMData_GetUInt8(IntPtr dataPtr, [Out] out byte value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_SetUInt8")]
+        private static extern void FBOMData_SetUInt8(IntPtr dataPtr, [In] ref byte value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_GetUInt16")]
+        private static extern bool FBOMData_GetUInt16(IntPtr dataPtr, [Out] out ushort value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_SetUInt16")]
+        private static extern void FBOMData_SetUInt16(IntPtr dataPtr, [In] ref ushort value);
+
         [DllImport("hyperion", EntryPoint = "FBOMData_GetUInt32")]
         private static extern bool FBOMData_GetUInt32(IntPtr dataPtr, [Out] out uint value);
 
@@ -355,6 +462,18 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMData_SetUInt64")]
         private static extern void FBOMData_SetUInt64(IntPtr dataPtr, [In] ref ulong value);
 
+        [DllImport("hyperion", EntryPoint = "FBOMData_GetInt8")]
+        private static extern bool FBOMData_GetInt8(IntPtr dataPtr, [Out] out sbyte value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_SetInt8")]
+        private static extern void FBOMData_SetInt8(IntPtr dataPtr, [In] ref sbyte value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_GetInt16")]
+        private static extern bool FBOMData_GetInt16(IntPtr dataPtr, [Out] out short value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_SetInt16")]
+        private static extern void FBOMData_SetInt16(IntPtr dataPtr, [In] ref short value);
+
         [DllImport("hyperion", EntryPoint = "FBOMData_GetInt32")]
         private static extern bool FBOMData_GetInt32(IntPtr dataPtr, [Out] out int value);
 
@@ -366,6 +485,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "FBOMData_SetInt64")]
         private static extern void FBOMData_SetInt64(IntPtr dataPtr, [In] ref long value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_GetChar")]
+        private static extern bool FBOMData_GetChar(IntPtr dataPtr, [Out] out char value);
+
+        [DllImport("hyperion", EntryPoint = "FBOMData_SetChar")]
+        private static extern void FBOMData_SetChar(IntPtr dataPtr, [In] ref char value);
 
         [DllImport("hyperion", EntryPoint = "FBOMData_GetFloat")]
         private static extern bool FBOMData_GetFloat(IntPtr dataPtr, [Out] out float value);

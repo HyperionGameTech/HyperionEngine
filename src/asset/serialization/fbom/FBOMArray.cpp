@@ -1,26 +1,46 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMArray.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
 
 namespace hyperion::fbom {
 
-FBOMArray::FBOMArray()
+FBOMArray::FBOMArray(const FBOMType &element_type)
+    : m_element_type(element_type)
 {
 }
 
-FBOMArray::FBOMArray(const Array<FBOMData> &values)
-    : m_values(values)
+FBOMArray::FBOMArray(const FBOMType &element_type, const Array<FBOMData> &values)
+    : m_element_type(element_type),
+      m_values(values)
 {
+    for (const FBOMData &value : m_values) {
+        AssertThrowMsg(
+            value.GetType().IsOrExtends(m_element_type),
+            "Cannot add element of type '%s' to Array with element type '%s'",
+            value.GetType().name.Data(),
+            m_element_type.name.Data()
+        );
+    }
 }
 
-FBOMArray::FBOMArray(Array<FBOMData> &&values)
-    : m_values(std::move(values))
+FBOMArray::FBOMArray(const FBOMType &element_type, Array<FBOMData> &&values)
+    : m_element_type(element_type),
+      m_values(std::move(values))
 {
+    for (const FBOMData &value : m_values) {
+        AssertThrowMsg(
+            value.GetType().IsOrExtends(m_element_type),
+            "Cannot add element of type '%s' to Array with element type '%s'",
+            value.GetType().name.Data(),
+            m_element_type.name.Data()
+        );
+    }
 }
 
 FBOMArray::FBOMArray(const FBOMArray &other)
-    : m_values(other.m_values)
+    : m_element_type(other.m_element_type),
+      m_values(other.m_values)
 {
 }
 
@@ -30,13 +50,15 @@ FBOMArray &FBOMArray::operator=(const FBOMArray &other)
         return *this;
     }
 
+    m_element_type = other.m_element_type;
     m_values = other.m_values;
 
     return *this;
 }
 
 FBOMArray::FBOMArray(FBOMArray &&other) noexcept
-    : m_values(std::move(other.m_values))
+    : m_element_type(std::move(other.m_element_type)),
+      m_values(std::move(other.m_values))
 {
 }
 
@@ -46,6 +68,7 @@ FBOMArray &FBOMArray::operator=(FBOMArray &&other) noexcept
         return *this;
     }
 
+    m_element_type = std::move(other.m_element_type);
     m_values = std::move(other.m_values);
 
     return *this;
@@ -57,6 +80,13 @@ FBOMArray::~FBOMArray()
 
 FBOMArray &FBOMArray::AddElement(const FBOMData &value)
 {
+    AssertThrowMsg(
+        value.GetType().Is(m_element_type),
+        "Cannot add element of type '%s' to Array with element type '%s'",
+        value.GetType().name.Data(),
+        m_element_type.name.Data()
+    );
+    
     m_values.PushBack(value);
 
     return *this;
@@ -64,6 +94,13 @@ FBOMArray &FBOMArray::AddElement(const FBOMData &value)
 
 FBOMArray &FBOMArray::AddElement(FBOMData &&value)
 {
+    AssertThrowMsg(
+        value.GetType().Is(m_element_type),
+        "Cannot add element of type '%s' to Array with element type '%s'",
+        value.GetType().name.Data(),
+        m_element_type.name.Data()
+    );
+    
     m_values.PushBack(std::move(value));
 
     return *this;

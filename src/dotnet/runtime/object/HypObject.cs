@@ -10,8 +10,6 @@ namespace Hyperion
 
         protected HypObject()
         {
-            Console.WriteLine("HypObject constructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
-
             if (_hypClassPtr == IntPtr.Zero)
             {
                 if (_nativeAddress != IntPtr.Zero)
@@ -51,13 +49,20 @@ namespace Hyperion
 #if DEBUG
             HypObject_Verify(_hypClassPtr, _nativeAddress);
 #endif
+
+            HypObject_IncRef(_hypClassPtr, _nativeAddress);
         }
 
         ~HypObject()
         {
             if (IsValid)
             {
+                Console.WriteLine("HypObject destructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+
                 HypObject_DecRef(_hypClassPtr, _nativeAddress);
+
+                _hypClassPtr = IntPtr.Zero;
+                _nativeAddress = IntPtr.Zero;
             }
         }
 
@@ -86,7 +91,7 @@ namespace Hyperion
             }
         }
 
-        protected HypProperty GetProperty(Name name)
+        public HypProperty GetProperty(Name name)
         {
             if (_hypClassPtr == IntPtr.Zero)
             {
@@ -110,7 +115,7 @@ namespace Hyperion
             return new HypProperty(propertyPtr);
         }
 
-        protected HypMethod GetMethod(Name name)
+        public HypMethod GetMethod(Name name)
         {
             if (_hypClassPtr == IntPtr.Zero)
             {

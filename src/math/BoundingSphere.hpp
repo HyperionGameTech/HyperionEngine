@@ -13,6 +13,9 @@ namespace hyperion {
 
 struct HYP_API BoundingSphere
 {
+    HYP_PROPERTY(Center, &BoundingSphere::center)
+    HYP_PROPERTY(Radius, &BoundingSphere::radius)
+
 public:
     static const BoundingSphere empty;
     static const BoundingSphere infinity;
@@ -25,28 +28,28 @@ public:
     BoundingSphere &operator=(BoundingSphere &&other) noexcept;
     BoundingSphere(const BoundingBox &box);
 
-    const Vec3f &GetCenter() const
+    HYP_FORCE_INLINE const Vec3f &GetCenter() const
         { return center; }
 
-    void SetCenter(const Vec3f &center)
+    HYP_FORCE_INLINE void SetCenter(const Vec3f &center)
         { this->center = center; }
 
-    float GetRadius() const
+    HYP_FORCE_INLINE float GetRadius() const
         { return radius; }
 
-    void SetRadius(float radius)
+    HYP_FORCE_INLINE void SetRadius(float radius)
         { this->radius = radius; }
 
-    bool operator==(const BoundingSphere &other) const
+    HYP_FORCE_INLINE bool operator==(const BoundingSphere &other) const
         { return center == other.center && radius == other.radius; }
 
-    bool operator!=(const BoundingSphere &other) const
+    HYP_FORCE_INLINE bool operator!=(const BoundingSphere &other) const
         { return !operator==(other); }
 
     BoundingSphere &Extend(const BoundingBox &box);
 
     /*! \brief Convert the BoundingSphere to an AABB. */
-    operator BoundingBox() const
+    HYP_FORCE_INLINE operator BoundingBox() const
         { return BoundingBox(center - Vec3f(radius), center + Vec3f(radius)); }
 
     /*! \brief Store the BoundingSphere in a Vector4.
@@ -54,7 +57,7 @@ public:
         w will be the radius. */
     Vec4f ToVector4() const;
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
 

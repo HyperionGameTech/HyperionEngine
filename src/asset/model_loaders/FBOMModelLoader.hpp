@@ -5,7 +5,6 @@
 
 #include <asset/Assets.hpp>
 #include <scene/Node.hpp>
-#include <asset/serialization/Serialization.hpp>
 
 #include <Types.hpp>
 

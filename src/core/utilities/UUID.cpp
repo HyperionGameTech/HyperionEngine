@@ -21,17 +21,18 @@ static uint64 RandomNumber()
 }
 
 UUID::UUID(UUIDVersion version)
-    : data { 0, 0 }
+    : data0 { 0 },
+      data1 { 0 }
 {
     switch (version) {
     case UUIDVersion::UUIDv4:
-        data[0] = RandomNumber();
-        data[1] = RandomNumber();
+        data0 = RandomNumber();
+        data1 = RandomNumber();
 
-        data[0] &= ~0xF000;
-        data[0] |= 0x4000;
-        data[1] &= ~0xC000000000000000;
-        data[1] |= 0x8000000000000000;
+        data0 &= ~0xF000;
+        data0 |= 0x4000;
+        data1 &= ~0xC000000000000000;
+        data1 |= 0x8000000000000000;
 
         break;
     default:
@@ -45,8 +46,8 @@ ANSIString UUID::ToString() const
         uint64  data[2];
         uint8   bytes[16];
     } u {
-        IsLittleEndian() ? data[0] : SwapEndianness(data[0]),
-        IsLittleEndian() ? data[1] : SwapEndianness(data[1])
+        IsLittleEndian() ? data0 : SwapEndianness(data0),
+        IsLittleEndian() ? data1 : SwapEndianness(data1)
     };
 
     char buffer[37] = { '\0' };

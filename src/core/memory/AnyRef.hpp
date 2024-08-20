@@ -135,14 +135,11 @@ public:
     AnyRef(T &value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), &value)
     {
-        static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
     }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
-    AnyRef &operator=(T &&value)
+    AnyRef &operator=(T &value)
     {
-        static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
-
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
 
         m_type_id = new_type_id;
@@ -230,6 +227,10 @@ public:
 
     static AnyRef Empty()
         { return AnyRef(); }
+
+    template <class T>
+    static AnyRef Empty()
+        { return AnyRef(TypeID::ForType<T>(), nullptr); }
 };
 
 class ConstAnyRef : public detail::AnyRefBase
@@ -371,6 +372,10 @@ public:
 
     static ConstAnyRef Empty()
         { return ConstAnyRef(); }
+
+    template <class T>
+    static ConstAnyRef Empty()
+        { return ConstAnyRef(TypeID::ForType<T>(), nullptr); }
 };
 
 } // namespace memory

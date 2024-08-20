@@ -5,12 +5,8 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
 
-#include <core/utilities/Optional.hpp>
 #include <core/utilities/UniqueID.hpp>
-
-#include <core/Name.hpp>
 
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
@@ -27,14 +23,17 @@ namespace fbom {
 class HYP_API FBOMArray : public IFBOMSerializable
 {
 public:
-    FBOMArray();
-    FBOMArray(const Array<FBOMData> &values);
-    FBOMArray(Array<FBOMData> &&values);
+    FBOMArray(const FBOMType &element_type);
+    FBOMArray(const FBOMType &element_type, const Array<FBOMData> &values);
+    FBOMArray(const FBOMType &element_type, Array<FBOMData> &&values);
     FBOMArray(const FBOMArray &other);
     FBOMArray &operator=(const FBOMArray &other);
     FBOMArray(FBOMArray &&other) noexcept;
     FBOMArray &operator=(FBOMArray &&other) noexcept;
     virtual ~FBOMArray();
+
+    HYP_FORCE_INLINE const FBOMType &GetElementType() const
+        { return m_element_type; }
 
     HYP_FORCE_INLINE SizeType Size() const
         { return m_values.Size(); }
@@ -55,6 +54,7 @@ public:
     virtual HashCode GetHashCode() const override;
 
 private:
+    FBOMType        m_element_type;
     Array<FBOMData> m_values;
 };
 

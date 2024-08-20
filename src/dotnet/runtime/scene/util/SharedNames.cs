@@ -21,6 +21,12 @@ namespace Hyperion
         public static Name Transform { get; } = Name.FromString("Transform", weak: true);
         public static Name LocalTransform { get; } = Name.FromString("LocalTransform", weak: true);
         public static Name WorldTransform { get; } = Name.FromString("WorldTransform", weak: true);
+        public static Name BasePath { get; } = Name.FromString("BasePath", weak: true);
+        public static Name OriginAlignment { get; } = Name.FromString("OriginAlignment", weak: true);
+        public static Name ParentAlignment { get; } = Name.FromString("ParentAlignment", weak: true);
+        public static Name Position { get; } = Name.FromString("Position", weak: true);
+        public static Name ActualSize { get; } = Name.FromString("ActualSize", weak: true);
+        public static Name Size { get; } = Name.FromString("Size", weak: true);
     }
 
     public class MethodNames

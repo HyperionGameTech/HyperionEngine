@@ -2,66 +2,74 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMArray.hpp>
+#include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/backend/RendererShader.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
 
 template <>
-class FBOMMarshaler<Material> : public FBOMObjectMarshalerBase<Material>
+class FBOMMarshaler<Material> : public HypClassInstanceMarshal
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const Material &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetName()));
-        out.SetProperty(NAME("attributes"), FBOMData::FromObject(
+        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out)) {
+            return err;
+        }
+
+        const Material &in_object = in.Get<Material>();
+
+        out.SetProperty("Attributes", FBOMData::FromObject(
             FBOMObject()
-                .SetProperty(NAME("bucket"), uint32(in_object.GetRenderAttributes().bucket))
-                .SetProperty(NAME("flags"), uint32(in_object.GetRenderAttributes().flags))
-                .SetProperty(NAME("cull_mode"), uint32(in_object.GetRenderAttributes().cull_faces))
-                .SetProperty(NAME("fill_mode"), uint32(in_object.GetRenderAttributes().fill_mode))
+                .SetProperty("Bucket", uint32(in_object.GetRenderAttributes().bucket))
+                .SetProperty("Flags", uint32(in_object.GetRenderAttributes().flags))
+                .SetProperty("CullMode", uint32(in_object.GetRenderAttributes().cull_faces))
+                .SetProperty("FillMode", uint32(in_object.GetRenderAttributes().fill_mode))
         ));
 
-        FBOMArray params_array;
+        FBOMArray params_array { FBOMBaseObjectType() };
 
         for (SizeType i = 0; i < in_object.GetParameters().Size(); i++) {
             const auto key_value = in_object.GetParameters().KeyValueAt(i);
             
             FBOMObject param_object;
-            param_object.SetProperty(NAME("key"), uint64(key_value.first));
-            param_object.SetProperty(NAME("type"), uint32(key_value.second.type));
+            param_object.SetProperty("Key", uint64(key_value.first));
+            param_object.SetProperty("Type", uint32(key_value.second.type));
 
             if (key_value.second.IsIntType()) {
-                param_object.SetProperty(NAME("data"), FBOMSequence(FBOMInt(), ArraySize(key_value.second.values.int_values)), &key_value.second.values.int_values[0]); 
+                param_object.SetProperty("Data", FBOMSequence(FBOMInt32(), ArraySize(key_value.second.values.int_values)), &key_value.second.values.int_values[0]); 
             } else if (key_value.second.IsFloatType()) {
-                param_object.SetProperty(NAME("data"), FBOMSequence(FBOMFloat(), ArraySize(key_value.second.values.float_values)), &key_value.second.values.float_values[0]); 
+                param_object.SetProperty("Data", FBOMSequence(FBOMFloat(), ArraySize(key_value.second.values.float_values)), &key_value.second.values.float_values[0]); 
             }
 
             params_array.AddElement(FBOMData::FromObject(std::move(param_object)));
         }
         
-        out.SetProperty(NAME("params"), FBOMData::FromArray(std::move(params_array)));
+        out.SetProperty("Parameters", FBOMData::FromArray(std::move(params_array)));
 
         uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
-        for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
-            const auto key = in_object.GetTextures().KeyAt(i);
-            const auto &value = in_object.GetTextures().ValueAt(i);
+        // for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
+        //     const Material::TextureKey key = in_object.GetTextures().KeyAt(i);
+        //     const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
 
-            if (value) {
-                if (FBOMResult err = out.AddChild(*value)) {
-                    return err;
-                }
+        //     if (value) {
+        //         if (FBOMResult err = out.AddChild(*value)) {
+        //             return err;
+        //         }
 
-                texture_keys[texture_index++] = uint32(key);
-            }
-        }
+        //         texture_keys[texture_index++] = uint32(key);
+        //     }
+        // }
 
         if (const ShaderRef &shader = in_object.GetShader()) {
             if (shader.IsValid()) {
@@ -70,39 +78,34 @@ public:
         }
 
         out.SetProperty(
-            NAME("texture_keys"),
-            FBOMSequence(FBOMUnsignedInt(), ArraySize(texture_keys)),
+            "TextureKeys",
+            FBOMSequence(FBOMUInt32(), ArraySize(texture_keys)),
             &texture_keys[0]
         );
 
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
-        Name name;
-        if (FBOMResult err = in.GetProperty("name").ReadName(&name)) {
-            return err;
-        }
-
         MaterialAttributes attributes;
         Material::ParameterTable parameters = Material::DefaultParameters();
         Material::TextureSet textures;
 
         FBOMObject attributes_object;
 
-        if (FBOMResult err = in.GetProperty("attributes").ReadObject(attributes_object)) {
+        if (FBOMResult err = in.GetProperty("Attributes").ReadObject(attributes_object)) {
             return err;
         }
 
-        attributes_object.GetProperty("bucket").ReadUnsignedInt(&attributes.bucket);
-        attributes_object.GetProperty("flags").ReadUnsignedInt(&attributes.flags);
-        attributes_object.GetProperty("cull_mode").ReadUnsignedInt(&attributes.cull_faces);
-        attributes_object.GetProperty("fill_mode").ReadUnsignedInt(&attributes.fill_mode);
+        attributes_object.GetProperty("Bucket").ReadUInt32(&attributes.bucket);
+        attributes_object.GetProperty("Flags").ReadUInt32(&attributes.flags);
+        attributes_object.GetProperty("CullMode").ReadUInt32(&attributes.cull_faces);
+        attributes_object.GetProperty("FillMode").ReadUInt32(&attributes.fill_mode);
 
-        FBOMArray params_array;
+        FBOMArray params_array { FBOMUnset() };
 
-        if (FBOMResult err = in.GetProperty("params").ReadArray(params_array)) {
+        if (FBOMResult err = in.GetProperty("Parameters").ReadArray(params_array)) {
             return err;
         }
 
@@ -118,20 +121,20 @@ public:
 
                 Material::MaterialKey param_key;
 
-                if (FBOMResult err = param_object.GetProperty("key").ReadUnsignedLong(&param_key)) {
+                if (FBOMResult err = param_object.GetProperty("Key").ReadUInt64(&param_key)) {
                     return err;
                 }
 
-                if (FBOMResult err = param_object.GetProperty("type").ReadUnsignedInt(&param.type)) {
+                if (FBOMResult err = param_object.GetProperty("Type").ReadUInt32(&param.type)) {
                     return err;
                 }
 
                 if (param.IsIntType()) {
-                    if (FBOMResult err = param_object.GetProperty("data").ReadElements(FBOMInt(), ArraySize(param.values.int_values), &param.values.int_values[0])) {
+                    if (FBOMResult err = param_object.GetProperty("Data").ReadElements(FBOMInt32(), ArraySize(param.values.int_values), &param.values.int_values[0])) {
                         return err;
                     }
                 } else if (param.IsFloatType()) {
-                    if (FBOMResult err = param_object.GetProperty("data").ReadElements(FBOMFloat(), ArraySize(param.values.float_values), &param.values.float_values[0])) {
+                    if (FBOMResult err = param_object.GetProperty("Data").ReadElements(FBOMFloat(), ArraySize(param.values.float_values), &param.values.float_values[0])) {
                         return err;
                     }
                 }
@@ -143,7 +146,7 @@ public:
         uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
-        if (FBOMResult err = in.GetProperty("texture_keys").ReadElements(FBOMUnsignedInt(), std::size(texture_keys), &texture_keys[0])) {
+        if (FBOMResult err = in.GetProperty("TextureKeys").ReadElements(FBOMUInt32(), std::size(texture_keys), &texture_keys[0])) {
             return err;
         }
 
@@ -151,16 +154,16 @@ public:
 
         ShaderRef shader = g_shader_manager->GetOrCreate(
             NAME("Forward"),
-            ShaderProperties()
+            ShaderProperties(static_mesh_vertex_attributes)
         );
 
-        for (auto &node : *in.nodes) {
-            if (node.GetType().IsOrExtends("Texture")) {
+        for (auto &subobject : *in.nodes) {
+            if (subobject.GetType().IsOrExtends("Texture")) {
                 if (texture_index < std::size(texture_keys)) {
-                    if (Handle<Texture> texture = node.m_deserialized_object->Get<Texture>()) {
+                    if (Optional<Handle<Texture>> texture_opt = subobject.m_deserialized_object->TryGet<Handle<Texture>>()) {
                         textures.Set(
                             Material::TextureKey(texture_keys[texture_index]), 
-                            std::move(texture)
+                            *texture_opt
                         );
 
                         ++texture_index;
@@ -172,11 +175,11 @@ public:
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
         material_handle->SetShader(std::move(shader));
 
-        if (name) {
-            material_handle->SetName(name);
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, material_handle->GetClass(), *material_handle)) {
+            return err;
         }
 
-        out_object = std::move(material_handle);
+        out = HypData(std::move(material_handle));
 
         return { FBOMResult::FBOM_OK };
     }

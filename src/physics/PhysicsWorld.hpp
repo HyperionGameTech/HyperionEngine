@@ -20,16 +20,16 @@ public:
     PhysicsWorldBase &operator=(const PhysicsWorldBase &other)  = delete;
     ~PhysicsWorldBase()                                         = default;
 
-    const Vec3f &GetGravity() const
+    HYP_FORCE_INLINE const Vec3f &GetGravity() const
         { return m_gravity; }
 
-    void SetGravity(const Vec3f &gravity)
+    HYP_FORCE_INLINE void SetGravity(const Vec3f &gravity)
         { m_gravity = gravity; }
 
-    Array<Handle<RigidBody>> &GetRigidBodies()
+    HYP_FORCE_INLINE Array<Handle<RigidBody>> &GetRigidBodies()
         { return m_rigid_bodies; }
     
-    const Array<Handle<RigidBody>> &GetRigidBodies() const
+    HYP_FORCE_INLINE const Array<Handle<RigidBody>> &GetRigidBodies() const
         { return m_rigid_bodies; }
 
 protected:
@@ -51,10 +51,10 @@ public:
     {
     }
 
-    Adapter &GetAdapter()
+    HYP_FORCE_INLINE Adapter &GetAdapter()
         { return m_adapter; }
 
-    const Adapter &GetAdapter() const
+    HYP_FORCE_INLINE const Adapter &GetAdapter() const
         { return m_adapter; }
 
     void AddRigidBody(const Handle<RigidBody> &rigid_body)

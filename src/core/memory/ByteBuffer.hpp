@@ -17,6 +17,7 @@ using ByteArray = Array<ubyte>;
 
 namespace memory {
 
+HYP_STRUCT()
 class ByteBuffer
 {
     using InternalArray = Array<ubyte, 1024u>;

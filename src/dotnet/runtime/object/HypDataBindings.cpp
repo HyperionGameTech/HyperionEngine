@@ -360,8 +360,6 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
         } else {
             HYP_FAIL("Unhandled HypClass allocation method");
         }
-    } else if (hyp_class->IsStructType()) {
-
     }
 
     return false;
@@ -437,10 +435,46 @@ HYP_EXPORT bool HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
     const HypStruct *hyp_struct = dynamic_cast<const HypStruct *>(hyp_class);
     AssertThrow(hyp_struct != nullptr);
 
-    Any any;
-    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), any);
+    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), *hyp_data);
 
-    *hyp_data = HypData(std::move(any));
+    return true;
+}
+
+
+HYP_EXPORT bool HypData_IsByteBuffer(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    return hyp_data->Is<ByteBuffer>();
+}
+
+HYP_EXPORT bool HypData_GetByteBuffer(const HypData *hyp_data, const void **out_ptr, uint32 *out_size)
+{
+    if (!hyp_data || !out_ptr || !out_size) {
+        return false;
+    }
+
+    if (hyp_data->Is<ByteBuffer>()) {
+        const ByteBuffer &byte_buffer = hyp_data->Get<ByteBuffer>();
+
+        *out_ptr = byte_buffer.Data();
+        *out_size = uint32(byte_buffer.Size());
+
+        return true;
+    }
+
+    return false;
+}
+
+HYP_EXPORT bool HypData_SetByteBuffer(HypData *hyp_data, const void *ptr, uint32 size)
+{
+    if (!hyp_data || !ptr) {
+        return false;
+    }
+
+    *hyp_data = HypData(ByteBuffer(size, ptr));
 
     return true;
 }

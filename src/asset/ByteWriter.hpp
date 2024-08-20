@@ -50,6 +50,16 @@ public:
         WriteBytes(reinterpret_cast<const char *>(&value), sizeof(NormalizedType<T>));
     }
 
+    void Write(const ByteBuffer &byte_buffer)
+    {
+        WriteBytes(reinterpret_cast<const char *>(byte_buffer.Data()), byte_buffer.Size());
+    }
+
+    void Write(ConstByteView byte_view)
+    {
+        WriteBytes(reinterpret_cast<const char *>(byte_view.Data()), byte_view.Size());
+    }
+
     template <int StringType>
     void WriteString(const StringView<StringType> &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
     {
@@ -102,14 +112,10 @@ public:
 
     virtual void Close() override { }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ByteBuffer &GetBuffer()
+    HYP_FORCE_INLINE ByteBuffer &GetBuffer()
         { return m_buffer; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ByteBuffer &GetBuffer() const
+    HYP_FORCE_INLINE const ByteBuffer &GetBuffer() const
         { return m_buffer; }
 
 private:

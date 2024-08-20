@@ -317,7 +317,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
             AssertThrow(GetStage() != nullptr);
 
             RC<UIGridColumn> column = row->AddColumn();
-            AssertThrowMsg(column != nullptr, "Failed to add column to row : %llu\t%p", i, column.GetRefCountData_Internal());
+            AssertThrow(column != nullptr);
 
             RC<UIObject> object = data_source_ptr->GetElementFactory()->CreateUIObject(GetStage(), element->GetValue());
             AssertThrow(object != nullptr);

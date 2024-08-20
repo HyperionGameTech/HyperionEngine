@@ -18,9 +18,6 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(EditorSubsystem)
-HYP_END_CLASS
-
 #pragma region EditorSubsystem
 
 EditorSubsystem::EditorSubsystem()

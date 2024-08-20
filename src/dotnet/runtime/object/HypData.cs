@@ -192,6 +192,26 @@ namespace Hyperion
                 return;
             }
 
+            if (value is byte[])
+            {
+                unsafe
+                {
+                    byte[] buffer = (byte[])value;
+
+                    fixed (byte* ptr = buffer)
+                    {
+                        if (!HypData_SetByteBuffer(ref this, (IntPtr)ptr, (uint)buffer.Length))
+                        {
+                            throw new InvalidOperationException("Failed to set byte buffer");
+                        }
+                    }
+
+                    return;
+                }
+
+                return;
+            }
+
             Type type = value.GetType();
 
             if (type.IsValueType)
@@ -325,6 +345,11 @@ namespace Hyperion
                 return value.valueBool;
             }
 
+            if (HypData_GetID(ref this, out value.valueId))
+            {
+                return new IDBase(value.valueId);
+            }
+
             if (HypData_IsString(ref this))
             {
                 IntPtr stringPtr;
@@ -362,9 +387,29 @@ namespace Hyperion
                 return array;
             }
 
-            if (HypData_GetID(ref this, out value.valueId))
+            if (HypData_IsByteBuffer(ref this))
             {
-                return new IDBase(value.valueId);
+                IntPtr bufferPtr;
+                uint bufferSize;
+
+                if (!HypData_GetByteBuffer(ref this, out bufferPtr, out bufferSize))
+                {
+                    throw new InvalidOperationException("Failed to get byte buffer");
+                }
+
+                byte[] buffer = new byte[bufferSize];
+
+                unsafe
+                {
+                    byte* ptr = (byte*)bufferPtr.ToPointer();
+
+                    for (int i = 0; i < bufferSize; i++)
+                    {
+                        buffer[i] = ptr[i];
+                    }
+                }
+
+                return buffer;
             }
 
             if (HypData_GetHypStruct(ref this, out value.valuePtr))
@@ -467,6 +512,10 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetHypStruct([In] ref HypDataBuffer hypData, [Out] out IntPtr outObjectPtr);
 
+        [DllImport("hyperion", EntryPoint = "HypData_GetByteBuffer")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_GetByteBuffer([In] ref HypDataBuffer hypData, [Out] out IntPtr outBufferPtr, [Out] out uint outBufferSize);
+
         [DllImport("hyperion", EntryPoint = "HypData_IsInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsInt8([In] ref HypDataBuffer hypData);
@@ -526,6 +575,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_IsHypStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsHypStruct([In] ref HypDataBuffer hypData);
+
+        [DllImport("hyperion", EntryPoint = "HypData_IsByteBuffer")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_IsByteBuffer([In] ref HypDataBuffer hypData);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsID")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -594,6 +647,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_SetHypStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetHypStruct([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, uint objectSize, [In] IntPtr objectPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypData_SetByteBuffer")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_SetByteBuffer([In] ref HypDataBuffer hypData, [In] IntPtr bufferPtr, uint bufferSize);
     }
 
     public class HypData

@@ -2,16 +2,9 @@
 
 #include <math/Vertex.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
 
 #pragma region VertexAttributeSet
-
-// HYP_DEFINE_CLASS(
-//     VertexAttributeSet,
-//     HypProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
-// );
 
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
 {
@@ -62,20 +55,6 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
 #pragma endregion VertexAttribute
 
 #pragma region Vertex
-
-// HYP_DEFINE_CLASS(
-//     Vertex,
-//     HypProperty(NAME("Position"), &Vertex::GetPosition, &Vertex::SetPosition),
-//     HypProperty(NAME("Normal"), &Vertex::GetNormal, &Vertex::SetNormal),
-//     HypProperty(NAME("TexCoord0"), &Vertex::GetTexCoord0, &Vertex::SetTexCoord0),
-//     HypProperty(NAME("TexCoord1"), &Vertex::GetTexCoord1, &Vertex::SetTexCoord1),
-//     HypProperty(NAME("Tangent"), &Vertex::GetTangent, &Vertex::SetTangent),
-//     HypProperty(NAME("Bitangent"), &Vertex::GetBitangent, &Vertex::SetBitangent),
-//     HypProperty(NAME("BoneWeights"), &Vertex::GetBoneWeights, &Vertex::SetBoneWeights),
-//     HypProperty(NAME("BoneIndices"), &Vertex::GetBoneIndices, &Vertex::SetBoneIndices),
-//     HypProperty(NAME("NumIndices"), &Vertex::GetNumIndices),
-//     HypProperty(NAME("NumWeights"), &Vertex::GetNumWeights)
-// );
 
 bool Vertex::operator==(const Vertex &other) const
 {

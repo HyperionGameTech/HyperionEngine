@@ -21,7 +21,7 @@ HYP_EXPORT void RefCountedPtr_IncRef(ManagedRefCountedPtr managed_ref_counted_pt
 
     memory::RefCountedPtrBase<std::atomic<uint>> ref_counted_ptr;
     ref_counted_ptr.SetRefCountData_Internal(ref_count_data, true /* inc_ref */);
-    (void)ref_counted_ptr.Release(); // Release the object to prevent the ref count from being decremented on destruction
+    (void)ref_counted_ptr.Release_Internal(); // Release the object to prevent the ref count from being decremented on destruction
 }
 
 HYP_EXPORT void RefCountedPtr_DecRef(ManagedRefCountedPtr managed_ref_counted_ptr)
@@ -47,7 +47,7 @@ HYP_EXPORT void WeakRefCountedPtr_IncRef(ManagedWeakRefCountedPtr managed_weak_r
 
     memory::WeakRefCountedPtrBase<std::atomic<uint>> weak_ref_counted_ptr;
     weak_ref_counted_ptr.SetRefCountData_Internal(ref_count_data, true /* inc_ref */);
-    (void)weak_ref_counted_ptr.Release(); // Release the object to prevent the ref count from being decremented on destruction
+    (void)weak_ref_counted_ptr.Release_Internal(); // Release the object to prevent the ref count from being decremented on destruction
 }
 
 HYP_EXPORT void WeakRefCountedPtr_DecRef(ManagedWeakRefCountedPtr managed_weak_ref_counted_ptr)

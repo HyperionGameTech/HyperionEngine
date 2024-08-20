@@ -3,8 +3,8 @@
 
 #include <core/utilities/Variant.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
+
+HYP_REGISTER_COMPONENT(MeshComponent);
 
 } // namespace hyperion

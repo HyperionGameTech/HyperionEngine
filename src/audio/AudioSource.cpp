@@ -9,11 +9,9 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(AudioSource);
-
 AudioSource::AudioSource()
     : BasicObject(),
-      m_format(Format::MONO8),
+      m_format(AudioSourceFormat::MONO8),
       m_freq(0),
       m_buffer_id(~0u),
       m_source_id(~0u),
@@ -21,7 +19,7 @@ AudioSource::AudioSource()
 {
 }
 
-AudioSource::AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType freq)
+AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer &byte_buffer, uint64 freq)
     : BasicObject(),
       m_format(format),
       m_data(byte_buffer),
@@ -41,7 +39,7 @@ AudioSource::AudioSource(AudioSource &&other) noexcept
       m_source_id(other.m_source_id),
       m_sample_length(other.m_sample_length)
 {
-    other.m_format = Format::MONO8;
+    other.m_format = AudioSourceFormat::MONO8;
     other.m_freq = 0;
     other.m_buffer_id = ~0u;
     other.m_source_id = ~0u;
@@ -50,6 +48,10 @@ AudioSource::AudioSource(AudioSource &&other) noexcept
 
 AudioSource &AudioSource::operator=(AudioSource &&other) noexcept
 {
+    if (this == &other) {
+        return *this;
+    }
+
     m_format = other.m_format;
     m_freq = other.m_freq;
     m_data = std::move(other.m_data);
@@ -57,7 +59,7 @@ AudioSource &AudioSource::operator=(AudioSource &&other) noexcept
     m_source_id = other.m_source_id;
     m_sample_length = other.m_sample_length;
 
-    other.m_format = Format::MONO8;
+    other.m_format = AudioSourceFormat::MONO8;
     other.m_freq = 0;
     other.m_buffer_id = ~0u;
     other.m_source_id = ~0u;
@@ -93,16 +95,16 @@ void AudioSource::Init()
         auto al_format = AL_FORMAT_MONO8;
 
         switch (m_format) {
-        case Format::MONO8:
+        case AudioSourceFormat::MONO8:
             al_format = AL_FORMAT_MONO8;
             break;
-        case Format::MONO16:
+        case AudioSourceFormat::MONO16:
             al_format = AL_FORMAT_MONO16;
             break;
-        case Format::STEREO8:
+        case AudioSourceFormat::STEREO8:
             al_format = AL_FORMAT_STEREO8;
             break;
-        case Format::STEREO16:
+        case AudioSourceFormat::STEREO16:
             al_format = AL_FORMAT_STEREO16;
             break;
         }
@@ -120,10 +122,10 @@ void AudioSource::Init()
     }
 }
 
-AudioSource::State AudioSource::GetState() const
+AudioSourceState AudioSource::GetState() const
 {
     if (!AudioManager::GetInstance()->IsInitialized()) {
-        return State::UNDEFINED;
+        return AudioSourceState::UNDEFINED;
     }
 
     ALint state;
@@ -131,10 +133,10 @@ AudioSource::State AudioSource::GetState() const
 
     switch (state) {
     case AL_INITIAL: // fallthrough
-    case AL_STOPPED: return State::STOPPED;
-    case AL_PLAYING: return State::PLAYING;
-    case AL_PAUSED:  return State::PAUSED;
-    default: return State::UNDEFINED;
+    case AL_STOPPED: return AudioSourceState::STOPPED;
+    case AL_PLAYING: return AudioSourceState::PLAYING;
+    case AL_PAUSED:  return AudioSourceState::PAUSED;
+    default: return AudioSourceState::UNDEFINED;
     }
 }
 

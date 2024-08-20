@@ -8,11 +8,16 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct BoundingBoxComponent
 {
+    HYP_FIELD(SerializeAs=LocalAABB)
     BoundingBox local_aabb;
+
+    HYP_FIELD(SerializeAs=WorldAABB)
     BoundingBox world_aabb;
 
+    HYP_FIELD()
     HashCode    transform_hash_code;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

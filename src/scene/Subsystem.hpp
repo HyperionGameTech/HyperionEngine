@@ -19,56 +19,28 @@ namespace hyperion {
 
 class Scene;
 
-class HYP_API SubsystemBase : public EnableRefCountedPtrFromThis<SubsystemBase>
+HYP_CLASS(abstract)
+class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
 {
-    HYP_OBJECT_BODY(SubsystemBase, Abstract);
+    HYP_OBJECT_BODY(Subsystem);
 
 public:
-    SubsystemBase();
-    SubsystemBase(const SubsystemBase &other)               = delete;
-    SubsystemBase &operator=(const SubsystemBase &other)    = delete;
-    SubsystemBase(SubsystemBase &&other)                    = delete;
-    SubsystemBase &operator=(SubsystemBase &&other)         = delete;
-    virtual ~SubsystemBase();
+    Subsystem();
+    Subsystem(const Subsystem &other)               = delete;
+    Subsystem &operator=(const Subsystem &other)    = delete;
+    Subsystem(Subsystem &&other)                    = delete;
+    Subsystem &operator=(Subsystem &&other)         = delete;
+    virtual ~Subsystem();
 
     virtual bool RequiresUpdateOnGameThread() const
         { return true; }
-
-    virtual ANSIStringView GetName() const = 0;
 
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
 
-    virtual void OnSceneAttached(const Handle<Scene> &scene) = 0;
-    virtual void OnSceneDetached(const Handle<Scene> &scene) = 0;
-
-    virtual HashCode GetHashCode() const = 0;
-};
-
-template <class Derived>
-class Subsystem : public SubsystemBase
-{
-public:
-    Subsystem()                     = default;
-    virtual ~Subsystem() override   = default;
-
-    virtual ANSIStringView GetName() const override final
-    {
-        return { TypeNameHelper<Derived, true>::value };
-    }
-
-    virtual void Initialize() override = 0;
-    virtual void Shutdown() override = 0;
-    virtual void Update(GameCounter::TickUnit delta) override = 0;
-
-    virtual void OnSceneAttached(const Handle<Scene> &scene) override { }
-    virtual void OnSceneDetached(const Handle<Scene> &scene) override { }
-
-    virtual HashCode GetHashCode() const override
-    {
-        return HashCode::GetHashCode(GetName());
-    }
+    virtual void OnSceneAttached(const Handle<Scene> &scene) { };
+    virtual void OnSceneDetached(const Handle<Scene> &scene) { };
 };
 
 } // namespace hyperion

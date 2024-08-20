@@ -11,13 +11,13 @@
 #include <core/utilities/Optional.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/system/Debug.hpp>
 
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
-#include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
 
 #include <math/MathUtil.hpp>
 #include <math/Vector2.hpp>
@@ -44,10 +44,14 @@
 #define FBOM_RETURN_OK return FBOMResult { FBOMResult::FBOM_OK }
 
 namespace hyperion {
+
+struct HypData;
+
 namespace fbom {
 
 class FBOMObject;
 class FBOMArray;
+struct FBOMDeserializedObject;
 
 class HYP_API FBOMData : public IFBOMSerializable
 {
@@ -63,6 +67,12 @@ public:
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return !type.IsUnset() || bytes.Any(); }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return !bool(*this); }
+
+    HYP_FORCE_INLINE bool IsUnset() const
+        { return type.IsUnset(); }
 
     HYP_FORCE_INLINE const FBOMType &GetType() const
         { return type; }
@@ -83,7 +93,7 @@ public:
 
 #define FBOM_TYPE_FUNCTIONS(type_name, c_type) \
     bool Is##type_name() const { return type.Is(FBOM##type_name(), /* allow_unbounded */ true); } \
-    FBOMResult Read##type_name(c_type *out) const \
+    FBOMResult Read(c_type *out) const \
     { \
         FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
         ReadBytes(FBOM##type_name().size, out); \
@@ -115,15 +125,22 @@ public:
         FBOMData data(type); \
         data.SetBytes(sizeof(c_type), &value); \
         return data; \
-    }
+    } \
+    explicit FBOMData(c_type value) \
+        : FBOMData(From##type_name(value)) { } \
 
-    FBOM_TYPE_FUNCTIONS(UnsignedInt, uint32)
-    FBOM_TYPE_FUNCTIONS(UnsignedLong, uint64)
-    FBOM_TYPE_FUNCTIONS(Int, int32)
-    FBOM_TYPE_FUNCTIONS(Long, int64)
+    FBOM_TYPE_FUNCTIONS(UInt8, uint8)
+    FBOM_TYPE_FUNCTIONS(UInt16, uint16)
+    FBOM_TYPE_FUNCTIONS(UInt32, uint32)
+    FBOM_TYPE_FUNCTIONS(UInt64, uint64)
+    FBOM_TYPE_FUNCTIONS(Int8, int8)
+    FBOM_TYPE_FUNCTIONS(Int16, int16)
+    FBOM_TYPE_FUNCTIONS(Int32, int32)
+    FBOM_TYPE_FUNCTIONS(Int64, int64)
+    FBOM_TYPE_FUNCTIONS(Char, char)
     FBOM_TYPE_FUNCTIONS(Float, float)
+    FBOM_TYPE_FUNCTIONS(Double, double)
     FBOM_TYPE_FUNCTIONS(Bool, bool)
-    FBOM_TYPE_FUNCTIONS(Byte, ubyte)
     FBOM_TYPE_FUNCTIONS(Mat3f, Matrix3)
     FBOM_TYPE_FUNCTIONS(Mat4f, Matrix4)
     FBOM_TYPE_FUNCTIONS(Vec2f, Vec2f)
@@ -292,7 +309,7 @@ public:
 
     // does the array size equal byte_size bytes?
     HYP_FORCE_INLINE bool IsSequenceOfByteSize(SizeType byte_size) const
-        { return type.IsOrExtends(FBOMSequence(FBOMByte(), byte_size)); }
+        { return type.IsOrExtends(FBOMSequence(FBOMUInt8(), byte_size)); }
 
     /*! \brief If type is an sequence, return the number of elements,
         assuming the sequence contains the given type. Note, sequence could
@@ -334,8 +351,8 @@ public:
 
     FBOMResult ReadObject(FBOMObject &out_object) const;
     
-    static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = false);
-    static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = false);
+    static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = true);
+    static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = true);
 
 #pragma endregion Object
 
@@ -346,8 +363,8 @@ public:
     FBOMResult ReadArray(FBOMArray &out_array) const;
     
     static FBOMData FromArray(const FBOMArray &array);
-
 #pragma endregion Array
+
     HYP_FORCE_INLINE FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
     {
         FBOM_ASSERT(count <= bytes.Size(), "Attempt to read past max size of object");
@@ -373,29 +390,18 @@ public:
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
-    HYP_FORCE_INLINE Optional<FBOMDeserializedObject &> GetDeserializedObject()
-    {
-        return m_deserialized_object != nullptr
-            ? Optional<FBOMDeserializedObject &> { *m_deserialized_object }
-            : Optional<FBOMDeserializedObject &> { };
-    }
-
-    HYP_FORCE_INLINE Optional<const FBOMDeserializedObject &> GetDeserializedObject() const
-    {
-        return m_deserialized_object != nullptr
-            ? Optional<const FBOMDeserializedObject &> { *m_deserialized_object }
-            : Optional<const FBOMDeserializedObject &> { };
-    }
+    HYP_FORCE_INLINE const RC<HypData> &GetDeserializedObject() const
+        { return m_deserialized_object; }
     
     virtual String ToString(bool deep = true) const override;
     virtual UniqueID GetUniqueID() const override;
     virtual HashCode GetHashCode() const override;
 
 private:
-    ByteBuffer                  bytes;
-    FBOMType                    type;
+    ByteBuffer      bytes;
+    FBOMType        type;
 
-    RC<FBOMDeserializedObject>  m_deserialized_object;
+    RC<HypData>     m_deserialized_object;
 };
 
 } // namespace fbom

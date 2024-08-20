@@ -173,6 +173,25 @@ EnvGrid::EnvGrid(Name name, EnvGridOptions options)
 
 EnvGrid::~EnvGrid()
 {
+    SafeRelease(std::move(m_ambient_shader));
+
+    SafeRelease(std::move(m_framebuffer));
+
+    SafeRelease(std::move(m_clear_sh));
+    SafeRelease(std::move(m_compute_sh));
+    SafeRelease(std::move(m_reduce_sh));
+    SafeRelease(std::move(m_finalize_sh));
+
+    SafeRelease(std::move(m_clear_voxels));
+    SafeRelease(std::move(m_voxelize_probe));
+    SafeRelease(std::move(m_offset_voxel_grid));
+    SafeRelease(std::move(m_generate_voxel_grid_mipmaps));
+
+    SafeRelease(std::move(m_compute_sh_descriptor_tables));
+    SafeRelease(std::move(m_sh_tiles_buffers));
+
+    SafeRelease(std::move(m_voxel_grid_mips));
+    SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_tables));
 }
 
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)

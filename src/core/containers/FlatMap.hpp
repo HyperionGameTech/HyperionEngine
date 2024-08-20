@@ -74,8 +74,8 @@ public:
     Iterator Find(const Key &key);
     ConstIterator Find(const Key &key) const;
 
-    template <class U>
-    HYP_FORCE_INLINE auto FindAs(const U &key) -> Iterator
+    template <class TFindAsType>
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType &key) -> Iterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
@@ -86,8 +86,8 @@ public:
         return (it->first == key) ? it : End();
     }
 
-    template <class U>
-    HYP_FORCE_INLINE auto FindAs(const U &key) const -> ConstIterator
+    template <class TFindAsType>
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType &key) const -> ConstIterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
@@ -98,7 +98,9 @@ public:
         return (it->first == key) ? it : End();
     }
 
-    bool Contains(const Key &key) const;
+    template <class TFindAsType>
+    HYP_FORCE_INLINE bool Contains(const TFindAsType &key) const
+        { return FindAs(key) != End(); }
 
     InsertResult Insert(const Key &key, const Value &value);
     InsertResult Insert(const Key &key, Value &&value);
@@ -108,7 +110,7 @@ public:
     InsertResult Set(const Key &key, const Value &value);
     InsertResult Set(const Key &key, Value &&value);
 
-    template <class ...Args>
+    template <class... Args>
     InsertResult Emplace(const Key &key, Args &&... args)
         { return Insert(key, Value(std::forward<Args>(args)...)); }
 
@@ -286,12 +288,6 @@ auto FlatMap<Key, Value>::Find(const Key &key) const -> ConstIterator
     }
 
     return (it->first == key) ? it : End();
-}
-
-template <class Key, class Value>
-bool FlatMap<Key, Value>::Contains(const Key &key) const
-{
-    return Find(key) != End();
 }
 
 template <class Key, class Value>

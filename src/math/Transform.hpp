@@ -11,13 +11,21 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct HYP_API Transform
 {
     static const Transform identity;
 
+    HYP_FIELD()
     Vec3f       translation;
+
+    HYP_FIELD()
     Vec3f       scale;
+
+    HYP_FIELD()
     Quaternion  rotation;
+
+    HYP_FIELD()
     Matrix4     matrix;
 
     Transform();

@@ -11,6 +11,7 @@ namespace Hyperion
         VSM = 0x3
     }
 
+    [HypClassBinding(Name="ShadowMapComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct ShadowMapComponent : IComponent
     {

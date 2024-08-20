@@ -13,7 +13,8 @@ namespace hyperion {
 
 class Lightmapper;
 
-class HYP_API LightmapperSubsystem : public Subsystem<LightmapperSubsystem>
+HYP_CLASS()
+class HYP_API LightmapperSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(LightmapperSubsystem);
 

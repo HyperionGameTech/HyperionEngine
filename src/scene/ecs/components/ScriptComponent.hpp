@@ -28,13 +28,19 @@ enum class ScriptComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 
+HYP_STRUCT()
 struct ScriptComponent
 {
-    ManagedScript                   script { };
+    HYP_FIELD(SerializeAs=Script)
+    ManagedScript                   script = { };
 
+    HYP_FIELD()
     UniquePtr<dotnet::Assembly>     assembly;
+
+    HYP_FIELD()
     UniquePtr<dotnet::Object>       object;
 
+    HYP_FIELD()
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

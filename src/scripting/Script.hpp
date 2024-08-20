@@ -45,18 +45,31 @@ struct ScriptDesc
 static constexpr SizeType script_max_path_length = 1024;
 static constexpr SizeType script_max_class_name_length = 1024;
 
+HYP_STRUCT()
 struct ManagedScript
 {
+    HYP_FIELD(SerializeAs=UUID)
     UUID    uuid;
+
+    HYP_FIELD(SerializeAs=Path)
     char    path[script_max_path_length];
+
+    HYP_FIELD(SerializeAs=AssemblyPath)
     char    assembly_path[script_max_path_length];
+
+    HYP_FIELD(SerializeAs=ClassName)
     char    class_name[script_max_class_name_length];
+
+    HYP_FIELD(SerializeAs=State)
     uint32  state;
+    
+    HYP_FIELD(SerializeAs=HotReloadVersion)
     int32   hot_reload_version;
+
+    HYP_FIELD(SerializeAs=LastModifiedTimestamp)
     uint64  last_modified_timestamp;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hash_code;
 

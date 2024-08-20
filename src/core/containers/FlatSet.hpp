@@ -45,13 +45,41 @@ public:
     FlatSet &operator=(FlatSet &&other) noexcept;
     ~FlatSet();
     
-    [[nodiscard]] Iterator Find(const T &value);
-    [[nodiscard]] ConstIterator Find(const T &value) const;
+    Iterator Find(const T &value);
+    ConstIterator Find(const T &value) const;
+
+    template <class TFindAsType>
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType &value) -> Iterator
+    {
+        const auto it = FlatSet<T>::Base::LowerBound(value);
+
+        if (it == End()) {
+            return it;
+        }
+
+        return (*it == value) ? it : End();
+    }
+
+    template <class TFindAsType>
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType &value) const -> ConstIterator
+    {
+        const auto it = FlatSet<T>::Base::LowerBound(value);
+
+        if (it == End()) {
+            return it;
+        }
+
+        return (*it == value) ? it : End();
+    }
+
+    template <class TFindAsType>
+    HYP_FORCE_INLINE bool Contains(const TFindAsType &value) const
+        { return FindAs<TFindAsType>(value) != End(); }
     
     InsertResult Insert(const T &value);
     InsertResult Insert(T &&value);
 
-    template <class ...Args>
+    template <class... Args>
     InsertResult Emplace(Args &&... args)
         { return Insert(T(std::forward<Args>(args)...)); }
 
@@ -72,9 +100,6 @@ public:
 
     HYP_FORCE_INLINE bool Empty() const
         { return Base::Empty(); }
-
-    HYP_FORCE_INLINE bool Contains(const T &value) const
-        { return Find(value) != End(); }
 
     HYP_FORCE_INLINE void Clear()
         { Base::Clear(); }

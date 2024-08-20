@@ -46,15 +46,15 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
 
     if (object.wave_format.num_channels == 1) {
         if (object.wave_format.bits_per_sample == 8) {
-            object.format = AudioSource::Format::MONO8;
+            object.format = AudioSourceFormat::MONO8;
         } else if (object.wave_format.bits_per_sample == 16) {
-            object.format = AudioSource::Format::MONO16;
+            object.format = AudioSourceFormat::MONO16;
         }
     } else if (object.wave_format.num_channels == 2) {
         if (object.wave_format.bits_per_sample == 8) {
-            object.format = AudioSource::Format::STEREO8;
+            object.format = AudioSourceFormat::STEREO8;
         } else if (object.wave_format.bits_per_sample == 16) {
-            object.format = AudioSource::Format::STEREO16;
+            object.format = AudioSourceFormat::STEREO16;
         }
     }
 

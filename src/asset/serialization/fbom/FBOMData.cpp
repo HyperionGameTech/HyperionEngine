@@ -1,11 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMConfig.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/memory/Memory.hpp>
 
@@ -79,7 +84,7 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
 
     BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
     
-    FBOMReader deserializer(fbom::FBOMConfig { });
+    FBOMReader deserializer(FBOMReaderConfig { });
 
     // return deserializer.Deserialize(byte_reader, out_object);
     if (FBOMResult err = deserializer.ReadObject(&byte_reader, out_object, nullptr)) {
@@ -91,19 +96,21 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
 
 FBOMData FBOMData::FromObject(const FBOMObject &object, bool keep_native_object)
 {
+    FBOMWriterConfig config;
+    config.enable_static_data = false;
+
     MemoryByteWriter byte_writer;
-    FBOMWriter serializer;
+
+    FBOMWriter serializer { config };
 
     if (FBOMResult err = object.Visit(&serializer, &byte_writer)) {
         AssertThrowMsg(false, "Failed to serialize object: %s", err.message.Data());
     }
 
-    FBOMData value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
+    FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
     if (keep_native_object) {
-        AssertThrowMsg(object.m_deserialized_object != nullptr, "If keep_native_object is true, expected object to have a deserialized value");
-
         value.m_deserialized_object = object.m_deserialized_object;
     }
 
@@ -112,19 +119,21 @@ FBOMData FBOMData::FromObject(const FBOMObject &object, bool keep_native_object)
 
 FBOMData FBOMData::FromObject(FBOMObject &&object, bool keep_native_object)
 {
+    FBOMWriterConfig config;
+    config.enable_static_data = false;
+
     MemoryByteWriter byte_writer;
-    FBOMWriter serializer;
+
+    FBOMWriter serializer { config };
 
     if (FBOMResult err = object.Visit(&serializer, &byte_writer)) {
         AssertThrowMsg(false, "Failed to serialize object: %s", err.message.Data());
     }
 
-    FBOMData value = FBOMData(object.GetType(), std::move(byte_writer.GetBuffer()));
+    FBOMData value = FBOMData(FBOMBaseObjectType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
     if (keep_native_object) {
-        AssertThrowMsg(object.m_deserialized_object != nullptr, "If keep_native_object is true, expected object to have a deserialized value");
-
         value.m_deserialized_object = std::move(object.m_deserialized_object);
     }
 
@@ -139,21 +148,26 @@ FBOMResult FBOMData::ReadArray(FBOMArray &out_array) const
 
     BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
     
-    FBOMReader deserializer(fbom::FBOMConfig { });
+    FBOMReader deserializer { FBOMReaderConfig { } };
     return deserializer.ReadArray(&byte_reader, out_array);
 }
 
 FBOMData FBOMData::FromArray(const FBOMArray &array)
 {
+    FBOMWriterConfig config;
+    config.enable_static_data = false;
+
     MemoryByteWriter byte_writer;
-    FBOMWriter serializer;
+
+    FBOMWriter serializer { config };
 
     if (FBOMResult err = array.Visit(&serializer, &byte_writer)) {
         AssertThrowMsg(false, "Failed to serialize array: %s", err.message.Data());
     }
 
     FBOMData value = FBOMData(FBOMArrayType(), std::move(byte_writer.GetBuffer()));
-    AssertThrowMsg(value.IsArray(), "Expected value to be arary: Got type: %s", value.GetType().ToString().Data());
+    AssertThrowMsg(value.IsArray(), "Expected value to be array: Got type: %s", value.GetType().ToString().Data());
+
     return value;
 }
 

@@ -5,10 +5,16 @@
 #include <core/object/HypMember.hpp>
 #include <core/object/HypObject.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 #include <dotnet/Object.hpp>
+
+#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/fbom/FBOMMarshaler.hpp>
 
 #include <Engine.hpp>
 
@@ -16,11 +22,16 @@ namespace hyperion {
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_type_id(type_id),
       m_name(name),
+      m_parent_name(parent_name),
       m_flags(flags)
 {
+    for (HypClassAttribute attr : attributes) {
+        m_attributes[attr.name] = attr.value;
+    }
+
     // initialize properties containers
     for (HypMember &member : members) {
         if (HypProperty *property = member.value.TryGet<HypProperty>()) {
@@ -64,11 +75,32 @@ HypClass::~HypClass()
     }
 }
 
+void HypClass::Initialize()
+{
+    
+}
+
+const HypClass *HypClass::GetParent() const
+{
+    if (!m_parent_name.IsValid()) {
+        return nullptr;
+    }
+
+    const HypClass *parent_class = GetClass(m_parent_name);
+    AssertThrowMsg(parent_class != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
+    
+    return parent_class;
+}
+
 HypProperty *HypClass::GetProperty(WeakName name) const
 {
     const auto it = m_properties_by_name.FindAs(name);
 
     if (it == m_properties_by_name.End()) {
+        if (const HypClass *parent = GetParent()) {
+            return parent->GetProperty(name);
+        }
+
         return nullptr;
     }
 
@@ -80,6 +112,10 @@ HypMethod *HypClass::GetMethod(WeakName name) const
     const auto it = m_methods_by_name.FindAs(name);
 
     if (it == m_methods_by_name.End()) {
+        if (const HypClass *parent = GetParent()) {
+            return parent->GetMethod(name);
+        }
+
         return nullptr;
     }
 
@@ -91,6 +127,10 @@ HypField *HypClass::GetField(WeakName name) const
     const auto it = m_fields_by_name.FindAs(name);
 
     if (it == m_fields_by_name.End()) {
+        if (const HypClass *parent = GetParent()) {
+            return parent->GetField(name);
+        }
+
         return nullptr;
     }
 

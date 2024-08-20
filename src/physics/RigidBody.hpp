@@ -50,24 +50,16 @@ public:
 
     ~PhysicsShape() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    PhysicsShapeType GetType() const
+    HYP_FORCE_INLINE PhysicsShapeType GetType() const
         { return m_type; }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniquePtr<void> &GetHandle()
-        { return m_handle; }
-
-    /*! \brief Return the handle specific to the physics engine in use */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const UniquePtr<void> &GetHandle() const
-        { return m_handle; }
+    HYP_FORCE_INLINE void *GetHandle() const
+        { return m_handle.Get(); }
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE
-    void SetHandle(UniquePtr<void> &&handle)
+    HYP_FORCE_INLINE void SetHandle(UniquePtr<void> &&handle)
         { m_handle = std::move(handle); }
 
 protected:
@@ -173,62 +165,42 @@ public:
     /*! \brief Get the world-space transform of this RigidBody.
         If changed, you will have to flag that the transform has changed,
         so that the physics engine's internal rigidbody will have its transform updated. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Transform &GetTransform()
+    HYP_FORCE_INLINE Transform &GetTransform()
         { return m_transform; }
 
     /*! \brief Get the world-space transform of this RigidBody. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Transform &GetTransform() const
+    HYP_FORCE_INLINE const Transform &GetTransform() const
         { return m_transform; }
     
-    HYP_FORCE_INLINE
-    void SetTransform(const Transform &transform)
+    HYP_FORCE_INLINE void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    RC<PhysicsShape> &GetShape()
+    HYP_FORCE_INLINE const RC<PhysicsShape> &GetShape() const
         { return m_shape; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const RC<PhysicsShape> &GetShape() const
-        { return m_shape; }
-
-    HYP_FORCE_INLINE
     void SetShape(RC<PhysicsShape> &&shape);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    PhysicsMaterial &GetPhysicsMaterial()
+    HYP_FORCE_INLINE PhysicsMaterial &GetPhysicsMaterial()
         { return m_physics_material; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const PhysicsMaterial &GetPhysicsMaterial() const
+    HYP_FORCE_INLINE const PhysicsMaterial &GetPhysicsMaterial() const
         { return m_physics_material; }
 
     void SetPhysicsMaterial(const PhysicsMaterial &physics_material);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsKinematic() const
+    HYP_FORCE_INLINE bool IsKinematic() const
         { return m_is_kinematic; }
 
-    HYP_FORCE_INLINE
-    void SetIsKinematic(bool is_kinematic)
+    HYP_FORCE_INLINE void SetIsKinematic(bool is_kinematic)
         { m_is_kinematic = is_kinematic; }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniquePtr<void> &GetHandle()
-        { return m_handle; }
-
-    /*! \brief Return the handle specific to the physics engine in use */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const UniquePtr<void> &GetHandle() const
-        { return m_handle; }
+    HYP_FORCE_INLINE void *GetHandle() const
+        { return m_handle.Get(); }
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE
-    void SetHandle(UniquePtr<void> &&handle)
+    HYP_FORCE_INLINE void SetHandle(UniquePtr<void> &&handle)
         { m_handle = std::move(handle); }
 
     void ApplyForce(const Vec3f &force);

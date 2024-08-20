@@ -82,14 +82,14 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
     # if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer")
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer")
     # else()
     #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address")
     # endif()
 endif()
 
 set(HYP_VERSION_MAJOR 1)
-set(HYP_VERSION_MINOR 1)
+set(HYP_VERSION_MINOR 2)
 set(HYP_VERSION_PATCH 15)
 
 set(OpenGL_GL_PREFERENCE GLVND)
@@ -159,6 +159,8 @@ file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 set(HYP_SCRIPTS_BIN_DIR "${CMAKE_SOURCE_DIR}/res/scripts/bin")
 file(MAKE_DIRECTORY ${HYP_SCRIPTS_BIN_DIR})
+
+set(HYP_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
 
 add_definitions(-DHYP_EDITOR=1)
 
@@ -425,6 +427,36 @@ include_directories(
 # set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+function(generate_reflection_library)
+    # execute on build
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running Python codegen script"
+    )
+    add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
+endfunction()
+
+generate_reflection_library()
+
+# remove codegen output folder
+file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/generated)
+
+# execute codegen script on configure
+execute_process(
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+
+message(STATUS "Running Python codegen script - output directory: ${HYP_GENERATED_DIR}")
+
+foreach(GENERATED_SOURCE ${REFLECTION_GENERATED_SOURCES})
+    set(SOURCES ${SOURCES} ${GENERATED_SOURCE})
+endforeach()
+
 # if(WIN32)
 #     # DLL is currently not working on Win32 as it is not exporting the symbols.
 #     # When this is fixed, make it also shared.
@@ -514,7 +546,7 @@ function(create_csharp_library output_name csharp_sources)
 
     add_custom_target(${output_name} ALL
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-        DEPENDS HyperionCore
+        DEPENDS HyperionCore reflection-codegen
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.dll ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.dll
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}

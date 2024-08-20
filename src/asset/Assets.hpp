@@ -75,6 +75,7 @@ struct AssetLoaderDefinition
     }
 };
 
+HYP_CLASS()
 class AssetManager : public BasicObject<AssetManager>
 {
     friend struct AssetBatch;
@@ -96,13 +97,15 @@ public:
     AssetManager &operator=(AssetManager &&other) noexcept  = delete;
     ~AssetManager()                                         = default;
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const FilePath &GetBasePath() const
         { return m_base_path; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetBasePath(const FilePath &base_path)
         { m_base_path = base_path; }
 
-    template <class Loader, class ResultType, class ... Formats>
+    template <class Loader, class ResultType, class... Formats>
     void Register(Formats &&... formats)
     {
         static_assert(std::is_base_of_v<AssetLoaderBase, Loader>,

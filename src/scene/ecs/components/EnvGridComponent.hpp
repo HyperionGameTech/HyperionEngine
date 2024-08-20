@@ -5,23 +5,34 @@
 
 #include <core/Handle.hpp>
 #include <core/Name.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <scene/camera/Camera.hpp>
+
 #include <math/Matrix4.hpp>
 #include <math/Extent.hpp>
 #include <math/Vector3.hpp>
+
 #include <rendering/EnvGrid.hpp>
+
 #include <HashCode.hpp>
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct EnvGridComponent
 {
+    HYP_FIELD(SerializeAs=EnvGridType)
     EnvGridType env_grid_type = ENV_GRID_TYPE_SH;
+
+    HYP_FIELD(SerializeAs=GridSize)
     Vec3u       grid_size = { 16, 4, 16 };
 
+    HYP_FIELD()
     RC<EnvGrid> render_component;
 
+    HYP_FIELD()
     HashCode    transform_hash_code;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

@@ -79,7 +79,7 @@ public:
 
 private:
     Extent2D FindMaxDimensions(const RC<FontFace> &face) const;
-    void RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D dimensions, Glyph &glyph) const;
+    void RenderCharacter(const Handle<Texture> &atlas, const Handle<Texture> &glyph_texture, Vec2i location, Extent2D dimensions) const;
 
     RC<FontFace>            m_face;
 

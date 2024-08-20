@@ -25,16 +25,6 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(World)
-    HYP_GETTER(ID),
-    HYP_GETTER(GameTime),
-
-    HYP_FUNCTION(GetSubsystem, [](World *world, uint32 type_id_value)
-    {
-        return world->GetSubsystem(TypeID(type_id_value));
-    })
-HYP_END_CLASS
-
 using renderer::RTUpdateStateFlags;
 
 #define HYP_WORLD_ASYNC_SCENE_UPDATES
@@ -172,7 +162,7 @@ void World::Update(GameCounter::TickUnit delta)
 
         update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
         {
-            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetName());
+            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetClass()->GetName());
 
             subsystem->Update(delta);
         }));
@@ -271,7 +261,7 @@ void World::Render(Frame *frame)
     }
 }
 
-SubsystemBase *World::AddSubsystem(TypeID type_id, RC<SubsystemBase> &&subsystem)
+Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
 {
     HYP_SCOPE;
 
@@ -303,7 +293,7 @@ SubsystemBase *World::AddSubsystem(TypeID type_id, RC<SubsystemBase> &&subsystem
     return insert_result.first->second.Get();
 }
 
-SubsystemBase *World::GetSubsystem(TypeID type_id)
+Subsystem *World::GetSubsystem(TypeID type_id)
 {
     HYP_SCOPE;
 

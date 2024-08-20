@@ -3,26 +3,9 @@
 #include <math/Quaternion.hpp>
 #include <math/Matrix4.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 #include <float.h>
 
 namespace hyperion {
-
-HYP_BEGIN_STRUCT(Quaternion)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z),
-    HYP_FIELD(w)
-HYP_END_STRUCT
-
-// HYP_DEFINE_CLASS(
-//     Quaternion,
-//     HypProperty(NAME("X"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetX), &Quaternion::SetX),
-//     HypProperty(NAME("Y"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetY), &Quaternion::SetY),
-//     HypProperty(NAME("Z"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetZ), &Quaternion::SetZ),
-//     HypProperty(NAME("W"), static_cast<float (Quaternion::*)() const>(&Quaternion::GetW), &Quaternion::SetW)
-// );
 
 Quaternion::Quaternion()
     : x(0.0), y(0.0), z(0.0), w(1.0)

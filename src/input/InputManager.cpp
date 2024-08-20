@@ -11,8 +11,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(InputManager);
-
 InputManager::InputManager()
     : m_window(nullptr)
 {

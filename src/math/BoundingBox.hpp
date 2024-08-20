@@ -17,8 +17,12 @@ namespace hyperion {
 
 class Triangle;
 
+HYP_STRUCT()
 class HYP_API BoundingBox
 {
+    HYP_PROPERTY(Min, &BoundingBox::min)
+    HYP_PROPERTY(Max, &BoundingBox::max)
+
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 
 public:
@@ -139,7 +143,10 @@ public:
         return BoundingBox(-MathUtil::Infinity<Vec3f>(), +MathUtil::Infinity<Vec3f>());
     }
 
+    HYP_FIELD()
     Vec3f   min;
+
+    HYP_FIELD()
     Vec3f   max;
 };
 

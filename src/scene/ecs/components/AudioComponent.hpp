@@ -32,11 +32,19 @@ enum AudioLoopMode
     AUDIO_LOOP_MODE_REPEAT
 };
 
+HYP_STRUCT()
 struct AudioPlaybackState
 {
+    HYP_FIELD(SerializeAs=Status)
     AudioPlaybackStatus status = AUDIO_PLAYBACK_STATUS_STOPPED;
+
+    HYP_FIELD(SerializeAs=LoopMode)
     AudioLoopMode       loop_mode = AUDIO_LOOP_MODE_ONCE;
+
+    HYP_FIELD(SerializeAs=Speed)
     float               speed = 1.0f;
+
+    HYP_FIELD(SerializeAs=CurrentTime)
     float               current_time = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -51,14 +59,22 @@ struct AudioPlaybackState
     }
 };
 
+HYP_STRUCT()
 struct AudioComponent
 {
+    HYP_FIELD(SerializeAs=AudioSource)
     Handle<AudioSource>     audio_source;
+
+    HYP_FIELD(SerializeAs=PlaybackState)
     AudioPlaybackState      playback_state;
 
+    HYP_FIELD()
     AudioComponentFlags     flags = AUDIO_COMPONENT_FLAG_NONE;
 
+    HYP_FIELD()
     Vec3f                   last_position;
+
+    HYP_FIELD()
     GameCounter::TickUnit   timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

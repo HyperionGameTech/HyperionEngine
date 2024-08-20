@@ -113,7 +113,7 @@ struct EnvProbeIndex
     HYP_FORCE_INLINE bool operator!=(const EnvProbeIndex &other) const
         { return GetProbeIndex() != other.GetProbeIndex(); }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(GetProbeIndex());

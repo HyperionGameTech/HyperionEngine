@@ -9,6 +9,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <util/img/ImageUtil.hpp>
+
 #include <core/system/Debug.hpp>
 
 #include <core/logging/LogChannels.hpp>

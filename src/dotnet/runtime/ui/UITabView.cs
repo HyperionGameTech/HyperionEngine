@@ -9,9 +9,5 @@ namespace Hyperion
         {
                 
         }
-
-        public UITabView(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

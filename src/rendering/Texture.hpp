@@ -30,6 +30,7 @@
 
 namespace hyperion {
 
+HYP_CLASS()
 class HYP_API Texture : public BasicObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
@@ -55,7 +56,7 @@ public:
     Texture(const Texture &other)                   = delete;
     Texture &operator=(const Texture &other)        = delete;
 
-    Texture(Texture &&other) noexcept;
+    Texture(Texture &&other) noexcept               = delete;
     Texture &operator=(Texture &&other) noexcept    = delete;
 
     ~Texture();

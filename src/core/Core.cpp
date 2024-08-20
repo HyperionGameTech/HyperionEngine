@@ -6,8 +6,6 @@
 
 namespace hyperion {
 
-using namespace renderer;
-
 const HypClass *GetClass(TypeID type_id)
 {
     return HypClassRegistry::GetInstance().GetClass(type_id);

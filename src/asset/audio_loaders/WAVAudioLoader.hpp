@@ -45,7 +45,7 @@ public:
         SizeType            size;
         SizeType            frequency;
 
-        AudioSource::Format format;
+        AudioSourceFormat   format;
     };
 
     virtual ~WAVAudioLoader() = default;

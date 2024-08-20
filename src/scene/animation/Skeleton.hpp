@@ -55,9 +55,11 @@ struct SkeletonBoneData
     }
 };
 
-class HYP_API Skeleton
-    : public BasicObject<Skeleton>
+HYP_CLASS()
+class HYP_API Skeleton : public BasicObject<Skeleton>
 {
+    HYP_OBJECT_BODY(Skeleton);
+
 public:
     Skeleton();
     Skeleton(const NodeProxy &root_bone);

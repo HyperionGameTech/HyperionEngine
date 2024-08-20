@@ -5,6 +5,9 @@
 
 #include <core/object/HypClass.hpp>
 
+#include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
+
 namespace hyperion {
 
 namespace dotnet {
@@ -19,8 +22,8 @@ protected:
     // using InitializeCallback = Proc<void, void *, uint32>;
 
 public:
-    HypStruct(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(type_id, name, flags, members)
+    HypStruct(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(type_id, name, parent_name, attributes, flags, members)
     {
     }
 
@@ -47,12 +50,12 @@ public:
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
-
-    virtual void ConstructFromBytes(ConstByteView view, Any &out) const = 0;
+    
+    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const = 0;
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override = 0;
-    virtual void CreateInstance_Internal(Any &out) const override = 0;
+    virtual void CreateInstance_Internal(HypData &out) const override = 0;
+
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
 
     HYP_API bool CreateStructInstance(dotnet::ObjectReference &out_object_reference, const void *object_ptr, SizeType size) const;
@@ -62,15 +65,15 @@ template <class T>
 class HypStructInstance : public HypStruct
 {
 public:
-    static HypStructInstance &GetInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypStructInstance &GetInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypStructInstance instance { name, flags, members };
+        static HypStructInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypStructInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypStruct(TypeID::ForType<T>(), name, flags, members)
+    HypStructInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypStruct(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }
 
@@ -125,38 +128,21 @@ public:
         }
     }
 
-    T CreateInstance() const
-    {
-        ValueStorage<T> result_storage;
-        CreateInstance_Internal(result_storage.GetPointer());
-
-        return result_storage.Get();
-    }
-
-    virtual void ConstructFromBytes(ConstByteView view, Any &out) const override
+    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const override
     {
         AssertThrow(view.Size() == sizeof(T));
 
         ValueStorage<T> result_storage;
         Memory::MemCpy(result_storage.GetPointer(), view.Data(), sizeof(T));
 
-        out = std::move(result_storage.Get());
+        out = HypData(std::move(result_storage.Get()));
     }
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override
+    virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {
-            Memory::Construct<T>(out_ptr);
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
-    virtual void CreateInstance_Internal(Any &out) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            out.Emplace<T>();
+            out = T { };
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

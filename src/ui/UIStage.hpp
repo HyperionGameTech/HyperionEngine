@@ -7,6 +7,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <scene/Node.hpp>
@@ -60,8 +62,12 @@ enum class UIRayTestFlags : uint32
 HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
 
 /*! \brief The UIStage is the root of the UI scene graph. */
+
+HYP_CLASS()
 class HYP_API UIStage : public UIObject
 {
+    HYP_OBJECT_BODY(UIStage);
+
 public:
     friend class UIObject;
 
@@ -77,14 +83,17 @@ public:
     /*! \brief Get the size of the surface that the UI objects are rendered on.
      * 
      *  \return The size of the surface. */
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetSurfaceSize() const
         { return m_surface_size; }
 
+    HYP_METHOD()
     void SetSurfaceSize(Vec2i surface_size);
 
     /*! \brief Get the scene that contains the UI objects.
      * 
      *  \return Handle to the scene. */
+    HYP_METHOD()
     virtual Scene *GetScene() const override;
 
     /*! \brief Get the default font atlas to use for text rendering.
@@ -102,6 +111,7 @@ public:
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \note Because the focused object is a weak reference, a lock is required to access the object.
      *  \return The focused UI object. */
+    HYP_METHOD()
     HYP_FORCE_INLINE RC<UIObject> GetFocusedObject() const
         { return m_focused_object.Lock(); }
 

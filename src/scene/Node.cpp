@@ -24,18 +24,6 @@
 
 namespace hyperion {
 
-// @TODO More properties
-HYP_DEFINE_CLASS(
-    Node,
-    HypProperty(NAME("Name"), &Node::GetName, &Node::SetName),
-    HypProperty(NAME("Entity"), &Node::GetEntity, &Node::SetEntity),
-    HypProperty(NAME("EntityAABB"), &Node::GetEntityAABB, &Node::SetEntityAABB),
-    HypProperty(NAME("LocalTransform"), &Node::GetLocalTransform, &Node::SetLocalTransform),
-    HypProperty(NAME("WorldTransform"), &Node::GetWorldTransform, &Node::SetWorldTransform)
-    // HypProperty(NAME("LocalAABB"), &Node::GetLocalAABB),
-    // HypProperty(NAME("WorldAABB"), &Node::GetWorldAABB)
-);
-
 static const String unnamed_node_name = "<unnamed>";
 
 #pragma region NodeTag

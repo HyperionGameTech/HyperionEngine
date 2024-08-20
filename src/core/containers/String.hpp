@@ -1461,6 +1461,7 @@ constexpr bool operator<(const String<string_type> &lhs, const utilities::detail
         return false;
     }
 
+    // @FIXME: Use strncmp instead as string_view may not be null-terminated
     return utf::utf_strcmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data()) < 0;
 }
 
@@ -1475,27 +1476,36 @@ constexpr bool operator<(const utilities::detail::StringView<string_type> &lhs, 
         return false;
     }
 
+    // @FIXME: Use strncmp instead as string_view may not be null-terminated
     return utf::utf_strcmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data()) < 0;
 }
 
 template <int string_type>
 constexpr bool operator==(const String<string_type> &lhs, const utilities::detail::StringView<string_type> &rhs)
 {
-    if (lhs.Data() == rhs.Data() && (!lhs.Data() || lhs.Size() == rhs.Size())) {
+    if (lhs.Size() != rhs.Size()) {
+        return false;
+    }
+
+    if (lhs.Data() == rhs.Data()) {
         return true;
     }
 
-    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
+    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
 
 template <int string_type>
 constexpr bool operator==(const utilities::detail::StringView<string_type> &lhs, const String<string_type> &rhs)
 {
-    if (lhs.Data() == rhs.Data() && (!lhs.Data() || lhs.Size() == rhs.Size())) {
+    if (lhs.Size() != rhs.Size()) {
+        return false;
+    }
+
+    if (lhs.Data() == rhs.Data()) {
         return true;
     }
 
-    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
+    return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
 
 } // namespace detail

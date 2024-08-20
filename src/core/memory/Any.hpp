@@ -264,12 +264,12 @@ public:
     /*! \brief Drop ownership of the object, giving it to the caller.
         Make sure to use delete! */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE T *Release()
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        if constexpr (!std::is_void_v<T>) {
+            const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+            AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        }
 
         T *ptr = static_cast<T *>(m_ptr);
 
@@ -312,6 +312,9 @@ public:
         m_dtor = nullptr;
     }
 
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return HasValue(); }
+
     /*! \brief Returns the held object as a reference to type T */
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
         { return AnyRef(m_type_id, m_ptr); }
@@ -320,16 +323,10 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
         { return ConstAnyRef(m_type_id, m_ptr); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
-        { return HasValue(); }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    operator AnyRef()
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator AnyRef()
         { return AnyRef(m_type_id, m_ptr); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    operator ConstAnyRef() const
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
         { return ConstAnyRef(m_type_id, m_ptr); }
 
 protected:
@@ -340,7 +337,6 @@ protected:
 
 class CopyableAny : public detail::AnyBase
 {
-
     using CopyConstructor = std::add_pointer_t<void *(void *)>;
     using DeleteFunction = std::add_pointer_t<void(void *)>;
 
@@ -530,54 +526,27 @@ public:
         { return m_type_id == TypeID::ForType<NormalizedType<T>>(); }
 
     /*! \brief Returns true if the held object is of type \ref{type_id}. */
-    HYP_FORCE_INLINE
-    bool Is(TypeID type_id) const
+    HYP_FORCE_INLINE bool Is(TypeID type_id) const
         { return m_type_id == type_id; }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T &Get()
+    HYP_FORCE_INLINE T &Get() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T> *>(m_ptr);
     }
-    
-    /*! \brief Returns the held object as a const reference to type T. If the held object is not of type T, an assertion will fail. */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T &Get() const
-    {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
-
-        return *static_cast<const NormalizedType<T> *>(m_ptr);
-    }
 
     /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *TryGet()
+    HYP_FORCE_INLINE T *TryGet() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
 
         if (m_type_id == requested_type_id) {
             return static_cast<NormalizedType<T> *>(m_ptr);
-        }
-
-        return nullptr;
-    }
-    
-    /*! \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned. */
-    template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const T *TryGet() const
-    {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        if (m_type_id == requested_type_id) {
-            return static_cast<const NormalizedType<T> *>(m_ptr);
         }
 
         return nullptr;
@@ -628,12 +597,12 @@ public:
     /*! \brief Drop ownership of the object, giving it to the caller.
         Make sure to use delete! */
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE
-    T *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE T *Release()
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        if constexpr (!std::is_void_v<T>) {
+            const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+            AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        }
 
         T *ptr = static_cast<T *>(m_ptr);
 
@@ -649,8 +618,7 @@ public:
         Do NOT delete the value passed to this function, as it is deleted by the Any.
     */
     template <class T>
-    HYP_FORCE_INLINE
-    void Reset(T *ptr)
+    HYP_FORCE_INLINE void Reset(T *ptr)
     {
         if (HasValue()) {
             m_dtor(m_ptr);
@@ -669,8 +637,7 @@ public:
     }
 
     /*! \brief Resets the current value held in the Any. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         if (HasValue()) {
             m_dtor(m_ptr);
@@ -682,16 +649,21 @@ public:
         m_dtor = nullptr;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return HasValue(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    operator AnyRef()
+    /*! \brief Returns the held object as a reference to type T */
+    HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef()
         { return AnyRef(m_type_id, m_ptr); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    operator ConstAnyRef() const
+    /*! \brief Returns the held object as a const reference to type T */
+    HYP_NODISCARD HYP_FORCE_INLINE ConstAnyRef ToRef() const
+        { return ConstAnyRef(m_type_id, m_ptr); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator AnyRef()
+        { return AnyRef(m_type_id, m_ptr); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
         { return ConstAnyRef(m_type_id, m_ptr); }
 
 protected:
@@ -705,6 +677,10 @@ protected:
 
 using memory::Any;
 using memory::CopyableAny;
+
+// // Temp 
+// using Any = memory::CopyableAny;
+// using UniqueAny = memory::Any;
 
 } // namespace hyperion
 

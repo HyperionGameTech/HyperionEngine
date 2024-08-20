@@ -38,8 +38,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(AssetManager);
-
 const Handle<AssetManager> &AssetManager::GetInstance()
 {
     return g_asset_manager;

@@ -27,6 +27,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 #include <input/InputManager.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
@@ -171,9 +173,7 @@ void UIStage::Init()
     m_scene = CreateObject<Scene>(
         CreateObject<Camera>(),
         m_owner_thread_id,
-        Scene::InitInfo {
-            Scene::InitInfo::SCENE_FLAGS_NON_WORLD
-        }
+        SceneFlags::NON_WORLD
     );
 
     m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(

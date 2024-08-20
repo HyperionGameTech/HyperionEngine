@@ -9,9 +9,5 @@ namespace Hyperion
         {
             
         }
-
-        public UIGridColumn(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

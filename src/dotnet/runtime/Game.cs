@@ -45,12 +45,14 @@ namespace Hyperion
         /// <summary>
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Game instance.
-        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, RefCountedPtr uiStageRc)
+        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
         {
             this.scene = scene;
             this.inputManager = inputManager;
             this.assetManager = assetManager;
-            this.uiStage = new UIStage(uiStageRc);
+            this.uiStage = uiStage;
+
+            Console.WriteLine("Game BeforeInit: this.scene = {0}, this.inputManager = {1}", this.scene, this.inputManager);
 
             HypClass boundingBoxClass = (HypClass)HypClass.GetClass("BoundingBox");
             // object boundingBoxTest = HypStructRegistry.CreateInstance(boundingBoxClass);
@@ -61,22 +63,25 @@ namespace Hyperion
                 Console.WriteLine("Field Name = {0}, Type = {1}, Offset = {2}", field.Name, field.TypeID, field.Offset);
             }
 
-            Entity newEntity = this.scene.EntityManager.AddEntity();
+            Console.WriteLine("uiStage.Position = {0}", uiStage.GetPosition());
+            Console.WriteLine("uiStage.ActualSize = {0}", uiStage.GetActualSize());
+
+            Entity newEntity = this.scene.GetEntityManager().AddEntity();
             Console.WriteLine("New Entity = {0}", newEntity.ID);
 
-            Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
-            Console.WriteLine("this.scene.World = {0}", this.scene.World);
-            Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);
-            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GameTime);
+            // Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
+            Console.WriteLine("this.scene.World = {0}", this.scene.GetWorld());
+            // Console.WriteLine("this.scene.World.ID = {0}", this.scene.GetWorld().ID);
+            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.GetWorld().GetGameTime());
 
             HypData testArray = new HypData(new float[] { 1.0f, 2.0f, 3.0f, 4.0f });
             Console.WriteLine("TestArray = {0}", testArray.GetValue());
 
             var mesh = new Mesh();
-            Console.WriteLine("Mesh NumIndices = {0}", mesh.NumIndices);
-            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
-            mesh.AABB = new BoundingBox(new Vec3f(1.0f, 2.0f, 3.0f), new Vec3f(4.0f, 5.0f, 6.0f));
-            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
+            Console.WriteLine("Mesh NumIndices = {0}", mesh.NumIndices());
+            Console.WriteLine("Mesh AABB = {0}", mesh.GetAABB());
+            mesh.SetAABB(new BoundingBox(new Vec3f(1.0f, 2.0f, 3.0f), new Vec3f(4.0f, 5.0f, 6.0f)));
+            Console.WriteLine("Mesh AABB = {0}", mesh.GetAABB());
 
             // HypMethod? testMethod = mesh.HypClass.GetMethod(Name.FromString("InvertNormals"));
 
@@ -111,8 +116,6 @@ namespace Hyperion
                 // Console.WriteLine("{0} = {1} Value (Camera) = {2}", property.Name, result, camera);
                 // Console.WriteLine("Game BeforeInit: mesh.HypClass.Property = {0}, result = {1}, type = {2} ({3}), size = {4}  {5}", property.Name, result, result.Type, result.Type.TypeName, result.TotalSize, result.Type.HypClass);
             }
-
-            Console.WriteLine("Game BeforeInit: this.scene = {0}", this.scene.HypClass.TypeID.Value);
 
             Console.WriteLine("this.inputManager.HypClass = {0} {1}", this.inputManager.HypClass, this.inputManager.HypClass.Name);
             Console.WriteLine("this.assetManager.HypClass = {0} {1}", this.assetManager.HypClass, this.assetManager.HypClass.Name);

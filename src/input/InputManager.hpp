@@ -86,6 +86,7 @@ struct InputState
     }
 };
 
+HYP_CLASS()
 class InputManager : public BasicObject<InputManager>
 {
     HYP_OBJECT_BODY(InputManager);
@@ -100,9 +101,11 @@ public:
 
     HYP_API void CheckEvent(SystemEvent *event);
 
+    HYP_METHOD()
     const Vec2i &GetMousePosition() const
         { return m_mouse_position; }
 
+    HYP_METHOD()
     HYP_API void SetMousePosition(Vec2i position);
 
     const Vec2i &GetPreviousMousePosition() const
@@ -126,11 +129,14 @@ public:
     void MouseButtonUp(MouseButton btn)
         { SetMouseButton(btn, false); }
 
+    HYP_METHOD()
     HYP_API bool IsKeyDown(KeyCode key) const;
 
+    HYP_METHOD()
     bool IsKeyUp(KeyCode key) const
         { return !IsKeyDown(key); }
 
+    HYP_METHOD()
     HYP_API bool IsButtonDown(MouseButton btn) const;
 
     HYP_API EnumFlags<MouseButtonState> GetButtonStates() const;

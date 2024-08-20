@@ -9,9 +9,5 @@ namespace Hyperion
         {
                 
         }
-
-        public UIText(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

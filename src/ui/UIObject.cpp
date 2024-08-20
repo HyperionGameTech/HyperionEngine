@@ -27,10 +27,15 @@
 #include <input/InputManager.hpp>
 
 #include <core/threading/Threads.hpp>
+
 #include <core/containers/Queue.hpp>
+
 #include <core/system/AppContext.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <core/object/HypClassUtils.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

@@ -2,9 +2,14 @@
 
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+
+#include <asset/ByteWriter.hpp>
+#include <asset/BufferedByteReader.hpp>
 
 namespace hyperion::fbom {
+
+#pragma region FBOMType
 
 FBOMType::FBOMType()
     : name("UNSET"),
@@ -231,5 +236,77 @@ String FBOMType::ToString(bool deep) const
 
     return str;
 }
+
+#pragma endregion FBOMType
+
+#pragma region FBOMEncodedType
+
+static FBOMType DecodeEncodedType(const FBOMEncodedType &encoded_type, BufferedReader &reader, Span<const uint16> indices)
+{
+    FBOMType type;
+    
+    uint16 name_length;
+    reader.Read(&name_length);
+    type.name = ANSIString(reader.ReadBytes(name_length).ToByteView());
+    
+    uint64 size;
+    reader.Read(&size);
+    type.size = size;
+    
+    uint32 type_id_value;
+    reader.Read(&type_id_value);
+    type.type_id = TypeID { type_id_value };
+
+    uint8 flags;
+    reader.Read(&flags);
+    type.flags = flags;
+
+    if (indices) {
+        type.extends = new FBOMType(DecodeEncodedType(encoded_type, reader, indices + 1));
+    }
+
+    return type;
+}
+
+FBOMEncodedType::FBOMEncodedType(const FBOMType &type)
+    : hash_code(type.GetHashCode())
+{
+    MemoryByteWriter writer;
+
+    const FBOMType *current_type = &type;
+
+    while (current_type) {
+        if (writer.Position() >= UINT16_MAX) {
+            HYP_FAIL("Encoded type would be too large!");
+        }
+
+        index_table.PushBack(uint16(writer.Position()));
+
+        const SizeType name_length = current_type->name.Size();
+        AssertThrowMsg(name_length <= UINT16_MAX, "name too long");
+
+        writer.Write<uint16>(name_length);
+        writer.Write(current_type->name.Data(), name_length);
+
+        writer.Write<uint64>(current_type->size);
+
+        writer.Write<uint32>(current_type->type_id.Value());
+
+        writer.Write<uint8>(current_type->flags);
+
+        current_type = current_type->extends;
+    }
+
+    buffer = std::move(writer.GetBuffer());
+}
+
+FBOMType FBOMEncodedType::Decode() const
+{
+    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(buffer.ToByteView())));
+
+    return DecodeEncodedType(*this, reader, index_table.ToSpan());
+}
+
+#pragma endregion FBOMEncodedType
 
 } // namespace hyperion::fbom

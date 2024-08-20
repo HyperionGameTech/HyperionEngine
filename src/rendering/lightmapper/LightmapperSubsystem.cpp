@@ -16,9 +16,6 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(LightmapperSubsystem)
-HYP_END_CLASS
-
 #pragma region LightmapperSubsystem
 
 LightmapperSubsystem::LightmapperSubsystem()

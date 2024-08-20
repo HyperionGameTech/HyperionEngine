@@ -446,7 +446,7 @@ Octree::InsertResult Octree::InsertInternal(ID<Entity> id, const BoundingBox &aa
         {
             if (mgr.HasEntity(id)) {
                 if (!mgr.HasComponent<VisibilityStateComponent>(id)) {
-                    mgr.AddComponent(id, VisibilityStateComponent {
+                    mgr.AddComponent<VisibilityStateComponent>(id, VisibilityStateComponent {
                         .octant_id = octant_id,
                         .visibility_state = nullptr
                     });

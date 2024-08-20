@@ -9,9 +9,5 @@ namespace Hyperion
         {
                 
         }
-
-        public UIMenuItem(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

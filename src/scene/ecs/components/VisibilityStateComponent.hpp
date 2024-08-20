@@ -21,13 +21,19 @@ enum VisibilityStateFlagBits : VisibilityStateFlags
     VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
 };
 
+HYP_STRUCT()
 struct VisibilityStateComponent
 {
+    HYP_FIELD()
     VisibilityStateFlags    flags = VISIBILITY_STATE_FLAG_NONE;
 
+    HYP_FIELD()
     OctantID                octant_id = OctantID::Invalid();
+
+    HYP_FIELD()
     VisibilityState         *visibility_state = nullptr;
 
+    HYP_FIELD()
     HashCode                last_aabb_hash;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

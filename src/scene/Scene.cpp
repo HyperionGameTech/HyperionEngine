@@ -48,15 +48,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Scene,
-    HypProperty(NAME("ID"), &Scene::GetID),
-    HypProperty(NAME("World"), &Scene::GetWorld),
-    HypProperty(NAME("Camera"), &Scene::GetCamera),
-    HypProperty(NAME("EntityManager"), &Scene::GetEntityManager),
-    HypProperty(NAME("Root"), &Scene::GetRoot)
-);
-
 using renderer::Result;
 
 #pragma region Render commands
@@ -118,14 +109,14 @@ Scene::Scene(Handle<Camera> camera)
 Scene::Scene(
     Handle<Camera> camera,
     ThreadID owner_thread_id,
-    const InitInfo &info
-) : BasicObject(info),
-    m_owner_thread_id(owner_thread_id),
+    EnumFlags<SceneFlags> flags
+) : m_owner_thread_id(owner_thread_id),
+    m_flags(flags),
     m_camera(std::move(camera)),
     m_root_node_proxy(new Node("<ROOT>", ID<Entity>::invalid, Transform { }, this)),
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
-    m_is_non_world_scene(info.flags & InitInfo::SCENE_FLAGS_NON_WORLD),
+    m_is_non_world_scene(flags & SceneFlags::NON_WORLD),
     m_is_audio_listener(false),
     m_entity_manager(new EntityManager(
         owner_thread_id.GetMask(),
@@ -200,10 +191,10 @@ void Scene::Init()
 
     if (IsWorldScene()) {
         if (!m_tlas) {
-            if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool() && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
+            if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool() && (m_flags & SceneFlags::HAS_TLAS)) {
                 CreateTLAS();
             } else {
-                SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
+                m_flags &= ~SceneFlags::HAS_TLAS;
             }
         }
         
@@ -571,7 +562,7 @@ bool Scene::CreateTLAS()
     
     if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         // cannot create TLAS if RT is not supported.
-        SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
+        m_flags &= ~SceneFlags::HAS_TLAS;
 
         return false;
     }
@@ -583,7 +574,7 @@ bool Scene::CreateTLAS()
         m_environment->SetTLAS(m_tlas);
     }
 
-    SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, true);
+    m_flags |= SceneFlags::HAS_TLAS;
 
     return true;
 }

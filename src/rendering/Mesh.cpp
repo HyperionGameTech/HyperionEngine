@@ -18,16 +18,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Mesh,
-    HypProperty(NAME("ID"), &Mesh::GetID, &Mesh::SetID),
-    HypProperty(NAME("AABB"), &Mesh::GetAABB, &Mesh::SetAABB),
-    HypProperty(NAME("VertexAttributes"), &Mesh::GetVertexAttributes, &Mesh::SetVertexAttributes),
-    HypProperty(NAME("Topology"), &Mesh::GetTopology),
-    HypProperty(NAME("NumIndices"), &Mesh::NumIndices),
-    HypMethod(NAME("InvertNormals"), &Mesh::InvertNormals)
-);
-
 using renderer::Result;
 using renderer::GPUBufferType;
 

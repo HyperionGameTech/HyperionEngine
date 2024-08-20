@@ -16,52 +16,50 @@ enum class UUIDVersion
     UUIDv4  = 4
 };
 
+HYP_STRUCT()
 struct alignas(16) UUID
 {
-    uint64  data[2];
+    HYP_FIELD(SerializeAs=Data0)
+    uint64  data0;
+
+    HYP_FIELD(SerializeAs=Data1)
+    uint64  data1;
 
     constexpr UUID(uint64 data0, uint64 data1)
-        : data { data0, data1 }
+        : data0 { data0 },
+          data1 { data1 }
     {
     }
 
     UUID(UUIDVersion version = UUIDVersion::UUIDv4);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator==(const UUID &other) const
-        { return data[0] == other.data[0] && data[1] == other.data[1]; }
+    HYP_FORCE_INLINE constexpr bool operator==(const UUID &other) const
+        { return data0 == other.data0 && data1 == other.data1; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator!=(const UUID &other) const
-        { return data[0] != other.data[0] || data[1] != other.data[1]; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const UUID &other) const
+        { return data0 != other.data0 || data1 != other.data1; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator<(const UUID &other) const
-        { return data[0] < other.data[0] || (data[0] == other.data[0] && data[1] < other.data[1]); }
+    HYP_FORCE_INLINE constexpr bool operator<(const UUID &other) const
+        { return data0 < other.data0 || (data0 == other.data0 && data1 < other.data1); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator>(const UUID &other) const
-        { return data[0] > other.data[0] || (data[0] == other.data[0] && data[1] > other.data[1]); }
+    HYP_FORCE_INLINE constexpr bool operator>(const UUID &other) const
+        { return data0 > other.data0 || (data0 == other.data0 && data1 > other.data1); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator<=(const UUID &other) const
-        { return data[0] < other.data[0] || (data[0] == other.data[0] && data[1] <= other.data[1]); }
+    HYP_FORCE_INLINE constexpr bool operator<=(const UUID &other) const
+        { return data0 < other.data0 || (data0 == other.data0 && data1 <= other.data1); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr bool operator>=(const UUID &other) const
-        { return data[0] > other.data[0] || (data[0] == other.data[0] && data[1] >= other.data[1]); }
+    HYP_FORCE_INLINE constexpr bool operator>=(const UUID &other) const
+        { return data0 > other.data0 || (data0 == other.data0 && data1 >= other.data1); }
 
     ANSIString ToString() const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(data[0])
-            .Combine(HashCode::GetHashCode(data[1]));
+        return HashCode::GetHashCode(data0)
+            .Combine(HashCode::GetHashCode(data1));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr static UUID Invalid()
+    HYP_FORCE_INLINE constexpr static UUID Invalid()
         { return { 0, 0 }; }
 };
 
@@ -86,8 +84,8 @@ struct Formatter<StringType, UUID>
 constexpr UUID SwapEndianness(UUID value)
 {
     UUID result = UUID::Invalid();
-    result.data[0] = SwapEndianness(value.data[0]);
-    result.data[1] = SwapEndianness(value.data[1]);
+    result.data0 = SwapEndianness(value.data0);
+    result.data1 = SwapEndianness(value.data1);
 
     return result;
 }

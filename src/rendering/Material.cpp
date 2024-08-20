@@ -18,9 +18,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Material);
-HYP_DEFINE_CLASS(MaterialGroup);
-
 using renderer::Result;
 
 #pragma region Render commands
@@ -56,7 +53,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
 
         if (num_bound_textures != 0) {
             for (SizeType i = 0; i < bound_texture_ids.Size(); i++) {
-                if (bound_texture_ids[i] != Texture::empty_id) {
+                if (bound_texture_ids[i] != ID<Texture>::invalid) {
                     if (use_bindless_textures) {
                         shader_data.texture_index[i] = bound_texture_ids[i].ToIndex();
                     } else {

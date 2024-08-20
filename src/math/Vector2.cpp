@@ -9,18 +9,18 @@
 namespace hyperion {
 
 HYP_BEGIN_STRUCT(Vec2f)
-    HYP_FIELD(x),
-    HYP_FIELD(y)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2i)
-    HYP_FIELD(x),
-    HYP_FIELD(y)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2u)
-    HYP_FIELD(x),
-    HYP_FIELD(y)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
 namespace math {

@@ -121,8 +121,8 @@ public:
     DescriptorSetRef GetDescriptorSet(Name name) const;
 
 private:
-    HashMap<Name, DescriptorSetRef>    m_descriptor_sets;
-    mutable Mutex                       m_mutex;
+    HashMap<Name, DescriptorSetRef> m_descriptor_sets;
+    mutable Mutex                   m_mutex;
 };
 
 struct EngineDelegates
@@ -132,6 +132,7 @@ struct EngineDelegates
     Delegate<void>  OnAfterSwapchainRecreated;
 };
 
+HYP_CLASS()
 class Engine : public BasicObject<Engine>
 {
     HYP_OBJECT_BODY(Engine);
@@ -166,6 +167,7 @@ public:
     HYP_FORCE_INLINE PlaceholderData *GetPlaceholderData() const
         { return m_placeholder_data.Get(); }
     
+    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World> &GetWorld() const
         { return m_world; }
     

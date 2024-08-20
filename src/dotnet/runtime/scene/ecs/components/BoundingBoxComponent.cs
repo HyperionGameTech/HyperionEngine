@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="BoundingBoxComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 72)]
     public struct BoundingBoxComponent : IComponent
     {

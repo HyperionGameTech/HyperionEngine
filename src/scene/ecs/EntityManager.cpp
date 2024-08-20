@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 #include <scene/Entity.hpp>
 
 #include <core/threading/TaskSystem.hpp>
@@ -22,14 +23,6 @@ namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static const uint32 systems_execution_parallel_threshold = 3;
-
-HYP_BEGIN_CLASS(EntityManager)
-    HYP_GETTER(Scene),
-
-    HYP_METHOD(AddEntity),
-    HYP_METHOD(RemoveEntity),
-    HYP_METHOD(HasEntity)
-HYP_END_CLASS
 
 #pragma region EntityManagerCommandQueue
 
@@ -111,6 +104,11 @@ EntityToEntityManagerMap &EntityManager::GetEntityToEntityManagerMap()
     return s_entity_to_entity_manager_map;
 }
 
+bool EntityManager::IsValidComponentType(TypeID component_type_id)
+{
+    return ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id) != nullptr;
+}
+
 EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags)
     : m_owner_thread_mask(owner_thread_mask),
       m_scene(scene),
@@ -121,7 +119,7 @@ EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFla
     AssertThrow(scene != nullptr);
 
     // add initial component containers
-    for (ComponentInterfaceBase *component_interface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces()) {
+    for (const ComponentInterface *component_interface : ComponentInterfaceRegistry::GetInstance().GetComponentInterfaces()) {
         AssertThrow(component_interface != nullptr);
 
         ComponentContainerFactoryBase *component_container_factory = component_interface->GetComponentContainerFactory();
@@ -386,11 +384,6 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
             }
         }
     }
-}
-
-ComponentInterfaceBase *EntityManager::GetComponentInterface(TypeID type_id)
-{
-    return ComponentInterfaceRegistry::GetInstance().GetComponentInterface(type_id);
 }
 
 void EntityManager::BeginUpdate(GameCounter::TickUnit delta)

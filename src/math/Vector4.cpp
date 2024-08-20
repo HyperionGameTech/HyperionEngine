@@ -11,24 +11,24 @@
 namespace hyperion {
 
 HYP_BEGIN_STRUCT(Vec4f)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z),
-    HYP_FIELD(w)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec4i)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z),
-    HYP_FIELD(w)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec4u)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z),
-    HYP_FIELD(w)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
+    HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
 template<>

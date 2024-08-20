@@ -13,6 +13,7 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 class HYP_API Matrix3
 {
     friend std::ostream &operator<<(std::ostream &os, const Matrix3 &mat);

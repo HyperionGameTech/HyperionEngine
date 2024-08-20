@@ -4,8 +4,13 @@
 #define HYPERION_FIXED_ARRAY_HPP
 
 #include <core/containers/ContainerBase.hpp>
-#include <math/MathUtil.hpp>
+
+#include <core/utilities/Span.hpp>
+
 #include <core/Defines.hpp>
+
+#include <math/MathUtil.hpp>
+
 #include <Types.hpp>
 
 #include <algorithm>
@@ -195,13 +200,24 @@ public:
     HYP_FORCE_INLINE const T &Back() const
         { return m_values[Sz - 1]; }
 
-    HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
+
+    /*! \brief Creates a Span<T> from the FixedArray's data.
+     *  \return A Span<T> of the FixedArray's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
+        { return Span<T>(Data(), Size()); }
+
+    /*! \brief Creates a Span<const T> from the FixedArray's data.
+     *  \return A Span<const T> of the FixedArray's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
+        { return Span<const T>(Data(), Size()); }
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();
     }
+
+    HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
 };
 
 // template <class T, SizeType Sz>
@@ -290,6 +306,30 @@ template <class T, SizeType N>
 constexpr uint ArraySize(const FixedArray<T, N> &)
 {
     return N;
+}
+
+template <class T, SizeType N>
+constexpr inline FixedArray<T, N> MakeFixedArray(const T (&values)[N])
+{
+    FixedArray<T, N> result;
+
+    for (SizeType i = 0; i < N; i++) {
+        result[i] = values[i];
+    }
+
+    return result;
+}
+
+template <class T, SizeType N>
+constexpr inline FixedArray<T, N> MakeFixedArray(T *_begin, T *_end)
+{
+    FixedArray<T, N> result;
+
+    for (SizeType i = 0; i < N && _begin != _end; i++, ++_begin) {
+        result[i] = *_begin;
+    }
+
+    return result;
 }
 
 } // namespace hyperion

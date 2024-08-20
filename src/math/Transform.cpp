@@ -2,25 +2,9 @@
 
 #include <math/Transform.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(Transform)
-    HYP_FIELD(translation),
-    HYP_FIELD(scale),
-    HYP_FIELD(rotation),
-    HYP_FIELD(matrix)
-HYP_END_STRUCT
-
-// HYP_DEFINE_CLASS(
-//     Transform,
-//     HypProperty(NAME("Translation"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetTranslation), &Transform::SetTranslation),
-//     HypProperty(NAME("Rotation"), static_cast<const Quaternion &(Transform::*)() const>(&Transform::GetRotation), &Transform::SetRotation),
-//     HypProperty(NAME("Scale"), static_cast<const Vec3f &(Transform::*)() const>(&Transform::GetScale), &Transform::SetScale)
-// );
-
-const Transform Transform::identity{};
+const Transform Transform::identity { };
 
 Transform::Transform()
     : translation(Vec3f::Zero()),

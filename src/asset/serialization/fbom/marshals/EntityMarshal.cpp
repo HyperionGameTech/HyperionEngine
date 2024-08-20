@@ -1,177 +1,182 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <core/threading/Threads.hpp>
 
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
+#include <core/object/HypData.hpp>
+
+#include <core/utilities/Format.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
 
 template <>
-class FBOMMarshaler<Entity> : public FBOMObjectMarshalerBase<Entity>
+class FBOMMarshaler<ID<Entity>> : public FBOMObjectMarshalerBase<ID<Entity>>
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const Entity &entity, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const ID<Entity> &entity, FBOMObject &out) const override
     {
-        HYP_NOT_IMPLEMENTED();
+        out.SetProperty("IsValid", entity.IsValid());
 
-        // EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity.GetID());
+        if (!entity.IsValid()) {
+            return { FBOMResult::FBOM_OK };
+        }
+        
+        EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
 
-        // if (!entity_manager) {
-        //     return { FBOMResult::FBOM_ERR, "Entity not attached to an EntityManager" };
-        // }
+        if (!entity_manager) {
+            return { FBOMResult::FBOM_ERR, "Entity not attached to an EntityManager" };
+        }
 
-        // Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity.GetID());
+        FBOMResult result = FBOMResult::FBOM_OK;
 
-        // if (!all_components.HasValue()) {
-        //     return { FBOMResult::FBOM_ERR, "No component map found for entity" };
-        // }
+        auto SerializeEntityAndComponents = [&]()
+        {
+            Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
 
-        // FBOMArray components_array;
+            if (!all_components.HasValue()) {
+                result = { FBOMResult::FBOM_ERR, "No component map found for entity" };
 
-        // for (const auto &it : *all_components) {
-        //     const TypeID component_type_id = it.first;
-        //     const HypClass *component_class = GetClass(component_type_id);
+                return;
+            }
 
-        //     if (!component_class) {
-        //         continue; // skip, for now.
-        //         // return { FBOMResult::FBOM_ERR, "No HypClass found for component" };
-        //     }
+            FlatSet<TypeID> serialized_components;
 
-        //     ConstAnyRef component_ptr = entity_manager->TryGetComponent(component_type_id, entity.GetID());
+            for (const auto &it : *all_components) {
+                const TypeID component_type_id = it.first;
 
-        //     // write all properties
-        //     FBOMObject component_object;
-        //     component_object.SetProperty(NAME("type_id"), FBOMData::FromUnsignedInt(component_type_id.Value()));
-        //     component_object.SetProperty(NAME("type_name"), FBOMData::FromName(component_class->GetName()));
+                const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
-        //     FBOMArray properties_array;
+                if (!component_interface) {
+                    result = { FBOMResult::FBOM_ERR, HYP_FORMAT("No ComponentInterface registered for component with TypeID {}", component_type_id.Value()) };
 
-        //     for (const HypProperty *property : component_class->GetProperties()) {
-        //         if (!property->HasGetter()) {
-        //             continue;
-        //         }
+                    return;
+                }
 
-        //         FBOMData property_value = property->InvokeGetter(component_ptr);
+                if (component_interface->GetFlags() & ComponentInterfaceFlags::NO_SERIALIZE) {
+                    continue;
+                }
 
-        //         FBOMObject property_object;
-        //         property_object.SetProperty(NAME("name"), FBOMData::FromName(property->name));
-        //         property_object.SetProperty(NAME("value"), std::move(property_value));
+                if (serialized_components.Contains(component_type_id)) {
+                    HYP_LOG(Serialization, LogLevel::WARNING, "Entity has multiple components of the type {}", component_interface->GetTypeName());
 
-        //         properties_array.AddElement(FBOMData::FromObject(property_object));
-        //     }
+                    continue;
+                }
 
-        //     component_object.SetProperty(NAME("properties"), FBOMData::FromArray(std::move(properties_array)));
+                FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(component_type_id);
 
-        //     components_array.AddElement(FBOMData::FromObject(component_object));
-        // }
+                if (!marshal) {
+                    HYP_LOG(Serialization, LogLevel::WARNING, "Cannot serialize component with TypeID {} - No marshal registered", component_type_id.Value());
 
-        // out.SetProperty(NAME("components"), FBOMData::FromArray(std::move(components_array)));
+                    continue;
+                }
 
-        // return { FBOMResult::FBOM_OK };
+                ConstAnyRef component = entity_manager->TryGetComponent(component_type_id, entity);
+                AssertThrow(component.HasValue());
+
+                FBOMObject component_serialized;
+
+                if (FBOMResult err = marshal->Serialize(component, component_serialized)) {
+                    result = err;
+
+                    return;
+                }
+
+                out.AddChild(std::move(component_serialized));
+
+                serialized_components.Insert(component_type_id);
+            }
+        };
+
+        if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID()) {
+            SerializeEntityAndComponents();
+        } else {
+            entity_manager->PushCommand([&SerializeEntityAndComponents](EntityManager &mgr, GameCounter::TickUnit delta)
+            {
+                SerializeEntityAndComponents();
+            });
+
+            entity_manager->GetCommandQueue().AwaitEmpty();
+        }
+
+        return result;
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
-        HYP_NOT_IMPLEMENTED();
+        bool is_valid = false;
 
-        // const Handle<Scene> &detached_scene = g_engine->GetWorld()->GetDetachedScene(ThreadID::Current());
-        // const RC<EntityManager> &entity_manager = detached_scene->GetEntityManager();
+        if (FBOMResult err = in.GetProperty("IsValid").ReadBool(&is_valid)) {
+            return err;
+        }
 
-        // const ID<Entity> entity = entity_manager->AddEntity();
+        if (!is_valid) {
+            out = HypData(ID<Entity>::invalid);
 
-        // FBOMArray components_array;
+            return FBOMResult::FBOM_OK;
+        }
 
-        // if (FBOMResult err = in.GetProperty("components").ReadArray(components_array)) {
-        //     return err;
-        // }
+        const Handle<Scene> &detached_scene = g_engine->GetWorld()->GetDetachedScene(ThreadID::Current());
+        const RC<EntityManager> &entity_manager = detached_scene->GetEntityManager();
 
-        // for (SizeType component_index = 0; component_index < components_array.Size(); component_index++) {
-        //     FBOMObject component_object;
+        const ID<Entity> entity = entity_manager->AddEntity();
 
-        //     if (FBOMResult err = components_array.GetElement(component_index).ReadObject(component_object)) {
-        //         return err;
-        //     }
+        for (FBOMObject &subobject : *in.nodes) {
+            const TypeID subobject_type_id = subobject.GetType().GetNativeTypeID();
 
-        //     uint32 component_type_id_value;
+            if (!subobject_type_id) {
+                continue;
+            }
 
-        //     if (FBOMResult err = component_object.GetProperty("type_id").ReadUnsignedInt(&component_type_id_value)) {
-        //         return err;
-        //     }
+            if (!entity_manager->IsValidComponentType(subobject_type_id)) {
+                continue;
+            }
+            
+            const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(subobject_type_id);
 
-        //     const TypeID component_type_id { component_type_id_value };
+            if (!component_interface) {
+                HYP_LOG(Serialization, LogLevel::WARNING, "No ComponentInterface registered for component with TypeID {} (serialized object type name: {})", subobject_type_id.Value(), subobject.GetType().name);
 
-        //     const HypClass *component_class = GetClass(component_type_id);
+                continue;
+            }
 
-        //     if (!component_class) {
-        //         HYP_LOG(Serialization, LogLevel::WARNING, "No HypClass registered for component with type {}", component_type_id.Value());
+            if (component_interface->GetFlags() & ComponentInterfaceFlags::NO_SERIALIZE) {
+                HYP_LOG(Serialization, LogLevel::WARNING, "Component '{}' has the NO_SERIALIZE flag set", component_interface->GetTypeName());
 
-        //         continue;
-        //     }
+                continue;
+            }
 
-        //     if (entity_manager->HasComponent(component_type_id, entity)) {
-        //         HYP_LOG(Serialization, LogLevel::WARNING, "Entity already has component of type {}", component_type_id.Value());
+            if (!subobject.m_deserialized_object) {
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("No deserialized object found for component '{}'", component_interface->GetTypeName()) };
+            }
 
-        //         continue;
-        //     }
+            if (entity_manager->HasComponent(subobject_type_id, entity)) {
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Entity already has component '{}'", component_interface->GetTypeName()) };
+            }
 
-        //     Any component_instance;
-        //     component_class->CreateInstance(component_instance);
-        //     AssertThrow(component_instance.HasValue());
+            entity_manager->AddComponent(entity, subobject.m_deserialized_object->ToRef());
+        }
 
-        //     FBOMArray properties_array;
+        out = HypData(entity);
 
-        //     if (FBOMResult err = component_object.GetProperty("properties").ReadArray(properties_array)) {
-        //         return err;
-        //     }
-
-        //     for (SizeType property_index = 0; property_index < properties_array.Size(); property_index++) {
-        //         FBOMObject property_object;
-
-        //         if (FBOMResult err = properties_array.GetElement(property_index).ReadObject(property_object)) {
-        //             return err;
-        //         }
-
-        //         Name property_name;
-
-        //         if (FBOMResult err = property_object.GetProperty("name").ReadName(&property_name)) {
-        //             return err;
-        //         }
-
-        //         HypProperty *component_property = component_class->GetProperty(property_name);
-
-        //         if (!component_property) {
-        //             return { FBOMResult::FBOM_ERR, "Invalid property referenced" };
-        //         }
-                
-        //         if (!component_property->HasSetter()) {
-        //             continue;
-        //         }
-
-        //         const FBOMData &property_value = property_object.GetProperty("value");
-
-        //         component_property->InvokeSetter(component_instance, property_value);
-        //     }
-
-        //     entity_manager->AddComponent(entity, component_type_id, UniquePtr<void>(std::move(component_instance)));
-        // }
-
-        // out_object = Handle<Entity> { entity };
-
-        // return { FBOMResult::FBOM_OK };
+        return { FBOMResult::FBOM_OK };
     }
 };
 
-HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
+HYP_DEFINE_MARSHAL(ID<Entity>, FBOMMarshaler<ID<Entity>>);
 
 } // namespace hyperion::fbom

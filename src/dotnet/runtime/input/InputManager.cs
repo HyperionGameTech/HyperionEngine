@@ -76,26 +76,20 @@ namespace Hyperion
         ArrowUp = 0x52
     }
 
+    public enum MouseButton : uint
+    {
+        Invalid = ~0u,
+        Left = 0,
+        Middle,
+        Right,
+        Max
+    }
+
     [HypClassBinding(Name="InputManager")]
     public class InputManager : HypObject
     {
-        private IntPtr ptr;
-
         public InputManager()
         {
         }
-
-        // public InputManager(IntPtr ptr)
-        // {
-        //     this.ptr = ptr;
-        // }
-
-        public bool IsKeyDown(KeyCode key)
-        {
-            return InputManager_IsKeyDown(ptr, (ushort)key);
-        }
-
-        [DllImport("hyperion", EntryPoint = "InputManager_IsKeyDown")]
-        private static extern bool InputManager_IsKeyDown(IntPtr inputManagerPtr, ushort key);
     }
 }

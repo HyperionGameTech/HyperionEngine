@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
 
 #include <core/utilities/Format.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypData.hpp>
 
 namespace hyperion::fbom {
 
@@ -93,7 +95,7 @@ FBOMObject::~FBOMObject()
     }
 }
 
-bool FBOMObject::HasProperty(WeakName key) const
+bool FBOMObject::HasProperty(ANSIStringView key) const
 {
     const auto it = properties.FindAs(key);
 
@@ -104,7 +106,7 @@ bool FBOMObject::HasProperty(WeakName key) const
     return true;
 }
 
-const FBOMData &FBOMObject::GetProperty(WeakName key) const
+const FBOMData &FBOMObject::GetProperty(ANSIStringView key) const
 {
     static const FBOMData invalid_property_data { };
 
@@ -117,14 +119,14 @@ const FBOMData &FBOMObject::GetProperty(WeakName key) const
     return it->second;
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const FBOMData &data)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMData &data)
 {
     properties.Set(key, data);
 
     return *this;
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, FBOMData &&data)
 {
     // sanity check
     // ANSIString str = key.LookupString();
@@ -143,12 +145,12 @@ FBOMObject &FBOMObject::SetProperty(Name key, FBOMData &&data)
     return *this;
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const ByteBuffer &bytes)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const ByteBuffer &bytes)
 {
     return SetProperty(key, FBOMData(FBOMByteBuffer(bytes.Size()), ByteBuffer(bytes)));
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, ByteBuffer &&byte_buffer)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, ByteBuffer &&byte_buffer)
 {
     FBOMData data(type);
     data.SetBytes(std::move(byte_buffer));
@@ -160,7 +162,7 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, ByteBuffer &
     return SetProperty(key, std::move(data));
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const ByteBuffer &byte_buffer)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, const ByteBuffer &byte_buffer)
 {
     FBOMData data(type);
     data.SetBytes(byte_buffer);
@@ -172,7 +174,7 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const ByteBu
     return SetProperty(key, std::move(data));
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType size, const void *bytes)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, SizeType size, const void *bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
@@ -184,14 +186,14 @@ FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, SizeType siz
     return SetProperty(key, std::move(data));
 }
 
-FBOMObject &FBOMObject::SetProperty(Name key, const FBOMType &type, const void *bytes)
+FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, const void *bytes)
 {
     // AssertThrowMsg(type.IsOrExtends(FBOMStruct()), "Type must be a struct to use this overload");
 
     return SetProperty(key, type, type.size, bytes);
 }
 
-const FBOMData &FBOMObject::operator[](WeakName key) const
+const FBOMData &FBOMObject::operator[](ANSIStringView key) const
 {
     return GetProperty(key);
 }
@@ -206,18 +208,18 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const FBOMObject &in, FBOMDeserializedObject &out)
+FBOMResult FBOMObject::Deserialize(TypeID type_id, const FBOMObject &in, HypData &out)
 {
-    FBOMMarshalerBase *marshal = GetMarshal(type_attributes);
+    FBOMMarshalerBase *marshal = GetMarshal(type_id);
     
     if (!marshal) {
         return {
             FBOMResult::FBOM_ERR,
-            HYP_FORMAT("No registered marshal class for type: {}", type_attributes.name)
+            "No registered marshal class for type"
         };
     }
 
-    return marshal->Deserialize(in, out.any_value);
+    return marshal->Deserialize(in, out);
 }
 
 HashCode FBOMObject::GetHashCode() const
@@ -278,9 +280,9 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-FBOMMarshalerBase *FBOMObject::GetMarshal(const TypeAttributes &type_attributes)
+FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID type_id)
 {
-    return FBOM::GetInstance().GetMarshal(type_attributes);
+    return FBOM::GetInstance().GetMarshal(type_id);
 }
 
 } // namespace hyperion::fbom

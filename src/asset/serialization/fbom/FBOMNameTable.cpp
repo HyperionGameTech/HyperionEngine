@@ -1,5 +1,5 @@
 #include <asset/serialization/fbom/FBOMNameTable.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
 
 namespace hyperion::fbom {
 

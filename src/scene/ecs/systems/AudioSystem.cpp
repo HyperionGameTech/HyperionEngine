@@ -70,10 +70,10 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
             audio_component.playback_state.current_time += delta * audio_component.playback_state.speed;
 
             switch (audio_component.audio_source->GetState()) {
-            case AudioSource::State::PLAYING:
+            case AudioSourceState::PLAYING:
                 break;
-            case AudioSource::State::PAUSED: // fallthrough
-            case AudioSource::State::STOPPED:
+            case AudioSourceState::PAUSED: // fallthrough
+            case AudioSourceState::STOPPED:
                 audio_component.audio_source->SetPitch(audio_component.playback_state.speed);
                 audio_component.audio_source->SetLoop(audio_component.playback_state.loop_mode == AUDIO_LOOP_MODE_REPEAT);
 
@@ -96,11 +96,11 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
                 audio_component.last_position = position;
             }
         } else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PAUSED) {
-            if (audio_component.audio_source->GetState() != AudioSource::State::PAUSED) {
+            if (audio_component.audio_source->GetState() != AudioSourceState::PAUSED) {
                 audio_component.audio_source->Pause();
             }
         } else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_STOPPED) {
-            if (audio_component.audio_source->GetState() != AudioSource::State::STOPPED) {
+            if (audio_component.audio_source->GetState() != AudioSourceState::STOPPED) {
                 audio_component.audio_source->Stop();
             }
         }

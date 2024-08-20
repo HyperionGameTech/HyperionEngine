@@ -4,6 +4,7 @@
 #define HYPERION_CORE_HYP_OBJECT_HPP
 
 #include <core/Defines.hpp>
+#include <core/Core.hpp>
 
 #include <core/object/HypObjectEnums.hpp>
 
@@ -16,18 +17,11 @@
 namespace hyperion {
 
 class HypClass;
+struct HypData;
 
 namespace dotnet {
 class Object;
 } // namespace dotnet
-
-// enum class HypObjectInitializerFlags : uint32
-// {
-//     NONE        = 0x0,
-//     ABSTRACT    = 0x1
-// };
-
-// HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
 
 class IHypObjectInitializer;
 
@@ -68,82 +62,11 @@ private:
     UniquePtr<dotnet::Object>   m_managed_object;
 };
 
-// #define HYP_OBJECT_BODY(T) \
-//     private: \
-//         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
-//         ID<T>                   m_id; \
-//         \
-//     public: \
-//         static constexpr bool is_hyp_object = true; \
-//         \
-//         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
-//             { return m_hyp_object_initializer.GetManagedObject(); } \
-//         \
-//         static TypeID GetTypeID() \
-//         { \
-//             static constexpr TypeID type_id = TypeID::ForType<T>(); \
-//             return type_id; \
-//         } \
-//         static const HypClass *GetClass() \
-//         { \
-//             static const HypClass *hyp_class = ::hyperion::GetClass(GetTypeID()); \
-//             return hyp_class; \
-//         } \
-//         \
-//         HYP_FORCE_INLINE ID<T> GetID() const \
-//             { return m_id; } \
-//         \
-//         HYP_FORCE_INLINE void SetID(ID<T> id) \
-//             { m_id = id; } \
-//     private:
-
-namespace detail {
-
-template <class T, bool Condition = std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>>
-struct HypObject_WeakRefCountedPtrFromThis_Impl;
-
-template <class T>
-struct HypObject_WeakRefCountedPtrFromThis_Impl<T, true>
-{
-    auto operator()(T *ptr) const
-    {
-        return ptr->WeakRefCountedPtrFromThis();
-    }
-};
-
-template <class T>
-struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
-{
-    Weak<T> operator()(T *ptr) const
-    {
-        // Would fail at compile time on instantiation of HypClassInstance<T>, anyway - but throw an error to be sure
-
-        HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis<T> for HypObject that does not use ObjectPool",
-            TypeName<T>().Data());
-        
-        return { };
-    }
-};
-
-} // namespace detail
-
 #define HYP_OBJECT_BODY(T, ...) \
     private: \
         friend class HypObjectInitializer<T>; \
         \
-        void *GetHypObjectNativeAddress() \
-        { \
-            switch (GetHypClassAllocationMethod(GetClass())) { \
-            case HypClassAllocationMethod::OBJECT_POOL_HANDLE: \
-                return this; \
-            case HypClassAllocationMethod::REF_COUNTED_PTR: \
-                return detail::HypObject_WeakRefCountedPtrFromThis_Impl<T>{}(this).GetRefCountData_Internal(); \
-            default: \
-                HYP_NOT_IMPLEMENTED(); \
-            } \
-        } \
-        \
-        HypObjectInitializer<T> m_hyp_object_initializer { /*GetHypObjectNativeAddress()*/ this }; \
+        HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         \
     public: \
         static constexpr bool is_hyp_object = true; \

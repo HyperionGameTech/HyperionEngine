@@ -22,10 +22,10 @@ enum class EntityTag : uint32
  * 
  *  \tparam tag The flag value
  */
-template <EntityTag tag>
+template <EntityTag Tag>
 struct EntityTagComponent
 {
-    static constexpr EntityTag value = tag;
+    static constexpr EntityTag value = Tag;
 };
 
 } // namespace hyperion

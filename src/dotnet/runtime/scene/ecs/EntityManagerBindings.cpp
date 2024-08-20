@@ -52,11 +52,6 @@ HYP_EXPORT void *EntityManager_GetComponent(EntityManager *manager, uint32 compo
     return manager->TryGetComponent(TypeID { component_type_id }, entity).GetPointer();
 }
 
-HYP_EXPORT ComponentInterfaceBase *EntityManager_GetComponentInterface(EntityManager *manager, uint32 component_type_id)
-{
-    return manager->GetComponentInterface(TypeID { component_type_id });
-}
-
 // Components
 // TransformComponent
 HYP_EXPORT uint32 TransformComponent_GetNativeTypeID()

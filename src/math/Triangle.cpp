@@ -5,22 +5,22 @@
 
 namespace hyperion {
 Triangle::Triangle()
-    : m_points{}
+    : points{}
 {
 }
 
 Triangle::Triangle(const Vertex &v0, const Vertex &v1, const Vertex &v2)
-    : m_points({ v0, v1, v2 })
+    : points({ v0, v1, v2 })
 {
 }
 
 Triangle::Triangle(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2)
-    : m_points({ Vertex(v0), Vertex(v1), Vertex(v2) })
+    : points({ Vertex(v0), Vertex(v1), Vertex(v2) })
 {
 }
 
 Triangle::Triangle(const Triangle &other)
-    : m_points(other.m_points)
+    : points(other.points)
 {
 }
 
@@ -30,7 +30,7 @@ Vertex &Triangle::Closest(const Vec3f &vec)
     uint shortest_index = 0;
 
     for (uint i = 0; i < 3; i++) {
-        distances[i] = m_points[i].GetPosition().DistanceSquared(vec);
+        distances[i] = points[i].GetPosition().DistanceSquared(vec);
 
         if (i != 0) {
             if (distances[i] < distances[shortest_index]) {
@@ -39,7 +39,7 @@ Vertex &Triangle::Closest(const Vec3f &vec)
         }
     }
 
-    return m_points[shortest_index];
+    return points[shortest_index];
 }
 
 const Vertex &Triangle::Closest(const Vec3f &vec) const
@@ -50,13 +50,13 @@ const Vertex &Triangle::Closest(const Vec3f &vec) const
 BoundingBox Triangle::GetBoundingBox() const
 {
     const Vec3f min = Vec3f::Min(
-        Vec3f::Min(m_points[0].GetPosition(), m_points[1].GetPosition()),
-        m_points[2].GetPosition()
+        Vec3f::Min(points[0].GetPosition(), points[1].GetPosition()),
+        points[2].GetPosition()
     );
 
     const Vec3f max = Vec3f::Max(
-        Vec3f::Max(m_points[0].GetPosition(), m_points[1].GetPosition()),
-        m_points[2].GetPosition()
+        Vec3f::Max(points[0].GetPosition(), points[1].GetPosition()),
+        points[2].GetPosition()
     );
 
     return BoundingBox(min, max);
@@ -64,9 +64,9 @@ BoundingBox Triangle::GetBoundingBox() const
 
 bool Triangle::ContainsPoint(const Vec3f &pt) const
 {
-    const Vec3f v0 = m_points[2].GetPosition() - m_points[0].GetPosition();
-    const Vec3f v1 = m_points[1].GetPosition() - m_points[0].GetPosition();
-    const Vec3f v2 = pt - m_points[0].GetPosition();
+    const Vec3f v0 = points[2].GetPosition() - points[0].GetPosition();
+    const Vec3f v1 = points[1].GetPosition() - points[0].GetPosition();
+    const Vec3f v2 = pt - points[0].GetPosition();
 
     const float dot00 = v0.Dot(v0);
     const float dot01 = v0.Dot(v1);

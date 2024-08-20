@@ -9,8 +9,10 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct TransformComponent
 {
+    HYP_FIELD(SerializeAs=Transform)
     Transform   transform;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

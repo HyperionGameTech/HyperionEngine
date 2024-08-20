@@ -9,84 +9,107 @@ namespace Hyperion
     public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
 
+    internal enum LoadAssemblyResult : int
+    {
+        UnknownError = -100,
+        VersionMismatch = -2,
+        NotFound = -1,
+        Ok = 0
+    }
+    
     public class NativeInterop
     {
         public static InvokeMethodDelegate InvokeMethodDelegate = InvokeMethod;
 
         [UnmanagedCallersOnly]
-        public static void InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
+        public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
-            // Create a managed string from the pointer
-            string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
-
-            if (isCoreAssembly != 0)
+            try
             {
-                if (AssemblyCache.Instance.Get(assemblyPath) != null)
+                // Create a managed string from the pointer
+                string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
+
+                if (isCoreAssembly != 0)
                 {
-                    // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
+                    if (AssemblyCache.Instance.Get(assemblyPath) != null)
+                    {
+                        // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
 
-                    Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
+                        Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
 
-                    return;
+                        return (int)LoadAssemblyResult.Ok;
+                    }
                 }
-            }
 
-            Guid assemblyGuid = Guid.NewGuid();
-            Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
+                Guid assemblyGuid = Guid.NewGuid();
+                Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
 
-            Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
-            
-            Assembly? assembly = null;
+                Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
+                
+                Assembly? assembly = null;
 
-            if (isCoreAssembly != 0)
-            {
-                // Load in same context
-                assembly = Assembly.LoadFrom(assemblyPath);
-            }
-            else
-            {
-                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
-                assembly = assemblyInstance.Assembly;
-            }
-
-            if (assembly == null)
-            {
-                throw new Exception("Failed to load assembly: " + assemblyPath);
-            }
-
-            AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
-
-            if (hyperionCoreDependency != null)
-            {
-                string versionString = hyperionCoreDependency.Version.ToString();
-
-                var versionParts = versionString.Split('.');
-
-                uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
-                uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
-                uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
-
-                uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
-
-                // Verify the engine version (major, minor)
-                if (!NativeInterop_VerifyEngineVersion(assemblyEngineVersion, true, true, false))
+                if (isCoreAssembly != 0)
                 {
-                    throw new Exception("Assembly version does not match engine version");
+                    // Load in same context
+                    assembly = Assembly.LoadFrom(assemblyPath);
                 }
-            }
-
-            Type[] types = assembly.GetTypes();
-
-            foreach (Type type in types)
-            {
-                if (type.IsClass || (type.IsValueType && !type.IsEnum))
+                else
                 {
-                    // Register classes and structs
-                    InitManagedClass(assemblyGuid, classHolderPtr, type);
+                    AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
+                    assembly = assemblyInstance.Assembly;
                 }
+
+                if (assembly == null)
+                {
+                    Logger.Log(LogType.Error, "Failed to load assembly: " + assemblyPath);
+
+                    return (int)LoadAssemblyResult.NotFound;
+                }
+
+                AssemblyName hyperionCoreDependency = Array.Find(assembly.GetReferencedAssemblies(), (assemblyName) => assemblyName.Name == "HyperionCore");
+
+                if (hyperionCoreDependency != null)
+                {
+                    string versionString = hyperionCoreDependency.Version.ToString();
+
+                    var versionParts = versionString.Split('.');
+
+                    uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
+                    uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
+                    uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
+
+                    uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
+
+                    // Verify the engine version (major, minor)
+                    if (!NativeInterop_VerifyEngineVersion(assemblyEngineVersion, true, true, false))
+                    {
+                        Logger.Log(LogType.Error, "Assembly version does not match engine version");
+
+                        return (int)LoadAssemblyResult.VersionMismatch;
+                    }
+                }
+
+                Type[] types = assembly.GetTypes();
+
+                foreach (Type type in types)
+                {
+                    if (type.IsClass || (type.IsValueType && !type.IsEnum))
+                    {
+                        // Register classes and structs
+                        InitManagedClass(assemblyGuid, classHolderPtr, type);
+                    }
+                }
+
+                NativeInterop_SetInvokeMethodFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
+            }
+            catch (Exception err)
+            {
+                Logger.Log(LogType.Error, "Error loading assembly: {0}", err);
+
+                return (int)LoadAssemblyResult.UnknownError;
             }
 
-            NativeInterop_SetInvokeMethodFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
+            return (int)LoadAssemblyResult.Ok;
         }
         
         [UnmanagedCallersOnly]
@@ -404,7 +427,7 @@ namespace Hyperion
                     throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
                 }
 
-                thisObject = storedObject.obj;
+                thisObject = ((StoredManagedObject)storedObject).obj;
             }
 
             object? returnValue = methodInfo.Invoke(thisObject, parameters);

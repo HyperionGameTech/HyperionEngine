@@ -5,6 +5,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/backend/RendererImage.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -31,7 +33,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         const auto texture_data_it = in.nodes->FindIf([](const FBOMObject &item)
         {
@@ -39,9 +41,9 @@ public:
         });
 
         if (texture_data_it != in.nodes->End()) {
-            out_object = CreateObject<Texture>(RC<StreamedTextureData>(new StreamedTextureData(
+            out = HypData(CreateObject<Texture>(RC<StreamedTextureData>(new StreamedTextureData(
                 texture_data_it->m_deserialized_object->Get<TextureData>()
-            )));
+            ))));
 
             return { FBOMResult::FBOM_OK };
         }
@@ -52,7 +54,7 @@ public:
         });
 
         if (texture_desc_it != in.nodes->End()) {
-            out_object = CreateObject<Texture>(texture_desc_it->m_deserialized_object->Get<TextureDesc>());
+            out = HypData(CreateObject<Texture>(texture_desc_it->m_deserialized_object->Get<TextureDesc>()));
 
             return { FBOMResult::FBOM_OK };
         }

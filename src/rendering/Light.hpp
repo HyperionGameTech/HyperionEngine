@@ -50,11 +50,14 @@ struct LightDrawProxy
 
 struct RENDER_COMMAND(UpdateLightShaderData);
 
+HYP_CLASS()
 class HYP_API Light : public BasicObject<Light>
 {
     friend struct RENDER_COMMAND(UpdateLightShaderData);
 
     HYP_OBJECT_BODY(Light);
+
+    HYP_PROPERTY(ID, &Light::GetID);
 
 public:
     Light();
@@ -88,20 +91,22 @@ public:
 
     /*! \brief Get the current mutation state of the light.
      *
-     * \return The mutation state.
+     *  \return The mutation state.
      */
     HYP_FORCE_INLINE DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
     /*! \brief Get the type of the light.
      *
-     * \return The type.
+     *  \return The type.
      */
-    HYP_FORCE_INLINE LightType GetType() const
+    HYP_METHOD(SerializeAs=Type)
+    LightType GetType() const
         { return m_type; }
 
     /*! \brief Set the type of the light. */
-    HYP_FORCE_INLINE void SetType(LightType type)
+    HYP_METHOD(SerializeAs=Type)
+    void SetType(LightType type)
     {
         if (m_type == type) {
             return;
@@ -113,16 +118,16 @@ public:
 
     /*! \brief Get the position for the light. For directional lights, this is the direction the light is pointing.
      *
-     * \return The position or direction.
-     */
-    HYP_FORCE_INLINE const Vec3f &GetPosition() const
+     *  \return The position or direction. */
+    HYP_METHOD(SerializeAs=Position)
+    const Vec3f &GetPosition() const
         { return m_position; }
 
     /*! \brief Set the position for the light. For directional lights, this is the direction the light is pointing.
      *
-     * \param position The position or direction to set.
-     */
-    HYP_FORCE_INLINE void SetPosition(const Vec3f &position)
+     *  \param position The position or direction to set. */
+    HYP_METHOD(SerializeAs=Position)
+    void SetPosition(const Vec3f &position)
     {
         if (m_position == position) {
             return;
@@ -134,16 +139,16 @@ public:
 
     /*! \brief Get the normal for the light. This is used only for area lights.
      *
-     * \return The normal.
-     */
-    HYP_FORCE_INLINE const Vec3f &GetNormal() const
+     *  \return The normal. */
+    HYP_METHOD(SerializeAs=Normal)
+    const Vec3f &GetNormal() const
         { return m_normal; }
 
     /*! \brief Set the normal for the light. This is used only for area lights.
      *
-     * \param normal The normal to set.
-     */
-    HYP_FORCE_INLINE void SetNormal(const Vec3f &normal)
+     *  \param normal The normal to set. */
+    HYP_METHOD(SerializeAs=Normal)
+    void SetNormal(const Vec3f &normal)
     {
         if (m_normal == normal) {
             return;
@@ -155,16 +160,16 @@ public:
 
     /*! \brief Get the area size for the light. This is used only for area lights.
      *
-     * \return The area size. (x = width, y = height)
-     */
-    HYP_FORCE_INLINE const Vec2f &GetAreaSize() const
+     *  \return The area size. (x = width, y = height) */
+    HYP_METHOD(SerializeAs=AreaSize)
+    const Vec2f &GetAreaSize() const
         { return m_area_size; }
 
     /*! \brief Set the area size for the light. This is used only for area lights.
      *
-     * \param area_size The area size to set. (x = width, y = height)
-     */
-    HYP_FORCE_INLINE void SetAreaSize(const Vec2f &area_size)
+     *  \param area_size The area size to set. (x = width, y = height) */
+    HYP_METHOD(SerializeAs=AreaSize)
+    void SetAreaSize(const Vec2f &area_size)
     {
         if (m_area_size == area_size) {
             return;
@@ -176,16 +181,16 @@ public:
 
     /*! \brief Get the color for the light.
      *
-     * \return The color.
-     */
-    HYP_FORCE_INLINE const Color &GetColor() const
+     *  \return The color. */
+    HYP_METHOD(SerializeAs=Color)
+    const Color &GetColor() const
         { return m_color; }
 
     /*! \brief Set the color for the light.
      *
-     * \param color The color to set.
-     */
-    HYP_FORCE_INLINE void SetColor(const Color &color)
+     *  \param color The color to set. */
+    HYP_METHOD(SerializeAs=Color)
+    void SetColor(const Color &color)
     {
         if (m_color == color) {
             return;
@@ -197,16 +202,16 @@ public:
 
     /*! \brief Get the intensity for the light. This is used to determine how bright the light is.
      *
-     * \return The intensity.
-     */
-    HYP_FORCE_INLINE float GetIntensity() const
+     *  \return The intensity. */
+    HYP_METHOD(SerializeAs=Intensity)
+    float GetIntensity() const
         { return m_intensity; }
 
     /*! \brief Set the intensity for the light. This is used to determine how bright the light is.
      *
-     * \param intensity The intensity to set.
-     */
-    HYP_FORCE_INLINE void SetIntensity(float intensity)
+     *  \param intensity The intensity to set. */
+    HYP_METHOD(SerializeAs=Intensity)
+    void SetIntensity(float intensity)
     {
         if (m_intensity == intensity) {
             return;
@@ -218,9 +223,9 @@ public:
 
     /*! \brief Get the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
      *
-     * \return The radius.
-     */
-    HYP_FORCE_INLINE float GetRadius() const
+     *  \return The radius. */
+    HYP_METHOD(SerializeAs=Radius)
+    float GetRadius() const
     {
         switch (m_type) {
         case LightType::DIRECTIONAL:
@@ -234,9 +239,9 @@ public:
 
     /*! \brief Set the radius for the light. This is used to determine the maximum distance at which this light is visible. (point lights only)
      *
-     * \param radius The radius to set.
-     */
-    HYP_FORCE_INLINE void SetRadius(float radius)
+     *  \param radius The radius to set. */
+    HYP_METHOD(SerializeAs=Radius)
+    void SetRadius(float radius)
     {
         if (m_type != LightType::POINT) {
             return;
@@ -252,16 +257,16 @@ public:
 
     /*! \brief Get the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
      *
-     * \return The falloff.
-     */
-    HYP_FORCE_INLINE float GetFalloff() const
+     *  \return The falloff. */
+    HYP_METHOD(SerializeAs=Falloff)
+    float GetFalloff() const
         { return m_falloff; }
 
     /*! \brief Set the falloff for the light. This is used to determine how the light intensity falls off with distance (point lights only).
      *
-     * \param falloff The falloff to set.
-     */
-    HYP_FORCE_INLINE void SetFalloff(float falloff)
+     *  \param falloff The falloff to set. */
+    HYP_METHOD(SerializeAs=Falloff)
+    void SetFalloff(float falloff)
     {
         if (m_type != LightType::POINT) {
             return;
@@ -277,16 +282,16 @@ public:
 
     /*! \brief Get the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
-     * \return The spotlight angles.
-     */
-    HYP_FORCE_INLINE const Vec2f &GetSpotAngles() const
+     *  \return The spotlight angles. */
+    HYP_METHOD(SerializeAs=SpotAngles)
+    const Vec2f &GetSpotAngles() const
         { return m_spot_angles; }
 
     /*! \brief Set the angles for the spotlight (x = outer, y = inner). This is used to determine the angle of the light cone (spot lights only).
      *
-     * \param spot_angles The angles to set for the spotlight.
-     */
-    HYP_FORCE_INLINE void SetSpotAngles(const Vec2f &spot_angles)
+     *  \param spot_angles The angles to set for the spotlight. */
+    HYP_METHOD(SerializeAs=SpotAngles)
+    void SetSpotAngles(const Vec2f &spot_angles)
     {
         if (m_type != LightType::SPOT) {
             return;
@@ -302,8 +307,7 @@ public:
 
     /*! \brief Get the shadow map index for the light. This is used when sampling shadow maps for the particular light.
      *
-     * \return The shadow map index.
-     */
+     *  \return The shadow map index. */
     HYP_FORCE_INLINE uint32 GetShadowMapIndex() const
         { return m_shadow_map_index; }
 
@@ -323,15 +327,15 @@ public:
 
     /*! \brief Get the material  for the light. Used for area lights.
      *
-     * \return The material handle associated with the Light.
-     */
-    HYP_FORCE_INLINE const Handle<Material> &GetMaterial() const
+     *  \return The material handle associated with the Light. */
+    HYP_METHOD(SerializeAs=Material)
+    const Handle<Material> &GetMaterial() const
         { return m_material; }
 
     /*! \brief Sets the material handle associated with the Light. Used for textured area lights.
      *
-     * \param material The material to set for this Light.
-     */
+     *  \param material The material to set for this Light. */
+    HYP_METHOD(SerializeAs=Material)
     void SetMaterial(Handle<Material> material);
 
     /*! \brief Check if the light is set as visible to the camera.
@@ -348,6 +352,7 @@ public:
      */
     void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
+    HYP_METHOD()
     BoundingBox GetAABB() const;
 
     BoundingSphere GetBoundingSphere() const;

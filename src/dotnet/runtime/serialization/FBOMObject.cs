@@ -43,26 +43,24 @@ namespace Hyperion
                     throw new ArgumentNullException("value");
                 }
 
-                Name name = Name.FromString(key);
-
-                FBOMObject_SetProperty(ptr, ref name, value.ptr);
+                FBOMObject_SetProperty(ptr, key, value.ptr);
             }
         }
 
-        public T GetDeserializedValue<T>()
-        {
-            IntPtr deserializedValuePtr = FBOMObject_GetDeserializedValue(ptr);
+        // public T GetDeserializedValue<T>()
+        // {
+        //     IntPtr deserializedValuePtr = FBOMObject_GetDeserializedValue(ptr);
 
-            if (deserializedValuePtr == IntPtr.Zero)
-            {
-                return default(T);
-            }
+        //     if (deserializedValuePtr == IntPtr.Zero)
+        //     {
+        //         return default(T);
+        //     }
 
-            object obj;
-            MarshalHelpers.MarshalInObject(deserializedValuePtr, typeof(T), out obj);
+        //     object obj;
+        //     MarshalHelpers.MarshalInObject(deserializedValuePtr, typeof(T), out obj);
 
-            return (T)obj;
-        }
+        //     return (T)obj;
+        // }
 
         [DllImport("hyperion", EntryPoint = "FBOMObject_Create")]
         private static extern IntPtr FBOMObject_Create();
@@ -74,9 +72,9 @@ namespace Hyperion
         private static extern bool FBOMObject_GetProperty([In] IntPtr ptr, [MarshalAs(UnmanagedType.LPStr)] string key, [Out] IntPtr outDataPtr);
 
         [DllImport("hyperion", EntryPoint = "FBOMObject_SetProperty")]
-        private static extern bool FBOMObject_SetProperty([In] IntPtr ptr, [In] ref Name key, [In] IntPtr dataPtr);
+        private static extern bool FBOMObject_SetProperty([In] IntPtr ptr, [MarshalAs(UnmanagedType.LPStr)] string key, [In] IntPtr dataPtr);
 
-        [DllImport("hyperion", EntryPoint = "FBOMObject_GetDeserializedValue")]
-        private static extern IntPtr FBOMObject_GetDeserializedValue([In] IntPtr ptr);
+        // [DllImport("hyperion", EntryPoint = "FBOMObject_GetDeserializedValue")]
+        // private static extern IntPtr FBOMObject_GetDeserializedValue([In] IntPtr ptr);
     }
 }

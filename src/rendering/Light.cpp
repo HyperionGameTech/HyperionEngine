@@ -14,13 +14,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(
-    Light,
-    HypProperty(NAME("Type"), &Light::GetType),
-    HypProperty(NAME("Radius"), &Light::GetRadius, &Light::SetRadius),
-    HypProperty(NAME("SpotAngles"), &Light::GetSpotAngles)
-);
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand

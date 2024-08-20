@@ -3,7 +3,6 @@
 #ifndef HYPERION_MESH_HPP
 #define HYPERION_MESH_HPP
 
-#include <core/Base.hpp>
 #include <core/object/HypObject.hpp>
 
 #include <core/utilities/Pair.hpp>
@@ -31,9 +30,12 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
+HYP_CLASS()
 class HYP_API Mesh final : public BasicObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
+
+    HYP_PROPERTY(ID, &Mesh::GetID)
     
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
@@ -68,8 +70,8 @@ public:
         Topology topology = Topology::TRIANGLES
     );
 
-    Mesh(const Mesh &other) = delete;
-    Mesh &operator=(const Mesh &other) = delete;
+    Mesh(const Mesh &other)             = delete;
+    Mesh &operator=(const Mesh &other)  = delete;
 
     Mesh(Mesh &&other) noexcept;
     Mesh &operator=(Mesh &&other) noexcept;
@@ -85,6 +87,7 @@ public:
     void SetVertices(Array<Vertex> vertices);
     void SetVertices(Array<Vertex> vertices, Array<Index> indices);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
@@ -96,15 +99,21 @@ public:
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
     static void SetStreamedMeshData(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
 
+    HYP_METHOD(SerializeAs=VertexAttributes)
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
+    HYP_METHOD(SerializeAs=VertexAttributes)
     HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet &attributes)
         { m_mesh_attributes.vertex_attributes = attributes; }
 
     HYP_FORCE_INLINE const MeshAttributes &GetMeshAttributes() const
         { return m_mesh_attributes; }
 
+    HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &attributes)
+        { m_mesh_attributes = attributes; }
+
+    HYP_METHOD(SerializeAs=Topology)
     HYP_FORCE_INLINE Topology GetTopology() const
         { return m_mesh_attributes.topology; }
 
@@ -113,16 +122,20 @@ public:
 
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
+
+    HYP_METHOD()
     void InvertNormals();
 
     /*! \brief Get the axis-aligned bounding box for the mesh.
         If the mesh has not been initialized, the AABB will be invalid, unless SetAABB() has been called.
         Otherwise, the AABB will be calculated from the mesh vertices. */
+    HYP_METHOD(SerializeAs=AABB)
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
     /*! \brief Manually set the AABB for the mesh. If CalculateAABB is called after this, or the mesh data is changed, the
         manually set AABB will be overwritten. */
+    HYP_METHOD(SerializeAs=AABB)
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 
@@ -137,23 +150,6 @@ public:
     ) const;
 
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
-
-    // HYP_NODISCARD HYP_FORCE_INLINE
-    // HashCode GetHashCode() const
-    // {
-    //     HashCode hc;
-
-    //     // @FIXME
-
-    //     // if (m_streamed_mesh_data != nullptr) {
-    //     //     hc.Add(m_streamed_mesh_data->GetHashCode());
-    //     // }
-
-    //     hc.Add(m_mesh_attributes);
-    //     hc.Add(m_aabb);
-
-    //     return hc;
-    // }
 
 private:
     void CalculateAABB();

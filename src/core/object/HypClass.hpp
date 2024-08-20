@@ -5,6 +5,7 @@
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObjectEnums.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
@@ -17,6 +18,8 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>
 
+#include <asset/serialization/fbom/FBOMResult.hpp>
+
 namespace hyperion {
 
 namespace dotnet {
@@ -24,6 +27,10 @@ class Class;
 class Object;
 struct ObjectReference;
 } // namespace dotnet
+
+namespace fbom {
+class FBOMData;
+} // namespace fbom
 
 struct HypMember;
 struct HypProperty;
@@ -37,12 +44,14 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
     HypClass &operator=(HypClass &&other) noexcept  = delete;
     virtual ~HypClass();
+
+    virtual void Initialize();
 
     virtual bool IsValid() const
         { return false; }
@@ -57,6 +66,8 @@ public:
 
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
+
+    const HypClass *GetParent() const;
 
     virtual SizeType GetSize() const = 0;
 
@@ -75,7 +86,18 @@ public:
         { return m_flags & HypClassFlags::STRUCT_TYPE; }
 
     HYP_FORCE_INLINE bool IsAbstract() const
-        { return m_flags & HypClassFlags::ABSTRACT; }
+        { return m_attributes.Contains("abstract"); }
+
+    HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
+    {
+        auto it = m_attributes.FindAs(key);
+
+        if (it == m_attributes.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
 
     HypProperty *GetProperty(WeakName name) const;
 
@@ -98,21 +120,9 @@ public:
 
     virtual bool CanCreateInstance() const = 0;
 
-    template <class T>
-    HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
+    HYP_FORCE_INLINE void CreateInstance(HypData &out) const
     {
-        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
-            GetName().LookupString());
-
-        AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
-            TypeID::ForType<T>().Value(), GetTypeID().Value());
-
-        CreateInstance_Internal(out_ptr);
-    }
-
-    HYP_FORCE_INLINE void CreateInstance(Any &out) const
-    {
-        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
             GetName().LookupString());
 
         CreateInstance_Internal(out);
@@ -127,14 +137,16 @@ public:
     }
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const = 0;
-    virtual void CreateInstance_Internal(Any &out) const = 0;
+    virtual void CreateInstance_Internal(HypData &out) const = 0;
+
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
     static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference);
 
     TypeID                          m_type_id;
     Name                            m_name;
+    Name                            m_parent_name;
+    HashMap<String, String>         m_attributes;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
@@ -148,15 +160,15 @@ template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypClassInstance &GetInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypClassInstance instance { name, flags, members };
+        static HypClassInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypClassInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(TypeID::ForType<T>(), name, flags, members)
+    HypClassInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }
 
@@ -209,29 +221,16 @@ public:
             return false;
         }
     }
-
-    T CreateInstance() const
-    {
-        ValueStorage<T> result_storage;
-        CreateInstance_Internal(result_storage.GetPointer());
-
-        return result_storage.Get();
-    }
-
+    
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override
+    virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {
-            Memory::Construct<T>(out_ptr);
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
-    virtual void CreateInstance_Internal(Any &out) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            out.Emplace<T>();
+            if constexpr (has_opaque_handle_defined<T>) {
+                out = CreateObject<T>();
+            } else {
+                out = RC<T>::Construct();
+            }
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

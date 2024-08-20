@@ -106,7 +106,7 @@ public:
     LightmapPathTracer &operator=(LightmapPathTracer &&other) noexcept  = delete;
     ~LightmapPathTracer();
 
-    HYP_FORCE_INLINE  const RaytracingPipelineRef &GetPipeline() const
+    HYP_FORCE_INLINE const RaytracingPipelineRef &GetPipeline() const
         { return m_raytracing_pipeline; }
 
     void Create();

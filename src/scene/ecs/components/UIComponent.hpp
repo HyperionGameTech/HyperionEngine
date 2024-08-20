@@ -29,8 +29,10 @@ enum class UIEventHandlerResult : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIEventHandlerResult)
 
+HYP_STRUCT()
 struct UIComponent
 {
+    HYP_FIELD()
     RC<UIObject>    ui_object;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

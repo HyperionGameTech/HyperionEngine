@@ -49,7 +49,7 @@ template <class ...T>
 constexpr bool resolution_failure = false;
 
 template <class T>
-using NormalizedType = std::remove_cv_t<std::decay_t<T>>;
+using NormalizedType = std::conditional_t<std::is_function_v<T>, std::add_pointer_t<T>, std::remove_cvref_t<T>>;
 
 template <class T>
 constexpr bool IsPODType = std::is_standard_layout_v<T>

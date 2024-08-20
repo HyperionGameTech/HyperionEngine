@@ -8,6 +8,8 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/Defines.hpp>
+
 #include <HashCode.hpp>
 
 namespace hyperion {
@@ -60,8 +62,10 @@ enum TerrainComponentFlagBits : TerrainComponentFlags
     TERRAIN_COMPONENT_FLAG_INIT = 0x1
 };
 
+HYP_STRUCT()
 struct TerrainPatchComponent
 {
+    HYP_FIELD()
     TerrainPatchInfo    patch_info;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
@@ -77,13 +81,22 @@ struct TerrainPatchComponent
     }
 };
 
+HYP_STRUCT()
 struct TerrainComponent
 {
+    HYP_FIELD()
     uint32                  seed = 0;
+
+    HYP_FIELD()
     Extent3D                patch_size = { 32, 32, 32 };
+
+    HYP_FIELD()
     Vec3f                   scale = Vec3f::One();
+
+    HYP_FIELD()
     float                   max_distance = 2.0f;
 
+    HYP_FIELD()
     TerrainComponentFlags   flags = TERRAIN_COMPONENT_FLAG_NONE;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

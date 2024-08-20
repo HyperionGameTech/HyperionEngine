@@ -158,9 +158,27 @@ struct CameraDrawProxy
     uint16      visibility_nonce;
 };
 
+HYP_CLASS()
 class HYP_API Camera : public BasicObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);
+
+    HYP_PROPERTY(ID, &Camera::GetID)
+    HYP_PROPERTY(Translation, &Camera::GetTranslation, &Camera::SetTranslation)
+    HYP_PROPERTY(Direction, &Camera::GetDirection, &Camera::SetDirection)
+    HYP_PROPERTY(Up, &Camera::GetUpVector, &Camera::SetUpVector)
+    HYP_PROPERTY(Target, &Camera::GetTarget, &Camera::SetTarget)
+    HYP_PROPERTY(ViewMatrix, &Camera::GetViewMatrix, &Camera::SetViewMatrix)
+    HYP_PROPERTY(ProjectionMatrix, &Camera::GetProjectionMatrix, &Camera::SetProjectionMatrix)
+    HYP_PROPERTY(Width, &Camera::GetWidth, &Camera::SetWidth)
+    HYP_PROPERTY(Height, &Camera::GetHeight, &Camera::SetHeight)
+    HYP_PROPERTY(Near, &Camera::GetNear, &Camera::SetNear)
+    HYP_PROPERTY(Far, &Camera::GetFar, &Camera::SetFar)
+    HYP_PROPERTY(FOV, &Camera::GetFOV)
+    HYP_PROPERTY(Left, &Camera::GetLeft, &Camera::SetLeft)
+    HYP_PROPERTY(Right, &Camera::GetRight, &Camera::SetRight)
+    HYP_PROPERTY(Bottom, &Camera::GetBottom, &Camera::SetBottom)
+    HYP_PROPERTY(Top, &Camera::GetTop, &Camera::SetTop)
 
 public:
     friend class CameraController;
@@ -177,12 +195,12 @@ public:
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera();
 
-    const FramebufferRef &GetFramebuffer() const
+    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
 
     void SetFramebuffer(const FramebufferRef &framebuffer);
 
-    CameraController *GetCameraController() const
+    HYP_FORCE_INLINE CameraController *GetCameraController() const
         { return m_camera_controller.Get(); }
 
     void SetCameraController(RC<CameraController> camera_controller)
@@ -230,121 +248,105 @@ public:
         );
     }
 
-    int GetWidth() const
+    HYP_FORCE_INLINE int GetWidth() const
         { return m_width; }
 
-    void SetWidth(int width)
+    HYP_FORCE_INLINE void SetWidth(int width)
         { m_width = width; }
 
-    int GetHeight() const
+    HYP_FORCE_INLINE int GetHeight() const
         { return m_height; }
 
-    void SetHeight(int height)
+    HYP_FORCE_INLINE void SetHeight(int height)
         { m_height = height; }
 
-    float GetNear() const
+    HYP_FORCE_INLINE float GetNear() const
         { return m_near; }
 
-    void SetNear(float _near)
+    HYP_FORCE_INLINE void SetNear(float _near)
         { m_near = _near; }
 
-    float GetFar() const
+    HYP_FORCE_INLINE float GetFar() const
         { return m_far; }
 
-    void SetFar(float _far)
+    HYP_FORCE_INLINE void SetFar(float _far)
         { m_far = _far; }
 
     // perspective only
-    float GetFOV() const
+    HYP_FORCE_INLINE float GetFOV() const
         { return m_fov; }
 
     // ortho only
-    float GetLeft() const
+    HYP_FORCE_INLINE float GetLeft() const
         { return m_left; }
 
-    void SetLeft(float left)
+    HYP_FORCE_INLINE void SetLeft(float left)
         { m_left = left; }
 
-    float GetRight() const
+    HYP_FORCE_INLINE float GetRight() const
         { return m_right; }
 
-    void SetRight(float right)
+    HYP_FORCE_INLINE void SetRight(float right)
         { m_right = right; }
 
-    float GetBottom() const
+    HYP_FORCE_INLINE float GetBottom() const
         { return m_bottom; }
 
-    void SetBottom(float bottom)
+    HYP_FORCE_INLINE void SetBottom(float bottom)
         { m_bottom = bottom; }
 
-    float GetTop() const
+    HYP_FORCE_INLINE float GetTop() const
         { return m_top; }
         
-    void SetTop(float top)
+    HYP_FORCE_INLINE void SetTop(float top)
         { m_top = top; }
 
-    const Vec3f &GetTranslation() const
+    HYP_FORCE_INLINE const Vec3f &GetTranslation() const
         { return m_translation; }
 
     void SetTranslation(const Vec3f &translation);
     void SetNextTranslation(const Vec3f &translation);
 
-    const Vec3f &GetDirection() const
+    HYP_FORCE_INLINE const Vec3f &GetDirection() const
         { return m_direction; }
 
     void SetDirection(const Vec3f &direction);
 
-    const Vec3f &GetUpVector() const
+    HYP_FORCE_INLINE const Vec3f &GetUpVector() const
         { return m_up; }
 
-    void SetUpVector(const Vec3f &up);
+    HYP_FORCE_INLINE void SetUpVector(const Vec3f &up);
 
-    Vec3f GetSideVector() const
+    HYP_FORCE_INLINE Vec3f GetSideVector() const
         { return m_up.Cross(m_direction); }
 
-    Vec3f GetTarget() const
+    HYP_FORCE_INLINE Vec3f GetTarget() const
         { return m_translation + m_direction; }
 
-    void SetTarget(const Vec3f &target)
+    HYP_FORCE_INLINE void SetTarget(const Vec3f &target)
         { SetDirection(target - m_translation); }
 
     void Rotate(const Vec3f &axis, float radians);
 
-    /*! \brief For deserialization, allow modification of the object. */
-    Frustum &GetFrustum()
+    HYP_FORCE_INLINE const Frustum &GetFrustum() const
         { return m_frustum; }
 
-    const Frustum &GetFrustum() const
-        { return m_frustum; }
-
-    /*! \brief For deserialization, allow modification of the object. */
-    Matrix4 &GetViewMatrix()
-        { return m_view_mat; }
-
-    const Matrix4 &GetViewMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetViewMatrix() const
         { return m_view_mat; }
 
     void SetViewMatrix(const Matrix4 &view_mat);
 
-    /*! \brief For deserialization, allow modification of the object. */
-    Matrix4 &GetProjectionMatrix()
-        { return m_proj_mat; }
-
-    const Matrix4 &GetProjectionMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetProjectionMatrix() const
         { return m_proj_mat; }
 
     void SetProjectionMatrix(const Matrix4 &proj_mat);
 
-    /*! \brief For deserialization, allow modification of the object. */
-    Matrix4 &GetViewProjectionMatrix()
-        { return m_view_proj_mat; }
-
-    const Matrix4 &GetViewProjectionMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetViewProjectionMatrix() const
         { return m_view_proj_mat; }
 
     void SetViewProjectionMatrix(const Matrix4 &view_mat, const Matrix4 &proj_mat);
 
-    const Matrix4 &GetPreviousViewMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetPreviousViewMatrix() const
         { return m_previous_view_matrix; }
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into ndc coordinates */
@@ -367,7 +369,7 @@ public:
 
     Vec2f GetPixelSize() const;
 
-    const CameraDrawProxy &GetProxy() const
+    HYP_FORCE_INLINE const CameraDrawProxy &GetProxy() const
         { return m_proxy; }
 
     void Update(GameCounter::TickUnit dt);

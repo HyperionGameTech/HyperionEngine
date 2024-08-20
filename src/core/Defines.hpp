@@ -55,6 +55,16 @@
     #define HYP_NODISCARD _Check_return_
 #endif
 
+#if defined(HYP_CLANG) && HYP_CLANG
+    #define HYP_NOTNULL __attribute__((nonnull))
+#elif defined(HYP_GCC) && HYP_GCC
+    #define HYP_NOTNULL __attribute__((nonnull))
+#elif defined(HYP_MSVC) && HYP_MSVC
+    #define HYP_NOTNULL __declspec(nonnull)
+#else
+    #define HYP_NOTNULL
+#endif
+
 #if defined(_WIN32) && _WIN32
     #define HYP_WINDOWS 1
 
@@ -442,5 +452,15 @@ extern HYP_API void LogStackTrace();
 } // namespace hyperion
 
 #pragma endregion Global Forward Declarations
+
+#pragma region Codegen
+
+#define HYP_CLASS(...)
+#define HYP_STRUCT(...)
+#define HYP_METHOD(...)
+#define HYP_PROPERTY(name, ...)
+#define HYP_FIELD(...)
+
+#pragma endregion
 
 #endif // !HYPERION_DEFINES_HPP

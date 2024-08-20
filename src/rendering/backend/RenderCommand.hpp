@@ -91,8 +91,7 @@ struct RenderCommandList
 
     ~RenderCommandList() = default;
 
-    HYP_FORCE_INLINE
-    void *AllocCommand(uint buffer_index)
+    HYP_FORCE_INLINE void *AllocCommand(uint buffer_index)
     {
         // always guaranteed to have at least 1 block
         auto &blocks_buffer = blocks[buffer_index];
@@ -108,8 +107,7 @@ struct RenderCommandList
         return last_block->storage.Data() + command_index;
     }
 
-    HYP_FORCE_INLINE
-    void Rewind(uint buffer_index)
+    HYP_FORCE_INLINE void Rewind(uint buffer_index)
     {
         auto &blocks_buffer = blocks[buffer_index];
         // Note: all items must have been destructed,
@@ -135,8 +133,7 @@ struct RenderCommand
 
     virtual ~RenderCommand() = default;
 
-    HYP_FORCE_INLINE
-    Result Call()
+    HYP_FORCE_INLINE Result Call()
         { return operator()(); }
 
     virtual Result operator()() = 0;
@@ -206,17 +203,16 @@ public:
 
         \return A pointer to the render command that was pushed.
     */
-    template <class T, class ...Args>
-    HYP_FORCE_INLINE
-    static T *Push(Args &&... args)
+    template <class T, class... Args>
+    HYP_FORCE_INLINE static T *Push(Args &&... args)
     {
         static_assert(std::is_base_of_v<RenderCommand, T>, "T must derive RenderCommand");
 
         Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
 
-        scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
-
         std::unique_lock lock(mtx);
+
+        scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
         
         void *mem = Alloc<T>(buffer_index);
         T *ptr = new (mem) T(std::forward<Args>(args)...);
@@ -265,8 +261,7 @@ public:
 
 private:
     template <class T>
-    HYP_FORCE_INLINE
-    static void *Alloc(uint buffer_index)
+    HYP_FORCE_INLINE static void *Alloc(uint buffer_index)
     {
         struct Data
         {

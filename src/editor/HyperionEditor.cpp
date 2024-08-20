@@ -23,12 +23,15 @@
 #include <scene/ecs/components/RigidBodyComponent.hpp>
 #include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 #include <scene/world_grid/terrain/TerrainWorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIText.hpp>
@@ -157,36 +160,6 @@ public:
         panel->AddChildUIObject(scale_textbox);
 
         return panel;
-
-        // RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("TransformPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        // grid->SetNumColumns(1);
-
-        // for (const HypProperty *property : hyp_class->GetProperties()) {
-        //     if (!property->HasGetter()) {
-        //         continue;
-        //     }
-
-        //     RC<UIGridRow> row = grid->AddRow();
-
-        //     fbom::FBOMData property_value = property->InvokeGetter(value);
-
-        //     if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
-        //         const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
-
-        //         IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
-
-        //         if (element_factory) {
-        //             RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
-        //             row->AddChildUIObject(element);
-        //         } else {
-        //             HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
-        //         }
-        //     } else {
-        //         HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
-        //     }
-        // }
-
-        // return grid;
     }
 
     virtual void UpdateUIObject_Internal(UIObject *ui_object, const Transform &value) const override
@@ -268,27 +241,6 @@ public:
             panel->AddChildUIObject(header_text);
         }
 
-        // fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
-
-        // if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
-        //     const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
-
-        //     IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
-
-        //     if (element_factory) {
-        //         // RC<UIPanel> sub_panel = stage->CreateUIObject<UIPanel>(NAME("PropertySubPanel"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-
-        //         RC<UIObject> element = element_factory->CreateUIObject(stage, deserialized_object->any_value.ToRef());
-        //         panel->AddChildUIObject(element);
-
-        //         // panel->AddChildUIObject(sub_panel);
-        //     } else {
-        //         HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
-        //     }
-        // } else {
-        //     HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
-        // }
-
         return panel;
     }
 
@@ -298,22 +250,6 @@ public:
         if (!node_rc) {
             return;
         }
-
-        // fbom::FBOMData property_value = value.property->InvokeGetter(*node_rc);
-
-        // if (Optional<fbom::FBOMDeserializedObject &> deserialized_object = property_value.GetDeserializedObject()) {
-        //     const TypeID property_value_type_id = deserialized_object->any_value.GetTypeID();
-
-        //     IUIDataSourceElementFactory *element_factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(property_value_type_id);
-
-        //     if (element_factory) {
-        //         element_factory->UpdateUIObject(ui_object, deserialized_object->any_value.ToRef());
-        //     } else {
-        //         HYP_LOG(Editor, LogLevel::ERR, "No UI element factory found for type ID: {}; cannot render element", property_value_type_id.Value());
-        //     }
-        // } else {
-        //     HYP_LOG(Editor, LogLevel::ERR, "Property value is not a deserialized object; cannot render element");
-        // }
     }
 };
 
@@ -472,7 +408,10 @@ void HyperionEditorImpl::CreateMainPanel()
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
-        if (loaded_ui.Is<UIStage>()) {
+        AssertThrow(loaded_ui.Is<UIStage>());
+        AssertThrow(loaded_ui.Cast<UIStage>() != nullptr);
+
+        if (loaded_ui.Cast<UIStage>()) {
             loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
         }
 
@@ -1201,13 +1140,13 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
-    AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
+    // const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
+    // AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
 
-    const HypClass *mesh_class = Mesh::GetClass();
-    const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
+    // const HypClass *mesh_class = Mesh::GetClass();
+    // const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
 
-    HYP_BREAKPOINT;
+    // HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();
@@ -1301,11 +1240,14 @@ void HyperionEditor::Init()
 
 
     // add sun
-    auto sun = CreateObject<Light>(DirectionalLight(
+    
+    auto sun = CreateObject<Light>(
+        LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.65f, 0.1f).Normalize(),
         Color(Vec4f(1.0f)),
-        4.0f
-    ));
+        4.0f,
+        0.0f
+    );
 
     InitObject(sun);
 
@@ -1540,33 +1482,117 @@ void HyperionEditor::Init()
                     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
                     InitObject(mesh_component->material);
                 }
+
+                m_scene->GetEntityManager()->AddComponent<AudioComponent>(zombie_entity, AudioComponent {
+                    .audio_source = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav").Result(),
+                    .playback_state = {
+                        .speed = 2.0f,
+                        .loop_mode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE
+                    }
+                });
             }
 
             zombie.SetName("zombie");
         }
 
-        // FileByteWriter byte_writer("Scene.hypscene");
-        // fbom::FBOMWriter writer;
-        // writer.Append(*GetScene());
-        // auto err = writer.Emit(&byte_writer);
-        // byte_writer.Close();
-
-        // if (err != fbom::FBOMResult::FBOM_OK) {
-        //     HYP_FAIL("Failed to save scene");
-        // }
-
-        // fbom::FBOMDeserializedObject obj;
-        // fbom::FBOMReader reader({});
-        // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-        //     HYP_FAIL("failed to load: %s", *err.message);
-        // }
-
-        // Handle<Scene> loaded_scene = obj.Get<Scene>();
         
-        // DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+        // testing serialization / deserialization
+        FileByteWriter byte_writer("Scene.hyp");
+        fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
+        writer.Append(*GetScene());
+        auto err = writer.Emit(&byte_writer);
+        byte_writer.Close();
 
-        // HYP_BREAKPOINT;
+        if (err != fbom::FBOMResult::FBOM_OK) {
+            HYP_FAIL("Failed to save scene: %s", err.message.Data());
+        }
+
+        HypData loaded_scene_data;
+        fbom::FBOMReader reader({});
+        if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {
+            HYP_FAIL("failed to load: %s", *err.message);
+        }
+        DebugLog(LogType::Debug, "static data buffer size: %u\n", reader.m_static_data_buffer.Size());
+
+        Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
+        
+        DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+
+        Proc<void, const NodeProxy &, int> DebugPrintNode;
+
+        DebugPrintNode = [this, &DebugPrintNode](const NodeProxy &node, int depth)
+        {
+            if (!node.IsValid()) {
+                return;
+            }
+
+            String str;
+
+            for (int i = 0; i < depth; i++) {
+                str += "  ";
+            }
+            
+            json::JSONObject node_json;
+            node_json["name"] = node.GetName();
+
+            json::JSONValue entity_json = json::JSONUndefined();
+            if (auto entity = node.GetEntity()) {
+                json::JSONObject entity_json_object;
+                entity_json_object["id"] = entity.Value();
+
+                EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+                AssertThrow(entity_manager != nullptr);
+
+                Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
+                AssertThrow(all_components.HasValue());
+                
+                json::JSONArray components_json;
+
+                for (const KeyValuePair<TypeID, ComponentID> &it : *all_components) {
+                    const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
+
+                    json::JSONObject component_json;
+                    component_json["type"] = component_interface->GetTypeName();
+                    component_json["id"] = it.second;
+
+                    if (it.first == TypeID::ForType<ScriptComponent>()) {
+                        const ScriptComponent *script_component = entity_manager->TryGetComponent<ScriptComponent>(entity);
+                        AssertThrow(script_component != nullptr);
+
+                        json::JSONObject script_component_json;
+                        script_component_json["assembly_path"] = String(script_component->script.assembly_path);
+                        script_component_json["class_name"] = String(script_component->script.class_name);
+                        script_component_json["path"] = String(script_component->script.path);
+                        script_component_json["hot_reload_version"] = script_component->script.hot_reload_version;
+                        script_component_json["state"] = script_component->script.state;
+
+                        component_json["script"] = std::move(script_component_json);
+                    }
+
+                    components_json.PushBack(std::move(component_json));
+                }
+
+                entity_json_object["components"] = std::move(components_json);
+
+                entity_json = std::move(entity_json_object);
+            }
+
+            node_json["entity"] = std::move(entity_json);
+
+            DebugLog(LogType::Debug, "%s\n", (str + json::JSONValue(node_json).ToString()).Data());
+
+            for (auto &child : node->GetChildren()) {
+                DebugPrintNode(child, depth + 1);
+            }
+        };
+
+        DebugPrintNode(loaded_scene->GetRoot(), 0);
+
+        HYP_BREAKPOINT;
+
     }).Detach();
+
+    // HYP_BREAKPOINT;
 
     batch->LoadAsync();
 }

@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-static const FixedArray<Vec4f, 8> frustum_corners_ndc {
+static const FixedArray<Vec4f, 8> frustucorners_ndc {
     Vec4f { -1.0f, -1.0f, 0.0f, 1.0f },
     Vec4f { -1.0f,  1.0f, 0.0f, 1.0f },
     Vec4f {  1.0f,  1.0f, 0.0f, 1.0f },
@@ -20,8 +20,8 @@ Frustum::Frustum()
 }
 
 Frustum::Frustum(const Frustum &other)
-    : m_planes(other.m_planes),
-      m_corners(other.m_corners)
+    : planes(other.planes),
+      corners(other.corners)
 {
 }
 
@@ -34,7 +34,7 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 {
     const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
-    for (const Vec4f &plane : m_planes) {
+    for (const Vec4f &plane : planes) {
         if (plane.Dot(Vec4f(corners[0], 1.0f)) > 0.0f) continue;
         if (plane.Dot(Vec4f(corners[1], 1.0f)) > 0.0f) continue;
         if (plane.Dot(Vec4f(corners[2], 1.0f)) > 0.0f) continue;
@@ -52,7 +52,7 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 
 bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
 {
-    for (const Vec4f &plane : m_planes) {
+    for (const Vec4f &plane : planes) {
         if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius) {
             return false;
         }
@@ -65,49 +65,49 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
 {
     const Matrix4 mat = view_proj.Transposed();
     
-    m_planes[0][0] = mat[0][3] - mat[0][0];
-    m_planes[0][1] = mat[1][3] - mat[1][0];
-    m_planes[0][2] = mat[2][3] - mat[2][0];
-    m_planes[0][3] = mat[3][3] - mat[3][0];
-    // m_planes[0].Normalize();
+    planes[0][0] = mat[0][3] - mat[0][0];
+    planes[0][1] = mat[1][3] - mat[1][0];
+    planes[0][2] = mat[2][3] - mat[2][0];
+    planes[0][3] = mat[3][3] - mat[3][0];
+    // planes[0].Normalize();
 
-    m_planes[1][0] = mat[0][3] + mat[0][0];
-    m_planes[1][1] = mat[1][3] + mat[1][0];
-    m_planes[1][2] = mat[2][3] + mat[2][0];
-    m_planes[1][3] = mat[3][3] + mat[3][0];
-    // m_planes[1].Normalize();
+    planes[1][0] = mat[0][3] + mat[0][0];
+    planes[1][1] = mat[1][3] + mat[1][0];
+    planes[1][2] = mat[2][3] + mat[2][0];
+    planes[1][3] = mat[3][3] + mat[3][0];
+    // planes[1].Normalize();
 
-    m_planes[2][0] = mat[0][3] + mat[0][1];
-    m_planes[2][1] = mat[1][3] + mat[1][1];
-    m_planes[2][2] = mat[2][3] + mat[2][1];
-    m_planes[2][3] = mat[3][3] + mat[3][1];
-    // m_planes[2].Normalize();
+    planes[2][0] = mat[0][3] + mat[0][1];
+    planes[2][1] = mat[1][3] + mat[1][1];
+    planes[2][2] = mat[2][3] + mat[2][1];
+    planes[2][3] = mat[3][3] + mat[3][1];
+    // planes[2].Normalize();
 
-    m_planes[3][0] = mat[0][3] - mat[0][1];
-    m_planes[3][1] = mat[1][3] - mat[1][1];
-    m_planes[3][2] = mat[2][3] - mat[2][1];
-    m_planes[3][3] = mat[3][3] - mat[3][1];
-    // m_planes[3].Normalize();
+    planes[3][0] = mat[0][3] - mat[0][1];
+    planes[3][1] = mat[1][3] - mat[1][1];
+    planes[3][2] = mat[2][3] - mat[2][1];
+    planes[3][3] = mat[3][3] - mat[3][1];
+    // planes[3].Normalize();
 
-    m_planes[4][0] = mat[0][3] - mat[0][2];
-    m_planes[4][1] = mat[1][3] - mat[1][2];
-    m_planes[4][2] = mat[2][3] - mat[2][2];
-    m_planes[4][3] = mat[3][3] - mat[3][2];
-    // m_planes[4].Normalize();
+    planes[4][0] = mat[0][3] - mat[0][2];
+    planes[4][1] = mat[1][3] - mat[1][2];
+    planes[4][2] = mat[2][3] - mat[2][2];
+    planes[4][3] = mat[3][3] - mat[3][2];
+    // planes[4].Normalize();
 
-    m_planes[5][0] = mat[0][3] + mat[0][2];
-    m_planes[5][1] = mat[1][3] + mat[1][2];
-    m_planes[5][2] = mat[2][3] + mat[2][2];
-    m_planes[5][3] = mat[3][3] + mat[3][2];
-    // m_planes[5].Normalize();
+    planes[5][0] = mat[0][3] + mat[0][2];
+    planes[5][1] = mat[1][3] + mat[1][2];
+    planes[5][2] = mat[2][3] + mat[2][2];
+    planes[5][3] = mat[3][3] + mat[3][2];
+    // planes[5].Normalize();
 
     const Matrix4 clip_to_world = view_proj.Inverted();
 
     for (uint i = 0; i < 8; i++) {
-        Vec4f corner = clip_to_world * frustum_corners_ndc[i];
+        Vec4f corner = clip_to_world * frustucorners_ndc[i];
         corner /= corner.w;
 
-        m_corners[i] = corner.GetXYZ();
+        corners[i] = corner.GetXYZ();
     }
 
     return *this;

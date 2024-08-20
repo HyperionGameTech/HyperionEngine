@@ -8,11 +8,6 @@
 
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(BoundingBox)
-    HYP_FIELD(min),
-    HYP_FIELD(max)
-HYP_END_STRUCT
-
 BoundingBox::BoundingBox()
     : min(MathUtil::MaxSafeValue<Vec3f>()),
       max(MathUtil::MinSafeValue<Vec3f>())

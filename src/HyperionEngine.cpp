@@ -8,6 +8,8 @@
 
 #include <scene/ecs/ComponentInterface.hpp>
 
+#include <core/object/HypClassRegistry.hpp>
+
 namespace hyperion {
 
 HYP_API void InitializeAppContext(RC<AppContext> app_context)
@@ -18,6 +20,8 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
         !g_engine.IsValid(),
         "Hyperion already initialized!"
     );
+
+    HypClassRegistry::GetInstance().Initialize();
 
     dotnet::DotNetSystem::GetInstance().Initialize(app_context);
 

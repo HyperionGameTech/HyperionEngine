@@ -27,19 +27,31 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<sizeof(Vec4u)>;
 
+HYP_STRUCT()
 struct MeshComponent
 {
+    HYP_FIELD(SerializeAs=Mesh)
     Handle<Mesh>            mesh;
+
+    HYP_FIELD(SerializeAs=Material)
     Handle<Material>        material;
+
+    HYP_FIELD(SerializeAs=Skeleton)
     Handle<Skeleton>        skeleton;
 
+    HYP_FIELD(SerializeAs=NumInstances)
     uint32                  num_instances = 1;
 
+    HYP_FIELD()
     RC<RenderProxy>         proxy;
+
+    HYP_FIELD()
     MeshComponentFlags      flags = MESH_COMPONENT_FLAG_DIRTY;
 
+    HYP_FIELD()
     Matrix4                 previous_model_matrix;
 
+    HYP_FIELD()
     MeshComponentUserData   user_data;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

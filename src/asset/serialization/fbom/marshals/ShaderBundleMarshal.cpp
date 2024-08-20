@@ -1,10 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <Engine.hpp>
 
@@ -23,19 +26,19 @@ public:
         }
 
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
-        out.SetProperty(NAME("global_descriptor_table_version"), FBOMData::FromUnsignedLong(renderer::g_static_descriptor_table_decl->GetHashCode().Value()));
+        out.SetProperty("global_descriptor_table_version", FBOMData::FromUInt64(renderer::g_static_descriptor_table_decl->GetHashCode().Value()));
 
-        out.SetProperty(NAME("name"), FBOMData::FromName(in_object.definition.name));
+        out.SetProperty("name", FBOMData::FromName(in_object.definition.name));
 
-        out.SetProperty(NAME("entry_point_name"), FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
+        out.SetProperty("entry_point_name", FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
 
         const VertexAttributeSet required_vertex_attributes = in_object.definition.properties.GetRequiredVertexAttributes();
-        out.SetProperty(NAME("required_vertex_attributes"), FBOMData::FromUnsignedLong(required_vertex_attributes.flag_mask));
+        out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
 
         const VertexAttributeSet optional_vertex_attributes = in_object.definition.properties.GetOptionalVertexAttributes();
-        out.SetProperty(NAME("optional_vertex_attributes"), FBOMData::FromUnsignedLong(optional_vertex_attributes.flag_mask));
+        out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
 
-        out.SetProperty(NAME("num_descriptor_usages"), FBOMData::FromUnsignedInt(uint32(in_object.GetDescriptorUsages().Size())));
+        out.SetProperty("num_descriptor_usages", FBOMData::FromUInt32(uint32(in_object.GetDescriptorUsages().Size())));
 
         for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++) {
             const DescriptorUsage &item = in_object.GetDescriptorUsages()[index];
@@ -44,42 +47,42 @@ public:
             const ANSIString set_name_string(*item.set_name);
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".slot"),
-                FBOMData::FromUnsignedInt(item.slot)
+                ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".slot",
+                FBOMData::FromUInt32(item.slot)
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".descriptor_name"),
+                ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".descriptor_name",
                 FBOMString(descriptor_name_string.Size()),
                 descriptor_name_string.Data()
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".set_name"),
+                ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".set_name",
                 FBOMString(set_name_string.Size()),
                 set_name_string.Data()
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".flags"),
-                FBOMData::FromUnsignedInt(item.flags)
+                ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".flags",
+                FBOMData::FromUInt32(item.flags)
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".num_params"),
-                FBOMData::FromUnsignedInt(uint32(item.params.Size()))
+                ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".num_params",
+                FBOMData::FromUInt32(uint32(item.params.Size()))
             );
 
             uint32 param_index = 0;
 
             for (const auto &it : item.params) {
                 out.SetProperty(
-                    CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].key"),
+                    ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].key",
                     FBOMData::FromString(it.first)
                 );
 
                 out.SetProperty(
-                    CreateNameFromDynamicString(ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].value"),
+                    ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".params[" + ANSIString::ToString(param_index) + "].value",
                     FBOMData::FromString(it.second)
                 );
 
@@ -88,7 +91,7 @@ public:
         }
 
         Array<ShaderProperty> properties_array = in_object.definition.properties.GetPropertySet().ToArray();
-        out.SetProperty(NAME("properties.size"), FBOMData::FromUnsignedInt(uint32(properties_array.Size())));
+        out.SetProperty("properties.size", FBOMData::FromUInt32(uint32(properties_array.Size())));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
             const ShaderProperty &item = properties_array[index];
@@ -96,34 +99,34 @@ public:
             // @TODO: Serialize `value`
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".name"),
+                ANSIString("properties.") + ANSIString::ToString(index) + ".name",
                 FBOMData::FromString(item.name)
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".is_permutation"),
+                ANSIString("properties.") + ANSIString::ToString(index) + ".is_permutation",
                 FBOMData::FromBool(item.is_permutation)
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".flags"),
-                FBOMData::FromUnsignedInt(item.flags)
+                ANSIString("properties.") + ANSIString::ToString(index) + ".flags",
+                FBOMData::FromUInt32(item.flags)
             );
 
             out.SetProperty(
-                CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".is_value_group"),
+                ANSIString("properties.") + ANSIString::ToString(index) + ".is_value_group",
                 FBOMData::FromBool(item.IsValueGroup())
             );
 
             if (item.IsValueGroup()) {
                 out.SetProperty(
-                    CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".num_possible_values"),
-                    FBOMData::FromUnsignedInt(uint32(item.possible_values.Size()))
+                    ANSIString("properties.") + ANSIString::ToString(index) + ".num_possible_values",
+                    FBOMData::FromUInt32(uint32(item.possible_values.Size()))
                 );
 
                 for (SizeType i = 0; i < item.possible_values.Size(); i++) {
                     out.SetProperty(
-                        CreateNameFromDynamicString(ANSIString("properties.") + ANSIString::ToString(index) + ".possible_values[" + ANSIString::ToString(i) + "]"),
+                        ANSIString("properties.") + ANSIString::ToString(index) + ".possible_values[" + ANSIString::ToString(i) + "]",
                         FBOMData::FromString(item.possible_values[i])
                     );
                 }
@@ -134,7 +137,7 @@ public:
             const ByteBuffer &byte_buffer = in_object.modules[index];
 
             if (byte_buffer.Size()) {
-                out.SetProperty(CreateNameFromDynamicString(ANSIString("module[") + ANSIString::ToString(index) + "]"), byte_buffer);
+                out.SetProperty(ANSIString("module[") + ANSIString::ToString(index) + "]", byte_buffer);
             }
         }
 
@@ -151,11 +154,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         uint64 global_descriptor_table_version = -1;
 
-        if (FBOMResult err = in.GetProperty("global_descriptor_table_version").ReadUnsignedLong(&global_descriptor_table_version)) {
+        if (FBOMResult err = in.GetProperty("global_descriptor_table_version").ReadUInt64(&global_descriptor_table_version)) {
             return err;
         }
 
@@ -188,7 +191,7 @@ public:
 
         VertexAttributeSet required_vertex_attributes { };
 
-        if (FBOMResult err = in.GetProperty("required_vertex_attributes").ReadUnsignedLong(&required_vertex_attributes.flag_mask)) {
+        if (FBOMResult err = in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask)) {
             return err;
         }
 
@@ -196,7 +199,7 @@ public:
 
         VertexAttributeSet optional_vertex_attributes { };
         
-        if (FBOMResult err = in.GetProperty("optional_vertex_attributes").ReadUnsignedLong(&optional_vertex_attributes.flag_mask)) {
+        if (FBOMResult err = in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask)) {
             return err;
         }
 
@@ -205,7 +208,7 @@ public:
         uint32 num_descriptor_usages = 0;
 
         if (in.HasProperty("num_descriptor_usages")) {
-           in.GetProperty("num_descriptor_usages").ReadUnsignedInt(&num_descriptor_usages);
+           in.GetProperty("num_descriptor_usages").ReadUInt32(&num_descriptor_usages);
 
             if (num_descriptor_usages != 0) {
                 for (uint32 i = 0; i < num_descriptor_usages; i++) {
@@ -216,7 +219,7 @@ public:
                     ANSIString descriptor_name_string;
                     ANSIString set_name_string;
 
-                    if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUnsignedInt(&usage.slot)) {
+                    if (FBOMResult err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUInt32(&usage.slot)) {
                         return err;
                     }
 
@@ -231,10 +234,10 @@ public:
                     usage.descriptor_name = CreateNameFromDynamicString(descriptor_name_string);
                     usage.set_name = CreateNameFromDynamicString(set_name_string);
 
-                    in.GetProperty(descriptor_usage_index_string + ".flags").ReadUnsignedInt(&usage.flags);
+                    in.GetProperty(descriptor_usage_index_string + ".flags").ReadUInt32(&usage.flags);
 
                     uint32 num_params = 0;
-                    in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUnsignedInt(&num_params);
+                    in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUInt32(&num_params);
 
                     for (uint32 j = 0; j < num_params; j++) {
                         const ANSIString param_string = descriptor_usage_index_string + ".params[" + ANSIString::ToString(j) + "]";
@@ -264,7 +267,7 @@ public:
 
         uint32 num_properties;
 
-        if (FBOMResult err = in.GetProperty("properties.size").ReadUnsignedInt(&num_properties)) {
+        if (FBOMResult err = in.GetProperty("properties.size").ReadUInt32(&num_properties)) {
             return err;
         }
 
@@ -280,13 +283,13 @@ public:
             bool is_value_group = false;
 
             in.GetProperty(param_string + ".is_permutation").ReadBool(&property.is_permutation);
-            in.GetProperty(param_string + ".flags").ReadUnsignedInt(&property.flags);
+            in.GetProperty(param_string + ".flags").ReadUInt32(&property.flags);
             in.GetProperty(param_string + ".is_value_group").ReadBool(&is_value_group);
 
             if (is_value_group) {
                 uint32 num_possible_values = 0;
 
-                if (FBOMResult err = in.GetProperty(param_string + ".num_possible_values").ReadUnsignedInt(&num_possible_values)) {
+                if (FBOMResult err = in.GetProperty(param_string + ".num_possible_values").ReadUInt32(&num_possible_values)) {
                     continue;
                 }
 
@@ -324,7 +327,7 @@ public:
         //     compiled_shader.descriptor_usages.Size(),
         //     properties_string.Data());
 
-        out_object = std::move(compiled_shader);
+        out = HypData(std::move(compiled_shader));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -347,23 +350,23 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         CompiledShaderBatch batch;
 
-        for (FBOMObject &node : *in.nodes) {
-            if (node.GetType().IsOrExtends("CompiledShader")) {
-                CompiledShader *compiled_shader = node.m_deserialized_object->TryGet<CompiledShader>();
+        for (FBOMObject &subobject : *in.nodes) {
+            if (subobject.GetType().IsOrExtends("CompiledShader")) {
+                Optional<CompiledShader &> compiled_shader_opt = subobject.m_deserialized_object->TryGet<CompiledShader>();
 
-                if (compiled_shader != nullptr) {
-                    batch.compiled_shaders.PushBack(*compiled_shader);
+                if (compiled_shader_opt.HasValue()) {
+                    batch.compiled_shaders.PushBack(*compiled_shader_opt);
                 } else {
                     HYP_LOG(Serialization, LogLevel::ERR, "Failed to deserialize CompiledShader instance");
                 }
             }
         }
 
-        out_object = std::move(batch);
+        out = HypData(std::move(batch));
 
         return { FBOMResult::FBOM_OK };
     }

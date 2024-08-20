@@ -1,7 +1,8 @@
 #include <scene/ecs/components/RigidBodyComponent.hpp>
-
-#include <core/object/HypClassUtils.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 namespace hyperion {
+
+HYP_REGISTER_COMPONENT(RigidBodyComponent);
 
 } // namespace hyperion

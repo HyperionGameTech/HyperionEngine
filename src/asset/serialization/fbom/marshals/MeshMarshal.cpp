@@ -1,8 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <rendering/Mesh.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <Engine.hpp>
 
@@ -16,8 +19,8 @@ public:
 
     virtual FBOMResult Serialize(const Mesh &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("topology"), uint32(in_object.GetTopology()));
-        out.SetProperty(NAME("attributes"), FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
+        out.SetProperty("Topology", uint32(in_object.GetTopology()));
+        out.SetProperty("Attributes", FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
 
         const RC<StreamedMeshData> &streamed_mesh_data = in_object.GetStreamedMeshData();
 
@@ -33,17 +36,17 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         Topology topology = Topology::TRIANGLES;
 
-        if (FBOMResult err = in.GetProperty("topology").ReadUnsignedInt(&topology)) {
+        if (FBOMResult err = in.GetProperty("Topology").ReadUInt32(&topology)) {
             return err;
         }
 
         VertexAttributeSet vertex_attributes;
 
-        if (FBOMResult err = in.GetProperty("attributes").ReadStruct(&vertex_attributes)) {
+        if (FBOMResult err = in.GetProperty("Attributes").ReadStruct(&vertex_attributes)) {
             return err;
         }
 
@@ -60,11 +63,11 @@ public:
             return { FBOMResult::FBOM_OK };
         }
 
-        out_object = CreateObject<Mesh>(
+        out = HypData(CreateObject<Mesh>(
             std::move(streamed_mesh_data),
             topology,
             vertex_attributes
-        );
+        ));
 
         return { FBOMResult::FBOM_OK };
     }

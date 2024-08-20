@@ -30,20 +30,30 @@ struct FBOMNameTable : public IFBOMSerializable
 
     virtual ~FBOMNameTable() = default;
 
-    HYP_FORCE_INLINE
-    WeakName Add(const ANSIStringView &str)
+    HYP_FORCE_INLINE WeakName Add(ANSIStringView str)
     {
         const WeakName name = CreateWeakNameFromDynamicString(str);
 
         return Add(str, name);
     }
 
-    HYP_FORCE_INLINE
-    WeakName Add(const ANSIStringView &str, WeakName name)
+    HYP_FORCE_INLINE WeakName Add(const ANSIStringView &str, WeakName name)
     {
         values.Insert(name, str);
 
         return name;
+    }
+
+    HYP_FORCE_INLINE void Add(Name name)
+    {
+        values.Insert(name, name.LookupString());
+    }
+
+    void Merge(const FBOMNameTable &other)
+    {
+        for (const auto &it : other.values) {
+            values.Insert(it.first, it.second);
+        }
     }
 
     void RegisterAllNamesGlobally()

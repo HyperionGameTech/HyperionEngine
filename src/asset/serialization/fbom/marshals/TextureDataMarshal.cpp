@@ -4,6 +4,8 @@
 
 #include <rendering/backend/RendererStructs.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -18,12 +20,12 @@ public:
     {
         out.AddChild(data.desc);
 
-        out.SetProperty(NAME("buffer"), data.buffer);
+        out.SetProperty("Buffer", data.buffer);
 
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         TextureData result;
 
@@ -38,11 +40,11 @@ public:
 
         result.desc = desc_it->m_deserialized_object->Get<TextureDesc>();
 
-        if (FBOMResult err = in.GetProperty("buffer").ReadByteBuffer(result.buffer)) {
+        if (FBOMResult err = in.GetProperty("Buffer").ReadByteBuffer(result.buffer)) {
             return err;
         }
 
-        out_object = std::move(result);
+        out = HypData(std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }

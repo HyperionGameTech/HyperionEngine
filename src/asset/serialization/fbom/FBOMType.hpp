@@ -125,6 +125,51 @@ public:
     }
 };
 
+struct FBOMEncodedType
+{
+    HashCode        hash_code;
+    Array<uint16>   index_table;
+    ByteBuffer      buffer;
+
+    FBOMEncodedType() = default;
+
+    FBOMEncodedType(const FBOMType &type);
+
+    FBOMEncodedType(const FBOMEncodedType &other)               = default;
+    FBOMEncodedType &operator=(const FBOMEncodedType &other)    = default;
+
+    FBOMEncodedType(FBOMEncodedType &&other) noexcept
+        : hash_code(other.hash_code),
+          index_table(std::move(other.index_table)),
+          buffer(std::move(other.buffer))
+    {
+    }
+
+    FBOMEncodedType &operator=(FBOMEncodedType &&other) noexcept
+    {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
+        hash_code = other.hash_code;
+        index_table = std::move(other.index_table);
+        buffer = std::move(other.buffer);
+
+        return *this;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const FBOMEncodedType &other) const
+        { return hash_code == other.hash_code; }
+
+    HYP_FORCE_INLINE bool operator!=(const FBOMEncodedType &other) const
+        { return hash_code != other.hash_code; }
+
+    HYP_NODISCARD FBOMType Decode() const;
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+        { return hash_code; }
+};
+
 } // namespace fbom
 } // namespace hyperion
 

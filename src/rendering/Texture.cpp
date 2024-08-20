@@ -19,8 +19,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Texture);
-
 using renderer::Result;
 
 class Texture;
@@ -81,16 +79,10 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 {
     ID<Texture>     id;
-    ImageRef        image;
-    ImageViewRef    image_view;
 
     RENDER_COMMAND(DestroyTexture)(
-        ID<Texture> id,
-        ImageRef &&image,
-        ImageViewRef &&image_view
-    ) : id(id),
-        image(std::move(image)),
-        image_view(std::move(image_view))
+        ID<Texture> id
+    ) : id(id)
     {
     }
 
@@ -370,17 +362,14 @@ private:
 
 #pragma region Texture
 
-Texture::Texture() : Texture(
-    TextureDesc
-    {
+Texture::Texture() : Texture(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
         Extent3D { 1, 1, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    }
-)
+    })
 {
 }
 
@@ -390,15 +379,13 @@ Texture::Texture(const TextureDesc &texture_desc) : Texture(
 {
 }
 
-Texture::Texture(const RC<StreamedTextureData> &streamed_data) : Texture(
-    renderer::Image(streamed_data)
-)
+Texture::Texture(const RC<StreamedTextureData> &streamed_data)
+    : Texture(renderer::Image(streamed_data))
 {
 }
 
-Texture::Texture(RC<StreamedTextureData> &&streamed_data) : Texture(
-    renderer::Image(std::move(streamed_data))
-)
+Texture::Texture(RC<StreamedTextureData> &&streamed_data)
+    : Texture(renderer::Image(std::move(streamed_data)))
 {
 }
 
@@ -423,25 +410,13 @@ Texture::Texture(
     AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
 }
 
-Texture::Texture(Texture &&other) noexcept
-    : BasicObject(std::move(other)),
-      m_image(std::move(other.m_image)),
-      m_image_view(std::move(other.m_image_view))
-{
-}
-
 Texture::~Texture()
 {
     SafeRelease(std::move(m_image));
     SafeRelease(std::move(m_image_view));
 
     if (IsInitCalled()) {
-        PUSH_RENDER_COMMAND(
-            DestroyTexture,
-            m_id,
-            std::move(m_image),
-            std::move(m_image_view)
-        );
+        PUSH_RENDER_COMMAND(DestroyTexture, m_id);
     }
 }
 
@@ -459,12 +434,7 @@ void Texture::Init()
         SafeRelease(std::move(m_image_view));
 
         if (IsInitCalled()) {
-            PUSH_RENDER_COMMAND(
-                DestroyTexture,
-                m_id,
-                std::move(m_image),
-                std::move(m_image_view)
-            );
+            PUSH_RENDER_COMMAND(DestroyTexture, m_id);
         }
     }));
 
@@ -557,7 +527,7 @@ void Texture::Readback() const
     // sanity check -- temp
     const SizeType expected = m_image->GetByteSize();
     const SizeType real = result_byte_buffer.Size();
-    AssertThrowMsg(expected == real, "Expected %llu == %llu", expected, real);
+    AssertThrowMsg(expected == real, "Failed to readback texture: expected size: %llu, got %llu", expected, real);
 
     RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
         GetTextureDesc(),
