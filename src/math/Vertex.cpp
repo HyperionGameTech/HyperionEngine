@@ -13,6 +13,10 @@ namespace hyperion {
 //     HypProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
 // );
 
+HYP_BEGIN_STRUCT(VertexAttributeSet)
+    HYP_FIELD(flag_mask)
+HYP_END_STRUCT
+
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
 {
     Array<VertexAttribute::Type> attributes;
@@ -62,6 +66,19 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
 #pragma endregion VertexAttribute
 
 #pragma region Vertex
+
+HYP_BEGIN_STRUCT(Vertex)
+    HYP_FIELD(position),
+    HYP_FIELD(normal),
+    HYP_FIELD(texcoord0),
+    HYP_FIELD(texcoord1),
+    HYP_FIELD(tangent),
+    HYP_FIELD(bitangent),
+    HYP_FIELD(bone_weights),
+    HYP_FIELD(bone_indices),
+    HYP_FIELD(num_indices),
+    HYP_FIELD(num_weights)
+HYP_END_STRUCT
 
 // HYP_DEFINE_CLASS(
 //     Vertex,

@@ -79,20 +79,13 @@ namespace Hyperion
     [HypClassBinding(Name="InputManager")]
     public class InputManager : HypObject
     {
-        private IntPtr ptr;
-
         public InputManager()
         {
         }
 
-        // public InputManager(IntPtr ptr)
-        // {
-        //     this.ptr = ptr;
-        // }
-
         public bool IsKeyDown(KeyCode key)
         {
-            return InputManager_IsKeyDown(ptr, (ushort)key);
+            return InputManager_IsKeyDown(NativeAddress, (ushort)key);
         }
 
         [DllImport("hyperion", EntryPoint = "InputManager_IsKeyDown")]

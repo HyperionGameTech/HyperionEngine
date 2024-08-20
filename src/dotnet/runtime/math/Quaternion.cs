@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="Quaternion")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 16)]
     public struct Quaternion
     {

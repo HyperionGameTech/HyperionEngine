@@ -21,6 +21,7 @@ namespace Hyperion
         public static Name Transform { get; } = Name.FromString("Transform", weak: true);
         public static Name LocalTransform { get; } = Name.FromString("LocalTransform", weak: true);
         public static Name WorldTransform { get; } = Name.FromString("WorldTransform", weak: true);
+        public static Name BasePath { get; } = Name.FromString("BasePath", weak: true);
     }
 
     public class MethodNames

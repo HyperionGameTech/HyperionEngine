@@ -173,6 +173,7 @@ class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
     HYP_OBJECT_BODY(Node);
 
 public:
+
 #ifdef HYP_EDITOR
     class EditorObservables
     {

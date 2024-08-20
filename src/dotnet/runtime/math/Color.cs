@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="Color")]
     [StructLayout(LayoutKind.Explicit, Size = 4)]
     public struct Color
     {

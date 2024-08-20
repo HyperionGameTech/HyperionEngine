@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="Matrix4")]
     [StructLayout(LayoutKind.Explicit, Size = 64, Pack = 16)]
     public struct Matrix4
     {

@@ -80,72 +80,55 @@ struct VertexAttributeSet
     VertexAttributeSet &operator=(const VertexAttributeSet &other)  = default;
     ~VertexAttributeSet()                                           = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return flag_mask != 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const VertexAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator==(const VertexAttributeSet &other) const
         { return flag_mask == other.flag_mask; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const VertexAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator!=(const VertexAttributeSet &other) const
         { return flag_mask != other.flag_mask; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(uint64 flags) const
+    HYP_FORCE_INLINE bool operator==(uint64 flags) const
         { return flag_mask == flags; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(uint64 flags) const
+    HYP_FORCE_INLINE bool operator!=(uint64 flags) const
         { return flag_mask != flags; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    VertexAttributeSet operator~() const
+    HYP_FORCE_INLINE VertexAttributeSet operator~() const
         { return ~flag_mask; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    VertexAttributeSet operator&(const VertexAttributeSet &other) const
+    HYP_FORCE_INLINE VertexAttributeSet operator&(const VertexAttributeSet &other) const
         { return { flag_mask & other.flag_mask }; }
 
-    HYP_FORCE_INLINE
-    VertexAttributeSet &operator&=(const VertexAttributeSet &other)
+    HYP_FORCE_INLINE VertexAttributeSet &operator&=(const VertexAttributeSet &other)
         { flag_mask &= other.flag_mask; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    VertexAttributeSet operator&(uint64 flags) const
+    HYP_FORCE_INLINE VertexAttributeSet operator&(uint64 flags) const
         { return { flag_mask & flags }; }
 
-    HYP_FORCE_INLINE
-    VertexAttributeSet &operator&=(uint64 flags)
+    HYP_FORCE_INLINE VertexAttributeSet &operator&=(uint64 flags)
         { flag_mask &= flags; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    VertexAttributeSet operator|(const VertexAttributeSet &other) const
+    HYP_FORCE_INLINE VertexAttributeSet operator|(const VertexAttributeSet &other) const
         { return { flag_mask | other.flag_mask }; }
 
-    HYP_FORCE_INLINE
-    VertexAttributeSet &operator|=(const VertexAttributeSet &other)
+    HYP_FORCE_INLINE VertexAttributeSet &operator|=(const VertexAttributeSet &other)
         { flag_mask |= other.flag_mask; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    VertexAttributeSet operator|(uint64 flags) const
+    HYP_FORCE_INLINE VertexAttributeSet operator|(uint64 flags) const
         { return { flag_mask | flags }; }
 
-    HYP_FORCE_INLINE
-    VertexAttributeSet &operator|=(uint64 flags)
+    HYP_FORCE_INLINE VertexAttributeSet &operator|=(uint64 flags)
         { flag_mask |= flags; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<(const VertexAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator<(const VertexAttributeSet &other) const
         { return flag_mask < other.flag_mask; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool Has(VertexAttribute::Type type) const
+    HYP_FORCE_INLINE bool Has(VertexAttribute::Type type) const
         { return bool(operator&(uint64(type))); }
 
-    HYP_FORCE_INLINE
-    void Set(uint64 flags, bool enable = true)
+    HYP_FORCE_INLINE void Set(uint64 flags, bool enable = true)
     {
         if (enable) {
             flag_mask |= flags;
@@ -154,31 +137,25 @@ struct VertexAttributeSet
         }
     }
 
-    HYP_FORCE_INLINE
-    void Set(VertexAttribute::Type type, bool enable = true)
+    HYP_FORCE_INLINE void Set(VertexAttribute::Type type, bool enable = true)
         { Set(uint64(type), enable); }
 
-    HYP_FORCE_INLINE
-    void Merge(const VertexAttributeSet &other)
+    HYP_FORCE_INLINE void Merge(const VertexAttributeSet &other)
         { flag_mask |= other.flag_mask; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint64 GetFlagMask() const
+    HYP_FORCE_INLINE uint64 GetFlagMask() const
         { return flag_mask; }
 
-    HYP_FORCE_INLINE
-    void SetFlagMask(uint64 flags)
+    HYP_FORCE_INLINE void SetFlagMask(uint64 flags)
         { flag_mask = flags; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint Size() const
+    HYP_FORCE_INLINE uint Size() const
         { return uint(ByteUtil::BitCount(flag_mask)); }
 
     HYP_API Array<VertexAttribute::Type> BuildAttributes() const;
     HYP_API SizeType CalculateVertexSize() const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(flag_mask);
@@ -262,60 +239,58 @@ struct alignas(16) Vertex
     Vertex operator*(float scalar) const;
     Vertex &operator*=(float scalar);
 
-    void SetPosition(const Vector3 &vec)
+    HYP_FORCE_INLINE void SetPosition(const Vec3f &vec)
         { position = vec; }
 
-    const Vector3 &GetPosition() const
+    HYP_FORCE_INLINE const Vec3f &GetPosition() const
         { return position; }
 
-    void SetNormal(const Vector3 &vec)
+    HYP_FORCE_INLINE void SetNormal(const Vec3f &vec)
         { normal = vec; }
 
-    const Vector3 &GetNormal() const
+    HYP_FORCE_INLINE const Vec3f &GetNormal() const
         { return normal; }
 
-    void SetTexCoord0(const Vector2 &vec)
+    HYP_FORCE_INLINE void SetTexCoord0(const Vec2f &vec)
         { texcoord0 = vec; }
 
-    const Vector2 &GetTexCoord0() const
+    HYP_FORCE_INLINE const Vec2f &GetTexCoord0() const
         { return texcoord0; }
 
-    void SetTexCoord1(const Vector2 &vec)
+    HYP_FORCE_INLINE void SetTexCoord1(const Vec2f &vec)
         { texcoord1 = vec; }
 
-    const Vector2 &GetTexCoord1() const
+    HYP_FORCE_INLINE const Vec2f &GetTexCoord1() const
         { return texcoord1; }
 
-    void SetTangent(const Vector3 &vec)
+    HYP_FORCE_INLINE void SetTangent(const Vec3f &vec)
         { tangent = vec; }
 
-    const Vector3 &GetTangent() const
+    HYP_FORCE_INLINE const Vec3f &GetTangent() const
         { return tangent; }
 
-    void SetBitangent(const Vector3 &vec)
+    HYP_FORCE_INLINE void SetBitangent(const Vec3f &vec)
         { bitangent = vec; }
 
-    const Vector3 &GetBitangent() const
+    HYP_FORCE_INLINE const Vec3f &GetBitangent() const
         { return bitangent; }
 
-    void AddBoneWeight(float val)
+    HYP_FORCE_INLINE void AddBoneWeight(float val)
         { if (num_weights < MAX_BONE_WEIGHTS) bone_weights[num_weights++] = val; }
 
-    void SetBoneWeight(int i, float val)
+    HYP_FORCE_INLINE void SetBoneWeight(int i, float val)
         { bone_weights[i] = val; }
 
-    float GetBoneWeight(int i) const
+    HYP_FORCE_INLINE float GetBoneWeight(int i) const
         { return bone_weights[i]; }
 
-    int GetNumWeights() const
+    HYP_FORCE_INLINE int GetNumWeights() const
         { return num_weights; }
 
-    HYP_FORCE_INLINE
-    const FixedArray<float, MAX_BONE_WEIGHTS> &GetBoneWeights() const
+    HYP_FORCE_INLINE const FixedArray<float, MAX_BONE_WEIGHTS> &GetBoneWeights() const
         { return bone_weights; }
 
-    HYP_FORCE_INLINE
-    void SetBoneWeights(const FixedArray<float, MAX_BONE_WEIGHTS> &weights)
+    HYP_FORCE_INLINE void SetBoneWeights(const FixedArray<float, MAX_BONE_WEIGHTS> &weights)
     {
         num_weights = 0;
 
@@ -327,24 +302,22 @@ struct alignas(16) Vertex
         }
     }
 
-    void AddBoneIndex(int val)
+    HYP_FORCE_INLINE void AddBoneIndex(int val)
         { if (num_indices < MAX_BONE_INDICES) bone_indices[num_indices++] = val; }
 
-    void SetBoneIndex(int i, int val)
+    HYP_FORCE_INLINE void SetBoneIndex(int i, int val)
         { bone_indices[i] = val; }
 
-    int GetBoneIndex(int i) const
+    HYP_FORCE_INLINE int GetBoneIndex(int i) const
         { return bone_indices[i]; }
 
-    int GetNumIndices() const
+    HYP_FORCE_INLINE int GetNumIndices() const
         { return num_indices; }
 
-    HYP_FORCE_INLINE
-    const FixedArray<uint, MAX_BONE_INDICES> &GetBoneIndices() const
+    HYP_FORCE_INLINE const FixedArray<uint, MAX_BONE_INDICES> &GetBoneIndices() const
         { return bone_indices; }
 
-    HYP_FORCE_INLINE
-    void SetBoneIndices(const FixedArray<uint, MAX_BONE_INDICES> &indices)
+    HYP_FORCE_INLINE void SetBoneIndices(const FixedArray<uint, MAX_BONE_INDICES> &indices)
     {
         num_indices = 0;
 
@@ -395,8 +368,7 @@ struct alignas(16) Vertex
         }
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(position.GetHashCode());

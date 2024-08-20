@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [Flags]
     public enum VertexAttributeType : ulong
     {
         Undefined = 0x0,
@@ -16,39 +17,95 @@ namespace Hyperion
         BoneWeights = 0x80
     }
 
+    [HypClassBinding(Name="VertexAttributeSet")]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    public struct VertexAttributeSet
+    {
+        [FieldOffset(0)]
+        private ulong flagMask;
+
+        public VertexAttributeSet()
+        {
+            flagMask = 0;
+        }
+
+        public VertexAttributeSet(ulong flagMask)
+        {
+            this.flagMask = flagMask;
+        }
+
+        public VertexAttributeSet(VertexAttributeType[] types)
+        {
+            flagMask = 0;
+
+            foreach (VertexAttributeType type in types)
+            {
+                flagMask |= (ulong)type;
+            }
+        }
+
+        public ulong FlagMask
+        {
+            get
+            {
+                return flagMask;
+            }
+            set
+            {
+                flagMask = value;
+            }
+        }
+    }
+
+    [HypClassBinding(Name="Vertex")]
     [StructLayout(LayoutKind.Explicit, Size = 128, Pack = 16)]
     public struct Vertex
     {
         [FieldOffset(0)]
         Vec3f position;
+
         [FieldOffset(16)]
         Vec3f normal;
+
         [FieldOffset(32)]
         Vec3f tangent;
+
         [FieldOffset(48)]
         Vec3f bitangent;
+
         [FieldOffset(64)]
         Vec2f texCoord0;
+
         [FieldOffset(72)]
         Vec2f texCoord1;
+
         [FieldOffset(80)]
         float boneWeights0;
+
         [FieldOffset(84)]
         float boneWeights1;
+
         [FieldOffset(88)]
         float boneWeights2;
+
         [FieldOffset(92)]
         float boneWeights3;
+
         [FieldOffset(96)]
         int boneIndices0;
+
         [FieldOffset(100)]
         int boneIndices1;
+
         [FieldOffset(104)]
         int boneIndices2;
+
         [FieldOffset(108)]
         int boneIndices3;
+
         [FieldOffset(112)]
         byte numBoneIndices;
+        
         [FieldOffset(113)]
         byte numBoneWeights;
 

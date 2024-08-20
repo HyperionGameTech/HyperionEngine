@@ -38,7 +38,9 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(AssetManager);
+HYP_BEGIN_CLASS(AssetManager)
+    HYP_GETTER_SETTER(BasePath)
+HYP_END_CLASS
 
 const Handle<AssetManager> &AssetManager::GetInstance()
 {

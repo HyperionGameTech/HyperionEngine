@@ -10,12 +10,7 @@
 namespace hyperion {
 
 HYP_BEGIN_STRUCT(Matrix4)
-    HYP_FIELD(values),
-
-    HYP_METHOD(Transpose),
-    HYP_METHOD(Transposed),
-    HYP_METHOD(Invert),
-    HYP_METHOD(Inverted)
+    HYP_FIELD(values)
 HYP_END_STRUCT
 
 const Matrix4 Matrix4::identity = Matrix4::Identity();
