@@ -83,6 +83,16 @@ struct HypPropertyGetter
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
     }
 
+    template <class ReturnType, class TargetType>
+    HypPropertyGetter(ReturnType TargetType::*member)
+        : GetterForTargetPointer([member](const void *target) -> HypData
+          {
+              return HypData(static_cast<const TargetType *>(target)->*member);
+          })
+    {
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
+    }
+
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
 
@@ -129,6 +139,16 @@ struct HypPropertySetter
         : SetterForTargetPointer([fnptr](void *target, const HypData &data) -> void
           {
               fnptr(static_cast<TargetType *>(target), data.Get<NormalizedType<ValueType>>());
+          })
+    {
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
+    }
+
+    template <class ReturnType, class TargetType, class ValueType>
+    HypPropertySetter(ReturnType TargetType::*member)
+        : SetterForTargetPointer([member](void *target, const HypData &data) -> void
+          {
+              static_cast<TargetType *>(target)->*member = data.Get<NormalizedType<ValueType>>();
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
@@ -189,6 +209,15 @@ struct HypProperty
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(this->setter.type_info.value_type_id == type_id, "Setter value type id should match property type id");
 #endif
+    }
+
+    template <class ReturnType, class TargetType, class ValueType>
+    HypProperty(Name name, ReturnType TargetType::*member)
+        : name(name),
+          getter(HypPropertyGetter(member)),
+          setter(HypPropertySetter(member))
+    {
+        type_id = this->getter.type_info.value_type_id;
     }
 
     HypProperty(const HypProperty &other)                 = delete;

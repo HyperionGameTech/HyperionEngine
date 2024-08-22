@@ -16,17 +16,10 @@ namespace Hyperion
     [HypClassBinding(Name="EntityManager")]
     public class EntityManager : HypObject
     {
-        private IntPtr ptr = IntPtr.Zero;
         private Dictionary<Type, ComponentDefinition> componentNativeTypeIDs = new Dictionary<Type, ComponentDefinition>();
 
         public EntityManager()
         {
-        }
-
-        public EntityManager(IntPtr ptr)
-        {
-            this.ptr = ptr;
-
             RegisterComponent<TransformComponent>(new ComponentDefinition
             {
                 nativeTypeId = TransformComponent_GetNativeTypeID(),
@@ -120,7 +113,7 @@ namespace Hyperion
         {
             TypeID typeId = componentNativeTypeIDs[typeof(T)].nativeTypeId;
 
-            return EntityManager_HasComponent(ptr, typeId, entity);
+            return EntityManager_HasComponent(NativeAddress, typeId, entity);
         }
 
         public ComponentID AddComponent<T>(Entity entity, T component) where T : struct, IComponent
@@ -132,7 +125,7 @@ namespace Hyperion
             Marshal.StructureToPtr(component, componentPtr, false);
 
             // call the native method
-            ComponentID result = componentDefinition.addComponent(ptr, entity, componentPtr);
+            ComponentID result = componentDefinition.addComponent(NativeAddress, entity, componentPtr);
 
             // Free the memory
             Marshal.FreeHGlobal(componentPtr);
@@ -144,7 +137,7 @@ namespace Hyperion
         {
             ComponentDefinition typeId = componentNativeTypeIDs[typeof(T)];
 
-            IntPtr componentPtr = EntityManager_GetComponent(ptr, typeId.nativeTypeId, entity);
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, typeId.nativeTypeId, entity);
 
             if (componentPtr == IntPtr.Zero)
             {

@@ -14,7 +14,7 @@ namespace hyperion {
 
 enum class LightComponentFlags : uint32
 {
-    NONE    = 0x00
+    NONE    = 0x0
 };
 
 HYP_MAKE_ENUM_FLAGS(LightComponentFlags)

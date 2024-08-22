@@ -8,6 +8,7 @@ namespace Hyperion
         None = 0x0
     }
 
+    [HypClassBinding(Name="LightComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 24)]
     public struct LightComponent : IComponent
     {

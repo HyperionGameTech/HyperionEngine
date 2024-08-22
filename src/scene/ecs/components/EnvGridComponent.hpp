@@ -5,12 +5,17 @@
 
 #include <core/Handle.hpp>
 #include <core/Name.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <scene/camera/Camera.hpp>
+
 #include <math/Matrix4.hpp>
 #include <math/Extent.hpp>
 #include <math/Vector3.hpp>
+
 #include <rendering/EnvGrid.hpp>
+
 #include <HashCode.hpp>
 
 namespace hyperion {

@@ -4,4 +4,8 @@
 
 namespace hyperion {
 
+HYP_BEGIN_STRUCT(NodeLinkComponent)
+    HYP_FIELD(node)
+HYP_END_STRUCT
+
 } // namespace hyperion

@@ -6,8 +6,6 @@ namespace Hyperion
     [HypClassBinding(Name="Mesh")]
     public class Mesh : HypObject
     {
-        private ManagedHandle handle;
-
         public Mesh()
         {
         }

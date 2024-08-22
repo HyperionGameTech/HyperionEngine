@@ -35,7 +35,6 @@ void RenderScheduler::Commit(RenderCommand *command)
 void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 {
     out_container = std::move(m_commands);
-    m_num_enqueued.Decrement(out_container.Size(), MemoryOrder::RELEASE);
 }
 
 #pragma endregion RenderScheduler
@@ -75,6 +74,7 @@ Result RenderCommands::Flush()
     const uint buffer_index = RenderCommands::buffer_index;
 
     scheduler.AcceptAll(commands);
+    scheduler.m_num_enqueued.Decrement(commands.Size(), MemoryOrder::RELEASE);
 
     const SizeType num_commands = commands.Size();
 
@@ -123,6 +123,8 @@ Result RenderCommands::Flush()
     if (num_commands) {
         Rewind(buffer_index);
     }
+
+    scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
 
     lock.unlock();
 

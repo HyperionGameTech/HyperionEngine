@@ -26,8 +26,8 @@
 namespace hyperion {
 
 HYP_BEGIN_CLASS(World)
-    HYP_GETTER(ID),
-    HYP_GETTER(GameTime),
+    HYP_PROPERTY(ID, &World::GetID),
+    HYP_PROPERTY(GameTime, &World::GetGameTime),
 
     HYP_FUNCTION(GetSubsystem, [](World *world, uint32 type_id_value)
     {

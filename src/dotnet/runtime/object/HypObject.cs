@@ -51,13 +51,20 @@ namespace Hyperion
 #if DEBUG
             HypObject_Verify(_hypClassPtr, _nativeAddress);
 #endif
+
+            HypObject_IncRef(_hypClassPtr, _nativeAddress);
         }
 
         ~HypObject()
         {
             if (IsValid)
             {
+                Console.WriteLine("HypObject destructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+
                 HypObject_DecRef(_hypClassPtr, _nativeAddress);
+
+                _hypClassPtr = IntPtr.Zero;
+                _nativeAddress = IntPtr.Zero;
             }
         }
 

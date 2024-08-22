@@ -10,11 +10,11 @@ namespace Hyperion
         {
         }
 
-        public IDBase ID
+        public IDBase? ID
         {
             get
             {
-                return (IDBase)GetProperty(PropertyNames.ID)
+                return (IDBase?)GetProperty(PropertyNames.ID)
                     .InvokeGetter(this)
                     .GetValue();
             }
@@ -30,21 +30,21 @@ namespace Hyperion
             }
         }
 
-        public Node Root
+        public Node? Root
         {
             get
             {
-                return (Node)GetProperty(PropertyNames.Root)
+                return (Node?)GetProperty(PropertyNames.Root)
                     .InvokeGetter(this)
                     .GetValue();
             }
         }
 
-        public EntityManager EntityManager
+        public EntityManager? EntityManager
         {
             get
             {
-                return (EntityManager)GetProperty(PropertyNames.EntityManager)
+                return (EntityManager?)GetProperty(PropertyNames.EntityManager)
                     .InvokeGetter(this)
                     .GetValue();
             }

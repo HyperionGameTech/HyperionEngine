@@ -215,12 +215,15 @@ void SampleStreamer::Init()
 
     const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
 
-    m_texture = CreateObject<Texture>(Texture2D(
-        window_size,
+    m_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
-        FilterMode::TEXTURE_FILTER_LINEAR,
+        Extent3D(window_size),
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    ));
+    });
+    
     InitObject(m_texture);
     
     DebugLog(LogType::Debug, "SampleStreamer::Init : Scene ID = %u\n", m_scene.GetID().Value());

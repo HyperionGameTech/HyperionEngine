@@ -24,7 +24,7 @@ namespace hyperion {
 static const uint32 systems_execution_parallel_threshold = 3;
 
 HYP_BEGIN_CLASS(EntityManager)
-    HYP_GETTER(Scene),
+    HYP_PROPERTY(Scene, &EntityManager::GetScene),
 
     HYP_METHOD(AddEntity),
     HYP_METHOD(RemoveEntity),

@@ -6,6 +6,7 @@
 #include <math/Vector2.hpp>
 
 #include <scene/world_grid/WorldGridSubsystem.hpp>
+#include <scene/world_grid/WorldGrid.hpp>
 
 #include <HashCode.hpp>
 

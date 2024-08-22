@@ -34,6 +34,78 @@ struct RENDER_COMMAND(RenderFontAtlas) : renderer::RenderCommand
     Extent2D location;
 };
 
+struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
+{
+    Handle<Texture> atlas_texture;
+    Handle<Texture> glyph_texture;
+    Vec2i           location;
+    Extent2D        cell_dimensions;
+
+    RENDER_COMMAND(FontAtlas_RenderCharacter)(const Handle<Texture> &atlas_texture, const Handle<Texture> &glyph_texture, Vec2i location, Extent2D cell_dimensions)
+        : atlas_texture(atlas_texture),
+          glyph_texture(glyph_texture),
+          location(location),
+          cell_dimensions(cell_dimensions)
+    {
+        AssertThrow(this->atlas_texture.IsValid());
+        AssertThrow(this->atlas_texture->GetImage().IsValid());
+        AssertThrow(this->atlas_texture->GetImageView().IsValid());
+
+        AssertThrow(this->glyph_texture.IsValid());
+        AssertThrow(this->glyph_texture->GetImage().IsValid());
+        AssertThrow(this->glyph_texture->GetImageView().IsValid());
+
+        HYP_LOG(Font, LogLevel::DEBUG, "Glyph texture {} has image with index {} (ptr: {})", this->glyph_texture->GetID().Value(), this->glyph_texture->GetImage().index, (void*)this->glyph_texture->GetImage().Get());
+    }
+
+    virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override
+    {
+        g_safe_deleter->SafeRelease(std::move(atlas_texture));
+        g_safe_deleter->SafeRelease(std::move(glyph_texture));
+    }
+
+    virtual Result operator()() override
+    {
+        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+
+        const ImageRef &image = glyph_texture->GetImage();
+        AssertThrow(image.IsValid());
+
+        const Extent2D extent(image->GetExtent());
+
+        Rect<uint32> src_rect {
+            0, 0,
+            extent.width,
+            extent.height
+        };
+
+        Rect<uint32> dest_rect {
+            uint32(location.x),
+            uint32(location.y),
+            uint32(location.x + extent.width),
+            uint32(location.y + extent.height)
+        };
+
+        AssertThrowMsg(cell_dimensions.width >= extent.width, "Cell width (%u) is less than glyph width (%u)", cell_dimensions.width, extent.width);
+        AssertThrowMsg(cell_dimensions.height >= extent.height, "Cell height (%u) is less than glyph height (%u)", cell_dimensions.height, extent.height);
+
+        commands.Push([&](CommandBuffer *command_buffer)
+        {
+            // put src image in state for copying from
+            image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+            // put dst image in state for copying to
+            atlas_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+
+            //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
+            atlas_texture->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
+
+            HYPERION_RETURN_OK;
+        });
+
+        return commands.Execute();
+    }
+};
+
 #pragma endregion Render commands
 
 #pragma region FontAtlasTextureSet
@@ -141,15 +213,14 @@ void FontAtlas::Render()
 
         HYP_LOG(Font, LogLevel::INFO, "Rendering font atlas for pixel size {}", scaled_extent.height);
 
-        Handle<Texture> texture = CreateObject<Texture>(
-            Texture2D(
-                Extent2D { scaled_extent.width * symbol_columns, scaled_extent.height * symbol_rows },
-                /* Grayscale 8-bit texture */
-                InternalFormat::R8,
-                FilterMode::TEXTURE_FILTER_NEAREST,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-            )
-        );
+        Handle<Texture> texture = CreateObject<Texture>(TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
+            InternalFormat::R8, /* Grayscale 8-bit texture */
+            Extent3D(Extent2D { scaled_extent.width * symbol_columns, scaled_extent.height * symbol_rows }),
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        });
 
         InitObject(texture);
 
@@ -168,6 +239,9 @@ void FontAtlas::Render()
             // Render the glyph into a temporary texture
             glyph.Render();
 
+            Handle<Texture> glyph_texture = glyph.GetImageData().CreateTexture();
+            AssertThrow(InitObject(glyph_texture));
+
             if (is_main_atlas) {
                 m_glyph_metrics[i] = glyph.GetMetrics();
                 m_glyph_metrics[i].image_position = position;
@@ -178,7 +252,7 @@ void FontAtlas::Render()
             }
 
             // Render our character texture => atlas texture
-            RenderCharacter(texture, position, scaled_extent, glyph);
+            RenderCharacter(texture, glyph_texture, position, scaled_extent);
         }
 
         // Readback the texture to streamed texture data
@@ -200,74 +274,9 @@ void FontAtlas::Render()
     }
 }
 
-void FontAtlas::RenderCharacter(Handle<Texture> &atlas, Vec2i location, Extent2D dimensions, Glyph &glyph) const
+void FontAtlas::RenderCharacter(const Handle<Texture> &atlas_texture, const Handle<Texture> &glyph_texture, Vec2i location, Extent2D dimensions) const
 {
-    Handle<Texture> glyph_texture = glyph.GetImageData().CreateTexture();
-    InitObject(glyph_texture);
-
-    struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
-    {
-        Handle<Texture> atlas;
-        Handle<Texture> glyph_texture;
-        Vec2i           location;
-        Extent2D        cell_dimensions;
-
-        RENDER_COMMAND(FontAtlas_RenderCharacter)(Handle<Texture> atlas, Handle<Texture> glyph_texture, Vec2i location, Extent2D cell_dimensions)
-            : atlas(std::move(atlas)),
-              glyph_texture(std::move(glyph_texture)),
-              location(location),
-              cell_dimensions(cell_dimensions)
-        {
-        }
-
-        virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override
-        {
-            g_safe_deleter->SafeRelease(std::move(atlas));
-            g_safe_deleter->SafeRelease(std::move(glyph_texture));
-        }
-
-        virtual Result operator()() override
-        {
-            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
-
-            const ImageRef &image = glyph_texture->GetImage();
-
-            const Extent2D extent(glyph_texture->GetExtent());
-
-            Rect<uint32> src_rect {
-                0, 0,
-                extent.width,
-                extent.height
-            };
-
-            Rect<uint32> dest_rect {
-                uint32(location.x),
-                uint32(location.y),
-                uint32(location.x + extent.width),
-                uint32(location.y + extent.height)
-            };
-
-            AssertThrowMsg(cell_dimensions.width >= extent.width, "Cell width (%u) is less than glyph width (%u)", cell_dimensions.width, extent.width);
-            AssertThrowMsg(cell_dimensions.height >= extent.height, "Cell height (%u) is less than glyph height (%u)", cell_dimensions.height, extent.height);
-
-            commands.Push([&](CommandBuffer *command_buffer)
-            {
-                // put src image in state for copying from
-                image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-                // put dst image in state for copying to
-                atlas->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-                //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
-                atlas->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
-
-                HYPERION_RETURN_OK;
-            });
-
-            return commands.Execute();
-        }
-    };
-
-    PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, atlas, glyph_texture, location, dimensions);
+    PUSH_RENDER_COMMAND(FontAtlas_RenderCharacter, atlas_texture, glyph_texture, location, dimensions);
 }
 
 Extent2D FontAtlas::FindMaxDimensions(const RC<FontFace> &face) const

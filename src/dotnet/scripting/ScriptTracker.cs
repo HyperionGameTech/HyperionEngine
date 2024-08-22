@@ -13,7 +13,7 @@ namespace Hyperion
         private ScriptEventCallback callback;
         private IntPtr callbackSelfPtr;
 
-        private ScriptCompiler? scriptCompiler = null;
+        private ScriptCompiler scriptCompiler = null;
 
         private Dictionary<string, ManagedScriptWrapper> processingScripts = new Dictionary<string, ManagedScriptWrapper>();
 

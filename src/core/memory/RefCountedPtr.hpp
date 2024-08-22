@@ -148,7 +148,7 @@ struct RefCountData
     }
 
     template <class T>
-    void InitStrong(T *ptr)
+    void Init(T *ptr)
     {
         using Normalized = NormalizedType<T>;
 
@@ -161,6 +161,10 @@ struct RefCountData
             AssertThrow(value == ptr);
 #endif
         } else {
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(value == nullptr);
+#endif
+
             value = ptr;
         }
 
@@ -171,16 +175,20 @@ struct RefCountData
         // Override type_id, dtor for derived types
         type_id = TypeID::ForType<Normalized>();
         dtor = &Memory::Delete<Normalized>;
-
-        IncRefCount_Strong();
     }
 
     template <class T>
     void InitWeak(T *ptr)
     {
-        static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThis<T, CountType> to use this method");
+        using Normalized = NormalizedType<T>;
+
+        static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, Normalized>, "T must derive EnableRefCountedPtrFromThis<T, CountType> to use this method");
 
         value = ptr;
+
+        // Override type_id, dtor for derived types
+        type_id = TypeID::ForType<Normalized>();
+        dtor = &Memory::Delete<Normalized>;
 
         // Weak count will be incremented - set to 1 on construction
         ptr->EnableRefCountedPtrFromThisBase<CountType>::weak.SetRefCountData_Internal(this, true);
@@ -325,12 +333,25 @@ public:
 
         if (ptr) {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, TyN>) {
+                // T has EnableRefCountedPtrFromThisBase as a base class -- share the RefCountData and just increment the refcount
+
                 m_ref = ptr->template EnableRefCountedPtrFromThisBase<CountType>::weak.GetRefCountData_Internal();
+
+#ifdef HYP_DEBUG_MODE
+                AssertThrow(m_ref != nullptr);
+#endif
+
+                if (m_ref->UseCount_Strong() == 0) {
+                    m_ref->template Init<TyN>(ptr);
+                }
             } else {
+                // Initialize new RefCountData
+
                 m_ref = new RefCountDataType;
+                m_ref->template Init<TyN>(ptr);
             }
 
-            m_ref->template InitStrong<TyN>(ptr);
+            m_ref->IncRefCount_Strong();
         }
     }
 
@@ -932,13 +953,10 @@ public:
         RefCountedPtr<T, CountType> rc;
 
         if (Base::m_ref->UseCount_Strong() == 0) { // atomic, acquire for atomic RC pointers
-            Base::m_ref->InitStrong(static_cast<T *>(Base::m_ref->value));
-
-            // InitStrong increments reference count already
-            rc.SetRefCountData_Internal(Base::m_ref, false /* inc_ref */);
-        } else {
-            rc.SetRefCountData_Internal(Base::m_ref, true /* inc_ref */);
+            Base::m_ref->Init(static_cast<T *>(Base::m_ref->value));
         }
+
+        rc.SetRefCountData_Internal(Base::m_ref, true /* inc_ref */);
 
         return rc;
     }

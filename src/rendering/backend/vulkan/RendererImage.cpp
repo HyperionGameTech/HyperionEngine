@@ -578,6 +578,8 @@ Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexc
 template <>
 Image<Platform::VULKAN>::~Image()
 {
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Delete Image {}", (void *)this);
+
     AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
 }
 

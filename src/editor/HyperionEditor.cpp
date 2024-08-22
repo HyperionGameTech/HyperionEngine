@@ -1201,13 +1201,13 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
-    AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
+    // const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
+    // AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
 
-    const HypClass *mesh_class = Mesh::GetClass();
-    const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
+    // const HypClass *mesh_class = Mesh::GetClass();
+    // const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
 
-    HYP_BREAKPOINT;
+    // HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();
@@ -1301,11 +1301,14 @@ void HyperionEditor::Init()
 
 
     // add sun
-    auto sun = CreateObject<Light>(DirectionalLight(
+    
+    auto sun = CreateObject<Light>(
+        LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.65f, 0.1f).Normalize(),
         Color(Vec4f(1.0f)),
-        4.0f
-    ));
+        4.0f,
+        0.0f
+    );
 
     InitObject(sun);
 

@@ -4,8 +4,11 @@
 #define HYPERION_UI_OBJECT_HPP
 
 #include <core/Base.hpp>
+
 #include <core/containers/Array.hpp>
+
 #include <core/functional/Delegate.hpp>
+
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/UUID.hpp>
@@ -13,6 +16,7 @@
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
+
 #include <scene/ecs/components/UIComponent.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
@@ -202,20 +206,16 @@ struct UIObjectSize
     UIObjectSize &operator=(UIObjectSize &&other) noexcept  = default;
     ~UIObjectSize()                                         = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const Vec2i &GetValue() const
+    HYP_FORCE_INLINE const Vec2i &GetValue() const
         { return value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Flags GetFlagsX() const
+    HYP_FORCE_INLINE Flags GetFlagsX() const
         { return flags[0]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Flags GetFlagsY() const
+    HYP_FORCE_INLINE Flags GetFlagsY() const
         { return flags[1]; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Flags GetAllFlags() const
+    HYP_FORCE_INLINE Flags GetAllFlags() const
         { return flags[0] | flags[1]; }
 
 private:

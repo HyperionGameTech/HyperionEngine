@@ -9,6 +9,7 @@ namespace Hyperion
         Dirty = 0x1
     }
 
+    [HypClassBinding(Name="MeshComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 112)]
     public unsafe struct MeshComponent : IComponent
     {
