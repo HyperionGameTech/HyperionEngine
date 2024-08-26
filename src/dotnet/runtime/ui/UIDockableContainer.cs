@@ -9,9 +9,5 @@ namespace Hyperion
         {
             
         }
-
-        public UIDockableContainer(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

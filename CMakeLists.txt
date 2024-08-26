@@ -82,14 +82,14 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
     # if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer")
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer")
     # else()
     #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address")
     # endif()
 endif()
 
 set(HYP_VERSION_MAJOR 1)
-set(HYP_VERSION_MINOR 1)
+set(HYP_VERSION_MINOR 2)
 set(HYP_VERSION_PATCH 15)
 
 set(OpenGL_GL_PREFERENCE GLVND)

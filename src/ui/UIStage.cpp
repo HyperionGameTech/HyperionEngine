@@ -27,6 +27,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 #include <input/InputManager.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
@@ -36,6 +38,8 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
+
+HYP_DEFINE_CLASS(UIStage);
 
 UIStage::UIStage(ThreadID owner_thread_id)
     : UIObject(UIObjectType::STAGE),

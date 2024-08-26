@@ -9,6 +9,7 @@
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/Memory.hpp>
+#include <core/memory/NotNullPtr.hpp>
 
 #include <core/system/Debug.hpp>
 
@@ -226,11 +227,13 @@ class RefCountedPtrBase
 
 public:
     using RefCountDataType = detail::RefCountData<CountType>;
-    
-    static const RefCountDataType null_ref__internal;
 
+protected:
+    static const RefCountDataType empty_ref_count_data;
+
+public:
     RefCountedPtrBase()
-        : m_ref(const_cast<RefCountDataType *>(&null_ref__internal))
+        : m_ref(const_cast<RefCountDataType *>(&empty_ref_count_data))
     {
     }
 
@@ -260,9 +263,9 @@ protected:
     RefCountedPtrBase(RefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-        /// NOTE: Cast away constness -- modifying / dereferencing null_ref__internal
+        /// NOTE: Cast away constness -- modifying / dereferencing empty_ref_count_data
         /// of any type is already ill-formed
-        other.m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
+        other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
     }
 
     RefCountedPtrBase &operator=(RefCountedPtrBase &&other) noexcept
@@ -274,7 +277,7 @@ protected:
         DropRefCount();
 
         m_ref = other.m_ref;
-        other.m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
+        other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
         return *this;
     }
@@ -360,7 +363,7 @@ public:
         { return m_ref; }
 
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
-    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
+    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType * HYP_NOTNULL ref, bool inc_ref = true)
     {
         DropRefCount();
         m_ref = ref;
@@ -370,13 +373,10 @@ public:
         }
     }
 
-    /*! \brief Releases the reference to the currently held value, if any, and returns it.
-        * The caller is responsible for handling the reference count of the returned value.
-    */
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release_Internal()
     {
         RefCountDataType *ref = m_ref;
-        m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
+        m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
         return ref;
     }
@@ -410,19 +410,19 @@ protected:
                 m_ref->Destruct();
 
                 if (m_ref->UseCount_Weak() == 0u) {
-                    delete m_ref;
+                    delete m_ref.Get();
                 }
             }
 
-            m_ref = const_cast<RefCountDataType *>(&null_ref__internal);
+            m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
         }
     }
 
-    RefCountDataType    *m_ref;
+    NotNullPtr<RefCountDataType>    m_ref;
 };
 
 template <class CountType>
-const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::null_ref__internal = { };
+const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::empty_ref_count_data = { };
 
 template <class CountType>
 class WeakRefCountedPtrBase
@@ -431,7 +431,7 @@ public:
     using RefCountDataType = detail::RefCountData<CountType>;
 
     WeakRefCountedPtrBase()
-        : m_ref(const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal))
+        : m_ref(const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data))
     {
     }
 
@@ -472,7 +472,7 @@ public:
     WeakRefCountedPtrBase(WeakRefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
+        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
     }
 
     WeakRefCountedPtrBase &operator=(WeakRefCountedPtrBase &&other) noexcept
@@ -484,7 +484,7 @@ public:
         DropRefCount();
 
         m_ref = other.m_ref;
-        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
+        other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
 
         return *this;
     }
@@ -513,10 +513,10 @@ public:
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
         * The caller is responsible for handling the reference count of the returned value.
     */
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountDataType *Release_Internal()
     {
         RefCountDataType *ref = m_ref;
-        m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
+        m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
 
         return ref;
     }
@@ -534,7 +534,7 @@ public:
         { return m_ref; }
 
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
-    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType *ref, bool inc_ref = true)
+    HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType * HYP_NOTNULL ref, bool inc_ref = true)
     {
         DropRefCount();
         m_ref = ref;
@@ -567,14 +567,14 @@ protected:
     {
         if (m_ref->HasValue()) {
             if (m_ref->DecRefCount_Weak() == 0u && m_ref->UseCount_Strong() == 0u) {
-                delete m_ref;
+                delete m_ref.Get();
             }
 
-            m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::null_ref__internal);
+            m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
         }
     }
 
-    RefCountDataType    *m_ref;
+    NotNullPtr<RefCountDataType>    m_ref;
 };
 
 /*! \brief A simple ref counted pointer class.
@@ -614,7 +614,7 @@ public:
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
-        Reset<Ty>(ptr);
+        Base::template Reset<Ty>(ptr);
     }
     
     // delete parent constructors
@@ -733,9 +733,18 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        return Base::GetTypeID() == TypeID::ForType<Ty>()
-            || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
-            || std::is_same_v<Ty, void>;
+        if constexpr (std::is_void_v<Ty>) {
+            return true;
+        } else {
+            static_assert(
+                std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>,
+                "Is<T> check is invalid; will never be true"
+            );
+
+            return Base::GetTypeID() == TypeID::ForType<Ty>()
+                || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
+                || (std::is_polymorphic_v<Ty> && dynamic_cast<Ty *>(static_cast<T *>(Base::m_ref->value)) != nullptr);
+        }
     }
 
     /*! \brief Attempts to cast the pointer directly to the given type.
@@ -750,6 +759,14 @@ public:
         }
 
         return RefCountedPtr<Ty, CountType>();
+    }
+
+    /*! \brief Releases the reference to the currently held value, if any, and returns it.
+        * The caller is responsible for handling the reference count of the returned value.
+    */
+    HYP_NODISCARD HYP_FORCE_INLINE T *Release()
+    {
+        return static_cast<T *>(Base::Release_Internal()->value);
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
@@ -874,6 +891,14 @@ public:
         }
 
         return RefCountedPtr<Ty, CountType>();
+    }
+
+    /*! \brief Releases the reference to the currently held value, if any, and returns it.
+        * The caller is responsible for handling the reference count of the returned value.
+    */
+    HYP_NODISCARD HYP_FORCE_INLINE void *Release()
+    {
+        return Base::Release_Internal()->value;
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<void, CountType> ToWeak() const
@@ -1052,11 +1077,7 @@ protected:
         return *this;
     }
 
-    ~EnableRefCountedPtrFromThisBase()
-    {
-        // // Delete control block
-        // weak.SetRefCountData_Internal(const_cast<RefCountData<CountType> *>(&RefCountedPtrBase<CountType>::null_ref__internal), false);
-    }
+    virtual ~EnableRefCountedPtrFromThisBase() = default;
 
 public:
     WeakRefCountedPtr<void, CountType>  weak;

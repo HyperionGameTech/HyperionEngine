@@ -9,9 +9,5 @@ namespace Hyperion
         {
                 
         }
-
-        public UIButton(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

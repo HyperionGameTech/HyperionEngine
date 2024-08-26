@@ -5,6 +5,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/containers/Array.hpp>
 
 #include <core/functional/Delegate.hpp>
@@ -291,6 +293,8 @@ struct UIObjectID : UniqueID { };
 
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
+    HYP_OBJECT_BODY(UIObject);
+
 protected:
     enum class UpdateSizePhase
     {

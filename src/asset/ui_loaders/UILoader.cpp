@@ -433,6 +433,10 @@ LoadedAsset UILoader::LoadAsset(LoaderState &state) const
     AssertThrow(state.asset_manager != nullptr);
 
     RC<UIObject> ui_stage(new UIStage(ThreadID::Current()));
+
+    // temp
+    AssertThrow(ui_stage.Is<UIStage>());
+
     ui_stage->Init();
 
     UISAXHandler handler(&state, static_cast<UIStage *>(ui_stage.Get()));

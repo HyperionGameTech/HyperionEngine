@@ -45,12 +45,14 @@ namespace Hyperion
         /// <summary>
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Game instance.
-        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, RefCountedPtr uiStageRc)
+        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
         {
             this.scene = scene;
             this.inputManager = inputManager;
             this.assetManager = assetManager;
-            this.uiStage = new UIStage(uiStageRc);
+            this.uiStage = uiStage;
+
+            Console.WriteLine("Game BeforeInit: this.scene = {0}, this.inputManager = {1}", this.scene, this.inputManager);
 
             HypClass boundingBoxClass = (HypClass)HypClass.GetClass("BoundingBox");
             // object boundingBoxTest = HypStructRegistry.CreateInstance(boundingBoxClass);

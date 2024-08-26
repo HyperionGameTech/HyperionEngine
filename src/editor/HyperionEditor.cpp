@@ -472,7 +472,10 @@ void HyperionEditorImpl::CreateMainPanel()
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
         auto loaded_ui = loaded_ui_asset.Result();
 
-        if (loaded_ui.Is<UIStage>()) {
+        AssertThrow(loaded_ui.Is<UIStage>());
+        AssertThrow(loaded_ui.Cast<UIStage>() != nullptr);
+
+        if (loaded_ui.Cast<UIStage>()) {
             loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
         }
 

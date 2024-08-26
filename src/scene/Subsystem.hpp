@@ -21,7 +21,7 @@ class Scene;
 
 class HYP_API SubsystemBase : public EnableRefCountedPtrFromThis<SubsystemBase>
 {
-    HYP_OBJECT_BODY(SubsystemBase, Abstract);
+    HYP_OBJECT_BODY(SubsystemBase);
 
 public:
     SubsystemBase();

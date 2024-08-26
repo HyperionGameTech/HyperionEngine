@@ -9,9 +9,5 @@ namespace Hyperion
         {
             
         }
-
-        public UIListView(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

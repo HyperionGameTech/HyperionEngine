@@ -100,28 +100,31 @@ private:
 namespace detail {
 
 template <class T, bool Condition = std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>>
-struct HypObject_WeakRefCountedPtrFromThis_Impl;
+struct HypObject_ToCommonBase_Impl;
 
 template <class T>
-struct HypObject_WeakRefCountedPtrFromThis_Impl<T, true>
+struct HypObject_ToCommonBase_Impl<T, true>
 {
-    auto operator()(T *ptr) const
+    EnableRefCountedPtrFromThisBase<> *operator()(T *ptr) const
     {
-        return ptr->WeakRefCountedPtrFromThis();
+        
+        // Static cast needed because polymorphic types will have vtable inserted at start of
+        // the object, making accessing `EnableRefCountedPtrFromThisBase<>::weak` invalid.
+        return static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr);
     }
 };
 
 template <class T>
-struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
+struct HypObject_ToCommonBase_Impl<T, false>
 {
-    Weak<T> operator()(T *ptr) const
+    EnableRefCountedPtrFromThisBase<> *operator()(T *ptr) const
     {
         // Would fail at compile time on instantiation of HypClassInstance<T>, anyway - but throw an error to be sure
 
         HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis<T> for HypObject that does not use ObjectPool",
             TypeName<T>().Data());
         
-        return { };
+        return nullptr;
     }
 };
 
@@ -137,7 +140,7 @@ struct HypObject_WeakRefCountedPtrFromThis_Impl<T, false>
             case HypClassAllocationMethod::OBJECT_POOL_HANDLE: \
                 return this; \
             case HypClassAllocationMethod::REF_COUNTED_PTR: \
-                return detail::HypObject_WeakRefCountedPtrFromThis_Impl<T>{}(this).GetRefCountData_Internal(); \
+                return detail::HypObject_ToCommonBase_Impl<T>{}(this); \
             default: \
                 HYP_NOT_IMPLEMENTED(); \
             } \

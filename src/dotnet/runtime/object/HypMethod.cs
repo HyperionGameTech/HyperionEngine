@@ -106,8 +106,6 @@ namespace Hyperion
 
             HypObject? thisObject = null;
 
-            Console.WriteLine("Invoke method: " + Name + " numArgs = " + numArgs + ", IsMemberFunction = " + IsMemberFunction);
-
             bool isMemberFunction = IsMemberFunction;
 
             if (isMemberFunction)

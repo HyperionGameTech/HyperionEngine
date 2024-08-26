@@ -49,8 +49,5 @@ namespace Hyperion
                     .GetValue();
             }
         }
-
-        [DllImport("hyperion", EntryPoint = "Scene_GetWorld")]
-        private static extern IntPtr Scene_GetWorld(ManagedHandle scene);
     }
 }

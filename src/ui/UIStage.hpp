@@ -7,6 +7,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <scene/Node.hpp>
@@ -62,6 +64,8 @@ HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
 /*! \brief The UIStage is the root of the UI scene graph. */
 class HYP_API UIStage : public UIObject
 {
+    HYP_OBJECT_BODY(UIStage);
+
 public:
     friend class UIObject;
 

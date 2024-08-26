@@ -134,12 +134,12 @@ void Game::Init()
     m_ui_stage->Init();
 
     if (m_managed_game_object) {
-        m_managed_game_object->InvokeMethodByName<void, dotnet::Object *, dotnet::Object *, dotnet::Object *, ManagedRefCountedPtr>(
+        m_managed_game_object->InvokeMethodByName<void, dotnet::Object *, dotnet::Object *, dotnet::Object *, dotnet::Object *>(
             "BeforeInit",
             m_scene->GetManagedObject(),
             m_input_manager->GetManagedObject(),
             g_asset_manager->GetManagedObject(),
-            UnmarshalRefCountedPtr(m_ui_stage)
+            m_ui_stage->GetManagedObject()
         );
 
         m_managed_game_object->InvokeMethodByName<void>("Init");

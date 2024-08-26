@@ -14,31 +14,5 @@
 using namespace hyperion;
 
 extern "C" {
-HYP_EXPORT uint32 Scene_GetTypeID()
-{
-    return TypeID::ForType<Scene>().Value();
-}
 
-HYP_EXPORT void Scene_Create(ManagedHandle *handle)
-{
-    *handle = CreateManagedHandleFromHandle(CreateObject<Scene>());
-}
-
-HYP_EXPORT World *Scene_GetWorld(ManagedHandle scene_handle)
-{
-    return CreateHandleFromManagedHandle<Scene>(scene_handle)->GetWorld();
-}
-
-HYP_EXPORT void Scene_GetRoot(ManagedHandle scene_handle, ManagedNode *root)
-{
-    Handle<Scene> scene = CreateHandleFromManagedHandle<Scene>(scene_handle);
-    AssertThrow(scene.IsValid());
-
-    *root = CreateManagedNodeFromNodeProxy(scene->GetRoot());
-}
-
-HYP_EXPORT EntityManager *Scene_GetEntityManager(ManagedHandle scene_handle)
-{
-    return CreateHandleFromManagedHandle<Scene>(scene_handle)->GetEntityManager().Get();
-}
 } // extern "C"

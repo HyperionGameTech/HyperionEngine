@@ -453,8 +453,9 @@ public:
     template <class Ty>
     HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<Ty> CastDynamic()
     {
-        if (IsDynamic<Ty>()) {
-            return Base::CastUnsafe<Ty>();
+        Ty *result = nullptr;
+        if (Is<Ty>() || (result = dynamic_cast<Ty *>(Get()))) {
+            return result;
         }
 
         return UniquePtr<Ty>();

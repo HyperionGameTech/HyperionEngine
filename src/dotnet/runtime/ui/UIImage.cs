@@ -9,9 +9,5 @@ namespace Hyperion
         {
                 
         }
-
-        public UIImage(RefCountedPtr refCountedPtr) : base(refCountedPtr)
-        {
-        }
     }
 }

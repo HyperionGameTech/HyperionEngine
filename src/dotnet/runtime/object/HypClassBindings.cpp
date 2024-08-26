@@ -29,14 +29,16 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
         
         const uint32 index = container.NextIndex();
         container.ConstructAtIndex(index);
-        container.IncRefStrong(index);
+        // container.IncRefStrong(index);
 
         return container.GetObjectPointer(index);
     } else if (hyp_class->UseRefCountedPtr()) {
         Any any_value;
         hyp_class->CreateInstance(any_value);
 
-        return UniquePtr<void>(std::move(any_value)).ToRefCountedPtr().GetRefCountData_Internal();
+        RC<void> rc = UniquePtr<void>(std::move(any_value)).ToRefCountedPtr();
+        
+        return rc.Release();
     } else {
         HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
     }
