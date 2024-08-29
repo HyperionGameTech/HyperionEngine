@@ -74,18 +74,13 @@ namespace Hyperion
             }
         }
 
-        public Vec2i Size
+        public Vec2i ActualSize
         {
             get
             {
-                return (Vec2i)GetProperty(PropertyNames.Size)
+                return (Vec2i)GetProperty(PropertyNames.ActualSize)
                     .InvokeGetter(this)
                     .GetValue();
-            }
-            set
-            {
-                GetProperty(PropertyNames.Size)
-                    .InvokeSetter(this, new HypData(value));
             }
         }
 

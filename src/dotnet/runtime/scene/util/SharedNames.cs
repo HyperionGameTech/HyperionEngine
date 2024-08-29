@@ -25,6 +25,7 @@ namespace Hyperion
         public static Name OriginAlignment { get; } = Name.FromString("OriginAlignment", weak: true);
         public static Name ParentAlignment { get; } = Name.FromString("ParentAlignment", weak: true);
         public static Name Position { get; } = Name.FromString("Position", weak: true);
+        public static Name ActualSize { get; } = Name.FromString("ActualSize", weak: true);
         public static Name Size { get; } = Name.FromString("Size", weak: true);
         public static Name SurfaceSize { get; } = Name.FromString("SurfaceSize", weak: true);
     }

@@ -63,6 +63,9 @@ namespace Hyperion
                 Console.WriteLine("Field Name = {0}, Type = {1}, Offset = {2}", field.Name, field.TypeID, field.Offset);
             }
 
+            Console.WriteLine("uiStage.Position = {0}", uiStage.Position);
+            Console.WriteLine("uiStage.ActualSize = {0}", uiStage.ActualSize);
+
             Entity newEntity = this.scene.EntityManager.AddEntity();
             Console.WriteLine("New Entity = {0}", newEntity.ID);
 

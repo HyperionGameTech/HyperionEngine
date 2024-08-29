@@ -1210,7 +1210,7 @@ void HyperionEditor::Init()
     // const HypClass *mesh_class = Mesh::GetClass();
     // const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
 
-    // HYP_BREAKPOINT;
+    HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();
