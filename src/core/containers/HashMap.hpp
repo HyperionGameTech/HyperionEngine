@@ -411,8 +411,7 @@ public:
     HYP_FORCE_INLINE SizeType Size() const
         { return m_size; }
  
-    HYP_FORCE_INLINE
-    SizeType BucketCount() const
+    HYP_FORCE_INLINE SizeType BucketCount() const
         { return m_buckets.Size(); }
 
     HYP_FORCE_INLINE SizeType Bucket(const KeyType &key) const
@@ -427,8 +426,8 @@ public:
     Iterator Find(const KeyType &key);
     ConstIterator Find(const KeyType &key) const;
 
-    template <class U>
-    Iterator FindAs(const U &key)
+    template <class TFindAsType>
+    Iterator FindAs(const TFindAsType &key)
     {
         const HashCode::ValueType hash_code = HashCode::GetHashCode(key).Value();
         detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code);
@@ -442,8 +441,8 @@ public:
         return Iterator(this, it);
     }
 
-    template <class U>
-    ConstIterator FindAs(const U &key) const
+    template <class TFindAsType>
+    ConstIterator FindAs(const TFindAsType &key) const
     {
         const HashCode::ValueType hash_code = HashCode::GetHashCode(key).Value();
         const detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code);
@@ -457,7 +456,9 @@ public:
         return ConstIterator(this, it);
     }
 
-    bool Contains(const KeyType &key) const;
+    template <class TFindAsType>
+    HYP_FORCE_INLINE bool Contains(const TFindAsType &key) const
+        { return FindAs<TFindAsType>(key) != End(); }
     
     Iterator Erase(Iterator iter);
     bool Erase(const KeyType &key);
@@ -687,12 +688,6 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) const -> ConstIterato
     }
 
     return ConstIterator(this, it);
-}
-
-template <class KeyType, class ValueType>
-bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
-{
-    return Find(key) != End();
 }
 
 template <class KeyType, class ValueType>

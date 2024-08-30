@@ -9,13 +9,4 @@ using namespace hyperion;
 
 extern "C" {
 
-HYP_EXPORT const char *Subsystem_GetName(SubsystemBase *subsystem)
-{
-    if (subsystem == nullptr) {
-        return "";
-    }
-
-    return subsystem->GetName().Data();
-}
-
 } // extern "C"

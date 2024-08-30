@@ -35,13 +35,11 @@
 
 #include <Engine.hpp>
 
+#include <gen/ui/UIStage.inl>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
-
-HYP_BEGIN_CLASS(UIStage)
-    HYP_PROPERTY(SurfaceSize, &UIStage::GetSurfaceSize)
-HYP_END_CLASS
 
 UIStage::UIStage(ThreadID owner_thread_id)
     : UIObject(UIObjectType::STAGE),

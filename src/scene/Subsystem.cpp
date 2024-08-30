@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(SubsystemBase, abstract)
+HYP_BEGIN_CLASS(SubsystemBase, {}, {})
 HYP_END_CLASS
 
 SubsystemBase::SubsystemBase()

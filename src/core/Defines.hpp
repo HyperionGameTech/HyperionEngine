@@ -453,4 +453,12 @@ extern HYP_API void LogStackTrace();
 
 #pragma endregion Global Forward Declarations
 
+#pragma region Codegen
+
+#define HYP_CLASS(...)
+#define HYP_METHOD(...)
+// #define HYP_FIELD(...)
+
+#pragma endregion
+
 #endif // !HYPERION_DEFINES_HPP

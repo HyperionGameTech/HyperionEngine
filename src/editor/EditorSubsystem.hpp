@@ -10,7 +10,8 @@
 
 namespace hyperion {
 
-class HYP_API EditorSubsystem : public Subsystem<EditorSubsystem>
+HYP_CLASS()
+class HYP_API EditorSubsystem : public SubsystemBase
 {
     HYP_OBJECT_BODY(EditorSubsystem);
 

@@ -443,6 +443,22 @@ set(COMMON_LIBRARIES
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
+function(run_python_codegen_script)
+    # execute_process(
+    #     COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen/main.py
+    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    #     COMMENT "Running Python codegen script"
+    # )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running Python codegen script"
+    )
+    add_custom_target(${BUILD_NAME}_codegen ALL DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
+endfunction()
+
 function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file
     set(CSHARP_PROJECT_DIR ${CSHARP_PROJECTS_DIR}/${output_name})
@@ -520,6 +536,9 @@ function(create_csharp_library output_name csharp_sources)
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
 endfunction()
+
+# run codegen script
+run_python_codegen_script()
 
 # for all csharp sources, compile them into a Class library
 # use `dotnet` to compile them

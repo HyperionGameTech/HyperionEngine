@@ -16,10 +16,9 @@
 
 #include <Engine.hpp>
 
-namespace hyperion {
+#include <gen/editor/EditorSubsystem.inl>
 
-HYP_BEGIN_CLASS(EditorSubsystem)
-HYP_END_CLASS
+namespace hyperion {
 
 #pragma region EditorSubsystem
 

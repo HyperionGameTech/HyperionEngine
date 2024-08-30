@@ -38,7 +38,7 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(AssetManager)
+HYP_BEGIN_CLASS(AssetManager, {}, {})
     HYP_PROPERTY(BasePath, &AssetManager::GetBasePath, &AssetManager::SetBasePath)
 HYP_END_CLASS
 

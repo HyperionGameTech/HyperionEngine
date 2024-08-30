@@ -276,21 +276,7 @@ public:
 
 struct UIObjectID : UniqueID { };
 
-// @TODO: Make a m_needs_repaint bool member, and only render when this is true.
-// to save on repaints we will render the UIobject into a texture. this will
-// drastically reduce draw calls needed.
-// then, we can get rid of IsContainer() usages. we'll still need to make sure we're only
-// repainting X number of objects or we'll run out of render groups we can use.
-
-// We'll make a Repaint() method, or another helper class (maybe UIRenderer) which will happen on the render thread and simply collect 
-// alll our child elements and render them to a framebuffer. we'll need to copy the framebuffer to a texture
-
-// marking dirty : m_needs_Repaint gets set to true when ANY child objects get dirtied
-// this means top-level ui objects will pretty much always need a repaint, but thats ok because they can use child ui objects
-// that don't need a repaint, when they're painting..
-
-// can also have just 1 fbo which is used at the top level, and is the same size as the UI stage, and we just blit sections to the tex
-
+HYP_CLASS(abstract)
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
     HYP_OBJECT_BODY(UIObject);
@@ -321,28 +307,38 @@ public:
     HYP_FORCE_INLINE const UIObjectID &GetID() const
         { return m_id; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE UIObjectType GetType() const
         { return m_type; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE ID<Entity> GetEntity() const
         { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : ID<Entity>::invalid; }
 
-    HYP_FORCE_INLINE  UIStage *GetStage() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE UIStage *GetStage() const
         { return m_stage; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsInit() const
         { return m_is_init; }
 
+    HYP_METHOD()
     Name GetName() const;
     
+    HYP_METHOD()
     void SetName(Name name);
 
+    HYP_METHOD()
     Vec2i GetPosition() const;
 
+    HYP_METHOD()
     void SetPosition(Vec2i position);
 
+    HYP_METHOD()
     Vec2f GetOffsetPosition() const;
 
+    HYP_METHOD()
     Vec2f GetAbsolutePosition() const;
 
     UIObjectSize GetSize() const;
@@ -360,61 +356,73 @@ public:
     /*! \brief Get the computed size (in pixels) of the UI object.
      *  The actual size of the UI object is calculated based on the size of the parent object and the size of the object itself.
      *  \return The computed size of the UI object */
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetActualSize() const
         { return m_actual_size; }
 
     /*! \brief Get the computed inner size (in pixels) of the UI object.
      *  \return The computed inner size of the UI object */
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetActualInnerSize() const
         { return m_actual_inner_size; }
 
     /*! \brief Get the scroll offset (in pixels) of the UI object.
      *  \return The scroll offset of the UI object */
+    HYP_METHOD()
     Vec2i GetScrollOffset() const;
 
     /*! \brief Set the scroll offset (in pixels) of the UI object.
      *  \param scroll_offset The scroll offset of the UI object */
+    HYP_METHOD()
     void SetScrollOffset(Vec2i scroll_offset);
 
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
      *  \return The depth of the UI object */
+    HYP_METHOD()
     int GetComputedDepth() const;
 
     /*! \brief Get the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \return The depth of the UI object */
+    HYP_METHOD()
     int GetDepth() const;
 
     /*! \brief Set the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  Set the depth to a value between UIStage::min_depth and UIStage::max_depth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \param depth The depth of the UI object */
+    HYP_METHOD()
     void SetDepth(int depth);
 
     /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
      *  \return True if the this object accepts focus, false otherwise */
+    HYP_METHOD()
     virtual bool AcceptsFocus() const
         { return m_accepts_focus; }
 
     /*! \brief Set whether the UI object accepts focus.
      *  \details If set to true, the UI object can receive focus. If set to false, the UI object cannot receive focus.
      *  \note If a class deriving \ref{UIObject} overrides \ref{AcceptsFocus}, this function has no effect. */
+    HYP_METHOD()
     void SetAcceptsFocus(bool accepts_focus);
 
     /*! \brief Set the focus to this UI object, if AcceptsFocus() returns true.
      * This function is called when the UI object is focused. */
+    HYP_METHOD()
     virtual void Focus();
 
     /*! \brief Remove the focus from this UI object, if AcceptsFocus() returns true.
      *  This function is called when the UI object loses focus.
      *  \param blur_children If true, also remove focus from all child objects. */
+    HYP_METHOD()
     virtual void Blur(bool blur_children = true);
 
     /*! \brief Set whether the UI object affects the size of its parent.
      *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
      *  \param affects_parent_size Whether the UI object affects the size of its parent */
+    HYP_METHOD()
     void SetAffectsParentSize(bool affects_parent_size);
 
     /*! \brief Check if the UI object affects the size of its parent.

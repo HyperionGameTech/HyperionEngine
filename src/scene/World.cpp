@@ -25,7 +25,7 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(World)
+HYP_BEGIN_CLASS(World, {}, {})
     HYP_PROPERTY(ID, &World::GetID),
     HYP_PROPERTY(GameTime, &World::GetGameTime),
 
@@ -172,7 +172,7 @@ void World::Update(GameCounter::TickUnit delta)
 
         update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
         {
-            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetName());
+            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetClass()->GetName());
 
             subsystem->Update(delta);
         }));

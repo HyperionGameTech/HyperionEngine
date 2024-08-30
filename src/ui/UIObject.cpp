@@ -41,13 +41,9 @@
 
 #include <Engine.hpp>
 
-namespace hyperion {
+#include <gen/ui/UIObject.inl>
 
-HYP_BEGIN_CLASS(UIObject, abstract)
-    HYP_PROPERTY(Name, &UIObject::GetName),
-    HYP_PROPERTY(Position, &UIObject::GetPosition, &UIObject::SetPosition),
-    HYP_PROPERTY(ActualSize, &UIObject::GetActualSize)
-HYP_END_CLASS
+namespace hyperion {
 
 enum class UIObjectFlags : uint32
 {

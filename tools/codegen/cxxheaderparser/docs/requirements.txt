@@ -1,0 +1,4 @@
+sphinx >= 3.0
+sphinx-rtd-theme
+sphinx-autodoc-typehints
+pcpp

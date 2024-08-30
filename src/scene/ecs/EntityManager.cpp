@@ -16,6 +16,8 @@
 
 #include <Engine.hpp>
 
+#include <gen/scene/ecs/EntityManager.inl>
+
 namespace hyperion {
 
 // #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL
@@ -23,13 +25,13 @@ namespace hyperion {
 // if the number of systems in a group is less than this value, they will be executed sequentially
 static const uint32 systems_execution_parallel_threshold = 3;
 
-HYP_BEGIN_CLASS(EntityManager)
-    HYP_PROPERTY(Scene, &EntityManager::GetScene),
+// HYP_BEGIN_CLASS(EntityManager, {}, {})
+//     HYP_PROPERTY(Scene, &EntityManager::GetScene),
 
-    HYP_METHOD(AddEntity),
-    HYP_METHOD(RemoveEntity),
-    HYP_METHOD(HasEntity)
-HYP_END_CLASS
+//     HYP_METHOD(AddEntity),
+//     HYP_METHOD(RemoveEntity),
+//     HYP_METHOD(HasEntity)
+// HYP_END_CLASS
 
 #pragma region EntityManagerCommandQueue
 

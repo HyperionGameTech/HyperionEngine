@@ -4,10 +4,10 @@
 
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(WorldGridPatchComponent)
-    HYP_FIELD(patch_info),
+// HYP_BEGIN_STRUCT(WorldGridPatchComponent)
+//     HYP_FIELD(patch_info),
 
-    HYP_METHOD(GetCenter)
-HYP_END_STRUCT
+//     HYP_METHOD(GetCenter)
+// HYP_END_STRUCT
 
 } // namespace hyperion

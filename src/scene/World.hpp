@@ -192,7 +192,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *AddSubsystem()
     {
-        static_assert(std::is_base_of_v<Subsystem<T>, T>, "T must be a subclass of Subsystem<T>");
+        static_assert(std::is_base_of_v<SubsystemBase, T>, "T must be a subclass of SubsystemBase");
 
         return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), RC<T>::Construct()));
     }
@@ -202,7 +202,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *GetSubsystem()
     {
-        static_assert(std::is_base_of_v<Subsystem<T>, T>, "T must be a subclass of Subsystem<T>");
+        static_assert(std::is_base_of_v<SubsystemBase, T>, "T must be a subclass of SubsystemBase");
 
         return static_cast<T *>(GetSubsystem(TypeID::ForType<T>()));
     }

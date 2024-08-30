@@ -95,7 +95,7 @@ namespace Hyperion
             }
         }
 
-        protected HypProperty GetProperty(Name name)
+        public HypProperty GetProperty(Name name)
         {
             if (_hypClassPtr == IntPtr.Zero)
             {
@@ -119,7 +119,7 @@ namespace Hyperion
             return new HypProperty(propertyPtr);
         }
 
-        protected HypMethod GetMethod(Name name)
+        public HypMethod GetMethod(Name name)
         {
             if (_hypClassPtr == IntPtr.Zero)
             {

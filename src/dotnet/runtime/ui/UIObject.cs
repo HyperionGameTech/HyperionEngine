@@ -53,9 +53,14 @@ namespace Hyperion
         {
             get
             {
-                return (Name)GetProperty(PropertyNames.Name)
-                    .InvokeGetter(this)
+                return (Name)GetMethod(new Name("GetName", weak: true))
+                    .Invoke(this)
                     .GetValue();
+            }
+            set
+            {
+                GetMethod(new Name("SetName", weak: true))
+                    .Invoke(this, value);
             }
         }
 
@@ -63,14 +68,14 @@ namespace Hyperion
         {
             get
             {
-                return (Vec2i)GetProperty(PropertyNames.Position)
-                    .InvokeGetter(this)
+                return (Vec2i)GetMethod(new Name("GetPosition", weak: true))
+                    .Invoke(this)
                     .GetValue();
             }
             set
             {
-                GetProperty(PropertyNames.Position)
-                    .InvokeSetter(this, new HypData(value));
+                GetMethod(new Name("SetPosition", weak: true))
+                    .Invoke(this, value);
             }
         }
 
@@ -78,8 +83,8 @@ namespace Hyperion
         {
             get
             {
-                return (Vec2i)GetProperty(PropertyNames.ActualSize)
-                    .InvokeGetter(this)
+                return (Vec2i)GetMethod(new Name("GetActualSize", weak: true))
+                    .Invoke(this)
                     .GetValue();
             }
         }
@@ -88,14 +93,14 @@ namespace Hyperion
         {
             get
             {
-                return (UIObjectAlignment)GetProperty(PropertyNames.OriginAlignment)
-                    .InvokeGetter(this)
+                return (UIObjectAlignment)GetMethod(new Name("GetOriginAlignment", weak: true))
+                    .Invoke(this)
                     .GetValue();
             }
             set
             {
-                GetProperty(PropertyNames.OriginAlignment)
-                    .InvokeSetter(this, new HypData(value));
+                GetMethod(new Name("SetOriginAlignment", weak: true))
+                    .Invoke(this, value);
             }
         }
 
@@ -103,14 +108,14 @@ namespace Hyperion
         {
             get
             {
-                return (UIObjectAlignment)GetProperty(PropertyNames.ParentAlignment)
-                    .InvokeGetter(this)
+                return (UIObjectAlignment)GetMethod(new Name("GetParentAlignment", weak: true))
+                    .Invoke(this)
                     .GetValue();
             }
             set
             {
-                GetProperty(PropertyNames.ParentAlignment)
-                    .InvokeSetter(this, new HypData(value));
+                GetMethod(new Name("SetParentAlignment", weak: true))
+                    .Invoke(this, value);
             }
         }
     }

@@ -41,6 +41,25 @@ enum class HypClassFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)
 
+struct HypClassAttribute
+{
+    ANSIStringView  name;
+    ANSIStringView  value;
+
+    constexpr HypClassAttribute() = default;
+    constexpr HypClassAttribute(const ANSIStringView &name, const ANSIStringView &value)
+        : name(name),
+          value(value)
+    {
+    }
+
+    constexpr HypClassAttribute(const HypClassAttribute &other)         = default;
+    HypClassAttribute &operator=(const HypClassAttribute &other)        = default;
+
+    constexpr HypClassAttribute(HypClassAttribute &&other) noexcept     = default;
+    HypClassAttribute &operator=(HypClassAttribute &&other) noexcept    = default;
+};
+
 class HYP_API HypClassRegistry
 {
 public:
@@ -94,8 +113,8 @@ protected:
 template <class T, EnumFlags<HypClassFlags> Flags>
 struct HypClassRegistration : public HypClassRegistrationBase
 {   
-    HypClassRegistration(Name name, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, Flags, Span<HypMember>(members.Begin(), members.End())))
+    HypClassRegistration(Name name, Name parent_name, Span<HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, parent_name, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
@@ -103,8 +122,8 @@ struct HypClassRegistration : public HypClassRegistrationBase
 template <class T, EnumFlags<HypClassFlags> Flags>
 struct HypStructRegistration : public HypClassRegistrationBase
 {   
-    HypStructRegistration(Name name, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, Flags, Span<HypMember>(members.Begin(), members.End())))
+    HypStructRegistration(Name name, Name parent_name, Span<HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, parent_name, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

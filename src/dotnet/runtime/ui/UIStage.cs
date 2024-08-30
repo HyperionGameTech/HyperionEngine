@@ -8,16 +8,18 @@ namespace Hyperion
     {
         public UIStage() : base()
         {
-                
+            
         }
 
         public Vec2i SurfaceSize
         {
             get
             {
-                return (Vec2i)GetProperty(PropertyNames.SurfaceSize)
-                    .InvokeGetter(this)
-                    .GetValue();
+                return (Vec2i)this.GetSurfaceSize();
+            }
+            set
+            {
+                this.SetSurfaceSize(value);
             }
         }
 

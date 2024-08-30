@@ -82,13 +82,5 @@ namespace Hyperion
         public InputManager()
         {
         }
-
-        public bool IsKeyDown(KeyCode key)
-        {
-            return InputManager_IsKeyDown(NativeAddress, (ushort)key);
-        }
-
-        [DllImport("hyperion", EntryPoint = "InputManager_IsKeyDown")]
-        private static extern bool InputManager_IsKeyDown(IntPtr inputManagerPtr, ushort key);
     }
 }

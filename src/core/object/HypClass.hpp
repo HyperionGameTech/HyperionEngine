@@ -37,7 +37,7 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -58,6 +58,8 @@ public:
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
 
+    const HypClass *GetParent() const;
+
     virtual SizeType GetSize() const = 0;
 
     virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const = 0;
@@ -75,7 +77,7 @@ public:
         { return m_flags & HypClassFlags::STRUCT_TYPE; }
 
     HYP_FORCE_INLINE bool IsAbstract() const
-        { return m_flags & HypClassFlags::ABSTRACT; }
+        { return m_attributes.Contains("abstract"); }
 
     HypProperty *GetProperty(WeakName name) const;
 
@@ -135,6 +137,8 @@ protected:
 
     TypeID                          m_type_id;
     Name                            m_name;
+    Name                            m_parent_name;
+    HashMap<String, String>         m_attributes;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
@@ -148,15 +152,15 @@ template <class T>
 class HypClassInstance : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypClassInstance &GetInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypClassInstance instance { name, flags, members };
+        static HypClassInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypClassInstance(Name name, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(TypeID::ForType<T>(), name, flags, members)
+    HypClassInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }
 

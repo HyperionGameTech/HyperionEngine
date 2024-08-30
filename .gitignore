@@ -297,4 +297,7 @@ CMakeFiles/**/*
 
 .cache/**/*
 
+src/gen/**/*
+src/dotnet/runtime/gen/**/*
+
 submodules/**/*

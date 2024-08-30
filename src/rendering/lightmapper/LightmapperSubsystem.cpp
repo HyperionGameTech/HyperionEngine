@@ -14,10 +14,9 @@
 
 #include <Engine.hpp>
 
-namespace hyperion {
+#include <gen/rendering/lightmapper/LightmapperSubsystem.inl>
 
-HYP_BEGIN_CLASS(LightmapperSubsystem)
-HYP_END_CLASS
+namespace hyperion {
 
 #pragma region LightmapperSubsystem
 

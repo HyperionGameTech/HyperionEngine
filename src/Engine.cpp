@@ -44,7 +44,7 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(Engine)
+HYP_BEGIN_CLASS(Engine, {}, {})
     HYP_FUNCTION(GetInstance, &Engine::GetInstance)
 HYP_END_CLASS
 

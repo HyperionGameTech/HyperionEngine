@@ -336,6 +336,7 @@ private:
     mutable Mutex                           m_mutex;
 };
 
+HYP_CLASS()
 class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
 {
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
@@ -368,6 +369,7 @@ public:
      *
      *  \return Pointer to the Scene.
      */
+    HYP_METHOD()
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_scene; }
 
@@ -390,6 +392,7 @@ public:
      *
      *  \return The Entity that was added.
      */
+    HYP_METHOD()
     HYP_NODISCARD ID<Entity> AddEntity();
 
     /*! \brief Removes an entity from the EntityManager.
@@ -398,6 +401,7 @@ public:
      *
      *  \return True if the entity was removed, false otherwise.
      */
+    HYP_METHOD()
     bool RemoveEntity(ID<Entity> id);
 
     /*! \brief Moves an entity from one EntityManager to another.
@@ -409,6 +413,7 @@ public:
      */
     void MoveEntity(ID<Entity> entity, EntityManager &other);
     
+    HYP_METHOD()
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
