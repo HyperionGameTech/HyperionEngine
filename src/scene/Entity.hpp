@@ -10,6 +10,7 @@
 namespace hyperion {
 
 /*! \brief Do not use this class directly. Use ID<Entity> instead. */
+HYP_CLASS()
 class Entity : public BasicObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);

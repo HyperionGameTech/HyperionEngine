@@ -19,8 +19,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Texture);
-
 using renderer::Result;
 
 class Texture;

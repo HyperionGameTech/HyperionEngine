@@ -3,7 +3,6 @@
 #ifndef HYPERION_MESH_HPP
 #define HYPERION_MESH_HPP
 
-#include <core/Base.hpp>
 #include <core/object/HypObject.hpp>
 
 #include <core/utilities/Pair.hpp>
@@ -31,7 +30,7 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-class HYP_API Mesh final : public BasicObject<Mesh>
+class HYP_API Mesh final : public HypObject
 {
     HYP_OBJECT_BODY(Mesh);
     

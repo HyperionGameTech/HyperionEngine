@@ -8,11 +8,6 @@ namespace hyperion {
 
 #pragma region VertexAttributeSet
 
-// HYP_DEFINE_CLASS(
-//     VertexAttributeSet,
-//     HypProperty(NAME("FlagMask"), &VertexAttributeSet::GetFlagMask, &VertexAttributeSet::SetFlagMask)
-// );
-
 HYP_BEGIN_STRUCT(VertexAttributeSet)
     HYP_FIELD(flag_mask)
 HYP_END_STRUCT
@@ -79,20 +74,6 @@ HYP_BEGIN_STRUCT(Vertex)
     HYP_FIELD(num_indices),
     HYP_FIELD(num_weights)
 HYP_END_STRUCT
-
-// HYP_DEFINE_CLASS(
-//     Vertex,
-//     HypProperty(NAME("Position"), &Vertex::GetPosition, &Vertex::SetPosition),
-//     HypProperty(NAME("Normal"), &Vertex::GetNormal, &Vertex::SetNormal),
-//     HypProperty(NAME("TexCoord0"), &Vertex::GetTexCoord0, &Vertex::SetTexCoord0),
-//     HypProperty(NAME("TexCoord1"), &Vertex::GetTexCoord1, &Vertex::SetTexCoord1),
-//     HypProperty(NAME("Tangent"), &Vertex::GetTangent, &Vertex::SetTangent),
-//     HypProperty(NAME("Bitangent"), &Vertex::GetBitangent, &Vertex::SetBitangent),
-//     HypProperty(NAME("BoneWeights"), &Vertex::GetBoneWeights, &Vertex::SetBoneWeights),
-//     HypProperty(NAME("BoneIndices"), &Vertex::GetBoneIndices, &Vertex::SetBoneIndices),
-//     HypProperty(NAME("NumIndices"), &Vertex::GetNumIndices),
-//     HypProperty(NAME("NumWeights"), &Vertex::GetNumWeights)
-// );
 
 bool Vertex::operator==(const Vertex &other) const
 {
