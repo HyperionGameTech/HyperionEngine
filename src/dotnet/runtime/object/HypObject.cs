@@ -10,8 +10,6 @@ namespace Hyperion
 
         protected HypObject()
         {
-            Console.WriteLine("HypObject constructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
-
             if (_hypClassPtr == IntPtr.Zero)
             {
                 if (_nativeAddress != IntPtr.Zero)
@@ -53,8 +51,6 @@ namespace Hyperion
 #endif
 
             HypObject_IncRef(_hypClassPtr, _nativeAddress);
-
-            Console.WriteLine("At the end of HypObject constructor for " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~HypObject()

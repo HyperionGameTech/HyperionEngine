@@ -44,6 +44,8 @@ public:
     HypClass &operator=(HypClass &&other) noexcept  = delete;
     virtual ~HypClass();
 
+    virtual void Initialize();
+
     virtual bool IsValid() const
         { return false; }
 
@@ -103,7 +105,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
     {
-        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
             GetName().LookupString());
 
         AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
@@ -114,7 +116,7 @@ public:
 
     HYP_FORCE_INLINE void CreateInstance(Any &out) const
     {
-        AssertThrowMsg(CanCreateInstance(), "Cannot create a new instance for HypClass %s",
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
             GetName().LookupString());
 
         CreateInstance_Internal(out);

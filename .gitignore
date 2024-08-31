@@ -297,6 +297,8 @@ CMakeFiles/**/*
 
 .cache/**/*
 
+**/*.pyc
+
 src/gen/**/*
 src/dotnet/runtime/gen/**/*
 

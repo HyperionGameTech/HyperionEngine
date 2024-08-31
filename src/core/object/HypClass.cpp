@@ -69,6 +69,11 @@ HypClass::~HypClass()
     }
 }
 
+void HypClass::Initialize()
+{
+    
+}
+
 const HypClass *HypClass::GetParent() const
 {
     if (!m_parent_name.IsValid()) {

@@ -79,23 +79,28 @@ static Array<String> CreatePlatformStackTrace(uint depth)
 
     SymCleanup(process);
 #elif defined(HYP_UNIX)
-    void **stack = (void **)malloc(depth * sizeof(void *));
-    const int frames = backtrace(stack, depth);
+    constexpr int offset = 2;
 
-    Array<String> symbols;
-    symbols.Resize(frames);
+    void **stack = (void **)malloc((depth + offset) * sizeof(void *));
+    const int frames = backtrace(stack, depth + offset);
+    
+    if (frames - offset > 0) {
+        Array<String> symbols;
+        symbols.Resize(frames - offset);
 
-    char **strings = backtrace_symbols(stack, frames);
+        char **strings = backtrace_symbols(stack, frames);
 
-    for (int i = 0; i < frames; ++i) {
-        symbols[i] = strings[i];
+        for (int i = offset; i < frames; ++i) {
+            symbols[i - offset] = strings[i];
+        }
+
+        for (int i = 0; i < frames - offset; ++i) {
+            stack_trace.PushBack(symbols[i]);
+        }
+
+        free(strings);
     }
 
-    for (int i = 0; i < frames; ++i) {
-        stack_trace.PushBack(symbols[i]);
-    }
-
-    free(strings);
     free(stack);
 #else
     stack_trace.PushBack("Stack trace not supported on this platform.");

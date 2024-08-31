@@ -10,6 +10,7 @@
 #include <core/containers/TypeMap.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -65,6 +66,13 @@ class HYP_API HypClassRegistry
 public:
     static HypClassRegistry &GetInstance();
 
+    HypClassRegistry();
+    HypClassRegistry(const HypClassRegistry &other)                 = delete;
+    HypClassRegistry &operator=(const HypClassRegistry &other)      = delete;
+    HypClassRegistry(HypClassRegistry &&other) noexcept             = delete;
+    HypClassRegistry &operator=(HypClassRegistry &&other) noexcept  = delete;
+    ~HypClassRegistry();
+
     /*! \brief Get the HypClass instance for the given type.
      *
      *  \tparam T The type to get the HypClass instance for.
@@ -95,11 +103,17 @@ public:
     void RegisterManagedClass(const HypClass *hyp_class, dotnet::Class *managed_class);
     dotnet::Class *GetManagedClass(const HypClass *hyp_class) const;
 
+    void Initialize();
+
 private:
     TypeMap<HypClass *>                     m_registered_classes;
 
+    bool                                    m_is_initialized;
+
     HashMap<HypClass *, dotnet::Class *>    m_managed_classes;
     mutable Mutex                           m_managed_classes_mutex;
+
+    DataRaceDetector                        m_data_race_detector;
 };
 
 namespace detail {

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    internal class StoredManagedObject : IDisposable
+    internal struct StoredManagedObject : IDisposable
     {
         public Guid guid;
         public Guid assemblyGuid;
@@ -58,17 +58,6 @@ namespace Hyperion
 
         public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive)
         {
-            // log stack trace
-            var stackTrace = new System.Diagnostics.StackTrace();
-
-            foreach (var frame in stackTrace.GetFrames())
-            {
-                var method = frame.GetMethod();
-                Logger.Log(LogType.Debug, $"Method: {method.DeclaringType}.{method.Name}");
-            }
-
-            Logger.Log(LogType.Debug, $"Adding object {obj} to cache for assembly {assemblyGuid}");
-
             lock (lockObject)
             {
                 StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive);

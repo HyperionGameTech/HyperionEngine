@@ -21,14 +21,6 @@ namespace dotnet {
 class Object;
 } // namespace dotnet
 
-// enum class HypObjectInitializerFlags : uint32
-// {
-//     NONE        = 0x0,
-//     ABSTRACT    = 0x1
-// };
-
-// HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
-
 class IHypObjectInitializer;
 
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);

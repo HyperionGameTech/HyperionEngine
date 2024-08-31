@@ -404,7 +404,7 @@ namespace Hyperion
                     throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
                 }
 
-                thisObject = storedObject.obj;
+                thisObject = ((StoredManagedObject)storedObject).obj;
             }
 
             object? returnValue = methodInfo.Invoke(thisObject, parameters);

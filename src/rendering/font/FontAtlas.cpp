@@ -54,8 +54,6 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
         AssertThrow(this->glyph_texture.IsValid());
         AssertThrow(this->glyph_texture->GetImage().IsValid());
         AssertThrow(this->glyph_texture->GetImageView().IsValid());
-
-        HYP_LOG(Font, LogLevel::DEBUG, "Glyph texture {} has image with index {} (ptr: {})", this->glyph_texture->GetID().Value(), this->glyph_texture->GetImage().index, (void*)this->glyph_texture->GetImage().Get());
     }
 
     virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override

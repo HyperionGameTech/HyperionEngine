@@ -26,8 +26,6 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
         }
 
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-            HYP_LOG(Object, LogLevel::DEBUG, "Creating managed instance of .NET class {} (HypClass name: {})", managed_class->GetName(), hyp_class->GetName());
-
             initializer->SetManagedObject(managed_class->NewObject(hyp_class, native_address));
         } else {
             HYP_LOG(Object, LogLevel::WARNING, "No managed class found for HypClass {}; Cannot create managed object", hyp_class->GetName());
