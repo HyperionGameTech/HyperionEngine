@@ -191,7 +191,6 @@ struct WorldGridParams
     }
 };
 
-HYP_CLASS()
 class HYP_API WorldGrid
 {
 public:

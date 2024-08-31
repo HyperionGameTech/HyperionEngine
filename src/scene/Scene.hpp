@@ -46,24 +46,21 @@ struct FogParams
     float   end_distance = 1000.0f;
 };
 
-template <>
-struct ComponentInitInfo<Scene>
+enum class SceneFlags : uint32
 {
-    enum Flags : ComponentFlags
-    {
-        SCENE_FLAGS_NONE        = 0x0,
-        SCENE_FLAGS_HAS_TLAS    = 0x1,
-        SCENE_FLAGS_NON_WORLD   = 0x2
-    };
-
-    ComponentFlags  flags = SCENE_FLAGS_NONE;
+    NONE        = 0x0,
+    HAS_TLAS    = 0x1,
+    NON_WORLD   = 0x2
 };
+
+HYP_MAKE_ENUM_FLAGS(SceneFlags);
 
 struct SceneDrawProxy
 {
     uint32 frame_counter;
 };
 
+HYP_CLASS()
 class HYP_API Scene : public BasicObject<Scene>
 {
     friend class Entity;
@@ -79,7 +76,7 @@ public:
     Scene(
         Handle<Camera> camera,
         ThreadID owner_thread_id,
-        const InitInfo &info = { }
+        EnumFlags<SceneFlags> flags = SceneFlags::NONE
     );
 
     Scene(const Scene &other)               = delete;
@@ -96,6 +93,7 @@ public:
     void SetOwnerThreadID(ThreadID owner_thread_id);
 
     /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
+    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
@@ -122,6 +120,7 @@ public:
      */
     bool CreateTLAS();
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
@@ -140,6 +139,7 @@ public:
         }
     }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const RC<EntityManager> &GetEntityManager() const
         { return m_entity_manager; }
 
@@ -152,6 +152,7 @@ public:
     HYP_FORCE_INLINE RenderEnvironment *GetEnvironment() const
         { return m_environment.Get(); }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
 
@@ -212,6 +213,8 @@ private:
     void EnqueueRenderUpdates();
 
     ThreadID                        m_owner_thread_id;
+
+    EnumFlags<SceneFlags>           m_flags;
 
     Handle<Camera>                  m_camera;
     RenderList                      m_render_list;

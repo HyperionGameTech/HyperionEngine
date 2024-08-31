@@ -41,8 +41,6 @@
 
 #include <Engine.hpp>
 
-#include <gen/ui/UIObject.inl>
-
 namespace hyperion {
 
 enum class UIObjectFlags : uint32

@@ -1,7 +1,5 @@
-#pragma once
+#include <core/object/HypClassUtils.hpp>
 
-namespace hyperion {
+#include <${generated_source.source_location.file}>
 
-${content}
-
-} // namespace hyperion
+${generated_source.content}

@@ -21,8 +21,6 @@
 
 #include <Engine.hpp>
 
-#include <gen/scene/world_grid/WorldGridSubsystem.inl>
-
 namespace hyperion {
 
 #pragma region WorldGridSubsystem

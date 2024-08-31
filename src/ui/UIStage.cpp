@@ -35,8 +35,6 @@
 
 #include <Engine.hpp>
 
-#include <gen/ui/UIStage.inl>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -175,9 +173,7 @@ void UIStage::Init()
     m_scene = CreateObject<Scene>(
         CreateObject<Camera>(),
         m_owner_thread_id,
-        Scene::InitInfo {
-            Scene::InitInfo::SCENE_FLAGS_NON_WORLD
-        }
+        SceneFlags::NON_WORLD
     );
 
     m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(

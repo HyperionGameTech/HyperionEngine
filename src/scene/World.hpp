@@ -149,6 +149,7 @@ private:
     }
 };
 
+HYP_CLASS()
 class HYP_API World : public BasicObject<World>
 {
     HYP_OBJECT_BODY(World);
@@ -192,24 +193,25 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *AddSubsystem()
     {
-        static_assert(std::is_base_of_v<SubsystemBase, T>, "T must be a subclass of SubsystemBase");
+        static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
         return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), RC<T>::Construct()));
     }
 
-    SubsystemBase *AddSubsystem(TypeID type_id, RC<SubsystemBase> &&subsystem);
+    Subsystem *AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T *GetSubsystem()
     {
-        static_assert(std::is_base_of_v<SubsystemBase, T>, "T must be a subclass of SubsystemBase");
+        static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
         return static_cast<T *>(GetSubsystem(TypeID::ForType<T>()));
     }
     
-    SubsystemBase *GetSubsystem(TypeID type_id);
+    Subsystem *GetSubsystem(TypeID type_id);
 
-    HYP_FORCE_INLINE GameCounter::TickUnit GetGameTime() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE float GetGameTime() const
         { return m_game_time; }
 
     void AddScene(const Handle<Scene> &scene);
@@ -239,12 +241,12 @@ private:
     FlatSet<ID<Scene>>                  m_scenes_pending_removal;
     FlatSet<ID<Scene>>                  m_scenes_pending_addition;
 
-    TypeMap<RC<SubsystemBase>>          m_subsystems;
+    TypeMap<RC<Subsystem>>          m_subsystems;
 
     AtomicVar<bool>                     m_has_scene_updates { false };
     Mutex                               m_scene_update_mutex;
 
-    GameCounter::TickUnit               m_game_time;
+    float                               m_game_time;
 };
 
 } // namespace hyperion

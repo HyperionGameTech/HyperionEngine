@@ -76,6 +76,15 @@ namespace Hyperion
         ArrowUp = 0x52
     }
 
+    public enum MouseButton : uint
+    {
+        Invalid = ~0u,
+        Left = 0,
+        Middle,
+        Right,
+        Max
+    }
+
     [HypClassBinding(Name="InputManager")]
     public class InputManager : HypObject
     {

@@ -23,6 +23,7 @@ CXX_PREPROCESSOR_DEFINES = [
     'HYP_OBJECT_BODY(...)=',
     'HYP_FORCE_INLINE=',
     'HYP_NODISCARD=',
+    'HYP_DEPRECATED='
 ]
 
 def make_preprocessor(defines=CXX_PREPROCESSOR_DEFINES, **kwargs):
@@ -40,6 +41,11 @@ class HypMemberType:
     FIELD = 0
     PROPERTY = 1
     METHOD = 2
+
+class GeneratedSource:
+    def __init__(self, source_location, content=""):
+        self.source_location = source_location
+        self.content = content
 
 class HypMemberDefinition:
     def __init__(self, member_type, name, method_return_type=None, method_args=None):
@@ -326,14 +332,14 @@ class Codegen:
         # get generated path - should match structure of hyp class
         # get extension of hyp class file
         
-        cxx_generated_path = get_generated_path(hyp_class.location.file, self.state.output_dir, extension='inl')
+        cxx_generated_path = get_generated_path(hyp_class.location.file, self.state.output_dir, extension='generated.cpp')
         cxx_generated_dir = os.path.dirname(cxx_generated_path)
 
         if not os.path.exists(cxx_generated_dir):
             os.makedirs(cxx_generated_dir)
 
-        cxx_source = self.cxx_generated_sources.get(cxx_generated_path, "")
-        cxx_source += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
+        cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
+        cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
         self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
 
         csharp_generated_path = get_generated_path(hyp_class.location.file, self.state.dotnet_output_dir, extension='cs')
@@ -342,8 +348,8 @@ class Codegen:
         if not os.path.exists(csharp_generated_dir):
             os.makedirs(csharp_generated_dir)
 
-        csharp_source = self.csharp_generated_sources.get(csharp_generated_path, "")
-        csharp_source += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
+        csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
+        csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
         self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
 
         hyp_class.is_built = True
@@ -469,6 +475,7 @@ class Codegen:
                         except Exception as e:
                             self.state.add_error(f'Error: Failed to parse class definition for {class_name} in file {file} - {repr(e)}')
 
+
     def extract_class_name(self, class_match):
         class_name_match = re.search(r'class\s+(?:HYP_API\s+)?(\w+)', class_match)
         if class_name_match:
@@ -484,14 +491,14 @@ class Codegen:
         return []
     
     def write_generated_sources(self):
-        for path, content in self.cxx_generated_sources.items():
-            module_content = CXX_MODULE_TEMPLATE.render(content=content)
+        for path, generated_source in self.cxx_generated_sources.items():
+            module_content = CXX_MODULE_TEMPLATE.render(generated_source=generated_source)
 
             with open(path, 'w') as f:
                 f.write(module_content)
 
-        for path, content in self.csharp_generated_sources.items():
-            module_content = CSHARP_MODULE_TEMPLATE.render(content=content)
+        for path, generated_source in self.csharp_generated_sources.items():
+            module_content = CSHARP_MODULE_TEMPLATE.render(content=generated_source.content)
 
             with open(path, 'w') as f:
                 f.write(module_content)

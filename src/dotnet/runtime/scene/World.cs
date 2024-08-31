@@ -19,22 +19,5 @@ namespace Hyperion
                     .GetValue();
             }
         }
-
-        public float GameTime
-        {
-            get
-            {
-                return (float)GetProperty(PropertyNames.GameTime)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
-
-        public Subsystem? GetSubsystem(TypeID typeId)
-        {
-            return (Subsystem?)GetMethod(MethodNames.GetSubsystem)
-                .Invoke(this, new HypData(typeId.Value))
-                .GetValue();
-        }
     }
 }

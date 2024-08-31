@@ -1,8 +1,10 @@
 #pragma region ${hyp_class.name}
 
+namespace hyperion {
+
 HYP_BEGIN_CLASS(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if hyp_class.base_class else "{}"}, ${','.join([f"HypClassAttribute(\"{name.lower()}\", \"{value}\")" for name, value in hyp_class.attributes])})
+    <% s = "" %> \
     % for i in range(0, len(hyp_class.members)):
-        <% s = "" %> \
         \
         <% member = hyp_class.members[i] %> \
         % if member.member_type == HypMemberType.FIELD:
@@ -13,8 +15,11 @@ HYP_BEGIN_CLASS(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if
         \
         <% s += ',' if i != len(hyp_class.members) - 1 else '' %> \
         \
-        ${s}
+        <% s += '\n' %>
     % endfor
+    ${s}
 HYP_END_CLASS
+
+} // namespace hyperion
 
 #pragma endregion ${hyp_class.name}

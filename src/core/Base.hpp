@@ -51,13 +51,7 @@ class BasicObject : public BasicObjectBase
 {
     using InnerType = T;
 
-    static constexpr auto type_name = TypeNameWithoutNamespace<InnerType>();
-
 public:
-    using InitInfo = ComponentInitInfo<InnerType>;
-
-    static constexpr ID<InnerType> empty_id = ID<InnerType> { };
-
     enum InitState : uint16
     {
         INIT_STATE_UNINITIALIZED    = 0x0,
@@ -66,24 +60,12 @@ public:
     };
 
     BasicObject()
-        : BasicObject(InitInfo { })
+        : BasicObject(Name::Invalid())
     {
     }
 
     BasicObject(Name name)
-        : BasicObject(name, InitInfo { })
-    {
-    }
-
-    BasicObject(const InitInfo &init_info)
-        : BasicObject(Name::Invalid(), init_info)
-    {
-    }
-
-    BasicObject(Name name, const InitInfo &init_info)
         : m_name(name),
-          m_init_info(init_info),
-          m_id(empty_id),
           m_init_state(INIT_STATE_UNINITIALIZED)
     {
     }
@@ -93,29 +75,16 @@ public:
 
     BasicObject(BasicObject &&other) noexcept
         : m_name(std::move(other.m_name)),
-          m_init_info(std::move(other.m_init_info)),
           m_id(other.m_id),
           m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
     {
-        other.m_id = empty_id;
+        other.m_id = ID<T> { };
         other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
     }
 
     BasicObject &operator=(BasicObject &&other) noexcept = delete;
 
     ~BasicObject() = default;
-
-    HYP_FORCE_INLINE InitInfo &GetInitInfo()
-        { return m_init_info; }
-
-    HYP_FORCE_INLINE const InitInfo &GetInitInfo() const
-        { return m_init_info; }
-
-    HYP_FORCE_INLINE bool HasFlags(ComponentFlags flags) const
-        { return bool(m_init_info.flags & flags); }
-
-    HYP_FORCE_INLINE void SetFlags(ComponentFlags flags, bool enable = true)
-        { m_init_info.flags = enable ? (m_init_info.flags | flags) : (m_init_info.flags & ~flags); }
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
         { return m_id; }
@@ -146,18 +115,7 @@ public:
         m_init_state.BitOr(INIT_STATE_INIT_CALLED, MemoryOrder::RELAXED);
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(type_name);
-        hc.Add(m_id);
-
-        return hc;
-    }
-
 protected:
-    using Base = BasicObject<T>;
-    
     void SetReady(bool is_ready)
     {
         if (is_ready) {
@@ -171,10 +129,9 @@ protected:
     {
         AssertThrowMsg(
             IsReady(),
-            "Object of type `%s` is not in ready state; maybe Init() has not been called on it, "
+            "Object is not in ready state; maybe Init() has not been called on it, "
             "or the component requires an event to be sent from the Engine instance to determine that "
-            "it is ready to be constructed, and this event has not yet been sent.\n",
-            TypeNameWithoutNamespace<InnerType>().Data()
+            "it is ready to be constructed, and this event has not yet been sent.\n"
         );
     }
 
@@ -182,8 +139,7 @@ protected:
     {
         AssertThrowMsg(
             IsInitCalled(),
-            "Object of type `%s` has not had Init() called on it!\n",
-            TypeNameWithoutNamespace<InnerType>().Data()
+            "Object has not had Init() called on it!\n"
         );
     }
 
@@ -195,7 +151,6 @@ protected:
     ID<InnerType>               m_id;
     Name                        m_name;
     AtomicVar<uint16>           m_init_state;
-    InitInfo                    m_init_info;
     Array<DelegateHandler>      m_delegate_handlers;
 };
 

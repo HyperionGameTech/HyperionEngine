@@ -63,8 +63,8 @@ namespace Hyperion
                 Console.WriteLine("Field Name = {0}, Type = {1}, Offset = {2}", field.Name, field.TypeID, field.Offset);
             }
 
-            Console.WriteLine("uiStage.Position = {0}", uiStage.Position);
-            Console.WriteLine("uiStage.ActualSize = {0}", uiStage.ActualSize);
+            Console.WriteLine("uiStage.Position = {0}", uiStage.GetPosition());
+            Console.WriteLine("uiStage.ActualSize = {0}", uiStage.GetActualSize());
 
             Entity newEntity = this.scene.EntityManager.AddEntity();
             Console.WriteLine("New Entity = {0}", newEntity.ID);
@@ -72,7 +72,7 @@ namespace Hyperion
             Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
             Console.WriteLine("this.scene.World = {0}", this.scene.World);
             Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);
-            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GameTime);
+            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GetGameTime());
 
             HypData testArray = new HypData(new float[] { 1.0f, 2.0f, 3.0f, 4.0f });
             Console.WriteLine("TestArray = {0}", testArray.GetValue());

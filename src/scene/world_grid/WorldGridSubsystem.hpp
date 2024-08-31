@@ -13,7 +13,7 @@ namespace hyperion {
 class WorldGrid;
 
 HYP_CLASS()
-class HYP_API WorldGridSubsystem : public SubsystemBase
+class HYP_API WorldGridSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(WorldGridSubsystem);
 

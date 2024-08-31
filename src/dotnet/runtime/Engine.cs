@@ -19,15 +19,5 @@ namespace Hyperion
                 return instance;
             }
         }
-
-        public World? World
-        {
-            get
-            {
-                return (World?)GetProperty(PropertyNames.World)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
     }
 }

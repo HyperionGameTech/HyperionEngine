@@ -49,6 +49,9 @@ def map_type(type_object):
     if name == 'Handle' and last_segment.specialization:
         return map_type(last_segment.specialization.args[0].arg)
     
+    if name == "NodeProxy":
+        return "Node"
+    
     if name == "ID":
         return "IDBase"
 

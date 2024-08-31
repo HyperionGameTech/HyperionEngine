@@ -15,6 +15,7 @@ namespace hyperion {
 
 class Engine;
 
+HYP_CLASS()
 class AudioSource : public BasicObject<AudioSource>
 {
     HYP_OBJECT_BODY(AudioSource);

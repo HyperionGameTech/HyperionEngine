@@ -20,17 +20,17 @@ namespace hyperion {
 class Scene;
 
 HYP_CLASS(abstract)
-class HYP_API SubsystemBase : public EnableRefCountedPtrFromThis<SubsystemBase>
+class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
 {
-    HYP_OBJECT_BODY(SubsystemBase);
+    HYP_OBJECT_BODY(Subsystem);
 
 public:
-    SubsystemBase();
-    SubsystemBase(const SubsystemBase &other)               = delete;
-    SubsystemBase &operator=(const SubsystemBase &other)    = delete;
-    SubsystemBase(SubsystemBase &&other)                    = delete;
-    SubsystemBase &operator=(SubsystemBase &&other)         = delete;
-    virtual ~SubsystemBase();
+    Subsystem();
+    Subsystem(const Subsystem &other)               = delete;
+    Subsystem &operator=(const Subsystem &other)    = delete;
+    Subsystem(Subsystem &&other)                    = delete;
+    Subsystem &operator=(Subsystem &&other)         = delete;
+    virtual ~Subsystem();
 
     virtual bool RequiresUpdateOnGameThread() const
         { return true; }

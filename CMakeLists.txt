@@ -425,6 +425,28 @@ include_directories(
 # set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+function(run_python_codegen_script)
+    # execute_process(
+    #     COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen/main.py
+    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    #     COMMENT "Running Python codegen script"
+    # )
+
+    # remove src/gen folder
+    file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/src/gen)
+
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
+        COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running Python codegen script"
+    )
+    add_custom_target(codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
+endfunction()
+
+# run codegen script
+run_python_codegen_script()
+
 # if(WIN32)
 #     # DLL is currently not working on Win32 as it is not exporting the symbols.
 #     # When this is fixed, make it also shared.
@@ -442,22 +464,6 @@ set(COMMON_LIBRARIES
 )
 
 target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
-
-function(run_python_codegen_script)
-    # execute_process(
-    #     COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen/main.py
-    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    #     COMMENT "Running Python codegen script"
-    # )
-
-    add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Running Python codegen script"
-    )
-    add_custom_target(${BUILD_NAME}_codegen ALL DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
-endfunction()
 
 function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file
@@ -530,15 +536,12 @@ function(create_csharp_library output_name csharp_sources)
 
     add_custom_target(${output_name} ALL
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-        DEPENDS HyperionCore
+        DEPENDS HyperionCore codegen
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.dll ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.dll
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}
     )
 endfunction()
-
-# run codegen script
-run_python_codegen_script()
 
 # for all csharp sources, compile them into a Class library
 # use `dotnet` to compile them

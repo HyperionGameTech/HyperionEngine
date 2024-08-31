@@ -9,8 +9,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(AudioSource);
-
 AudioSource::AudioSource()
     : BasicObject(),
       m_format(Format::MONO8),
