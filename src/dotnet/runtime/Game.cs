@@ -66,22 +66,22 @@ namespace Hyperion
             Console.WriteLine("uiStage.Position = {0}", uiStage.GetPosition());
             Console.WriteLine("uiStage.ActualSize = {0}", uiStage.GetActualSize());
 
-            Entity newEntity = this.scene.EntityManager.AddEntity();
+            Entity newEntity = this.scene.GetEntityManager().AddEntity();
             Console.WriteLine("New Entity = {0}", newEntity.ID);
 
-            Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
-            Console.WriteLine("this.scene.World = {0}", this.scene.World);
-            Console.WriteLine("this.scene.World.ID = {0}", this.scene.World.ID);
-            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.World.GetGameTime());
+            // Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
+            Console.WriteLine("this.scene.World = {0}", this.scene.GetWorld());
+            // Console.WriteLine("this.scene.World.ID = {0}", this.scene.GetWorld().ID);
+            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.GetWorld().GetGameTime());
 
             HypData testArray = new HypData(new float[] { 1.0f, 2.0f, 3.0f, 4.0f });
             Console.WriteLine("TestArray = {0}", testArray.GetValue());
 
             var mesh = new Mesh();
-            Console.WriteLine("Mesh NumIndices = {0}", mesh.NumIndices);
-            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
-            mesh.AABB = new BoundingBox(new Vec3f(1.0f, 2.0f, 3.0f), new Vec3f(4.0f, 5.0f, 6.0f));
-            Console.WriteLine("Mesh AABB = {0}", mesh.AABB);
+            Console.WriteLine("Mesh NumIndices = {0}", mesh.NumIndices());
+            Console.WriteLine("Mesh AABB = {0}", mesh.GetAABB());
+            mesh.SetAABB(new BoundingBox(new Vec3f(1.0f, 2.0f, 3.0f), new Vec3f(4.0f, 5.0f, 6.0f)));
+            Console.WriteLine("Mesh AABB = {0}", mesh.GetAABB());
 
             // HypMethod? testMethod = mesh.HypClass.GetMethod(Name.FromString("InvertNormals"));
 

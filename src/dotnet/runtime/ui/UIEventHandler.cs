@@ -12,7 +12,7 @@ namespace Hyperion
         {
             base.Init(entity);
 
-            uiObject = Scene.EntityManager.GetComponent<UIComponent>(Entity).UIObject;
+            uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(Entity).UIObject;
         }
 
         protected UIStage UIStage

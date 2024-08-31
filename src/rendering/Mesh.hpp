@@ -30,7 +30,8 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-class HYP_API Mesh final : public HypObject
+HYP_CLASS()
+class HYP_API Mesh final : public BasicObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
     
@@ -67,8 +68,8 @@ public:
         Topology topology = Topology::TRIANGLES
     );
 
-    Mesh(const Mesh &other) = delete;
-    Mesh &operator=(const Mesh &other) = delete;
+    Mesh(const Mesh &other)             = delete;
+    Mesh &operator=(const Mesh &other)  = delete;
 
     Mesh(Mesh &&other) noexcept;
     Mesh &operator=(Mesh &&other) noexcept;
@@ -84,6 +85,7 @@ public:
     void SetVertices(Array<Vertex> vertices);
     void SetVertices(Array<Vertex> vertices, Array<Index> indices);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
@@ -95,6 +97,7 @@ public:
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
     static void SetStreamedMeshData(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
@@ -104,6 +107,7 @@ public:
     HYP_FORCE_INLINE const MeshAttributes &GetMeshAttributes() const
         { return m_mesh_attributes; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE Topology GetTopology() const
         { return m_mesh_attributes.topology; }
 
@@ -112,16 +116,20 @@ public:
 
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
+
+    HYP_METHOD()
     void InvertNormals();
 
     /*! \brief Get the axis-aligned bounding box for the mesh.
         If the mesh has not been initialized, the AABB will be invalid, unless SetAABB() has been called.
         Otherwise, the AABB will be calculated from the mesh vertices. */
+    HYP_METHOD()
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
     /*! \brief Manually set the AABB for the mesh. If CalculateAABB is called after this, or the mesh data is changed, the
         manually set AABB will be overwritten. */
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 

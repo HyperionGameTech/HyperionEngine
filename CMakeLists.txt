@@ -426,15 +426,6 @@ include_directories(
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 function(run_python_codegen_script)
-    # execute_process(
-    #     COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen/main.py
-    #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    #     COMMENT "Running Python codegen script"
-    # )
-
-    # remove src/gen folder
-    file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/src/gen)
-
     add_custom_command(
         OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
         COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen
@@ -562,6 +553,15 @@ endif()
 if(CSHARP_SCRIPTING_SOURCES)
     create_csharp_library(HyperionScripting "${CSHARP_SCRIPTING_SOURCES}")
 endif()
+
+# remove src/gen folder
+file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/src/gen)
+
+# execute codegen script
+execute_process(
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 

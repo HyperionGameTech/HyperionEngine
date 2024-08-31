@@ -9,45 +9,5 @@ namespace Hyperion
         public Scene()
         {
         }
-
-        public IDBase? ID
-        {
-            get
-            {
-                return (IDBase?)GetProperty(PropertyNames.ID)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
-
-        public World? World
-        {
-            get
-            {
-                return (World?)GetProperty(PropertyNames.World)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
-
-        public Node? Root
-        {
-            get
-            {
-                return (Node?)GetProperty(PropertyNames.Root)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
-
-        public EntityManager? EntityManager
-        {
-            get
-            {
-                return (EntityManager?)GetProperty(PropertyNames.EntityManager)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
     }
 }
