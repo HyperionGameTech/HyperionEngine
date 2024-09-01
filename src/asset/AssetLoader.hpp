@@ -4,11 +4,19 @@
 
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
+
 #include <core/memory/Any.hpp>
+
 #include <core/utilities/Optional.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
+
 #include <core/system/Debug.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <scene/Node.hpp>
+
 #include <Constants.hpp>
 
 #include <asset/Loader.hpp>
@@ -128,11 +136,11 @@ struct LoadedAssetInstance : LoadedAsset
         return *this;
     }
 
-    HYP_FORCE_INLINE Type &Result()
+    HYP_FORCE_INLINE decltype(auto) Result()
     {
-        AssertThrowMsg(IsOK() && value.Is<Type>(), "Asset did not load successfully");
+        AssertThrowMsg(IsOK() && value.Is<typename SerializationWrapper<Type>::Type>(), "Asset did not load successfully");
 
-        return value.Get<Type>();
+        return value.Get<typename SerializationWrapper<Type>::Type>();
     }
 
 private:

@@ -1,7 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <audio/AudioSource.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -14,14 +18,14 @@ public:
 
     virtual FBOMResult Serialize(const AudioSource &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("format"), FBOMData::FromUnsignedInt(uint32(in_object.GetFormat())));
+        out.SetProperty(NAME("format"), FBOMData::FromUInt32(uint32(in_object.GetFormat())));
         out.SetProperty(NAME("byte_buffer"), FBOMData::FromByteBuffer(in_object.GetByteBuffer()));
-        out.SetProperty(NAME("freq"), FBOMData::FromUnsignedLong(in_object.GetFreq()));
+        out.SetProperty(NAME("freq"), FBOMData::FromUInt64(in_object.GetFreq()));
 
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         ByteBuffer byte_buffer;
 
@@ -31,21 +35,21 @@ public:
 
         uint format;
 
-        if (FBOMResult err = in.GetProperty("format").ReadUnsignedInt(&format)) {
+        if (FBOMResult err = in.GetProperty("format").ReadUInt32(&format)) {
             return err;
         }
 
         SizeType freq;
 
-        if (FBOMResult err = in.GetProperty("freq").ReadUnsignedLong(&freq)) {
+        if (FBOMResult err = in.GetProperty("freq").ReadUInt64(&freq)) {
             return err;
         }
 
-        out_object = CreateObject<AudioSource>(
+        out = HypData(CreateObject<AudioSource>(
             AudioSource::Format(format),
             byte_buffer,
             freq
-        );
+        ));
 
         return { FBOMResult::FBOM_OK };
     }

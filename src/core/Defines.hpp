@@ -457,6 +457,7 @@ extern HYP_API void LogStackTrace();
 
 #define HYP_CLASS(...)
 #define HYP_METHOD(...)
+#define HYP_PROPERTY(name, ...)
 // #define HYP_FIELD(...)
 
 #pragma endregion

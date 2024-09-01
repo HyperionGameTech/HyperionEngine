@@ -7,13 +7,17 @@ namespace Hyperion
     {
 
         public static readonly FBOMType Unset;
+        public static readonly FBOMType UInt8;
+        public static readonly FBOMType UInt16;
         public static readonly FBOMType UInt32;
         public static readonly FBOMType UInt64;
+        public static readonly FBOMType Int8;
+        public static readonly FBOMType Int16;
         public static readonly FBOMType Int32;
         public static readonly FBOMType Int64;
         public static readonly FBOMType Float;
+        public static readonly FBOMType Double;
         public static readonly FBOMType Bool;
-        public static readonly FBOMType Byte;
         public static readonly FBOMType Name;
         public static readonly FBOMType Matrix3;
         public static readonly FBOMType Matrix4;
@@ -25,13 +29,17 @@ namespace Hyperion
         static FBOMType()
         {
             Unset = new FBOMType(FBOMType_Unset());
+            UInt8 = new FBOMType(FBOMType_UInt8());
+            UInt16 = new FBOMType(FBOMType_UInt16());
             UInt32 = new FBOMType(FBOMType_UInt32());
             UInt64 = new FBOMType(FBOMType_UInt64());
+            Int8 = new FBOMType(FBOMType_Int8());
+            Int16 = new FBOMType(FBOMType_Int16());
             Int32 = new FBOMType(FBOMType_Int32());
             Int64 = new FBOMType(FBOMType_Int64());
             Float = new FBOMType(FBOMType_Float());
+            Double = new FBOMType(FBOMType_Double());
             Bool = new FBOMType(FBOMType_Bool());
-            Byte = new FBOMType(FBOMType_Byte());
             Name = new FBOMType(FBOMType_Name());
             Matrix3 = new FBOMType(FBOMType_Matrix3());
             Matrix4 = new FBOMType(FBOMType_Matrix4());
@@ -119,11 +127,23 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMType_Unset")]
         public static extern IntPtr FBOMType_Unset();
 
+        [DllImport("hyperion", EntryPoint = "FBOMType_UInt8")]
+        public static extern IntPtr FBOMType_UInt8();
+
+        [DllImport("hyperion", EntryPoint = "FBOMType_UInt16")]
+        public static extern IntPtr FBOMType_UInt16();
+
         [DllImport("hyperion", EntryPoint = "FBOMType_UInt32")]
         public static extern IntPtr FBOMType_UInt32();
 
         [DllImport("hyperion", EntryPoint = "FBOMType_UInt64")]
         public static extern IntPtr FBOMType_UInt64();
+
+        [DllImport("hyperion", EntryPoint = "FBOMType_Int8")]
+        public static extern IntPtr FBOMType_Int8();
+
+        [DllImport("hyperion", EntryPoint = "FBOMType_Int16")]
+        public static extern IntPtr FBOMType_Int16();
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Int32")]
         public static extern IntPtr FBOMType_Int32();
@@ -134,11 +154,11 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMType_Float")]
         public static extern IntPtr FBOMType_Float();
 
+        [DllImport("hyperion", EntryPoint = "FBOMType_Double")]
+        public static extern IntPtr FBOMType_Double();
+
         [DllImport("hyperion", EntryPoint = "FBOMType_Bool")]
         public static extern IntPtr FBOMType_Bool();
-
-        [DllImport("hyperion", EntryPoint = "FBOMType_Byte")]
-        public static extern IntPtr FBOMType_Byte();
 
         [DllImport("hyperion", EntryPoint = "FBOMType_Name")]
         public static extern IntPtr FBOMType_Name();

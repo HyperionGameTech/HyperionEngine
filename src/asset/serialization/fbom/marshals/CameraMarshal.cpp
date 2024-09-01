@@ -1,9 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -22,8 +26,8 @@ public:
         out.SetProperty(NAME("view_matrix"), FBOMData::FromMat4f(in_object.GetViewMatrix()));
         out.SetProperty(NAME("projection_matrix"), FBOMData::FromMat4f(in_object.GetProjectionMatrix()));
         out.SetProperty(NAME("view_projection_matrix"), FBOMData::FromMat4f(in_object.GetViewProjectionMatrix()));
-        out.SetProperty(NAME("width"), FBOMData::FromUnsignedInt(uint32(in_object.GetWidth())));
-        out.SetProperty(NAME("height"), FBOMData::FromUnsignedInt(uint32(in_object.GetHeight())));
+        out.SetProperty(NAME("width"), FBOMData::FromUInt32(uint32(in_object.GetWidth())));
+        out.SetProperty(NAME("height"), FBOMData::FromUInt32(uint32(in_object.GetHeight())));
         out.SetProperty(NAME("near"), FBOMData::FromFloat(in_object.GetNear()));
         out.SetProperty(NAME("far"), FBOMData::FromFloat(in_object.GetFar()));
         out.SetProperty(NAME("frustum"), FBOMSequence(FBOMVec4f(), in_object.GetFrustum().GetPlanes().Size()), ByteBuffer(in_object.GetFrustum().GetPlanes().ByteSize(), in_object.GetFrustum().GetPlanes().Data()));
@@ -38,9 +42,8 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
-
         struct CameraParams
         {
             float _near, _far, fov;
@@ -50,8 +53,8 @@ public:
 
         Memory::MemSet(&camera_params, 0, sizeof(camera_params));
 
-        in.GetProperty("width").ReadUnsignedInt(&camera_params.width);
-        in.GetProperty("height").ReadUnsignedInt(&camera_params.height);
+        in.GetProperty("width").ReadUInt32(&camera_params.width);
+        in.GetProperty("height").ReadUInt32(&camera_params.height);
         in.GetProperty("near").ReadFloat(&camera_params._near);
         in.GetProperty("far").ReadFloat(&camera_params._far);
         in.GetProperty("fov").ReadFloat(&camera_params.fov);
@@ -104,7 +107,7 @@ public:
             }
         }
 
-        out_object = std::move(camera_handle);
+        out = HypData(std::move(camera_handle));
 
         return { FBOMResult::FBOM_OK };
     }

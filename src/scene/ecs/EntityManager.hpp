@@ -31,7 +31,6 @@
 #include <scene/ecs/EntitySet.hpp>
 #include <scene/ecs/EntityContainer.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
-#include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
@@ -469,6 +468,8 @@ public:
     template <class Component>
     HYP_FORCE_INLINE bool HasComponent(ID<Entity> entity) const
     {
+        EnsureValidComponentType<Component>();
+
         Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
@@ -482,6 +483,8 @@ public:
 
     HYP_FORCE_INLINE bool HasComponent(TypeID component_type_id, ID<Entity> entity)
     {
+        EnsureValidComponentType(component_type_id);
+
         Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
@@ -498,6 +501,8 @@ public:
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
         // Threads::AssertOnThread(m_owner_thread_mask);
+
+        EnsureValidComponentType<Component>();
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
         
@@ -525,6 +530,8 @@ public:
     template <class Component>
     Component *TryGetComponent(ID<Entity> entity)
     {
+        EnsureValidComponentType<Component>();
+
         if (!entity.IsValid()) {
             return nullptr;
         }
@@ -572,6 +579,8 @@ public:
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
         // Threads::AssertOnThread(m_owner_thread_mask);
+        
+        EnsureValidComponentType(component_type_id);
 
         if (!entity.IsValid()) {
             return AnyRef::Empty();
@@ -636,6 +645,8 @@ public:
     template <class Component>
     ComponentID AddComponent(ID<Entity> entity, Component &&component)
     {
+        EnsureValidComponentType<Component>();
+
         Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
@@ -677,6 +688,8 @@ public:
 
     ComponentID AddComponent(ID<Entity> entity, TypeID component_type_id, UniquePtr<void> &&component_ptr)
     {
+        EnsureValidComponentType(component_type_id);
+
         Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
@@ -721,6 +734,8 @@ public:
     template <class Component>
     void RemoveComponent(ID<Entity> entity)
     {
+        EnsureValidComponentType<Component>();
+
         Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
@@ -759,8 +774,6 @@ public:
         }
     }
 
-    ComponentInterfaceBase *GetComponentInterface(TypeID type_id);
-
     /*! \brief Gets an entity set with the specified components, creating it if it doesn't exist.
      *  This method is thread-safe, and can be used within Systems running in task threads.
      *
@@ -771,7 +784,7 @@ public:
      *
      *  \return Reference to the entity set.
      */
-    template <class ... Components>
+    template <class... Components>
     EntitySet<Components...> &GetEntitySet()
     {
         Mutex::Guard guard(m_entity_sets_mutex);
@@ -822,6 +835,29 @@ public:
         { m_command_queue.Push(std::move(command)); }
 
 private:
+    template <class Component>
+    static bool IsValidComponentType()
+    {
+        return IsValidComponentType(TypeID::ForType<Component>());
+    }
+
+    static bool IsValidComponentType(TypeID component_type_id);
+
+    template <class Component>
+    static void EnsureValidComponentType()
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(IsValidComponentType<Component>(), "Invalid component type: %s", TypeName<Component>().Data());
+#endif
+    }
+
+    static void EnsureValidComponentType(TypeID component_type_id)
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type");
+#endif
+    }
+
     template <uint32... indices>
     HYP_FORCE_INLINE void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, Array<EntityTag> &out_tags) const
     {
@@ -837,6 +873,8 @@ private:
     template <class Component>
     HYP_FORCE_INLINE ComponentContainer<Component> &GetContainer()
     {
+        EnsureValidComponentType<Component>();
+
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         auto it = m_containers.Find<Component>();
@@ -850,6 +888,8 @@ private:
 
     HYP_FORCE_INLINE ComponentContainerBase *TryGetContainer(TypeID component_type_id)
     {
+        EnsureValidComponentType(component_type_id);
+
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         auto it = m_containers.Find(component_type_id);

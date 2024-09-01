@@ -18,13 +18,17 @@
 namespace hyperion::fbom {
 
 struct FBOMUnset        : FBOMType { FBOMUnset() : FBOMType() {} };
-struct FBOMUnsignedInt  : FBOMType { FBOMUnsignedInt() : FBOMType("u32", 4, TypeID::ForType<uint32>()) { } };
-struct FBOMUnsignedLong : FBOMType { FBOMUnsignedLong() : FBOMType("u64", 8, TypeID::ForType<uint64>()) { } };
-struct FBOMInt          : FBOMType { FBOMInt() : FBOMType("i32", 4, TypeID::ForType<int32>()) { } };
-struct FBOMLong         : FBOMType { FBOMLong() : FBOMType("i64", 8, TypeID::ForType<int64>()) { } };
+struct FBOMUInt8        : FBOMType { FBOMUInt8() : FBOMType("u8", 1, TypeID::ForType<uint8>()) { } };
+struct FBOMUInt16       : FBOMType { FBOMUInt16() : FBOMType("u16", 2, TypeID::ForType<uint16>()) { } };
+struct FBOMUInt32       : FBOMType { FBOMUInt32() : FBOMType("u32", 4, TypeID::ForType<uint32>()) { } };
+struct FBOMUInt64       : FBOMType { FBOMUInt64() : FBOMType("u64", 8, TypeID::ForType<uint64>()) { } };
+struct FBOMInt8         : FBOMType { FBOMInt8() : FBOMType("i8", 1, TypeID::ForType<int8>()) { } };
+struct FBOMInt16        : FBOMType { FBOMInt16() : FBOMType("i16", 2, TypeID::ForType<int16>()) { } };
+struct FBOMInt32        : FBOMType { FBOMInt32() : FBOMType("i32", 4, TypeID::ForType<int32>()) { } };
+struct FBOMInt64        : FBOMType { FBOMInt64() : FBOMType("i64", 8, TypeID::ForType<int64>()) { } };
 struct FBOMFloat        : FBOMType { FBOMFloat() : FBOMType("f32", 4, TypeID::ForType<float>()) {} };
+struct FBOMDouble       : FBOMType { FBOMDouble() : FBOMType("f64", 8, TypeID::ForType<double>()) {} };
 struct FBOMBool         : FBOMType { FBOMBool() : FBOMType("bool", 1, TypeID::ForType<bool>()) { } };
-struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1, TypeID::ForType<ubyte>()) { } };
 
 struct FBOMStruct : FBOMType
 {
@@ -99,12 +103,12 @@ struct FBOMByteBuffer : FBOMType
 struct FBOMVec2f : FBOMType { FBOMVec2f() : FBOMType("vec2f", 8, TypeID::ForType<Vec2f>(),  FBOMSequence(FBOMFloat(), 2)) {} };
 struct FBOMVec3f : FBOMType { FBOMVec3f() : FBOMType("vec3f", 16, TypeID::ForType<Vec3f>(), FBOMSequence(FBOMFloat(), 4 /* 3 + 1 for padding */)) {} };
 struct FBOMVec4f : FBOMType { FBOMVec4f() : FBOMType("vec4f", 16, TypeID::ForType<Vec4f>(), FBOMSequence(FBOMFloat(), 4)) {} };
-struct FBOMVec2i : FBOMType { FBOMVec2i() : FBOMType("vec2i", 8, TypeID::ForType<Vec2i>(), FBOMSequence(FBOMInt(), 2)) {} };
-struct FBOMVec3i : FBOMType { FBOMVec3i() : FBOMType("vec3i", 16, TypeID::ForType<Vec3i>(), FBOMSequence(FBOMInt(), 4 /* 3 + 1 for padding */)) {} };
-struct FBOMVec4i : FBOMType { FBOMVec4i() : FBOMType("vec4i", 16, TypeID::ForType<Vec4i>(), FBOMSequence(FBOMInt(), 4)) {} };
-struct FBOMVec2u : FBOMType { FBOMVec2u() : FBOMType("vec2u", 8, TypeID::ForType<Vec2u>(), FBOMSequence(FBOMUnsignedInt(), 2)) {} };
-struct FBOMVec3u : FBOMType { FBOMVec3u() : FBOMType("vec3u", 16, TypeID::ForType<Vec3u>(), FBOMSequence(FBOMUnsignedInt(), 4 /* 3 + 1 for padding */)) {} };
-struct FBOMVec4u : FBOMType { FBOMVec4u() : FBOMType("vec4u", 16, TypeID::ForType<Vec4u>(), FBOMSequence(FBOMUnsignedInt(), 4)) {} };
+struct FBOMVec2i : FBOMType { FBOMVec2i() : FBOMType("vec2i", 8, TypeID::ForType<Vec2i>(), FBOMSequence(FBOMInt32(), 2)) {} };
+struct FBOMVec3i : FBOMType { FBOMVec3i() : FBOMType("vec3i", 16, TypeID::ForType<Vec3i>(), FBOMSequence(FBOMInt32(), 4 /* 3 + 1 for padding */)) {} };
+struct FBOMVec4i : FBOMType { FBOMVec4i() : FBOMType("vec4i", 16, TypeID::ForType<Vec4i>(), FBOMSequence(FBOMInt32(), 4)) {} };
+struct FBOMVec2u : FBOMType { FBOMVec2u() : FBOMType("vec2u", 8, TypeID::ForType<Vec2u>(), FBOMSequence(FBOMUInt32(), 2)) {} };
+struct FBOMVec3u : FBOMType { FBOMVec3u() : FBOMType("vec3u", 16, TypeID::ForType<Vec3u>(), FBOMSequence(FBOMUInt32(), 4 /* 3 + 1 for padding */)) {} };
+struct FBOMVec4u : FBOMType { FBOMVec4u() : FBOMType("vec4u", 16, TypeID::ForType<Vec4u>(), FBOMSequence(FBOMUInt32(), 4)) {} };
 
 struct FBOMMat3f : FBOMType { FBOMMat3f() : FBOMType("mat3f", 48, TypeID::ForType<Matrix3>(), FBOMSequence(FBOMFloat(), 12)) {} };
 struct FBOMMat4f : FBOMType { FBOMMat4f() : FBOMType("mat4f", 64, TypeID::ForType<Matrix4>(), FBOMSequence(FBOMFloat(), 16)) {} };

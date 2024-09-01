@@ -37,7 +37,7 @@ public:
         { return TypeID::ForType<HypClassInstanceStub>(); }
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override;
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out) const override;
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override;
 };
 
 } // namespace hyperion::fbom

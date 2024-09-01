@@ -21,7 +21,7 @@ namespace hyperion {
 
 #define HYP_FIELD(name) HypField(NAME(HYP_STR(name)), &Type::name, offsetof(Type, name))
 
-#define HYP_PROPERTY(name, ...) HypProperty(NAME(HYP_STR(name)), __VA_ARGS__)
+// #define HYP_PROPERTY(name, ...) HypProperty(NAME(HYP_STR(name)), __VA_ARGS__)
 
 // #define HYP_METHOD(name) HypMethod(NAME(HYP_STR(name)), &Type::name)
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)

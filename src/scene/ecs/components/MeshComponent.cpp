@@ -15,9 +15,9 @@ HYP_BEGIN_STRUCT(MeshComponent)
     HYP_FIELD(proxy),
     HYP_FIELD(flags),
     HYP_FIELD(previous_model_matrix),
-    HYP_FIELD(user_data),
-
-    HYP_PROPERTY(Mesh, &MeshComponent::mesh)
+    HYP_FIELD(user_data)
 HYP_END_STRUCT
+
+HYP_REGISTER_COMPONENT(MeshComponent);
 
 } // namespace hyperion

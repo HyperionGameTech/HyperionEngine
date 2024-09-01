@@ -2,6 +2,9 @@
 
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 
+#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
+
 #include <Engine.hpp>
 
 #include <rendering/Mesh.hpp>
@@ -22,14 +25,15 @@ LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
     AssertThrow(state.asset_manager != nullptr);
 
     fbom::FBOMReader reader(fbom::FBOMConfig { });
-    fbom::FBOMDeserializedObject object;
+    
+    HypData result;
 
     HYP_LOG(Assets, LogLevel::DEBUG, "Begin loading serialized object at {}", state.filepath);
 
-    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, object)) {
+    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, result)) {
         return { { LoaderResult::Status::ERR, err.message } };
     }
-    return { { LoaderResult::Status::OK }, std::move(object.any_value) };
+    return { { LoaderResult::Status::OK }, std::move(result) };
 }
 
 } // namespace hyperion

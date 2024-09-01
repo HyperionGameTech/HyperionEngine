@@ -4,6 +4,7 @@
 #define HYPERION_CORE_HYP_OBJECT_HPP
 
 #include <core/Defines.hpp>
+#include <core/Core.hpp>
 
 #include <core/object/HypObjectEnums.hpp>
 
@@ -16,6 +17,7 @@
 namespace hyperion {
 
 class HypClass;
+struct HypData;
 
 namespace dotnet {
 class Object;
@@ -33,6 +35,8 @@ class IHypObjectInitializer
 public:
     virtual ~IHypObjectInitializer() = default;
 
+    virtual void CreateInstance(HypData &out) const = 0;
+
     virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
 };
@@ -48,6 +52,15 @@ public:
 
     virtual ~HypObjectInitializer() override = default;
 
+    virtual void CreateInstance(HypData &out) const override
+    {
+        if constexpr (has_opaque_handle_defined<T>) {
+            out = CreateObject<T>();
+        } else {
+            out = RC<T>::Construct();
+        }
+    }
+
     virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) override
     {
         m_managed_object = std::move(managed_object);
@@ -60,85 +73,11 @@ private:
     UniquePtr<dotnet::Object>   m_managed_object;
 };
 
-// #define HYP_OBJECT_BODY(T) \
-//     private: \
-//         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
-//         ID<T>                   m_id; \
-//         \
-//     public: \
-//         static constexpr bool is_hyp_object = true; \
-//         \
-//         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
-//             { return m_hyp_object_initializer.GetManagedObject(); } \
-//         \
-//         static TypeID GetTypeID() \
-//         { \
-//             static constexpr TypeID type_id = TypeID::ForType<T>(); \
-//             return type_id; \
-//         } \
-//         static const HypClass *GetClass() \
-//         { \
-//             static const HypClass *hyp_class = ::hyperion::GetClass(GetTypeID()); \
-//             return hyp_class; \
-//         } \
-//         \
-//         HYP_FORCE_INLINE ID<T> GetID() const \
-//             { return m_id; } \
-//         \
-//         HYP_FORCE_INLINE void SetID(ID<T> id) \
-//             { m_id = id; } \
-//     private:
-
-namespace detail {
-
-template <class T, bool Condition = std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>>
-struct HypObject_ToCommonBase_Impl;
-
-template <class T>
-struct HypObject_ToCommonBase_Impl<T, true>
-{
-    EnableRefCountedPtrFromThisBase<> *operator()(T *ptr) const
-    {
-        
-        // Static cast needed because polymorphic types will have vtable inserted at start of
-        // the object, making accessing `EnableRefCountedPtrFromThisBase<>::weak` invalid.
-        return static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr);
-    }
-};
-
-template <class T>
-struct HypObject_ToCommonBase_Impl<T, false>
-{
-    EnableRefCountedPtrFromThisBase<> *operator()(T *ptr) const
-    {
-        // Would fail at compile time on instantiation of HypClassInstance<T>, anyway - but throw an error to be sure
-
-        HYP_FAIL("Class %s must inherit from EnableRefCountedPtrFromThis<T> for HypObject that does not use ObjectPool",
-            TypeName<T>().Data());
-        
-        return nullptr;
-    }
-};
-
-} // namespace detail
-
 #define HYP_OBJECT_BODY(T, ...) \
     private: \
         friend class HypObjectInitializer<T>; \
         \
-        void *GetHypObjectNativeAddress() \
-        { \
-            switch (GetHypClassAllocationMethod(GetClass())) { \
-            case HypClassAllocationMethod::OBJECT_POOL_HANDLE: \
-                return this; \
-            case HypClassAllocationMethod::REF_COUNTED_PTR: \
-                return detail::HypObject_ToCommonBase_Impl<T>{}(this); \
-            default: \
-                HYP_NOT_IMPLEMENTED(); \
-            } \
-        } \
-        \
-        HypObjectInitializer<T> m_hyp_object_initializer { /*GetHypObjectNativeAddress()*/ this }; \
+        HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         \
     public: \
         static constexpr bool is_hyp_object = true; \

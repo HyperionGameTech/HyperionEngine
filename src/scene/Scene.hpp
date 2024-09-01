@@ -60,7 +60,7 @@ struct SceneDrawProxy
     uint32 frame_counter;
 };
 
-HYP_CLASS()
+HYP_CLASS(Serializable)
 class HYP_API Scene : public BasicObject<Scene>
 {
     friend class Entity;
@@ -68,6 +68,9 @@ class HYP_API Scene : public BasicObject<Scene>
     friend class UIStage;
 
     HYP_OBJECT_BODY(Scene);
+
+    HYP_PROPERTY(Camera, &Scene::GetCamera, &Scene::SetCamera)
+    HYP_PROPERTY(Root, &Scene::GetRoot, &Scene::SetRoot)
 
 public:
     Scene();

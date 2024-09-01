@@ -2,7 +2,7 @@
 
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
 
 namespace hyperion::fbom {
 

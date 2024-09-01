@@ -24,107 +24,70 @@
 
 namespace hyperion {
 
-class ComponentInterfaceBase;
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
 
-template <class ComponentType>
-class ComponentInterface;
-
-enum class ComponentPropertyFlags : uint32
-{
-    NONE        = 0x0,
-    READ        = 0x1,
-    WRITE       = 0x2,
-    READ_WRITE  = READ | WRITE
-};
-
-HYP_MAKE_ENUM_FLAGS(ComponentPropertyFlags)
-
-class ComponentProperty
+class ComponentInterface
 {
 public:
-    using Getter = void(*)(const void *component, fbom::FBOMData *out);
-    using Setter = void(*)(void *component, const fbom::FBOMData *in);
-
-    ComponentProperty()
-        : m_name(Name::Invalid()),
-          m_flags(ComponentPropertyFlags::NONE),
-          m_getter(nullptr),
-          m_setter(nullptr)
+    ComponentInterface()
+        : m_type_id(TypeID::Void()),
+          m_component_factory(nullptr),
+          m_component_container_factory(nullptr)
     {
     }
 
-    ComponentProperty(Name name, Getter &&getter)
-        : m_name(name),
-          m_flags(ComponentPropertyFlags::READ),
-          m_getter(std::move(getter)),
-          m_setter(nullptr)
+    ComponentInterface(TypeID type_id, UniquePtr<ComponentFactoryBase> &&component_factory, ComponentContainerFactoryBase *component_container_factory)
+        : m_type_id(type_id),
+          m_component_factory(std::move(component_factory)),
+          m_component_container_factory(component_container_factory)
     {
     }
 
-    ComponentProperty(Name name, Getter &&getter, Setter &&setter)
-        : m_name(name),
-          m_flags(ComponentPropertyFlags::READ_WRITE),
-          m_getter(std::move(getter)),
-          m_setter(std::move(setter))
+    ComponentInterface(const ComponentInterface &)                  = delete;
+    ComponentInterface &operator=(const ComponentInterface &)       = delete;
+
+    ComponentInterface(ComponentInterface &&other) noexcept
+        : m_type_id(other.m_type_id),
+          m_component_factory(std::move(other.m_component_factory)),
+          m_component_container_factory(other.m_component_container_factory)
     {
+        other.m_type_id = TypeID::Void();
+        other.m_component_container_factory = nullptr;
     }
 
-    ComponentProperty(const ComponentProperty &)                = default;
-    ComponentProperty &operator=(const ComponentProperty &)     = default;
+    ComponentInterface &operator=(ComponentInterface &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
 
-    ComponentProperty(ComponentProperty &&) noexcept            = default;
-    ComponentProperty &operator=(ComponentProperty &&) noexcept = default;
+        m_type_id = other.m_type_id;
+        m_component_factory = std::move(other.m_component_factory);
+        m_component_container_factory = other.m_component_container_factory;
 
-    ~ComponentProperty()                                        = default;
+        other.m_type_id = TypeID::Void();
+        other.m_component_container_factory = nullptr;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Name GetName() const
-        { return m_name; }
+        return *this;
+    }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    EnumFlags<ComponentPropertyFlags> GetFlags() const
-        { return m_flags; }
+    ~ComponentInterface()                                           = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsReadable() const
-        { return m_flags & ComponentPropertyFlags::READ; }
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+        { return m_type_id; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsWritable() const
-        { return m_flags & ComponentPropertyFlags::WRITE; }
+    HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<void> CreateComponent() const
+        { return m_component_factory->CreateComponent(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsReadOnly() const
-        { return !IsWritable(); }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Getter &GetGetter() const
-        { return m_getter; }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Setter &GetSetter() const
-        { return m_setter; }
+    HYP_FORCE_INLINE ComponentContainerFactoryBase *GetComponentContainerFactory() const
+        { return m_component_container_factory; }
 
 private:
-    Name                                m_name;
-    EnumFlags<ComponentPropertyFlags>   m_flags;
-    Getter                              m_getter;
-    Setter                              m_setter;
+    TypeID                          m_type_id;
+    UniquePtr<ComponentFactoryBase> m_component_factory;
+    ComponentContainerFactoryBase   *m_component_container_factory;
 };
-
-static_assert(sizeof(ComponentProperty) == 32, "sizeof(ComponentProperty) must match C# struct size");
-
-template <class ComponentType>
-class ComponentInterface;
 
 class ComponentInterfaceRegistry
 {
@@ -136,11 +99,9 @@ public:
     void Initialize();
     void Shutdown();
 
-    void Register(TypeID component_type_id, UniquePtr< ComponentInterfaceBase >(*fptr)());
+    void Register(TypeID component_type_id, ComponentInterface(*fptr)());
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ComponentInterfaceBase *GetComponentInterface(TypeID type_id) const
+    HYP_FORCE_INLINE const ComponentInterface *GetComponentInterface(TypeID type_id) const
     {
         AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
 
@@ -150,113 +111,52 @@ public:
             return nullptr;
         }
 
-        return it->second.Get();
+        return &it->second;
     }
 
-    template <class T>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ComponentInterface<T> *GetComponentInterface() const
-    {
-        return static_cast< ComponentInterface<T> *>(GetComponentInterface(TypeID::ForType<T>()));
-    }
-
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Array<ComponentInterfaceBase *> GetComponentInterfaces() const
+    HYP_FORCE_INLINE Array<const ComponentInterface *> GetComponentInterfaces() const
     {
         AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
 
-        Array<ComponentInterfaceBase *> interfaces;
+        Array<const ComponentInterface *> interfaces;
         interfaces.Resize(m_interfaces.Size());
 
         uint32 interface_index = 0;
 
         for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it, ++interface_index) {
-            interfaces[interface_index] = it->second.Get();
+            interfaces[interface_index] = &it->second;
         }
 
         return interfaces;
     }
 
 private:
-    bool                                                        m_is_initialized;
-    HashMap< TypeID, UniquePtr< ComponentInterfaceBase >(*)() > m_factories;
-    HashMap< TypeID, UniquePtr< ComponentInterfaceBase > >      m_interfaces;
+    bool                                        m_is_initialized;
+    HashMap<TypeID, ComponentInterface(*)()>    m_factories;
+    HashMap<TypeID, ComponentInterface>         m_interfaces;
 };
 
 template <class ComponentType>
 struct ComponentInterfaceRegistration;
-
-class ComponentInterfaceBase
-{
-protected:
-    ComponentInterfaceBase();
-
-public:
-    template <class ComponentType>
-    friend struct ComponentInterfaceRegistration;
-
-    ComponentInterfaceBase(const ComponentInterfaceBase &)                  = delete;
-    ComponentInterfaceBase &operator=(const ComponentInterfaceBase &)       = delete;
-
-    ComponentInterfaceBase(ComponentInterfaceBase &&) noexcept              = delete;
-    ComponentInterfaceBase &operator=(ComponentInterfaceBase &&) noexcept   = delete;
-
-    virtual ~ComponentInterfaceBase()                                       = default;
-
-    /*! \brief Called by ComponentInterfaceRegistry, not to be called by user code */
-    void Initialize();
-
-    UniquePtr<void> CreateComponent() const
-        { return m_component_factory->CreateComponent(); }
-
-    ComponentContainerFactoryBase *GetComponentContainerFactory() const
-        { return m_component_container_factory; }
-
-    TypeID GetTypeID() const
-        { return m_type_id; }
-
-    virtual ANSIStringView GetTypeName() const final
-        { return m_type_name; }
-
-    const Array<ComponentProperty> &GetProperties() const
-        { return m_properties; }
-
-    ComponentProperty *GetProperty(WeakName name);
-    const ComponentProperty *GetProperty(WeakName name) const;
-
-protected:
-    virtual TypeID GetTypeID_Internal() const = 0;
-    virtual ANSIStringView GetTypeName_Internal() const = 0;
-
-    virtual Array<ComponentProperty> GetProperties_Internal() const = 0;
-
-private:
-    UniquePtr<ComponentFactoryBase> m_component_factory;
-    ComponentContainerFactoryBase   *m_component_container_factory;
-    TypeID                          m_type_id;
-    ANSIStringView                  m_type_name;
-    Array<ComponentProperty>        m_properties;
-};
 
 template <class ComponentType>
 struct ComponentInterfaceRegistration
 {
     ComponentInterfaceRegistration()
     {
-        ComponentInterfaceRegistry::GetInstance().Register(TypeID::ForType<ComponentType>(), []() -> UniquePtr<ComponentInterfaceBase>
+        ComponentInterfaceRegistry::GetInstance().Register(TypeID::ForType<ComponentType>(), []() -> ComponentInterface
         {
-            UniquePtr<ComponentInterfaceBase> component_interface(new ComponentInterface<ComponentType>());
-            component_interface->m_component_factory = UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>());
-            component_interface->m_component_container_factory = ComponentContainer<ComponentType>::GetFactory();
-
-            return component_interface;
+            return ComponentInterface(
+                TypeID::ForType<ComponentType>(),
+                UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>()),
+                ComponentContainer<ComponentType>::GetFactory()
+            );
         });
     }
 };
 
-#define HYP_REGISTER_COMPONENT_INTERFACE(type) static ComponentInterfaceRegistration< type > type##_ComponentInterface_Registration { }
+#define HYP_REGISTER_COMPONENT(type) static ComponentInterfaceRegistration< type > type##_ComponentInterface_Registration { }
+#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag > > tag##_EntityTag_ComponentInterface_Registration { }
 
 } // namespace hyperion
 

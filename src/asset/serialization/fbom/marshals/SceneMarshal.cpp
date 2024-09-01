@@ -6,6 +6,7 @@
 
 namespace hyperion::fbom {
 
+#if 0
 template <>
 class FBOMMarshaler<Scene> : public FBOMObjectMarshalerBase<Scene>
 {
@@ -58,5 +59,6 @@ public:
 };
 
 HYP_DEFINE_MARSHAL(Scene, FBOMMarshaler<Scene>);
+#endif
 
 } // namespace hyperion::fbom

@@ -1,7 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/Serialization.hpp>
+
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
+#include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/fbom/FBOMObject.hpp>
 
 using namespace hyperion;
 using namespace fbom;
@@ -17,13 +20,17 @@ extern "C" {
     }
 
 FBOM_TYPE_CREATE_FUNCTION(Unset, Unset)
-FBOM_TYPE_CREATE_FUNCTION(UnsignedInt, UInt32)
-FBOM_TYPE_CREATE_FUNCTION(UnsignedLong, UInt64)
-FBOM_TYPE_CREATE_FUNCTION(Int, Int32)
-FBOM_TYPE_CREATE_FUNCTION(Long, Int64)
+FBOM_TYPE_CREATE_FUNCTION(UInt8, UInt8)
+FBOM_TYPE_CREATE_FUNCTION(UInt16, UInt16)
+FBOM_TYPE_CREATE_FUNCTION(UInt32, UInt32)
+FBOM_TYPE_CREATE_FUNCTION(UInt64, UInt64)
+FBOM_TYPE_CREATE_FUNCTION(Int8, Int8)
+FBOM_TYPE_CREATE_FUNCTION(Int16, Int16)
+FBOM_TYPE_CREATE_FUNCTION(Int32, Int32)
+FBOM_TYPE_CREATE_FUNCTION(Int64, Int64)
 FBOM_TYPE_CREATE_FUNCTION(Float, Float)
+FBOM_TYPE_CREATE_FUNCTION(Double, Double)
 FBOM_TYPE_CREATE_FUNCTION(Bool, Bool)
-FBOM_TYPE_CREATE_FUNCTION(Byte, Byte)
 FBOM_TYPE_CREATE_FUNCTION(Name, Name)
 FBOM_TYPE_CREATE_FUNCTION(Mat3f, Matrix3)
 FBOM_TYPE_CREATE_FUNCTION(Mat4f, Matrix4)
@@ -149,13 +156,17 @@ HYP_EXPORT uint64 FBOMData_TotalSize(FBOMData *data)
         *data = FBOMData::From##fbom_type_name(*in_value); \
     }
 
-FBOM_TYPE_GET_SET_FUNCTIONS(UnsignedInt, UInt32, uint32)
-FBOM_TYPE_GET_SET_FUNCTIONS(UnsignedLong, UInt64, uint64)
-FBOM_TYPE_GET_SET_FUNCTIONS(Int, Int32, int32)
-FBOM_TYPE_GET_SET_FUNCTIONS(Long, Int64, int64)
+FBOM_TYPE_GET_SET_FUNCTIONS(UInt8, UInt8, uint8)
+FBOM_TYPE_GET_SET_FUNCTIONS(UInt16, UInt16, uint16)
+FBOM_TYPE_GET_SET_FUNCTIONS(UInt32, UInt32, uint32)
+FBOM_TYPE_GET_SET_FUNCTIONS(UInt64, UInt64, uint64)
+FBOM_TYPE_GET_SET_FUNCTIONS(Int8, Int8, int8)
+FBOM_TYPE_GET_SET_FUNCTIONS(Int16, Int16, int16)
+FBOM_TYPE_GET_SET_FUNCTIONS(Int32, Int32, int32)
+FBOM_TYPE_GET_SET_FUNCTIONS(Int64, Int64, int64)
 FBOM_TYPE_GET_SET_FUNCTIONS(Float, Float, float)
+FBOM_TYPE_GET_SET_FUNCTIONS(Double, Double, double)
 FBOM_TYPE_GET_SET_FUNCTIONS(Bool, Bool, bool)
-FBOM_TYPE_GET_SET_FUNCTIONS(Byte, Byte, ubyte)
 FBOM_TYPE_GET_SET_FUNCTIONS(Name, Name, Name)
 FBOM_TYPE_GET_SET_FUNCTIONS(Mat3f, Matrix3, Matrix3)
 FBOM_TYPE_GET_SET_FUNCTIONS(Mat4f, Matrix4, Matrix4)
@@ -235,14 +246,14 @@ HYP_EXPORT bool FBOMObject_SetProperty(FBOMObject *ptr, Name *name_ptr, FBOMData
     return true;
 }
 
-HYP_EXPORT void *FBOMObject_GetDeserializedValue(FBOMObject *ptr)
-{
-    if (!ptr || !ptr->m_deserialized_object) {
-        return nullptr;
-    }
+// HYP_EXPORT void *FBOMObject_GetDeserializedValue(FBOMObject *ptr)
+// {
+//     if (!ptr || !ptr->m_deserialized_object) {
+//         return nullptr;
+//     }
 
-    return ptr->m_deserialized_object->any_value.GetPointer();
-}
+//     return ptr->m_deserialized_object->any_value.GetPointer();
+// }
 
 #pragma endregion FBOMObject
 

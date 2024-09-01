@@ -1,4 +1,5 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -11,5 +12,7 @@ HYP_BEGIN_STRUCT(ShadowMapComponent)
     HYP_FIELD(render_component),
     HYP_FIELD(update_counter)
 HYP_END_STRUCT
+
+HYP_REGISTER_COMPONENT(ShadowMapComponent);
 
 } // namespace hyperion

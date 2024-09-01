@@ -1,11 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMConfig.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/memory/Memory.hpp>
 
@@ -155,6 +160,15 @@ FBOMData FBOMData::FromArray(const FBOMArray &array)
     FBOMData value = FBOMData(FBOMArrayType(), std::move(byte_writer.GetBuffer()));
     AssertThrowMsg(value.IsArray(), "Expected value to be arary: Got type: %s", value.GetType().ToString().Data());
     return value;
+}
+
+FBOMResult FBOMData::ReadHypData(HypData &out) const
+{
+    if (m_deserialized_object != nullptr) {
+        out = *m_deserialized_object;
+
+        return { FBOMResult::FBOM_OK };
+    }
 }
 
 SizeType FBOMData::ReadBytes(SizeType n, void *out) const

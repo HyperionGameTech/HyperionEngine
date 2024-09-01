@@ -11,6 +11,9 @@ HYP_BEGIN_CLASS(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if
             <% s += f"HypField(NAME(HYP_STR({member.name})), &Type::{member.name}, offsetof(Type, {member.name}))" %> \
         % elif member.member_type == HypMemberType.METHOD:
             <% s += f"HypMethod(NAME(HYP_STR({member.name})), &Type::{member.name})" %> \
+        % elif member.member_type == HypMemberType.PROPERTY:
+            <% property_args = ', '.join(member.args) %> \
+            <% s += f"HypProperty(NAME(HYP_STR({member.name})), {property_args})" %> \
         % endif
         \
         <% s += ',' if i != len(hyp_class.members) - 1 else '' %> \

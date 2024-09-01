@@ -3,10 +3,13 @@
 #include <streaming/StreamedTextureData.hpp>
 
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -120,14 +123,15 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
     }
 
     fbom::FBOMReader deserializer(fbom::FBOMConfig { });
-    fbom::FBOMDeserializedObject object;
+    
+    HypData value;
 
-    if (fbom::FBOMResult err = deserializer.Deserialize(reader, object)) {
+    if (fbom::FBOMResult err = deserializer.Deserialize(reader, value)) {
         HYP_LOG(Streaming, LogLevel::WARNING, "StreamedTextureData: Error deserializing texture data: {}", err.message);
         return;
     }
 
-    m_texture_data = object.Get<TextureData>();
+    m_texture_data = value.Get<TextureData>();
     
     m_texture_desc = m_texture_data->desc;
     m_buffer_size = m_texture_data->buffer.Size();

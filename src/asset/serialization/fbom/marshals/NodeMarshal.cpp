@@ -1,8 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMMarshaler.hpp>
+#include <asset/serialization/fbom/FBOMData.hpp>
+#include <asset/serialization/fbom/FBOMObject.hpp>
+
 #include <scene/Node.hpp>
 #include <scene/animation/Bone.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -15,7 +21,7 @@ public:
 
     virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("type"), FBOMData::FromUnsignedInt(uint32(in_object.GetType())));
+        out.SetProperty(NAME("type"), FBOMData::FromUInt32(uint32(in_object.GetType())));
         
         out.SetProperty(NAME("name"), FBOMData::FromString(in_object.GetName()));
 
@@ -68,11 +74,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         Node::Type node_type = Node::Type::NODE;
 
-        if (auto err = in.GetProperty("type").ReadUnsignedInt(&node_type)) {
+        if (auto err = in.GetProperty("type").ReadUInt32(&node_type)) {
             return err;
         }
 
@@ -156,13 +162,13 @@ public:
 
         for (auto &sub_object : *in.nodes) {
             if (sub_object.GetType().IsOrExtends("Node")) {
-                node->AddChild(sub_object.m_deserialized_object->Get<Node>());
+                node->AddChild(sub_object.m_deserialized_object->Get<NodeProxy>());
             } else if (sub_object.GetType().IsOrExtends("Entity")) {
-                node->SetEntity(sub_object.m_deserialized_object->Get<Entity>().GetID());
+                node->SetEntity(sub_object.m_deserialized_object->Get<Handle<Entity>>().GetID());
             }
         }
 
-        out_object = std::move(node);
+        out = HypData(std::move(node));
 
         return { FBOMResult::FBOM_OK };
     }

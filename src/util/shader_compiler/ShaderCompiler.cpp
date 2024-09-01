@@ -7,15 +7,22 @@
 #include <util/ByteUtil.hpp>
 
 #include <core/Defines.hpp>
+
 #include <core/util/ForEach.hpp>
+
 #include <core/system/Time.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/ByteWriter.hpp>
 #include <asset/BufferedByteReader.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -727,10 +734,10 @@ static bool LoadBatchFromFile(const FilePath &filepath, CompiledShaderBatch &out
     fbom::FBOMReader reader(fbom::FBOMConfig { });
 
     fbom::FBOMResult err;
+    
+    HypData value;
 
-    fbom::FBOMDeserializedObject deserialized;
-
-    if ((err = reader.LoadFromFile(filepath, deserialized))) {
+    if ((err = reader.LoadFromFile(filepath, value))) {
         HYP_LOG(
             ShaderCompiler,
             LogLevel::ERR,
@@ -742,7 +749,7 @@ static bool LoadBatchFromFile(const FilePath &filepath, CompiledShaderBatch &out
         return false;
     }
 
-    CompiledShaderBatch *compiled_shader_batch = deserialized.TryGet<CompiledShaderBatch>();
+    CompiledShaderBatch *compiled_shader_batch = value.TryGet<CompiledShaderBatch>();
 
     if (!compiled_shader_batch) {
         HYP_LOG(

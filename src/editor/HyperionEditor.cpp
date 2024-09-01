@@ -29,6 +29,7 @@
 
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIText.hpp>
@@ -1331,6 +1332,18 @@ void HyperionEditor::Init()
         .radius     = 35.0f,
         .resolution = { 2048, 2048 }
     });
+
+
+    // testing
+    FileByteWriter byte_writer("Scene.hyp");
+    fbom::FBOMWriter writer;
+    writer.Append(*GetScene());
+    auto err = writer.Emit(&byte_writer);
+    byte_writer.Close();
+
+    if (err != fbom::FBOMResult::FBOM_OK) {
+        HYP_FAIL("Failed to save scene: %s", err.message.Data());
+    }
 
     // if (false) {
         

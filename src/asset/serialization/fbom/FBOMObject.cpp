@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
 
 #include <core/utilities/Format.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypData.hpp>
 
 namespace hyperion::fbom {
 
@@ -206,18 +208,18 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(const TypeAttributes &type_attributes, const FBOMObject &in, FBOMDeserializedObject &out)
+FBOMResult FBOMObject::Deserialize(TypeID type_id, const FBOMObject &in, HypData &out)
 {
-    FBOMMarshalerBase *marshal = GetMarshal(type_attributes);
+    FBOMMarshalerBase *marshal = GetMarshal(type_id);
     
     if (!marshal) {
         return {
             FBOMResult::FBOM_ERR,
-            HYP_FORMAT("No registered marshal class for type: {}", type_attributes.name)
+            "No registered marshal class for type"
         };
     }
 
-    return marshal->Deserialize(in, out.any_value);
+    return marshal->Deserialize(in, out);
 }
 
 HashCode FBOMObject::GetHashCode() const
@@ -278,9 +280,9 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-FBOMMarshalerBase *FBOMObject::GetMarshal(const TypeAttributes &type_attributes)
+FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID type_id)
 {
-    return FBOM::GetInstance().GetMarshal(type_attributes);
+    return FBOM::GetInstance().GetMarshal(type_id);
 }
 
 } // namespace hyperion::fbom

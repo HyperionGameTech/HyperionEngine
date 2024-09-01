@@ -5,6 +5,8 @@
 
 #include <asset/ByteWriter.hpp>
 
+#include <core/object/HypClassRegistry.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -39,14 +41,14 @@ void FBOM::RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal
     m_marshals.Set(name, std::move(marshal));
 }
 
-FBOMMarshalerBase *FBOM::GetMarshal(const TypeAttributes &type_attributes) const
+FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id) const
 {
     for (const auto &it : m_marshals) {
         if (!it.second) {
             continue;
         }
 
-        if (it.second->GetTypeID() == type_attributes.id) {
+        if (it.second->GetTypeID() == type_id) {
             return it.second.Get();
         }
     }
@@ -54,13 +56,9 @@ FBOMMarshalerBase *FBOM::GetMarshal(const TypeAttributes &type_attributes) const
     // No custom marshal found.
 
     // If the type has a HypClass defined, then use the default HypClass instance marshal
-    if (type_attributes.HasHypClass()) {
+    if (const HypClass *hyp_class = GetClass(type_id)) {
         AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
-    }
-
-    if (type_attributes.IsPOD()) {
-        // @TODO Use POD marshaller to serialize/deserialize struct
     }
 
     return nullptr;
@@ -74,7 +72,7 @@ FBOMMarshalerBase *FBOM::GetMarshal(const ANSIStringView &type_name) const
         return it->second.Get();
     }
 
-    if (const HypClass *hyp_class = GetClass(type_name)) {
+    if (const HypClass *hyp_class = HypClassRegistry::GetInstance().GetClass(type_name)) {
         AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
     }

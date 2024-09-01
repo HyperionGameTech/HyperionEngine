@@ -4,6 +4,8 @@
 
 #include <rendering/Mesh.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -33,11 +35,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         Topology topology = Topology::TRIANGLES;
 
-        if (FBOMResult err = in.GetProperty("topology").ReadUnsignedInt(&topology)) {
+        if (FBOMResult err = in.GetProperty("topology").ReadUInt32(&topology)) {
             return err;
         }
 
@@ -60,11 +62,11 @@ public:
             return { FBOMResult::FBOM_OK };
         }
 
-        out_object = CreateObject<Mesh>(
+        out = HypData(CreateObject<Mesh>(
             std::move(streamed_mesh_data),
             topology,
             vertex_attributes
-        );
+        ));
 
         return { FBOMResult::FBOM_OK };
     }

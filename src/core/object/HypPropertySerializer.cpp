@@ -1,5 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#if 0
+
 #include <core/object/HypPropertySerializer.hpp>
 
 #include <Engine.hpp>
@@ -43,3 +45,5 @@ IHypPropertySerializer *HypPropertySerializerRegistry::GetSerializer(TypeID type
 #pragma endregion Default serializers
 
 } // namespace hyperion
+
+#endif

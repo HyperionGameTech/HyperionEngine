@@ -1,11 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 #include <asset/serialization/fbom/FBOMArray.hpp>
+#include <asset/serialization/fbom/FBOM.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 
 #include <core/utilities/Format.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -277,7 +280,7 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
+FBOMResult FBOMReader::Deserialize(const FBOMObject &in, HypData &out)
 {
     const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
 
@@ -285,14 +288,14 @@ FBOMResult FBOMReader::Deserialize(const FBOMObject &in, FBOMDeserializedObject 
         return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
     }
 
-    if (FBOMResult err = marshal->Deserialize(in, out_object.any_value)) {
+    if (FBOMResult err = marshal->Deserialize(in, out)) {
         return err;
     }
 
     return { FBOMResult::FBOM_OK };
 }
 
-FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObject &out_object)
+FBOMResult FBOMReader::Deserialize(BufferedReader &reader, HypData &out)
 {
     FBOMObject obj;
 
@@ -300,7 +303,7 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMDeserializedObjec
         return err;
     }
 
-    return Deserialize(obj, out_object);
+    return Deserialize(obj, out);
 }
 
 FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMObjectLibrary &out)
@@ -339,7 +342,7 @@ FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMObject &out)
     return Deserialize(reader, out);
 }
 
-FBOMResult FBOMReader::LoadFromFile(const String &path, FBOMDeserializedObject &out)
+FBOMResult FBOMReader::LoadFromFile(const String &path, HypData &out)
 {
     FBOMObject object;
     
@@ -392,6 +395,12 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
     }
 
     return FBOMResult::FBOM_OK;
+}
+
+
+bool FBOMReader::HasMarshalForType(const FBOMType &type) const
+{
+    return FBOM::GetInstance().GetMarshal(type.name) != nullptr;
 }
 
 FBOMResult FBOMReader::RequestExternalObject(UUID library_id, uint32 index, FBOMObject &out_object)
@@ -896,7 +905,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
             {
                 if (HasMarshalForType(object_type)) {
                     // call deserializer function, writing into deserialized object
-                    out_object.m_deserialized_object.Reset(new FBOMDeserializedObject());
+                    out_object.m_deserialized_object.Reset(new HypData());
 
                     if (FBOMResult err = Deserialize(out_object, *out_object.m_deserialized_object)) {
                         out_object.m_deserialized_object.Reset();

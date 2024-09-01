@@ -53,6 +53,8 @@ public:
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const override = 0;
     virtual void CreateInstance_Internal(Any &out) const override = 0;
+    virtual void CreateInstance_Internal(HypData &out) const override = 0;
+
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
 
     HYP_API bool CreateStructInstance(dotnet::ObjectReference &out_object_reference, const void *object_ptr, SizeType size) const;
@@ -125,14 +127,6 @@ public:
         }
     }
 
-    T CreateInstance() const
-    {
-        ValueStorage<T> result_storage;
-        CreateInstance_Internal(result_storage.GetPointer());
-
-        return result_storage.Get();
-    }
-
     virtual void ConstructFromBytes(ConstByteView view, Any &out) const override
     {
         AssertThrow(view.Size() == sizeof(T));
@@ -157,6 +151,15 @@ protected:
     {
         if constexpr (std::is_default_constructible_v<T>) {
             out.Emplace<T>();
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
+
+    virtual void CreateInstance_Internal(HypData &out) const override
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            out = T { };
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

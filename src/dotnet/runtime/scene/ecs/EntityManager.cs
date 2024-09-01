@@ -166,9 +166,6 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
         private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID typeID, Entity entity);
 
-        [DllImport("hyperion", EntryPoint = "EntityManager_GetComponentInterface")]
-        private static extern IntPtr EntityManager_GetComponentInterface(IntPtr entityManagerPtr, TypeID typeID);
-
         // Components
         // TransformComponent
         [DllImport("hyperion", EntryPoint = "TransformComponent_GetNativeTypeID")]

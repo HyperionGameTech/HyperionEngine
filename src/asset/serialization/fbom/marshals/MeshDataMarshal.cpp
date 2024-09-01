@@ -1,7 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/serialization/fbom/FBOM.hpp>
+
 #include <rendering/Mesh.hpp>
+
+#include <core/object/HypData.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -22,14 +26,14 @@ public:
     
         out.SetProperty(
             NAME("indices"),
-            FBOMSequence(FBOMUnsignedInt(), in_object.indices.Size()),
+            FBOMSequence(FBOMUInt32(), in_object.indices.Size()),
             in_object.indices.Data()
         );
 
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, Any &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
         Array<Vertex> vertices;
 
@@ -50,12 +54,12 @@ public:
         Array<uint32> indices;
 
         if (const FBOMData &indices_property = in.GetProperty("indices")) {
-            const SizeType num_indices = indices_property.NumElements(FBOMUnsignedInt());
+            const SizeType num_indices = indices_property.NumElements(FBOMUInt32());
 
             if (num_indices != 0) {
                 indices.Resize(num_indices);
 
-                if (FBOMResult err = indices_property.ReadElements(FBOMUnsignedInt(), num_indices, indices.Data())) {
+                if (FBOMResult err = indices_property.ReadElements(FBOMUInt32(), num_indices, indices.Data())) {
                     return err;
                 }
             }
@@ -63,10 +67,10 @@ public:
             return { FBOMResult::FBOM_ERR, "indices property invalid" };
         }
 
-        out_object = MeshData {
+        out = HypData(MeshData {
             std::move(vertices),
             std::move(indices)
-        };
+        });
 
         return { FBOMResult::FBOM_OK };
     }

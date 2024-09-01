@@ -9,6 +9,7 @@
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/Memory.hpp>
+#include <core/memory/AnyRef.hpp>
 #include <core/memory/NotNullPtr.hpp>
 
 #include <core/system/Debug.hpp>
@@ -356,6 +357,11 @@ public:
 
             m_ref->IncRefCount_Strong();
         }
+    }
+    
+    HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef() const
+    {
+        return AnyRef(GetTypeID(), Get());
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */

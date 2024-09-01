@@ -24,6 +24,27 @@ enum class FBOMDataAttributes : uint8
 
 HYP_MAKE_ENUM_FLAGS(FBOMDataAttributes)
 
+enum class FBOMDataLocation : uint8
+{
+    LOC_STATIC  = 0,
+    LOC_INPLACE,
+    LOC_EXT_REF
+};
+
+enum FBOMCommand : uint8
+{
+    FBOM_NONE = 0,
+    FBOM_OBJECT_START,
+    FBOM_OBJECT_END,
+    FBOM_STATIC_DATA_START,
+    FBOM_STATIC_DATA_END,
+    FBOM_STATIC_DATA_HEADER_START,
+    FBOM_STATIC_DATA_HEADER_END,
+    FBOM_DEFINE_PROPERTY,
+    FBOM_OBJECT_LIBRARY_START,
+    FBOM_OBJECT_LIBRARY_END
+};
+
 } // namespace hyperion
 
 #endif

@@ -13,7 +13,6 @@
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/TypeAttributes.hpp>
 #include <core/utilities/UUID.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
@@ -21,9 +20,8 @@
 
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
-#include <asset/serialization/fbom/FBOMMarshaler.hpp>
-#include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
+#include <asset/serialization/fbom/FBOMMarshaler.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -33,6 +31,7 @@
 namespace hyperion {
 
 class HypClass;
+struct HypData;
 
 enum class FBOMObjectFlags : uint32
 {
@@ -46,6 +45,7 @@ HYP_MAKE_ENUM_FLAGS(FBOMObjectFlags)
 namespace fbom {
 
 class FBOMNodeHolder;
+class FBOMMarshalerBase;
 
 struct FBOMExternalObjectInfo
 {
@@ -74,7 +74,7 @@ public:
     FBOMType                            m_object_type;
     FBOMNodeHolder                      *nodes;
     FlatMap<Name, FBOMData>             properties;
-    RC<FBOMDeserializedObject>          m_deserialized_object;
+    RC<HypData>                         m_deserialized_object;
     Optional<FBOMExternalObjectInfo>    m_external_info;
     UniqueID                            m_unique_id;
 
@@ -132,22 +132,34 @@ public:
         { return SetProperty(key, FBOMBool(), sizeof(uint8) /* bool = 1 byte */, &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint8 value)
-        { return SetProperty(key, FBOMByte(), sizeof(uint8), &value); }
+        { return SetProperty(key, FBOMUInt8(), sizeof(uint8), &value); }
+
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint16 value)
+        { return SetProperty(key, FBOMUInt16(), sizeof(uint16), &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint32 value)
-        { return SetProperty(key, FBOMUnsignedInt(), sizeof(uint32), &value); }
+        { return SetProperty(key, FBOMUInt32(), sizeof(uint32), &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, uint64 value)
-        { return SetProperty(key, FBOMUnsignedLong(), sizeof(uint64), &value); }
+        { return SetProperty(key, FBOMUInt64(), sizeof(uint64), &value); }
+
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int8 value)
+        { return SetProperty(key, FBOMInt8(), sizeof(int8), &value); }
+
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int16 value)
+        { return SetProperty(key, FBOMInt16(), sizeof(int16), &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int32 value)
-        { return SetProperty(key, FBOMInt(), sizeof(int32), &value); }
+        { return SetProperty(key, FBOMInt32(), sizeof(int32), &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, int64 value)
-        { return SetProperty(key, FBOMLong(), sizeof(int64), &value); }
+        { return SetProperty(key, FBOMInt64(), sizeof(int64), &value); }
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, float value)
         { return SetProperty(key, FBOMFloat(), sizeof(float), &value); }
+
+    HYP_FORCE_INLINE FBOMObject &SetProperty(Name key, double value)
+        { return SetProperty(key, FBOMDouble(), sizeof(double), &value); }
 
     template <class T, typename = typename std::enable_if_t< !std::is_pointer_v<NormalizedType<T> > && !std::is_fundamental_v<NormalizedType<T> > > >
     FBOMObject &SetProperty(Name key, const T &in)
@@ -246,10 +258,10 @@ public:
         return object;
     }
 
-    static FBOMResult Deserialize(const TypeAttributes &type_attributes, const FBOMObject &in, FBOMDeserializedObject &out);
+    static FBOMResult Deserialize(TypeID type_id, const FBOMObject &in, HypData &out);
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
-    static FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out)
+    static FBOMResult Deserialize(const FBOMObject &in, HypData &out)
     {
         FBOMMarshalerBase *marshal = GetMarshal<T>();
         
@@ -257,23 +269,11 @@ public:
             return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
         }
 
-        if (FBOMResult err = marshal->Deserialize(in, out.any_value)) {
+        if (FBOMResult err = marshal->Deserialize(in, out)) {
             HYP_FAIL("Failed to deserialize object: %s", *err.message);
         }
 
         return { FBOMResult::FBOM_OK };
-    }
-
-    template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
-    static FBOMDeserializedObject Deserialize(const FBOMObject &in)
-    {
-        FBOMDeserializedObject deserialized;
-
-        if (FBOMResult err = Deserialize<T>(in, deserialized)) {
-            HYP_FAIL("Failed to deserialize object: %s", *err.message);
-        }
-
-        return deserialized;
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
@@ -289,11 +289,11 @@ public:
         { return m_object_type.GetHypClass(); }
 
 private:
-    static FBOMMarshalerBase *GetMarshal(const TypeAttributes &);
+    static FBOMMarshalerBase *GetMarshal(TypeID type_id);
 
     template <class T>
     HYP_FORCE_INLINE static FBOMMarshalerBase *GetMarshal()
-        { return GetMarshal(TypeAttributes::ForType<T>()); }
+        { return GetMarshal(TypeID::ForType<T>()); }
 };
 
 class FBOMNodeHolder : public Array<FBOMObject>

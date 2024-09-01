@@ -7,12 +7,18 @@
 #include <core/Name.hpp>
 #include <core/Handle.hpp>
 #include <core/functional/Proc.hpp>
+
 #include <core/utilities/TypeID.hpp>
+
 #include <core/containers/TypeMap.hpp>
+
 #include <core/memory/Any.hpp>
+
 #include <core/ID.hpp>
 
 #include <asset/serialization/Serialization.hpp>
+#include <asset/serialization/fbom/FBOMObject.hpp>
+#include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <Types.hpp>
 
@@ -22,7 +28,6 @@ namespace hyperion {
 
 class IHypPropertySerializer
 {
-
 };
 
 template <class T, class EnableIfResult = void>
@@ -78,14 +83,35 @@ class HypPropertySerializer<uint8> : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(uint8 value) const
     {
-        return fbom::FBOMData::FromByte(value);
+        return fbom::FBOMData::FromUInt8(value);
     }
 
     uint8 Deserialize(const fbom::FBOMData &value) const
     {
         uint8 result;
 
-        if (fbom::FBOMResult err = value.ReadByte(&result)) {
+        if (fbom::FBOMResult err = value.ReadUInt8(&result)) {
+            return 0;
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypPropertySerializer<uint16> : public IHypPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(uint16 value) const
+    {
+        return fbom::FBOMData::FromUInt16(value);
+    }
+
+    uint16 Deserialize(const fbom::FBOMData &value) const
+    {
+        uint16 result;
+
+        if (fbom::FBOMResult err = value.ReadUInt16(&result)) {
             return 0;
         }
 
@@ -99,14 +125,14 @@ class HypPropertySerializer<uint32> : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(uint32 value) const
     {
-        return fbom::FBOMData::FromUnsignedInt(value);
+        return fbom::FBOMData::FromUInt32(value);
     }
 
     uint32 Deserialize(const fbom::FBOMData &value) const
     {
         uint32 result;
 
-        if (fbom::FBOMResult err = value.ReadUnsignedInt(&result)) {
+        if (fbom::FBOMResult err = value.ReadUInt32(&result)) {
             return 0;
         }
 
@@ -120,14 +146,56 @@ class HypPropertySerializer<uint64> : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(uint64 value) const
     {
-        return fbom::FBOMData::FromUnsignedLong(value);
+        return fbom::FBOMData::FromUInt64(value);
     }
 
     uint64 Deserialize(const fbom::FBOMData &value) const
     {
         uint64 result;
 
-        if (fbom::FBOMResult err = value.ReadUnsignedLong(&result)) {
+        if (fbom::FBOMResult err = value.ReadUInt64(&result)) {
+            return 0;
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypPropertySerializer<int8> : public IHypPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(int8 value) const
+    {
+        return fbom::FBOMData::FromInt8(value);
+    }
+
+    int8 Deserialize(const fbom::FBOMData &value) const
+    {
+        int8 result;
+
+        if (fbom::FBOMResult err = value.ReadInt8(&result)) {
+            return 0;
+        }
+
+        return result;
+    }
+};
+
+template <>
+class HypPropertySerializer<int16> : public IHypPropertySerializer
+{
+public:
+    fbom::FBOMData Serialize(int16 value) const
+    {
+        return fbom::FBOMData::FromInt16(value);
+    }
+
+    int16 Deserialize(const fbom::FBOMData &value) const
+    {
+        int16 result;
+
+        if (fbom::FBOMResult err = value.ReadInt16(&result)) {
             return 0;
         }
 
@@ -141,14 +209,14 @@ class HypPropertySerializer<int32> : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(int32 value) const
     {
-        return fbom::FBOMData::FromInt(value);
+        return fbom::FBOMData::FromInt32(value);
     }
 
     int32 Deserialize(const fbom::FBOMData &value) const
     {
         int32 result;
 
-        if (fbom::FBOMResult err = value.ReadInt(&result)) {
+        if (fbom::FBOMResult err = value.ReadInt32(&result)) {
             return 0;
         }
 
@@ -162,14 +230,14 @@ class HypPropertySerializer<int64> : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(int64 value) const
     {
-        return fbom::FBOMData::FromLong(value);
+        return fbom::FBOMData::FromInt64(value);
     }
 
     int64 Deserialize(const fbom::FBOMData &value) const
     {
         int64 result;
 
-        if (fbom::FBOMResult err = value.ReadLong(&result)) {
+        if (fbom::FBOMResult err = value.ReadInt64(&result)) {
             return 0;
         }
 
@@ -513,8 +581,8 @@ public:
     auto Deserialize(const fbom::FBOMData &value) const
     {
         // Check if object is already stored in memory
-        if (Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject(); deserialized_object_opt.HasValue()) {
-            return deserialized_object_opt->Get<T>();
+        if (const RC<HypData> &deserialized_object_ptr = value.GetDeserializedObject()) {
+            return deserialized_object_ptr->Get<T>();
         } else {
             fbom::FBOMDeserializedObject deserialized_object;
 
@@ -566,14 +634,14 @@ class HypPropertySerializer< ID<T> > : public IHypPropertySerializer
 public:
     fbom::FBOMData Serialize(const ID<T> &id) const
     {
-        return fbom::FBOMData::FromUnsignedInt(id.value);
+        return fbom::FBOMData::FromUInt32(id.value);
     }
 
     ID<T> Deserialize(const fbom::FBOMData &value) const
     {
         ID<T> id;
 
-        if (fbom::FBOMResult err = value.ReadUnsignedInt(&id.value)) {
+        if (fbom::FBOMResult err = value.ReadUInt32(&id.value)) {
             return id;
         }
 
@@ -656,10 +724,10 @@ public:
         if constexpr (std::is_class_v<T>) {
             // Use marshal class or default HypClass instance marshal
 
-            Optional<const fbom::FBOMDeserializedObject &> deserialized_object_opt = value.GetDeserializedObject();
-            AssertThrow(deserialized_object_opt.HasValue());
+            const RC<fbom::FBOMDeserializedObject> &deserialized_object = value.GetDeserializedObject();
+            AssertThrow(deserialized_object != nullptr);
 
-            return deserialized_object_opt->Get< NormalizedType<T> >();
+            return deserialized_object->Get< NormalizedType<T> >();
         } else if constexpr (std::is_enum_v<T>) {
             return static_cast<T>(HypPropertySerializer<std::underlying_type_t<T>>().Deserialize(value));
         } else {

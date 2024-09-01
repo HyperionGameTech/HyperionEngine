@@ -3,10 +3,13 @@
 #include <streaming/StreamedMeshData.hpp>
 
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -128,14 +131,15 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
     }
 
     fbom::FBOMReader deserializer(fbom::FBOMConfig { });
-    fbom::FBOMDeserializedObject object;
+    
+    HypData value;
 
-    if (fbom::FBOMResult err = deserializer.Deserialize(reader, object)) {
+    if (fbom::FBOMResult err = deserializer.Deserialize(reader, value)) {
         HYP_LOG(Streaming, LogLevel::WARNING, "StreamedMeshData: Error deserializing mesh data: {}", err.message);
         return;
     }
 
-    m_mesh_data = object.Get<MeshData>();
+    m_mesh_data = value.Get<MeshData>();
 
     if (m_mesh_data->vertices.Size() != m_num_vertices) {
         HYP_LOG(Streaming, LogLevel::WARNING, "StreamedMeshData: Vertex count mismatch! Expected {} vertices, but loaded data has {} vertices", m_num_vertices, m_mesh_data->vertices.Size());

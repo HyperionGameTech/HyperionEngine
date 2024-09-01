@@ -5,6 +5,7 @@
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObjectEnums.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
@@ -81,6 +82,17 @@ public:
     HYP_FORCE_INLINE bool IsAbstract() const
         { return m_attributes.Contains("abstract"); }
 
+    HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
+    {
+        auto it = m_attributes.FindAs(key);
+
+        if (it == m_attributes.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
     HypProperty *GetProperty(WeakName name) const;
 
     HYP_FORCE_INLINE const Array<HypProperty *> &GetProperties() const
@@ -122,6 +134,14 @@ public:
         CreateInstance_Internal(out);
     }
 
+    HYP_FORCE_INLINE void CreateInstance(HypData &out) const
+    {
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
+            GetName().LookupString());
+
+        CreateInstance_Internal(out);
+    }
+
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {
         AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
@@ -133,6 +153,8 @@ public:
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const = 0;
     virtual void CreateInstance_Internal(Any &out) const = 0;
+    virtual void CreateInstance_Internal(HypData &out) const = 0;
+
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
     static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference);
@@ -215,15 +237,7 @@ public:
             return false;
         }
     }
-
-    T CreateInstance() const
-    {
-        ValueStorage<T> result_storage;
-        CreateInstance_Internal(result_storage.GetPointer());
-
-        return result_storage.Get();
-    }
-
+    
 protected:
     virtual void CreateInstance_Internal(void *out_ptr) const override
     {
@@ -238,6 +252,19 @@ protected:
     {
         if constexpr (std::is_default_constructible_v<T>) {
             out.Emplace<T>();
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
+
+    virtual void CreateInstance_Internal(HypData &out) const override
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            if constexpr (has_opaque_handle_defined<T>) {
+                out = CreateObject<T>();
+            } else {
+                out = RC<T>::Construct();
+            }
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

@@ -1,4 +1,5 @@
 #include <scene/ecs/components/AudioComponent.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -12,5 +13,6 @@ HYP_BEGIN_STRUCT(AudioComponent)
     HYP_FIELD(timer)
 HYP_END_STRUCT
 
+HYP_REGISTER_COMPONENT(AudioComponent);
 
 } // namespace hyperion

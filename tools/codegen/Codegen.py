@@ -48,11 +48,12 @@ class GeneratedSource:
         self.content = content
 
 class HypMemberDefinition:
-    def __init__(self, member_type, name, method_return_type=None, method_args=None):
+    def __init__(self, member_type, name, method_return_type=None, method_args=None, property_args=None):
         self.member_type = member_type
         self.name = name
         self.method_return_type = method_return_type
         self.method_args = method_args
+        self.property_args = property_args
 
         if self.is_method:
             if self.method_return_type is None:
@@ -60,6 +61,12 @@ class HypMemberDefinition:
             
             if self.method_args is None:
                 raise Exception('Method arguments are required')
+        else:
+            if self.method_return_type is not None or self.method_args is not None:
+                raise Exception('Method return type and arguments are only allowed for methods')
+            
+        if self.property_args is not None and not self.is_property:
+            raise Exception('Property arguments are only allowed for properties')
 
     @property
     def is_field(self):
@@ -90,6 +97,11 @@ class HypMemberDefinition:
                 return []
             
             return self.method_args
+        elif self.is_property:
+            if self.property_args is None:
+                return []
+            
+            return self.property_args
         
         raise Exception('Member is not a method')
 
@@ -124,133 +136,140 @@ class HypClassDefinition:
         matches = re.finditer(r'HYP_(FIELD|PROPERTY|METHOD)(?:\((.*)\))?', self.content)
 
         for match in matches:
-            remaining_content = self.content[match.end(0):]
-            member_content = ""
-            
-            member_type = None
+            if match.group(1) == 'PROPERTY':
+                member_type = HypMemberType.PROPERTY
 
-            in_string = False
-            in_comment = False
-            brace_depth = 0
-            escaped = False
+                # HYP_PROPERTY macro should contain property name, then (getter and setter (optional)) OR (a pointer to data member)
 
-            for i in range(len(remaining_content)):
-                char = remaining_content[i]
+                match_content = match.group(2)
 
-                member_content += char
+                # read the property name
 
-                if escaped:
-                    escaped = False
+                if not match_content:
+                    state.add_error(f'Error: Missing property name for {match_content}')
                     continue
 
-                if char == '\\':
-                    escaped = True
+                property_name = match_content.split(',')[0].strip()
+
+                print("Property name:", property_name)
+
+                if not property_name:
+                    state.add_error(f'Error: Missing property name for {match_content}')
                     continue
 
-                if char == '"' and not in_comment:
-                    in_string = not in_string
+                property_args = [x.strip() for x in (match_content.split(',')[1:] if len(match_content.split(',')) > 1 else [])]
 
-                if char == '/' and not in_string:
-                    if i+1 < len(remaining_content) and remaining_content[i+1] == '/':
-                        in_comment = True
-                    elif i+1 < len(remaining_content) and remaining_content[i+1] == '*':
-                        in_comment = True
-                        i += 1
+                print("Property args:", property_args)
 
-                if char == '\n' and in_comment:
-                    in_comment = False
+                self.members.append(HypMemberDefinition(member_type, property_name, property_args=property_args))
+            else:
+                remaining_content = self.content[match.end(0):]
+                member_content = ""
+                
+                member_type = None
 
-                if char == '{' and not in_string and not in_comment:
-                    brace_depth += 1
+                in_string = False
+                in_comment = False
+                brace_depth = 0
+                escaped = False
 
-                if char == '}' and not in_string and not in_comment:
-                    brace_depth -= 1
+                for i in range(len(remaining_content)):
+                    char = remaining_content[i]
 
-                    if brace_depth == 0:
+                    member_content += char
+
+                    if escaped:
+                        escaped = False
+                        continue
+
+                    if char == '\\':
+                        escaped = True
+                        continue
+
+                    if char == '"' and not in_comment:
+                        in_string = not in_string
+
+                    if char == '/' and not in_string:
+                        if i+1 < len(remaining_content) and remaining_content[i+1] == '/':
+                            in_comment = True
+                        elif i+1 < len(remaining_content) and remaining_content[i+1] == '*':
+                            in_comment = True
+                            i += 1
+
+                    if char == '\n' and in_comment:
+                        in_comment = False
+
+                    if char == '{' and not in_string and not in_comment:
+                        brace_depth += 1
+
+                    if char == '}' and not in_string and not in_comment:
+                        brace_depth -= 1
+
+                        if brace_depth == 0:
+                            break
+
+                    if char == ';' and not in_string and not in_comment and brace_depth == 0:
                         break
 
-                if char == ';' and not in_string and not in_comment and brace_depth == 0:
-                    break
+                member_content = member_content.strip()
 
-            member_content = member_content.strip()
+                if match.group(1) == 'FIELD':
+                    member_type = HypMemberType.FIELD
 
-            if match.group(1) == 'FIELD':
-                member_type = HypMemberType.FIELD
+                    member_name = parse_cxx_field_name(member_content)
 
-                member_name = parse_cxx_field_name(member_content)
+                    if not member_name:
+                        state.add_error(f'Error: Failed to parse field name for {member_content}')
+                        continue
 
-                if not member_name:
-                    state.add_error(f'Error: Failed to parse field name for {member_content}')
-                    continue
+                    self.members.append(HypMemberDefinition(member_type, member_name))
+                elif match.group(1) == 'METHOD':
+                    member_type = HypMemberType.METHOD
 
-                self.members.append(HypMemberDefinition(member_type, member_name))
-            elif match.group(1) == 'PROPERTY':
-                member_type = HypMemberType.PROPERTY
-            elif match.group(1) == 'METHOD':
-                member_type = HypMemberType.METHOD
+                dummy_content = CXX_DUMMY_CLASS_TEMPLATE.render(content=member_content)
 
-                # method_parsed_data = None
+                try:
+                    parsed_data = parse_cxx_header(content=dummy_content, options=ParserOptions(preprocessor=make_preprocessor()))
 
-                # for method in class_data.methods:
-                #     method_name = method.name.segments[-1].name
+                    member = None
+                    
+                    if member_type == HypMemberType.FIELD:
+                        member = parsed_data.namespace.classes[0].fields[0]
 
-                #     if method_name in member_content:
-                #         method_parsed_data = method
-                #         break
+                        # TODO
+                    elif member_type == HypMemberType.METHOD:
+                        member = parsed_data.namespace.classes[0].methods[0]
 
+                        member_name = member.name.segments[-1].name
 
-                # member_function_name = parse_cxx_member_function_name(member_content)
+                        return_type = map_type(member.return_type)
 
-                # if not member_function_name:
-                #     state.add_error(f'Error: Failed to parse member function name for {member_content}')
-                #     continue
+                        args = []
 
-                # self.members.append(HypMemberDefinition(member_type, member_function_name))
+                        for param in member.parameters:
+                            param_type = map_type(param.type)
+                            param_name = param.name
 
-            dummy_content = CXX_DUMMY_CLASS_TEMPLATE.render(content=member_content)
+                            if not param_name:
+                                state.add_error(f'Error: Missing name for parameter {param_type}')
+                                continue
 
-            try:
-                parsed_data = parse_cxx_header(content=dummy_content, options=ParserOptions(preprocessor=make_preprocessor()))
+                            args.append((param_type, param_name))
 
-                member = None
+                        # if isinstance(return_type, Reference):
+                        #     return_type = return_type.ref_to
+
+                        # if isinstance(return_type, Pointer):
+                        #     return_type = return_type.ptr_to
+
+                        # return_type
+
+                        self.members.append(HypMemberDefinition(member_type, member_name, method_return_type=return_type, method_args=args))
+                    else:
+                        raise Exception(f'Invalid member type {member_type}')
                 
-                if member_type == HypMemberType.FIELD:
-                    member = parsed_data.namespace.classes[0].fields[0]
-
-                    # TODO
-                elif member_type == HypMemberType.METHOD:
-                    member = parsed_data.namespace.classes[0].methods[0]
-
-                    member_name = member.name.segments[-1].name
-
-                    return_type = map_type(member.return_type)
-
-                    args = []
-
-                    for param in member.parameters:
-                        param_type = map_type(param.type)
-                        param_name = param.name
-
-                        if not param_name:
-                            state.add_error(f'Error: Missing name for parameter {param_type}')
-                            continue
-
-                        args.append((param_type, param_name))
-
-                    # if isinstance(return_type, Reference):
-                    #     return_type = return_type.ref_to
-
-                    # if isinstance(return_type, Pointer):
-                    #     return_type = return_type.ptr_to
-
-                    # return_type
-
-                    self.members.append(HypMemberDefinition(member_type, member_name, method_return_type=return_type, method_args=args))
-                else:
-                    raise Exception(f'Invalid member type {member_type}')
-            
-            except Exception as e:
-                state.add_error(f'Error: Failed to parse member definition for {member_content} - {repr(e)}')
+                except Exception as e:
+                    state.add_error(f'Error: Failed to parse member definition for {member_content} - {repr(e)}')
 
 class CodegenState:
     def __init__(self, src_dir, output_dir):
