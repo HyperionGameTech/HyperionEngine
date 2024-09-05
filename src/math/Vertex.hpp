@@ -63,8 +63,10 @@ struct VertexAttribute
     }
 };
 
+HYP_STRUCT()
 struct VertexAttributeSet
 {
+    HYP_FIELD()
     uint64 flag_mask;
 
     constexpr VertexAttributeSet()
@@ -178,6 +180,7 @@ constexpr VertexAttributeSet skeleton_vertex_attributes(
     | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES
 );
 
+HYP_STRUCT()
 struct alignas(16) Vertex
 {
     friend Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
@@ -391,17 +394,34 @@ struct alignas(16) Vertex
         return hc;
     }
 
+    HYP_FIELD()
     Vec3f                               position;
+
+    HYP_FIELD()
     Vec3f                               normal;
+
+    HYP_FIELD()
     Vec3f                               tangent;
+
+    HYP_FIELD()
     Vec3f                               bitangent;
+
+    HYP_FIELD()
     Vec2f                               texcoord0;
+
+    HYP_FIELD()
     Vec2f                               texcoord1;
 
+    HYP_FIELD()
     FixedArray<float, MAX_BONE_WEIGHTS> bone_weights;
+
+    HYP_FIELD()
     FixedArray<uint, MAX_BONE_INDICES>  bone_indices;
 
+    HYP_FIELD()
     uint8                               num_indices;
+
+    HYP_FIELD()
     uint8                               num_weights;
 };
 

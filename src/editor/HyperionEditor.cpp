@@ -30,6 +30,7 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 #include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <asset/serialization/fbom/FBOMReader.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIText.hpp>
@@ -1333,18 +1334,6 @@ void HyperionEditor::Init()
         .resolution = { 2048, 2048 }
     });
 
-
-    // testing
-    FileByteWriter byte_writer("Scene.hyp");
-    fbom::FBOMWriter writer;
-    writer.Append(*GetScene());
-    auto err = writer.Emit(&byte_writer);
-    byte_writer.Close();
-
-    if (err != fbom::FBOMResult::FBOM_OK) {
-        HYP_FAIL("Failed to save scene: %s", err.message.Data());
-    }
-
     // if (false) {
         
 
@@ -1564,28 +1553,59 @@ void HyperionEditor::Init()
             zombie.SetName("zombie");
         }
 
-        // FileByteWriter byte_writer("Scene.hypscene");
-        // fbom::FBOMWriter writer;
-        // writer.Append(*GetScene());
-        // auto err = writer.Emit(&byte_writer);
-        // byte_writer.Close();
-
-        // if (err != fbom::FBOMResult::FBOM_OK) {
-        //     HYP_FAIL("Failed to save scene");
-        // }
-
-        // fbom::FBOMDeserializedObject obj;
-        // fbom::FBOMReader reader({});
-        // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-        //     HYP_FAIL("failed to load: %s", *err.message);
-        // }
-
-        // Handle<Scene> loaded_scene = obj.Get<Scene>();
         
-        // DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+        // testing serialization / deserialization
+        FileByteWriter byte_writer("Scene.hyp");
+        fbom::FBOMWriter writer;
+        writer.Append(*GetScene());
+        auto err = writer.Emit(&byte_writer);
+        byte_writer.Close();
 
-        // HYP_BREAKPOINT;
+        if (err != fbom::FBOMResult::FBOM_OK) {
+            HYP_FAIL("Failed to save scene: %s", err.message.Data());
+        }
+
+        HypData loaded_scene_data;
+        fbom::FBOMReader reader({});
+        if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {
+            HYP_FAIL("failed to load: %s", *err.message);
+        }
+        DebugLog(LogType::Debug, "static data buffer size: %u\n", reader.m_static_data_buffer.Size());
+
+        Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
+        
+        DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+
+        Proc<void, const NodeProxy &, int> DebugPrintNode;
+
+        DebugPrintNode = [&DebugPrintNode](const NodeProxy &node, int depth)
+        {
+            if (!node.IsValid()) {
+                return;
+            }
+
+            String str;
+
+            for (int i = 0; i < depth; i++) {
+                str += "  ";
+            }
+
+            str += node.GetName();
+
+            DebugLog(LogType::Debug, "%s\n", *str);
+
+            for (auto &child : node->GetChildren()) {
+                DebugPrintNode(child, depth + 1);
+            }
+        };
+
+        DebugPrintNode(loaded_scene->GetRoot(), 0);
+
+        HYP_BREAKPOINT;
+
     }).Detach();
+
+    // HYP_BREAKPOINT;
 
     batch->LoadAsync();
 }

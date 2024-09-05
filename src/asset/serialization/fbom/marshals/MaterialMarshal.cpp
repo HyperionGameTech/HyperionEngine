@@ -53,8 +53,8 @@ public:
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
         for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
-            const auto key = in_object.GetTextures().KeyAt(i);
-            const auto &value = in_object.GetTextures().ValueAt(i);
+            const Material::TextureKey key = in_object.GetTextures().KeyAt(i);
+            const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
 
             if (value) {
                 if (FBOMResult err = out.AddChild(*value)) {

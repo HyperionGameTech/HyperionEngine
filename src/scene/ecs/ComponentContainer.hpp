@@ -5,11 +5,15 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatMap.hpp>
+
 #include <core/utilities/Optional.hpp>
+#include <core/utilities/TypeID.hpp>
+
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
-#include <core/utilities/TypeID.hpp>
+
 #include <core/threading/DataRaceDetector.hpp>
+
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 
@@ -104,11 +108,11 @@ public:
 
     /*! \brief Adds a component to the component container, using type erasure.
      *
-     *  \param component A UniquePtr<void>, pointing to an object of type Component.
+     *  \param ref A type-erased reference to an object of type Component.
      *
      *  \return The ID of the added component.
      */
-    virtual ComponentID AddComponent(UniquePtr<void> &&component) = 0;
+    virtual ComponentID AddComponent(AnyRef ref) = 0;
 
     /*! \brief Removes the component with the given ID from the component container.
      *
@@ -240,12 +244,11 @@ public:
         return id;
     }
 
-    virtual ComponentID AddComponent(UniquePtr<void> &&component) override
+    virtual ComponentID AddComponent(AnyRef ref) override
     {
-        AssertThrowMsg(component, "Component is null");
-        AssertThrowMsg(component.Is<Component>(), "Component is not of the correct type");
+        AssertThrowMsg(ref.Is<Component>(), "Component is not of the correct type");
 
-        return AddComponent(std::move(*static_cast<Component *>(component.Get())));
+        return AddComponent(std::move(ref.Get<Component>()));
     }
 
     virtual bool RemoveComponent(ComponentID id) override

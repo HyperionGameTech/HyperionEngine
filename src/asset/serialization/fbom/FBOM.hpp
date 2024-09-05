@@ -145,7 +145,7 @@ public:
     
     /*! \brief Register a custom marshal class to be used for serializng and deserializing
      *  an object, based on its type ID. */
-    void RegisterLoader(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
+    void RegisterLoader(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase> &&marshal);
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type ID,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
@@ -178,8 +178,8 @@ public:
     FBOMMarshalerBase *GetMarshal(const ANSIStringView &type_name) const;
 
 private:
-    FlatMap<ANSIString, UniquePtr<FBOMMarshalerBase>>   m_marshals;
-    UniquePtr<HypClassInstanceMarshal>                  m_hyp_class_instance_marshal;
+    TypeMap<Pair<ANSIString, UniquePtr<FBOMMarshalerBase>>> m_marshals;
+    UniquePtr<HypClassInstanceMarshal>                      m_hyp_class_instance_marshal;
 };
 
 } // namespace fbom

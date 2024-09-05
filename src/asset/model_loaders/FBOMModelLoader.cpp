@@ -5,16 +5,16 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMReader.hpp>
 
-#include <Engine.hpp>
-
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
-#include <algorithm>
+#include <Engine.hpp>
 
 namespace hyperion {
 

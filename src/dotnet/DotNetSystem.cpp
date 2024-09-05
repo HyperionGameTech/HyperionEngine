@@ -32,6 +32,14 @@ static FilePath GetBasePath()
     return FilePath::Join(HYP_ROOT_DIR, "res");
 }
 
+enum class LoadAssemblyResult : int32
+{
+    UNKNOWN_ERROR = -100,
+    VERSION_MISMATCH = -2,
+    NOT_FOUND = -1,
+    OK = 0
+};
+
 namespace dotnet {
 namespace detail {
 
@@ -55,7 +63,7 @@ public:
     ) const = 0;
 };
 
-using InitializeAssemblyDelegate = void(*)(ManagedGuid *, ClassHolder *, const char *, int32);
+using InitializeAssemblyDelegate = int(*)(ManagedGuid *, ClassHolder *, const char *, int32);
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
 
 using AddMethodToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *);
@@ -216,12 +224,16 @@ public:
             Assembly *assembly = it->second.Get();
 
             // Initialize all core assemblies
-            m_initialize_assembly_fptr(
+            int result = m_initialize_assembly_fptr(
                 &assembly->GetGuid(),
                 &assembly->GetClassObjectHolder(),
                 entry.second.Data(),
                 /* is_core_assembly */ 1
             );
+
+            if (result != int(LoadAssemblyResult::OK)) {
+                HYP_FAIL("Failed to load core assembly %s: Got error code %d", entry.first.Data(), result);
+            }
         }
     }
 
@@ -235,12 +247,18 @@ public:
             return nullptr;
         }
 
-        m_initialize_assembly_fptr(
+        int result = m_initialize_assembly_fptr(
             &assembly->GetGuid(),
             &assembly->GetClassObjectHolder(),
             filepath->Data(),
             /* is_core_assembly */ 0
         );
+
+        if (result != int(LoadAssemblyResult::OK)) {
+            HYP_LOG(DotNET, LogLevel::ERR, "Failed to load assembly {}: Got error code {}", path, result);
+
+            return nullptr;
+        }
 
         return assembly;
     }

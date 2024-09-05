@@ -45,8 +45,10 @@ struct AnimationPlaybackState
     }
 };
 
+HYP_STRUCT()
 struct AnimationComponent
 {
+    HYP_FIELD()
     AnimationPlaybackState  playback_state;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

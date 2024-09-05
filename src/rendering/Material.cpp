@@ -18,9 +18,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_CLASS(Material);
-HYP_DEFINE_CLASS(MaterialGroup);
-
 using renderer::Result;
 
 #pragma region Render commands

@@ -3,16 +3,7 @@
 #include <math/Color.hpp>
 #include <math/MathUtil.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
-
-HYP_BEGIN_STRUCT(Color)
-    HYP_FIELD(r),
-    HYP_FIELD(g),
-    HYP_FIELD(b),
-    HYP_FIELD(a)
-HYP_END_STRUCT
 
 Color::Color()
     : bytes { 0 }

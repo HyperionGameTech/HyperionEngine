@@ -4,12 +4,14 @@
 #define HYPERION_CORE_HYP_PROPERTY_HPP
 
 #include <core/object/HypData.hpp>
-#include <core/object/HypPropertySerializer.hpp>
+#include <core/object/HypClassAttribute.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 
 #include <core/functional/Proc.hpp>
+
+#include <core/containers/HashMap.hpp>
 
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -61,7 +63,13 @@ struct HypPropertyGetter
           }),
           GetterForTargetPointer_Serialized([MemFn](const void *target) -> fbom::FBOMData
           {
-              return fbom::FBOMData((static_cast<TargetType *>(target)->*MemFn)());
+              fbom::FBOMData out;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(HypData((static_cast<TargetType *>(target)->*MemFn)()), out)) {
+                  HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+              }
+
+              return out;
           })
 
     {
@@ -76,7 +84,13 @@ struct HypPropertyGetter
           }),
           GetterForTargetPointer_Serialized([MemFn](const void *target) -> fbom::FBOMData
           {
-              return fbom::FBOMData((static_cast<const TargetType *>(target)->*MemFn)());
+              fbom::FBOMData out;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(HypData((static_cast<const TargetType *>(target)->*MemFn)()), out)) {
+                  HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+              }
+
+              return out;
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
@@ -88,9 +102,15 @@ struct HypPropertyGetter
           {
               return HypData(fnptr(static_cast<const TargetType *>(target)));
           }),
-          GetterForTargetPointer_Serialized([MemFn](const void *target) -> fbom::FBOMData
-          {
-              return fbom::FBOMData(fnptr(static_cast<const TargetType *>(target)));
+          GetterForTargetPointer_Serialized([fnptr](const void *target) -> fbom::FBOMData
+          {   
+              fbom::FBOMData out;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(HypData(fnptr(static_cast<const TargetType *>(target))), out)) {
+                  HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+              }
+
+              return out;
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
@@ -102,9 +122,15 @@ struct HypPropertyGetter
           {
               return HypData(static_cast<const TargetType *>(target)->*member);
           }),
-          GetterForTargetPointer_Serialized([MemFn](const void *target) -> fbom::FBOMData
-          {
-              return fbom::FBOMData(static_cast<const TargetType *>(target)->*member);
+          GetterForTargetPointer_Serialized([member](const void *target) -> fbom::FBOMData
+          {   
+              fbom::FBOMData out;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(HypData(static_cast<const TargetType *>(target)->*member), out)) {
+                  HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+              }
+
+              return out;
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
@@ -120,8 +146,15 @@ struct HypPropertyGetter
     {
         AssertThrow(IsValid());
 
+        AssertThrow(target.HasValue());
+
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(
+            target.GetTypeID() == type_info.target_type_id,
+            "Target type mismatch, expected TypeID %u, got %u",
+            type_info.target_type_id.Value(),
+            target.GetTypeID().Value()
+        );
 #endif
 
         return GetterForTargetPointer(target.GetPointer());
@@ -131,8 +164,15 @@ struct HypPropertyGetter
     {
         AssertThrow(IsValid());
 
+        AssertThrow(target.HasValue());
+
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(
+            target.GetTypeID() == type_info.target_type_id,
+            "Target type mismatch, expected TypeID %u, got %u",
+            type_info.target_type_id.Value(),
+            target.GetTypeID().Value()
+        );
 #endif
 
         return GetterForTargetPointer_Serialized(target.GetPointer());
@@ -158,7 +198,13 @@ struct HypPropertySetter
           }),
           SetterForTargetPointer_Serialized([MemFn](void *target, const fbom::FBOMData &data) -> void
           {
-              (static_cast<TargetType *>(target)->*MemFn)(HypPropertySerializer<NormalizedType<ValueType>>{}.Deserialize(data));
+              HypData value;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(data, value)) {
+                  HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
+              }
+
+              (static_cast<TargetType *>(target)->*MemFn)(value.Get<NormalizedType<ValueType>>());
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
@@ -170,9 +216,15 @@ struct HypPropertySetter
           {
               fnptr(static_cast<TargetType *>(target), data.Get<NormalizedType<ValueType>>());
           }),
-          SetterForTargetPointer_Serialized([MemFn](void *target, const fbom::FBOMData &data) -> void
+          SetterForTargetPointer_Serialized([fnptr](void *target, const fbom::FBOMData &data) -> void
           {
-              fnptr(static_cast<TargetType *>(target), HypPropertySerializer<NormalizedType<ValueType>>{}.Deserialize(data));
+              HypData value;
+    
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(data, value)) {
+                  HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
+              }
+    
+              fnptr(static_cast<TargetType *>(target), value.Get<NormalizedType<ValueType>>());
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
@@ -184,9 +236,15 @@ struct HypPropertySetter
           {
               static_cast<TargetType *>(target)->*member = data.Get<NormalizedType<ValueType>>();
           }),
-          SetterForTargetPointer_Serialized([MemFn](void *target, const fbom::FBOMData &data) -> void
+          SetterForTargetPointer_Serialized([member](void *target, const fbom::FBOMData &data) -> void
           {
-              static_cast<TargetType *>(target)->*member = HypPropertySerializer<NormalizedType<ValueType>>{}.Deserialize(data);
+              HypData value;
+        
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(data, value)) {
+                  HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
+              }
+        
+              static_cast<TargetType *>(target)->*member = value.Get<NormalizedType<ValueType>>();
           })
     {
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ValueType>();
@@ -202,8 +260,15 @@ struct HypPropertySetter
     {
         AssertThrow(IsValid());
 
+        AssertThrow(target.HasValue());
+
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(
+            target.GetTypeID() == type_info.target_type_id,
+            "Target type mismatch, expected TypeID %u, got %u",
+            type_info.target_type_id.Value(),
+            target.GetTypeID().Value()
+        );
 #endif
 
         SetterForTargetPointer(target.GetPointer(), value);
@@ -213,8 +278,15 @@ struct HypPropertySetter
     {
         AssertThrow(IsValid());
 
+        AssertThrow(target.HasValue());
+
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(target.GetTypeID() == type_info.target_type_id, "Target type mismatch");
+        AssertThrowMsg(
+            target.GetTypeID() == type_info.target_type_id,
+            "Target type mismatch, expected TypeID %u, got %u",
+            type_info.target_type_id.Value(),
+            target.GetTypeID().Value()
+        );
 #endif
 
         SetterForTargetPointer_Serialized(target.GetPointer(), value);

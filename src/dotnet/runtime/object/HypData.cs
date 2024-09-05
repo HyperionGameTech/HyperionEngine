@@ -63,10 +63,10 @@ namespace Hyperion
     ///  Needs to be a struct to be passed by value, has a fixed size of 32 bytes
     ///  Destructor needs to be called manually (HypData_Destruct)
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 40)]
+    [StructLayout(LayoutKind.Sequential, Size = 32)]
     internal unsafe struct HypDataBuffer
     {
-        private fixed byte buffer[40];
+        private fixed byte buffer[32];
 
         public TypeID TypeID
         {

@@ -354,14 +354,14 @@ public:
     {
         CompiledShaderBatch batch;
 
-        for (FBOMObject &node : *in.nodes) {
-            if (node.GetType().IsOrExtends("CompiledShader")) {
-                auto c = node.m_deserialized_object->TryGet<CompiledShader>();
-                CompiledShader *compiled_shader = node.m_deserialized_object->TryGet<CompiledShader>();
+        for (FBOMObject &subobject : *in.nodes) {
+            if (subobject.GetType().IsOrExtends("CompiledShader")) {
+                CompiledShader *compiled_shader = subobject.m_deserialized_object->TryGet<CompiledShader>();
 
                 if (compiled_shader != nullptr) {
                     batch.compiled_shaders.PushBack(*compiled_shader);
                 } else {
+                    HYP_BREAKPOINT;
                     HYP_LOG(Serialization, LogLevel::ERR, "Failed to deserialize CompiledShader instance");
                 }
             }

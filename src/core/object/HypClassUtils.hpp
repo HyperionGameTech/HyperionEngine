@@ -19,7 +19,7 @@ namespace hyperion {
 // #define HYP_DEFINE_STRUCT(T, ...) \
 //     static ::hyperion::detail::HypStructRegistration<T> T##_StructRegistration { HypClassFlags::STRUCT_TYPE, Span<HypMember> { { __VA_ARGS__ } } }
 
-#define HYP_FIELD(name) HypField(NAME(HYP_STR(name)), &Type::name, offsetof(Type, name))
+// #define HYP_FIELD(name) HypField(NAME(HYP_STR(name)), &Type::name, offsetof(Type, name))
 
 // #define HYP_PROPERTY(name, ...) HypProperty(NAME(HYP_STR(name)), __VA_ARGS__)
 

@@ -114,26 +114,6 @@ public:
 
     virtual bool CanCreateInstance() const = 0;
 
-    template <class T>
-    HYP_FORCE_INLINE void CreateInstance(T *out_ptr) const
-    {
-        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
-            GetName().LookupString());
-
-        AssertThrowMsg(TypeID::ForType<T>() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
-            TypeID::ForType<T>().Value(), GetTypeID().Value());
-
-        CreateInstance_Internal(out_ptr);
-    }
-
-    HYP_FORCE_INLINE void CreateInstance(Any &out) const
-    {
-        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
-            GetName().LookupString());
-
-        CreateInstance_Internal(out);
-    }
-
     HYP_FORCE_INLINE void CreateInstance(HypData &out) const
     {
         AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
@@ -151,8 +131,6 @@ public:
     }
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const = 0;
-    virtual void CreateInstance_Internal(Any &out) const = 0;
     virtual void CreateInstance_Internal(HypData &out) const = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
@@ -239,24 +217,6 @@ public:
     }
     
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            Memory::Construct<T>(out_ptr);
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
-    virtual void CreateInstance_Internal(Any &out) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            out.Emplace<T>();
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {

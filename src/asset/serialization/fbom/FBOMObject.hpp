@@ -33,19 +33,26 @@ namespace hyperion {
 class HypClass;
 struct HypData;
 
-enum class FBOMObjectFlags : uint32
+enum class FBOMObjectSerializeFlags : uint32
 {
     NONE        = 0x0,
     EXTERNAL    = 0x1,
     KEEP_UNIQUE = 0x2
 };
 
-HYP_MAKE_ENUM_FLAGS(FBOMObjectFlags)
+HYP_MAKE_ENUM_FLAGS(FBOMObjectSerializeFlags)
 
 namespace fbom {
 
 class FBOMNodeHolder;
 class FBOMMarshalerBase;
+
+namespace detail {
+
+template <class T, class T2 = void>
+struct FBOMObjectSerialize_Impl;
+
+} // namespace detail
 
 struct FBOMExternalObjectInfo
 {
@@ -182,7 +189,7 @@ public:
         @param flags Options to use for loading */
     template <class T>
     typename std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>, FBOMResult>
-    AddChild(const T &in, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    AddChild(const T &in, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
         FBOMObject subobject;
 
@@ -210,44 +217,13 @@ public:
     virtual HashCode GetHashCode() const override;
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
-    static FBOMResult Serialize(const T &in, FBOMObject &out_object, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    static FBOMResult Serialize(const T &in, FBOMObject &out_object, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
-        FBOMMarshalerBase *marshal = GetMarshal<T>();
-        
-        if (!marshal) {
-            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
-        }
-        
-        ANSIString external_object_key;
-
-        out_object = FBOMObject(marshal->GetObjectType());
-
-        // Explicit overload call forces a linker error if the marshal class is not registered.
-        if (FBOMResult err = marshal->Serialize(in, out_object)) {
-            return err;
-        }
-
-        if constexpr (HasGetHashCode<NormalizedType<T>, HashCode>::value) {
-            if (flags & FBOMObjectFlags::KEEP_UNIQUE) {
-                out_object.m_unique_id = UniqueID::Generate();
-            } else {
-                const HashCode hash_code = HashCode::GetHashCode(TypeID::ForType<T>()).Add(HashCode::GetHashCode(in));
-
-                out_object.m_unique_id = UniqueID(hash_code);
-            }
-        } else {
-            out_object.m_unique_id = UniqueID::Generate();
-        }
-
-        if (flags & FBOMObjectFlags::EXTERNAL) {
-            out_object.SetIsExternal(true);
-        }
-
-        return FBOMResult::FBOM_OK;
+        return detail::FBOMObjectSerialize_Impl<T>{}.template Serialize<HypData>(in, out_object, flags);
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
-    static FBOMObject Serialize(const T &in, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    static FBOMObject Serialize(const T &in, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
         FBOMObject object;
 
@@ -263,22 +239,18 @@ public:
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
     static FBOMResult Deserialize(const FBOMObject &in, HypData &out)
     {
-        FBOMMarshalerBase *marshal = GetMarshal<T>();
-        
-        if (!marshal) {
-            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
-        }
-
-        if (FBOMResult err = marshal->Deserialize(in, out)) {
-            HYP_FAIL("Failed to deserialize object: %s", *err.message);
-        }
-
-        return { FBOMResult::FBOM_OK };
+        return detail::FBOMObjectSerialize_Impl<T>{}.Deserialize(in, out);
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
     HYP_FORCE_INLINE static bool HasMarshal()
         { return GetMarshal<T>() != nullptr; }
+    
+    static FBOMMarshalerBase *GetMarshal(TypeID type_id);
+
+    template <class T>
+    HYP_FORCE_INLINE static FBOMMarshalerBase *GetMarshal()
+        { return GetMarshal(TypeID::ForType<T>()); }
 
     /*! \brief Returns the associated HypClass for this object type, if applicable.
      *  The type must be registered using the HYP_DEFINE_CLASS() macro.
@@ -287,13 +259,6 @@ public:
      *  no HypClass has been registered for the type, nullptr will be returned. */
     HYP_FORCE_INLINE const HypClass *GetHypClass() const
         { return m_object_type.GetHypClass(); }
-
-private:
-    static FBOMMarshalerBase *GetMarshal(TypeID type_id);
-
-    template <class T>
-    HYP_FORCE_INLINE static FBOMMarshalerBase *GetMarshal()
-        { return GetMarshal(TypeID::ForType<T>()); }
 };
 
 class FBOMNodeHolder : public Array<FBOMObject>
@@ -335,6 +300,67 @@ public:
     //     reinterpret_cast<typename Array<FBOMObject>::ValueType *>(&Array<FBOMObject>::m_buffer[Array<FBOMObject>::m_size])
     // )
 };
+
+namespace detail {
+
+template <class T>
+struct FBOMObjectSerialize_Impl<T, std::enable_if_t< !std::is_same_v< FBOMObject, NormalizedType<T> > > >
+{
+    template <class HypDataType>
+    FBOMResult Serialize(const T &in, FBOMObject &out_object, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
+    {
+        FBOMMarshalerBase *marshal = FBOMObject::GetMarshal<T>();
+        
+        if (!marshal) {
+            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+        }
+        
+        ANSIString external_object_key;
+
+        out_object = FBOMObject(marshal->GetObjectType());
+
+        if (FBOMResult err = marshal->Serialize(in, out_object)) {
+            return err;
+        }
+
+        // out_object.m_deserialized_object.Reset(new HypDataType(in));
+
+        if constexpr (HasGetHashCode<NormalizedType<T>, HashCode>::value) {
+            if (flags & FBOMObjectSerializeFlags::KEEP_UNIQUE) {
+                out_object.m_unique_id = UniqueID::Generate();
+            } else {
+                const HashCode hash_code = HashCode::GetHashCode(TypeID::ForType<T>()).Add(HashCode::GetHashCode(in));
+
+                out_object.m_unique_id = UniqueID(hash_code);
+            }
+        } else {
+            out_object.m_unique_id = UniqueID::Generate();
+        }
+
+        if (flags & FBOMObjectSerializeFlags::EXTERNAL) {
+            out_object.SetIsExternal(true);
+        }
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    FBOMResult Deserialize(const FBOMObject &in, HypData &out)
+    {
+        FBOMMarshalerBase *marshal = FBOMObject::GetMarshal<T>();
+        
+        if (!marshal) {
+            return { FBOMResult::FBOM_ERR, "No registered marshal class for type" };
+        }
+
+        if (FBOMResult err = marshal->Deserialize(in, out)) {
+            HYP_FAIL("Failed to deserialize object: %s", *err.message);
+        }
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
+} // namespace detail
 
 } // namespace fbom
 } // namespace hyperion

@@ -50,11 +50,14 @@ struct LightDrawProxy
 
 struct RENDER_COMMAND(UpdateLightShaderData);
 
+HYP_CLASS()
 class HYP_API Light : public BasicObject<Light>
 {
     friend struct RENDER_COMMAND(UpdateLightShaderData);
 
     HYP_OBJECT_BODY(Light);
+
+    HYP_PROPERTY(ID, &Light::GetID);
 
 public:
     Light();

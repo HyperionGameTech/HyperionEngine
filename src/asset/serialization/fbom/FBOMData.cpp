@@ -107,8 +107,6 @@ FBOMData FBOMData::FromObject(const FBOMObject &object, bool keep_native_object)
     AssertThrowMsg(value.IsObject(), "Expected value to be object: Got type: %s", value.GetType().ToString().Data());
 
     if (keep_native_object) {
-        AssertThrowMsg(object.m_deserialized_object != nullptr, "If keep_native_object is true, expected object to have a deserialized value");
-
         value.m_deserialized_object = object.m_deserialized_object;
     }
 
@@ -158,17 +156,8 @@ FBOMData FBOMData::FromArray(const FBOMArray &array)
     }
 
     FBOMData value = FBOMData(FBOMArrayType(), std::move(byte_writer.GetBuffer()));
-    AssertThrowMsg(value.IsArray(), "Expected value to be arary: Got type: %s", value.GetType().ToString().Data());
+    AssertThrowMsg(value.IsArray(), "Expected value to be array: Got type: %s", value.GetType().ToString().Data());
     return value;
-}
-
-FBOMResult FBOMData::ReadHypData(HypData &out) const
-{
-    if (m_deserialized_object != nullptr) {
-        out = *m_deserialized_object;
-
-        return { FBOMResult::FBOM_OK };
-    }
 }
 
 SizeType FBOMData::ReadBytes(SizeType n, void *out) const

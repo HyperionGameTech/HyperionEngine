@@ -360,8 +360,6 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
         } else {
             HYP_FAIL("Unhandled HypClass allocation method");
         }
-    } else if (hyp_class->IsStructType()) {
-
     }
 
     return false;
@@ -437,10 +435,7 @@ HYP_EXPORT bool HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
     const HypStruct *hyp_struct = dynamic_cast<const HypStruct *>(hyp_class);
     AssertThrow(hyp_struct != nullptr);
 
-    Any any;
-    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), any);
-
-    *hyp_data = HypData(std::move(any));
+    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), *hyp_data);
 
     return true;
 }

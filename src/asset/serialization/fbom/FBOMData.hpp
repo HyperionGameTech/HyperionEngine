@@ -121,14 +121,7 @@ public:
         return data; \
     } \
     explicit FBOMData(c_type value) \
-    { \
-        static_assert(std::is_standard_layout_v<c_type>, "Type " #c_type " must be standard layout"); \
-        \
-        FBOM##type_name type; \
-        AssertThrowMsg(sizeof(c_type) == type.size, "sizeof(" #c_type ") must be equal to FBOM" #type_name "::size"); \
-        \
-        SetBytes(sizeof(c_type), &value); \
-    }
+        : FBOMData(From##type_name(value)) { } \
 
     FBOM_TYPE_FUNCTIONS(UInt8, uint8)
     FBOM_TYPE_FUNCTIONS(UInt16, uint16)
@@ -351,8 +344,8 @@ public:
 
     FBOMResult ReadObject(FBOMObject &out_object) const;
     
-    static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = false);
-    static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = false);
+    static FBOMData FromObject(const FBOMObject &object, bool keep_native_object = true);
+    static FBOMData FromObject(FBOMObject &&object, bool keep_native_object = true);
 
 #pragma endregion Object
 
@@ -364,8 +357,6 @@ public:
     
     static FBOMData FromArray(const FBOMArray &array);
 #pragma endregion Array
-
-    FBOMResult ReadHypData(HypData &out) const;
 
     HYP_FORCE_INLINE FBOMResult ReadBytes(SizeType count, ByteBuffer &out) const
     {

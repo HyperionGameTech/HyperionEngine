@@ -351,6 +351,15 @@ public:
     ~EntityManager();
 
     static EntityToEntityManagerMap &GetEntityToEntityManagerMap();
+    
+    template <class Component>
+    static bool IsValidComponentType()
+    {
+        return IsValidComponentType(TypeID::ForType<Component>());
+    }
+
+    static bool IsValidComponentType(TypeID component_type_id);
+
 
     /*! \brief Gets the thread mask of the thread that owns this EntityManager.
      *
@@ -686,8 +695,10 @@ public:
         return component_id;
     }
 
-    ComponentID AddComponent(ID<Entity> entity, TypeID component_type_id, UniquePtr<void> &&component_ptr)
+    ComponentID AddComponent(ID<Entity> entity, AnyRef component)
     {
+        const TypeID component_type_id = component.GetTypeID();
+
         EnsureValidComponentType(component_type_id);
 
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -705,9 +716,9 @@ public:
         ComponentContainerBase *container = TryGetContainer(component_type_id);
         AssertThrowMsg(container != nullptr, "Component container does not exist for component type %u", component_type_id.Value());
 
-        const ComponentID component_id = container->AddComponent(std::move(component_ptr));
+        const ComponentID component_id = container->AddComponent(component);
 
-        auto components_insert_result = it->second.components.Set(component_type_id, component_id);
+        auto components_insert_result = it->second.components.Set(component.GetTypeID(), component_id);
         component_it = components_insert_result.first;
 
         { // Lock the entity sets mutex
@@ -835,14 +846,6 @@ public:
         { m_command_queue.Push(std::move(command)); }
 
 private:
-    template <class Component>
-    static bool IsValidComponentType()
-    {
-        return IsValidComponentType(TypeID::ForType<Component>());
-    }
-
-    static bool IsValidComponentType(TypeID component_type_id);
-
     template <class Component>
     static void EnsureValidComponentType()
     {

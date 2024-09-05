@@ -66,6 +66,7 @@
 #include <rtc/RTCDataChannel.hpp>
 
 #include <math/Triangle.hpp>
+#include <math/Matrix3.hpp>
 
 // static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
 // {

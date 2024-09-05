@@ -13,8 +13,6 @@
 
 #include <core/system/Debug.hpp>
 
-#include <core/object/HypData.hpp>
-
 #include <scene/Node.hpp>
 
 #include <Constants.hpp>

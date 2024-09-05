@@ -51,14 +51,22 @@ struct AudioPlaybackState
     }
 };
 
+HYP_STRUCT()
 struct AudioComponent
 {
+    HYP_FIELD()
     Handle<AudioSource>     audio_source;
+
+    HYP_FIELD()
     AudioPlaybackState      playback_state;
 
+    HYP_FIELD()
     AudioComponentFlags     flags = AUDIO_COMPONENT_FLAG_NONE;
 
+    HYP_FIELD()
     Vec3f                   last_position;
+
+    HYP_FIELD()
     GameCounter::TickUnit   timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

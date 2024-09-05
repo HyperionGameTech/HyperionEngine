@@ -26,9 +26,12 @@
 
 namespace hyperion {
 
+HYP_CLASS()
 class HYP_API Material : public BasicObject<Material>
 {
     HYP_OBJECT_BODY(Material);
+
+    HYP_PROPERTY(ID, &Material::GetID);
 
 public:
     static constexpr uint max_parameters = 32u;
@@ -555,6 +558,7 @@ private:
     mutable DataMutationState                           m_mutation_state;
 };
 
+HYP_CLASS()
 class MaterialGroup : public BasicObject<MaterialGroup>
 {
     HYP_OBJECT_BODY(MaterialGroup);

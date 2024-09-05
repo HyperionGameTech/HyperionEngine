@@ -47,13 +47,15 @@ def parse_cxx_member_function_name(fn):
     return None
 
 def parse_cxx_field_name(decl):
-    pattern = r"([A-Za-z0-9_-]+)\s*;"
-    match = re.search(pattern, decl)
-
+    decl = decl.strip().rstrip(';')
+    
+    pattern = re.compile(r'(\w+)(?:\s*\[.*\])?\s*(?:=|\{|$)')
+    match = pattern.search(decl)
+    
     if match:
         return match.group(1)
-    
-    return None
+    else:
+        return None
 
 def get_generated_path(filepath, output_dir, extension='inl'):
     name_without_extension = os.path.splitext(filepath)[0]
@@ -89,3 +91,19 @@ def map_type(type_object):
         return map_type(last_segment.specialization.args[0].arg)
 
     return name
+
+def parse_attributes_string(attributes_string):
+    if not attributes_string:
+        return []
+
+    attributes = []
+
+    for attribute in attributes_string.split(','):
+        attribute_split = attribute.split('=')
+
+        if len(attribute_split) == 2:
+            attributes.append((attribute_split[0].strip(), attribute_split[1].strip()))
+        else:
+            attributes.append((attribute_split[0].strip(), ""))
+
+    return attributes

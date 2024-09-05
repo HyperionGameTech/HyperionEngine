@@ -15,6 +15,10 @@
 
 #include <Types.hpp>
 
+namespace hyperion {
+class HypClass;
+} // namespace hyperion
+
 namespace hyperion::fbom {
 
 struct FBOMUnset        : FBOMType { FBOMUnset() : FBOMType() {} };
@@ -155,6 +159,8 @@ struct FBOMObjectType : FBOMType
             "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
             name.Data(), extends.name.Data());
     }
+
+    FBOMObjectType(const HypClass *hyp_class);
 };
 
 struct FBOMArrayType : FBOMType

@@ -55,8 +55,7 @@ struct ManagedScript
     int32   hot_reload_version;
     uint64  last_modified_timestamp;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hash_code;
 

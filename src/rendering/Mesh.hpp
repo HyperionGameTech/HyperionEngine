@@ -34,6 +34,8 @@ HYP_CLASS()
 class HYP_API Mesh final : public BasicObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
+
+    HYP_PROPERTY(ID, &Mesh::GetID);
     
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);

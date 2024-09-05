@@ -158,9 +158,12 @@ struct CameraDrawProxy
     uint16      visibility_nonce;
 };
 
+HYP_CLASS()
 class HYP_API Camera : public BasicObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);
+
+    HYP_PROPERTY(ID, &Camera::GetID);
 
 public:
     friend class CameraController;

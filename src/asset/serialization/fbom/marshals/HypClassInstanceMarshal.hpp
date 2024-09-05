@@ -38,6 +38,16 @@ public:
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override;
     virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override;
+
+protected:
+    /*! \brief Deserialize into an existing object.
+     *
+     *  \param in The FBOMObject to deserialize.
+     *  \param hyp_class The HypClass of the instance.
+     *  \param ref The instance to deserialize into.
+     *  \return The result of the deserialization.
+     */
+    virtual FBOMResult Deserialize_Internal(const FBOMObject &in, const HypClass *hyp_class, AnyRef ref) const;
 };
 
 } // namespace hyperion::fbom

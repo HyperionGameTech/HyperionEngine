@@ -2,15 +2,9 @@
 
 #include <math/Vertex.hpp>
 
-#include <core/object/HypClassUtils.hpp>
-
 namespace hyperion {
 
 #pragma region VertexAttributeSet
-
-HYP_BEGIN_STRUCT(VertexAttributeSet)
-    HYP_FIELD(flag_mask)
-HYP_END_STRUCT
 
 Array<VertexAttribute::Type> VertexAttributeSet::BuildAttributes() const
 {
@@ -61,19 +55,6 @@ const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
 #pragma endregion VertexAttribute
 
 #pragma region Vertex
-
-HYP_BEGIN_STRUCT(Vertex)
-    HYP_FIELD(position),
-    HYP_FIELD(normal),
-    HYP_FIELD(texcoord0),
-    HYP_FIELD(texcoord1),
-    HYP_FIELD(tangent),
-    HYP_FIELD(bitangent),
-    HYP_FIELD(bone_weights),
-    HYP_FIELD(bone_indices),
-    HYP_FIELD(num_indices),
-    HYP_FIELD(num_weights)
-HYP_END_STRUCT
 
 bool Vertex::operator==(const Vertex &other) const
 {

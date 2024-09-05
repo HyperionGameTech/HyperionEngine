@@ -35,8 +35,6 @@ class IHypObjectInitializer
 public:
     virtual ~IHypObjectInitializer() = default;
 
-    virtual void CreateInstance(HypData &out) const = 0;
-
     virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
 };
@@ -51,15 +49,6 @@ public:
     }
 
     virtual ~HypObjectInitializer() override = default;
-
-    virtual void CreateInstance(HypData &out) const override
-    {
-        if constexpr (has_opaque_handle_defined<T>) {
-            out = CreateObject<T>();
-        } else {
-            out = RC<T>::Construct();
-        }
-    }
 
     virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) override
     {

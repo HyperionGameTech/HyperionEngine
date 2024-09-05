@@ -18,6 +18,7 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 class alignas(uint32) HYP_API Color
 {
 public:
@@ -48,18 +49,13 @@ public:
     Color(const Color &other);
     Color &operator=(const Color &other);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    float GetRed() const
+    HYP_FORCE_INLINE float GetRed() const
         { return float(bytes[0]) / 255.0f; }
 
-    HYP_FORCE_INLINE
-    Color &SetRed(float red)
+    HYP_FORCE_INLINE Color &SetRed(float red)
         { bytes[0] = static_cast<ubyte>(red * 255.0f); return *this; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    float GetGreen() const
+    HYP_FORCE_INLINE float GetGreen() const
         { return float(bytes[1]) / 255.0f; }
 
     HYP_FORCE_INLINE
@@ -75,80 +71,46 @@ public:
     Color &SetBlue(float blue)
         { bytes[2] = static_cast<ubyte>(blue * 255.0f); return *this; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    float GetAlpha() const
+    HYP_FORCE_INLINE float GetAlpha() const
         { return float(bytes[3]) / 255.0f; }
 
-    HYP_FORCE_INLINE
-    Color &SetAlpha(float alpha)
+    HYP_FORCE_INLINE Color &SetAlpha(float alpha)
         { bytes[3] = static_cast<ubyte>(alpha * 255.0f); return *this; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr float operator[](uint index) const
+    HYP_FORCE_INLINE constexpr float operator[](uint index) const
         { return float(bytes[index]) / 255.0f; }
     
-    [[nodiscard]]
     Color operator+(const Color &other) const;
-    
-    [[nodiscard]]
     Color &operator+=(const Color &other);
-    
-    [[nodiscard]]
     Color operator-(const Color &other) const;
-    
-    [[nodiscard]]
     Color &operator-=(const Color &other);
-    
-    [[nodiscard]]
     Color operator*(const Color &other) const;
-    
-    [[nodiscard]]
     Color &operator*=(const Color &other);
-    
-    [[nodiscard]]
     Color operator/(const Color &other) const;
-
-    [[nodiscard]]
     Color &operator/=(const Color &other);
 
-    [[nodiscard]]
     bool operator==(const Color &other) const;
-
-    [[nodiscard]]
     bool operator!=(const Color &other) const;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const Color &other) const
+    HYP_FORCE_INLINE bool operator<(const Color &other) const
         { return Memory::MemCmp(bytes, other.bytes, size) < 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator uint32() const
+    HYP_FORCE_INLINE explicit operator uint32() const
     {
         uint32 result;
         Memory::MemCpy(&result, bytes, size);
         return result;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    explicit operator Vec4f() const
+    HYP_FORCE_INLINE explicit operator Vec4f() const
         { return Vec4f(GetRed(), GetGreen(), GetBlue(), GetAlpha()); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 Packed() const
+    HYP_FORCE_INLINE uint32 Packed() const
         { return uint32(*this); }
 
-    [[nodiscard]]
     Color &Lerp(const Color &to, float amt);
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(uint32(*this));

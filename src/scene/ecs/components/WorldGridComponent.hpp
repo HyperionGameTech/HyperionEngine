@@ -12,8 +12,10 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct WorldGridPatchComponent
 {
+    HYP_FIELD()
     WorldGridPatchInfo  patch_info;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const

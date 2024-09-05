@@ -48,11 +48,9 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual void ConstructFromBytes(ConstByteView view, Any &out) const = 0;
+    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const = 0;
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override = 0;
-    virtual void CreateInstance_Internal(Any &out) const override = 0;
     virtual void CreateInstance_Internal(HypData &out) const override = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
@@ -127,35 +125,17 @@ public:
         }
     }
 
-    virtual void ConstructFromBytes(ConstByteView view, Any &out) const override
+    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const override
     {
         AssertThrow(view.Size() == sizeof(T));
 
         ValueStorage<T> result_storage;
         Memory::MemCpy(result_storage.GetPointer(), view.Data(), sizeof(T));
 
-        out = std::move(result_storage.Get());
+        out = HypData(std::move(result_storage.Get()));
     }
 
 protected:
-    virtual void CreateInstance_Internal(void *out_ptr) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            Memory::Construct<T>(out_ptr);
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
-    virtual void CreateInstance_Internal(Any &out) const override
-    {
-        if constexpr (std::is_default_constructible_v<T>) {
-            out.Emplace<T>();
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {

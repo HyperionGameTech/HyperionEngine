@@ -4,7 +4,10 @@
 #define HYPERION_ECS_COMPONENT_FACTORY_HPP
 
 #include <core/utilities/TypeID.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+
+#include <core/object/HypData.hpp>
 
 namespace hyperion {
 
@@ -13,7 +16,7 @@ class ComponentFactoryBase
 public:
     virtual ~ComponentFactoryBase() = default;
 
-    virtual UniquePtr<void> CreateComponent() = 0;
+    virtual HypData CreateComponent() = 0;
 };
 
 template <class Component>
@@ -22,9 +25,9 @@ class ComponentFactory : public ComponentFactoryBase
 public:
     virtual ~ComponentFactory() = default;
 
-    virtual UniquePtr<void> CreateComponent() override
+    virtual HypData CreateComponent() override
     {
-        return UniquePtr<Component>(new Component { });
+        return HypData(Component { });
     }
 };
 

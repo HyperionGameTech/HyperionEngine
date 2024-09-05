@@ -18,7 +18,7 @@ public:
         out.SetProperty(NAME("name"), FBOMData::FromName(in_object.GetName()));
 
         if (in_object.GetRoot()) {
-            if (FBOMResult err = out.AddChild(*in_object.GetRoot().Get(), FBOMObjectFlags::KEEP_UNIQUE)) {
+            if (FBOMResult err = out.AddChild(*in_object.GetRoot().Get(), FBOMObjectSerializeFlags::KEEP_UNIQUE)) {
                 return err;
             }
         }

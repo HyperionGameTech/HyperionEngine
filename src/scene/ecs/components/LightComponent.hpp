@@ -19,10 +19,16 @@ enum class LightComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(LightComponentFlags)
 
+HYP_STRUCT()
 struct LightComponent
 {
+    HYP_FIELD()
     Handle<Light>                   light;
+
+    HYP_FIELD()
     HashCode                        transform_hash_code;
+
+    HYP_FIELD()
     EnumFlags<LightComponentFlags>  flags = LightComponentFlags::NONE;
 
     const Handle<Light> &GetLight() const

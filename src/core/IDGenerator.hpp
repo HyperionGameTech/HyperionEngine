@@ -51,6 +51,7 @@ struct IDGenerator
         }
 
         Mutex::Guard guard(free_id_mutex);
+
         const uint index = free_indices.Pop();
 
         num_free_indices.Decrement(1, MemoryOrder::RELEASE);

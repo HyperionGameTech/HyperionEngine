@@ -2,11 +2,16 @@
 
 namespace hyperion {
 
-HYP_BEGIN_CLASS(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if hyp_class.base_class else "{}"}, ${','.join([f"HypClassAttribute(\"{name.lower()}\", \"{value}\")" for name, value in hyp_class.attributes])})
+<% start_macro_names = { HypClassType.CLASS: 'HYP_BEGIN_CLASS', HypClassType.STRUCT: 'HYP_BEGIN_STRUCT' } %> \
+<% end_macro_names = { HypClassType.CLASS: 'HYP_END_CLASS', HypClassType.STRUCT: 'HYP_END_STRUCT' } %> \
+
+<% class_attributes = ','.join([f"HypClassAttribute(\"{name.lower()}\", \"{value}\")" for name, value in hyp_class.attributes]) %> \
+\
+${start_macro_names[hyp_class.class_type]}(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if hyp_class.base_class else "{}"}${(', ' + class_attributes) if class_attributes else ''}) \
     <% s = "" %> \
     % for i in range(0, len(hyp_class.members)):
-        \
         <% member = hyp_class.members[i] %> \
+        <% property_attributes = ', '.join([f"HypClassAttribute(\"{name.lower()}\", \"{value}\")" for name, value in member.attributes]) + ', ' %> \
         % if member.member_type == HypMemberType.FIELD:
             <% s += f"HypField(NAME(HYP_STR({member.name})), &Type::{member.name}, offsetof(Type, {member.name}))" %> \
         % elif member.member_type == HypMemberType.METHOD:
@@ -15,13 +20,11 @@ HYP_BEGIN_CLASS(${hyp_class.name}, ${f"NAME(\"{hyp_class.base_class.name}\")" if
             <% property_args = ', '.join(member.args) %> \
             <% s += f"HypProperty(NAME(HYP_STR({member.name})), {property_args})" %> \
         % endif
-        \
         <% s += ',' if i != len(hyp_class.members) - 1 else '' %> \
-        \
         <% s += '\n' %>
     % endfor
     ${s}
-HYP_END_CLASS
+${end_macro_names[hyp_class.class_type]}
 
 } // namespace hyperion
 

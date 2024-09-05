@@ -102,6 +102,13 @@ using UTF16StringView = StringView<StringType::UTF16>;
 using UTF32StringView = StringView<StringType::UTF32>;
 using WideStringView = StringView<StringType::WIDE_CHAR>;
 
+// traits
+template <class T>
+struct IsString { enum { value = false }; };
+
+template <int string_type>
+struct IsString<containers::detail::String<string_type>> { enum { value = true }; };
+
 } // namespace hyperion
 
 #endif

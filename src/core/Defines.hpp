@@ -456,9 +456,10 @@ extern HYP_API void LogStackTrace();
 #pragma region Codegen
 
 #define HYP_CLASS(...)
+#define HYP_STRUCT(...)
 #define HYP_METHOD(...)
 #define HYP_PROPERTY(name, ...)
-// #define HYP_FIELD(...)
+#define HYP_FIELD(...)
 
 #pragma endregion
 

@@ -53,14 +53,14 @@ namespace detail {
 struct FBOMMarshalerRegistrationBase
 {
 protected:
-    FBOMMarshalerRegistrationBase(TypeID type_id, UniquePtr<FBOMMarshalerBase> &&marshal);
+    FBOMMarshalerRegistrationBase(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase> &&marshal);
 };
 
 template <class T, class MarshalerType>
 struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
 {
     FBOMMarshalerRegistration()
-        : FBOMMarshalerRegistrationBase(TypeID::ForType<T>(), UniquePtr<FBOMMarshalerBase>(new MarshalerType()))
+        : FBOMMarshalerRegistrationBase(TypeID::ForType<T>(), TypeNameWithoutNamespace<T>().Data(), UniquePtr<FBOMMarshalerBase>(new MarshalerType()))
     {
     }
 };
@@ -105,7 +105,7 @@ public:
 };
 
 #define HYP_DEFINE_MARSHAL(T, MarshalType) \
-    static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> T##_Marshal { }
+    static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> HYP_UNIQUE_NAME(marshal_registration) { }
 
 } // namespace hyperion::fbom
 

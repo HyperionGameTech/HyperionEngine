@@ -12,21 +12,21 @@
 namespace hyperion {
 
 HYP_BEGIN_STRUCT(Vec3f)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec3i)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
 HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec3u)
-    HYP_FIELD(x),
-    HYP_FIELD(y),
-    HYP_FIELD(z)
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
+    HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
 HYP_END_STRUCT
 
 Vec3<float> math::detail::Vec3<float>::operator*(const Matrix3 &mat) const

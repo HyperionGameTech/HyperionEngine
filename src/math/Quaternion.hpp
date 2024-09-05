@@ -12,11 +12,22 @@ namespace hyperion {
 
 class Matrix4;
 
+HYP_STRUCT()
 struct alignas(16) HYP_API Quaternion
 {
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
 
-    float x, y, z, w;
+    HYP_FIELD()
+    float x;
+
+    HYP_FIELD()
+    float y;
+
+    HYP_FIELD()
+    float z;
+
+    HYP_FIELD()
+    float w;
 
     Quaternion();
     Quaternion(float x, float y, float z, float w);
@@ -25,18 +36,29 @@ struct alignas(16) HYP_API Quaternion
     Quaternion(const Vec3f &axis, float radians);
     Quaternion(const Quaternion &other);
 
-    float GetX() const { return x; }
-    float &GetX() { return x; }
-    void SetX(float x) { this->x = x; }
-    float GetY() const { return y; }
-    float &GetY() { return y; }
-    void SetY(float y) { this->y = y; }
-    float GetZ() const { return z; }
-    float &GetZ() { return z; }
-    void SetZ(float z) { this->z = z; }
-    float GetW() const { return w; }
-    float &GetW() { return w; }
-    void SetW(float w) { this->w = w; }
+    HYP_FORCE_INLINE float GetX() const
+        { return x; }
+
+    HYP_FORCE_INLINE void SetX(float x)
+        { this->x = x; }
+
+    HYP_FORCE_INLINE float GetY() const
+        { return y; }
+
+    HYP_FORCE_INLINE void SetY(float y)
+        { this->y = y; }
+
+    HYP_FORCE_INLINE float GetZ() const
+        { return z; }
+
+    HYP_FORCE_INLINE void SetZ(float z)
+        { this->z = z; }
+
+    HYP_FORCE_INLINE float GetW() const
+        { return w; }
+
+    HYP_FORCE_INLINE void SetW(float w)
+        { this->w = w; }
 
     Quaternion &operator=(const Quaternion &other);
     Quaternion operator*(const Quaternion &other) const;

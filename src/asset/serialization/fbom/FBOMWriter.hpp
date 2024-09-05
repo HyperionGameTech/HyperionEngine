@@ -121,7 +121,7 @@ public:
 
     template <class T>
     typename std::enable_if_t<!std::is_same_v<NormalizedType<T>, FBOMObject>, FBOMResult>
-    Append(const T &in, EnumFlags<FBOMObjectFlags> flags = FBOMObjectFlags::NONE)
+    Append(const T &in, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
         FBOMObject object;
 
@@ -154,7 +154,7 @@ private:
     FBOMResult WriteExternalObjects(ByteWriter *out);
     
     void BuildStaticData();
-    void Prune(FBOMObject &);
+    void AddExternalObjects(FBOMObject &);
 
     FBOMResult WriteHeader(ByteWriter *out);
     FBOMResult WriteStaticData(ByteWriter *out);

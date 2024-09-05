@@ -7,8 +7,12 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/containers/Array.hpp>
+#include <core/containers/TypeMap.hpp>
+
 #include <core/Name.hpp>
 
 #include <asset/serialization/Serialization.hpp>
@@ -26,6 +30,8 @@ namespace hyperion {
 
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
+
+struct HypData;
 
 class ComponentInterface
 {
@@ -77,7 +83,7 @@ public:
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE UniquePtr<void> CreateComponent() const
+    HYP_FORCE_INLINE HypData CreateComponent() const
         { return m_component_factory->CreateComponent(); }
 
     HYP_FORCE_INLINE ComponentContainerFactoryBase *GetComponentContainerFactory() const
@@ -99,7 +105,7 @@ public:
     void Initialize();
     void Shutdown();
 
-    void Register(TypeID component_type_id, ComponentInterface(*fptr)());
+    void Register(TypeID type_id, ANSIStringView type_name, ComponentInterface(*fptr)());
 
     HYP_FORCE_INLINE const ComponentInterface *GetComponentInterface(TypeID type_id) const
     {
@@ -131,9 +137,9 @@ public:
     }
 
 private:
-    bool                                        m_is_initialized;
-    HashMap<TypeID, ComponentInterface(*)()>    m_factories;
-    HashMap<TypeID, ComponentInterface>         m_interfaces;
+    bool                                m_is_initialized;
+    TypeMap<ComponentInterface(*)()>    m_factories;
+    TypeMap<ComponentInterface>         m_interfaces;
 };
 
 template <class ComponentType>
@@ -144,14 +150,18 @@ struct ComponentInterfaceRegistration
 {
     ComponentInterfaceRegistration()
     {
-        ComponentInterfaceRegistry::GetInstance().Register(TypeID::ForType<ComponentType>(), []() -> ComponentInterface
-        {
-            return ComponentInterface(
-                TypeID::ForType<ComponentType>(),
-                UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>()),
-                ComponentContainer<ComponentType>::GetFactory()
-            );
-        });
+        ComponentInterfaceRegistry::GetInstance().Register(
+            TypeID::ForType<ComponentType>(),
+            TypeNameWithoutNamespace<ComponentType>(),
+            []() -> ComponentInterface
+            {
+                return ComponentInterface(
+                    TypeID::ForType<ComponentType>(),
+                    UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>()),
+                    ComponentContainer<ComponentType>::GetFactory()
+                );
+            }
+        );
     }
 };
 

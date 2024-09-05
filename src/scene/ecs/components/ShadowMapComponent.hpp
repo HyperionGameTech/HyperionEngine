@@ -22,14 +22,22 @@ namespace hyperion {
 
 class RenderComponentBase;
 
+HYP_STRUCT()
 struct ShadowMapComponent
 {
+    HYP_FIELD()
     ShadowMode              mode = ShadowMode::STANDARD;
+
+    HYP_FIELD()
     float                   radius = 20.0f;
+
+    HYP_FIELD()
     Extent2D                resolution = { 512, 512 };
 
+    HYP_FIELD()
     RC<RenderComponentBase> render_component;
 
+    HYP_FIELD()
     uint32                  update_counter = 0;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

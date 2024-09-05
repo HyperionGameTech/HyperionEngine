@@ -33,11 +33,12 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
 
         return container.GetObjectPointer(index);
     } else if (hyp_class->UseRefCountedPtr()) {
-        Any any_value;
-        hyp_class->CreateInstance(any_value);
+        HypData value;
+        hyp_class->CreateInstance(value);
 
-        RC<void> rc = UniquePtr<void>(std::move(any_value)).ToRefCountedPtr();
-        
+        RC<void> &rc = value.Get<RC<void>>();
+        AssertThrow(rc != nullptr);
+;        
         return rc.Release();
     } else {
         HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());

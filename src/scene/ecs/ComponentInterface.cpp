@@ -30,7 +30,7 @@ void ComponentInterfaceRegistry::Initialize()
     HYP_LOG(ECS, LogLevel::DEBUG, "Initializing ComponentInterface registry with {} factories", m_factories.Size());
 
     for (auto &it : m_factories) {
-        m_interfaces.Insert({ it.first, it.second() });
+        m_interfaces.Set(it.first, it.second());
     }
 
     m_is_initialized = true;
@@ -47,9 +47,11 @@ void ComponentInterfaceRegistry::Shutdown()
     m_is_initialized = false;
 }
 
-void ComponentInterfaceRegistry::Register(TypeID component_type_id, ComponentInterface(*fptr)())
+void ComponentInterfaceRegistry::Register(TypeID type_id, ANSIStringView type_name, ComponentInterface(*fptr)())
 {
-    m_factories.Insert({ component_type_id, fptr });
+    HYP_LOG(ECS, LogLevel::INFO, "Register Component '{}', TypeID: {}", type_name, type_id.Value());
+
+    m_factories.Set(type_id, fptr);
 }
 
 #pragma endregion ComponentInterfaceRegistry

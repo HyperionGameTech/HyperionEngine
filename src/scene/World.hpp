@@ -154,6 +154,8 @@ class HYP_API World : public BasicObject<World>
 {
     HYP_OBJECT_BODY(World);
 
+    HYP_PROPERTY(ID, &World::GetID)
+
 public:
     World();
     World(const World &other)                   = delete;

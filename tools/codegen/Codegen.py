@@ -6,7 +6,7 @@ from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_hea
 from cxxheaderparser.cxxheaderparser.preprocessor import make_gcc_preprocessor, make_msvc_preprocessor
 from cxxheaderparser.cxxheaderparser.options import ParserOptions
 
-from util import parse_cxx_member_function_name, parse_cxx_field_name, get_generated_path, map_type
+from util import parse_cxx_member_function_name, parse_cxx_field_name, get_generated_path, map_type, parse_attributes_string
 
 CXX_CLASS_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'class_template.hpp'))
 CXX_MODULE_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'module_template.hpp'))
@@ -17,6 +17,7 @@ CSHARP_MODULE_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__
 CXX_PREPROCESSOR_DEFINES = [
     'HYP_API=',
     'HYP_CLASS(...)=',
+    'HYP_STRUCT(...)=',
     'HYP_FIELD(...)=',
     'HYP_PROPERTY(...)=',
     'HYP_METHOD(...)=',
@@ -37,6 +38,10 @@ class SourceLocation:
         self.file = file
         self.index = index
 
+class HypClassType:
+    CLASS = 0
+    STRUCT = 1
+
 class HypMemberType:
     FIELD = 0
     PROPERTY = 1
@@ -48,9 +53,10 @@ class GeneratedSource:
         self.content = content
 
 class HypMemberDefinition:
-    def __init__(self, member_type, name, method_return_type=None, method_args=None, property_args=None):
+    def __init__(self, member_type, name, attributes=[], method_return_type=None, method_args=None, property_args=None):
         self.member_type = member_type
         self.name = name
+        self.attributes = attributes
         self.method_return_type = method_return_type
         self.method_args = method_args
         self.property_args = property_args
@@ -106,7 +112,8 @@ class HypMemberDefinition:
         raise Exception('Member is not a method')
 
 class HypClassDefinition:
-    def __init__(self, location, name, base_classes, attributes, parsed_data, content):
+    def __init__(self, class_type, location, name, base_classes, attributes, parsed_data, content):
+        self.class_type = class_type
         self.location = location
         self.name = name
         self.base_classes = base_classes
@@ -157,12 +164,16 @@ class HypClassDefinition:
                     state.add_error(f'Error: Missing property name for {match_content}')
                     continue
 
-                property_args = [x.strip() for x in (match_content.split(',')[1:] if len(match_content.split(',')) > 1 else [])]
+                property_args_split = match_content.split(',')
+
+                property_args = [x.strip() for x in (property_args_split[1:] if len(property_args_split) > 1 else [])]
 
                 print("Property args:", property_args)
 
-                self.members.append(HypMemberDefinition(member_type, property_name, property_args=property_args))
+                self.members.append(HypMemberDefinition(member_type, property_name, attributes=[], property_args=property_args))
             else:
+                member_attributes = parse_attributes_string(match.group(2))
+
                 remaining_content = self.content[match.end(0):]
                 member_content = ""
                 
@@ -222,7 +233,7 @@ class HypClassDefinition:
                         state.add_error(f'Error: Failed to parse field name for {member_content}')
                         continue
 
-                    self.members.append(HypMemberDefinition(member_type, member_name))
+                    self.members.append(HypMemberDefinition(member_type, member_name, attributes=member_attributes))
                 elif match.group(1) == 'METHOD':
                     member_type = HypMemberType.METHOD
 
@@ -264,7 +275,7 @@ class HypClassDefinition:
 
                         # return_type
 
-                        self.members.append(HypMemberDefinition(member_type, member_name, method_return_type=return_type, method_args=args))
+                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=member_attributes, method_return_type=return_type, method_args=args))
                     else:
                         raise Exception(f'Invalid member type {member_type}')
                 
@@ -358,7 +369,7 @@ class Codegen:
             os.makedirs(cxx_generated_dir)
 
         cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
-        cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
+        cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
         self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
 
         csharp_generated_path = get_generated_path(hyp_class.location.file, self.state.dotnet_output_dir, extension='cs')
@@ -368,7 +379,7 @@ class Codegen:
             os.makedirs(csharp_generated_dir)
 
         csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
-        csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType)
+        csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
         self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
 
         hyp_class.is_built = True
@@ -409,10 +420,13 @@ class Codegen:
             with open(os.path.join(self.state.src_dir, file), 'r') as f:
                 content = f.read()
 
-                for class_match in re.finditer(r'HYP_CLASS\s*\(\s*(.*?)\s*\)', content):
-                    source_location = SourceLocation(file, class_match.start(0))
+                for class_match in re.finditer(r'HYP_(?:CLASS|STRUCT)\s*\(\s*(.*?)\s*\)', content):
+                    class_type = HypClassType.CLASS
 
-                    hyp_class_attributes = class_match.group(1).split(',')
+                    if 'HYP_STRUCT' in class_match.group(0):
+                        class_type = HypClassType.STRUCT
+
+                    source_location = SourceLocation(file, class_match.start(0))
 
                     # grab most immediate opening brace after class definition
                     opening_brace = content.find('{', class_match.start(0))
@@ -476,33 +490,25 @@ class Codegen:
                         self.state.add_error(f'Error: Class {class_name} already defined in file {file}')
                     else:
                         # attributes must be array of tuple (str, str)
-                        attributes = []
-
-                        for attribute in hyp_class_attributes:
-                            attribute_split = attribute.split('=')
-
-                            if len(attribute_split) == 2:
-                                attributes.append((attribute_split[0].strip(), attribute_split[1].strip()))
-                            else:
-                                attributes.append((attribute_split[0].strip(), ""))
+                        attributes = parse_attributes_string(class_match.group(1))
 
                         try:
                             parsed_data = parse_cxx_header(content=class_content, options=ParserOptions(preprocessor=make_preprocessor()))
 
-                            hyp_class = HypClassDefinition(source_location, class_name, base_classes, attributes, parsed_data, class_content)
+                            hyp_class = HypClassDefinition(class_type, source_location, class_name, base_classes, attributes, parsed_data, class_content)
                             self.hyp_classes.append(hyp_class)
                         except Exception as e:
                             self.state.add_error(f'Error: Failed to parse class definition for {class_name} in file {file} - {repr(e)}')
 
 
     def extract_class_name(self, class_match):
-        class_name_match = re.search(r'class\s+(?:HYP_API\s+)?(\w+)', class_match)
+        class_name_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(\w+)', class_match)
         if class_name_match:
             return class_name_match.group(1)
         return None
 
     def extract_base_classes(self, class_match):
-        base_classes_match = re.search(r'class\s+(?:HYP_API\s+)?(?:\w+)\s*:\s*((?:public|private|protected)?\s*(?:\w+\s*,?\s*)+)', class_match)
+        base_classes_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(?:\w+)\s*:\s*((?:public|private|protected)?\s*(?:\w+\s*,?\s*)+)', class_match)
         if base_classes_match:
             base_classes = base_classes_match.group(1)
             return [base.strip().split(' ')[-1] for base in base_classes.split(',')]

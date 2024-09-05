@@ -3,73 +3,49 @@
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMObject.hpp>
+#include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/animation/Bone.hpp>
 
 #include <core/object/HypData.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
 
 template <>
-class FBOMMarshaler<Node> : public FBOMObjectMarshalerBase<Node>
+class FBOMMarshaler<Node> : public HypClassInstanceMarshal
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override
     {
-        out.SetProperty(NAME("type"), FBOMData::FromUInt32(uint32(in_object.GetType())));
-        
-        out.SetProperty(NAME("name"), FBOMData::FromString(in_object.GetName()));
+        const Node &in_object = in.Get<Node>();
 
-        out.SetProperty(NAME("local_transform"), FBOMData::FromObject(
-            FBOMObject()
-                .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetTranslation()))
-                .SetProperty(NAME("rotation"), FBOMData::FromQuat4f(in_object.GetLocalTransform().GetRotation()))
-                .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetLocalTransform().GetScale()))
-        ));
+        HYP_LOG(Serialization, LogLevel::DEBUG, "Serializing Node with name '{}'...", in_object.GetName());
 
-        out.SetProperty(NAME("world_transform"), FBOMData::FromObject(
-            FBOMObject()
-                .SetProperty(NAME("translation"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetTranslation()))
-                .SetProperty(NAME("rotation"), FBOMData::FromQuat4f(in_object.GetWorldTransform().GetRotation()))
-                .SetProperty(NAME("scale"), FBOMData::FromVec3f(in_object.GetWorldTransform().GetScale()))
-        ));
-
-        out.SetProperty(NAME("aabb"), FBOMStruct::Create<BoundingBox>(), &in_object.GetEntityAABB());
-
-        switch (in_object.GetType()) {
-        case Node::Type::NODE:
-            // no-op
-            break;
-        case Node::Type::BONE:
-            // TODO
-            break;
-        default:
-            return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
+        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out)) {
+            return err;
         }
 
-        if (ID<Entity> entity = in_object.GetEntity(); entity.IsValid()) {
-            Handle<Entity> entity_handle { entity };
-            entity_handle->SetID(entity);
-
-            if (FBOMResult err = out.AddChild(*entity_handle)) {
-                return err;
-            }
-        }
+        out.SetProperty(NAME("Type"), uint32(in_object.GetType()));
 
         for (const NodeProxy &child : in_object.GetChildren()) {
             if (!child.IsValid()) {
                 continue;
             }
 
-            if (FBOMResult err = out.AddChild(*child.Get(), FBOMObjectFlags::KEEP_UNIQUE)) {
+            if (FBOMResult err = out.AddChild(*child.Get(), FBOMObjectSerializeFlags::KEEP_UNIQUE)) {
                 return err;
             }
         }
+
+        HYP_LOG(Serialization, LogLevel::DEBUG, "Serialization completed for Node with name '{}'", in_object.GetName());
 
         return { FBOMResult::FBOM_OK };
     }
@@ -78,7 +54,7 @@ public:
     {
         Node::Type node_type = Node::Type::NODE;
 
-        if (auto err = in.GetProperty("type").ReadUInt32(&node_type)) {
+        if (auto err = in.GetProperty("Type").ReadUInt32(&node_type)) {
             return err;
         }
 
@@ -95,76 +71,13 @@ public:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
         }
 
-        String name;
-        in.GetProperty("name").ReadString(name);
-        node->SetName(std::move(name));
-
-        { // local transform
-            Transform transform = Transform::identity;
-            
-            FBOMObject local_transform_object;
-
-            if (FBOMResult err = in.GetProperty("local_transform").ReadObject(local_transform_object)) {
-                return err;
-            }
-
-            if (FBOMResult err = local_transform_object.GetProperty("translation").ReadVec3f(&transform.GetTranslation())) {
-                return err;
-            }
-        
-            if (FBOMResult err = local_transform_object.GetProperty("rotation").ReadQuat4f(&transform.GetRotation())) {
-                return err;
-            }
-
-            if (FBOMResult err = local_transform_object.GetProperty("scale").ReadVec3f(&transform.GetScale())) {
-                return err;
-            }
-
-            transform.UpdateMatrix();
-            node->SetLocalTransform(transform);
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, node->GetClass(), *node)) {
+            return err;
         }
 
-        { // world transform
-            Transform transform = Transform::identity;
-            
-            FBOMObject world_transform_object;
-
-            if (FBOMResult err = in.GetProperty("world_transform").ReadObject(world_transform_object)) {
-                return err;
-            }
-
-            if (FBOMResult err = world_transform_object.GetProperty("translation").ReadVec3f(&transform.GetTranslation())) {
-                return err;
-            }
-        
-            if (FBOMResult err = world_transform_object.GetProperty("rotation").ReadQuat4f(&transform.GetRotation())) {
-                return err;
-            }
-
-            if (FBOMResult err = world_transform_object.GetProperty("scale").ReadVec3f(&transform.GetScale())) {
-                return err;
-            }
-
-            transform.UpdateMatrix();
-            node->SetWorldTransform(transform);
-        }
-
-        { // bounding box
-            BoundingBox aabb = BoundingBox::Empty();
-            BoundingBox world_aabb = BoundingBox::Empty();
-
-            if (auto err = in.GetProperty("aabb").ReadStruct<BoundingBox>(&aabb)) {
-                return err;
-            }
-
-            node->SetEntityAABB(aabb);
-        }
-
-        for (auto &sub_object : *in.nodes) {
-            if (sub_object.GetType().IsOrExtends("Node")) {
-                node->AddChild(sub_object.m_deserialized_object->Get<NodeProxy>());
-            } else if (sub_object.GetType().IsOrExtends("Entity")) {
-                node->SetEntity(sub_object.m_deserialized_object->Get<Handle<Entity>>().GetID());
+        for (FBOMObject &subobject : *in.nodes) {
+            if (subobject.GetType().IsOrExtends("Node")) {
+                node->AddChild(subobject.m_deserialized_object->Get<NodeProxy>());
             }
         }
 

@@ -334,10 +334,10 @@ public:
     ~ShaderProperties()                                         = default;
 
     HYP_FORCE_INLINE bool operator==(const ShaderProperties &other) const
-        { return m_props == other.m_props; }
+        { return (m_required_vertex_attributes == other.m_required_vertex_attributes) && (m_props == other.m_props); }
 
     HYP_FORCE_INLINE bool operator!=(const ShaderProperties &other) const
-        { return m_props != other.m_props; }
+        { return m_required_vertex_attributes != other.m_required_vertex_attributes || m_props != other.m_props; }
 
     HYP_FORCE_INLINE bool Any() const
         { return m_props.Any(); }

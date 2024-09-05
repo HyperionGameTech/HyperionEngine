@@ -11,8 +11,10 @@ namespace hyperion {
 
 class Node;
 
+HYP_STRUCT()
 struct NodeLinkComponent
 {
+    HYP_FIELD()
     Weak<Node>  node;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

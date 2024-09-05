@@ -285,7 +285,7 @@ FBOMResult FBOMReader::Deserialize(const FBOMObject &in, HypData &out)
     const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
 
     if (!marshal) {
-        return { FBOMResult::FBOM_ERR, "Marshal class not registered for type" };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Marshal class not registered object type {}", in.m_object_type.name) };
     }
 
     if (FBOMResult err = marshal->Deserialize(in, out)) {
@@ -350,6 +350,8 @@ FBOMResult FBOMReader::LoadFromFile(const String &path, HypData &out)
         return err;
     }
 
+    AssertThrow(object.m_deserialized_object != nullptr);
+
     if (object.m_deserialized_object != nullptr) {
         out = std::move(*object.m_deserialized_object);
         object.m_deserialized_object.Reset();
@@ -400,6 +402,7 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
 
 bool FBOMReader::HasMarshalForType(const FBOMType &type) const
 {
+    HYP_LOG(Serialization, LogLevel::DEBUG, "Check has marshal for type: {}", type.name);
     return FBOM::GetInstance().GetMarshal(type.name) != nullptr;
 }
 
@@ -903,16 +906,20 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
             }
             case FBOM_OBJECT_END:
             {
-                if (HasMarshalForType(object_type)) {
-                    // call deserializer function, writing into deserialized object
-                    out_object.m_deserialized_object.Reset(new HypData());
+                // if (!object_type.Is(FBOMBaseObjectType())) {
+                    if (HasMarshalForType(object_type)) {
+                        // call deserializer function, writing into deserialized object
+                        out_object.m_deserialized_object.Reset(new HypData());
 
-                    if (FBOMResult err = Deserialize(out_object, *out_object.m_deserialized_object)) {
-                        out_object.m_deserialized_object.Reset();
+                        if (FBOMResult err = Deserialize(out_object, *out_object.m_deserialized_object)) {
+                            out_object.m_deserialized_object.Reset();
 
-                        return err;
+                            return err;
+                        }
+                    } else {
+                        // return { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for object type {}", object_type.name) };
                     }
-                }
+                // }
 
                 break;
             }

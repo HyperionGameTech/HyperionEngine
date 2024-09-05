@@ -11,8 +11,10 @@ namespace hyperion {
 
 class SkydomeRenderer;
 
+HYP_STRUCT()
 struct SkyComponent
 {
+    HYP_FIELD()
     RC<SkydomeRenderer> render_component;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
