@@ -8,7 +8,8 @@
 
 #include <math/Vector3.hpp>
 
-namespace hyperion::physics {
+namespace hyperion {
+namespace physics {
 
 class HYP_API PhysicsWorldBase
 {
@@ -93,7 +94,8 @@ private:
     Adapter m_adapter;
 };
 
-} // namespace hyperion::physics
+} // namespace physics
+} // namespace hyperion
 
 #ifdef HYP_BULLET_PHYSICS
 

@@ -6,6 +6,10 @@
 #include <core/Base.hpp>
 #include <core/Defines.hpp>
 
+#include <core/object/HypObject.hpp>
+
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <math/Transform.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/BoundingSphere.hpp>
@@ -22,9 +26,7 @@ namespace hyperion {
 
 class Engine;
 
-} // namespace hyperion
-
-namespace hyperion::physics {
+namespace physics {
 
 enum class PhysicsShapeType : uint32
 {
@@ -35,19 +37,23 @@ enum class PhysicsShapeType : uint32
     CONVEX_HULL
 };
 
-class PhysicsShape
+HYP_CLASS(Abstract)
+class PhysicsShape : public EnableRefCountedPtrFromThis<PhysicsShape>
 {
-public:
+    HYP_OBJECT_BODY(PhysicsShape);
+
     PhysicsShape()
         : m_type(PhysicsShapeType::NONE)
     {
     }
 
+protected:
     PhysicsShape(PhysicsShapeType type)
         : m_type(type)
     {
     }
 
+public:
     ~PhysicsShape() = default;
 
     HYP_FORCE_INLINE PhysicsShapeType GetType() const
@@ -68,8 +74,11 @@ protected:
     UniquePtr<void>     m_handle;
 };
 
-class BoxPhysicsShape : public PhysicsShape
+HYP_CLASS()
+class BoxPhysicsShape final : public PhysicsShape
 {
+    HYP_OBJECT_BODY(BoxPhysicsShape);
+
 public:
     BoxPhysicsShape(const BoundingBox &aabb)
         : PhysicsShape(PhysicsShapeType::BOX),
@@ -79,15 +88,18 @@ public:
 
     ~BoxPhysicsShape() = default;
 
-    const BoundingBox &GetAABB() const
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
 protected:
     BoundingBox m_aabb;
 };
 
-class SpherePhysicsShape : public PhysicsShape
+HYP_CLASS()
+class SpherePhysicsShape final : public PhysicsShape
 {
+    HYP_OBJECT_BODY(SpherePhysicsShape);
+
 public:
     SpherePhysicsShape(const BoundingSphere &sphere)
         : PhysicsShape(PhysicsShapeType::SPHERE),
@@ -97,15 +109,18 @@ public:
 
     ~SpherePhysicsShape() = default;
 
-    const BoundingSphere &GetSphere() const
+    HYP_FORCE_INLINE const BoundingSphere &GetSphere() const
         { return m_sphere; }
 
 protected:
     BoundingSphere  m_sphere;
 };
 
-class PlanePhysicsShape : public PhysicsShape
+HYP_CLASS()
+class PlanePhysicsShape final : public PhysicsShape
 {
+    HYP_OBJECT_BODY(PlanePhysicsShape);
+
 public:
     PlanePhysicsShape(const Vec4f &plane)
         : PhysicsShape(PhysicsShapeType::PLANE),
@@ -115,15 +130,18 @@ public:
 
     ~PlanePhysicsShape() = default;
 
-    const Vec4f &GetPlane() const
+    HYP_FORCE_INLINE const Vec4f &GetPlane() const
         { return m_plane; }
 
 protected:
     Vec4f   m_plane;
 };
 
-class ConvexHullPhysicsShape : public PhysicsShape
+HYP_CLASS()
+class ConvexHullPhysicsShape final : public PhysicsShape
 {
+    HYP_OBJECT_BODY(ConvexHullPhysicsShape);
+
 public:
     ConvexHullPhysicsShape(const Array<Vec3f> &vertices)
         : PhysicsShape(PhysicsShapeType::CONVEX_HULL)
@@ -139,22 +157,25 @@ public:
 
     ~ConvexHullPhysicsShape() = default;
 
-    const float *GetVertexData() const
+    HYP_FORCE_INLINE const float *GetVertexData() const
         { return m_vertices.Data(); }
 
-    SizeType NumVertices() const
+    HYP_FORCE_INLINE SizeType NumVertices() const
         { return m_vertices.Size() / 3; }
 
 protected:
     Array<float>    m_vertices;
 };
 
+HYP_CLASS()
 class HYP_API RigidBody : public BasicObject<RigidBody>
 {
+    HYP_OBJECT_BODY(RigidBody);
+
 public:
     RigidBody();
     RigidBody(const PhysicsMaterial &physics_material);
-    RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material);
+    RigidBody(const RC<PhysicsShape> &shape, const PhysicsMaterial &physics_material);
 
     RigidBody(const RigidBody &other)               = delete;
     RigidBody &operator=(const RigidBody &other)    = delete;
@@ -162,23 +183,21 @@ public:
 
     void Init();
 
-    /*! \brief Get the world-space transform of this RigidBody.
-        If changed, you will have to flag that the transform has changed,
-        so that the physics engine's internal rigidbody will have its transform updated. */
-    HYP_FORCE_INLINE Transform &GetTransform()
-        { return m_transform; }
-
     /*! \brief Get the world-space transform of this RigidBody. */
+    HYP_METHOD(SerializeAs=Transform)
     HYP_FORCE_INLINE const Transform &GetTransform() const
         { return m_transform; }
     
+    HYP_METHOD(SerializeAs=Transform)
     HYP_FORCE_INLINE void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
+    HYP_METHOD(SerializeAs=Shape)
     HYP_FORCE_INLINE const RC<PhysicsShape> &GetShape() const
         { return m_shape; }
 
-    void SetShape(RC<PhysicsShape> &&shape);
+    HYP_METHOD(SerializeAs=Shape)
+    void SetShape(const RC<PhysicsShape> &shape);
 
     HYP_FORCE_INLINE PhysicsMaterial &GetPhysicsMaterial()
         { return m_physics_material; }
@@ -188,9 +207,11 @@ public:
 
     void SetPhysicsMaterial(const PhysicsMaterial &physics_material);
 
+    HYP_METHOD(SerializeAs=IsKinematic)
     HYP_FORCE_INLINE bool IsKinematic() const
         { return m_is_kinematic; }
 
+    HYP_METHOD(SerializeAs=IsKinematic)
     HYP_FORCE_INLINE void SetIsKinematic(bool is_kinematic)
         { m_is_kinematic = is_kinematic; }
 
@@ -203,6 +224,7 @@ public:
     HYP_FORCE_INLINE void SetHandle(UniquePtr<void> &&handle)
         { m_handle = std::move(handle); }
 
+    HYP_METHOD()
     void ApplyForce(const Vec3f &force);
 
 private:
@@ -214,6 +236,15 @@ private:
     UniquePtr<void>     m_handle;
 };
 
-} // namespace hyperion::physics
+} // namespace physics
+
+using physics::PhysicsShape;
+using physics::BoxPhysicsShape;
+using physics::SpherePhysicsShape;
+using physics::PlanePhysicsShape;
+using physics::ConvexHullPhysicsShape;
+using physics::RigidBody;
+
+} // namespace hyperion
 
 #endif

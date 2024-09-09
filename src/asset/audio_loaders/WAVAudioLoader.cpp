@@ -60,11 +60,11 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
 
     ByteBuffer byte_buffer(object.wave_bytes.Size(), &object.wave_bytes[0]);
 
-    RC<Handle<AudioSource>> audio_source = RC<Handle<AudioSource>>::Construct(CreateObject<AudioSource>(
+    Handle<AudioSource> audio_source = CreateObject<AudioSource>(
         object.format,
         byte_buffer,
         object.frequency
-    ));
+    );
 
     return { { LoaderResult::Status::OK }, audio_source };
 }

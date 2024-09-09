@@ -18,6 +18,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -77,6 +79,8 @@ public:
                     continue;
                 }
 
+                HYP_NAMED_SCOPE_FMT("Serializing component '{}'", component_interface->GetTypeName());
+
                 FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(component_type_id);
 
                 if (!marshal) {
@@ -105,6 +109,8 @@ public:
         if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID()) {
             SerializeEntityAndComponents();
         } else {
+            HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
+
             entity_manager->PushCommand([&SerializeEntityAndComponents](EntityManager &mgr, GameCounter::TickUnit delta)
             {
                 SerializeEntityAndComponents();
@@ -159,6 +165,8 @@ public:
 
                 continue;
             }
+
+            HYP_NAMED_SCOPE_FMT("Deserializing component '{}'", component_interface->GetTypeName());
 
             if (!subobject.m_deserialized_object) {
                 return { FBOMResult::FBOM_ERR, HYP_FORMAT("No deserialized object found for component '{}'", component_interface->GetTypeName()) };

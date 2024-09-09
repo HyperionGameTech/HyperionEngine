@@ -22,6 +22,8 @@
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Types.hpp>
 #include <Constants.hpp>
 
@@ -311,6 +313,8 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t< !std::is_same_v< FBOMObject
     template <class HypDataType>
     FBOMResult Serialize(const T &in, FBOMObject &out_object, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
+        HYP_SCOPE;
+
         FBOMMarshalerBase *marshal = FBOMObject::GetMarshal<T>();
         
         if (!marshal) {

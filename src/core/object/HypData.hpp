@@ -27,6 +27,8 @@
 #include <asset/serialization/fbom/FBOMArray.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Types.hpp>
 
 #include <type_traits>
@@ -119,6 +121,8 @@ struct HypData
     HypData(T &&value)
         : HypData()
     {
+        HYP_NAMED_SCOPE("Construct HypData from T");
+
         HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
     }
 
@@ -144,6 +148,8 @@ struct HypData
 
     HYP_FORCE_INLINE AnyRef ToRef()
     {
+        HYP_SCOPE;
+
         if (!value.IsValid()) {
             return AnyRef();
         }
@@ -169,6 +175,8 @@ struct HypData
 
     HYP_FORCE_INLINE ConstAnyRef ToRef() const
     {
+        HYP_SCOPE;
+
         if (!value.IsValid()) {
             return ConstAnyRef();
         }
@@ -187,6 +195,8 @@ struct HypData
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
+        HYP_SCOPE;
+
         static_assert(!std::is_same_v<T, HypData>);
 
         if (!value.IsValid()) {
@@ -200,6 +210,8 @@ struct HypData
     HYP_FORCE_INLINE auto Get() -> typename detail::HypDataGetReturnTypeHelper<T, false>::Type
     {
         static_assert(!std::is_same_v<T, HypData>);
+
+        HYP_SCOPE;
 
         using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
 
@@ -220,6 +232,8 @@ struct HypData
     {
         static_assert(!std::is_same_v<T, HypData>);
 
+        HYP_SCOPE;
+
         using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
 
         Optional<ReturnType> result_value;
@@ -239,6 +253,8 @@ struct HypData
     {
         static_assert(!std::is_same_v<T, HypData>);
 
+        HYP_SCOPE;
+
         using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
 
         Optional<ReturnType> result_value;
@@ -253,6 +269,8 @@ struct HypData
     HYP_FORCE_INLINE auto TryGet() const -> Optional<typename detail::HypDataGetReturnTypeHelper<T, true>::Type>
     {
         static_assert(!std::is_same_v<T, HypData>);
+
+        HYP_SCOPE;
 
         using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
 
@@ -275,6 +293,8 @@ struct HypDataMarshalHelper
     static inline fbom::FBOMResult Serialize(const T &value, fbom::FBOMData &out_data)
     {
         using Normalized = NormalizedType<T>;
+
+        HYP_SCOPE;
 
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<Normalized>());
 
@@ -560,6 +580,8 @@ struct HypDataHelper<AnyHandle>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+
         const AnyHandle &value = hyp_data.Get<AnyHandle>();
 
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
@@ -619,6 +641,8 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
@@ -682,6 +706,8 @@ struct HypDataHelper<RC<void>>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+
         const RC<void> &value = hyp_data.Get<RC<void>>();
 
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
@@ -739,6 +765,8 @@ struct HypDataHelper<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDataHel
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
@@ -805,6 +833,8 @@ struct HypDataHelper<AnyRef>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         const AnyRef &value = hyp_data.Get<AnyRef>();
 
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
@@ -885,6 +915,8 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
@@ -943,6 +975,8 @@ struct HypDataHelper<Any>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
@@ -1007,6 +1041,8 @@ struct HypDataHelper<containers::detail::String<StringType>> : HypDataHelper<Any
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         if (auto string_opt = hyp_data.TryGet<containers::detail::String<StringType>>()) {
@@ -1062,6 +1098,8 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
         
         FixedArray<T, Size> *array_ptr = value.TryGet<FixedArray<T, Size>>();
@@ -1092,6 +1130,8 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         fbom::FBOMArray array { fbom::FBOMUnset() };
 
         if (fbom::FBOMResult err = data.ReadArray(array)) {
@@ -1166,6 +1206,8 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         if (math::detail::Vec2<T> *vec_ptr = value.TryGet<math::detail::Vec2<T>>()) {
@@ -1221,6 +1263,8 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         if (math::detail::Vec3<T> *vec_ptr = value.TryGet<math::detail::Vec3<T>>()) {
@@ -1234,6 +1278,8 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         math::detail::Vec3<T> result;
 
         if (fbom::FBOMResult err = data.Read(&result)) {
@@ -1276,6 +1322,8 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         if (math::detail::Vec4<T> *vec_ptr = value.TryGet<math::detail::Vec4<T>>()) {
@@ -1289,6 +1337,8 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         math::detail::Vec4<T> result;
 
         if (fbom::FBOMResult err = data.Read(&result)) {
@@ -1336,6 +1386,8 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
+        HYP_SCOPE;
+        
         Any &value = hyp_data.Get<Any>();
 
         if (ByteBuffer *ptr = value.TryGet<ByteBuffer>()) {
@@ -1349,6 +1401,8 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         ByteBuffer byte_buffer;
 
         if (fbom::FBOMResult err = data.ReadByteBuffer(byte_buffer)) {
@@ -1388,6 +1442,8 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
+        HYP_SCOPE;
+        
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {

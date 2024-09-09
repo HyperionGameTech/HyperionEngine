@@ -69,8 +69,6 @@ class HYP_API Scene : public BasicObject<Scene>
     HYP_OBJECT_BODY(Scene);
 
     HYP_PROPERTY(ID, &Scene::GetID)
-    HYP_PROPERTY(Camera, &Scene::GetCamera, &Scene::SetCamera)
-    HYP_PROPERTY(Root, &Scene::GetRoot, &Scene::SetRoot)
 
 public:
     Scene();
@@ -96,12 +94,13 @@ public:
     void SetOwnerThreadID(ThreadID owner_thread_id);
 
     /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
-    HYP_METHOD()
+    HYP_METHOD(SerializeAs=Camera)
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
     /*! \brief Set the camera that is used to render this Scene. */
-    void SetCamera(Handle<Camera> camera);
+    HYP_METHOD(SerializeAs=Camera)
+    void SetCamera(const Handle<Camera> &camera);
 
     HYP_FORCE_INLINE RenderList &GetRenderList()
         { return m_render_list; }
@@ -123,12 +122,13 @@ public:
      */
     bool CreateTLAS();
 
-    HYP_METHOD()
+    HYP_METHOD(SerializeAs=Root)
     HYP_FORCE_INLINE const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
     /*! \brief Set the root node of this Scene, discarding the current.
      *  \internal For internal use only. Should not be called from user code. */
+    HYP_METHOD(SerializeAs=Root)
     HYP_FORCE_INLINE void SetRoot(NodeProxy root)
     {
         if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
@@ -168,11 +168,12 @@ public:
     HYP_FORCE_INLINE bool IsWorldScene() const
         { return !m_is_non_world_scene; }
 
+    HYP_METHOD(SerializeAs=IsAudioListener)
     HYP_FORCE_INLINE bool IsAudioListener() const
         { return m_is_audio_listener; }
 
-    HYP_FORCE_INLINE
-    void SetIsAudioListener(bool is_audio_listener)
+    HYP_METHOD(SerializeAs=IsAudioListener)
+    HYP_FORCE_INLINE void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
 
     HYP_FORCE_INLINE const SceneDrawProxy &GetProxy() const

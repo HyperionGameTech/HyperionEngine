@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef BOUNDING_BOX_HPP
-#define BOUNDING_BOX_HPP
+#ifndef HYPERION_BOUNDING_BOX_HPP
+#define HYPERION_BOUNDING_BOX_HPP
 
 #include <math/Vector3.hpp>
 #include <math/Transform.hpp>

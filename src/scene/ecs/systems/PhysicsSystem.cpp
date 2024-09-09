@@ -55,10 +55,11 @@ void PhysicsSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        Transform &rigid_body_transform = rigid_body->GetTransform();
-
+        Transform rigid_body_transform = rigid_body->GetTransform();
         transform.SetTranslation(rigid_body_transform.GetTranslation());
         transform.SetRotation(rigid_body_transform.GetRotation());
+
+        rigid_body->SetTransform(rigid_body_transform);
     }
 }
 

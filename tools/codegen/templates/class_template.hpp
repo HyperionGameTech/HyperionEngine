@@ -29,3 +29,4 @@ ${end_macro_names[hyp_class.class_type]}
 } // namespace hyperion
 
 #pragma endregion ${hyp_class.name}
+

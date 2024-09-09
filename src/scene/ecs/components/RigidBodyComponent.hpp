@@ -23,10 +23,10 @@ enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
 HYP_STRUCT()
 struct RigidBodyComponent
 {
-    HYP_FIELD()
+    HYP_FIELD(SerializeAs=RigidBody)
     Handle<physics::RigidBody>  rigid_body;
 
-    HYP_FIELD()
+    HYP_FIELD(SerializeAs=PhysicsMaterial)
     physics::PhysicsMaterial    physics_material;
 
     HYP_FIELD()

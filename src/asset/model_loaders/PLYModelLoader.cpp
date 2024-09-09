@@ -125,13 +125,14 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
         }
     });
     
-    model.header_length = static_cast<uint>(state.stream.Position());
+    model.header_length = state.stream.Position();
 
     const SizeType num_vertices = model.vertices.Size();
 
     ByteBuffer buffer = state.stream.ReadBytes();
 
-    const auto IsCustomPropertyName = [](const String &str) {
+    const auto IsCustomPropertyName = [](const String &str)
+    {
         if (str == "x" || str == "y" || str == "z") {
             return false;
         }

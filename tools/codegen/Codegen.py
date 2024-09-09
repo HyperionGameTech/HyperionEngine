@@ -121,6 +121,7 @@ class HypClassDefinition:
         self.parsed_data = parsed_data
         self.content = content
         self.members = []
+        self.namespace = ""
 
         self.base_class = None
 
@@ -132,6 +133,8 @@ class HypClassDefinition:
         if not class_data:
             state.add_error(f'Error: Failed to parse class data for {self.name}')
             return
+        
+        self.namespace = self.parsed_data.namespace.name
         
         # for method in class_data.methods:
         #     method_name = method.name.segments[-1].name

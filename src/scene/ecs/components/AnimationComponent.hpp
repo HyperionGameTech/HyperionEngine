@@ -48,7 +48,7 @@ struct AnimationPlaybackState
 HYP_STRUCT()
 struct AnimationComponent
 {
-    HYP_FIELD()
+    HYP_FIELD(SerializeAs=PlaybackState)
     AnimationPlaybackState  playback_state;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

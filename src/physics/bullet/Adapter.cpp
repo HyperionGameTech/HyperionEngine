@@ -142,10 +142,12 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase *world, GameCounter::TickUnitHi
         btTransform bt_transform;
         internal_data->motion_state->getWorldTransform(bt_transform);
 
-        Transform &rigid_body_transform = rigid_body->GetTransform();
+        Transform rigid_body_transform = rigid_body->GetTransform();
         rigid_body_transform.GetTranslation() = FromBtVector(bt_transform.getOrigin());
         rigid_body_transform.GetRotation() = FromBtQuaternion(bt_transform.getRotation()).Invert();
         rigid_body_transform.UpdateMatrix();
+
+        rigid_body->SetTransform(rigid_body_transform);
     }
 }
 

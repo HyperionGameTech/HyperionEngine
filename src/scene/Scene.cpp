@@ -224,9 +224,9 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
     }
 }
 
-void Scene::SetCamera(Handle<Camera> camera)
+void Scene::SetCamera(const Handle<Camera> &camera)
 {
-    m_camera = std::move(camera);
+    m_camera = camera;
     InitObject(m_camera);
 
     m_render_list.SetCamera(m_camera);
