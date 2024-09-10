@@ -156,8 +156,8 @@ struct RENDER_COMMAND(CreateDDGIRadianceBuffer) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData)));
-        radiance_buffer->Memset(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData), 0x00);
+        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData)));
+        radiance_buffer->Memset(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData), 0x0);
 
         HYPERION_RETURN_OK;
     }
@@ -192,13 +192,13 @@ void DDGI::Init()
     const auto grid = m_grid_info.NumProbesPerDimension();
     m_probes.Resize(m_grid_info.NumProbes());
 
-    for (uint32 x = 0; x < grid.width; x++) {
-        for (uint32 y = 0; y < grid.height; y++) {
-            for (uint32 z = 0; z < grid.depth; z++) {
-                const uint32 index = x * grid.height * grid.depth + y * grid.depth + z;
+    for (uint32 x = 0; x < grid.x; x++) {
+        for (uint32 y = 0; y < grid.y; y++) {
+            for (uint32 z = 0; z < grid.z; z++) {
+                const uint32 index = x * grid.x * grid.y + y * grid.z + z;
 
                 m_probes[index] = Probe {
-                    (Vector3(float(x), float(y), float(z)) - (Vector3(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
+                    (Vec3f { float(x), float(y), float(z) } - (Vec3f(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
                 };
             }
         }
@@ -315,34 +315,34 @@ void DDGI::CreateUniformBuffer()
 {
     m_uniform_buffer = MakeRenderObject<GPUBuffer>(UniformBuffer());
 
-    const Extent2D grid_image_dimensions = m_grid_info.GetImageDimensions();
-    const Extent3D num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
+    const Vec2u grid_image_dimensions = m_grid_info.GetImageDimensions();
+    const Vec3u num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
 
     m_uniforms = DDGIUniforms {
-        .aabb_max = Vector4(m_grid_info.aabb.max, 1.0f),
-        .aabb_min = Vector4(m_grid_info.aabb.min, 1.0f),
+        .aabb_max = Vec4f(m_grid_info.aabb.max, 1.0f),
+        .aabb_min = Vec4f(m_grid_info.aabb.min, 1.0f),
         .probe_border = {
-            m_grid_info.probe_border.width,
-            m_grid_info.probe_border.height,
-            m_grid_info.probe_border.depth,
+            m_grid_info.probe_border.x,
+            m_grid_info.probe_border.y,
+            m_grid_info.probe_border.z,
             0
         },
         .probe_counts = {
-            num_probes_per_dimension.width,
-            num_probes_per_dimension.height,
-            num_probes_per_dimension.depth,
+            num_probes_per_dimension.x,
+            num_probes_per_dimension.y,
+            num_probes_per_dimension.z,
             0
         },
         .grid_dimensions = {
-            grid_image_dimensions.width,
-            grid_image_dimensions.height,
+            grid_image_dimensions.x,
+            grid_image_dimensions.y,
             0, 0
         },
         .image_dimensions = {
-            m_irradiance_image->GetExtent().width,
-            m_irradiance_image->GetExtent().height,
-            m_depth_image->GetExtent().width,
-            m_depth_image->GetExtent().height
+            m_irradiance_image->GetExtent().x,
+            m_irradiance_image->GetExtent().y,
+            m_depth_image->GetExtent().x,
+            m_depth_image->GetExtent().y
         },
         .params = {
             ByteUtil::PackFloat(m_grid_info.probe_distance),
@@ -563,8 +563,8 @@ void DDGI::ComputeIrradiance(Frame *frame)
     m_update_irradiance->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            probe_counts.width * probe_counts.height,
-            probe_counts.depth,
+            probe_counts.x * probe_counts.y,
+            probe_counts.z,
             1u
         }
     );
@@ -591,8 +591,8 @@ void DDGI::ComputeIrradiance(Frame *frame)
     m_update_depth->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            probe_counts.width * probe_counts.height,
-            probe_counts.depth,
+            probe_counts.x * probe_counts.y,
+            probe_counts.z,
             1u
         }
     );

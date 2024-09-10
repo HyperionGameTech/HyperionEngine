@@ -22,62 +22,66 @@ RC<StreamedMeshData> StreamedMeshData::FromMeshData(MeshData mesh_data)
     return RC<StreamedMeshData>::Construct(std::move(mesh_data));
 }
 
+StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data)
+    : StreamedData(initial_state),
+      m_num_vertices(mesh_data.vertices.Size()),
+      m_num_indices(mesh_data.indices.Size())
+{
+    switch (initial_state) {
+    case StreamedDataState::NONE:
+        m_streamed_data.Reset(new NullStreamedData());
+
+        break;
+    case StreamedDataState::LOADED: // fallthrough
+    case StreamedDataState::UNPAGED:
+        m_mesh_data.Set(std::move(mesh_data));
+
+        m_streamed_data.Reset(new MemoryStreamedData(m_mesh_data->GetHashCode(), StreamedDataState::UNPAGED, [this](HashCode hc, ByteBuffer &out) -> bool
+        {
+            if (!m_mesh_data) {
+                return false;
+            }
+
+            MemoryByteWriter writer;
+
+            fbom::FBOMWriter serializer { fbom::FBOMWriterConfig { } };
+            
+            if (fbom::FBOMResult err = serializer.Append(*m_mesh_data)) {
+                HYP_LOG(Streaming, LogLevel::ERR, "Failed to write streamed data: {}", err.message);
+
+                return false;
+            }
+
+            if (fbom::FBOMResult err = serializer.Emit(&writer)) {
+                HYP_LOG(Streaming, LogLevel::ERR, "Failed to write streamed data: {}", err.message);
+
+                return false;
+            }
+
+            out = std::move(writer.GetBuffer());
+
+            return true;
+        }));
+
+        break;
+    default:
+        HYP_NOT_IMPLEMENTED_VOID();
+    }
+}
+
 StreamedMeshData::StreamedMeshData()
-    : StreamedData(StreamedDataState::NONE),
-      m_streamed_data(RC<NullStreamedData>(new NullStreamedData())),
-      m_num_vertices(0),
-      m_num_indices(0)
+    : StreamedMeshData(StreamedDataState::NONE, { })
 {
 }
 
 StreamedMeshData::StreamedMeshData(const MeshData &mesh_data)
-    : StreamedData(StreamedDataState::LOADED),
-      m_streamed_data(nullptr),
-      m_num_vertices(mesh_data.vertices.Size()),
-      m_num_indices(mesh_data.indices.Size())
+    : StreamedMeshData(StreamedDataState::LOADED, mesh_data)
 {
-    MemoryByteWriter writer;
-
-    fbom::FBOMWriter serializer { fbom::FBOMWriterConfig { } };
-    
-    if (fbom::FBOMResult err = serializer.Append(mesh_data)) {
-        HYP_FAIL("Failed to write streamed data: %s", *err.message);
-    }
-
-    if (fbom::FBOMResult err = serializer.Emit(&writer)) {
-        HYP_FAIL("Failed to write streamed data: %s", *err.message);
-    }
-
-    // Do not keep in memory, we already have what we want - but we need to calculate the hash
-    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
-
-    m_mesh_data.Set(mesh_data);
-    AssertThrow(StreamedMeshData::IsInMemory());
 }
 
 StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
-    : StreamedData(StreamedDataState::LOADED),
-      m_streamed_data(nullptr),
-      m_num_vertices(mesh_data.vertices.Size()),
-      m_num_indices(mesh_data.indices.Size())
+    : StreamedMeshData(StreamedDataState::LOADED, std::move(mesh_data))
 {
-    MemoryByteWriter writer;
-
-    fbom::FBOMWriter serializer { fbom::FBOMWriterConfig { } };
-    
-    if (fbom::FBOMResult err = serializer.Append(mesh_data)) {
-        HYP_FAIL("Failed to write streamed data: %s", *err.message);
-    }
-
-    if (fbom::FBOMResult err = serializer.Emit(&writer)) {
-        HYP_FAIL("Failed to write streamed data: %s", *err.message);
-    }
-
-    // Do not keep in memory, we already have what we want - but we need to calculate the hash
-    m_streamed_data.Reset(new MemoryStreamedData(writer.GetBuffer()));
-
-    m_mesh_data.Set(std::move(mesh_data));
-    AssertThrow(StreamedMeshData::IsInMemory());
 }
 
 bool StreamedMeshData::IsNull() const

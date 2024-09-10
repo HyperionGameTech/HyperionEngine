@@ -49,7 +49,7 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
 
 #pragma endregion Render commands
 
-TemporalAA::TemporalAA(const Extent2D &extent)
+TemporalAA::TemporalAA(const Vec2u &extent)
     : m_extent(extent),
       m_is_initialized(false)
 {
@@ -102,7 +102,7 @@ void TemporalAA::CreateImages()
     m_result_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA16F,
-        Extent3D(m_extent),
+        Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -114,7 +114,7 @@ void TemporalAA::CreateImages()
     m_history_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA16F,
-        Extent3D(m_extent),
+        Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -204,12 +204,12 @@ void TemporalAA::Render(Frame *frame)
         Vec2f   camera_near_far;
     } push_constants;
 
+    const Vec3u depth_texture_dimensions = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+        .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent();
+
     push_constants.dimensions = m_extent;
-    push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
-    );
-    push_constants.camera_near_far = Vector2(camera.clip_near, camera.clip_far);
+    push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
+    push_constants.camera_near_far = Vec2f { camera.clip_near, camera.clip_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->Bind(command_buffer);
@@ -219,8 +219,8 @@ void TemporalAA::Render(Frame *frame)
     m_compute_taa->Dispatch(
         command_buffer,
         Extent3D {
-            (m_extent.width + 7) / 8,
-            (m_extent.height + 7) / 8,
+            (m_extent.x + 7) / 8,
+            (m_extent.y + 7) / 8,
             1
         }
     );

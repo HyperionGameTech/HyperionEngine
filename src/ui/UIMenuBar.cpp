@@ -29,7 +29,7 @@ void UIMenuItem::Init()
 {
     UIObject::Init();
 
-    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -192,6 +192,8 @@ void UIMenuItem::UpdateDropDownMenu()
         drop_down_menu_item->SetPosition(offset);
 
         m_drop_down_menu->AddChildUIObject(drop_down_menu_item);
+
+        HYP_LOG(UI, LogLevel::DEBUG, "Menu item {} size: {}", drop_down_menu_item->GetName(), drop_down_menu_item->GetActualSize());
         
         offset += { 0, drop_down_menu_item->GetActualSize().y };
     }
@@ -214,6 +216,11 @@ void UIMenuItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_stat
             SetBackgroundColor(Vec4f::Zero());
         }
     }
+}
+
+void UIMenuItem::OnFontAtlasUpdate_Internal()
+{
+    UpdateDropDownMenu();
 }
 
 #pragma endregion UIMenuItem

@@ -24,8 +24,11 @@ struct DropDownMenuItem
 
 #pragma region UIMenuItem
 
+HYP_CLASS()
 class HYP_API UIMenuItem : public UIObject
 {
+    HYP_OBJECT_BODY(UIMenuItem);
+
 public:
     UIMenuItem(UIStage *stage, NodeProxy node_proxy);
     UIMenuItem(const UIMenuItem &other)                 = delete;
@@ -84,6 +87,8 @@ public:
 protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
+    virtual void OnFontAtlasUpdate_Internal() override;
+
 private:
     void UpdateDropDownMenu();
 
@@ -97,8 +102,11 @@ private:
 
 #pragma region UIMenuBar
 
+HYP_CLASS()
 class HYP_API UIMenuBar : public UIPanel
 {
+    HYP_OBJECT_BODY(UIMenuBar);
+
 public:
     UIMenuBar(UIStage *stage, NodeProxy node_proxy);
     UIMenuBar(const UIMenuBar &other)                   = delete;

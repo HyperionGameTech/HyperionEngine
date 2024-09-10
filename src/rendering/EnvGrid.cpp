@@ -935,7 +935,7 @@ void EnvGrid::ComputeSH(
         probe_index
     };
 
-    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
+    push_constants.cubemap_dimensions = { image->GetExtent().x, image->GetExtent().y, 0, 0 };
 
     for (const DescriptorTableRef &descriptor_set_ref : m_compute_sh_descriptor_tables) {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
@@ -1139,9 +1139,9 @@ void EnvGrid::OffsetVoxelGrid(
     m_offset_voxel_grid->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            (m_voxel_grid_texture->GetImage()->GetExtent().width + 7) / 8,
-            (m_voxel_grid_texture->GetImage()->GetExtent().height + 7) / 8,
-            (m_voxel_grid_texture->GetImage()->GetExtent().depth + 7) / 8
+            (m_voxel_grid_texture->GetImage()->GetExtent().x + 7) / 8,
+            (m_voxel_grid_texture->GetImage()->GetExtent().y + 7) / 8,
+            (m_voxel_grid_texture->GetImage()->GetExtent().z + 7) / 8
         }
     );
 
@@ -1164,7 +1164,7 @@ void EnvGrid::VoxelizeProbe(
     AssertThrow(probe.IsValid());
 
     const ImageRef &color_image = m_framebuffer->GetAttachment(0)->GetImage();
-    const Extent2D cubemap_dimensions = Extent2D(color_image->GetExtent());
+    const Vec3u cubemap_dimensions = color_image->GetExtent();
 
     struct alignas(128)
     {
@@ -1182,7 +1182,7 @@ void EnvGrid::VoxelizeProbe(
     };
 
     push_constants.voxel_texture_dimensions = Vec4u(voxel_grid_texture_extent, 0);
-    push_constants.cubemap_dimensions = { cubemap_dimensions.width, cubemap_dimensions.height, 0, 0 };
+    push_constants.cubemap_dimensions = Vec4u(cubemap_dimensions, 0);
     push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
 
     color_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
@@ -1241,8 +1241,8 @@ void EnvGrid::VoxelizeProbe(
         m_voxelize_probe->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
-                (cubemap_dimensions.width + 31) / 32,//(framebuffer_dimensions.width + 31) / 32,
-                (cubemap_dimensions.height + 31) / 32,//(framebuffer_dimensions.height + 31) / 32,
+                (cubemap_dimensions.x + 31) / 32,//(framebuffer_dimensions.width + 31) / 32,
+                (cubemap_dimensions.y + 31) / 32,//(framebuffer_dimensions.height + 31) / 32,
                 1
             }
         );

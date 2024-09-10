@@ -83,7 +83,9 @@ public:
 
     void RegisterClass(TypeID type_id, HypClass *hyp_class);
 
-    void RegisterManagedClass(const HypClass *hyp_class, dotnet::Class *managed_class);
+    void RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class);
+    void UnregisterManagedClass(dotnet::Class *managed_class);
+
     dotnet::Class *GetManagedClass(const HypClass *hyp_class) const;
 
     void Initialize();

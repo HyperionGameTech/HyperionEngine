@@ -6,6 +6,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
+#include <core/utilities/StringView.hpp>
+
 #include <dotnet/interop/ManagedGuid.hpp>
 
 #include <Engine.hpp>
@@ -18,7 +20,7 @@ struct ManagedMethod
     ManagedGuid     guid;
     Array<String>   attribute_names;
 
-    HYP_FORCE_INLINE bool HasAttribute(const char *attribute_name) const
+    HYP_FORCE_INLINE bool HasAttribute(UTF8StringView attribute_name) const
     {
         for (const String &name : attribute_names) {
             if (name == attribute_name) {

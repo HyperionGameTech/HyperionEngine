@@ -1,10 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/Node.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
+
 #include <scene/animation/Bone.hpp>
 
 #include <core/system/Debug.hpp>
@@ -24,7 +28,7 @@
 
 namespace hyperion {
 
-static const String unnamed_node_name = "<unnamed>";
+static const String g_unnamed_node_name = "<unnamed>";
 
 #pragma region NodeTag
 
@@ -121,7 +125,7 @@ Node::Node(
     const Transform &local_transform,
     Scene *scene
 ) : m_type(type),
-    m_name(name.Empty() ? unnamed_node_name : name),
+    m_name(name.Empty() ? g_unnamed_node_name : name),
     m_parent_node(nullptr),
     m_local_transform(local_transform),
     m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -145,7 +149,7 @@ Node::Node(Node &&other) noexcept
 {
     other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
-    other.m_name = unnamed_node_name;
+    other.m_name = g_unnamed_node_name;
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
@@ -233,7 +237,7 @@ Node::~Node()
 void Node::SetName(const String &name)
 {
     if (name.Empty()) {
-        m_name = unnamed_node_name;
+        m_name = g_unnamed_node_name;
     } else {
         m_name = name;
     }
@@ -280,6 +284,10 @@ void Node::SetScene(Scene *scene)
 #endif
 
         m_scene = scene;
+
+#ifdef HYP_EDITOR
+        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Scene"), m_scene);
+#endif
 
         // Move entity from previous scene to new scene
         if (m_entity.IsValid()) {
@@ -337,16 +345,10 @@ void Node::OnNestedNodeRemoved(const NodeProxy &node, bool direct)
     }
 }
 
-NodeProxy Node::AddChild()
-{
-    return AddChild(NodeProxy(new Node()));
-}
-
 NodeProxy Node::AddChild(const NodeProxy &node)
 {
     if (!node.IsValid()) {
-        // could not be added... return empty.
-        return NodeProxy::empty;
+        return AddChild(NodeProxy(new Node()));
     }
 
     if (node.Get() == this || node->GetParent() == this) {
@@ -410,13 +412,17 @@ bool Node::RemoveChild(NodeList::Iterator iter)
     return true;
 }
 
-bool Node::RemoveChild(SizeType index)
+bool Node::RemoveAt(int index)
 {
+    if (index < 0) {
+        index = int(m_child_nodes.Size()) + index;
+    }
+
     if (index >= m_child_nodes.Size()) {
         return false;
     }
 
-    return RemoveChild(m_child_nodes.begin() + index);
+    return RemoveChild(m_child_nodes.Begin() + index);
 }
 
 bool Node::Remove()
@@ -451,8 +457,12 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
-NodeProxy Node::GetChild(SizeType index) const
+NodeProxy Node::GetChild(int index) const
 {
+    if (index < 0) {
+        index = int(m_child_nodes.Size()) + index;
+    }
+
     if (index >= m_child_nodes.Size()) {
         return NodeProxy::empty;
     }
@@ -460,11 +470,11 @@ NodeProxy Node::GetChild(SizeType index) const
     return m_child_nodes[index];
 }
 
-NodeProxy Node::Select(const char *selector) const
+NodeProxy Node::Select(UTF8StringView selector) const
 {
     NodeProxy result;
 
-    if (selector == nullptr) {
+    if (selector.Size() == 0) {
         return result;
     }
 
@@ -476,10 +486,12 @@ NodeProxy Node::Select(const char *selector) const
 
     const Node *search_node = this;
 
-    while ((ch = selector[selector_index]) != '\0') {
+    const char *str = selector.Data();
+
+    while ((ch = str[selector_index]) != '\0') {
         const char prev_selector_char = selector_index == 0
             ? '\0'
-            : selector[selector_index - 1];
+            : str[selector_index - 1];
 
         ++selector_index;
 
@@ -658,6 +670,10 @@ void Node::SetEntity(ID<Entity> entity)
             m_scene->GetEntityManager()->AddComponent(m_entity, NodeLinkComponent {
                 WeakRefCountedPtrFromThis()
             });
+        }
+
+        if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity)) {
+            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, VisibilityStateComponent { });
         }
     } else {
         m_entity = ID<Entity>::invalid;
@@ -918,7 +934,7 @@ NodeProxy Node::FindChildWithEntity(ID<Entity> entity) const
     return NodeProxy::empty;
 }
 
-NodeProxy Node::FindChildByName(const String &name) const
+NodeProxy Node::FindChildByName(UTF8StringView name) const
 {
     // breadth-first search
     Queue<const Node *> queue;

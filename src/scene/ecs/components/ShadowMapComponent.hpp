@@ -25,14 +25,14 @@ class RenderComponentBase;
 HYP_STRUCT()
 struct ShadowMapComponent
 {
-    HYP_FIELD()
+    HYP_FIELD(SerializeAs=Mode)
     ShadowMode              mode = ShadowMode::STANDARD;
 
-    HYP_FIELD()
+    HYP_FIELD(SerializeAs=Radius)
     float                   radius = 20.0f;
 
-    HYP_FIELD()
-    Extent2D                resolution = { 512, 512 };
+    HYP_FIELD(SerializeAs=Resolution)
+    Vec2u                   resolution = Vec2u { 512, 512 };
 
     HYP_FIELD()
     RC<RenderComponentBase> render_component;
@@ -43,10 +43,9 @@ struct ShadowMapComponent
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hash_code;
-
         hash_code.Add(mode);
         hash_code.Add(radius);
-        hash_code.Add(Vec2u(resolution));
+        hash_code.Add(resolution);
 
         return hash_code;
     }

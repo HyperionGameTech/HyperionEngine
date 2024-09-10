@@ -18,7 +18,43 @@ namespace Hyperion
 
         public static void Log(LogType logLevel, string message, params object[] args)
         {
-            Log(defaultChannel, logLevel, message, args);
+            var frame = new System.Diagnostics.StackFrame(1, true);
+
+            string formattedMessage = message;
+
+            try
+            {
+                formattedMessage = string.Format(message, args);
+            }
+            catch (FormatException)
+            {
+                // Do nothing, just log as is
+            }
+
+            if (frame == null)
+            {
+                Logger_Log(defaultChannel.ptr, (uint)logLevel, "", 0, formattedMessage);
+
+                return;
+            }
+
+            string? funcName = frame.GetMethod()?.Name;
+
+            if (funcName == null)
+            {
+                funcName = "<Unknown>";
+            }
+
+            string? fileName = frame.GetFileName();
+
+            if (fileName != null)
+            {
+                fileName = fileName.Replace("\\", "/").Substring(fileName.LastIndexOf('/') + 1);
+            }
+            
+            uint line = (uint)frame.GetFileLineNumber();
+
+            Logger_Log(defaultChannel.ptr, (uint)logLevel, funcName, line, formattedMessage);
         }
 
         public static void Log(LogChannel channel, LogType logLevel, string message, params object[] args)

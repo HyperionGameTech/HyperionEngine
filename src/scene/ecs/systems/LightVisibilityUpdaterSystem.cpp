@@ -98,14 +98,14 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
-    for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
             continue;
         }
 
         // For area lights, update the material ID if the entity has a MeshComponent.
         if (light_component.light->GetType() == LightType::AREA_RECT) {
-            /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity_id)) {
+            /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {
                 light_component.light->SetMaterial(mesh_component->material);
             } else {
                 light_component.light->SetMaterial(Handle<Material>::empty);
@@ -118,7 +118,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
             if (light_component.light->GetType() == LightType::DIRECTIONAL) {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
 
-                VisibilityStateComponent *visibility_state_component = GetEntityManager().TryGetComponent<VisibilityStateComponent>(entity_id);
+                VisibilityStateComponent *visibility_state_component = GetEntityManager().TryGetComponent<VisibilityStateComponent>(entity);
 
                 if (visibility_state_component) {
                     visibility_state_component->flags |= VISIBILITY_STATE_FLAG_INVALIDATED;

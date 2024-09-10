@@ -48,12 +48,6 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
-
-    DebugLog(
-        LogType::Debug,
-        "Using %llu descriptor set layouts in pipeline\n",
-        used_layouts.Size()
-    );
     
     if (used_layouts.Size() > max_set_layouts) {
         DebugLog(

@@ -168,6 +168,25 @@ private:
     Mutex                                   m_dynamic_log_channels_mutex;
 };
 
+namespace detail {
+
+struct LogOnceHelper
+{
+    template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogLevel LogOnceLogLevel, auto LogOnceFormatString, class... LogOnceArgTypes>
+    static void ExecuteLogOnce(const LogChannel &channel, LogOnceArgTypes &&... args)
+    {
+        static bool logged = false;
+
+        if (logged) {
+            return;
+        }
+
+        Logger::GetInstance().Log< LogOnceLogLevel, LogOnceFunctionName, LogOnceFormatString >(channel, std::forward<LogOnceArgTypes>(args)...);
+    }
+};
+
+} // namespace detail
+
 } // namespace logging
 
 using logging::Logger;
@@ -207,13 +226,17 @@ using logging::LogLevel;
     #define HYP_LOG(channel, level, fmt, ...) \
         hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
 
+    // #define HYP_LOG_ONCE(channel, level, fmt, ...) \
+    //     do { \
+    //         static bool HYP_CONCAT(_log_once_, __LINE__) = false; \
+    //         if (!HYP_CONCAT(_log_once_, __LINE__)) { \
+    //             HYP_CONCAT(_log_once_, __LINE__) = true; \
+    //             HYP_LOG(channel, level, fmt __VA_OPT__(,) __VA_ARGS__); \
+    //         } \
+    //     } while (0)
     #define HYP_LOG_ONCE(channel, level, fmt, ...) \
         do { \
-            static bool HYP_CONCAT(_log_once_, __LINE__) = false; \
-            if (!HYP_CONCAT(_log_once_, __LINE__)) { \
-                HYP_CONCAT(_log_once_, __LINE__) = true; \
-                HYP_LOG(channel, level, fmt __VA_OPT__(,) __VA_ARGS__); \
-            } \
+            ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce< HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, level, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__); \
         } while (0)
 #endif
 

@@ -26,7 +26,7 @@ public:
     HYP_FORCE_INLINE bool IsRendered() const
         { return m_is_rendered; }
 
-    Extent3D GetExtent() const;
+    Vec2u GetExtent() const;
 
     void Create(const AttachmentRef &depth_attachment);
 

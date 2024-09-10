@@ -32,6 +32,8 @@ namespace Hyperion
         internal void BeforeInit(Scene scene)
         {
             this.scene = scene;
+
+            Logger.Log(LogType.Info, "{0} BeforeInit: this.scene = {1}", GetType().Name, this.scene);
         }
 
         public virtual void Init(Entity entity)

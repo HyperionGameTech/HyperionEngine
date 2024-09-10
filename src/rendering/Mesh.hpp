@@ -91,13 +91,16 @@ public:
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
+    HYP_METHOD(SerializeAs=StreamedMeshData)
     HYP_FORCE_INLINE const RC<StreamedMeshData> &GetStreamedMeshData() const
         { return m_streamed_mesh_data; }
 
     /*! \brief Set the mesh data for the Mesh. Only usable on the Render thread. If needed
         from another thread, use the static version of this function. */
+    HYP_METHOD(SerializeAs=StreamedMeshData)
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
-    static void SetStreamedMeshData(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
+
+    static void SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
 
     HYP_METHOD(SerializeAs=VertexAttributes)
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const

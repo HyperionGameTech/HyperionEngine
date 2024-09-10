@@ -29,27 +29,27 @@ public:
 
     FullScreenPass(
         InternalFormat image_format,
-        Extent2D extent = Extent2D { 0, 0 }
+        Vec2u extent = Vec2u { 0, 0 }
     );
 
     FullScreenPass(
         const ShaderRef &shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
-        Extent2D extent = Extent2D { 0, 0 }
+        Vec2u extent = Vec2u { 0, 0 }
     );
 
     FullScreenPass(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
-        Extent2D extent = Extent2D { 0, 0 }
+        Vec2u extent = Vec2u { 0, 0 }
     );
 
     FullScreenPass(const FullScreenPass &)              = delete;
     FullScreenPass &operator=(const FullScreenPass &)   = delete;
     virtual ~FullScreenPass();
 
-    HYP_FORCE_INLINE const Extent2D &GetExtent() const
+    HYP_FORCE_INLINE const Vec2u &GetExtent() const
         { return m_extent; }
 
     HYP_FORCE_INLINE InternalFormat GetFormat() const
@@ -92,7 +92,7 @@ public:
 
     /*! \brief Resizes the full screen pass to the new size.
      *  Callable on any thread, as it enqueues a render command. */
-    void Resize(Extent2D new_size);
+    void Resize(Vec2u new_size);
 
     virtual void CreateCommandBuffers();
     virtual void CreateFramebuffer();
@@ -112,14 +112,14 @@ public:
 protected:
     void CreateQuad();
 
-    virtual void Resize_Internal(Extent2D new_size);
+    virtual void Resize_Internal(Vec2u new_size);
 
     FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;
     Handle<RenderGroup>                                 m_render_group;
     Handle<Mesh>                                        m_full_screen_quad;
-    Extent2D                                            m_extent;
+    Vec2u                                               m_extent;
 
     PushConstantData                                    m_push_constant_data;
 

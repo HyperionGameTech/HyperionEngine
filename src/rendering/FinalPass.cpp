@@ -252,7 +252,7 @@ void FinalPass::Create()
     // Create final image to hold last frame's color texture
 
     m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
-        Extent3D { m_extent.width, m_extent.height, 1 },
+        Vec3u { m_extent.x, m_extent.y, 1 },
         InternalFormat::RGBA8_SRGB,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
@@ -298,7 +298,7 @@ void FinalPass::Create()
     m_render_texture_to_screen_pass->Create();
 }
 
-void FinalPass::Resize_Internal(Extent2D new_size)
+void FinalPass::Resize_Internal(Vec2u new_size)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);

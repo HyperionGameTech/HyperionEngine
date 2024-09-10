@@ -365,12 +365,6 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     }
     
     Array<VkDescriptorSetLayout> used_layouts = Pipeline<Platform::VULKAN>::m_platform_impl.GetDescriptorSetLayouts();
-    
-    DebugLog(
-        LogType::Debug,
-        "Using %llu descriptor set layouts in pipeline\n",
-        used_layouts.Size()
-    );
 
     for (VkDescriptorSetLayout vk_descriptor_set_layout : used_layouts) {
         if (vk_descriptor_set_layout == VK_NULL_HANDLE) {

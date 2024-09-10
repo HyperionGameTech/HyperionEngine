@@ -413,11 +413,6 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             }
         );
 
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
-            entity,
-            VisibilityStateComponent { }
-        );
-
         NodeProxy node(new Node(obj_mesh.name));
         node->SetEntity(entity);
         

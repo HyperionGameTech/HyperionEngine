@@ -141,7 +141,7 @@ HYP_EXPORT bool HypData_IsArray(const HypData *hyp_data)
     return hyp_data->Is<Array<HypData>>();
 }
 
-HYP_EXPORT bool HypData_GetArray(const HypData *hyp_data, HypData **out_array, uint32 *out_size)
+HYP_EXPORT bool HypData_GetArray(HypData *hyp_data, HypData **out_array, uint32 *out_size)
 {
     if (!hyp_data || !out_array || !out_size) {
         return false;

@@ -247,7 +247,7 @@ void EnvProbe::Init()
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     reflection_probe_format,
-                    Extent3D { m_dimensions.width, m_dimensions.height, 1 },
+                    Vec3u { m_dimensions.width, m_dimensions.height, 1 },
                     FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
                     FilterMode::TEXTURE_FILTER_LINEAR
                 }
@@ -257,7 +257,7 @@ void EnvProbe::Init()
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     shadow_probe_format,
-                    Extent3D { m_dimensions.width, m_dimensions.height, 1 },
+                    Vec3u { m_dimensions.width, m_dimensions.height, 1 },
                     FilterMode::TEXTURE_FILTER_NEAREST,
                     FilterMode::TEXTURE_FILTER_NEAREST
                 }

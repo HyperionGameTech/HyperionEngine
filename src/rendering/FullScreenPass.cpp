@@ -46,9 +46,9 @@ struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer) : renderer::RenderCommand
 {
     FullScreenPass  &full_screen_pass;
-    Extent2D        new_size;
+    Vec2u           new_size;
 
-    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)(FullScreenPass &full_screen_pass, Extent2D new_size)
+    RENDER_COMMAND(RecreateFullScreenPassFramebuffer)(FullScreenPass &full_screen_pass, Vec2u new_size)
         : full_screen_pass(full_screen_pass),
           new_size(new_size)
     {
@@ -71,11 +71,11 @@ struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer) : renderer::RenderComma
 #pragma endregion Render commands
 
 FullScreenPass::FullScreenPass()
-    : FullScreenPass(InternalFormat::NONE, Extent2D { 0, 0 })
+    : FullScreenPass(InternalFormat::NONE, Vec2u::Zero())
 {
 }
 
-FullScreenPass::FullScreenPass(InternalFormat image_format, Extent2D extent)
+FullScreenPass::FullScreenPass(InternalFormat image_format, Vec2u extent)
     : FullScreenPass(nullptr, image_format, extent)
 {
 }
@@ -84,7 +84,7 @@ FullScreenPass::FullScreenPass(
     const ShaderRef &shader,
     const DescriptorTableRef &descriptor_table,
     InternalFormat image_format,
-    Extent2D extent
+    Vec2u extent
 ) : FullScreenPass(
         shader,
         image_format,
@@ -97,7 +97,7 @@ FullScreenPass::FullScreenPass(
 FullScreenPass::FullScreenPass(
     const ShaderRef &shader,
     InternalFormat image_format,
-    Extent2D extent
+    Vec2u extent
 ) : m_shader(shader),
     m_image_format(image_format),
     m_extent(extent),
@@ -163,12 +163,12 @@ void FullScreenPass::SetBlendFunction(const BlendFunction &blend_function)
     m_blend_function = blend_function;
 }
 
-void FullScreenPass::Resize(Extent2D new_size)
+void FullScreenPass::Resize(Vec2u new_size)
 {
     PUSH_RENDER_COMMAND(RecreateFullScreenPassFramebuffer, *this, new_size);
 }
 
-void FullScreenPass::Resize_Internal(Extent2D new_size)
+void FullScreenPass::Resize_Internal(Vec2u new_size)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
@@ -187,7 +187,7 @@ void FullScreenPass::Resize_Internal(Extent2D new_size)
 
     SafeRelease(std::move(m_framebuffer));
 
-    if (new_size.Size() == 0) {
+    if (new_size.x * new_size.y == 0) {
         new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
@@ -214,7 +214,7 @@ void FullScreenPass::CreateCommandBuffers()
 
 void FullScreenPass::CreateFramebuffer()
 {
-    if (m_extent.Size() == 0) {
+    if (m_extent.x * m_extent.y == 0) {
         // TODO: Make non render-thread dependent
         m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }

@@ -34,9 +34,11 @@ enum class WorldGridPatchState
     LOADED
 };
 
+HYP_STRUCT()
 struct WorldGridPatchNeighbor
 {
-    Vec2i   coord { 0, 0 };
+    HYP_FIELD(SerializeAs=Coord)
+    Vec2i   coord;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
         { return Vec2f(coord) - 0.5f; }
@@ -48,14 +50,26 @@ struct WorldGridPatchUpdate
     WorldGridPatchState state;
 };
 
+HYP_STRUCT()
 struct WorldGridPatchInfo
 {
+    HYP_FIELD(SerializeAs=Extent)
     Vec3i                                   extent;
-    Vec2i                                   coord { 0, 0 };
-    Vec3f                                   scale { 1.0f };
-    WorldGridPatchState                     state { WorldGridPatchState::UNLOADED };
-    float                                   unload_timer { 0.0f };
-    FixedArray<WorldGridPatchNeighbor, 8>   neighbors { };
+
+    HYP_FIELD(SerializeAs=Coord)
+    Vec2i                                   coord;
+    
+    HYP_FIELD(SerializeAs=Scale)
+    Vec3f                                   scale = Vec3f::One();
+
+    HYP_FIELD(SerializeAs=State)
+    WorldGridPatchState                     state = WorldGridPatchState::UNLOADED;
+
+    HYP_FIELD(SerializeAs=Neighbors)
+    FixedArray<WorldGridPatchNeighbor, 8>   neighbors;
+
+    HYP_FIELD()
+    float                                   unload_timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

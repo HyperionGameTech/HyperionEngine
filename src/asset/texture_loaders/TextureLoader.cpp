@@ -86,7 +86,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             data.format,
-            Extent3D { uint32(data.width), uint32(data.height), 1 },
+            Vec3u { uint32(data.width), uint32(data.height), 1 },
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
             FilterMode::TEXTURE_FILTER_LINEAR,
             WrapMode::TEXTURE_WRAP_REPEAT

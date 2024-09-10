@@ -29,8 +29,11 @@ enum class UIDockableItemPosition : uint32
 
 #pragma region UIDockableItem
 
+HYP_CLASS()
 class HYP_API UIDockableItem : public UIPanel
 {
+    HYP_OBJECT_BODY(UIDockableItem);
+
 public:
     UIDockableItem(UIStage *stage, NodeProxy node_proxy);
     UIDockableItem(const UIDockableItem &other)                 = delete;
@@ -44,8 +47,11 @@ public:
 
 #pragma region UIDockableContainer
 
+HYP_CLASS()
 class HYP_API UIDockableContainer : public UIPanel
 {
+    HYP_OBJECT_BODY(UIDockableContainer);
+
 public:
     UIDockableContainer(UIStage *stage, NodeProxy node_proxy);
     UIDockableContainer(const UIDockableContainer &other)                   = delete;

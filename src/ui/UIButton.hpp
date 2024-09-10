@@ -10,8 +10,11 @@ namespace hyperion {
 class UIStage;
 class UIText;
 
+HYP_CLASS()
 class HYP_API UIButton : public UIObject
 {
+    HYP_OBJECT_BODY(UIButton);
+
 public:
     UIButton(UIStage *stage, NodeProxy node_proxy);
     UIButton(const UIButton &other)                 = delete;

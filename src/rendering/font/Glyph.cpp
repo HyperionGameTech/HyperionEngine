@@ -34,7 +34,7 @@ Handle<Texture> GlyphImageData::CreateTexture() const
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::R8,
-            Extent3D { dimensions.width, dimensions.height, 1 }
+            Vec3u { dimensions.width, dimensions.height, 1 }
         },
         byte_buffer
     }));

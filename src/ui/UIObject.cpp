@@ -116,6 +116,7 @@ UIObject::UIObject(UIObjectType type)
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
+      m_text_size(-1.0f),
       m_border_radius(5),
       m_border_flags(UIObjectBorderFlags::NONE),
       m_focus_state(UIObjectFocusState::NONE),
@@ -160,7 +161,6 @@ void UIObject::Init()
     AssertThrow(scene != nullptr);
 
     scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), CreateMaterial() });
-    scene->GetEntityManager()->AddComponent(GetEntity(), VisibilityStateComponent { });
     scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent { });
 
     OnMouseDown.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDown" }).Detach();
@@ -182,6 +182,8 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
+
+    SetNeedsRepaintFlag(true);
 }
 
 void UIObject::Update(GameCounter::TickUnit delta)
@@ -693,6 +695,37 @@ void UIObject::SetText(const String &text)
     m_text = text;
 }
 
+float UIObject::GetTextSize() const
+{
+    HYP_SCOPE;
+
+    if (m_text_size <= 0.0f) {
+        UIObject *parent = GetParentUIObject();
+
+        if (parent != nullptr) {
+            return parent->GetTextSize();
+        }
+
+        return 16.0f; // default font size
+    }
+
+    return m_text_size;
+}
+
+void UIObject::SetTextSize(float text_size)
+{
+    HYP_SCOPE;
+
+    if (m_text_size == text_size || (m_text_size <= 0.0f && text_size <= 0.0f)) {
+        return;
+    }
+
+    m_text_size = text_size;
+
+    UpdateSize();
+    UpdatePosition();
+}
+
 bool UIObject::IsVisible() const
 {
     return m_is_visible;
@@ -824,10 +857,6 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
     }
 
     ui_object->OnAttached_Internal(this);
-
-    ui_object->UpdateSize();
-    ui_object->UpdatePosition();
-    ui_object->UpdateMeshData();
 }
 
 bool UIObject::RemoveChildUIObject(UIObject *ui_object)
@@ -888,7 +917,7 @@ int UIObject::RemoveAllChildUIObjects(const Proc<bool, const RC<UIObject> &> &pr
 
     int num_removed = 0;
 
-    Array<RC<UIObject>> children = GetChildUIObjects(predicate, false);
+    Array<RC<UIObject>> children = FilterChildUIObjects(predicate, false);
 
     for (const RC<UIObject> &child : children) {
         if (RemoveChildUIObject(child)) {
@@ -1033,6 +1062,8 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
 
 BoundingBox UIObject::CalculateAABB() const
 {
+    HYP_SCOPE;
+
     const Vec3f min = Vec3f::Zero();
     const Vec3f max = Vec3f { float(m_actual_size.x), float(m_actual_size.y), 0.0f };
 
@@ -1041,6 +1072,8 @@ BoundingBox UIObject::CalculateAABB() const
 
 BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
+    HYP_SCOPE;
+
     if (const NodeProxy &node = GetNode()) {
         const BoundingBox &node_aabb = node->GetLocalAABB();
 
@@ -1054,6 +1087,8 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 
 void UIObject::SetAffectsParentSize(bool affects_parent_size)
 {
+    HYP_SCOPE;
+
     if (m_affects_parent_size == affects_parent_size) {
         return;
     }
@@ -1074,7 +1109,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     HYP_SCOPE;
 
     return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_DEFAULT" }) },
+        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
         .bucket             = Bucket::BUCKET_UI,
         .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
@@ -1300,22 +1335,23 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         if (phase == UpdateSizePhase::AFTER_CHILDREN) {
             Vec2f dynamic_size;
 
-            const Vec3f extent = CalculateInnerAABB_Internal().GetExtent();
+            const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
 
             if ((in_size.GetFlagsX() & UIObjectSize::AUTO) && (in_size.GetFlagsY() & UIObjectSize::AUTO)) {
                 // If both X and Y are set to auto, use the AABB size (we can't calculate a ratio if both are auto)
-                dynamic_size = Vec2f { extent.x, extent.y };
+                dynamic_size = Vec2f { inner_extent.x, inner_extent.y };
             } else {
-                float ratio = (extent.x / MathUtil::Max(extent.y, MathUtil::epsilon_f));
+                const float inner_width = (in_size.GetFlagsX() & UIObjectSize::AUTO) ? inner_extent.x : float(actual_size.x);
+                const float inner_height = (in_size.GetFlagsY() & UIObjectSize::AUTO) ? inner_extent.y : float(actual_size.y);
 
-                // // @TEMP TESTING
-                // if (float(m_aspect_ratio) != 1.0f) {
-                //     ratio = float(m_aspect_ratio);
-                // }
+                // const float ratio = MathUtil::Max((inner_extent.x / MathUtil::Max(inner_extent.y, MathUtil::epsilon_f)), MathUtil::epsilon_f);
+                const float ratio = MathUtil::Max((inner_width / MathUtil::Max(inner_height, MathUtil::epsilon_f)), MathUtil::epsilon_f);
 
                 dynamic_size = Vec2f {
-                    float(actual_size.y) * ratio,
-                    float(actual_size.x) / ratio
+                    inner_width,
+                    inner_height
+                    // float(actual_size.y) * ratio,
+                    // float(actual_size.x) / ratio
                 };
             }
 
@@ -1629,7 +1665,7 @@ void UIObject::RemoveScriptComponent()
     scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
 }
 
-const RC<UIObject> &UIObject::GetChildUIObject(SizeType index) const
+const RC<UIObject> &UIObject::GetChildUIObject(int index) const
 {
     HYP_SCOPE;
     
@@ -1637,11 +1673,10 @@ const RC<UIObject> &UIObject::GetChildUIObject(SizeType index) const
 
     const RC<UIObject> *child_object_ptr = &empty;
 
-    SizeType current_index = 0;
+    int current_index = 0;
 
     ForEachChildUIObject([&child_object_ptr, &current_index, index](const RC<UIObject> &child)
     {
-
         if (current_index == index) {
             child_object_ptr = &child;
 
@@ -1836,7 +1871,7 @@ Array<RC<UIObject>> UIObject::GetChildUIObjects(bool deep) const
     return child_objects;
 }
 
-Array<RC<UIObject>> UIObject::GetChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
+Array<RC<UIObject>> UIObject::FilterChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
 {
     HYP_SCOPE;
     
@@ -2025,10 +2060,6 @@ void UIObject::SetNeedsRepaintFlag(bool needs_repaint)
     if (needs_repaint) {
         ForEachParentUIObject([](UIObject *parent)
         {
-            // if (parent->m_needs_repaint) {
-            //     return UIObjectIterationResult::STOP;
-            // }
-
             parent->m_needs_repaint.Set(true, MemoryOrder::RELEASE);
 
             return UIObjectIterationResult::CONTINUE;

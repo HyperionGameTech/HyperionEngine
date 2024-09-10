@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {   
+    [HypClassBinding(Name="UIComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct UIComponent : IComponent
     {

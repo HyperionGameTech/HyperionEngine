@@ -121,19 +121,19 @@ struct ProcessAssetFunctor : public ProcessAssetFunctorBase
     }
 };
 
-struct AssetBatch : private TaskBatch
+class AssetBatch : private TaskBatch, public EnableRefCountedPtrFromThis<AssetBatch>
 {
 private:
     // make it be a ptr so this can be moved
-    UniquePtr<AssetMap> enqueued_assets;
+    UniquePtr<AssetMap> m_enqueued_assets;
 
 public:
     using TaskBatch::IsCompleted;
 
     AssetBatch(AssetManager *asset_manager)
         : TaskBatch(),
-          enqueued_assets(new AssetMap),
-          asset_manager(asset_manager)
+          m_enqueued_assets(new AssetMap),
+          m_asset_manager(asset_manager)
     {
         AssertThrow(asset_manager != nullptr);
     }
@@ -145,21 +145,21 @@ public:
 
     ~AssetBatch()
     {
-        if (enqueued_assets != nullptr) {
+        if (m_enqueued_assets != nullptr) {
             // all tasks must be completed or the destruction of enqueued_assets
             // will cause a dangling ptr issue.
             AssertThrowMsg(
-                enqueued_assets->Empty(),
+                m_enqueued_assets->Empty(),
                 "All enqueued assets must be completed before the destructor of AssetBatch is called or else dangling pointer issues will occur."
             );
         }
     }
 
     HYP_FORCE_INLINE AssetBatchCallbacks &GetCallbacks()
-        { return callbacks; }
+        { return m_callbacks; }
 
     HYP_FORCE_INLINE const AssetBatchCallbacks &GetCallbacks() const
-        { return callbacks; }
+        { return m_callbacks; }
 
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
@@ -172,15 +172,15 @@ public:
     HYP_API AssetMap AwaitResults();
     HYP_API AssetMap ForceLoad();
 
-    AssetManager                                *asset_manager;
+    AssetManager                                *m_asset_manager;
 
     /*! \brief Functions bound to this delegates are called in
      *  the game thread. */
     Delegate<void, AssetMap &>                  OnComplete;
 
 private:
-    Array<UniquePtr<ProcessAssetFunctorBase>>   procs;
-    AssetBatchCallbacks                         callbacks;
+    Array<UniquePtr<ProcessAssetFunctorBase>>   m_procs;
+    AssetBatchCallbacks                         m_callbacks;
 };
 
 } // namespace hyperion

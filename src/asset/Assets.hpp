@@ -31,8 +31,8 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetCache;
+class AssetBatch;
 struct AssetBatchCallbacks;
-struct AssetBatch;
 
 struct ProcessAssetFunctorBase;
 
@@ -175,6 +175,9 @@ public:
         { HYP_NOT_IMPLEMENTED(); }
 
 private:
+    /*! \internal Called from AssetBatch on LoadAsync() */
+    HYP_API void AddPendingBatch(const RC<AssetBatch> &batch);
+
     HYP_API const AssetLoaderDefinition *GetLoader(const FilePath &path, TypeID desired_type_id = TypeID::Void());
 
     HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr);

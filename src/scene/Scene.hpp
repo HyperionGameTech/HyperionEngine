@@ -18,7 +18,6 @@
 
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -165,6 +164,7 @@ public:
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsWorldScene() const
         { return !m_is_non_world_scene; }
 

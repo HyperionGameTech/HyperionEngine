@@ -67,7 +67,8 @@ public:
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
 
-    const HypClass *GetParent() const;
+    HYP_FORCE_INLINE const HypClass *GetParent() const
+        { return m_parent; }
 
     virtual SizeType GetSize() const = 0;
 
@@ -104,15 +105,21 @@ public:
     HYP_FORCE_INLINE const Array<HypProperty *> &GetProperties() const
         { return m_properties; }
 
+    Array<HypProperty *> GetPropertiesInherited() const;
+
     HypMethod *GetMethod(WeakName name) const;
 
     HYP_FORCE_INLINE const Array<HypMethod *> &GetMethods() const
         { return m_methods; }
 
+    Array<HypMethod *> GetMethodsInherited() const;
+
     HypField *GetField(WeakName name) const;
 
     HYP_FORCE_INLINE const Array<HypField *> &GetFields() const
         { return m_fields; }
+
+    Array<HypField *> GetFieldsInherited() const;
 
     dotnet::Class *GetManagedClass() const;
 
@@ -122,8 +129,7 @@ public:
 
     HYP_FORCE_INLINE void CreateInstance(HypData &out) const
     {
-        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s",
-            GetName().LookupString());
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s", GetName().LookupString());
 
         CreateInstance_Internal(out);
     }
@@ -146,6 +152,7 @@ protected:
     TypeID                          m_type_id;
     Name                            m_name;
     Name                            m_parent_name;
+    const HypClass                  *m_parent;
     HashMap<String, String>         m_attributes;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;

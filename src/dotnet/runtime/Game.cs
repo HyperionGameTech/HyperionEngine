@@ -55,8 +55,6 @@ namespace Hyperion
             Console.WriteLine("Game BeforeInit: this.scene = {0}, this.inputManager = {1}", this.scene, this.inputManager);
 
             HypClass boundingBoxClass = (HypClass)HypClass.GetClass("BoundingBox");
-            // object boundingBoxTest = HypStructRegistry.CreateInstance(boundingBoxClass);
-            // Console.WriteLine("BoundingBox Test = {0} {1}", boundingBoxTest, boundingBoxTest.GetType().Name);
 
             foreach (var field in boundingBoxClass.Fields)
             {
@@ -72,7 +70,7 @@ namespace Hyperion
             // Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
             Console.WriteLine("this.scene.World = {0}", this.scene.GetWorld());
             // Console.WriteLine("this.scene.World.ID = {0}", this.scene.GetWorld().ID);
-            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.GetWorld().GetGameTime());
+            Console.WriteLine("this.scene.World.GameTime = {0}", this.scene.GetWorld().GetGameState().GameTime);
 
             HypData testArray = new HypData(new float[] { 1.0f, 2.0f, 3.0f, 4.0f });
             Console.WriteLine("TestArray = {0}", testArray.GetValue());

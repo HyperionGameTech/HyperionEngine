@@ -72,12 +72,10 @@ Array<UICharMesh> CharMeshBuilder::BuildCharMeshes(const FontAtlas &font_atlas, 
 
     const float cell_dimensions_ratio = cell_dimensions.x / cell_dimensions.y;
 
-    AssertThrowMsg(font_atlas.GetAtlases() != nullptr, "Font atlas invalid");
-
-    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlases()->GetMainAtlas();
+    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlasTextures().GetMainAtlas();
     AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
-    const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(Extent2D(main_texture_atlas->GetExtent()));
+    const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(main_texture_atlas->GetExtent().x, main_texture_atlas->GetExtent().y);
 
     for (SizeType i = 0; i < length; i++) {
         const utf::u32char ch = text.GetChar(i);
@@ -164,7 +162,6 @@ Handle<Mesh> CharMeshBuilder::OptimizeCharMeshes(Vec2i screen_size, Array<UIChar
     Transform base_transform;
 
     BoundingBox aabb = char_meshes[0].aabb;
-    HYP_LOG(UI, LogLevel::INFO, "Char mesh AABB: {}", aabb);
 
     Handle<Mesh> char_mesh = CreateObject<Mesh>(char_meshes[0].mesh_data);
     Handle<Mesh> transformed_mesh = MeshBuilder::ApplyTransform(char_mesh.Get(), base_transform * char_meshes[0].transform);
@@ -534,6 +531,8 @@ struct FontAtlasCharacterIterator
 
 static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, const Proc<void, const FontAtlasCharacterIterator &> &proc)
 {
+    HYP_SCOPE;
+
     Vec2f placement;
 
     const SizeType length = text.Length();
@@ -543,12 +542,10 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
 
     const float cell_dimensions_ratio = cell_dimensions.x / cell_dimensions.y;
 
-    AssertThrowMsg(font_atlas.GetAtlases() != nullptr, "Font atlas invalid");
-
-    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlases()->GetMainAtlas();
+    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlasTextures().GetMainAtlas();
     AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
-    const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(Extent2D(main_texture_atlas->GetExtent()));
+    const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(main_texture_atlas->GetExtent().GetXY());
 
     for (SizeType i = 0; i < length; i++) {
         UITextCharacter character { };
@@ -606,6 +603,8 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
 
 static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &text, bool include_bearing)
 {
+    HYP_SCOPE;
+
     BoundingBox aabb;
 
     ForEachCharacter(font_atlas, text, [include_bearing, &aabb](const FontAtlasCharacterIterator &iter)
@@ -634,12 +633,12 @@ struct RENDER_COMMAND(UpdateUITextRenderData) : renderer::RenderCommand
 {
     String                  text;
     RC<UITextRenderData>    render_data;
-    Vec2i                   size;
+    Vec2u                   size;
     BoundingBox             aabb;
     RC<FontAtlas>           font_atlas;
     Handle<Texture>         font_atlas_texture;
 
-    RENDER_COMMAND(UpdateUITextRenderData)(const String &text, const RC<UITextRenderData> &render_data, Vec2i size, const BoundingBox &aabb, const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
+    RENDER_COMMAND(UpdateUITextRenderData)(const String &text, const RC<UITextRenderData> &render_data, Vec2u size, const BoundingBox &aabb, const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
         : text(text),
           render_data(render_data),
           size(size),
@@ -718,7 +717,7 @@ struct RENDER_COMMAND(RepaintUIText) : renderer::RenderCommand
         }
 
         if (render_data->size.x * render_data->size.y <= 0) {
-            HYP_LOG(UI, LogLevel::WARNING, "Cannot repaint UI text, size is zero");
+            HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text, size is zero");
 
             HYPERION_RETURN_OK;
         }
@@ -728,43 +727,12 @@ struct RENDER_COMMAND(RepaintUIText) : renderer::RenderCommand
         text_renderer.RenderText(frame, *render_data);
 
         const ImageRef &src_image = text_renderer.GetFramebuffer()->GetAttachment(0)->GetImage();
-
-        // testing --- 
-
-        // ByteBuffer byte_buffer;
-        // byte_buffer.SetSize(render_data->size.x * render_data->size.y);
-
-        // for (SizeType i = 0; i < render_data->size.x * render_data->size.y; i++) {
-        //     byte_buffer.Data()[i] = 255;
-        // }
-
-        // RC<StreamedTextureData> streamed_texture_data(new StreamedTextureData(TextureData {
-        //     TextureDesc {
-        //         ImageType::TEXTURE_TYPE_2D,
-        //         InternalFormat::R8,
-        //         Extent3D { uint32(render_data->size.x), uint32(render_data->size.y), 1 }
-        //     },
-        //     byte_buffer
-        // }));
-
-        // Handle<Texture> test_texture = CreateObject<Texture>(std::move(streamed_texture_data));
-        // InitObject(test_texture);
-
-        // const ImageRef &src_image = test_texture->GetImage();
-
-
-
         const ImageRef &dst_image = texture->GetImage();
 
         src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
         dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
-        HYP_LOG(UI, LogLevel::DEBUG, "Blit image ({} x {}) to image ({} x {})", src_image->GetExtent().width, src_image->GetExtent().height, dst_image->GetExtent().width, dst_image->GetExtent().height);
-
-        dst_image->Blit(
-            frame->GetCommandBuffer(),
-            src_image
-        );
+        dst_image->Blit(frame->GetCommandBuffer(), src_image);
 
         src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
         dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
@@ -791,70 +759,96 @@ const RC<UITextRenderData> &UIText::GetRenderData() const
 
 void UIText::Init()
 {
+    HYP_SCOPE;
+
     UIObject::Init();
 
-    // UpdateMesh();
+    UpdateSize();
+    UpdateRenderData();
 }
 
 void UIText::SetText(const String &text)
 {
+    HYP_SCOPE;
+
     UIObject::SetText(text);
 
     UpdateSize();
-    // UpdateMesh();
+    UpdateRenderData();
 }
 
-RC<FontAtlas> UIText::GetFontAtlasOrDefault() const
-{
-    return m_font_atlas != nullptr
-        ? m_font_atlas
-        : (GetStage() != nullptr ? GetStage()->GetDefaultFontAtlas() : nullptr);
-}
-
-void UIText::SetFontAtlas(RC<FontAtlas> font_atlas)
-{
-    m_font_atlas = std::move(font_atlas);
-
-    UpdateSize();
-    UpdateMesh();
-}
-
-void UIText::UpdateMesh()
-{
-    const Scene *scene = GetScene();
-
-    if (!scene) {
-        return;
-    }
-
-    if (RC<FontAtlas> font_atlas = GetFontAtlasOrDefault()) {
-        Handle<Texture> font_atlas_texture = font_atlas->GetAtlases()->GetAtlasForPixelSize(GetActualSize().y);
-        UpdateRenderData(font_atlas, font_atlas_texture);
-
-        m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, true);
-        m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, false);
-    } else {
-        HYP_LOG(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
-
-        UpdateRenderData(nullptr, Handle<Texture>::empty);
-    }
-}
-
-void UIText::UpdateRenderData(const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
+const RC<FontAtlas> &UIText::GetFontAtlasOrDefault() const
 {
     HYP_SCOPE;
 
+    const UIStage *stage = GetStage();
+
+    if (!stage) {
+        return m_font_atlas;
+    }
+
+    return m_font_atlas != nullptr
+        ? m_font_atlas
+        : stage->GetDefaultFontAtlas();
+}
+
+void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
+{
+    HYP_SCOPE;
+
+    m_font_atlas = font_atlas;
+
+    UpdateSize();
+    UpdateRenderData();
+}
+
+void UIText::UpdateTextAABB()
+{
+    HYP_SCOPE;
+
+    if (const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault()) {
+        m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, true);
+        m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, false);
+    } else {
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
+    }
+
+    SetNeedsRepaintFlag();
+}
+
+void UIText::UpdateRenderData()
+{
+    HYP_SCOPE;
+
+    const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault();
+
+    if (!font_atlas) {
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas, cannot update text render data");
+
+        return;
+    }
+
+    const float text_size = GetTextSize();
+
+    Handle<Texture> font_atlas_texture = font_atlas->GetAtlasTextures().GetAtlasForPixelSize(text_size);
+
+    if (!font_atlas_texture) {
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas texture for text size {}, cannot update text render data", text_size);
+
+        return;
+    }
+
     const NodeProxy &node = GetNode();
 
-    const Vec2i size = MathUtil::Max(GetActualSize(), Vec2i::One());
+    const Vec2u size = MathUtil::Max(Vec2u(GetActualSize()), Vec2u::One());
 
-    if (!m_texture.IsValid() || Extent2D(m_texture->GetExtent()) != Extent2D(size)) {
+    if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size) {
         g_safe_deleter->SafeRelease(std::move(m_texture));
 
         m_texture = CreateObject<Texture>(TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA8,
-            Extent3D(Extent2D(size) * GetWindowDPIFactor()),
+            Vec3u { uint32(size.x * GetWindowDPIFactor()), uint32(size.y * GetWindowDPIFactor()), 1 },
             FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -867,7 +861,7 @@ void UIText::UpdateRenderData(const RC<FontAtlas> &font_atlas, const Handle<Text
         PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, size, m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
     }
 
-    SetNeedsRepaintFlag(true);
+    SetNeedsRepaintFlag();
 }
 
 bool UIText::Repaint_Internal()
@@ -877,10 +871,12 @@ bool UIText::Repaint_Internal()
     const Vec2i size = GetActualSize();
 
     if (size.x * size.y <= 0) {
-        HYP_LOG(UI, LogLevel::WARNING, "Cannot repaint UI text for element: {} - size is zero", GetName());
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text for element: {} - size is zero", GetName());
 
         return false;
     }
+
+    HYP_LOG(UI, LogLevel::DEBUG, "Repaint text '{}'", GetText());
 
     UITextRenderer text_renderer { Extent2D(size) };
 
@@ -891,14 +887,7 @@ bool UIText::Repaint_Internal()
 
 MaterialAttributes UIText::GetMaterialAttributes() const
 {
-    return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes, { "TYPE_TEXT" }) },
-        .bucket             = Bucket::BUCKET_UI,
-        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces         = FaceCullMode::BACK,
-        .flags              = MaterialAttributeFlags::NONE
-    };
+    return UIObject::GetMaterialAttributes();
 }
 
 Material::ParameterTable UIText::GetMaterialParameters() const
@@ -917,37 +906,31 @@ Material::TextureSet UIText::GetMaterialTextures() const
 
 void UIText::UpdateSize(bool update_children)
 {
+    HYP_SCOPE;
+
+    UpdateTextAABB();
+
     UIObject::UpdateSize(update_children);
 
     const Vec3f extent_with_bearing = m_text_aabb_with_bearing.GetExtent();
     const Vec3f extent_without_bearing = m_text_aabb_without_bearing.GetExtent();
 
-    const Vec3f extent_div = extent_with_bearing / extent_without_bearing;
-
-    const Vec2i size = GetActualSize();
-    m_actual_size = Vec2i(size.x, size.y * extent_div.y);
-
-    // Update material to get new font size if necessary
-    // UpdateMaterial();
-    // UpdateMeshData();
-
-    // UpdateMesh();
-
-    // if (IsInit()) {
-    //     HYP_LOG(UI, LogLevel::DEBUG, "Text AABB For {} : {}\tActual Size: {}", m_text, GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity()).world_aabb, GetActualSize());
-    // }
+    m_actual_size.y *= extent_with_bearing.y / extent_without_bearing.y;
 }
 
 BoundingBox UIText::CalculateInnerAABB_Internal() const
 {
-    return m_text_aabb_without_bearing;
+    return m_text_aabb_without_bearing * Vec3f(Vec2f(GetTextSize()), 1.0f);
 }
 
 void UIText::OnFontAtlasUpdate_Internal()
 {
+    HYP_SCOPE;
+
     UIObject::OnFontAtlasUpdate_Internal();
 
-    UpdateMesh();
+    UpdateSize();
+    UpdateRenderData();
     UpdateMaterial(false);
 }
 

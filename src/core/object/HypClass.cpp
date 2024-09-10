@@ -26,6 +26,7 @@ HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAtt
     : m_type_id(type_id),
       m_name(name),
       m_parent_name(parent_name),
+      m_parent(nullptr),
       m_flags(flags)
 {
     for (HypClassAttribute attr : attributes) {
@@ -77,19 +78,10 @@ HypClass::~HypClass()
 
 void HypClass::Initialize()
 {
-    
-}
-
-const HypClass *HypClass::GetParent() const
-{
-    if (!m_parent_name.IsValid()) {
-        return nullptr;
+    if (m_parent_name.IsValid()) {
+        m_parent = GetClass(m_parent_name);
+        AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
     }
-
-    const HypClass *parent_class = GetClass(m_parent_name);
-    AssertThrowMsg(parent_class != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
-    
-    return parent_class;
 }
 
 HypProperty *HypClass::GetProperty(WeakName name) const
@@ -107,6 +99,23 @@ HypProperty *HypClass::GetProperty(WeakName name) const
     return it->second;
 }
 
+Array<HypProperty *> HypClass::GetPropertiesInherited() const
+{
+    if (const HypClass *parent = GetParent()) {
+        FlatSet<HypProperty *> properties { GetProperties().Begin(), GetProperties().End() };
+
+        Array<HypProperty *> inherited_properties = parent->GetPropertiesInherited();
+
+        for (HypProperty *property : inherited_properties) {
+            properties.Insert(property);
+        }
+
+        return properties.ToArray();
+    }
+
+    return m_properties;
+}
+
 HypMethod *HypClass::GetMethod(WeakName name) const
 {
     const auto it = m_methods_by_name.FindAs(name);
@@ -122,6 +131,23 @@ HypMethod *HypClass::GetMethod(WeakName name) const
     return it->second;
 }
 
+Array<HypMethod *> HypClass::GetMethodsInherited() const
+{
+    if (const HypClass *parent = GetParent()) {
+        FlatSet<HypMethod *> methods { m_methods.Begin(), m_methods.End() };
+
+        Array<HypMethod *> inherited_methods = parent->GetMethodsInherited();
+
+        for (HypMethod *method : inherited_methods) {
+            methods.Insert(method);
+        }
+
+        return methods.ToArray();
+    }
+
+    return m_methods;
+}
+
 HypField *HypClass::GetField(WeakName name) const
 {
     const auto it = m_fields_by_name.FindAs(name);
@@ -135,6 +161,23 @@ HypField *HypClass::GetField(WeakName name) const
     }
 
     return it->second;
+}
+
+Array<HypField *> HypClass::GetFieldsInherited() const
+{
+    if (const HypClass *parent = GetParent()) {
+        FlatSet<HypField *> fields { m_fields.Begin(), m_fields.End() };
+
+        Array<HypField *> inherited_fields = parent->GetFieldsInherited();
+
+        for (HypField *field : inherited_fields) {
+            fields.Insert(field);
+        }
+
+        return fields.ToArray();
+    }
+
+    return m_fields;
 }
 
 dotnet::Class *HypClass::GetManagedClass() const

@@ -13,8 +13,11 @@ namespace hyperion {
 
 #pragma region UIWindow
 
+HYP_CLASS()
 class HYP_API UIWindow : public UIPanel
 {
+    HYP_OBJECT_BODY(UIWindow);
+
 public:
     UIWindow(UIStage *stage, NodeProxy node_proxy);
     UIWindow(const UIWindow &other)                 = delete;

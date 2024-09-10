@@ -13,8 +13,11 @@ class UIStage;
 
 #pragma region UIImage
 
+HYP_CLASS()
 class HYP_API UIImage : public UIObject
 {
+    HYP_OBJECT_BODY(UIImage);
+
 public:
     UIImage(UIStage *stage, NodeProxy node_proxy);
     UIImage(const UIImage &other)                   = delete;

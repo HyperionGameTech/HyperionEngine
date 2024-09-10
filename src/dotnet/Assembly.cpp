@@ -31,15 +31,13 @@ bool Assembly::Unload()
         return true;
     }
 
-#ifdef HYP_DEBUG_MODE
-    // Sanity check - ensure all owned classes, methods, objects etc will not be dangling
-
     for (auto &it : m_class_object_holder.m_class_objects) {
         if (!it.second) {
             continue;
         }
+
+        HypClassRegistry::GetInstance().UnregisterManagedClass(it.second.Get());
     }
-#endif
 
     return DotNetSystem::GetInstance().UnloadAssembly(m_guid);   
 }
@@ -79,7 +77,7 @@ Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const c
     it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class, EnumFlags<ManagedClassFlags>(flags)))).first;
 
     if (hyp_class != nullptr) {
-        HypClassRegistry::GetInstance().RegisterManagedClass(hyp_class, it->second.Get());
+        HypClassRegistry::GetInstance().RegisterManagedClass(it->second.Get(), hyp_class);
     }
 
     return it->second.Get();

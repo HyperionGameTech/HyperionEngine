@@ -20,6 +20,7 @@
 namespace hyperion {
 
 class HypClass;
+
 extern HYP_API const HypClass *GetClass(TypeID);
 
 enum class FBOMTypeFlags : uint8

@@ -296,7 +296,7 @@ void ShadowPass::CreateShadowMap()
         texture = CreateObject<Texture>(TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             GetFormat(),
-            Extent3D(GetExtent()),
+            Vec3u { GetExtent().x, GetExtent().y, 1 },
             FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -407,10 +407,7 @@ void ShadowPass::Render(Frame *frame)
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
             m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-            m_shadow_map_statics->GetImage()->Blit(
-                command_buffer,
-                framebuffer_image
-            );
+            m_shadow_map_statics->GetImage()->Blit(command_buffer, framebuffer_image);
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
             m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
@@ -433,10 +430,7 @@ void ShadowPass::Render(Frame *frame)
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
             m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-            m_shadow_map_dynamics->GetImage()->Blit(
-                command_buffer,
-                framebuffer_image
-            );
+            m_shadow_map_dynamics->GetImage()->Blit(command_buffer, framebuffer_image);
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
             m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);

@@ -96,6 +96,13 @@ public:
     HYP_METHOD()
     virtual Scene *GetScene() const override;
 
+    /*! \brief Set the scene for this UIStage.
+     *  \internal Used internally, for serialization.
+     * 
+     *  \param scene The scene to set. */
+    HYP_METHOD()
+    void SetScene(const Handle<Scene> &scene);
+
     /*! \brief Get the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      * 

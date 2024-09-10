@@ -1,0 +1,31 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#ifndef HYPERION_GAME_STATE_HPP
+#define HYPERION_GAME_STATE_HPP
+
+#include <core/Defines.hpp>
+
+namespace hyperion {
+
+enum class GameStateMode : uint32
+{
+    EDITOR = 0,
+    SIMULATING = 1
+};
+
+HYP_STRUCT()
+struct GameState
+{
+    HYP_FIELD()
+    GameStateMode   mode = GameStateMode::EDITOR;
+
+    HYP_FIELD()
+    float           delta_time = 0.0;
+
+    HYP_FIELD()
+    float           game_time = 0.0;
+};
+
+} // namespace hyperion
+
+#endif

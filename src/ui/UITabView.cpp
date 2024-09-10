@@ -25,11 +25,12 @@ void UITab::Init()
 {
     UIObject::Init();
 
-    RC<UIText> title_element = GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Title", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+    RC<UIText> title_element = GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Title", m_name)), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     title_element->SetParentAlignment(UIObjectAlignment::CENTER);
     title_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     title_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
     title_element->SetText(m_text);
+    title_element->SetTextSize(12.0f);
 
     UIObject::AddChildUIObject(title_element);
 

@@ -276,11 +276,6 @@ public:
 
         HYP_LOG(DotNET, LogLevel::INFO, "Unloading assembly...");
 
-        // if (Class *native_interop_class = m_root_assembly->GetClassObjectHolder().FindClassByName("NativeInterop")) {
-        //     return native_interop_class->InvokeStaticMethod<bool>("UnloadAssembly", &assembly_guid);
-        // }
-        // return false;
-
         int32 result;
         m_unload_assembly_fptr(&assembly_guid, &result);
 

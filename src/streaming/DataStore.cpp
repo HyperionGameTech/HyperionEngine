@@ -108,6 +108,21 @@ bool DataStoreBase::Read(const String &key, ByteBuffer &out_byte_buffer) const
     return true;
 }
 
+bool DataStoreBase::Exists(const String &key) const
+{
+    AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
+
+    const FilePath directory = GetDirectory();
+
+    if (!directory.Exists() || !directory.IsDirectory()) {
+        return false;
+    }
+
+    const FilePath filepath = directory / key;
+
+    return filepath.Exists();
+}
+
 FilePath DataStoreBase::GetDirectory() const
 {
     return AssetManager::GetInstance()->GetBasePath() / "data" / m_prefix;

@@ -12,6 +12,11 @@
 
 namespace hyperion {
 
+class HypClass;
+
+extern HYP_API const HypClass *GetClass(TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+
 namespace memory {
 
 class Any;
@@ -89,19 +94,31 @@ public:
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
 
-    /*! \brief Returns true if the held object is of type T. */
+    /*! \brief Returns the HypClass of the held object, if one is registered. */
+    HYP_FORCE_INLINE const HypClass *GetHypClass() const
+        { return GetClass(m_type_id); }
+
+    /*! \brief Returns true if the held object is of type T.
+     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T. */
     template <class T>
     HYP_FORCE_INLINE bool Is() const
-        { return m_type_id == TypeID::ForType<NormalizedType<T>>(); }
+    {
+        constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
-    /*! \brief Returns true if the held object is of type \ref{type_id}. */
-    HYP_FORCE_INLINE
-    bool Is(TypeID type_id) const
-        { return m_type_id == type_id; }
+        return m_type_id == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_type_id);
+    }
+
+    /*! \brief Returns true if the held object is of type \ref{type_id}.
+     *  If the type with the given ID has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
+    HYP_FORCE_INLINE bool Is(TypeID type_id) const
+    {
+        return m_type_id == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_type_id);
+    }
 
     /*! \brief Resets the current value held in the AnyRef. */
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         m_type_id = TypeID::ForType<void>();
         m_ptr = nullptr;
@@ -199,8 +216,8 @@ public:
     template <class T>
     HYP_FORCE_INLINE T &Get() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        constexpr TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        AssertThrowMsg(m_type_id == requested_type_id || IsInstanceOfHypClass(GetClass(requested_type_id), requested_type_id), "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T> *>(m_ptr);
     }
@@ -209,9 +226,9 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *TryGet() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        constexpr TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
 
-        if (m_type_id == requested_type_id) {
+        if (m_type_id == requested_type_id || IsInstanceOfHypClass(GetClass(requested_type_id), requested_type_id)) {
             return static_cast<NormalizedType<T> *>(m_ptr);
         }
 
@@ -346,7 +363,7 @@ public:
     HYP_FORCE_INLINE const T &Get() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
+        AssertThrowMsg(m_type_id == requested_type_id || IsInstanceOfHypClass(GetClass(requested_type_id), requested_type_id), "Held type not equal to requested type!");
 
         return *static_cast<const NormalizedType<T> *>(m_ptr);
     }
@@ -356,7 +373,8 @@ public:
     HYP_FORCE_INLINE const T *TryGet() const
     {
         const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
-        if (m_type_id == requested_type_id) {
+        
+        if (m_type_id == requested_type_id || IsInstanceOfHypClass(GetClass(requested_type_id), requested_type_id)) {
             return static_cast<const NormalizedType<T> *>(m_ptr);
         }
 

@@ -64,7 +64,7 @@ protected:
     virtual void CreatePipeline() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
 
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void Resize_Internal(Vec2u new_size) override;
 
 private:
     void AddToGlobalDescriptorSet();
@@ -111,7 +111,7 @@ private:
 
     void AddToGlobalDescriptorSet();
     
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void Resize_Internal(Vec2u new_size) override;
 
     const EnvGridPassMode       m_mode;
     UniquePtr<TemporalBlending> m_temporal_blending;
@@ -150,7 +150,7 @@ private:
 
     void AddToGlobalDescriptorSet();
 
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void Resize_Internal(Vec2u new_size) override;
 
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
@@ -196,7 +196,7 @@ public:
     
     void Render(Frame *frame, RenderEnvironment *environment);
 
-    void Resize(Extent2D new_size);
+    void Resize(Vec2u new_size);
 
 private:
     void ApplyCameraJitter();

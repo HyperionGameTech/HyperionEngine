@@ -44,7 +44,7 @@ void UIWindow::Init()
         m_title_bar->SetPadding(Vec2i { 5, 5 });
         m_title_bar->SetBackgroundColor(Vec4f { 0.4f, 0.4f, 0.4f, 1.0f });
 
-        RC<UIText> title_bar_text = GetStage()->CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+        RC<UIText> title_bar_text = GetStage()->CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         title_bar_text->SetParentAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetOriginAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });

@@ -7,6 +7,9 @@
 
 #include <core/object/HypData.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {
@@ -59,8 +62,6 @@ public:
 
         if (mesh_data_it != in.nodes->End()) {
             streamed_mesh_data.Reset(new StreamedMeshData(mesh_data_it->m_deserialized_object->Get<MeshData>()));
-
-            return { FBOMResult::FBOM_OK };
         }
 
         out = HypData(CreateObject<Mesh>(

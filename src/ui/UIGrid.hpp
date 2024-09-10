@@ -11,8 +11,11 @@ namespace hyperion {
 
 #pragma region UIGridColumn
 
+HYP_CLASS()
 class HYP_API UIGridColumn : public UIPanel
 {
+    HYP_OBJECT_BODY(UIGridColumn);
+
 public:
     UIGridColumn(UIStage *stage, NodeProxy node_proxy);
     UIGridColumn(const UIGridColumn &other)                 = delete;
@@ -28,8 +31,11 @@ public:
 
 #pragma region UIGridRow
 
+HYP_CLASS()
 class HYP_API UIGridRow : public UIPanel
 {
+    HYP_OBJECT_BODY(UIGridRow);
+
 public:
     UIGridRow(UIStage *stage, NodeProxy node_proxy);
     UIGridRow(const UIGridRow &other)                   = delete;
@@ -88,8 +94,11 @@ private:
 
 #pragma region UIGrid
 
+HYP_CLASS()
 class HYP_API UIGrid : public UIPanel
 {
+    HYP_OBJECT_BODY(UIGrid);
+
 public:
     UIGrid(UIStage *stage, NodeProxy node_proxy);
     UIGrid(const UIGrid &other)                 = delete;

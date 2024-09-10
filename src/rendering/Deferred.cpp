@@ -35,16 +35,16 @@ namespace hyperion {
 using renderer::Result;
 using renderer::GPUBufferType;
 
-static const Extent2D mip_chain_extent { 512, 512 };
+static const Vec2u mip_chain_extent { 512, 512 };
 static const InternalFormat mip_chain_format = InternalFormat::R10G10B10A2;
 
-static const Extent2D hbao_extent { 512, 512 };
-static const Extent2D ssr_extent { 512, 512 };
+static const Vec2u hbao_extent { 512, 512 };
+static const Vec2u ssr_extent { 512, 512 };
 
 static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8_SRGB;
 static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B10F;
-static const Extent2D env_grid_irradiance_extent { 1024, 768 };
-static const Extent2D env_grid_radiance_extent { 1024, 768 };
+static const Vec2u env_grid_irradiance_extent { 1024, 768 };
+static const Vec2u env_grid_radiance_extent { 1024, 768 };
 
 static const float16 s_ltc_matrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
@@ -264,7 +264,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_2D,
                     InternalFormat::RGBA16F,
-                    Extent3D { 64, 64, 1 },
+                    Vec3u { 64, 64, 1 },
                     FilterMode::TEXTURE_FILTER_LINEAR,
                     FilterMode::TEXTURE_FILTER_LINEAR,
                     WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -283,7 +283,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_2D,
                     InternalFormat::RGBA16F,
-                    Extent3D { 64, 64, 1 },
+                    Vec3u { 64, 64, 1 },
                     FilterMode::TEXTURE_FILTER_LINEAR,
                     FilterMode::TEXTURE_FILTER_LINEAR,
                     WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -337,7 +337,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
     }
 }
 
-void DeferredPass::Resize_Internal(Extent2D new_size)
+void DeferredPass::Resize_Internal(Vec2u new_size)
 {
     FullScreenPass::Resize_Internal(new_size);
 
@@ -599,7 +599,7 @@ void EnvGridPass::CreatePreviousTexture()
     m_previous_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         m_image_format,
-        Extent3D(m_extent),
+        Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR,
         FilterMode::TEXTURE_FILTER_LINEAR,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -674,7 +674,7 @@ void EnvGridPass::AddToGlobalDescriptorSet()
     }
 }
 
-void EnvGridPass::Resize_Internal(Extent2D new_size)
+void EnvGridPass::Resize_Internal(Vec2u new_size)
 {
     FullScreenPass::Resize_Internal(new_size);
 
@@ -946,7 +946,7 @@ void ReflectionProbePass::CreatePreviousTexture()
     m_previous_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         m_image_format,
-        Extent3D(m_extent),
+        Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR,
         FilterMode::TEXTURE_FILTER_LINEAR,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -996,7 +996,7 @@ void ReflectionProbePass::AddToGlobalDescriptorSet()
     }
 }
 
-void ReflectionProbePass::Resize_Internal(Extent2D new_size)
+void ReflectionProbePass::Resize_Internal(Vec2u new_size)
 {
     HYP_SCOPE;
     FullScreenPass::Resize_Internal(new_size);
@@ -1278,7 +1278,7 @@ void DeferredRenderer::Create()
     m_mip_chain = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         mip_chain_format,
-        Extent3D(mip_chain_extent),
+        Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -1294,7 +1294,7 @@ void DeferredRenderer::Create()
     { // screenspace reflections
         const String ssr_quality = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.quality").ToString().ToLower();
 
-        Extent2D ssr_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+        Vec2u ssr_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
 
         if (ssr_quality == "low") {
             ssr_extent /= 4;
@@ -1416,7 +1416,7 @@ void DeferredRenderer::Destroy()
     m_gbuffer->Destroy();
 }
 
-void DeferredRenderer::Resize(Extent2D new_size)
+void DeferredRenderer::Resize(Vec2u new_size)
 {
     HYP_SCOPE;
     
@@ -1485,8 +1485,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
 
-    deferred_data.screen_width = g_engine->GetGPUInstance()->GetSwapchain()->extent.width;
-    deferred_data.screen_height = g_engine->GetGPUInstance()->GetSwapchain()->extent.height;
+    deferred_data.screen_width = g_engine->GetGPUInstance()->GetSwapchain()->extent.x;
+    deferred_data.screen_height = g_engine->GetGPUInstance()->GetSwapchain()->extent.y;
 
     CollectDrawCalls(frame);
     
@@ -1720,8 +1720,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     mipmapped_result->Blit(
         primary,
         src_image,
-        Rect<uint32> { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-        Rect<uint32> { 0, 0, mipmapped_result->GetExtent().width, mipmapped_result->GetExtent().height }
+        Rect<uint32> { 0, 0, src_image->GetExtent().x, src_image->GetExtent().y },
+        Rect<uint32> { 0, 0, mipmapped_result->GetExtent().x, mipmapped_result->GetExtent().y }
     );
 
     HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(

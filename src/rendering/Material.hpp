@@ -99,7 +99,11 @@ public:
             MATERIAL_PARAMETER_TYPE_INT4
         } type;
 
-        Parameter() : type(MATERIAL_PARAMETER_TYPE_NONE) {}
+        Parameter()
+            : type(MATERIAL_PARAMETER_TYPE_NONE)
+        {
+            Memory::MemSet(&values, 0, sizeof(values));
+        }
 
         template <SizeType Size>
         explicit Parameter(FixedArray<float, Size> &&v)
@@ -112,35 +116,35 @@ public:
         {
             AssertThrow(count >= 1 && count <= 4);
 
-            std::memcpy(values.float_values, v, count * sizeof(float));
+            Memory::MemCpy(values.float_values, v, count * sizeof(float));
+            
+            if (count < ArraySize(values.float_values)) {
+                Memory::MemSet(&values.float_values[count], 0, (ArraySize(values.float_values) - count) * sizeof(float));
+            }
         }
         
         Parameter(float value)
-            : type(MATERIAL_PARAMETER_TYPE_FLOAT)
+            : Parameter(&value, 1)
         {
-            std::memcpy(values.float_values, &value, sizeof(float));
         }
 
-        Parameter(const Vector2 &xy)
-            : type(MATERIAL_PARAMETER_TYPE_FLOAT2)
+        Parameter(const Vec2f &xy)
+            : Parameter(xy.values, 2)
         {
-            std::memcpy(values.float_values, &xy.values, 2 * sizeof(float));
         }
 
-        Parameter(const Vector3 &xyz)
-            : type(MATERIAL_PARAMETER_TYPE_FLOAT3)
+        Parameter(const Vec3f &xyz)
+            : Parameter(xyz.values, 3)
         {
-            std::memcpy(values.float_values, &xyz.values, 3 * sizeof(float));
         }
 
-        Parameter(const Vector4 &xyzw)
-            : type(MATERIAL_PARAMETER_TYPE_FLOAT4)
+        Parameter(const Vec4f &xyzw)
+            : Parameter(xyzw.values, 4)
         {
-            std::memcpy(values.float_values, &xyzw.values, 4 * sizeof(float));
         }
 
         Parameter(const Color &color)
-            : Parameter(Vector4(color.GetRed(), color.GetGreen(), color.GetBlue(), color.GetAlpha()))
+            : Parameter(Vec4f(color.GetRed(), color.GetGreen(), color.GetBlue(), color.GetAlpha()))
         {
         }
 
@@ -155,19 +159,43 @@ public:
         {
             AssertThrow(count >= 1 && count <= 4);
 
-            std::memcpy(values.int_values, v, count * sizeof(int32));
+            Memory::MemCpy(values.int_values, v, count * sizeof(int32));
+
+            if (count < ArraySize(values.int_values)) {
+                Memory::MemSet(&values.int_values[count], 0, (ArraySize(values.int_values) - count) * sizeof(int32));
+            }
+        }
+
+        Parameter(int32 value)
+            : Parameter(&value, 1)
+        {
+        }
+
+        Parameter(const Vec2i &xy)
+            : Parameter(xy.values, 2)
+        {
+        }
+
+        Parameter(const Vec3i &xyz)
+            : Parameter(xyz.values, 3)
+        {
+        }
+
+        Parameter(const Vec4i &xyzw)
+            : Parameter(xyzw.values, 4)
+        {
         }
 
         Parameter(const Parameter &other)
             : type(other.type)
         {
-            std::memcpy(&values, &other.values, sizeof(values));
+            Memory::MemCpy(&values, &other.values, sizeof(values));
         }
 
         Parameter &operator=(const Parameter &other)
         {
             type = other.type;
-            std::memcpy(&values, &other.values, sizeof(values));
+            Memory::MemCpy(&values, &other.values, sizeof(values));
 
             return *this;
         }
@@ -194,10 +222,13 @@ public:
         }
 
         HYP_FORCE_INLINE void Copy(uint8 *dst) const
-            { std::memcpy(dst, &values, Size()); }
+            { Memory::MemCpy(dst, &values, Size()); }
 
         HYP_FORCE_INLINE bool operator==(const Parameter &other) const
-            { return std::memcmp(&values, &other.values, sizeof(values)) == 0; }
+            { return Memory::MemCmp(&values, &other.values, sizeof(values)) == 0; }
+
+        HYP_FORCE_INLINE bool operator!=(const Parameter &other) const
+            { return Memory::MemCmp(&values, &other.values, sizeof(values)) != 0; }
 
         HYP_FORCE_INLINE explicit operator int() const
             { return values.int_values[0]; }
@@ -496,6 +527,7 @@ public:
      *  may be shared across many objects. Otherwise, it is considered dynamic and may
      *  be modified.
      *  \return True if the Material is static, false if it is dynamic. */
+    HYP_METHOD()
     HYP_FORCE_INLINE bool IsStatic() const
         { return !m_is_dynamic; }
 
@@ -504,9 +536,11 @@ public:
      *  it is considered static and should not be modified as it may be shared across many
      *  objects.
      *  \return True if the Material is dynamic, false if it is static. */
+    HYP_METHOD(SerializeAs=IsDynamic)
     HYP_FORCE_INLINE bool IsDynamic() const
         { return m_is_dynamic; }
 
+    HYP_METHOD(SerializeAs=IsDynamic)
     HYP_FORCE_INLINE void SetIsDynamic(bool is_dynamic)
         { m_is_dynamic = is_dynamic; }
 
@@ -524,8 +558,8 @@ public:
      *  a static Material, clone it first. The cloned Material will be dynamic
      *  by default, and can be modified without affecting the original Material.
      *  \note The cloned Material will not be initialized.
-     *  \return A new Material that is a clone of this Material.
-     */
+     *  \return A new Material that is a clone of this Material. */
+    HYP_METHOD()
     Handle<Material> Clone() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

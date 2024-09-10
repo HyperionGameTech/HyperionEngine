@@ -1,7 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/font_loaders/FontAtlasLoader.hpp>
+
 #include <rendering/font/FontAtlas.hpp>
+
+#include <core/utilities/Format.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <util/json/JSON.hpp>
 
@@ -32,25 +38,67 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
 
     const json::JSONValue json_value = json_parse_result.value;
 
-    Handle<Texture> bitmap_texture;
+    FontAtlasTextureSet texture_set;
 
-    if (auto bitmap_filepath_value = json_value["bitmap_filepath"]) {
-        auto bitmap_texture_asset = state.asset_manager->Load<Texture>(bitmap_filepath_value.AsString());
+    if (auto atlases_value = json_value["atlases"]; atlases_value.IsObject()) {
+        uint main_value_key;
 
-        if (bitmap_texture_asset.IsOK()) {
-            bitmap_texture = bitmap_texture_asset.Result();
+        if (auto main_value = atlases_value["main"]; main_value.IsNumber() || main_value.IsString()) {
+            main_value_key = uint(main_value.ToNumber());
         } else {
-            return { { LoaderResult::Status::ERR, "Failed to load bitmap texture" } };
+            return { { LoaderResult::Status::ERR, "Failed to read 'atlases.main' integer" } };
         }
 
-        InitObject(bitmap_texture);
+        if (auto pixel_sizes_value = atlases_value["pixel_sizes"]; pixel_sizes_value.IsObject()) {
+            bool main_atlas_found = false;
+
+            for (const auto &it : pixel_sizes_value.AsObject()) {
+                Handle<Texture> bitmap_texture;
+
+                auto bitmap_texture_asset = state.asset_manager->Load<Texture>(it.second.ToString());
+
+                if (bitmap_texture_asset.IsOK()) {
+                    bitmap_texture = bitmap_texture_asset.Result();
+                } else {
+                    return { { LoaderResult::Status::ERR, HYP_FORMAT("Failed to load bitmap texture: {}", it.second.ToString()) } };
+                }
+                
+                uint key_value;
+
+                if (!StringUtil::Parse(it.first, &key_value)) {
+                    return { { LoaderResult::Status::ERR, HYP_FORMAT("Invalid key for font atlas: {} is not able to be parsed as uint", it.first) } };
+                }
+
+                bool is_main_atlas = key_value == main_value_key;
+
+                if (is_main_atlas) {
+                    if (main_atlas_found) {
+                        HYP_LOG(Assets, LogLevel::WARNING, "Multiple elements detected as main atlas");
+
+                        is_main_atlas = false;
+                    } else {
+                        main_atlas_found = true;
+                    }
+                }
+
+                texture_set.AddAtlas(key_value, std::move(bitmap_texture), is_main_atlas);
+            }
+
+            if (!main_atlas_found) {
+                return { { LoaderResult::Status::ERR, "Main atlas not found in list of atlases" } };
+            }
+        } else {
+            return { { LoaderResult::Status::ERR, "Failed to read 'atlases.pixel_sizes' object" } };
+        }
+    } else {
+        return { { LoaderResult::Status::ERR, "Failed to read 'atlases' object" } };
     }
 
-    Extent2D cell_dimensions;
+    Vec2u cell_dimensions;
 
     if (auto cell_dimensions_value = json_value["cell_dimensions"]) {
-        cell_dimensions.width = uint32(cell_dimensions_value["width"].ToNumber());
-        cell_dimensions.height = uint32(cell_dimensions_value["height"].ToNumber());
+        cell_dimensions.x = uint32(cell_dimensions_value["width"].ToNumber());
+        cell_dimensions.y = uint32(cell_dimensions_value["height"].ToNumber());
     } else {
         return { { LoaderResult::Status::ERR, "Failed to load cell dimensions" } };
     }
@@ -94,14 +142,15 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
 
             symbol_list.PushBack(FontFace::WChar(symbol_value.AsNumber()));
         }
+
+        if (symbol_list.Empty()) {
+            return { { LoaderResult::Status::ERR, "No symbols in symbol list" } };
+        }
     } else {
         return { { LoaderResult::Status::ERR, "Failed to load symbol list" } };
     }
 
-    // @TODO: Fix
-    RC<FontAtlas> font_atlas;
-
-    // UniquePtr<FontAtlas> font_atlas(new FontAtlas(std::move(bitmap_texture), cell_dimensions, std::move(glyph_metrics)));
+    RC<FontAtlas> font_atlas(new FontAtlas(texture_set, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list)));
 
     return { { LoaderResult::Status::OK }, font_atlas };
 }

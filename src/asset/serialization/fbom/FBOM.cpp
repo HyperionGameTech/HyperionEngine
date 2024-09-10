@@ -6,6 +6,7 @@
 #include <asset/ByteWriter.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -13,6 +14,8 @@
 #include <util/fs/FsUtil.hpp>
 
 namespace hyperion::fbom {
+
+static constexpr bool g_marshal_parent_classes = false;
 
 FBOM &FBOM::GetInstance()
 {
@@ -41,20 +44,46 @@ void FBOM::RegisterLoader(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMar
 
 FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 {
-    const auto it = m_marshals.Find(type_id);
+    const HypClass *hyp_class = GetClass(type_id);
 
-    if (it != m_marshals.End()) {
-        return it->second.second.Get();
+    auto FindMarshalForTypeID = [this](TypeID type_id) -> FBOMMarshalerBase *
+    {
+        const auto it = m_marshals.Find(type_id);
+
+        if (it != m_marshals.End()) {
+            return it->second.second.Get();
+        }
+
+        return nullptr;
+    };
+
+    if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(type_id)) {
+        return marshal;
     }
 
-    // No custom marshal found.
+    if (!hyp_class) {
+        return nullptr;
+    }
+
+    // Find marshal for parent classes
+    if constexpr (g_marshal_parent_classes) {
+        const HypClass *parent_hyp_class = hyp_class->GetParent();
+        
+        while (parent_hyp_class) {
+            if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
+                return marshal;
+            }
+
+            parent_hyp_class = parent_hyp_class->GetParent();
+        }
+    }
+
+    // No custom marshal found
 
     if (allow_fallback) {
         // If the type has a HypClass defined, then use the default HypClass instance marshal
-        if (const HypClass *hyp_class = GetClass(type_id)) {
-            AssertThrow(m_hyp_class_instance_marshal != nullptr);
-            return m_hyp_class_instance_marshal.Get();
-        }
+        AssertThrow(m_hyp_class_instance_marshal != nullptr);
+        return m_hyp_class_instance_marshal.Get();
     }
 
     return nullptr;
@@ -62,26 +91,57 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 
 FBOMMarshalerBase *FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallback) const
 {
-    // const auto it = m_marshals.FindIf([&type_name](const auto &pair)
-    // {
-    //     return pair.second.first == type_name;
-    // });
+    const HypClass *hyp_class = HypClassRegistry::GetInstance().GetClass(type_name);
 
-    // if (it != m_marshals.End()) {
-    //     return it->second.second.Get();
-    // }
+    auto FindMarshalForTypeName = [this](ANSIStringView type_name) -> FBOMMarshalerBase *
+    {
+        const auto it = m_marshals.FindIf([&type_name](const auto &pair)
+        {
+            return pair.second.first == type_name;
+        });
 
-    for (const auto &pair : m_marshals) {
-        if (pair.second.first == type_name) {
-            return pair.second.second.Get();
+        if (it != m_marshals.End()) {
+            return it->second.second.Get();
+        }
+
+        return nullptr;
+    };
+
+    auto FindMarshalForTypeID = [this](TypeID type_id) -> FBOMMarshalerBase *
+    {
+        const auto it = m_marshals.Find(type_id);
+
+        if (it != m_marshals.End()) {
+            return it->second.second.Get();
+        }
+
+        return nullptr;
+    };
+
+    if (FBOMMarshalerBase *marshal = FindMarshalForTypeName(type_name)) {
+        return marshal;
+    }
+
+    if (!hyp_class) {
+        return nullptr;
+    }
+
+    // Find marshal for parent classes
+    if constexpr (g_marshal_parent_classes) {
+        const HypClass *parent_hyp_class = hyp_class->GetParent();
+
+        while (parent_hyp_class) {
+            if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
+                return marshal;
+            }
+
+            parent_hyp_class = parent_hyp_class->GetParent();
         }
     }
 
     if (allow_fallback) {
-        if (const HypClass *hyp_class = HypClassRegistry::GetInstance().GetClass(type_name)) {
-            AssertThrow(m_hyp_class_instance_marshal != nullptr);
-            return m_hyp_class_instance_marshal.Get();
-        }
+        AssertThrow(m_hyp_class_instance_marshal != nullptr);
+        return m_hyp_class_instance_marshal.Get();
     }
 
     return nullptr;

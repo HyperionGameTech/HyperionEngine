@@ -5,10 +5,19 @@
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/utilities/Optional.hpp>
+
+#include <core/functional/Proc.hpp>
+
 #include <core/threading/AtomicVar.hpp>
+
 #include <core/filesystem/FilePath.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -97,8 +106,11 @@ public:
         { return static_cast<const T *>(m_owner.Get()); }
 };
 
+HYP_CLASS(Abstract)
 class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
 {
+    HYP_OBJECT_BODY(StreamedData);
+
 protected:
     StreamedData(StreamedDataState initial_state);
 
@@ -110,13 +122,13 @@ public:
     StreamedData &operator=(const StreamedData &)       = delete;
     StreamedData(StreamedData &&) noexcept              = delete;
     StreamedData &operator=(StreamedData &&) noexcept   = delete;
-    virtual ~StreamedData() = default;
+    virtual ~StreamedData()                             = default;
 
     virtual bool IsNull() const = 0;
     virtual bool IsInMemory() const = 0;
 
-    virtual void Unpage() final;
-    virtual const ByteBuffer &Load() const final;
+    void Unpage();
+    const ByteBuffer &Load() const;
 
 protected:
     virtual const ByteBuffer &Load_Internal() const = 0;
@@ -126,8 +138,11 @@ protected:
     mutable AtomicVar<int>  m_use_count { 0 };
 };
 
-class HYP_API NullStreamedData : public StreamedData
+HYP_CLASS()
+class HYP_API NullStreamedData final : public StreamedData
 {
+    HYP_OBJECT_BODY(NullStreamedData);
+
 public:
     NullStreamedData()                                          = default;
     virtual ~NullStreamedData() override                        = default;
@@ -143,12 +158,16 @@ protected:
     virtual void Unpage_Internal() override;
 };
 
-class HYP_API MemoryStreamedData : public StreamedData
+HYP_CLASS()
+class HYP_API MemoryStreamedData final : public StreamedData
 {
+    HYP_OBJECT_BODY(MemoryStreamedData);
+
 public:
-    MemoryStreamedData(const ByteBuffer &byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
-    MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
-    MemoryStreamedData(ConstByteView byte_view, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(HashCode hash_code, StreamedDataState initial_state = StreamedDataState::UNPAGED, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc = {});
+    MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state = StreamedDataState::LOADED);
 
     MemoryStreamedData(const MemoryStreamedData &other)             = delete;
     MemoryStreamedData &operator=(const MemoryStreamedData &other)  = delete;
@@ -169,36 +188,9 @@ protected:
     virtual void Unpage_Internal() override;
     virtual const ByteBuffer &GetByteBuffer() const override;
     
-    HashCode                        m_hash_code;
-    mutable Optional<ByteBuffer>    m_byte_buffer;
-};
-
-class HYP_API FileStreamedData : public StreamedData
-{
-public:
-    FileStreamedData(const FilePath &filepath);
-    FileStreamedData(const FileStreamedData &other)             = delete;
-    FileStreamedData &operator=(const FileStreamedData &other)  = delete;
-    FileStreamedData(FileStreamedData &&other) noexcept;
-    FileStreamedData &operator=(FileStreamedData &&other) noexcept;
-    virtual ~FileStreamedData() override                        = default;
-
-    const FilePath &GetFilePath() const
-        { return m_filepath; }
-
-    StreamedDataRef<FileStreamedData> AcquireRef()
-        { return { RefCountedPtrFromThis().CastUnsafe<FileStreamedData>() }; }
-
-    virtual bool IsNull() const override;
-    virtual bool IsInMemory() const override;
-
-protected:
-    virtual const ByteBuffer &Load_Internal() const override;
-    virtual void Unpage_Internal() override;
-    virtual const ByteBuffer &GetByteBuffer() const override;
-
-    FilePath                        m_filepath;
-    mutable Optional<ByteBuffer>    m_byte_buffer;
+    HashCode                            m_hash_code;
+    mutable Optional<ByteBuffer>        m_byte_buffer;
+    Proc<bool, HashCode, ByteBuffer &>  m_load_from_memory_proc;
 };
 
 } // namespace hyperion

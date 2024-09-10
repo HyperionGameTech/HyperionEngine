@@ -342,15 +342,6 @@ void Mesh::SetVertices(Array<Vertex> vertices, Array<uint32> indices)
     }));
 }
 
-void Mesh::SetStreamedMeshData(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data)
-{
-    PUSH_RENDER_COMMAND(
-        SetStreamedMeshData,
-        std::move(mesh),
-        std::move(streamed_mesh_data)
-    );
-}
-
 void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -388,6 +379,15 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
             m_ibo
         );
     }
+}
+
+void Mesh::SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data)
+{
+    PUSH_RENDER_COMMAND(
+        SetStreamedMeshData,
+        std::move(mesh),
+        std::move(streamed_mesh_data)
+    );
 }
 
 /* Copy our values into the packed vertex buffer, and increase the index for the next possible

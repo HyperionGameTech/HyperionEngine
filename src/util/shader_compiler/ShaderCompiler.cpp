@@ -1021,8 +1021,6 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
     ForEachPermutation(bundle.versions, [&](const ShaderProperties &properties)
     {
-        HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Checking properties: {} for {}", properties.ToString(), bundle.name);
-
         // get hashcode for this set of properties
         // only care about the property set (not vertex attributes), as we will only have access to those from the bundle
         // plus, changing vertex attributes will cause a recompile anyway due to shaders' file contents changing

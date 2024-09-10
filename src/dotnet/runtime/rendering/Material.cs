@@ -260,15 +260,5 @@ namespace Hyperion
         public Material()
         {
         }
-
-        public IDBase ID
-        {
-            get
-            {
-                return (IDBase)GetProperty(PropertyNames.ID)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
     }
 }

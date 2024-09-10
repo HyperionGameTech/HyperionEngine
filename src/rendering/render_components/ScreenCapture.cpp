@@ -12,7 +12,7 @@ ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Exte
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,
           InternalFormat::RGBA8_SRGB,
-          Extent3D(m_window_size),
+          Vec3u { window_size.width, window_size.height, 1 },
           FilterMode::TEXTURE_FILTER_NEAREST,
           FilterMode::TEXTURE_FILTER_NEAREST,
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE

@@ -297,7 +297,7 @@ struct HypMethod
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
-                if constexpr (sizeof...(ArgTypes) == 2) {
+                if constexpr (sizeof...(ArgTypes) >= 1) {
                     const auto fn = [mem_fn](TargetType *target, ArgTypes... args) -> ReturnType
                     {
                         return (target->*mem_fn)(args...);
@@ -305,7 +305,7 @@ struct HypMethod
 
                     HypData value;
 
-                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<0, ArgTypes...>::Type>>::Deserialize(data, value)) {
+                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(data, value)) {
                         HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
                     }
 
@@ -316,7 +316,7 @@ struct HypMethod
 
                     arg_ptrs[args.Size()] = &value;
 
-                    detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs, value);
+                    detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs);
                 } else {
                     HYP_FAIL("Cannot deserialize using non-setter method");
                 }
@@ -390,7 +390,7 @@ struct HypMethod
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
-                if constexpr (sizeof...(ArgTypes) == 2) {
+                if constexpr (sizeof...(ArgTypes) >= 1) {
                     const auto fn = [mem_fn](TargetType *target, ArgTypes... args) -> ReturnType
                     {
                         return (target->*mem_fn)(args...);
@@ -398,7 +398,7 @@ struct HypMethod
 
                     HypData value;
 
-                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<0, ArgTypes...>::Type>>::Deserialize(data, value)) {
+                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(data, value)) {
                         HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
                     }
 
@@ -409,7 +409,7 @@ struct HypMethod
 
                     arg_ptrs[args.Size()] = &value;
 
-                    detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs, value);
+                    detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs);
                 } else {
                     HYP_FAIL("Cannot deserialize using non-setter method");
                 }

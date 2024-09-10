@@ -75,6 +75,8 @@ HBAO::~HBAO()
 
 void HBAO::Create()
 {
+    HYP_SCOPE;
+    
     ShaderProperties shader_properties;
     shader_properties.Set("HBIL_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
 
@@ -90,6 +92,8 @@ void HBAO::Create()
 
 void HBAO::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
+    HYP_SCOPE;
+
     renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
@@ -111,6 +115,8 @@ void HBAO::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 
 void HBAO::CreateTemporalBlending()
 {
+    HYP_SCOPE;
+
     m_temporal_blending.Reset(new TemporalBlending(
         GetFramebuffer()->GetExtent(),
         InternalFormat::RGBA8,
@@ -122,8 +128,10 @@ void HBAO::CreateTemporalBlending()
     m_temporal_blending->Create();
 }
 
-void HBAO::Resize_Internal(Extent2D new_size)
+void HBAO::Resize_Internal(Vec2u new_size)
 {
+    HYP_SCOPE;
+
     FullScreenPass::Resize_Internal(new_size);
 
     m_temporal_blending.Reset();

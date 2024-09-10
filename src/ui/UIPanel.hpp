@@ -11,8 +11,11 @@ class UIStage;
 
 #pragma region UIPanel
 
+HYP_CLASS()
 class HYP_API UIPanel : public UIObject
 {
+    HYP_OBJECT_BODY(UIPanel);
+
 protected:
     UIPanel(UIStage *stage, NodeProxy node_proxy, UIObjectType type);
 

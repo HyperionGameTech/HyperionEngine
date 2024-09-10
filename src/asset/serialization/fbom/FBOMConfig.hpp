@@ -29,7 +29,7 @@ public:
 struct FBOMWriterConfig : public IFBOMConfig
 {
     bool    enable_static_data = true;
-    bool    compress_static_data = false;
+    bool    compress_static_data = true;
 
     virtual ~FBOMWriterConfig() override = default;
 

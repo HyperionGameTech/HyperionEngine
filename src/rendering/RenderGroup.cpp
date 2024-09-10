@@ -263,8 +263,6 @@ void RenderGroup::Init()
         }
     }));
 
-    HYP_LOG(Rendering, LogLevel::INFO, "Init RenderGroup with ID: #{}\n", GetID().Value());
-
     CreateIndirectRenderer();
     CreateCommandBuffers();
     CreateGraphicsPipeline();

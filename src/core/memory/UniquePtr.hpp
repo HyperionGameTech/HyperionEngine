@@ -15,6 +15,12 @@
 #include <cstdlib>
 
 namespace hyperion {
+
+class HypClass;
+
+extern HYP_API const HypClass *GetClass(TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+
 namespace memory {
 
 template <class T>
@@ -415,18 +421,24 @@ public:
     }
 
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr. 
+     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T
+     *
      *  \note This function will not check if the pointer can be casted to the given type using dynamically, so if you have a base class pointer and want to check if it can be casted to a derived class, use IsDynamic().
      *  However, there is still limited functionality for checking if a base class pointer can be casted to a derived class pointer, as long as the UniquePtr was constructed or Reset() with a derived class pointer. */
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        return GetTypeID() == TypeID::ForType<Ty>()
-            || GetBaseTypeID() == TypeID::ForType<Ty>()
-            || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
-            || std::is_same_v<Ty, void>;
+        constexpr TypeID type_id = TypeID::ForType<Ty>();
+        
+        return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
+            || std::is_same_v<Ty, void>
+            || GetTypeID() == type_id
+            || GetBaseTypeID() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), GetTypeID());
     }
 
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
+     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T
      *  This function will also check if the pointer can be casted to the given type using dynamic_cast. */
     template <class Ty>
     HYP_FORCE_INLINE bool IsDynamic() const
@@ -541,9 +553,12 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        return GetTypeID() == TypeID::ForType<Ty>()
-            || GetBaseTypeID() == TypeID::ForType<Ty>()
-            || std::is_same_v<Ty, void>;
+        constexpr TypeID type_id = TypeID::ForType<Ty>();
+
+        return std::is_same_v<Ty, void>
+            || GetTypeID() == type_id
+            || GetBaseTypeID() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), GetTypeID());
     }
 
     /*! \brief Attempts to cast the pointer directly to the given type.

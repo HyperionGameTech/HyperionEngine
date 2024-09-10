@@ -101,8 +101,7 @@ const Handle<Engine> &Engine::GetInstance()
 }
 
 Engine::Engine()
-    : m_placeholder_data(new PlaceholderData()),
-      m_is_initialized(false)
+    : m_is_initialized(false)
 {
 }
 
@@ -222,6 +221,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_render_data.Reset(new ShaderGlobals());
     m_render_data->Create();
 
+    m_placeholder_data.Reset(new PlaceholderData());
     m_placeholder_data->Create();
 
     // Create script compilation service
@@ -234,7 +234,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_scripting_service->Start();
 
     m_net_request_thread.Reset(new net::NetRequestThread);
-    // m_net_request_thread->Start();
+    m_net_request_thread->Start();
 
     // must start after net request thread
     if (m_app_context->GetArguments()["Profile"]) {

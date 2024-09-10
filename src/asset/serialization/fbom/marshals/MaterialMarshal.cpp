@@ -9,6 +9,11 @@
 
 #include <core/object/HypData.hpp>
 
+#include <core/utilities/Format.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::fbom {

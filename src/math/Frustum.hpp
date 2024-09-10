@@ -52,6 +52,8 @@ struct HYP_API Frustum
     Vec3f GetIntersectionPoint(uint plane_index_0, uint plane_index_1, uint plane_index_2) const;
 };
 
+static_assert(sizeof(Frustum) == 224, "sizeof(Frustum) should match C# struct size");
+
 } // namespace hyperion
 
 #endif

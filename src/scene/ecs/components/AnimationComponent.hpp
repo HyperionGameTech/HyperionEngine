@@ -23,12 +23,22 @@ enum AnimationLoopMode
     ANIMATION_LOOP_MODE_REPEAT
 };
 
+HYP_STRUCT()
 struct AnimationPlaybackState
 {
-    uint                    animation_index = ~0u;
+    HYP_FIELD(SerializeAs=AnimationIndex)
+    uint32                  animation_index = ~0u;
+
+    HYP_FIELD(SerializeAs=Status)
     AnimationPlaybackStatus status = ANIMATION_PLAYBACK_STATUS_STOPPED;
+
+    HYP_FIELD(SerializeAs=LoopMode)
     AnimationLoopMode       loop_mode = ANIMATION_LOOP_MODE_ONCE;
+
+    HYP_FIELD(SerializeAs=Speed)
     float                   speed = 1.0f;
+
+    HYP_FIELD(SerializeAs=CurrentTime)
     float                   current_time = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

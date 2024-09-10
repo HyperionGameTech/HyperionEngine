@@ -233,14 +233,14 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
                         Rect<uint32> {
                             .x0 = 0,
                             .y0 = 0,
-                            .x1 = src_image->GetExtent().width,
-                            .y1 = src_image->GetExtent().height
+                            .x1 = src_image->GetExtent().x,
+                            .y1 = src_image->GetExtent().y
                         },
                         Rect<uint32> {
                             .x0 = 0,
                             .y0 = 0,
-                            .x1 = dst_image->GetExtent().width,
-                            .y1 = dst_image->GetExtent().height
+                            .x1 = dst_image->GetExtent().x,
+                            .y1 = dst_image->GetExtent().y
                         }
                     )
                 );
@@ -365,7 +365,7 @@ private:
 Texture::Texture() : Texture(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
-        Extent3D { 1, 1, 1 },
+        Vec3u { 1, 1, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -575,8 +575,8 @@ Vec4f Texture::Sample(Vec2f uv) const
     }
 
     const Vec2u coord = {
-        uint32(uv.x * (texture_data.desc.extent.width - 1)),
-        uint32(uv.y * (texture_data.desc.extent.height - 1))
+        uint32(uv.x * (texture_data.desc.extent.x - 1)),
+        uint32(uv.y * (texture_data.desc.extent.y - 1))
     };
 
     const uint32 bytes_per_pixel = renderer::NumBytes(texture_data.desc.format);
@@ -589,11 +589,11 @@ Vec4f Texture::Sample(Vec2f uv) const
 
     const uint32 num_components = renderer::NumComponents(m_image->GetTextureFormat());
 
-    const uint32 index = coord.y * texture_data.desc.extent.width * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
+    const uint32 index = coord.y * texture_data.desc.extent.x * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
 
     if (index >= texture_data.buffer.Size()) {
         HYP_LOG(Texture, LogLevel::WARNING, "Index out of bounds, index: {}, buffer size: {}, x: {}, y: {}, width: {}, height: {}", index, texture_data.buffer.Size(),
-            coord.x, coord.y, texture_data.desc.extent.width, texture_data.desc.extent.height);
+            coord.x, coord.y, texture_data.desc.extent.x, texture_data.desc.extent.y);
 
         return Vec4f::Zero();
     }

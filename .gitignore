@@ -290,6 +290,7 @@ res/data/compiled_shaders/**/*
 res/data/**/tmp/**/*
 res/data/dump/**/*
 res/data/streaming/**/*
+res/data/fonts/**/*
 
 project/**/*
 xcode_project/**/*

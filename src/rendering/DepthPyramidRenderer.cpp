@@ -104,9 +104,9 @@ void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
     m_depth_pyramid = MakeRenderObject<Image>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::R32F,
-        Extent3D {
-            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().width)),
-            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
+        Vec3u {
+            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().x)),
+            uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().y)),
             1
         },
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
@@ -178,13 +178,15 @@ void DepthPyramidRenderer::Create(const AttachmentRef &depth_attachment)
     );
 }
 
-Extent3D DepthPyramidRenderer::GetExtent() const
+Vec2u DepthPyramidRenderer::GetExtent() const
 {
     if (!m_depth_pyramid.IsValid()) {
-        return Extent3D { 1, 1, 1 };
+        return Vec2u::One();
     }
 
-    return m_depth_pyramid->GetExtent();
+    const Vec3u extent = m_depth_pyramid->GetExtent();
+
+    return { extent.x, extent.y };
 }
 
 void DepthPyramidRenderer::Render(Frame *frame)

@@ -34,7 +34,7 @@ public:
 protected:
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
 
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void Resize_Internal(Vec2u new_size) override;
 
 private:
     void CreateTemporalBlending();

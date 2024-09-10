@@ -96,6 +96,8 @@ HYP_API const HypClass *GetClass(TypeID type_id);
 
 HYP_API const HypClass *GetClass(WeakName type_name);
 
+HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+
 } // namespace hyperion
 
 #endif

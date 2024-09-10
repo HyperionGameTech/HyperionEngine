@@ -35,6 +35,8 @@ class HYP_API Texture : public BasicObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
 
+    HYP_PROPERTY(ID, &Texture::GetID);
+
 public:
     static const FixedArray<Pair<Vec3f, Vec3f>, 6> cubemap_directions;
 
@@ -82,7 +84,7 @@ public:
     HYP_FORCE_INLINE bool IsPanorama() const
         { return m_image->IsPanorama(); }
 
-    HYP_FORCE_INLINE const Extent3D &GetExtent() const
+    HYP_FORCE_INLINE const Vec3u &GetExtent() const
         { return GetTextureDesc().extent; }
 
     HYP_FORCE_INLINE InternalFormat GetFormat() const
@@ -131,7 +133,7 @@ public:
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
-                Extent3D { extent.width, extent.height, 1 },
+                Vec3u { extent.width, extent.height, 1 },
                 filter_mode,
                 filter_mode,
                 wrap_mode
@@ -148,7 +150,7 @@ public:
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
-                Extent3D { extent.width, extent.height, 1 }
+                Vec3u { extent.width, extent.height, 1 }
             }
         )
     {

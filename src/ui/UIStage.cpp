@@ -50,6 +50,9 @@ UIStage::UIStage(ThreadID owner_thread_id)
 
 UIStage::~UIStage()
 {
+    if (m_scene.IsValid()) {
+        g_engine->GetWorld()->RemoveScene(m_scene);
+    }
 }
 
 void UIStage::SetSurfaceSize(Vec2i surface_size)
@@ -102,6 +105,57 @@ Scene *UIStage::GetScene() const
     }
 
     return m_scene.Get();
+}
+
+void UIStage::SetScene(const Handle<Scene> &scene)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
+    Handle<Scene> new_scene = scene;
+
+    if (new_scene == m_scene) {
+        return;
+    }
+
+    if (!new_scene.IsValid()) {
+        new_scene = CreateObject<Scene>(
+            CreateObject<Camera>(),
+            m_owner_thread_id,
+            SceneFlags::NON_WORLD
+        );
+    }
+
+    if (!new_scene->GetCamera().IsValid()) {
+        new_scene->SetCamera(CreateObject<Camera>());
+    }
+
+    if (!new_scene->GetCamera()->GetCameraController()) {
+        new_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
+            0.0f, -float(m_surface_size.x),
+            0.0f, float(m_surface_size.y),
+            float(min_depth), float(max_depth)
+        ));
+    }
+    
+    NodeProxy current_root_node;
+
+    if (m_scene.IsValid()) {
+        current_root_node = m_scene->GetRoot();
+
+        current_root_node->Remove();
+    }
+
+    new_scene->SetRoot(std::move(current_root_node));
+
+    g_engine->GetWorld()->AddScene(new_scene);
+    InitObject(new_scene);
+
+    if (m_scene.IsValid()) {
+        g_engine->GetWorld()->RemoveScene(m_scene);
+    }
+    
+    m_scene = std::move(new_scene);
 }
 
 const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
@@ -526,8 +580,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
-                        ui_object->GetName(), ui_object->GetActualSize(), ui_object->GetActualInnerSize(),
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Text: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
+                        ui_object->GetName(),
+                        ui_object->GetText(),
+                        ui_object->GetActualSize(),
+                        ui_object->GetActualInnerSize(),
                         ui_object->GetWorldAABB(),
                         ui_object->GetNode()->GetEntityAABB(),
                         bounding_box_component.local_aabb,

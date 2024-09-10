@@ -5,8 +5,10 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Subsystem.hpp>
+#include <scene/GameState.hpp>
 
 #include <core/object/HypObject.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <physics/PhysicsWorld.hpp>
 
@@ -213,8 +215,14 @@ public:
     Subsystem *GetSubsystem(TypeID type_id);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE float GetGameTime() const
-        { return m_game_time; }
+    HYP_FORCE_INLINE const GameState &GetGameState() const
+        { return m_game_state; }
+
+    HYP_METHOD()
+    void StartSimulating();
+
+    HYP_METHOD()
+    void StopSimulating();
 
     void AddScene(const Handle<Scene> &scene);
     void AddScene(Handle<Scene> &&scene);
@@ -230,25 +238,27 @@ public:
     /*! \brief Perform any necessary render thread specific updates to the World. */
     void PreRender(Frame *frame);
     void Render(Frame *frame);
+    
+    Delegate<void, World *, GameStateMode>  OnGameStateChange;
 
 private:
     void UpdatePendingScenes();
 
-    PhysicsWorld                        m_physics_world;
-    RenderListContainer                 m_render_list_container;
+    PhysicsWorld                            m_physics_world;
+    RenderListContainer                     m_render_list_container;
 
-    DetachedScenesContainer             m_detached_scenes;
+    DetachedScenesContainer                 m_detached_scenes;
 
-    Array<Handle<Scene>>                m_scenes;
-    FlatSet<ID<Scene>>                  m_scenes_pending_removal;
-    FlatSet<ID<Scene>>                  m_scenes_pending_addition;
+    Array<Handle<Scene>>                    m_scenes;
+    FlatSet<ID<Scene>>                      m_scenes_pending_removal;
+    FlatSet<ID<Scene>>                      m_scenes_pending_addition;
 
-    TypeMap<RC<Subsystem>>          m_subsystems;
+    TypeMap<RC<Subsystem>>                  m_subsystems;
 
-    AtomicVar<bool>                     m_has_scene_updates { false };
-    Mutex                               m_scene_update_mutex;
+    AtomicVar<bool>                         m_has_scene_updates { false };
+    Mutex                                   m_scene_update_mutex;
 
-    float                               m_game_time;
+    GameState                               m_game_state;
 };
 
 } // namespace hyperion

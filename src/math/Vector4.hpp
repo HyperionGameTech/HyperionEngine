@@ -99,10 +99,12 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     Vec4 &SetW(Type w)      { this->w = w; return *this; }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
-    Vec2<Type> GetXY() const   { return Vec2<Type>(x, y); }
+    HYP_FORCE_INLINE Vec2<Type> GetXY() const
+        { return Vec2<Type>(x, y); }
 
     /*! \brief Get the XYZ components of this vector as a Vector3. */
-    Vec3<Type> GetXYZ() const  { return Vec3<Type>(x, y, z); }
+    HYP_FORCE_INLINE Vec3<Type> GetXYZ() const
+        { return Vec3<Type>(x, y, z); }
     
     constexpr Type operator[](SizeType index) const
         { return values[index]; }

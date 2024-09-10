@@ -105,8 +105,6 @@ namespace Hyperion
 
                 foreach (KeyValuePair<Guid, StoredManagedObject> entry in objects)
                 {
-                    Logger.Log(LogType.Debug, $"Checking object {entry.Key} for assembly {assemblyGuid}. Object assembly: {entry.Value.assemblyGuid}");
-
                     if (entry.Value.assemblyGuid == assemblyGuid)
                     {
                         keysToRemove.Add(entry.Key);

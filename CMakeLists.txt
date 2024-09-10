@@ -172,7 +172,22 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
+if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    # Mac can compile objective-c and objective-c++ files
+    file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c" "src/*.m" "src/*.mm")
+else()
+    file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
+endif()
+
+string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
+
+file(GLOB_RECURSE PLATFORM_FILES "src/core/system/platform/**/*")
+foreach(PLATFORM_FILE ${PLATFORM_FILES})
+    if(NOT ${PLATFORM_FILE} MATCHES "src/core/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+        list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
+    endif()
+endforeach()
+
 file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
 
 file(GLOB_RECURSE CSHARP_CORE_SOURCES "src/dotnet/core/**.cs")
@@ -187,6 +202,15 @@ file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    # link with libraries to allow NSAlert and NSString
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        "-framework Cocoa"
+        "-framework Foundation"
+    )
+endif()
 
 if(FREETYPE_FOUND)
     message(STATUS "Freetype found")

@@ -19,7 +19,7 @@ namespace hyperion {
 
 class Scene;
 
-HYP_CLASS(abstract)
+HYP_CLASS(Abstract)
 class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
 {
     HYP_OBJECT_BODY(Subsystem);

@@ -134,8 +134,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
-        for (const ID<Entity> entity : proxy_ordering)
-        {
+        for (const ID<Entity> entity : proxy_ordering) {
             RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
 
             if (!proxy) {
@@ -243,7 +242,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
 
-        for (const ID<Entity> &entity : removed_proxies) {
+        for (ID<Entity> entity : removed_proxies) {
             proxy_list.MarkToRemove(entity);
         }
 

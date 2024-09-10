@@ -219,7 +219,7 @@ void RTRadianceRenderer::CreateImages()
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
-        Extent3D(m_extent),
+        Vec3u { m_extent.width, m_extent.height, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE

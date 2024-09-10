@@ -1068,11 +1068,166 @@ struct HypDataHelper<containers::detail::String<StringType>> : HypDataHelper<Any
     }
 };
 
-template <class T, SizeType Size>
-struct HypDataHelperDecl<T[Size]> {};
+template <>
+struct HypDataHelperDecl<Name> {};
+
+template <>
+struct HypDataHelper<Name> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<ANSIString>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<ANSIString>();
+    }
+
+    HYP_FORCE_INLINE bool Is(const ANSIString &value) const
+    {
+        return true;
+    }
+
+    Name Get(const Any &value) const
+    {
+        return CreateNameFromDynamicString(value.Get<ANSIString>());
+    }
+
+    Name Get(const ANSIString &value) const
+    {
+        return CreateNameFromDynamicString(value);
+    }
+
+    void Set(HypData &hyp_data, Name value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<ANSIString>(value.LookupString()));
+    }
+
+    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+        
+        Any &value = hyp_data.Get<Any>();
+
+        if (auto name_opt = hyp_data.TryGet<Name>()) {
+            out_data = fbom::FBOMData::FromString(ANSIString(name_opt->LookupString()));
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize name string - HypData is not expected type" };
+    }
+
+    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    {
+        ANSIString result;
+
+        if (fbom::FBOMResult err = data.ReadString(result)) {
+            return err;
+        }
+
+        out = HypData(std::move(result));
+
+        return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <class T>
+struct HypDataHelperDecl<Array<T>> {};
+
+template <class T>
+struct HypDataHelper<Array<T>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<Array<T>>();
+    }
+
+    Array<T> &Get(const Any &value) const
+    {
+        return value.Get<Array<T>>();
+    }
+
+    void Set(HypData &hyp_data, const Array<T> &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T>>(value));
+    }
+
+    void Set(HypData &hyp_data, Array<T> &&value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T>>(std::move(value)));
+    }
+
+    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+        
+        Any &value = hyp_data.Get<Any>();
+        
+        Array<T> *array_ptr = value.TryGet<Array<T>>();
+
+        if (!array_ptr) {
+            return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize array - HypData is not expected array type" };
+        }
+
+        const SizeType size = array_ptr->Size();
+
+        if (size == 0) {
+            out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(fbom::FBOMUnset()));
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        Array<fbom::FBOMData> elements;
+        elements.Resize(size);
+
+        for (SizeType i = 0; i < size; i++) {
+            if (fbom::FBOMResult err = HypDataHelper<T>::Serialize(HypData((*array_ptr)[i]), elements[i])) {
+                return err;
+            }
+        }
+
+        out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(elements[0].GetType(), std::move(elements)));
+
+        return fbom::FBOMResult::FBOM_OK;
+    }
+
+    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    {
+        HYP_SCOPE;
+        
+        fbom::FBOMArray array { fbom::FBOMUnset() };
+
+        if (fbom::FBOMResult err = data.ReadArray(array)) {
+            return err;
+        }
+
+        const SizeType size = array.Size();
+
+        Array<T> result;
+        result.Reserve(size);
+
+        for (SizeType i = 0; i < size; i++) {
+            HypData element;
+
+            if (fbom::FBOMResult err = HypDataHelper<T>::Deserialize(array.GetElement(i), element)) {
+                return err;
+            }
+
+            result.PushBack(element.Get<T>());
+        }
+
+        HypDataHelper<Array<T>>{}.Set(out, std::move(result));
+
+        return { fbom::FBOMResult::FBOM_OK };
+    }
+};
 
 template <class T, SizeType Size>
-struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
+struct HypDataHelperDecl<FixedArray<T, Size>> {};
+
+template <class T, SizeType Size>
+struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1081,19 +1236,19 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         return value.Is<FixedArray<T, Size>>();
     }
 
-    FixedArray<T, Size> &Get(Any &value) const
+    FixedArray<T, Size> &Get(const Any &value) const
     {
         return value.Get<FixedArray<T, Size>>();
     }
-
-    const FixedArray<T, Size> &Get(const Any &value) const
+    
+    void Set(HypData &hyp_data, const FixedArray<T, Size> &value) const
     {
-        return value.Get<FixedArray<T, Size>>();
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<FixedArray<T, Size>>(value));
     }
 
-    void Set(HypData &hyp_data, const T (&value)[Size]) const
+    void Set(HypData &hyp_data, FixedArray<T, Size> &&value) const
     {
-        HypDataHelper<Any>::Set(hyp_data, Any::Construct<FixedArray<T, Size>>(MakeFixedArray(value)));
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<FixedArray<T, Size>>(std::move(value)));
     }
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
@@ -1142,7 +1297,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
             return { fbom::FBOMResult::FBOM_ERR, "Failed to deserialize array - size does not match expected size" };
         }
 
-        T result[Size];
+        FixedArray<T, Size> result;
 
         for (SizeType i = 0; i < Size; i++) {
             HypData element;
@@ -1154,9 +1309,48 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
             result[i] = element.Get<T>();
         }
 
-        HypDataHelper<T[Size]>{}.Set(out, result);
+        HypDataHelper<FixedArray<T, Size>>{}.Set(out, std::move(result));
 
         return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <class T, SizeType Size>
+struct HypDataHelperDecl<T[Size]> {};
+
+template <class T, SizeType Size>
+struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<FixedArray<T, Size>>
+{
+    using ConvertibleFrom = Tuple<FixedArray<T, Size>>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<FixedArray<T, Size>>();
+    }
+
+    HYP_FORCE_INLINE bool Is(const FixedArray<T, Size> &value) const
+    {
+        return true;
+    }
+
+    FixedArray<T, Size> &Get(const Any &value) const
+    {
+        return value.Get<FixedArray<T, Size>>();
+    }
+
+    FixedArray<T, Size> &Get(FixedArray<T, Size> &value) const
+    {
+        return value;
+    }
+
+    const FixedArray<T, Size> &Get(const FixedArray<T, Size> &value) const
+    {
+        return value;
+    }
+
+    void Set(HypData &hyp_data, const T (&value)[Size]) const
+    {
+        HypDataHelper<FixedArray<T, Size>>::Set(hyp_data, MakeFixedArray(value));
     }
 };
 
@@ -1189,12 +1383,7 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec2<T>>();
     }
 
-    math::detail::Vec2<T> &Get(Any &value) const
-    {
-        return value.Get<math::detail::Vec2<T>>();
-    }
-
-    const math::detail::Vec2<T> &Get(const Any &value) const
+    math::detail::Vec2<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec2<T>>();
     }
@@ -1246,12 +1435,7 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec3<T>>();
     }
 
-    math::detail::Vec3<T> &Get(Any &value) const
-    {
-        return value.Get<math::detail::Vec3<T>>();
-    }
-
-    const math::detail::Vec3<T> &Get(const Any &value) const
+    math::detail::Vec3<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec3<T>>();
     }
@@ -1305,12 +1489,7 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec4<T>>();
     }
 
-    math::detail::Vec4<T> &Get(Any &value) const
-    {
-        return value.Get<math::detail::Vec4<T>>();
-    }
-
-    const math::detail::Vec4<T> &Get(const Any &value) const
+    math::detail::Vec4<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec4<T>>();
     }
@@ -1364,12 +1543,7 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
         return value.Is<ByteBuffer>();
     }
 
-    ByteBuffer &Get(Any &value) const
-    {
-        return value.Get<ByteBuffer>();
-    }
-
-    const ByteBuffer &Get(const Any &value) const
+    ByteBuffer &Get(const Any &value) const
     {
         return value.Get<ByteBuffer>();
     }

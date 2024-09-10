@@ -672,7 +672,7 @@ static inline void DeferCreate(RefType ref, Args &&... args)
 
         virtual renderer::Result operator()() override
         {
-            return std::apply([this]<class ...OtherArgs>(OtherArgs &&... args)
+            return std::apply([this]<class... OtherArgs>(OtherArgs &&... args)
             {
                 return ref->Create(std::forward<OtherArgs>(args)...);
             }, std::move(args));

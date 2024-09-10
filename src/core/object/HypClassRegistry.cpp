@@ -6,6 +6,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <dotnet/Class.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -74,12 +76,12 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
     m_registered_classes.Set(type_id, hyp_class);
 }
 
-void HypClassRegistry::RegisterManagedClass(const HypClass *hyp_class, dotnet::Class *managed_class)
+void HypClassRegistry::RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class)
 {
-    AssertThrow(hyp_class != nullptr);
     AssertThrow(managed_class != nullptr);
+    AssertThrow(hyp_class != nullptr);
 
-    HYP_LOG(Object, LogLevel::INFO, "Register managed class for {}", hyp_class->GetName());
+    HYP_LOG(Object, LogLevel::INFO, "Register managed class for {} on thread {}", hyp_class->GetName(), Threads::CurrentThreadID().name);
 
     Mutex::Guard guard(m_managed_classes_mutex);
 
@@ -87,6 +89,23 @@ void HypClassRegistry::RegisterManagedClass(const HypClass *hyp_class, dotnet::C
     AssertThrowMsg(it == m_managed_classes.End(), "Class %s already has a managed class registered for it", *hyp_class->GetName());
 
     m_managed_classes.Insert(const_cast<HypClass *>(hyp_class), managed_class);
+}
+
+void HypClassRegistry::UnregisterManagedClass(dotnet::Class *managed_class)
+{
+    AssertThrow(managed_class != nullptr);
+
+    HYP_LOG(Object, LogLevel::INFO, "Unregister managed class {} on thread {}", managed_class->GetName(), Threads::CurrentThreadID().name);
+
+    Mutex::Guard guard(m_managed_classes_mutex);
+
+    for (auto it = m_managed_classes.Begin(); it != m_managed_classes.End();) {
+        if (it->second == managed_class) {
+            it = m_managed_classes.Erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 dotnet::Class *HypClassRegistry::GetManagedClass(const HypClass *hyp_class) const
@@ -112,11 +131,12 @@ void HypClassRegistry::Initialize()
 
     AssertThrow(!m_is_initialized);
 
+    // Have to initialize here because HypClass::Initialize will call GetClass() for parent classes.
+    m_is_initialized = true;
+
     for (const Pair<TypeID, HypClass *> &it : m_registered_classes) {
         it.second->Initialize();
     }
-
-    m_is_initialized = true;
 }
 
 #pragma endregion HypClassRegistry

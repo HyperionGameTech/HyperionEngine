@@ -5,7 +5,6 @@ namespace Hyperion
 {
     public class FBOMData
     {
-
         internal IntPtr ptr;
         private FBOMType type = FBOMType.Unset;
 

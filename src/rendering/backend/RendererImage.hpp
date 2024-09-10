@@ -348,7 +348,7 @@ public:
     HYP_FORCE_INLINE uint32 NumMipmaps() const
     {
         return HasMipmaps()
-            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth))) + 1
+            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z))) + 1
             : 1;
     }
 
@@ -356,7 +356,7 @@ public:
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
     HYP_FORCE_INLINE uint32 GetByteSize() const
-        { return uint32(m_texture_desc.extent.Size())
+        { return uint32(m_texture_desc.extent.x * m_texture_desc.extent.y * m_texture_desc.extent.z)
             * NumComponents(m_texture_desc.format)
             * NumBytes(m_texture_desc.format)
             * NumFaces(); }
@@ -369,8 +369,8 @@ public:
 
     HYP_FORCE_INLINE bool IsPanorama() const
         { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D
-            && m_texture_desc.extent.width == m_texture_desc.extent.height * 2
-            && m_texture_desc.extent.depth == 1; }
+            && m_texture_desc.extent.x == m_texture_desc.extent.y * 2
+            && m_texture_desc.extent.z == 1; }
 
     HYP_FORCE_INLINE bool IsTextureArray() const
         { return !IsTextureCube() && m_texture_desc.num_layers > 1; }
@@ -409,7 +409,7 @@ public:
     HYP_FORCE_INLINE void SetMagFilterMode(FilterMode filter_mode)
         { m_texture_desc.filter_mode_mag = filter_mode; }
 
-    HYP_FORCE_INLINE const Extent3D &GetExtent() const
+    HYP_FORCE_INLINE const Vec3u &GetExtent() const
         { return m_texture_desc.extent; }
 
     HYP_FORCE_INLINE InternalFormat GetTextureFormat() const
@@ -444,14 +444,13 @@ class StorageImage : public Image<PLATFORM>
 {
 public:
     StorageImage(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         ImageType type,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : Image<PLATFORM>(
-            TextureDesc
-            {
+            TextureDesc {
                 type,
                 format,
                 extent,
@@ -467,7 +466,7 @@ public:
 
     StorageImage()
         : StorageImage(
-            Extent3D { 1, 1, 1 },
+            Vec3u { 1, 1, 1 },
             InternalFormat::RGBA16F,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_NEAREST,
@@ -477,7 +476,7 @@ public:
     }
 
     StorageImage(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         ImageType type
     ) : StorageImage(
@@ -514,7 +513,7 @@ class SampledImage : public Image<PLATFORM>
 {
 public:
     SampledImage(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         ImageType type,
         FilterMode min_filter_mode,
@@ -554,12 +553,12 @@ class SampledImage2D : public SampledImage<PLATFORM>
 {
 public:
     SampledImage2D(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : SampledImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_2D,
             min_filter_mode,
@@ -591,7 +590,7 @@ class SampledImage3D : public SampledImage<PLATFORM>
 {
 public:
     SampledImage3D(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
@@ -628,12 +627,12 @@ class SampledImageCube : public SampledImage<PLATFORM>
 {
 public:
     SampledImageCube(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : SampledImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_CUBEMAP,
             min_filter_mode,
@@ -665,12 +664,11 @@ class FramebufferImage : public Image<PLATFORM>
 {
 public:
     FramebufferImage(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         ImageType type
     ) : Image<PLATFORM>(
-            TextureDesc
-            {
+            TextureDesc {
                 type,
                 format,
                 extent,
@@ -685,14 +683,13 @@ public:
     }
 
     FramebufferImage(
-        Extent3D extent,
+        Vec3u extent,
         InternalFormat format,
         ImageType type,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : Image<PLATFORM>(
-            TextureDesc
-            {
+            TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
                 extent,
@@ -712,10 +709,10 @@ class FramebufferImage2D : public FramebufferImage<PLATFORM>
 {
 public:
     FramebufferImage2D(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format
     ) : FramebufferImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_2D
         )
@@ -723,12 +720,12 @@ public:
     }
 
     FramebufferImage2D(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : FramebufferImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_2D,
             min_filter_mode,
@@ -743,10 +740,10 @@ class FramebufferImageCube : public FramebufferImage<PLATFORM>
 {
 public:
     FramebufferImageCube(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format
     ) : FramebufferImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_CUBEMAP
         )
@@ -754,12 +751,12 @@ public:
     }
 
     FramebufferImageCube(
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format,
         FilterMode min_filter_mode,
         FilterMode mag_filter_mode
     ) : FramebufferImage<PLATFORM>(
-            Extent3D(extent),
+            Vec3u { extent.x, extent.y, 1 },
             format,
             ImageType::TEXTURE_TYPE_CUBEMAP,
             min_filter_mode,

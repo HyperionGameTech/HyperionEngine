@@ -32,8 +32,7 @@ using renderer::RTUpdateStateFlags;
 World::World()
     : BasicObject(),
       m_detached_scenes(this),
-      m_has_scene_updates(false),
-      m_game_time(0.0)
+      m_has_scene_updates(false)
 {
 #ifdef HYP_EDITOR
     AddSubsystem<EditorSubsystem>();
@@ -146,6 +145,8 @@ void World::Update(GameCounter::TickUnit delta)
 
     AssertReady();
 
+    m_game_state.delta_time = delta;
+
     m_physics_world.Tick(delta);
 
     if (m_has_scene_updates.Get(MemoryOrder::ACQUIRE)) {
@@ -232,7 +233,7 @@ void World::Update(GameCounter::TickUnit delta)
     }
 #endif
 
-    m_game_time += delta;
+    m_game_state.game_time += delta;
 }
 
 void World::PreRender(Frame *frame)
@@ -306,6 +307,32 @@ Subsystem *World::GetSubsystem(TypeID type_id)
     }
 
     return it->second.Get();
+}
+
+void World::StartSimulating()
+{
+    if (m_game_state.mode == GameStateMode::SIMULATING) {
+        return;
+    }
+
+    OnGameStateChange(this, GameStateMode::SIMULATING);
+
+    m_game_state.game_time = 0.0f;
+    m_game_state.delta_time = 0.0f;
+    m_game_state.mode = GameStateMode::SIMULATING;
+}
+
+void World::StopSimulating()
+{
+    if (m_game_state.mode != GameStateMode::SIMULATING) {
+        return;
+    }
+
+    OnGameStateChange(this, GameStateMode::EDITOR);
+
+    m_game_state.game_time = 0.0f;
+    m_game_state.delta_time = 0.0f;
+    m_game_state.mode = GameStateMode::EDITOR;
 }
 
 void World::AddScene(const Handle<Scene> &scene)

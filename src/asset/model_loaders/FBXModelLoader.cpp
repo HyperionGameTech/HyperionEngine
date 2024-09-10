@@ -1224,7 +1224,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 #undef INVALID_NODE_CONNECTION
     }
 
-    NodeProxy root_bone(new Bone);
+    RC<Bone> root_bone { new Bone() };
     root_skeleton->SetRootBone(root_bone);
 
     bool found_first_bone = false;

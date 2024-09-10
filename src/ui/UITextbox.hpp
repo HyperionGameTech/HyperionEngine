@@ -12,8 +12,11 @@
 
 namespace hyperion {
 
+HYP_CLASS()
 class HYP_API UITextbox : public UIPanel
 {
+    HYP_OBJECT_BODY(UITextbox);
+
 public:
     UITextbox(UIStage *stage, NodeProxy node_proxy);
     UITextbox(const UITextbox &other)                   = delete;

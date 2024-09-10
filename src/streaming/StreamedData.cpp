@@ -171,37 +171,56 @@ const ByteBuffer &NullStreamedData::Load_Internal() const
 
 #pragma region MemoryStreamedData
 
-MemoryStreamedData::MemoryStreamedData(const ByteBuffer &byte_buffer, StreamedDataState initial_state)
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, StreamedDataState initial_state, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc)
     : StreamedData(initial_state),
-      m_hash_code { 0 }
+      m_hash_code(hash_code),
+      m_load_from_memory_proc(std::move(load_from_memory_proc))
 {
-    m_hash_code = byte_buffer.GetHashCode();
+    auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
 
-    // if (initial_state == StreamedDataState::LOADED) {
+    const bool should_load_unpaged = initial_state == StreamedDataState::UNPAGED
+        && !data_store.Exists(String::ToString(hash_code.Value()))
+        && m_load_from_memory_proc.IsValid();
+
+    if (should_load_unpaged) {
+        HYP_LOG(Streaming, LogLevel::INFO, "StreamedData with hash code {} is not in data store, loading from memory before unpaging", hash_code.Value());
+    }
+
+    if (initial_state == StreamedDataState::LOADED || should_load_unpaged) {
+        // @NOTE: Calling virtual function, but this class is marked final so it will be last in the constructor chain
+        (void)StreamedData::Load();
+    }
+    
+    if (should_load_unpaged) {
+        Unpage();
+    }
+}
+
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state)
+    : StreamedData(initial_state),
+      m_hash_code(hash_code)
+{
+    if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(byte_buffer);
-    // }
+    }
 }
 
-MemoryStreamedData::MemoryStreamedData(ByteBuffer &&byte_buffer, StreamedDataState initial_state)
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state)
     : StreamedData(initial_state),
-      m_hash_code { 0 }
+      m_hash_code(hash_code)
 {
-    m_hash_code = byte_buffer.GetHashCode();
-
-    // if (initial_state == StreamedDataState::LOADED) {
+    if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(std::move(byte_buffer));
-    // }
+    }
 }
 
-MemoryStreamedData::MemoryStreamedData(ConstByteView byte_view, StreamedDataState initial_state)
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state)
     : StreamedData(initial_state),
-      m_hash_code { 0 }
+      m_hash_code(hash_code)
 {
-    m_hash_code = byte_view.GetHashCode();
-
-    // if (initial_state == StreamedDataState::LOADED) {
+    if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(ByteBuffer(byte_view));
-    // }
+    }
 }
 
 MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept
@@ -211,14 +230,18 @@ MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept
 
     m_hash_code = other.m_hash_code;
     other.m_hash_code = HashCode();
+
+    m_load_from_memory_proc = std::move(other.m_load_from_memory_proc);
 }
 
 MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) noexcept
 {
     m_byte_buffer = std::move(other.m_byte_buffer);
-    m_hash_code = other.m_hash_code;
 
+    m_hash_code = other.m_hash_code;
     other.m_hash_code = HashCode();
+
+    m_load_from_memory_proc = std::move(other.m_load_from_memory_proc);
 
     return *this;
 }
@@ -239,8 +262,6 @@ void MemoryStreamedData::Unpage_Internal()
         return;
     }
 
-    m_hash_code = m_byte_buffer->GetHashCode();
-
     // Enqueue task to write file to disk
     TaskSystem::GetInstance().Enqueue([byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code]
     {
@@ -259,6 +280,14 @@ const ByteBuffer &MemoryStreamedData::Load_Internal() const
         const auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
 
         if (!data_store.Read(String::ToString(m_hash_code.Value()), *m_byte_buffer)) {
+            if (m_load_from_memory_proc.IsValid()) {
+                if (m_load_from_memory_proc(m_hash_code, *m_byte_buffer)) {
+                    return *m_byte_buffer;
+                }
+
+                HYP_LOG(Streaming, LogLevel::WARNING, "Failed to load streamed data with hash code {} from memory", m_hash_code.Value());
+            }
+            
             m_byte_buffer.Unset();
         }
     }
@@ -276,65 +305,5 @@ const ByteBuffer &MemoryStreamedData::GetByteBuffer() const
 }
 
 #pragma endregion MemoryStreamedData
-
-#pragma region FileStreamedData
-
-FileStreamedData::FileStreamedData(const FilePath &filepath)
-    : StreamedData(StreamedDataState::NONE),
-      m_filepath(filepath)
-{
-}
-
-
-FileStreamedData::FileStreamedData(FileStreamedData &&other) noexcept
-    : StreamedData(other.IsInMemory() ? StreamedDataState::LOADED : StreamedDataState::NONE)
-{
-    m_filepath = std::move(other.m_filepath);
-    m_byte_buffer = std::move(other.m_byte_buffer);
-}
-
-FileStreamedData &FileStreamedData::operator=(FileStreamedData &&other) noexcept
-{
-    m_filepath = std::move(other.m_filepath);
-    m_byte_buffer = std::move(other.m_byte_buffer);
-
-    return *this;
-}
-
-bool FileStreamedData::IsNull() const
-{
-    return false;
-}
-
-bool FileStreamedData::IsInMemory() const
-{
-    return m_byte_buffer.HasValue();
-}
-
-void FileStreamedData::Unpage_Internal()
-{
-    m_byte_buffer = { };
-}
-
-const ByteBuffer &FileStreamedData::Load_Internal() const
-{
-    if (!m_byte_buffer.HasValue()) {
-        BufferedByteReader reader(m_filepath);
-        m_byte_buffer.Set(reader.ReadBytes());
-    }
-    
-    return *m_byte_buffer;
-}
-
-const ByteBuffer &FileStreamedData::GetByteBuffer() const
-{
-    if (m_byte_buffer.HasValue()) {
-        return *m_byte_buffer;
-    }
-
-    return StreamedData::GetByteBuffer();
-}
-
-#pragma endregion FileStreamedData
 
 } // namespace hyperion

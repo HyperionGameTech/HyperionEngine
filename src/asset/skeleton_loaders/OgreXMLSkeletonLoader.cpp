@@ -216,7 +216,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
         } else if (skeleton_handle->GetRootBone() != nullptr) {
             HYP_LOG(Assets, LogLevel::WARNING, "Ogre XML parser: Attempt to set root bone to node '{}' but it has already been set", item.name);
         } else {
-            skeleton_handle->SetRootBone(NodeProxy(bone.Release()));
+            skeleton_handle->SetRootBone(RC<Bone>(bone.Release()));
         }
     }
 

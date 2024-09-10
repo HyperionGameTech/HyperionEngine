@@ -151,21 +151,26 @@ struct UIObjectAspectRatio
 
 #pragma region UIObjectSize
 
+HYP_STRUCT()
 struct UIObjectSize
 {
-    using Flags = uint32;
-
-    enum FlagBits : Flags
+    enum Flags
     {
-        AUTO            = 0x04,
+        AUTO    = 0x04,
 
-        PIXEL           = 0x10,
-        PERCENT         = 0x20,
+        PIXEL   = 0x10,
+        PERCENT = 0x20,
 
-        FILL            = 0x40,
+        FILL    = 0x40,
 
-        DEFAULT         = PIXEL
+        DEFAULT = PIXEL
     };
+
+    HYP_FIELD()
+    uint32  flags[2];
+
+    HYP_FIELD()
+    Vec2i   value;
 
     UIObjectSize()
         : flags { DEFAULT, DEFAULT },
@@ -179,7 +184,7 @@ struct UIObjectSize
     {
     }
 
-    UIObjectSize(Vec2i value, Flags flags)
+    UIObjectSize(Vec2i value, uint32 flags)
         : flags { flags, flags },
           value(value)
     {
@@ -187,7 +192,7 @@ struct UIObjectSize
     }
 
     /*! \brief Construct by only providing flags. Used primarily for the DYNAMIC type. */
-    UIObjectSize(Flags flags)
+    UIObjectSize(uint32 flags)
         : flags { flags, flags },
           value(0, 0)
     {
@@ -195,7 +200,7 @@ struct UIObjectSize
     }
 
     /*! \brief Construct by providing specific flags for each axis. */
-    UIObjectSize(Pair<int, Flags> x, Pair<int, Flags> y)
+    UIObjectSize(Pair<int, uint32> x, Pair<int, uint32> y)
         : flags { x.second, y.second },
           value(x.first, y.first)
     {
@@ -211,20 +216,16 @@ struct UIObjectSize
     HYP_FORCE_INLINE const Vec2i &GetValue() const
         { return value; }
 
-    HYP_FORCE_INLINE Flags GetFlagsX() const
+    HYP_FORCE_INLINE uint32 GetFlagsX() const
         { return flags[0]; }
 
-    HYP_FORCE_INLINE Flags GetFlagsY() const
+    HYP_FORCE_INLINE uint32 GetFlagsY() const
         { return flags[1]; }
 
-    HYP_FORCE_INLINE Flags GetAllFlags() const
+    HYP_FORCE_INLINE uint32 GetAllFlags() const
         { return flags[0] | flags[1]; }
 
-private:
-    Flags   flags[2];
-    Vec2i   value;
-
-    template <Flags Mask>
+    template <uint32 Mask>
     HYP_FORCE_INLINE void ApplyDefaultFlagMask()
     { 
         for (int i = 0; i < 2; i++) {
@@ -236,9 +237,11 @@ private:
 
     HYP_FORCE_INLINE void ApplyDefaultFlags()
     {
-        ApplyDefaultFlagMask<PIXEL | PERCENT>();
+        ApplyDefaultFlagMask<PIXEL | PERCENT | FILL>();
     }
 };
+
+static_assert(sizeof(UIObjectSize) == 16, "sizeof(UIObjectSize) must be 16 bytes to match C# struct size");
 
 enum class UIObjectUpdateSizeFlags : uint32
 {
@@ -276,7 +279,7 @@ public:
 
 struct UIObjectID : UniqueID { };
 
-HYP_CLASS(abstract)
+HYP_CLASS(Abstract)
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
     HYP_OBJECT_BODY(UIObject);
@@ -341,16 +344,22 @@ public:
     HYP_METHOD()
     Vec2f GetAbsolutePosition() const;
 
+    HYP_METHOD()
     UIObjectSize GetSize() const;
 
+    HYP_METHOD()
     void SetSize(UIObjectSize size);
 
+    HYP_METHOD()
     UIObjectSize GetInnerSize() const;
 
+    HYP_METHOD()
     void SetInnerSize(UIObjectSize size);
 
+    HYP_METHOD()
     UIObjectSize GetMaxSize() const;
 
+    HYP_METHOD()
     void SetMaxSize(UIObjectSize size);
     
     /*! \brief Get the computed size (in pixels) of the UI object.
@@ -474,12 +483,14 @@ public:
     /*! \brief Get the padding of the UI object
      * The padding of the UI object is used to add space around the object's content.
      * \return The padding of the UI object */
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetPadding() const
         { return m_padding; }
 
     /*! \brief Set the padding of the UI object
      * The padding of the UI object is used to add space around the object's content.
      * \param padding The padding of the UI object */
+    HYP_METHOD()
     void SetPadding(Vec2i padding);
 
     /*! \brief Get the background color of the UI object
@@ -492,22 +503,32 @@ public:
 
     /*! \brief Get the text color of the UI object
      * \return The text color of the UI object */
+    HYP_METHOD()
     Color GetTextColor() const;
 
     /*! \brief Set the text color of the UI object
      *  \param text_color The text color of the UI object */
+    HYP_METHOD()
     void SetTextColor(const Color &text_color);
 
     /*! \brief Gets the text to render.
      * 
      * \return The text to render. */
+    HYP_METHOD()
     HYP_FORCE_INLINE const String &GetText() const
         { return m_text; }
 
+    HYP_METHOD()
     virtual void SetText(const String &text);
 
+    HYP_METHOD()
+    float GetTextSize() const;
+
+    HYP_METHOD()
+    void SetTextSize(float text_size); 
+
     /*! \brief Check if the UI object is set to visible or not. This does not include computed visibility.
-     *  \returns True if the object is visible, false otherwise. */ 
+     *  \returns True if the object is visible, false otherwise. */
     bool IsVisible() const;
 
     /*! \brief Set the visibility of the UI object.
@@ -586,7 +607,7 @@ public:
     /*! \brief Gets the child UIObject at the specified index.
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
-    const RC<UIObject> &GetChildUIObject(SizeType index) const;
+    const RC<UIObject> &GetChildUIObject(int index) const;
 
     /*! \brief Gets the relevant script component for this UIObject, if one exists.
      *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
@@ -603,6 +624,7 @@ public:
      *  Subsequent calls to \ref{GetScriptComponent} will return the closest script component to this UIObject in the scene hierarchy, if one exists. */
     void RemoveScriptComponent();
 
+    HYP_METHOD()
     const NodeProxy &GetNode() const;
 
     virtual Scene *GetScene() const;
@@ -749,7 +771,7 @@ protected:
     void UpdateMaterial(bool update_children = true);
 
     Array<RC<UIObject>> GetChildUIObjects(bool deep) const;
-    Array<RC<UIObject>> GetChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const;
+    Array<RC<UIObject>> FilterChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const;
 
     virtual void SetStage_Internal(UIStage *stage);
 
@@ -803,6 +825,8 @@ protected:
     Color                           m_text_color;
 
     String                          m_text;
+
+    float                           m_text_size;
 
     UniquePtr<UIDataSourceBase>     m_data_source;
     DelegateHandler                 m_data_source_on_change_handler;

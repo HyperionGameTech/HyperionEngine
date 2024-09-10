@@ -99,7 +99,7 @@ extern HYP_API void SetCurrentThreadObject(IThread *);
 extern HYP_API void SetCurrentThreadID(const ThreadID &thread_id);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-template <class SchedulerType, class ...Args>
+template <class SchedulerType, class... Args>
 class Thread : public IThread
 {
 public:

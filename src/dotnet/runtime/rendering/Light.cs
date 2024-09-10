@@ -17,15 +17,5 @@ namespace Hyperion
         public Light()
         {
         }
-        
-        public IDBase ID
-        {
-            get
-            {
-                return (IDBase)GetProperty(PropertyNames.ID)
-                    .InvokeGetter(this)
-                    .GetValue();
-            }
-        }
     }
 }

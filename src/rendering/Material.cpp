@@ -100,7 +100,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 
                 descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
             } else {
-                HYP_LOG(Material, LogLevel::WARNING, "Setting invalid texture for material with ID #{} at index {}", id.Value(), texture_index);
+                HYP_LOG_ONCE(Material, LogLevel::WARNING, "Setting invalid texture for material with ID #{} at index {}", id.Value(), texture_index);
 
                 descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }

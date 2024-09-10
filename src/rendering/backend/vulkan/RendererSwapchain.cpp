@@ -44,7 +44,7 @@ Result SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
     create_info.minImageCount       = image_count;
     create_info.imageFormat         = surface_format.format;
     create_info.imageColorSpace     = surface_format.colorSpace;
-    create_info.imageExtent         = { self->extent.width, self->extent.height };
+    create_info.imageExtent         = { self->extent.x, self->extent.y };
     create_info.imageArrayLayers    = 1; /* This is always 1 unless we make a stereoscopic/VR application */
     create_info.imageUsage          = image_usage_flags;
 
@@ -180,11 +180,10 @@ void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles(Device<Platfo
 
     for (uint32 i = 0; i < image_count; i++) {
         self->m_images[i] = MakeRenderObject<Image<Platform::VULKAN>>(
-            TextureDesc
-            {
+            TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 self->image_format,
-                Extent3D { self->extent.width, self->extent.height, 1 }
+                Vec3u { self->extent.x, self->extent.y, 1 }
             }
         );
 

@@ -100,6 +100,10 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
                 if (dotnet::ManagedMethod *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
+                    HYP_LOG(Script, LogLevel::INFO, "Calling BeforeInit() on script component");
+
+                    AssertThrow(GetEntityManager().GetScene() != nullptr);
+                    AssertThrow(GetEntityManager().GetScene()->GetWorld() != nullptr);
 
                     script_component.object->InvokeMethod<void, dotnet::Object *>(
                         before_init_method_ptr,
@@ -113,6 +117,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             if (!(script_component.flags & ScriptComponentFlags::INIT_CALLED)) {
                 if (dotnet::ManagedMethod *init_method_ptr = class_ptr->GetMethod("Init")) {
                     HYP_NAMED_SCOPE("Call Init() on script component");
+                    HYP_LOG(Script, LogLevel::INFO, "Calling Init() on script component");
 
                     script_component.object->InvokeMethod<void, ID<Entity>>(
                         init_method_ptr,
@@ -165,7 +170,7 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
     script_component.object = nullptr;
     script_component.assembly = nullptr;
 
-    script_component.flags &= ~ScriptComponentFlags::INITIALIZED;
+    script_component.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_INIT_CALLED | ScriptComponentFlags::INIT_CALLED);
 }
 
 void ScriptSystem::Process(GameCounter::TickUnit delta)

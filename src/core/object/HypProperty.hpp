@@ -150,7 +150,7 @@ struct HypPropertyGetter
 
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
-            target.GetTypeID() == type_info.target_type_id,
+            target.Is(type_info.target_type_id),
             "Target type mismatch, expected TypeID %u, got %u",
             type_info.target_type_id.Value(),
             target.GetTypeID().Value()
@@ -168,7 +168,7 @@ struct HypPropertyGetter
 
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
-            target.GetTypeID() == type_info.target_type_id,
+            target.Is(type_info.target_type_id),
             "Target type mismatch, expected TypeID %u, got %u",
             type_info.target_type_id.Value(),
             target.GetTypeID().Value()
@@ -288,7 +288,7 @@ struct HypPropertySetter
 
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
-            target.GetTypeID() == type_info.target_type_id,
+            target.Is(type_info.target_type_id),
             "Target type mismatch, expected TypeID %u, got %u",
             type_info.target_type_id.Value(),
             target.GetTypeID().Value()
@@ -306,7 +306,7 @@ struct HypPropertySetter
 
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
-            target.GetTypeID() == type_info.target_type_id,
+            target.Is(type_info.target_type_id),
             "Target type mismatch, expected TypeID %u, got %u",
             type_info.target_type_id.Value(),
             target.GetTypeID().Value()

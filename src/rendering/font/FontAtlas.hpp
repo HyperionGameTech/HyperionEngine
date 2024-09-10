@@ -48,7 +48,7 @@ public:
 
     FontAtlas() = default;
 
-    HYP_API FontAtlas(RC<FontAtlasTextureSet> atlases, Extent2D cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
+    HYP_API FontAtlas(const FontAtlasTextureSet &atlas_textures, Vec2u cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
     HYP_API FontAtlas(RC<FontFace> face);
 
     FontAtlas(const FontAtlas &other)                   = delete;
@@ -62,10 +62,10 @@ public:
     HYP_FORCE_INLINE const GlyphMetricsBuffer &GetGlyphMetrics() const
         { return m_glyph_metrics; }
 
-    HYP_FORCE_INLINE const RC<FontAtlasTextureSet> &GetAtlases() const
-        { return m_atlases; }
+    HYP_FORCE_INLINE const FontAtlasTextureSet &GetAtlasTextures() const
+        { return m_atlas_textures; }
 
-    HYP_FORCE_INLINE const Extent2D &GetCellDimensions() const
+    HYP_FORCE_INLINE const Vec2u &GetCellDimensions() const
         { return m_cell_dimensions; }
 
     HYP_FORCE_INLINE const SymbolList &GetSymbolList() const
@@ -75,16 +75,16 @@ public:
 
     HYP_API void WriteToBuffer(uint pixel_size, ByteBuffer &buffer) const;
     HYP_API Bitmap<1> GenerateBitmap(uint pixel_size) const;
-    HYP_API json::JSONValue GenerateMetadataJSON(const String &bitmap_filepath) const;
+    HYP_API json::JSONValue GenerateMetadataJSON(const String &output_directory) const;
 
 private:
-    Extent2D FindMaxDimensions(const RC<FontFace> &face) const;
-    void RenderCharacter(const Handle<Texture> &atlas, const Handle<Texture> &glyph_texture, Vec2i location, Extent2D dimensions) const;
+    Vec2u FindMaxDimensions(const RC<FontFace> &face) const;
+    void RenderCharacter(const Handle<Texture> &atlas, const Handle<Texture> &glyph_texture, Vec2i location, Vec2u dimensions) const;
 
     RC<FontFace>            m_face;
 
-    RC<FontAtlasTextureSet> m_atlases;
-    Extent2D                m_cell_dimensions;
+    FontAtlasTextureSet     m_atlas_textures;
+    Vec2u                   m_cell_dimensions;
     GlyphMetricsBuffer      m_glyph_metrics;
     SymbolList              m_symbol_list;
 };

@@ -23,19 +23,26 @@ struct RayHit;
 
 using RayHitID = uint;
 
+HYP_STRUCT()
 struct HYP_API Ray
 {
+    HYP_FIELD(SerializeAs=Position)
     Vec3f   position;
+
+    HYP_FIELD(SerializeAs=Direction)
     Vec3f   direction;
 
-    bool operator==(const Ray &other) const
+    HYP_FORCE_INLINE bool operator==(const Ray &other) const
     {
         return position == other.position
             && direction == other.direction;
     }
 
-    bool operator!=(const Ray &other) const
-        { return !(*this == other); }
+    HYP_FORCE_INLINE bool operator!=(const Ray &other) const
+    {
+        return position != other.position
+            || direction != other.direction;
+    }
 
     bool TestAABB(const BoundingBox &aabb) const;
     bool TestAABB(const BoundingBox &aabb, RayTestResults &out_results) const;
@@ -103,16 +110,17 @@ struct HYP_API Ray
         RayTestResults &out_results
     ) const;
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-
         hc.Add(position.GetHashCode());
         hc.Add(direction.GetHashCode());
 
         return hc;
     }
 };
+
+static_assert(sizeof(Ray) == 32, "sizeof(Ray) must be 32 bytes to match C# struct size");
 
 struct RayHit
 {

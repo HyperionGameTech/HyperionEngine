@@ -13,8 +13,11 @@ namespace hyperion {
 
 #pragma region UIListViewItem
 
+HYP_CLASS()
 class HYP_API UIListViewItem : public UIObject
 {
+    HYP_OBJECT_BODY(UIListViewItem);
+
 public:
     friend class UIListView;
 
@@ -41,8 +44,11 @@ private:
 
 #pragma region UIListView
 
+HYP_CLASS()
 class HYP_API UIListView : public UIPanel
 {
+    HYP_OBJECT_BODY(UIListView);
+
 public:
     UIListView(UIStage *stage, NodeProxy node_proxy);
     UIListView(const UIListView &other)                 = delete;

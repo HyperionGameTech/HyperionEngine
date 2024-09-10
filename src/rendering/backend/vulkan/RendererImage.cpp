@@ -44,7 +44,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 
     const uint8 bpp = self->m_bpp;
 
-    const uint32 new_size = current_desc.num_faces * new_bpp * current_desc.extent.width * current_desc.extent.height * current_desc.extent.depth;
+    const uint32 new_size = current_desc.num_faces * new_bpp * current_desc.extent.x * current_desc.extent.y * current_desc.extent.z;
     const uint32 new_face_offset_step = new_size / current_desc.num_faces;
     
     const InternalFormat new_format = FormatChangeNumComponents(current_desc.format, new_bpp);
@@ -59,7 +59,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 
         for (uint32 i = 0; i < current_desc.num_faces; i++) {
             ImageUtil::ConvertBPP(
-                current_desc.extent.width, current_desc.extent.height, current_desc.extent.depth,
+                current_desc.extent.x, current_desc.extent.y, current_desc.extent.z,
                 bpp, new_bpp,
                 &texture_data.buffer.Data()[i * face_offset_step],
                 &new_byte_buffer.Data()[i * new_face_offset_step]
@@ -484,8 +484,7 @@ Image<Platform::VULKAN>::Image(
 {
     m_size = GetByteSize();
 
-    m_streamed_data.Reset(new StreamedTextureData(TextureData
-    {
+    m_streamed_data.Reset(new StreamedTextureData(TextureData {
         m_texture_desc,
         ByteBuffer()
     }));
@@ -601,9 +600,9 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
 
     for (uint32 face = 0; face < num_faces; face++) {
         for (int32 i = 1; i < int32(num_mipmaps + 1); i++) {
-            const auto mip_width = int32(helpers::MipmapSize(m_texture_desc.extent.width, i)),
-                mip_height = int32(helpers::MipmapSize(m_texture_desc.extent.height, i)),
-                mip_depth = int32(helpers::MipmapSize(m_texture_desc.extent.depth, i));
+            const auto mip_width = int32(helpers::MipmapSize(m_texture_desc.extent.x, i)),
+                mip_height = int32(helpers::MipmapSize(m_texture_desc.extent.y, i)),
+                mip_depth = int32(helpers::MipmapSize(m_texture_desc.extent.z, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
@@ -657,9 +656,9 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
                 .srcOffsets = {
                     { 0, 0, 0 },
                     {
-                        int32(helpers::MipmapSize(m_texture_desc.extent.width, i - 1)),
-                        int32(helpers::MipmapSize(m_texture_desc.extent.height, i - 1)),
-                        int32(helpers::MipmapSize(m_texture_desc.extent.depth, i - 1))
+                        int32(helpers::MipmapSize(m_texture_desc.extent.x, i - 1)),
+                        int32(helpers::MipmapSize(m_texture_desc.extent.y, i - 1)),
+                        int32(helpers::MipmapSize(m_texture_desc.extent.z, i - 1))
                     }
                 },
                 .dstSubresource = {
@@ -1079,14 +1078,14 @@ Result Image<Platform::VULKAN>::Blit(
         Rect<uint32> {
             .x0 = 0,
             .y0 = 0,
-            .x1 = src->GetExtent().width,
-            .y1 = src->GetExtent().height
+            .x1 = src->GetExtent().x,
+            .y1 = src->GetExtent().y
         },
         Rect<uint32> {
             .x0 = 0,
             .y0 = 0,
-            .x1 = m_texture_desc.extent.width,
-            .y1 = m_texture_desc.extent.height
+            .x1 = m_texture_desc.extent.x,
+            .y1 = m_texture_desc.extent.y
         }
     );
 }
@@ -1120,7 +1119,7 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
         region.imageSubresource.baseArrayLayer = i;
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = VkExtent3D { m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth };
+        region.imageExtent = VkExtent3D { m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z };
 
         vkCmdCopyBufferToImage(
             command_buffer->GetPlatformImpl().command_buffer,
@@ -1162,7 +1161,7 @@ void Image<Platform::VULKAN>::CopyToBuffer(
         region.imageSubresource.baseArrayLayer = i;
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = VkExtent3D { m_texture_desc.extent.width, m_texture_desc.extent.height, m_texture_desc.extent.depth };
+        region.imageExtent = VkExtent3D { m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z };
 
         vkCmdCopyImageToBuffer(
             command_buffer->GetPlatformImpl().command_buffer,

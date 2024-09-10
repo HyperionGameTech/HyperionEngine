@@ -54,11 +54,6 @@ RC<AssetBatch> AssetManager::CreateBatch()
 {
     RC<AssetBatch> batch(new AssetBatch(this));
 
-    Mutex::Guard guard(m_pending_batches_mutex);
-
-    m_pending_batches.PushBack(batch);
-    m_num_pending_batches.Increment(1, MemoryOrder::RELEASE);
-
     return batch;
 }
 
@@ -172,6 +167,22 @@ void AssetManager::Update(GameCounter::TickUnit delta)
     }
 
     m_completed_batches.Clear();
+}
+
+void AssetManager::AddPendingBatch(const RC<AssetBatch> &batch)
+{
+    if (!batch) {
+        return;
+    }
+
+    Mutex::Guard guard(m_pending_batches_mutex);
+
+    if (m_pending_batches.Contains(batch)) {
+        return;
+    }
+
+    m_pending_batches.PushBack(batch);
+    m_num_pending_batches.Increment(1, MemoryOrder::RELEASE);
 }
 
 } // namespace hyperion

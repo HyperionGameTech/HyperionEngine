@@ -286,7 +286,9 @@ void TemporalBlending::Render(Frame *frame)
 
     active_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    const Extent3D &extent = active_texture->GetExtent();
+    const Vec3u &extent = active_texture->GetExtent();
+    const Vec3u depth_texture_dimensions = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+        .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent();
 
     struct alignas(128)
     {
@@ -295,11 +297,8 @@ void TemporalBlending::Render(Frame *frame)
         uint32  blending_frame_counter;
     } push_constants;
 
-    push_constants.output_dimensions = Extent2D(extent);
-    push_constants.depth_texture_dimensions = Extent2D(
-        g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent()
-    );
+    push_constants.output_dimensions = Vec2u { extent.x, extent.y };
+    push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
 
     push_constants.blending_frame_counter = m_blending_frame_counter;
 
@@ -326,8 +325,8 @@ void TemporalBlending::Render(Frame *frame)
     m_perform_blending->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            (extent.width + 7) / 8,
-            (extent.height + 7) / 8,
+            (extent.x + 7) / 8,
+            (extent.y + 7) / 8,
             1
         }
     );

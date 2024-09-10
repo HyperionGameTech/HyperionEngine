@@ -52,15 +52,18 @@ struct UITextCharacter
 
 struct UITextRenderData
 {
-    Vec2i                   size;
+    Vec2u                   size;
     BoundingBox             aabb;
     Array<UITextCharacter>  characters;
     RC<FontAtlas>           font_atlas;
     Handle<Texture>         font_atlas_texture;
 };
 
+HYP_CLASS()
 class HYP_API UIText : public UIObject
 {
+    HYP_OBJECT_BODY(UIText);
+
 public:
     friend struct RenderCommand_UpdateUITextRenderData;
 
@@ -89,7 +92,7 @@ public:
      *  If the font atlas is null, the default font atlas from the parent UIStage is used.
      * 
      * \param font_atlas The font atlas to set. */
-    void SetFontAtlas(RC<FontAtlas> font_atlas);
+    void SetFontAtlas(const RC<FontAtlas> &font_atlas);
 
     /*! \brief Gets the options for rendering the text.
      * 
@@ -124,10 +127,10 @@ protected:
 
     virtual bool Repaint_Internal() override;
 
-    void UpdateMesh();
-    void UpdateRenderData(const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture);
+    void UpdateTextAABB();
+    void UpdateRenderData();
 
-    RC<FontAtlas> GetFontAtlasOrDefault() const;
+    const RC<FontAtlas> &GetFontAtlasOrDefault() const;
 
     RC<FontAtlas>           m_font_atlas;
 

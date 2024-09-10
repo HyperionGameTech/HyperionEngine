@@ -17,6 +17,8 @@ namespace hyperion {
 
 class HYP_API StreamedTextureData : public StreamedData
 {
+    StreamedTextureData(StreamedDataState initial_state, TextureData texture_data);
+
 public:
     static RC<StreamedTextureData> FromTextureData(TextureData);
     
@@ -25,19 +27,15 @@ public:
     StreamedTextureData(TextureData &&texture_data);
     virtual ~StreamedTextureData() override                                 = default;
 
-    HYP_NODISCARD
     const TextureData &GetTextureData() const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const TextureDesc &GetTextureDesc() const
+    HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
         { return m_texture_desc; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType GetBufferSize() const
+    HYP_FORCE_INLINE SizeType GetBufferSize() const
         { return m_buffer_size; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    StreamedDataRef<StreamedTextureData> AcquireRef()
+    HYP_FORCE_INLINE StreamedDataRef<StreamedTextureData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<StreamedTextureData>() }; }
 
     virtual bool IsNull() const override;

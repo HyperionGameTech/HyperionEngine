@@ -11,17 +11,22 @@
 #include <core/containers/Array.hpp>
 #include <core/utilities/Optional.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct MeshData
 {
+    HYP_FIELD()
     Array<Vertex>   vertices;
+
+    HYP_FIELD()
     Array<uint32>   indices;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         // @FIXME: Find a better way to hash it without needing to hash the entire mesh data
 
@@ -33,8 +38,13 @@ struct MeshData
     }
 };
 
+HYP_CLASS()
 class HYP_API StreamedMeshData : public StreamedData
 {
+    HYP_OBJECT_BODY(StreamedMeshData);
+
+    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data);
+
 public:
     static RC<StreamedMeshData> FromMeshData(MeshData);
     
@@ -47,19 +57,15 @@ public:
     // StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = default;
     virtual ~StreamedMeshData() override                            = default;
 
-    HYP_NODISCARD
     const MeshData &GetMeshData() const;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType NumVertices() const
+    HYP_FORCE_INLINE SizeType NumVertices() const
         { return m_num_vertices; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    SizeType NumIndices() const
+    HYP_FORCE_INLINE SizeType NumIndices() const
         { return m_num_indices; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    StreamedDataRef<StreamedMeshData> AcquireRef()
+    HYP_FORCE_INLINE StreamedDataRef<StreamedMeshData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<StreamedMeshData>() }; }
 
     virtual bool IsNull() const override;
@@ -71,7 +77,7 @@ protected:
     
 private:
     void LoadMeshData(const ByteBuffer &byte_buffer) const;
-
+    
     RC<StreamedData>            m_streamed_data;
 
     SizeType                    m_num_vertices;

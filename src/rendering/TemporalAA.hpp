@@ -26,7 +26,7 @@ public:
     friend struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
     friend struct RenderCommand_CreateTemporalAAImageOutputs;
 
-    TemporalAA(const Extent2D &extent);
+    TemporalAA(const Vec2u &extent);
     TemporalAA(const TemporalAA &other) = delete;
     TemporalAA &operator=(const TemporalAA &other) = delete;
     ~TemporalAA();
@@ -39,7 +39,7 @@ private:
     void CreateDescriptorSets();
     void CreateComputePipelines();
 
-    Extent2D            m_extent;
+    Vec2u               m_extent;
 
     Handle<Texture>     m_result_texture;
     Handle<Texture>     m_history_texture;

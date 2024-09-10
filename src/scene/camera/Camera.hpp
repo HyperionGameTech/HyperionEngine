@@ -164,21 +164,6 @@ class HYP_API Camera : public BasicObject<Camera>
     HYP_OBJECT_BODY(Camera);
 
     HYP_PROPERTY(ID, &Camera::GetID)
-    HYP_PROPERTY(Translation, &Camera::GetTranslation, &Camera::SetTranslation)
-    HYP_PROPERTY(Direction, &Camera::GetDirection, &Camera::SetDirection)
-    HYP_PROPERTY(Up, &Camera::GetUpVector, &Camera::SetUpVector)
-    HYP_PROPERTY(Target, &Camera::GetTarget, &Camera::SetTarget)
-    HYP_PROPERTY(ViewMatrix, &Camera::GetViewMatrix, &Camera::SetViewMatrix)
-    HYP_PROPERTY(ProjectionMatrix, &Camera::GetProjectionMatrix, &Camera::SetProjectionMatrix)
-    HYP_PROPERTY(Width, &Camera::GetWidth, &Camera::SetWidth)
-    HYP_PROPERTY(Height, &Camera::GetHeight, &Camera::SetHeight)
-    HYP_PROPERTY(Near, &Camera::GetNear, &Camera::SetNear)
-    HYP_PROPERTY(Far, &Camera::GetFar, &Camera::SetFar)
-    HYP_PROPERTY(FOV, &Camera::GetFOV)
-    HYP_PROPERTY(Left, &Camera::GetLeft, &Camera::SetLeft)
-    HYP_PROPERTY(Right, &Camera::GetRight, &Camera::SetRight)
-    HYP_PROPERTY(Bottom, &Camera::GetBottom, &Camera::SetBottom)
-    HYP_PROPERTY(Top, &Camera::GetTop, &Camera::SetTop)
 
 public:
     friend class CameraController;
@@ -248,125 +233,173 @@ public:
         );
     }
 
+    HYP_METHOD(SerializeAs=Width)
     HYP_FORCE_INLINE int GetWidth() const
         { return m_width; }
 
+
+    HYP_METHOD(SerializeAs=Width)
     HYP_FORCE_INLINE void SetWidth(int width)
         { m_width = width; }
 
+    HYP_METHOD(SerializeAs=Height)
     HYP_FORCE_INLINE int GetHeight() const
         { return m_height; }
 
+    HYP_METHOD(SerializeAs=Height)
     HYP_FORCE_INLINE void SetHeight(int height)
         { m_height = height; }
 
+    HYP_METHOD(SerializeAs=Near)
     HYP_FORCE_INLINE float GetNear() const
         { return m_near; }
 
+    HYP_METHOD(SerializeAs=Near)
     HYP_FORCE_INLINE void SetNear(float _near)
         { m_near = _near; }
 
+    HYP_METHOD(SerializeAs=Far)
     HYP_FORCE_INLINE float GetFar() const
         { return m_far; }
 
+    HYP_METHOD(SerializeAs=Far)
     HYP_FORCE_INLINE void SetFar(float _far)
         { m_far = _far; }
 
     // perspective only
+    HYP_METHOD(SerializeAs=FOV)
     HYP_FORCE_INLINE float GetFOV() const
         { return m_fov; }
 
     // ortho only
+    HYP_METHOD(SerializeAs=Left)
     HYP_FORCE_INLINE float GetLeft() const
         { return m_left; }
 
+    HYP_METHOD(SerializeAs=Left)
     HYP_FORCE_INLINE void SetLeft(float left)
         { m_left = left; }
 
+    HYP_METHOD(SerializeAs=Right)
     HYP_FORCE_INLINE float GetRight() const
         { return m_right; }
 
+    HYP_METHOD(SerializeAs=Right)
     HYP_FORCE_INLINE void SetRight(float right)
         { m_right = right; }
 
+    HYP_METHOD(SerializeAs=Bottom)
     HYP_FORCE_INLINE float GetBottom() const
         { return m_bottom; }
 
+    HYP_METHOD(SerializeAs=Bottom)
     HYP_FORCE_INLINE void SetBottom(float bottom)
         { m_bottom = bottom; }
 
+    HYP_METHOD(SerializeAs=Top)
     HYP_FORCE_INLINE float GetTop() const
         { return m_top; }
         
+    HYP_METHOD(SerializeAs=Top)
     HYP_FORCE_INLINE void SetTop(float top)
         { m_top = top; }
 
+    HYP_METHOD(SerializeAs=Translation)
     HYP_FORCE_INLINE const Vec3f &GetTranslation() const
         { return m_translation; }
 
+    HYP_METHOD(SerializeAs=Translation)
     void SetTranslation(const Vec3f &translation);
+
     void SetNextTranslation(const Vec3f &translation);
 
+    HYP_METHOD(SerializeAs=Direction)
     HYP_FORCE_INLINE const Vec3f &GetDirection() const
         { return m_direction; }
 
+    HYP_METHOD(SerializeAs=Direction)
     void SetDirection(const Vec3f &direction);
 
+    HYP_METHOD(SerializeAs=Up)
     HYP_FORCE_INLINE const Vec3f &GetUpVector() const
         { return m_up; }
 
+    HYP_METHOD(SerializeAs=Up)
     HYP_FORCE_INLINE void SetUpVector(const Vec3f &up);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec3f GetSideVector() const
         { return m_up.Cross(m_direction); }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE Vec3f GetTarget() const
         { return m_translation + m_direction; }
 
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetTarget(const Vec3f &target)
         { SetDirection(target - m_translation); }
 
+    HYP_METHOD()
     void Rotate(const Vec3f &axis, float radians);
 
+    HYP_METHOD(SerializeAs=Frustum)
     HYP_FORCE_INLINE const Frustum &GetFrustum() const
         { return m_frustum; }
 
+    HYP_METHOD(SerializeAs=Frustum)
+    HYP_FORCE_INLINE void SetFrustum(const Frustum &frustum)
+        { m_frustum = frustum; }
+
+    HYP_METHOD(SerializeAs=ViewMatrix)
     HYP_FORCE_INLINE const Matrix4 &GetViewMatrix() const
         { return m_view_mat; }
 
+    HYP_METHOD(SerializeAs=ViewMatrix)
     void SetViewMatrix(const Matrix4 &view_mat);
 
+    HYP_METHOD(SerializeAs=ViewMatrix)
     HYP_FORCE_INLINE const Matrix4 &GetProjectionMatrix() const
         { return m_proj_mat; }
 
+    HYP_METHOD(SerializeAs=ViewMatrix)
     void SetProjectionMatrix(const Matrix4 &proj_mat);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Matrix4 &GetViewProjectionMatrix() const
         { return m_view_proj_mat; }
 
+    HYP_METHOD()
     void SetViewProjectionMatrix(const Matrix4 &view_mat, const Matrix4 &proj_mat);
 
+    HYP_METHOD()
     HYP_FORCE_INLINE const Matrix4 &GetPreviousViewMatrix() const
         { return m_previous_view_matrix; }
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into ndc coordinates */
+    HYP_METHOD()
     Vec3f TransformScreenToNDC(const Vec2f &screen) const;
 
     /*! \brief Transform a 3D vector in NDC space into world coordinates */
+    HYP_METHOD()
     Vec4f TransformNDCToWorld(const Vec3f &ndc) const;
 
     /*! \brief Transform a 3D vector in world space into NDC space */
+    HYP_METHOD()
     Vec3f TransformWorldToNDC(const Vec3f &world) const;
 
     /*! \brief Transform a 3D vector in world space into screen space */
+    HYP_METHOD()
     Vec2f TransformWorldToScreen(const Vec3f &world) const;
 
     /*! \brief Transform a 3D vector in NDC into screen space */
+    HYP_METHOD()
     Vec2f TransformNDCToScreen(const Vec3f &ndc) const;
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into world coordinates */
+    HYP_METHOD()
     Vec4f TransformScreenToWorld(const Vec2f &screen) const;
 
+    HYP_METHOD()
     Vec2f GetPixelSize() const;
 
     HYP_FORCE_INLINE const CameraDrawProxy &GetProxy() const

@@ -242,7 +242,13 @@ namespace Hyperion
 
             if (process.ExitCode != 0)
             {
-                Logger.Log(LogType.Error, "Failed to compile script. Check the output for more information");
+                Logger.Log(LogType.Error, "Failed to compile script. Check the output log for more information");
+
+                MessageBox.Critical()
+                    .Title("Script Compilation Error")
+                    .Text("Failed to compile script. Check the output log for more information.")
+                    .Button("OK", () => { Logger.Log(LogType.Info, "OK clicked"); })
+                    .Show();
 
                 return false;
             }

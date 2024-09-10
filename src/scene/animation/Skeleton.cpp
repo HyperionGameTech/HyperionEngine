@@ -48,19 +48,22 @@ Skeleton::Skeleton()
 {
 }
 
-Skeleton::Skeleton(const NodeProxy &root_bone)
+Skeleton::Skeleton(const RC<Bone> &root_bone)
     : BasicObject(),
-      m_root_bone(nullptr),
+      m_root_bone(root_bone),
       m_mutation_state(DataMutationState::CLEAN)
 {
-    if (root_bone.IsValid() && root_bone->GetType() == Node::Type::BONE) {
-        m_root_bone = root_bone;
-        static_cast<Bone *>(m_root_bone.Get())->SetSkeleton(this);
+    if (m_root_bone) {
+        m_root_bone->SetSkeleton(this);
     }
 }
 
 Skeleton::~Skeleton()
 {
+    if (m_root_bone) {
+        m_root_bone->SetSkeleton(nullptr);
+    }
+
     SetReady(false);
 }
 
@@ -110,17 +113,17 @@ void Skeleton::Update(GameCounter::TickUnit)
     m_mutation_state = DataMutationState::CLEAN;
 }
 
-Bone *Skeleton::FindBone(const String &name)
+Bone *Skeleton::FindBone(UTF8StringView name) const
 {
     if (!m_root_bone) {
         return nullptr;
     }
 
-    if (m_root_bone.GetName() == name) {
+    if (m_root_bone->GetName() == name) {
         return static_cast<Bone *>(m_root_bone.Get());
     }
 
-    for (auto &node : m_root_bone->GetDescendents()) {
+    for (NodeProxy &node : m_root_bone->GetDescendents()) {
         if (!node) {
             continue;
         }
@@ -139,19 +142,19 @@ Bone *Skeleton::FindBone(const String &name)
     return nullptr;
 }
 
-uint Skeleton::FindBoneIndex(const String &name) const
+uint32 Skeleton::FindBoneIndex(UTF8StringView name) const
 {
     if (!m_root_bone) {
         return uint(-1);
     }
 
-    uint index = 0;
+    uint32 index = 0;
 
-    if (m_root_bone.GetName() == name) {
+    if (m_root_bone->GetName() == name) {
         return index;
     }
 
-    for (auto &node : m_root_bone->GetDescendents()) {
+    for (NodeProxy &node : m_root_bone->GetDescendents()) {
         ++index;
 
         if (!node) {
@@ -169,38 +172,33 @@ uint Skeleton::FindBoneIndex(const String &name) const
         }
     }
 
-    return uint(-1);
+    return uint32(-1);
 }
 
-Bone *Skeleton::GetRootBone()
+const RC<Bone> &Skeleton::GetRootBone() const
 {
-    return static_cast<Bone *>(m_root_bone.Get());
+    return m_root_bone;
 }
 
-const Bone *Skeleton::GetRootBone() const
-{
-    return static_cast<const Bone *>(m_root_bone.Get());
-}
-
-void Skeleton::SetRootBone(const NodeProxy &root_bone)
+void Skeleton::SetRootBone(const RC<Bone> &bone)
 {
     if (m_root_bone) {
-        static_cast<Bone *>(m_root_bone.Get())->SetSkeleton(nullptr);
+        m_root_bone->SetSkeleton(nullptr);
 
-        m_root_bone = NodeProxy();
+        m_root_bone.Reset();
     }
 
-    if (!root_bone.IsValid() || root_bone->GetType() != Node::Type::BONE) {
+    if (!bone) {
         return;
     }
 
-    m_root_bone = root_bone;
-    static_cast<Bone *>(m_root_bone.Get())->SetSkeleton(this);
+    m_root_bone = bone;
+    m_root_bone->SetSkeleton(this);
 }
 
 SizeType Skeleton::NumBones() const
 {
-    if (!m_root_bone.IsValid()) {
+    if (!m_root_bone) {
         return 0;
     }
 
@@ -209,7 +207,7 @@ SizeType Skeleton::NumBones() const
 
 void Skeleton::AddAnimation(Animation &&animation)
 {
-    for (auto &track : animation.GetTracks()) {
+    for (AnimationTrack &track : animation.GetTracks()) {
         track.bone = nullptr;
 
         if (track.bone_name.Empty()) {
@@ -230,9 +228,10 @@ void Skeleton::AddAnimation(Animation &&animation)
     m_animations.PushBack(std::move(animation));
 }
 
-const Animation *Skeleton::FindAnimation(const String &name, uint *out_index) const
+const Animation *Skeleton::FindAnimation(const String &name, uint32 *out_index) const
 {
-    const auto it = m_animations.FindIf([&name](const auto &item) {
+    const auto it = m_animations.FindIf([&name](const auto &item)
+    {
         return item.GetName() == name;
     });
 

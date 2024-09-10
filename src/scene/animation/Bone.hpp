@@ -8,20 +8,25 @@
 
 #include <core/containers/String.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <math/Transform.hpp>
 
 namespace hyperion {
 
 class Skeleton;
 
+HYP_CLASS()
 class HYP_API Bone : public Node
 {
     friend class Skeleton;
 
+    HYP_OBJECT_BODY(Bone);
+
 public:
     Bone(const String &name = String::empty);
-    Bone(const Bone &other) = delete;
-    Bone &operator=(const Bone &other) = delete;
+    Bone(const Bone &other)             = delete;
+    Bone &operator=(const Bone &other)  = delete;
     ~Bone();
 
     Vec3f GetOffsetTranslation() const;
@@ -34,10 +39,10 @@ public:
 
     void ClearPose();
 
-    const Matrix4 &GetBoneMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetBoneMatrix() const
         { return m_bone_matrix; }
 
-    void SetBindingTransform(const Transform &transform)
+    HYP_FORCE_INLINE void SetBindingTransform(const Transform &transform)
         { m_binding_transform = transform; }
 
     void SetToBindingPose();

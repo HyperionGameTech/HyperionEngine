@@ -10,6 +10,8 @@
 
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/system/MessageBox.hpp>
+
 namespace hyperion {
 
 HYP_API void InitializeAppContext(RC<AppContext> app_context)

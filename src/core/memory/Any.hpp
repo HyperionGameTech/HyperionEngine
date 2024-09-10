@@ -15,6 +15,11 @@
 
 namespace hyperion {
 
+class HypClass;
+
+extern HYP_API const HypClass *GetClass(TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+
 namespace memory {
 
 template <class T>
@@ -190,14 +195,24 @@ public:
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
 
-    /*! \brief Returns true if the held object is of type T. */
+    /*! \brief Returns true if the held object is of type T.
+     *  If T has a HypClass registered, this function will also return true if the held object is a subclass of T. */
     template <class T>
     HYP_FORCE_INLINE bool Is() const
-        { return m_type_id == TypeID::ForType<NormalizedType<T>>(); }
+    {
+        constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
-    /*! \brief Returns true if the held object is of type \ref{type_id}. */
+        return m_type_id == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_type_id);
+    }
+
+    /*! \brief Returns true if the held object is of type \ref{type_id}.
+     *  If the type with the given ID has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
     HYP_FORCE_INLINE bool Is(TypeID type_id) const
-        { return m_type_id == type_id; }
+    {
+        return m_type_id == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_type_id);
+    }
 
     /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
     template <class T>

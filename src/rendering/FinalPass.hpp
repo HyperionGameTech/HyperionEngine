@@ -67,7 +67,7 @@ public:
     virtual void Render(Frame *frame) override;
 
 private:
-    virtual void Resize_Internal(Extent2D new_size) override;
+    virtual void Resize_Internal(Vec2u new_size) override;
 
     CompositePass               m_composite_pass;
     ImageRef                    m_last_frame_image;

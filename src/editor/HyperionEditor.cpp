@@ -191,21 +191,21 @@ public:
             node_name = node_rc->GetName();
         }
 
-        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+        RC<UIText> text = stage->CreateUIObject<UIText>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         text->SetText(node_name);
         return text;
     }
 
     virtual void UpdateUIObject_Internal(UIObject *ui_object, const Weak<Node> &value) const override
     {
-        String node_name = "Invalid";
-
-        if (RC<Node> node_rc = value.Lock()) {
-            node_name = node_rc->GetName();
-        }
+        static const String invalid_node_name = "<Invalid>";
 
         if (UIText *text = dynamic_cast<UIText *>(ui_object)) {
-            text->SetText(node_name);
+            if (RC<Node> node_rc = value.Lock()) {
+                text->SetText(node_rc->GetName());
+            } else {
+                text->SetText(invalid_node_name);
+            }
         }
     }
 };
@@ -233,7 +233,7 @@ public:
         panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
 
         {
-            RC<UIText> header_text = stage->CreateUIObject<UIText>(NAME("Header"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 12, UIObjectSize::PIXEL }));
+            RC<UIText> header_text = stage->CreateUIObject<UIText>(NAME("Header"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             header_text->SetText(*value.property->name);
             header_text->SetTextColor(Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
             header_text->SetBackgroundColor(Vec4f(0.1f, 0.1f, 0.1f, 1.0f));
@@ -386,6 +386,25 @@ void HyperionEditorImpl::CreateHighlightNode()
 
 RC<FontAtlas> HyperionEditorImpl::CreateFontAtlas()
 {
+    const FilePath serialized_file_directory = AssetManager::GetInstance()->GetBasePath() / "data" / "fonts";
+    const FilePath serialized_file_path = serialized_file_directory / "Roboto.hyp";
+
+    if (!serialized_file_directory.Exists()) {
+        serialized_file_directory.MkDir();
+    }
+
+    if (serialized_file_path.Exists()) {
+        HypData loaded_font_atlas_data;
+
+        fbom::FBOMReader reader({});
+
+        if (fbom::FBOMResult err = reader.LoadFromFile(serialized_file_path, loaded_font_atlas_data)) {
+            HYP_FAIL("failed to load: %s", *err.message);
+        }
+
+        return loaded_font_atlas_data.Get<RC<FontAtlas>>();
+    }
+
     auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (!font_face_asset.IsOK()) {
@@ -396,6 +415,16 @@ RC<FontAtlas> HyperionEditorImpl::CreateFontAtlas()
 
     RC<FontAtlas> atlas(new FontAtlas(std::move(font_face_asset.Result())));
     atlas->Render();
+
+    FileByteWriter byte_writer { serialized_file_path };
+    fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
+    writer.Append(*atlas);
+    auto write_err = writer.Emit(&byte_writer);
+    byte_writer.Close();
+
+    if (write_err != fbom::FBOMResult::FBOM_OK) {
+        HYP_FAIL("Failed to save font atlas: %s", write_err.message.Data());
+    }
 
     return atlas;
 }
@@ -547,7 +576,7 @@ void HyperionEditorImpl::CreateMainPanel()
             }).Detach();
         }
 
-        return;
+        // return;
 
         // overflowing inner sizes is messing up AABB calculation for higher up parents
 
@@ -776,7 +805,7 @@ RC<UIObject> HyperionEditorImpl::CreateSceneOutline()
     RC<UIPanel> scene_outline = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline"), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
     RC<UIPanel> scene_outline_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Scene_Outline_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Scene_Outline_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    RC<UIText> scene_outline_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Scene_Outline_Header_Text"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     scene_outline_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     scene_outline_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
     scene_outline_header_text->SetText("Scene");
@@ -918,7 +947,7 @@ RC<UIObject> HyperionEditorImpl::CreateDetailView()
     RC<UIPanel> detail_view = GetUIStage()->CreateUIObject<UIPanel>(NAME("Detail_View"), Vec2i { 0, 0 }, UIObjectSize({ 200, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
 
     RC<UIPanel> detail_view_header = GetUIStage()->CreateUIObject<UIPanel>(NAME("Detail_View_Header"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 25, UIObjectSize::PIXEL }));
-    RC<UIText> detail_view_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_Header_Text"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 10, UIObjectSize::PIXEL }));
+    RC<UIText> detail_view_header_text = GetUIStage()->CreateUIObject<UIText>(NAME("Detail_View_Header_Text"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     detail_view_header_text->SetOriginAlignment(UIObjectAlignment::CENTER);
     detail_view_header_text->SetParentAlignment(UIObjectAlignment::CENTER);
     detail_view_header_text->SetText("Properties");
@@ -1406,10 +1435,11 @@ void HyperionEditor::Init()
     //     }
     // }
 
+#if 0
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");
-    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
     HYP_LOG(Editor, LogLevel::DEBUG, "Loading assets, scene ID = {}", GetScene()->GetID().Value());
@@ -1495,106 +1525,156 @@ void HyperionEditor::Init()
             zombie.SetName("zombie");
         }
 
-        
+#if 1
         // testing serialization / deserialization
         FileByteWriter byte_writer("Scene.hyp");
         fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
         writer.Append(*GetScene());
-        auto err = writer.Emit(&byte_writer);
+        auto write_err = writer.Emit(&byte_writer);
         byte_writer.Close();
 
-        if (err != fbom::FBOMResult::FBOM_OK) {
-            HYP_FAIL("Failed to save scene: %s", err.message.Data());
+        if (write_err != fbom::FBOMResult::FBOM_OK) {
+            HYP_FAIL("Failed to save scene: %s", write_err.message.Data());
+        }
+#endif
+    }).Detach();
+
+    batch->LoadAsync();
+
+#endif
+
+#if 1
+    HypData loaded_scene_data;
+    fbom::FBOMReader reader({});
+    if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {
+        HYP_FAIL("failed to load: %s", *err.message);
+    }
+    DebugLog(LogType::Debug, "static data buffer size: %u\n", reader.m_static_data_buffer.Size());
+
+    Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
+    
+    DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+
+    Proc<void, const NodeProxy &, int> DebugPrintNode;
+
+    DebugPrintNode = [this, &DebugPrintNode](const NodeProxy &node, int depth)
+    {
+        if (!node.IsValid()) {
+            return;
         }
 
-        HypData loaded_scene_data;
-        fbom::FBOMReader reader({});
-        if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {
-            HYP_FAIL("failed to load: %s", *err.message);
-        }
-        DebugLog(LogType::Debug, "static data buffer size: %u\n", reader.m_static_data_buffer.Size());
+        String str;
 
-        Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
+        for (int i = 0; i < depth; i++) {
+            str += "  ";
+        }
         
-        DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+        json::JSONObject node_json;
+        node_json["name"] = node.GetName();
 
-        Proc<void, const NodeProxy &, int> DebugPrintNode;
+        json::JSONValue entity_json = json::JSONUndefined();
+        if (auto entity = node.GetEntity()) {
+            json::JSONObject entity_json_object;
+            entity_json_object["id"] = entity.Value();
 
-        DebugPrintNode = [this, &DebugPrintNode](const NodeProxy &node, int depth)
-        {
-            if (!node.IsValid()) {
-                return;
-            }
+            EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+            AssertThrow(entity_manager != nullptr);
 
-            String str;
-
-            for (int i = 0; i < depth; i++) {
-                str += "  ";
-            }
+            Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
+            AssertThrow(all_components.HasValue());
             
-            json::JSONObject node_json;
-            node_json["name"] = node.GetName();
+            json::JSONArray components_json;
 
-            json::JSONValue entity_json = json::JSONUndefined();
-            if (auto entity = node.GetEntity()) {
-                json::JSONObject entity_json_object;
-                entity_json_object["id"] = entity.Value();
+            for (const KeyValuePair<TypeID, ComponentID> &it : *all_components) {
+                const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
 
-                EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
-                AssertThrow(entity_manager != nullptr);
+                json::JSONObject component_json;
+                component_json["type"] = component_interface->GetTypeName();
+                component_json["id"] = it.second;
 
-                Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
-                AssertThrow(all_components.HasValue());
-                
-                json::JSONArray components_json;
+                if (component_interface->GetTypeID() == TypeID::ForType<MeshComponent>()) {
+                    const MeshComponent *mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
+                    AssertThrow(mesh_component != nullptr);
 
-                for (const KeyValuePair<TypeID, ComponentID> &it : *all_components) {
-                    const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
+                    json::JSONObject mesh_component_json;
+                    mesh_component_json["mesh_id"] = mesh_component->mesh.GetID().Value();
+                    mesh_component_json["material_id"] = mesh_component->material.GetID().Value();
+                    mesh_component_json["skeleton_id"] = mesh_component->skeleton.GetID().Value();
 
-                    json::JSONObject component_json;
-                    component_json["type"] = component_interface->GetTypeName();
-                    component_json["id"] = it.second;
+                    json::JSONObject mesh_json;
+                    mesh_json["type"] = "Mesh";
+                    mesh_json["num_indices"] = mesh_component->mesh->NumIndices();
 
-                    if (it.first == TypeID::ForType<ScriptComponent>()) {
-                        const ScriptComponent *script_component = entity_manager->TryGetComponent<ScriptComponent>(entity);
-                        AssertThrow(script_component != nullptr);
+                    mesh_component_json["mesh"] = std::move(mesh_json);
 
-                        json::JSONObject script_component_json;
-                        script_component_json["assembly_path"] = String(script_component->script.assembly_path);
-                        script_component_json["class_name"] = String(script_component->script.class_name);
-                        script_component_json["path"] = String(script_component->script.path);
-                        script_component_json["hot_reload_version"] = script_component->script.hot_reload_version;
-                        script_component_json["state"] = script_component->script.state;
+                    component_json["data"] = std::move(mesh_component_json);
+                } else if (component_interface->GetTypeID() == TypeID::ForType<TransformComponent>()) {
+                    const TransformComponent *transform_component = entity_manager->TryGetComponent<TransformComponent>(entity);
+                    AssertThrow(transform_component != nullptr);
 
-                        component_json["script"] = std::move(script_component_json);
-                    }
+                    json::JSONObject transform_component_json;
+                    transform_component_json["translation"] = HYP_FORMAT("{}", transform_component->transform.GetTranslation());
+                    transform_component_json["scale"] = HYP_FORMAT("{}", transform_component->transform.GetScale());
+                    transform_component_json["rotation"] = HYP_FORMAT("{}", transform_component->transform.GetRotation());
 
-                    components_json.PushBack(std::move(component_json));
+                    component_json["data"] = std::move(transform_component_json);
                 }
 
-                entity_json_object["components"] = std::move(components_json);
-
-                entity_json = std::move(entity_json_object);
+                components_json.PushBack(std::move(component_json));
             }
 
-            node_json["entity"] = std::move(entity_json);
+            entity_json_object["components"] = std::move(components_json);
 
-            DebugLog(LogType::Debug, "%s\n", (str + json::JSONValue(node_json).ToString()).Data());
+            entity_json = std::move(entity_json_object);
+        }
 
-            for (auto &child : node->GetChildren()) {
-                DebugPrintNode(child, depth + 1);
-            }
-        };
+        node_json["entity"] = std::move(entity_json);
 
-        DebugPrintNode(loaded_scene->GetRoot(), 0);
+        DebugLog(LogType::Debug, "%s\n", (str + json::JSONValue(node_json).ToString()).Data());
 
-        HYP_BREAKPOINT;
+        for (auto &child : node->GetChildren()) {
+            DebugPrintNode(child, depth + 1);
+        }
+    };
 
-    }).Detach();
+    // m_scene->GetRoot()->AddChild(loaded_scene->GetRoot());
+
+    // DebugPrintNode(m_scene->GetRoot(), 0);
 
     // HYP_BREAKPOINT;
 
-    batch->LoadAsync();
+
+    NodeProxy root = loaded_scene->GetRoot();
+    loaded_scene->SetRoot(NodeProxy::empty);
+
+    m_scene->GetRoot()->AddChild(root);
+
+
+    // Test - add EnvGrid
+
+    // if (root.IsValid()) {
+    //     ID<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
+
+    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, TransformComponent {
+    //         root->GetWorldTransform()
+    //     });
+
+    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
+    //         root->GetLocalAABB() * 1.05f,
+    //         root->GetWorldAABB() * 1.05f
+    //     });
+
+    //     // Add env grid component
+    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, EnvGridComponent {
+    //         EnvGridType::ENV_GRID_TYPE_SH
+    //     });
+
+    //     NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();
+    //     env_grid_node->SetEntity(env_grid_entity);
+    //     env_grid_node->SetName("EnvGrid");
+    // }
+
+#endif
 }
 
 void HyperionEditor::Teardown()

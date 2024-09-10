@@ -267,7 +267,7 @@ LightmapUVBuilder::Result LightmapUVBuilder::Build()
             };
         }
 
-        Mesh::SetStreamedMeshData(mesh, StreamedMeshData::FromMeshData(new_mesh_data));
+        Mesh::SetStreamedMeshData_ThreadSafe(mesh, StreamedMeshData::FromMeshData(new_mesh_data));
     }
 
     xatlas::Destroy(atlas);

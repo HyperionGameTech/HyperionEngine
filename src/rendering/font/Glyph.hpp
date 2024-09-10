@@ -36,8 +36,7 @@ public:
         PackedMetrics   metrics;
         Vec2i           image_position;
 
-        [[nodiscard]]
-        PackedMetrics GetPackedMetrics() const
+        HYP_FORCE_INLINE PackedMetrics GetPackedMetrics() const
             { return metrics; }
     };
 

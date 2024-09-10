@@ -7,7 +7,7 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 
-#include <math/Extent.hpp>
+#include <math/Vector2.hpp>
 
 #include <core/Defines.hpp>
 
@@ -53,7 +53,7 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
-    Extent2D                        extent;
+    Vec2u                           extent;
     InternalFormat                  image_format;
 
 private:

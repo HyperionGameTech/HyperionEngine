@@ -12,22 +12,23 @@ namespace hyperion {
 struct CullData
 {
     ImageViewRef    depth_pyramid_image_view;
-    Extent3D        depth_pyramid_dimensions;
+    Vec2u           depth_pyramid_dimensions;
 
     CullData()
-        : depth_pyramid_dimensions { 1, 1, 1 }
+        : depth_pyramid_dimensions(Vec2u::One())
     {
     }
 
-    bool operator==(const CullData &other) const
+    HYP_FORCE_INLINE bool operator==(const CullData &other) const
     {
         return depth_pyramid_image_view == other.depth_pyramid_image_view
             && depth_pyramid_dimensions == other.depth_pyramid_dimensions;
     }
 
-    bool operator!=(const CullData &other) const
+    HYP_FORCE_INLINE bool operator!=(const CullData &other) const
     {
-        return !operator==(other);
+        return depth_pyramid_image_view != other.depth_pyramid_image_view
+            || depth_pyramid_dimensions != other.depth_pyramid_dimensions;
     }
 };
 

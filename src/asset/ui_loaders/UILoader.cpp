@@ -154,6 +154,61 @@ static Vec2i ParseVec2i(const String &str)
     return result;
 }
 
+static Optional<float> ParseFloat(const String &str)
+{
+    float value = 0.0f;
+
+    if (!StringUtil::Parse(str, &value)) {
+        return { };
+    }
+
+    return value;
+}
+
+static Optional<Color> ParseColor(const String &str)
+{
+    uint8 values[4] = { 0, 0, 0, 255 };
+
+    // Parse hex if it starts with #
+    if (str.StartsWith("#")) {
+        int value_index = 0;
+
+        for (int i = 1; i < str.Length() - 1 && value_index < 4; i += 2, value_index++) {
+            const String substr = str.Substr(i, i + 2);
+
+            const long value = std::strtol(substr.Data(), nullptr, 16);
+
+            if (uint32(value) >= 256) {
+                return { };
+            }
+            
+            values[value_index] = uint8(value);
+        }
+    } else {
+
+        // Parse rgba if csv
+        Array<String> split = str
+            .Split(',')
+            .Map([](const String &s) { return s.Trimmed(); });
+
+        if (split.Size() == 4) {
+        } else if (split.Size() == 3) {
+            split.PushBack("255");
+        } else {
+            return { };
+        }
+
+        if (!StringUtil::Parse<uint8>(split[0], &values[0]) ||
+            !StringUtil::Parse<uint8>(split[1], &values[1]) ||
+            !StringUtil::Parse<uint8>(split[2], &values[2]) ||
+            !StringUtil::Parse<uint8>(split[3], &values[3])) {
+            return { };
+        }
+    }
+
+    return Color(float(values[0]) / 255.0f, float(values[1]) / 255.0f, float(values[2]) / 255.0f, float(values[3]) / 255.0f);
+}
+
 static Optional<bool> ParseBool(const String &str)
 {
     const String str_upper = str.ToUpper();
@@ -169,17 +224,17 @@ static Optional<bool> ParseBool(const String &str)
     return { };
 }
 
-static Optional<Pair<int32, UIObjectSize::Flags>> ParseUIObjectSizeElement(String str)
+static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
 {
     str = str.Trimmed();
     str = str.ToUpper();
 
     if (str == "AUTO") {
-        return Pair<int32, UIObjectSize::Flags> { 0, UIObjectSize::AUTO };
+        return Pair<int32, uint32> { 0, UIObjectSize::AUTO };
     }
 
     if (str == "FILL") {
-        return Pair<int32, UIObjectSize::Flags> { 100, UIObjectSize::FILL };
+        return Pair<int32, uint32> { 100, UIObjectSize::FILL };
     }
 
     const SizeType percent_index = str.FindIndex("%");
@@ -193,14 +248,14 @@ static Optional<Pair<int32, UIObjectSize::Flags>> ParseUIObjectSizeElement(Strin
             return { };
         }
 
-        return Pair<int32, UIObjectSize::Flags> { parsed_int, UIObjectSize::PERCENT };
+        return Pair<int32, uint32> { parsed_int, UIObjectSize::PERCENT };
     }
 
     if (!StringUtil::Parse<int32>(str, &parsed_int)) {
         return { };
     }
 
-    return Pair<int32, UIObjectSize::Flags> { parsed_int, UIObjectSize::PIXEL };
+    return Pair<int32, uint32> { parsed_int, UIObjectSize::PIXEL };
 }
 
 static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
@@ -212,7 +267,7 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
     }
 
     if (split.Size() == 1) {
-        Optional<Pair<int32, UIObjectSize::Flags>> parse_result = ParseUIObjectSizeElement(split[0]);
+        Optional<Pair<int32, uint32>> parse_result = ParseUIObjectSizeElement(split[0]);
 
         if (!parse_result.HasValue()) {
             return { };
@@ -222,8 +277,8 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
     }
 
     if (split.Size() == 2) {
-        Optional<Pair<int32, UIObjectSize::Flags>> width_parse_result = ParseUIObjectSizeElement(split[0]);
-        Optional<Pair<int32, UIObjectSize::Flags>> height_parse_result = ParseUIObjectSizeElement(split[1]);
+        Optional<Pair<int32, uint32>> width_parse_result = ParseUIObjectSizeElement(split[0]);
+        Optional<Pair<int32, uint32>> height_parse_result = ParseUIObjectSizeElement(split[1]);
 
         if (!width_parse_result.HasValue() || !height_parse_result.HasValue()) {
             return { };
@@ -328,6 +383,32 @@ public:
                     ui_object->SetMaxSize(*parsed_size);
                 } else {
                     HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid max size property: {}", it->second);
+                }
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("backgroundcolor")) {
+                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue()) {
+                    ui_object->SetBackgroundColor(*parsed_color);
+
+                    HYP_LOG(Assets, LogLevel::DEBUG, "Parsed color {} : {}", it->second, *parsed_color);
+                } else {
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid background color property: {}", it->second);
+                }
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("textcolor")) {
+                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue()) {
+                    ui_object->SetTextColor(*parsed_color);
+                } else {
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid text color property: {}", it->second);
+                }
+            }
+
+            if (const Pair<String, String> *it = attributes.TryGet("textsize")) {
+                if (Optional<float> parsed_float = ParseFloat(it->second); parsed_float.HasValue()) {
+                    ui_object->SetTextSize(*parsed_float);
+                } else {
+                    HYP_LOG(Assets, LogLevel::WARNING, "UI object has invalid text size property: {}", it->second);
                 }
             }
 

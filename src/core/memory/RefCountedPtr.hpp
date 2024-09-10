@@ -21,6 +21,12 @@
 #include <cstdlib>
 
 namespace hyperion {
+
+class HypClass;
+
+extern HYP_API const HypClass *GetClass(TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+
 namespace memory {
 
 template <class T, class CountType = std::atomic<uint>>
@@ -747,8 +753,11 @@ public:
                 "Is<T> check is invalid; will never be true"
             );
 
-            return Base::GetTypeID() == TypeID::ForType<Ty>()
+            constexpr TypeID type_id = TypeID::ForType<Ty>();
+
+            return Base::GetTypeID() == type_id
                 || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
+                || IsInstanceOfHypClass(GetClass(type_id), Base::GetTypeID())
                 || (std::is_polymorphic_v<Ty> && dynamic_cast<Ty *>(static_cast<T *>(Base::m_ref->value)) != nullptr);
         }
     }
@@ -881,8 +890,11 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        return Base::GetTypeID() == TypeID::ForType<Ty>()
-            || std::is_same_v<Ty, void>;
+        constexpr TypeID type_id = TypeID::ForType<Ty>();
+
+        return std::is_same_v<Ty, void>
+            || Base::GetTypeID() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), Base::GetTypeID());
     }
 
     /*! \brief Attempts to cast the pointer directly to the given type.

@@ -23,8 +23,7 @@ public:
     LogChannelIDGenerator &operator=(LogChannelIDGenerator &&other) noexcept    = delete;
     ~LogChannelIDGenerator()                                                    = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint32 Next()
+    HYP_NODISCARD HYP_FORCE_INLINE uint32 Next()
     {
         return m_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
     }
@@ -132,7 +131,7 @@ bool Logger::IsChannelEnabled(const LogChannel &channel) const
 {
     // @TODO: Come up with a more efficient solution that doesn't require atomics, looping, or dynamic bitsets
 
-    const Bitset mask_value(m_log_mask.Get(MemoryOrder::ACQUIRE));
+    const Bitset mask_value(m_log_mask.Get(MemoryOrder::RELAXED));
     const Bitset &channel_mask_bitset = channel.GetMaskBitset();
 
     return (mask_value & channel_mask_bitset) == channel_mask_bitset;
@@ -141,9 +140,9 @@ bool Logger::IsChannelEnabled(const LogChannel &channel) const
 void Logger::SetChannelEnabled(const LogChannel &channel, bool enabled)
 {
     if (enabled) {
-        m_log_mask.BitOr(1ull << channel.GetID(), MemoryOrder::RELEASE);
+        m_log_mask.BitOr(1ull << channel.GetID(), MemoryOrder::RELAXED);
     } else {
-        m_log_mask.BitAnd(~(1ull << channel.GetID()), MemoryOrder::RELEASE);
+        m_log_mask.BitAnd(~(1ull << channel.GetID()), MemoryOrder::RELAXED);
     }
 }
 

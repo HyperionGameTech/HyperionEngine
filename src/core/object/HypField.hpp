@@ -66,7 +66,7 @@ struct HypField
                     ConstAnyRef target_ref = target_data.ToRef();
 
                     AssertThrow(target_ref.HasValue());
-                    AssertThrowMsg(target_ref.GetTypeID() == TypeID::ForType<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                    AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
                         TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
 
                     fbom::FBOMData out;
@@ -87,7 +87,7 @@ struct HypField
                     AnyRef target_ref = target_data.ToRef();
 
                     AssertThrow(target_ref.HasValue());
-                    AssertThrowMsg(target_ref.GetTypeID() == TypeID::ForType<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                    AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
                         TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
 
                     HypData value;

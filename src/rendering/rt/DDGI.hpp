@@ -40,40 +40,32 @@ static_assert(sizeof(ProbeRayData) == 64);
 
 struct DDGIInfo
 {
-    static constexpr uint       irradiance_octahedron_size = 8;
-    static constexpr uint       depth_octahedron_size = 16;
-    static constexpr Extent3D   probe_border = Extent3D(2, 0, 2);
+    static constexpr uint32 irradiance_octahedron_size = 8;
+    static constexpr uint32 depth_octahedron_size = 16;
+    static constexpr Vec3u  probe_border = Vec3u { 2, 0, 2 };
 
     BoundingBox                 aabb;
     float                       probe_distance = 3.2f;
-    uint                        num_rays_per_probe = 64;
+    uint32                      num_rays_per_probe = 64;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const Vec3f &GetOrigin() const
+    HYP_FORCE_INLINE const Vec3f &GetOrigin() const
         { return aabb.min; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Extent3D NumProbesPerDimension() const
+    HYP_FORCE_INLINE Vec3u NumProbesPerDimension() const
     {
         const Vec3f probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vec3f(probe_border));
 
-        return Extent3D(probes_per_dimension);
+        return Vec3u(probes_per_dimension);
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint NumProbes() const
+    HYP_FORCE_INLINE uint32 NumProbes() const
     {
-        const Extent3D per_dimension = NumProbesPerDimension();
+        const Vec3u per_dimension = NumProbesPerDimension();
 
-        return per_dimension.width * per_dimension.height * per_dimension.depth;
+        return per_dimension.x * per_dimension.y * per_dimension.z;
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    Extent2D GetImageDimensions() const
+    HYP_FORCE_INLINE Vec2u GetImageDimensions() const
     {
         return { uint32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
     }

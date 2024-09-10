@@ -18,17 +18,17 @@ UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 10, 5 });
-    SetBackgroundColor(Vec4f { 0.2f, 0.2f, 0.2f, 1.0f });
+    SetBackgroundColor(Vec4f { 0.1f, 0.1f, 0.1f, 1.0f });
+    SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
 }
 
 void UIButton::Init()
 {
     UIObject::Init();
 
-    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("ButtonText"), Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 14, UIObjectSize::PIXEL }));
+    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("ButtonText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::CENTER);
     text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
-    text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
     text_element->SetText(m_text);
 
     m_text_element = text_element;
@@ -48,8 +48,6 @@ void UIButton::SetText(const String &text)
     if (m_size.GetAllFlags() & UIObjectSize::AUTO) {
         UpdateSize();
     }
-
-    HYP_LOG(UI, LogLevel::INFO, "Button text set to: {}", m_text);
 }
 
 void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
@@ -58,8 +56,6 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 
     UpdateMaterial(false);
     UpdateMeshData();
-
-    HYP_LOG(UI, LogLevel::INFO, "Button focus state set to: {}", uint(focus_state));
 }
 
 Material::ParameterTable UIButton::GetMaterialParameters() const
@@ -67,9 +63,9 @@ Material::ParameterTable UIButton::GetMaterialParameters() const
     Color color;
 
     if (GetFocusState() & UIObjectFocusState::PRESSED) {
-        color = Vec4f(0.3f, 0.3f, 0.3f, 1.0f);
+        color = Vec4f(0.15f, 0.15f, 0.15f, 1.0f);
     } else if (GetFocusState() & UIObjectFocusState::HOVER) {
-        color = Vec4f(0.4f, 0.4f, 0.4f, 1.0f);
+        color = Vec4f(0.2f, 0.2f, 0.2f, 1.0f);
     } else {
         color = m_background_color;
     }

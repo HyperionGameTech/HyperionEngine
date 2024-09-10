@@ -1323,7 +1323,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 InternalFormat::RGBA32F,
-                Extent3D { uv_map.width, uv_map.height, 1 },
+                Vec3u { uv_map.width, uv_map.height, 1 },
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 WrapMode::TEXTURE_WRAP_REPEAT

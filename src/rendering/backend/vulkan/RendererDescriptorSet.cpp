@@ -177,9 +177,9 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
                 continue;
             }
 
-            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
-                decl_ptr->name, descriptor.name, descriptor_index, int(descriptor.slot),
-                descriptor.count, descriptor.size, descriptor.is_dynamic);
+            // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
+            //     decl_ptr->name, descriptor.name, descriptor_index, int(descriptor.slot),
+            //     descriptor.count, descriptor.size, descriptor.is_dynamic);
 
             switch (descriptor.slot) {
             case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
@@ -469,8 +469,6 @@ Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 template <>
 Result DescriptorSet<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Destroying descriptor set: {} ({})", m_layout.GetName(), (void *)m_platform_impl.handle);
-
     if (m_platform_impl.handle != VK_NULL_HANDLE) {
         device->GetDescriptorSetManager()->DestroyDescriptorSet(device, m_platform_impl.handle);
         m_platform_impl.handle = VK_NULL_HANDLE;

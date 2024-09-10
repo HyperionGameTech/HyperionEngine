@@ -59,6 +59,11 @@ public:
      *  \returns true if the read was successful, false otherwise */
     virtual bool Read(const String &key, ByteBuffer &out_byte_buffer) const;
 
+    /*! \brief Check if a key exists in the data store
+     *  \param key The key to check for
+     *  \returns true if the key exists, false otherwise */
+    virtual bool Exists(const String &key) const;
+
 private:
     String              m_prefix;
     DataStoreOptions    m_options;
