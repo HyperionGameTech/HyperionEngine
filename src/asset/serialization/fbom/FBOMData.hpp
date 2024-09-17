@@ -18,6 +18,7 @@
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
+#include <asset/serialization/fbom/FBOMEnums.hpp>
 
 #include <math/MathUtil.hpp>
 #include <math/Vector2.hpp>
@@ -47,6 +48,14 @@ namespace hyperion {
 
 struct HypData;
 
+enum class FBOMDataFlags
+{
+    NONE        = 0x0,
+    COMPRESSED  = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(FBOMDataFlags)
+
 namespace fbom {
 
 class FBOMObject;
@@ -56,9 +65,9 @@ struct FBOMDeserializedObject;
 class HYP_API FBOMData : public IFBOMSerializable
 {
 public:
-    FBOMData();
-    FBOMData(const FBOMType &type);
-    FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer);
+    FBOMData(EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE);
+    FBOMData(const FBOMType &type, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE);
+    FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE);
     FBOMData(const FBOMData &other);
     FBOMData &operator=(const FBOMData &other);
     FBOMData(FBOMData &&other) noexcept;
@@ -82,6 +91,12 @@ public:
 
     HYP_FORCE_INLINE SizeType TotalSize() const
         { return bytes.Size(); }
+
+    HYP_FORCE_INLINE EnumFlags<FBOMDataFlags> GetFlags() const
+        { return m_flags; }
+
+    HYP_FORCE_INLINE bool IsCompressed() const
+        { return m_flags & FBOMDataFlags::COMPRESSED; }
 
     /*! \returns The number of bytes read */
     SizeType ReadBytes(SizeType n, void *out) const;
@@ -115,19 +130,19 @@ public:
         *out = static_cast<T>(read_value); \
         FBOM_RETURN_OK; \
     } \
-    static FBOMData From##type_name(const c_type &value) \
+    static FBOMData From##type_name(const c_type &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
     { \
         static_assert(std::is_standard_layout_v<c_type>, "Type " #c_type " must be standard layout"); \
         \
         FBOM##type_name type; \
         AssertThrowMsg(sizeof(c_type) == type.size, "sizeof(" #c_type ") must be equal to FBOM" #type_name "::size"); \
         \
-        FBOMData data(type); \
+        FBOMData data { type, flags }; \
         data.SetBytes(sizeof(c_type), &value); \
         return data; \
     } \
-    explicit FBOMData(c_type value) \
-        : FBOMData(From##type_name(value)) { } \
+    explicit FBOMData(c_type value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
+        : FBOMData(From##type_name(value, flags)) { } \
 
     FBOM_TYPE_FUNCTIONS(UInt8, uint8)
     FBOM_TYPE_FUNCTIONS(UInt16, uint16)
@@ -215,9 +230,9 @@ public:
         FBOM_RETURN_OK;
     }
     
-    static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer)
+    static FBOMData FromByteBuffer(const ByteBuffer &byte_buffer, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        FBOMData data(FBOMByteBuffer(byte_buffer.Size()));
+        FBOMData data(FBOMByteBuffer(byte_buffer.Size()), flags);
         data.SetBytes(byte_buffer.Size(), byte_buffer.Data());
 
         return data;
@@ -272,9 +287,9 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE static FBOMData FromStruct(const T &value)
+    HYP_FORCE_INLINE static FBOMData FromStruct(const T &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value));
+        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value), flags);
     }
 
     template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > && std::is_class_v< NormalizedType<T> > > >
@@ -398,10 +413,12 @@ public:
     virtual HashCode GetHashCode() const override;
 
 private:
-    ByteBuffer      bytes;
-    FBOMType        type;
+    ByteBuffer                  bytes;
+    FBOMType                    type;
 
-    RC<HypData>     m_deserialized_object;
+    EnumFlags<FBOMDataFlags>    m_flags;
+
+    RC<HypData>                 m_deserialized_object;
 };
 
 } // namespace fbom

@@ -124,10 +124,6 @@ public:
 
     FBOMObject &SetProperty(ANSIStringView key, const FBOMData &data);
     FBOMObject &SetProperty(ANSIStringView key, FBOMData &&data);
-    FBOMObject &SetProperty(ANSIStringView key, const ByteBuffer &bytes);
-    FBOMObject &SetProperty(ANSIStringView key, const FBOMType &type, ByteBuffer &&byte_buffer);
-    FBOMObject &SetProperty(ANSIStringView key, const FBOMType &type, const ByteBuffer &byte_buffer);
-    FBOMObject &SetProperty(ANSIStringView key, const FBOMType &type, const void *bytes);
     FBOMObject &SetProperty(ANSIStringView key, const FBOMType &type, SizeType size, const void *bytes);
 
     HYP_FORCE_INLINE FBOMObject &SetProperty(ANSIStringView key, const UTF8StringView &str)
@@ -172,19 +168,19 @@ public:
     HYP_FORCE_INLINE FBOMObject &SetProperty(ANSIStringView key, double value)
         { return SetProperty(key, FBOMDouble(), sizeof(double), &value); }
 
-    template <class T, typename = typename std::enable_if_t< !std::is_pointer_v<NormalizedType<T> > && !std::is_fundamental_v<NormalizedType<T> > > >
-    FBOMObject &SetProperty(ANSIStringView key, const T &in)
-    {
-        FBOMObject subobject;
+    // template <class T, typename = typename std::enable_if_t< !std::is_pointer_v<NormalizedType<T> > && !std::is_fundamental_v<NormalizedType<T> > > >
+    // FBOMObject &SetProperty(ANSIStringView key, const T &in)
+    // {
+    //     FBOMObject subobject;
 
-        if (FBOMResult err = Serialize(in)) {
-            AssertThrowMsg(false, "Failed to serialize object: %s", *err.message);
+    //     if (FBOMResult err = Serialize(in, subobject)) {
+    //         AssertThrowMsg(false, "Failed to serialize object: %s", *err.message);
 
-            return *this;
-        }
+    //         return *this;
+    //     }
 
-        return SetProperty(key, FBOMData::FromObject(std::move(subobject)));
-    }
+    //     return SetProperty(key, FBOMData::FromObject(std::move(subobject)));
+    // }
 
     const FBOMData &operator[](ANSIStringView key) const;
 
@@ -325,7 +321,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t< !std::is_same_v< FBOMObject
 
         out_object = FBOMObject(marshal->GetObjectType());
 
-        if (FBOMResult err = marshal->Serialize(in, out_object)) {
+        if (FBOMResult err = marshal->Serialize(ConstAnyRef(in), out_object)) {
             return err;
         }
 

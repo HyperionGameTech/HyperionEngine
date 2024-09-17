@@ -21,12 +21,14 @@ public:
         out.SetProperty(
             "Vertices",
             FBOMSequence(FBOMStruct::Create<Vertex>(), in_object.vertices.Size()),
+            in_object.vertices.ByteSize(),
             in_object.vertices.Data()
         );
     
         out.SetProperty(
             "Indices",
             FBOMSequence(FBOMUInt32(), in_object.indices.Size()),
+            in_object.indices.ByteSize(),
             in_object.indices.Data()
         );
 

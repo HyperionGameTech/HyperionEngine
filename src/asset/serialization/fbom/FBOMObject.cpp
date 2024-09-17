@@ -145,35 +145,6 @@ FBOMObject &FBOMObject::SetProperty(ANSIStringView key, FBOMData &&data)
     return *this;
 }
 
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const ByteBuffer &bytes)
-{
-    return SetProperty(key, FBOMData(FBOMByteBuffer(bytes.Size()), ByteBuffer(bytes)));
-}
-
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, ByteBuffer &&byte_buffer)
-{
-    FBOMData data(type);
-    data.SetBytes(std::move(byte_buffer));
-
-    if (!type.IsUnbounded()) {
-        AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
-    }
-
-    return SetProperty(key, std::move(data));
-}
-
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, const ByteBuffer &byte_buffer)
-{
-    FBOMData data(type);
-    data.SetBytes(byte_buffer);
-
-    if (!type.IsUnbounded()) {
-        AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
-    }
-
-    return SetProperty(key, std::move(data));
-}
-
 FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, SizeType size, const void *bytes)
 {
     FBOMData data(type);
@@ -184,13 +155,6 @@ FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, Si
     }
 
     return SetProperty(key, std::move(data));
-}
-
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, const void *bytes)
-{
-    // AssertThrowMsg(type.IsOrExtends(FBOMStruct()), "Type must be a struct to use this overload");
-
-    return SetProperty(key, type, type.size, bytes);
 }
 
 const FBOMData &FBOMObject::operator[](ANSIStringView key) const

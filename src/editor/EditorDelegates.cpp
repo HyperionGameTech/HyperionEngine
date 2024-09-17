@@ -4,6 +4,9 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <core/object/HypMember.hpp>
+#include <core/object/HypClass.hpp>
+
 namespace hyperion {
 
 EditorDelegates &EditorDelegates::GetInstance()
@@ -13,7 +16,7 @@ EditorDelegates &EditorDelegates::GetInstance()
     return instance;
 }
 
-void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, Name, ConstAnyRef> &&proc)
+void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, ANSIStringView> &&proc)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
@@ -25,7 +28,7 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &prop
 
     NodeWatcher &node_watcher = it->second;
     node_watcher.properties_to_watch.Merge(properties_to_watch);
-    node_watcher.delegate.Bind(std::move(proc)).Detach();
+    node_watcher.OnChange.Bind(std::move(proc)).Detach();
 }
 
 void EditorDelegates::RemoveNodeWatcher(Name watcher_key)
@@ -49,18 +52,18 @@ void EditorDelegates::UnwatchNode(Node *node)
     m_nodes.Erase(node);
 }
 
-void EditorDelegates::OnNodeUpdate(Node *node, Name property_name, ConstAnyRef data)
+void EditorDelegates::OnNodeUpdate(Node *node, ANSIStringView editor_property_name)
 {
     // Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     for (Pair<Name, NodeWatcher> &it : m_node_watchers) {
         NodeWatcher &node_watcher = it.second;
 
-        if (!node_watcher.properties_to_watch.Empty() && !node_watcher.properties_to_watch.Contains(property_name)) {
+        if (!node_watcher.properties_to_watch.Empty() && !node_watcher.properties_to_watch.Contains(editor_property_name)) {
             continue;
         }
 
-        node_watcher.delegate(node, property_name, data);
+        node_watcher.OnChange(node, editor_property_name);
     }
 }
 

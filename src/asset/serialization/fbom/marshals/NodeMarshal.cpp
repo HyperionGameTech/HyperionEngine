@@ -76,7 +76,7 @@ public:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, node_hyp_class, *node)) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, node_hyp_class, AnyRef(*node))) {
             return err;
         }
 

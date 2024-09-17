@@ -206,6 +206,7 @@ struct alignas(16) UITextCharacterShaderData
 struct alignas(16) UITextUniforms
 {
     Matrix4 projection_matrix;
+    Vec4f   color;
     Vec2f   text_aabb_min;
     Vec2f   text_aabb_max;
 };
@@ -370,6 +371,7 @@ public:
 
             UITextUniforms uniforms;
             uniforms.projection_matrix = projection_matrix;
+            uniforms.color = render_data.color;
             uniforms.text_aabb_min = Vec2f(render_data.aabb.min.x, render_data.aabb.min.y);
             uniforms.text_aabb_max = Vec2f(render_data.aabb.max.x, render_data.aabb.max.y);
 
@@ -529,7 +531,8 @@ struct FontAtlasCharacterIterator
     float           char_width;
 };
 
-static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, const Proc<void, const FontAtlasCharacterIterator &> &proc)
+template <class Callback>
+static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, Callback &&callback)
 {
     HYP_SCOPE;
 
@@ -595,7 +598,7 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
         iter.bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / 64.0f;
         iter.char_width = float(glyph_metrics->metrics.advance / 64) / 64.0f;
 
-        proc(iter);
+        callback(iter);
 
         placement.x += iter.char_width;
     }
@@ -633,15 +636,17 @@ struct RENDER_COMMAND(UpdateUITextRenderData) : renderer::RenderCommand
 {
     String                  text;
     RC<UITextRenderData>    render_data;
+    Vec4f                   color;
     Vec2u                   size;
     BoundingBox             aabb;
     RC<FontAtlas>           font_atlas;
     Handle<Texture>         font_atlas_texture;
 
-    RENDER_COMMAND(UpdateUITextRenderData)(const String &text, const RC<UITextRenderData> &render_data, Vec2u size, const BoundingBox &aabb, const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
+    RENDER_COMMAND(UpdateUITextRenderData)(const String &text, const RC<UITextRenderData> &render_data, Vec4f color, Vec2u size, const BoundingBox &aabb, const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
         : text(text),
           render_data(render_data),
           size(size),
+          color(color),
           aabb(aabb),
           font_atlas(font_atlas),
           font_atlas_texture(font_atlas_texture)
@@ -679,6 +684,7 @@ struct RENDER_COMMAND(UpdateUITextRenderData) : renderer::RenderCommand
             render_data->characters.PushBack(character);
         });
 
+        render_data->color = color;
         render_data->size = size;
         render_data->aabb = aabb;
         render_data->font_atlas = std::move(font_atlas);
@@ -701,10 +707,7 @@ struct RENDER_COMMAND(RepaintUIText) : renderer::RenderCommand
     {
     }
 
-    virtual ~RENDER_COMMAND(RepaintUIText)() override
-    {
-        g_safe_deleter->SafeRelease(std::move(texture));
-    }
+    virtual ~RENDER_COMMAND(RepaintUIText)() override = default;
 
     virtual renderer::Result operator()() override
     {
@@ -820,6 +823,12 @@ void UIText::UpdateRenderData()
 {
     HYP_SCOPE;
 
+    // Only update render data if computed visibility is true (visibile)
+    // When this changes to be true, UpdateRenderData will be called - no need to update it if we are not visible
+    if (!GetComputedVisibility()) {
+        return;
+    }
+
     const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault();
 
     if (!font_atlas) {
@@ -843,8 +852,6 @@ void UIText::UpdateRenderData()
     const Vec2u size = MathUtil::Max(Vec2u(GetActualSize()), Vec2u::One());
 
     if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size) {
-        g_safe_deleter->SafeRelease(std::move(m_texture));
-
         m_texture = CreateObject<Texture>(TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA8,
@@ -855,10 +862,12 @@ void UIText::UpdateRenderData()
         });
         
         InitObject(m_texture);
+
+        UpdateMaterial(false);
     }
 
     if (font_atlas != nullptr && font_atlas_texture != nullptr) {
-        PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, size, m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
+        PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
     }
 
     SetNeedsRepaintFlag();
@@ -899,6 +908,10 @@ Material::ParameterTable UIText::GetMaterialParameters() const
 
 Material::TextureSet UIText::GetMaterialTextures() const
 {
+    if (!m_texture.IsValid()) {
+        return UIObject::GetMaterialTextures();
+    }
+
     return {
         { Material::MATERIAL_TEXTURE_ALBEDO_MAP, m_texture }
     };
@@ -923,6 +936,21 @@ BoundingBox UIText::CalculateInnerAABB_Internal() const
     return m_text_aabb_without_bearing * Vec3f(Vec2f(GetTextSize()), 1.0f);
 }
 
+void UIText::OnComputedVisibilityChange_Internal()
+{
+    HYP_SCOPE;
+
+    UIObject::OnComputedVisibilityChange_Internal();
+
+    if (GetComputedVisibility()) {
+        UpdateRenderData();
+    } else {
+        HYP_LOG(UI, LogLevel::DEBUG, "UIText: Disposing texture for non-visible text \"{}\"", m_text);
+
+        m_texture.Reset();
+    }
+}
+
 void UIText::OnFontAtlasUpdate_Internal()
 {
     HYP_SCOPE;
@@ -931,7 +959,6 @@ void UIText::OnFontAtlasUpdate_Internal()
 
     UpdateSize();
     UpdateRenderData();
-    UpdateMaterial(false);
 }
 
 #pragma endregion UIText

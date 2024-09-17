@@ -25,7 +25,7 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
             return UIEventHandlerResult::OK;
         }
 
-        SetScrollOffset(GetScrollOffset() - event_data.wheel * 5);
+        SetScrollOffset(GetScrollOffset() - event_data.wheel * 10, /* smooth */ true);
 
         return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();

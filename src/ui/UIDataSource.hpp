@@ -11,8 +11,9 @@
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/UUID.hpp>
 
-#include <core/memory/AnyRef.hpp>
 #include <core/memory/RefCountedPtr.hpp>
+
+#include <core/object/HypData.hpp>
 
 #include <core/Util.hpp>
 
@@ -40,8 +41,8 @@ class HYP_API IUIDataSourceElementFactory
 public:
     virtual ~IUIDataSourceElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, ConstAnyRef value) const = 0;
-    virtual void UpdateUIObject(UIObject *ui_object, ConstAnyRef value) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value/*, Proc<void, const HypData> &&OnChange = {}*/) const = 0;
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const = 0;
 };
 
 template <class T>
@@ -50,14 +51,22 @@ class HYP_API UIDataSourceElementFactory : public IUIDataSourceElementFactory
 public:
     virtual ~UIDataSourceElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, ConstAnyRef value) const override final
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value) const override final
     {
-        return CreateUIObject_Internal(stage, value.Get<T>());
+        if constexpr (std::is_same_v<HypData, T>) {
+            return CreateUIObject_Internal(stage, value);
+        } else {
+            return CreateUIObject_Internal(stage, value.Get<T>());
+        }
     }
 
-    virtual void UpdateUIObject(UIObject *ui_object, ConstAnyRef value) const override final
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const override final
     {
-        UpdateUIObject_Internal(ui_object, value.Get<T>());
+        if constexpr (std::is_same_v<HypData, T>) {
+            return UpdateUIObject_Internal(ui_object, value);
+        } else {
+            return UpdateUIObject_Internal(ui_object, value.Get<T>());
+        }
     }
 
 protected:
@@ -71,26 +80,24 @@ public:
     virtual ~IUIDataSourceElement() = default;
 
     virtual UUID GetUUID() const = 0;
-    virtual ConstAnyRef GetValue() const = 0;
 
-    template <class T>
-    const T &GetValue() const
-    {
-        ConstAnyRef ref = GetValue();
-        AssertThrowMsg(ref.Is<T>(), "Cannot get value of type %u as type %u (%s)",
-            ref.GetTypeID().Value(), TypeID::ForType<T>().Value(), TypeName<T>().Data());
-
-        return ref.Get<T>();
-    }
+    virtual HypData &GetValue() = 0;
+    virtual const HypData &GetValue() const = 0;
 };
 
 template <class T>
-class HYP_API UIDataSourceElement : public IUIDataSourceElement
+class HYP_API UIDataSourceElement final : public IUIDataSourceElement
 {
 public:
     UIDataSourceElement(UUID uuid, const T &value)
         : m_uuid(uuid),
-          m_value(value)
+          m_value(HypData(value))
+    {
+    }
+
+    UIDataSourceElement(UUID uuid, T &&value)
+        : m_uuid(uuid),
+          m_value(HypData(std::move(value)))
     {
     }
 
@@ -134,12 +141,15 @@ public:
     virtual UUID GetUUID() const override
         { return m_uuid; }
 
-    virtual ConstAnyRef GetValue() const override
-        { return ConstAnyRef(&m_value); }
+    virtual HypData &GetValue() override
+        { return m_value; }
+
+    virtual const HypData &GetValue() const override
+        { return m_value; }
 
 private:
     UUID    m_uuid;
-    T       m_value;
+    HypData m_value;
 };
 
 class HYP_API UIDataSourceBase
@@ -162,14 +172,21 @@ public:
     IUIDataSourceElementFactory *GetElementFactory() const
         { return m_element_factory; }
 
-    virtual void Push(ConstAnyRef value) = 0;
+    virtual void Push(HypData &&value) = 0;
     virtual const IUIDataSourceElement *Get(SizeType index) const = 0;
     virtual const IUIDataSourceElement *Get(const UUID &uuid) const = 0;
-    virtual void Set(SizeType index, AnyRef value) = 0;
-    virtual void Set(const UUID &uuid, AnyRef value) = 0;
+    virtual void Set(SizeType index, HypData &&value) = 0;
+    virtual void Set(const UUID &uuid, HypData &&value) = 0;
     virtual void Remove(SizeType index) = 0;
     virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) = 0;
-    virtual const IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) const = 0;
+
+    virtual IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) = 0;
+
+    HYP_FORCE_INLINE const IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) const
+    {
+        return const_cast<UIDataSourceBase *>(this)->FindWithPredicate(predicate);
+    }
+
     virtual SizeType Size() const = 0;
     virtual void Clear() = 0;
 
@@ -206,15 +223,15 @@ public:
     UIDataSource &operator=(UIDataSource &&other) noexcept  = delete;
     virtual ~UIDataSource()                                 = default;
     
-    virtual void Push(ConstAnyRef value) override
+    virtual void Push(HypData &&value) override
     {
-        if (!value.HasValue()) {
+        if (!value.IsValid()) {
             return;
         }
 
-        AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
+        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-        auto &element = m_values.PushBack(UIDataSourceElement<T>(UUID(), value.Get<T>()));
+        auto &element = m_values.PushBack(UIDataSourceElement<T>(UUID(), std::move(value.Get<T>())));
 
         OnElementAdd(this, &element);
         OnChange(this);
@@ -239,25 +256,25 @@ public:
         return nullptr;
     }
 
-    virtual void Set(SizeType index, AnyRef value) override
+    virtual void Set(SizeType index, HypData &&value) override
     {
         AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
-        AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
+        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-        m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
+        m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), std::move(value.Get<T>()));
 
         OnElementUpdate(this, &m_values[index]);
         OnChange(this);
     }
 
-    virtual void Set(const UUID &uuid, AnyRef value) override
+    virtual void Set(const UUID &uuid, HypData &&value) override
     {
         // @TODO More efficient lookup
         for (SizeType index = 0; index < m_values.Size(); index++) {
             if (m_values[index].GetUUID() == uuid) {
-                AssertThrowMsg(value.Is<T>(), "Cannot object not of type %s to data source", TypeName<T>().Data());
+                AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-                m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), value.Get<T>());
+                m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), std::move(value.Get<T>()));
 
                 OnElementUpdate(this, &m_values[index]);
                 OnChange(this);
@@ -308,7 +325,7 @@ public:
         }
     }
 
-    virtual const IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) const override
+    virtual IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) override
     {
         for (SizeType index = 0; index < m_values.Size(); index++) {
             if (predicate(&m_values[index])) {

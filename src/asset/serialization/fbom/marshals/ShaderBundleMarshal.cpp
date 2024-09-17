@@ -30,7 +30,7 @@ public:
 
         out.SetProperty("name", FBOMData::FromName(in_object.definition.name));
 
-        out.SetProperty("entry_point_name", FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
+        out.SetProperty("entry_point_name", FBOMData::FromString(in_object.entry_point_name));
 
         const VertexAttributeSet required_vertex_attributes = in_object.definition.properties.GetRequiredVertexAttributes();
         out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
@@ -53,14 +53,12 @@ public:
 
             out.SetProperty(
                 ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".descriptor_name",
-                FBOMString(descriptor_name_string.Size()),
-                descriptor_name_string.Data()
+                FBOMData::FromString(descriptor_name_string)
             );
 
             out.SetProperty(
                 ANSIString("descriptor_usages.") + ANSIString::ToString(index) + ".set_name",
-                FBOMString(set_name_string.Size()),
-                set_name_string.Data()
+                FBOMData::FromString(set_name_string)
             );
 
             out.SetProperty(
@@ -137,7 +135,7 @@ public:
             const ByteBuffer &byte_buffer = in_object.modules[index];
 
             if (byte_buffer.Size()) {
-                out.SetProperty(ANSIString("module[") + ANSIString::ToString(index) + "]", byte_buffer);
+                out.SetProperty(ANSIString("module[") + ANSIString::ToString(index) + "]", FBOMData::FromByteBuffer(byte_buffer));
             }
         }
 

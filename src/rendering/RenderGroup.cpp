@@ -394,8 +394,7 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
             // take the batch for reuse
             if ((batch_index = draw_call->batch_index) != 0) {
                 EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(batch_index);
-                batch.num_entities = 0;
-                // Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
+                Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
 
                 g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
             }

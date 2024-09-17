@@ -5,6 +5,7 @@
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypClassAttribute.hpp>
+#include <core/object/HypMemberFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -320,7 +321,7 @@ struct HypPropertySetter
         { Invoke(target, value); }
 };
 
-struct HypProperty
+struct HypProperty : public IHypMember
 {
     Name                name;
     TypeID              type_id;
@@ -363,14 +364,22 @@ struct HypProperty
         type_id = this->getter.type_info.value_type_id;
     }
 
-    HypProperty(const HypProperty &other)                 = delete;
-    HypProperty &operator=(const HypProperty &other)      = delete;
-    HypProperty(HypProperty &&other) noexcept             = default;
-    HypProperty &operator=(HypProperty &&other) noexcept  = default;
+    HypProperty(const HypProperty &other)                   = delete;
+    HypProperty &operator=(const HypProperty &other)        = delete;
+    HypProperty(HypProperty &&other) noexcept               = default;
+    HypProperty &operator=(HypProperty &&other) noexcept    = default;
 
-    /*! \brief Get the type id of the property, if defined. Otherwise, returns an unset type ID. */
-    HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return type_id; }
+    virtual ~HypProperty() override                         = default;
+
+    virtual Name GetName() const override
+    {
+        return name;
+    }
+
+    virtual TypeID GetTypeID() const override
+    {
+        return type_id;
+    }
 
     HYP_FORCE_INLINE bool IsValid() const
         { return type_id != TypeID::Void() && HasGetter(); }

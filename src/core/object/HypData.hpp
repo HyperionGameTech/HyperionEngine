@@ -66,6 +66,10 @@ struct HypDataGetReturnTypeHelper
 
 using HypDataSerializeFunction = std::add_pointer_t<fbom::FBOMResult(HypData &&hyp_data, fbom::FBOMData &out_data)>;
 
+/*! \brief A type-safe union that can store any type of data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
+ *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
+ *  \note Used in serialization, reflection, scripting, and other systems where data needs to be stored in a generic way.
+ */
 struct HypData
 {
     using VariantType = Variant<
@@ -134,17 +138,11 @@ struct HypData
 
     ~HypData()                                      = default;
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
-    {
-        if (const Any *any_ptr = value.TryGet<Any>()) {
-            return any_ptr->GetTypeID();
-        }
-
-        return value.GetTypeID();
-    }
-
     HYP_FORCE_INLINE bool IsValid() const
         { return value.IsValid(); }
+
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+        { return ToRef().GetTypeID(); }
 
     HYP_FORCE_INLINE AnyRef ToRef()
     {
@@ -174,23 +172,7 @@ struct HypData
     }
 
     HYP_FORCE_INLINE ConstAnyRef ToRef() const
-    {
-        HYP_SCOPE;
-
-        if (!value.IsValid()) {
-            return ConstAnyRef();
-        }
-
-        if (const AnyRef *any_ref_ptr = value.TryGet<AnyRef>()) {
-            return ConstAnyRef(*any_ref_ptr);
-        }
-
-        if (const Any *any_ptr = value.TryGet<Any>()) {
-            return any_ptr->ToRef();
-        }
-
-        return ConstAnyRef(value.GetTypeID(), value.GetPointer());
-    }
+        { return const_cast<HypData *>(this)->ToRef(); }
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const
@@ -1592,9 +1574,28 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !implementation_exists<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
-    using ConvertibleFrom = Tuple<>;
+    using ConvertibleFrom = Tuple<AnyRef, AnyHandle, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<T>();
+    }
+
+    HYP_FORCE_INLINE bool Is(const AnyRef &value) const
+    {
+        return value.Is<T>();
+    }
+
+    HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
+    {
+        if constexpr (has_opaque_handle_defined<T>) {
+            return value.Is<T>();
+        } else {
+            return false;
+        }
+    }
+
+    HYP_FORCE_INLINE bool Is(const RC<void> &value) const
     {
         return value.Is<T>();
     }
@@ -1602,6 +1603,25 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
     T &Get(const Any &value) const
     {
         return value.Get<T>();
+    }
+
+    T &Get(const AnyRef &value) const
+    {
+        return value.Get<T>();
+    }
+
+    T &Get(const AnyHandle &value) const
+    {
+        if constexpr (has_opaque_handle_defined<T>) {
+            return *value.Cast<T>().Get();
+        } else {
+            HYP_UNREACHABLE();
+        }
+    }
+
+    T &Get(const RC<void> &value) const
+    {
+        return *value.Cast<T>();
     }
 
     void Set(HypData &hyp_data, const T &value) const

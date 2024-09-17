@@ -86,6 +86,32 @@ public:
 
     ~AnyRefBase() = default;
 
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return m_ptr != nullptr; }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return !m_ptr; }
+
+    HYP_FORCE_INLINE bool operator==(const AnyRefBase &other) const
+        { return m_ptr == other.m_ptr; }
+
+    template <class OtherType>
+    HYP_FORCE_INLINE bool operator==(const OtherType *ptr) const
+        { return m_ptr == ptr; }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return m_ptr == nullptr; }
+
+    HYP_FORCE_INLINE bool operator!=(const AnyRefBase &other) const
+        { return m_ptr != other.m_ptr; }
+
+    template <class OtherType>
+    HYP_FORCE_INLINE bool operator!=(const OtherType *ptr) const
+        { return m_ptr != ptr; }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return m_ptr != nullptr; }
+
     /*! \brief Returns true if the AnyRef has a value. */
     HYP_FORCE_INLINE bool HasValue() const
         { return m_ptr != nullptr; }
@@ -149,7 +175,7 @@ public:
     }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
-    AnyRef(T &value)
+    explicit AnyRef(T &value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), &value)
     {
     }
@@ -268,7 +294,7 @@ public:
     }
 
     template <class T, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<T> > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
-    ConstAnyRef(T &&value)
+    explicit ConstAnyRef(T &&value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T> *>(&value))
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");

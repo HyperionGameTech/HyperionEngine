@@ -111,6 +111,8 @@ public:
     RenderProxyList &GetProxyList(ThreadType);
     const RenderProxyList &GetProxyList(ThreadType) const;
 
+    uint32 NumRenderGroups() const;
+
 private:
     FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
     FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;

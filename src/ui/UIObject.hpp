@@ -381,9 +381,10 @@ public:
     Vec2i GetScrollOffset() const;
 
     /*! \brief Set the scroll offset (in pixels) of the UI object.
-     *  \param scroll_offset The scroll offset of the UI object */
+     *  \param scroll_offset The scroll offset of the UI object
+     *  \param smooth Whether or not to interpolate the scroll offset to the given value. If false, it will immediately move to the given value. */
     HYP_METHOD()
-    void SetScrollOffset(Vec2i scroll_offset);
+    void SetScrollOffset(Vec2i scroll_offset, bool smooth);
 
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
@@ -730,7 +731,9 @@ protected:
     virtual void OnRemoved_Internal();
 
     /*! \brief Check if the object has been computed as visible or not. E.g scrolled out of view in a parent container */
-    virtual void UpdateComputedVisibility();
+    virtual void UpdateComputedVisibility(bool update_children = true);
+
+    virtual void OnComputedVisibilityChange_Internal() { }
 
     /*! \brief Sets the NodeProxy for this UIObject.
      *  \note To be called internally from UIStage */

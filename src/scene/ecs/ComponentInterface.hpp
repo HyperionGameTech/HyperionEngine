@@ -113,10 +113,10 @@ public:
         { return m_flags; }
 
 private:
-    TypeID                                          m_type_id;
-    ANSIStringView                                  m_type_name;
-    UniquePtr<ComponentFactoryBase>                 m_component_factory;
-    ComponentContainerFactoryBase                   *m_component_container_factory;
+    TypeID                              m_type_id;
+    ANSIStringView                      m_type_name;
+    UniquePtr<ComponentFactoryBase>     m_component_factory;
+    ComponentContainerFactoryBase       *m_component_container_factory;
     EnumFlags<ComponentInterfaceFlags>  m_flags;
 };
 

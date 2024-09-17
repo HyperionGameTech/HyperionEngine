@@ -14,6 +14,8 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 
@@ -97,6 +99,15 @@ public:
      *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
     */
     virtual ConstAnyRef TryGetComponent(ComponentID id) const = 0;
+
+    /*! \brief Tries to get the component with the given ID from the component container.
+     *
+     *  \param id The ID of the component to get.
+     *  \param out_hyp_data The value to store a reference to the component in
+     *
+     *  \return True if the component was found, false otherwise
+    */
+    virtual bool TryGetComponent(ComponentID id, HypData &out_hyp_data) = 0;
 
     /*! \brief Checks if the component container has a component with the given ID.
      *
@@ -213,6 +224,21 @@ public:
         }
 
         return ConstAnyRef(&it->second);
+    }
+
+    virtual bool TryGetComponent(ComponentID id, HypData &out_hyp_data) override
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        auto it = m_components.Find(id);
+
+        if (it == m_components.End()) {
+            return false;
+        }
+
+        out_hyp_data = HypData(&it->second);
+
+        return true;
     }
 
     HYP_FORCE_INLINE Component &GetComponent(ComponentID id)

@@ -476,7 +476,11 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
         }
         // add all properties
         for (const auto &it : object.properties) {
-            EnumFlags<FBOMDataAttributes> property_attributes = FBOMDataAttributes::NONE;
+            EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE;
+
+            if (it.second.IsCompressed()) {
+                attributes |= FBOMDataAttributes::COMPRESSED;
+            }
 
             out->Write<uint8>(FBOM_DEFINE_PROPERTY);
 
@@ -484,7 +488,7 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
             out->WriteString(it.first, BYTE_WRITER_FLAGS_WRITE_SIZE);
 
             // write value
-            if (FBOMResult err = it.second.Visit(this, out, property_attributes)) {
+            if (FBOMResult err = it.second.Visit(this, out, attributes)) {
                 return err;
             }
         }

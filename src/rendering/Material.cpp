@@ -100,8 +100,6 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 
                 descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
             } else {
-                HYP_LOG_ONCE(Material, LogLevel::WARNING, "Setting invalid texture for material with ID #{} at index {}", id.Value(), texture_index);
-
                 descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
         }
@@ -497,10 +495,12 @@ void Material::SetTextureAtIndex(uint index, const Handle<Texture> &texture)
 
 void Material::SetTextures(const TextureSet &textures)
 {
-    // @TODO : only update textures that have changed
-    
     if (IsStatic()) {
         HYP_LOG(Material, LogLevel::WARNING, "Setting textures on static material with ID #{} (name: {})", GetID().Value(), GetName());
+    }
+
+    if (m_textures == textures) {
+        return;
     }
 
     m_textures = textures;

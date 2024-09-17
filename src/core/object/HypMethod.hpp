@@ -5,6 +5,7 @@
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypClassAttribute.hpp>
+#include <core/object/HypMemberFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -157,7 +158,7 @@ struct HypMethodHelper<FunctionType, std::enable_if_t< !FunctionTraits<FunctionT
 
 } // namespace detail
 
-struct HypMethod
+struct HypMethod : public IHypMember
 {
     Name                                                name;
     TypeID                                              return_type_id;
@@ -421,7 +422,17 @@ struct HypMethod
     HypMethod &operator=(const HypMethod &other)        = delete;
     HypMethod(HypMethod &&other) noexcept               = default;
     HypMethod &operator=(HypMethod &&other) noexcept    = default;
-    ~HypMethod()                                        = default;
+    virtual ~HypMethod() override                       = default;
+
+    virtual Name GetName() const override
+    {
+        return name;
+    }
+
+    virtual TypeID GetTypeID() const override
+    {
+        return return_type_id;
+    }
 
     HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
     {

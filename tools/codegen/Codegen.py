@@ -143,37 +143,32 @@ class HypClassDefinition:
         matches = re.finditer(r'HYP_(FIELD|PROPERTY|METHOD)(?:\((.*)\))?', self.content)
 
         for match in matches:
+            inner_args = []
+
+            if match.group(2):
+                inner_args = parse_attributes_string(match.group(2))
+
             if match.group(1) == 'PROPERTY':
                 member_type = HypMemberType.PROPERTY
 
                 # HYP_PROPERTY macro should contain property name, then (getter and setter (optional)) OR (a pointer to data member)
 
-                match_content = match.group(2)
-
-                # read the property name
-
-                if not match_content:
-                    state.add_error(f'Error: Missing property name for {match_content}')
+                if len(inner_args) == 0 or len(inner_args[0]) == 0:
+                    state.add_error("Error: Missing property name")
                     continue
 
-                property_name = match_content.split(',')[0].strip()
-
-                print("Property name:", property_name)
+                property_name = inner_args[0][0]
 
                 if not property_name:
-                    state.add_error(f'Error: Missing property name for {match_content}')
+                    state.add_error("Error: Missing property name")
                     continue
 
-                property_args_split = match_content.split(',')
-
-                property_args = [x.strip() for x in (property_args_split[1:] if len(property_args_split) > 1 else [])]
+                property_args = [x.strip() for x in match.group(2).split(',')[1:]]
 
                 print("Property args:", property_args)
 
                 self.members.append(HypMemberDefinition(member_type, property_name, attributes=[], property_args=property_args))
             else:
-                member_attributes = parse_attributes_string(match.group(2))
-
                 remaining_content = self.content[match.end(0):]
                 member_content = ""
                 
@@ -233,7 +228,7 @@ class HypClassDefinition:
                         state.add_error(f'Error: Failed to parse field name for {member_content}')
                         continue
 
-                    self.members.append(HypMemberDefinition(member_type, member_name, attributes=member_attributes))
+                    self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args))
                 elif match.group(1) == 'METHOD':
                     member_type = HypMemberType.METHOD
 
@@ -275,7 +270,7 @@ class HypClassDefinition:
 
                         # return_type
 
-                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=member_attributes, method_return_type=return_type, method_args=args))
+                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, method_return_type=return_type, method_args=args))
                     else:
                         raise Exception(f'Invalid member type {member_type}')
                 

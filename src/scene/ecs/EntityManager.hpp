@@ -845,34 +845,6 @@ public:
     void PushCommand(EntityManagerCommandProc &&command)
         { m_command_queue.Push(std::move(command)); }
 
-private:
-    template <class Component>
-    static void EnsureValidComponentType()
-    {
-#ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(IsValidComponentType<Component>(), "Invalid component type: %s", TypeName<Component>().Data());
-#endif
-    }
-
-    static void EnsureValidComponentType(TypeID component_type_id)
-    {
-#ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type");
-#endif
-    }
-
-    template <uint32... indices>
-    HYP_FORCE_INLINE void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, Array<EntityTag> &out_tags) const
-    {
-        ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_tags.PushBack(EntityTag(indices + 1))) : void()), ...);
-    }
-
-    template <uint32... indices>
-    HYP_FORCE_INLINE void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, uint32 &out_mask) const
-    {
-        ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_mask |= (1u << uint32(indices))) : void()), ...);
-    }
-
     template <class Component>
     HYP_FORCE_INLINE ComponentContainer<Component> &GetContainer()
     {
@@ -902,6 +874,34 @@ private:
         }
 
         return it->second.Get();
+    }
+
+private:
+    template <class Component>
+    static void EnsureValidComponentType()
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(IsValidComponentType<Component>(), "Invalid component type: %s", TypeName<Component>().Data());
+#endif
+    }
+
+    static void EnsureValidComponentType(TypeID component_type_id)
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type");
+#endif
+    }
+
+    template <uint32... indices>
+    HYP_FORCE_INLINE void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, Array<EntityTag> &out_tags) const
+    {
+        ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_tags.PushBack(EntityTag(indices + 1))) : void()), ...);
+    }
+
+    template <uint32... indices>
+    HYP_FORCE_INLINE void GetTagsHelper(ID<Entity> id, std::integer_sequence<uint32, indices...>, uint32 &out_mask) const
+    {
+        ((HasTag<EntityTag(indices + 1)>(id) ? (void)(out_mask |= (1u << uint32(indices))) : void()), ...);
     }
 
     template <class SystemType>

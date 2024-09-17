@@ -19,7 +19,7 @@ public:
     virtual FBOMResult Serialize(const SubShader &in_object, FBOMObject &out) const override
     {
         out.SetProperty("Type", FBOMData::FromUInt32(in_object.type));
-        out.SetProperty("Bytes", FBOMSequence(FBOMUInt8(), in_object.spirv.bytes.Size()), in_object.spirv.bytes.Data());
+        out.SetProperty("Bytes", FBOMData::FromByteBuffer(in_object.spirv.bytes, FBOMDataFlags::COMPRESSED));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -33,12 +33,8 @@ public:
         }
 
         if (const FBOMData &bytes_property = in.GetProperty("Bytes")) {
-            const SizeType num_bytes = bytes_property.NumElements(FBOMUInt8());
-
-            if (num_bytes != 0) {
-                if (FBOMResult err = bytes_property.ReadBytes(num_bytes, sub_shader.spirv.bytes)) {
-                    return err;
-                }
+            if (FBOMResult err = bytes_property.ReadByteBuffer(sub_shader.spirv.bytes)) {
+                return err;
             }
         }
 

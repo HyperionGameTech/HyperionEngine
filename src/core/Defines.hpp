@@ -315,6 +315,9 @@
     #endif
 #endif
 
+#define HYP_UNREACHABLE() \
+    HYP_THROW("Unreachable code hit in function " HYP_DEBUG_FUNC)
+
 #define HYP_NOT_IMPLEMENTED() \
     HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
     return { }

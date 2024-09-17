@@ -52,9 +52,30 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
     if (it != index_map.End()) {
         uint32 num_instances = render_proxy.num_instances;
 
+#if 0//def HYP_DEBUG_MODE
+        // Sanity checks
+
+        if (batch_index != 0) {
+            // Must have a draw call with the given batch
+            bool found_with_batch_index = false;
+
+            for (const SizeType draw_call_index : it->second) {
+                DrawCall &draw_call = draw_calls[draw_call_index];
+
+                if (draw_call.batch_index == batch_index) {
+                    found_with_batch_index = true;
+                    break;
+                }
+            }
+
+            AssertThrow(found_with_batch_index);
+        }
+
+        // if batch_index is 0, we create a new batch
+#endif
+
         for (const SizeType draw_call_index : it->second) {
             DrawCall &draw_call = draw_calls[draw_call_index];
-            AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
 
             if ((num_instances = PushEntityToBatch(draw_call, render_proxy.entity.GetID(), num_instances))) {
                 // filled up, continue looking in array,

@@ -20,7 +20,7 @@ public:
     {
         out.AddChild(data.desc);
 
-        out.SetProperty("Buffer", data.buffer);
+        out.SetProperty("Buffer", FBOMData::FromByteBuffer(data.buffer, FBOMDataFlags::COMPRESSED));
 
         return { FBOMResult::FBOM_OK };
     }

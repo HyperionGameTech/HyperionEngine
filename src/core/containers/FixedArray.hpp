@@ -50,12 +50,12 @@ public:
     template <class OtherType, SizeType OtherSize>
     HYP_FORCE_INLINE bool operator==(const FixedArray<OtherType, OtherSize> &other) const
     {
-        if (std::addressof(other) == this) {
-            return true;
+        if constexpr (Sz != OtherSize) {
+            return false;
         }
 
-        if (size != other.size) {
-            return false;
+        if (this == &other) {
+            return true;
         }
 
         auto it = Begin();
@@ -73,7 +73,27 @@ public:
 
     template <class OtherType, SizeType OtherSize>
     HYP_FORCE_INLINE bool operator!=(const FixedArray<OtherType, OtherSize> &other) const
-        { return !(*this == other); }
+    {
+        if constexpr (Sz != OtherSize) {
+            return true;
+        }
+
+        if (this == &other) {
+            return false;
+        }
+
+        auto it = Begin();
+        auto other_it = other.Begin();
+        const auto _end = End();
+
+        for (; it != _end; ++it, ++other_it) {
+            if (*it != *other_it) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     template <class Function>
     HYP_FORCE_INLINE FixedArray Map(Function &&fn) const

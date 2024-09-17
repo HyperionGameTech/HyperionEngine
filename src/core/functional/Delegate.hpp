@@ -149,22 +149,19 @@ public:
     using Iterator = typename FlatMap<Name, DelegateHandler>::Iterator;
     using ConstIterator = typename FlatMap<Name, DelegateHandler>::ConstIterator;
 
-    HYP_FORCE_INLINE
-    DelegateHandlerSet &Add(const DelegateHandler &delegate_handler)
+    HYP_FORCE_INLINE DelegateHandlerSet &Add(const DelegateHandler &delegate_handler)
     {
         m_delegate_handlers.Insert({ Name::Unique(), delegate_handler });
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    DelegateHandlerSet &Add(Name name, const DelegateHandler &delegate_handler)
+    HYP_FORCE_INLINE DelegateHandlerSet &Add(Name name, const DelegateHandler &delegate_handler)
     {
         m_delegate_handlers.Insert({ name, delegate_handler });
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    bool Remove(Name name)
+    HYP_FORCE_INLINE bool Remove(Name name)
     {
         auto it = m_delegate_handlers.Find(name);
 
@@ -177,8 +174,7 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE
-    bool Remove(ConstIterator it)
+    HYP_FORCE_INLINE bool Remove(ConstIterator it)
     {
         if (it == m_delegate_handlers.End()) {
             return false;
@@ -189,16 +185,13 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE
-    Iterator Find(Name name)
+    HYP_FORCE_INLINE Iterator Find(Name name)
         { return m_delegate_handlers.Find(name); }
 
-    HYP_FORCE_INLINE
-    ConstIterator Find(Name name) const
+    HYP_FORCE_INLINE ConstIterator Find(Name name) const
         { return m_delegate_handlers.Find(name); }
 
-    HYP_FORCE_INLINE
-    bool Contains(Name name) const
+    HYP_FORCE_INLINE bool Contains(Name name) const
         { return m_delegate_handlers.Contains(name); }
 
     HYP_DEF_STL_BEGIN_END(
@@ -409,9 +402,8 @@ public:
      *  \param args The arguments to pass to the handlers.
      *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
     template <class ... ArgTypes>
-    HYP_FORCE_INLINE
-    ReturnType operator()(ArgTypes &&... args)
-        { return Broadcast(std::forward<ArgTypes>(args)...); }
+    HYP_FORCE_INLINE ReturnType operator()(ArgTypes &&... args) const
+        { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
 private:
     static void RemoveDelegateHandlerCallback(void *delegate, uint id)

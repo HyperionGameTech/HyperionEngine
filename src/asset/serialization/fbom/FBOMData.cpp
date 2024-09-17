@@ -18,28 +18,32 @@
 
 namespace hyperion::fbom {
 
-FBOMData::FBOMData()
-    : type(FBOMUnset())
+FBOMData::FBOMData(EnumFlags<FBOMDataFlags> flags)
+    : type(FBOMUnset()),
+      m_flags(flags)
 {
 }
 
-FBOMData::FBOMData(const FBOMType &type)
-    : type(type)
+FBOMData::FBOMData(const FBOMType &type, EnumFlags<FBOMDataFlags> flags)
+    : type(type),
+      m_flags(flags)
 {
     if (!type.IsUnbounded()) {
         bytes.SetSize(type.size);
     }
 }
 
-FBOMData::FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer)
+FBOMData::FBOMData(const FBOMType &type, ByteBuffer &&byte_buffer, EnumFlags<FBOMDataFlags> flags)
     : bytes(std::move(byte_buffer)),
-      type(type)
+      type(type),
+      m_flags(flags)
 {
 }
 
 FBOMData::FBOMData(const FBOMData &other)
     : type(other.type),
       bytes(other.bytes),
+      m_flags(other.m_flags),
       m_deserialized_object(other.m_deserialized_object)
 {
 }
@@ -48,6 +52,7 @@ FBOMData &FBOMData::operator=(const FBOMData &other)
 {
     type = other.type;
     bytes = other.bytes;
+    m_flags = other.m_flags;
     m_deserialized_object = other.m_deserialized_object;
 
     return *this;
@@ -56,18 +61,22 @@ FBOMData &FBOMData::operator=(const FBOMData &other)
 FBOMData::FBOMData(FBOMData &&other) noexcept
     : bytes(std::move(other.bytes)),
       type(std::move(other.type)),
+      m_flags(other.m_flags),
       m_deserialized_object(std::move(other.m_deserialized_object))
 {
     other.type = FBOMUnset();
+    other.m_flags = FBOMDataFlags::NONE;
 }
 
 FBOMData &FBOMData::operator=(FBOMData &&other) noexcept
 {
     bytes = std::move(other.bytes);
     type = std::move(other.type);
+    m_flags = other.m_flags;
     m_deserialized_object = std::move(other.m_deserialized_object);
 
     other.type = FBOMUnset();
+    other.m_flags = FBOMDataFlags::NONE;
 
     return *this;
 }

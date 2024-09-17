@@ -1267,13 +1267,8 @@ void DeferredRenderer::Create()
     m_direct_pass.Reset(new DeferredPass(DeferredPassMode::DIRECT_LIGHTING));
     m_direct_pass->Create();
 
-    const AttachmentRef &depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer()
-        ->GetAttachmentMap().attachments.Back().second.attachment;
-
-    AssertThrow(depth_attachment != nullptr);
-
     m_depth_pyramid_renderer.Reset(new DepthPyramidRenderer);
-    m_depth_pyramid_renderer->Create(depth_attachment);
+    m_depth_pyramid_renderer->Create();
 
     m_mip_chain = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,

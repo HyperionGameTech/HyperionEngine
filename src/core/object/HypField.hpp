@@ -5,6 +5,7 @@
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypClassAttribute.hpp>
+#include <core/object/HypMemberFwd.hpp>
 
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
@@ -28,17 +29,20 @@ namespace hyperion {
 
 class HypClass;
 
-struct HypField
+struct HypField : public IHypMember
 {
-    Name                                          name;
-    TypeID                                        type_id;
-    uint32                                        offset;
-    uint32                                        size;
+    Name                                            name;
+    TypeID                                          type_id;
+    uint32                                          offset;
+    uint32                                          size;
 
-    HashMap<String, String>                       attributes;
+    HashMap<String, String>                         attributes;
 
-    Proc<fbom::FBOMData, const HypData &>         serialize_proc;
-    Proc<void, HypData &, const fbom::FBOMData &> deserialize_proc;
+    Proc<HypData, const HypData &>                  get_proc;
+    Proc<void, HypData &, const HypData &>          set_proc;
+
+    Proc<fbom::FBOMData, const HypData &>           serialize_proc;
+    Proc<void, HypData &, const fbom::FBOMData &>   deserialize_proc;
 
     HypField(Span<HypClassAttribute> attributes = { })
         : name(Name::Invalid()),
@@ -57,6 +61,58 @@ struct HypField
           size(sizeof(FieldType)),
           attributes(HypClassAttribute::ToHashMap(attributes))
     {
+        get_proc = [member](const HypData &target_data) -> HypData
+        {
+            if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
+                HYP_FAIL("Cannot assign non-copy-assignable field");
+            } else {
+                ConstAnyRef target_ref = target_data.ToRef();
+
+                AssertThrow(target_ref.HasValue());
+                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                    TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+
+                return HypData(static_cast<const ThisType *>(target_ref.GetPointer())->*member);
+            }
+        };
+
+        set_proc = [member](HypData &target_data, const HypData &data) -> void
+        {
+            if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
+                HYP_FAIL("Cannot deserialize non-copy-assignable field");
+            } else {
+                AnyRef target_ref = target_data.ToRef();
+
+                AssertThrow(target_ref.HasValue());
+                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                    TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+
+                ThisType *target = static_cast<ThisType *>(target_ref.GetPointer());
+
+                if constexpr (std::is_array_v<NormalizedType<FieldType>>) {
+                    using InnerType = std::remove_extent_t<NormalizedType<FieldType>>;
+
+                    if (data.IsValid()) {
+                        auto &array_value = data.Get<NormalizedType<FieldType>>();
+
+                        for (SizeType i = 0; i < array_value.Size(); i++) {
+                            (target->*member)[i] = array_value[i];
+                        }
+                    } else {
+                        for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++) {
+                            (target->*member)[i] = NormalizedType<InnerType> { };
+                        }
+                    }
+                } else {
+                    if (data.IsValid()) {
+                        target->*member = data.Get<NormalizedType<FieldType>>();
+                    } else {
+                        target->*member = NormalizedType<FieldType> { };
+                    }
+                }
+            }
+        };
+
         if (this->attributes.Contains("serializeas")) {
             serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
             {
@@ -128,7 +184,17 @@ struct HypField
     HypField &operator=(const HypField &other)      = delete;
     HypField(HypField &&other) noexcept             = default;
     HypField &operator=(HypField &&other) noexcept  = default;
-    ~HypField()                                     = default;
+    virtual ~HypField() override                    = default;
+
+    virtual Name GetName() const override
+    {
+        return name;
+    }
+
+    virtual TypeID GetTypeID() const override
+    {
+        return type_id;
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
@@ -169,6 +235,16 @@ struct HypField
         AssertThrow(CanDeserialize());
 
         deserialize_proc(target_data, data);
+    }
+
+    HYP_FORCE_INLINE HypData Get(HypData &target_data) const
+    {
+        return get_proc(target_data);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &target_data, const HypData &data) const
+    {
+        return set_proc(target_data, data);
     }
 };
 

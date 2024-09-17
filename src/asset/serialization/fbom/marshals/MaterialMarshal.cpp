@@ -50,9 +50,9 @@ public:
             param_object.SetProperty("Type", uint32(key_value.second.type));
 
             if (key_value.second.IsIntType()) {
-                param_object.SetProperty("Data", FBOMSequence(FBOMInt32(), ArraySize(key_value.second.values.int_values)), &key_value.second.values.int_values[0]); 
+                param_object.SetProperty("Data", FBOMSequence(FBOMInt32(), ArraySize(key_value.second.values.int_values)), ArraySize(key_value.second.values.int_values) * sizeof(int32), &key_value.second.values.int_values[0]); 
             } else if (key_value.second.IsFloatType()) {
-                param_object.SetProperty("Data", FBOMSequence(FBOMFloat(), ArraySize(key_value.second.values.float_values)), &key_value.second.values.float_values[0]); 
+                param_object.SetProperty("Data", FBOMSequence(FBOMFloat(), ArraySize(key_value.second.values.float_values)), ArraySize(key_value.second.values.int_values) * sizeof(float), &key_value.second.values.float_values[0]); 
             }
 
             params_array.AddElement(FBOMData::FromObject(std::move(param_object)));
@@ -85,6 +85,7 @@ public:
         out.SetProperty(
             "TextureKeys",
             FBOMSequence(FBOMUInt32(), ArraySize(texture_keys)),
+            ArraySize(texture_keys) * sizeof(uint32),
             &texture_keys[0]
         );
 
@@ -180,7 +181,7 @@ public:
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
         material_handle->SetShader(std::move(shader));
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, material_handle->GetClass(), *material_handle)) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, material_handle->GetClass(), AnyRef(*material_handle))) {
             return err;
         }
 

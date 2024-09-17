@@ -8,6 +8,7 @@
 #include <core/object/HypMethod.hpp>
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
+#include <core/object/HypMemberFwd.hpp>
 
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/EnumFlags.hpp>

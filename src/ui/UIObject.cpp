@@ -209,7 +209,7 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
 
     // If the scroll offset has changed, recalculate the position
     bool recalculate_position = false;
-    recalculate_position |= m_scroll_offset.Advance(delta);
+    recalculate_position |= m_scroll_offset.Advance(delta * 0.25f);
 
     if (recalculate_position) {
         UpdatePosition();
@@ -448,7 +448,7 @@ Vec2i UIObject::GetScrollOffset() const
     return Vec2i(m_scroll_offset.GetValue());
 }
 
-void UIObject::SetScrollOffset(Vec2i scroll_offset)
+void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
 {
     HYP_SCOPE;
 
@@ -461,6 +461,10 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset)
         : 0;
 
     m_scroll_offset.SetTarget(Vec2f(scroll_offset));
+
+    if (!smooth) {
+        m_scroll_offset.SetValue(Vec2f(scroll_offset));
+    }
 
     UpdatePosition();
 }
@@ -740,36 +744,54 @@ void UIObject::SetIsVisible(bool is_visible)
     UpdateComputedVisibility();
 }
 
-void UIObject::UpdateComputedVisibility()
+void UIObject::UpdateComputedVisibility(bool update_children)
 {
     HYP_SCOPE;
 
-    if (!IsVisible()) {
-        m_computed_visibility = false;
+    bool computed_visibility = m_computed_visibility;
 
-        return;
-    }
+    if (IsVisible()) {
+        if (UIObject *parent_ui_object = GetParentUIObject()) {
+            if (parent_ui_object->m_computed_visibility) {
+                const Vec2i parent_size = parent_ui_object->GetActualSize();
+                const Vec2f parent_position = parent_ui_object->GetAbsolutePosition();
 
-    if (UIObject *parent_ui_object = GetParentUIObject()) {
-        const Vec2i parent_size = parent_ui_object->GetActualSize();
-        const Vec2f parent_position = parent_ui_object->GetAbsolutePosition();
+                const Vec2i self_size = GetActualSize();
+                const Vec2f self_position = GetAbsolutePosition();
 
-        const Vec2i self_size = GetActualSize();
-        const Vec2f self_position = GetAbsolutePosition();
+                const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
+                const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
 
-        const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
-        const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
+                if (GetName() == HYP_WEAK_NAME(MenuItemContents)) {
+                    HYP_LOG(UI, LogLevel::DEBUG, "Testing intersection for parent AABB: {} and menu contents: {}", parent_aabb, self_aabb);
+                }
 
-        if (GetName() == HYP_WEAK_NAME(MenuItemContents)) {
-            HYP_LOG(UI, LogLevel::DEBUG, "Testing intersection for parent AABB: {} and menu contents: {}", parent_aabb, self_aabb);
+                computed_visibility = parent_aabb.Overlaps(self_aabb);
+            } else {
+                computed_visibility = false;
+            }
+        } else {
+            computed_visibility = true;
         }
-
-        m_computed_visibility = parent_aabb.Overlaps(self_aabb);
-
-        return;
+    } else {
+        computed_visibility = false;
     }
 
-    m_computed_visibility = true;
+    if (m_computed_visibility != computed_visibility) {
+        m_computed_visibility = computed_visibility;
+
+        OnComputedVisibilityChange_Internal();
+    }
+
+    if (update_children) {
+        ForEachChildUIObject([](const RC<UIObject> &child)
+        {
+            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+            child->UpdateComputedVisibility();
+
+            return UIObjectIterationResult::CONTINUE;
+        }, false);
+    }
 }
 
 bool UIObject::HasFocus(bool include_children) const
@@ -1131,9 +1153,7 @@ Material::TextureSet UIObject::GetMaterialTextures() const
 {
     HYP_SCOPE;
 
-    return Material::TextureSet {
-        { Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture> { } }
-    };
+    return Material::TextureSet { };
 }
 
 Handle<Material> UIObject::CreateMaterial() const
@@ -1537,8 +1557,8 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    bool parameters_changed = material_parameters.GetHashCode() != current_material->GetParameters().GetHashCode();
-    bool textures_changed = material_textures.GetHashCode() != current_material->GetTextures().GetHashCode();
+    bool parameters_changed = material_parameters != current_material->GetParameters();
+    bool textures_changed = material_textures != current_material->GetTextures();
     
     if (parameters_changed || textures_changed) {
         Handle<Material> new_material;

@@ -5,6 +5,8 @@
 
 #include <core/containers/Array.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 
 #include <math/Extent.hpp>
@@ -28,7 +30,7 @@ public:
 
     Vec2u GetExtent() const;
 
-    void Create(const AttachmentRef &depth_attachment);
+    void Create();
 
     void Render(Frame *frame);
 
@@ -42,6 +44,8 @@ private:
     SamplerRef                  m_depth_pyramid_sampler;
 
     ComputePipelineRef          m_generate_depth_pyramid;
+
+    DelegateHandler             m_create_depth_pyramid_resources_handler;
 
     bool                        m_is_rendered;
 };

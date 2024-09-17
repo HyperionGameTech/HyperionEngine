@@ -200,7 +200,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Extent2D resolution)
 
     renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
-    if (bucket == BUCKET_SWAPCHAIN || bucket == BUCKET_UI) {
+    if (bucket == BUCKET_SWAPCHAIN /*|| bucket == BUCKET_UI*/) {
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 

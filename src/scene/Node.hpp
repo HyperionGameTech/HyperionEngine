@@ -289,12 +289,12 @@ public:
         { return m_uuid; }
 
     /*! \returns The name that was given to the Node on creation. */
-    HYP_METHOD(SerializeAs=Name)
+    HYP_METHOD(SerializeAs=Name, EditorProperty="Name")
     HYP_FORCE_INLINE const String &GetName() const
         { return m_name; }
         
     /*! \brief Set the name of this Node. Used for nested lookups. */
-    HYP_METHOD(SerializeAs=Name)
+    HYP_METHOD(SerializeAs=Name, EditorProperty="Name")
     void SetName(const String &name);
 
     /*! \returns The type of the node. By default, it will just be NODE. */
@@ -330,11 +330,11 @@ public:
      *  \internal Not intended to be used in user code. Use Remove() instead. */
     void SetScene(Scene *scene);
 
-    HYP_METHOD(SerializeAs=Entity)
+    HYP_METHOD(SerializeAs=Entity, EditorProperty="Entity")
     HYP_FORCE_INLINE ID<Entity> GetEntity() const
         { return m_entity; }
 
-    HYP_METHOD(SerializeAs=Entity)
+    HYP_METHOD(SerializeAs=Entity, EditorProperty="Entity")
     void SetEntity(ID<Entity> entity);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
@@ -422,11 +422,11 @@ public:
         { return m_descendents; }
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD(SerializeAs=LocalTransform)
+    HYP_METHOD(SerializeAs=LocalTransform, EditorProperty="Local Transform")
     void SetLocalTransform(const Transform &transform);
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
-    HYP_METHOD(SerializeAs=LocalTransform)
+    HYP_METHOD(SerializeAs=LocalTransform, EditorProperty="Local Transform")
     HYP_FORCE_INLINE const Transform &GetLocalTransform() const
         { return m_local_transform; }
     
@@ -480,12 +480,12 @@ public:
         { SetLocalRotation(m_local_transform.GetRotation() * rotation); }
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
-    HYP_METHOD(SerializeAs=WorldTransform)
+    HYP_METHOD(SerializeAs=WorldTransform, EditorProperty="World Transform")
     HYP_FORCE_INLINE const Transform &GetWorldTransform() const
         { return m_world_transform; }
 
-    /*! \brief Set the local-space translation, scale, rotation of this Node  */
-    HYP_METHOD(SerializeAs=WorldTransform)
+    /*! \brief Set the world-space translation, scale, rotation of this Node  */
+    HYP_METHOD(SerializeAs=WorldTransform, EditorProperty="World Transform")
     void SetWorldTransform(const Transform &transform)
     {
         if (m_parent_node == nullptr) {
@@ -582,14 +582,14 @@ public:
     void UnlockTransform();
 
     /*! \brief \returns The underlying entity AABB for this node. */
-    HYP_METHOD(SerializeAs=EntityAABB)
+    HYP_METHOD(SerializeAs=EntityAABB, EditorProperty="Bounding Box")
     HYP_FORCE_INLINE const BoundingBox &GetEntityAABB() const
         { return m_entity_aabb; }
 
     /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
     *   \param aabb The entity bounding box to set
     *   \note Calls to RefreshEntityTransform() will override this value. */
-    HYP_METHOD(SerializeAs=EntityAABB)
+    HYP_METHOD(SerializeAs=EntityAABB, EditorProperty="Bounding Box")
     void SetEntityAABB(const BoundingBox &aabb);
 
     /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.

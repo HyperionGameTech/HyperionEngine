@@ -183,10 +183,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                     Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
                         g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                         attributes,
-                        RenderGroupFlags::NONE /* disable parallel rendering, to preserve number of command buffers */
+                        RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
                     );
-
-                    InitObject(render_group);
 
                     HYP_LOG(UI, LogLevel::DEBUG, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
 
@@ -208,6 +206,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         }
 
         collection->RemoveEmptyProxyGroups();
+
+        HYP_LOG(UI, LogLevel::DEBUG, "UI is currently using {} render groups", collection->NumRenderGroups());
     }
 
     bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity)
@@ -469,7 +469,7 @@ UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
 
 UIRenderer::~UIRenderer()
 {
-    SafeRelease((std::move(m_framebuffer)));
+    SafeRelease(std::move(m_framebuffer));
     g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
@@ -503,8 +503,6 @@ void UIRenderer::CreateFramebuffer()
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const Vec2i surface_size = Vec2i(g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
-    
-    //Vec2i(g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution());
 
     m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
     {

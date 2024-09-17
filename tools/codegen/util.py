@@ -95,17 +95,37 @@ def map_type(type_object):
     return name
 
 def parse_attributes_string(attributes_string):
-    if not attributes_string:
+    if not attributes_string or len(attributes_string) == 0:
         return []
+    
+    inner_args = []
 
-    attributes = []
+    in_string_literal = False
+    previous_char = None
+    in_value = False
+    current_arg = ("", "")
 
-    for attribute in attributes_string.split(','):
-        attribute_split = attribute.split('=')
-
-        if len(attribute_split) == 2:
-            attributes.append((attribute_split[0].strip(), attribute_split[1].strip()))
+    for char in attributes_string:
+        if char == '\"' and previous_char != '\\':
+            in_string_literal = not in_string_literal
         else:
-            attributes.append((attribute_split[0].strip(), ""))
+            if not in_string_literal and char == ',':
+                current_arg = (current_arg[0].strip(), current_arg[1].strip())
+                inner_args.append(current_arg)
+                current_arg = ("", "")
+                in_value = False
+            elif not in_string_literal and char == '=':
+                in_value = True
+            else:
+                if in_value:
+                    current_arg = (current_arg[0], current_arg[1] + char)
+                else:
+                    current_arg = (current_arg[0] + char, current_arg[1])
 
-    return attributes
+        previous_char = char
+
+    if len(current_arg[0]) > 0 or len(current_arg[1]) > 0:
+        current_arg = (current_arg[0].strip(), current_arg[1].strip())
+        inner_args.append(current_arg)
+
+    return inner_args

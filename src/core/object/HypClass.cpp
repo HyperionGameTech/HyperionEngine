@@ -20,6 +20,73 @@
 
 namespace hyperion {
 
+#pragma region HypClassMemberIterator
+
+HypClassMemberIterator::HypClassMemberIterator(const HypClass *hyp_class, Phase phase)
+    : m_phase(phase),
+      m_hyp_class(hyp_class),
+      m_iterating_parent(nullptr),
+      m_current_index(0),
+      m_current_value(nullptr)
+{
+    Advance();
+}
+
+void HypClassMemberIterator::Advance()
+{
+    const HypClass *target = m_iterating_parent != nullptr ? m_iterating_parent : m_hyp_class;
+
+    if (m_phase == Phase::MAX) {
+        target = m_iterating_parent = target->GetParent();
+
+        m_phase = Phase::ITERATE_PROPERTIES;
+    }
+
+    if (!target) {
+        return;
+    }
+
+    switch (m_phase) {
+    case Phase::ITERATE_PROPERTIES:
+        if (m_current_index < target->GetProperties().Size()) {
+            m_current_value = target->GetProperties()[m_current_index++];
+        } else {
+            m_current_index = 0;
+            m_phase = Phase::ITERATE_METHODS;
+
+            Advance();
+        }
+
+        break;
+    case Phase::ITERATE_METHODS:
+        if (m_current_index < target->GetMethods().Size()) {
+            m_current_value = target->GetMethods()[m_current_index++];
+        } else {
+            m_current_index = 0;
+            m_phase = Phase::ITERATE_FIELDS;
+            
+            Advance();
+        }
+
+        break;
+    case Phase::ITERATE_FIELDS:
+        if (m_current_index < target->GetFields().Size()) {
+            m_current_value = target->GetFields()[m_current_index++];
+        } else {
+            m_current_index = 0;
+            m_phase = Phase::MAX;
+
+            Advance();
+        }
+
+        break;
+    default:
+        break;
+    }
+}
+
+#pragma endregion HypClassMemberIterator
+
 #pragma region HypClass
 
 HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
@@ -82,6 +149,27 @@ void HypClass::Initialize()
         m_parent = GetClass(m_parent_name);
         AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
     }
+}
+
+IHypMember *HypClass::GetMember(WeakName name) const
+{
+    if (HypProperty *property = GetProperty(name)) {
+        return property;
+    }
+
+    if (HypMethod *method = GetMethod(name)) {
+        return method;
+    }
+
+    if (HypField *field = GetField(name)) {
+        return field;
+    }
+
+    if (const HypClass *parent = GetParent()) {
+        return parent->GetMember(name);
+    }
+
+    return nullptr;
 }
 
 HypProperty *HypClass::GetProperty(WeakName name) const

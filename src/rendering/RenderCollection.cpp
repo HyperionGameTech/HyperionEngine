@@ -386,6 +386,23 @@ void EntityDrawCollection::RemoveEmptyProxyGroups()
     }
 }
 
+uint32 EntityDrawCollection::NumRenderGroups() const
+{
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    uint32 count = 0;
+
+    for (const auto &pass_type_proxy_groups : m_proxy_groups) {
+        for (const auto &it : pass_type_proxy_groups) {
+            if (it.second.m_render_group.IsValid()) {
+                ++count;
+            }
+        }
+    }
+
+    return count;
+}
+
 #pragma endregion EntityDrawCollection
 
 #pragma region RenderList

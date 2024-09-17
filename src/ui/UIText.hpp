@@ -52,6 +52,7 @@ struct UITextCharacter
 
 struct UITextRenderData
 {
+    Vec4f                   color;
     Vec2u                   size;
     BoundingBox             aabb;
     Array<UITextCharacter>  characters;
@@ -124,6 +125,8 @@ protected:
     virtual void UpdateSize(bool update_children = true) override;
 
     virtual void OnFontAtlasUpdate_Internal() override;
+
+    virtual void OnComputedVisibilityChange_Internal() override;
 
     virtual bool Repaint_Internal() override;
 

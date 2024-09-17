@@ -28,7 +28,7 @@ UITextbox::UITextbox(UIStage *parent, NodeProxy node_proxy)
     {
         HYP_LOG(UI, LogLevel::INFO, "Scrolling textbox: {}", event_data.wheel);
 
-        SetScrollOffset(GetScrollOffset() - event_data.wheel * 5);
+        SetScrollOffset(GetScrollOffset() - event_data.wheel * 5, /* smooth */ false);
 
         return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
@@ -45,9 +45,9 @@ void UITextbox::Init()
     SetInnerSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
     m_text_element = GetStage()->CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-    m_text_element->SetTextColor(Vec4f { 0, 0, 0, 1 }); // black
     m_text_element->SetText(m_text);
     m_text_element->SetTextSize(12.0f);
+    m_text_element->SetTextColor(Vec4f { 0, 0, 0, 1 }); // black
     m_text_element->SetAffectsParentSize(false);
 
     UIObject::AddChildUIObject(m_text_element);

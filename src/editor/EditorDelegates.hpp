@@ -20,6 +20,7 @@
 namespace hyperion {
 
 class Node;
+class IHypMember;
 
 class HYP_API EditorDelegates
 {
@@ -33,7 +34,7 @@ public:
     EditorDelegates &operator=(EditorDelegates &&other)         = delete;
     ~EditorDelegates()                                          = default;
 
-    void AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, Name, ConstAnyRef> &&proc);
+    void AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, ANSIStringView> &&proc);
     void RemoveNodeWatcher(Name watcher_key);
 
     /*! \brief Watch this node for all changes. Use OnWatchedNodeUpdate to catch all changes. */
@@ -42,13 +43,13 @@ public:
     /*! \brief Stop watching this node for all changes. */
     void UnwatchNode(Node *node);
 
-    void OnNodeUpdate(Node *node, Name property_name, ConstAnyRef data);
+    void OnNodeUpdate(Node *node, ANSIStringView editor_property_name);
 
 private:
     struct NodeWatcher
     {
-        FlatSet<Name>                               properties_to_watch;
-        Delegate<void, Node *, Name, ConstAnyRef>   delegate;
+        FlatSet<Name>                           properties_to_watch;
+        Delegate<void, Node *, ANSIStringView>  OnChange;
     };
 
     FlatSet<Node *>             m_nodes;

@@ -243,7 +243,7 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Name"), m_name);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "Name");
 #endif
 }
 
@@ -286,7 +286,7 @@ void Node::SetScene(Scene *scene)
         m_scene = scene;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Scene"), m_scene);
+        EditorDelegates::GetInstance().OnNodeUpdate(this, "Scene");
 #endif
 
         // Move entity from previous scene to new scene
@@ -300,7 +300,7 @@ void Node::SetScene(Scene *scene)
                 m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-                EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+                EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
 #endif
             }
         }
@@ -638,7 +638,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_entity = entity;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+        EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
 #endif
 
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
@@ -679,7 +679,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("Entity"), m_entity);
+        EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
 #endif
 
         SetEntityAABB(BoundingBox::Empty());
@@ -697,13 +697,9 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     m_entity_aabb = aabb;
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("EntityAABB"), m_entity_aabb);
-
-    BoundingBox local_aabb = GetLocalAABB();
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalAABB"), local_aabb);
-
-    BoundingBox world_aabb = GetWorldAABB();
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldAABB"), world_aabb);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "EntityAABB");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalAABB");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldAABB");
 #endif
 }
 
@@ -816,14 +812,10 @@ void Node::UpdateWorldTransform()
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalTransform"), m_local_transform);
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldTransform"), m_world_transform);
-
-    BoundingBox local_aabb = GetLocalAABB();
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("LocalAABB"), local_aabb);
-
-    BoundingBox world_aabb = GetWorldAABB();
-    EditorDelegates::GetInstance().OnNodeUpdate(this, NAME("WorldAABB"), world_aabb);
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalTransform");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldTransform");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalAABB");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldAABB");
 #endif
 }
 
