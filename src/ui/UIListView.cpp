@@ -21,7 +21,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
     : UIObject(parent, std::move(node_proxy), UIObjectType::LIST_VIEW_ITEM),
-      m_is_selected_item(false)
+      m_is_selected_item(false),
+      m_is_expanded(false)
 {
     SetBackgroundColor(Vec4f::Zero());
 }
@@ -29,6 +30,88 @@ UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
 void UIListViewItem::Init()
 {
     UIObject::Init();
+}
+
+void UIListViewItem::AddChildUIObject(UIObject *ui_object)
+{
+    HYP_SCOPE;
+
+    if (!ui_object) {
+        return;
+    }
+    
+    if (ui_object->GetType() == UIObjectType::LIST_VIEW_ITEM) {
+        if (!m_inner_element) {
+            m_inner_element = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+
+            if (m_is_expanded) {
+                AddChildUIObject(m_inner_element);
+            }
+        }
+
+        m_inner_element->AddChildUIObject(ui_object);
+
+        return;
+    }
+
+    UIObject::AddChildUIObject(ui_object);
+}
+
+bool UIListViewItem::RemoveChildUIObject(UIObject *ui_object)
+{
+    HYP_SCOPE;
+
+    if (!ui_object) {
+        return false;
+    }
+
+    if (ui_object->GetType() == UIObjectType::LIST_VIEW_ITEM) {
+        if (!m_inner_element) {
+            return false;
+        }
+
+        if (m_inner_element->RemoveChildUIObject(ui_object)) {
+            if (!HasSubItems()) {
+                m_inner_element->RemoveFromParent();
+                m_inner_element.Reset();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    return UIObject::RemoveChildUIObject(ui_object);
+}
+
+bool UIListViewItem::HasSubItems() const
+{
+    if (!m_inner_element) {
+        return false;
+    }
+
+    return m_inner_element->HasChildUIObjects();
+}
+
+void UIListViewItem::SetIsExpanded(bool is_expanded)
+{
+    if (is_expanded == m_is_expanded) {
+        return;
+    }
+
+    if (is_expanded && !HasSubItems()) {
+        // Can't expand if we don't have subitems
+        return;
+    }
+
+    m_is_expanded = is_expanded;
+
+    if (m_is_expanded) {
+        AddChildUIObject(m_inner_element);
+    } else {
+        m_inner_element->RemoveFromParent();
+    }
 }
 
 void UIListViewItem::SetIsSelectedItem(bool is_selected_item)

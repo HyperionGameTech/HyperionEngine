@@ -71,6 +71,8 @@
 #include <core/object/HypField.hpp>
 #include <core/object/HypData.hpp>
 
+#include <core/containers/Forest.hpp>
+
 namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
@@ -306,6 +308,11 @@ public:
                 HYP_UNREACHABLE();
             }
         }
+
+        // // temp
+        // if (hyp_class->GetName() == NAME("TransformComponent")) {
+        //     HYP_BREAKPOINT;
+        // }
 
         for (auto &it : properties_by_name) {
             if (!it.second.member) {
@@ -1477,6 +1484,23 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
 void HyperionEditorImpl::Initialize()
 {
+    // Forest<int> forest;
+    // auto node_1 = forest.Add(1);
+    // forest.Add(2);
+    // forest.Add(3);
+
+    // forest.Add(4, node_1);
+    // auto node_5 = forest.Add(5, node_1);
+    // auto node_6 = forest.Add(6, node_5);
+
+    // HYP_LOG(Editor, LogLevel::INFO, "Forest size: {}", forest.Size());
+
+    // for (auto &it : forest) {
+    //     HYP_LOG(Editor, LogLevel::INFO, "Forest node : {}", it);
+    // }
+
+    // HYP_BREAKPOINT;
+
     CreateHighlightNode();
 
     CreateMainPanel();

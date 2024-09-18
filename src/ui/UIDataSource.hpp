@@ -5,6 +5,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/containers/Forest.hpp>
+
 #include <core/functional/Delegate.hpp>
 #include <core/functional/Proc.hpp>
 
@@ -83,6 +85,8 @@ public:
 
     virtual HypData &GetValue() = 0;
     virtual const HypData &GetValue() const = 0;
+
+    // virtual Array<IUIDataSourceElement *> GetSubItems() const;
 };
 
 template <class T>
@@ -168,16 +172,13 @@ public:
     UIDataSourceBase &operator=(UIDataSourceBase &&other) noexcept  = delete;
     virtual ~UIDataSourceBase()                                     = default;
 
-    HYP_FORCE_INLINE
-    IUIDataSourceElementFactory *GetElementFactory() const
+    HYP_FORCE_INLINE IUIDataSourceElementFactory *GetElementFactory() const
         { return m_element_factory; }
 
     virtual void Push(HypData &&value) = 0;
-    virtual const IUIDataSourceElement *Get(SizeType index) const = 0;
     virtual const IUIDataSourceElement *Get(const UUID &uuid) const = 0;
-    virtual void Set(SizeType index, HypData &&value) = 0;
     virtual void Set(const UUID &uuid, HypData &&value) = 0;
-    virtual void Remove(SizeType index) = 0;
+    virtual bool Remove(const UUID &uuid) = 0;
     virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) = 0;
 
     virtual IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) = 0;
@@ -231,106 +232,123 @@ public:
 
         AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-        auto &element = m_values.PushBack(UIDataSourceElement<T>(UUID(), std::move(value.Get<T>())));
+        auto it = m_values.Add(UIDataSourceElement<T>(UUID(), std::move(value.Get<T>())));
 
-        OnElementAdd(this, &element);
+        OnElementAdd(this, &*it);
         OnChange(this);
-    }
-    
-    virtual const IUIDataSourceElement *Get(SizeType index) const override
-    {
-        AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
-
-        return &m_values[index];
     }
 
     virtual const IUIDataSourceElement *Get(const UUID &uuid) const override
     {
-        // @TODO More efficient lookup
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (m_values[index].GetUUID() == uuid) {
-                return &m_values[index];
-            }
+        auto it = m_values.FindIf([&uuid](const auto &item)
+        {
+            return item.GetUUID() == uuid;
+        });
+
+        if (it == m_values.End()) {
+            return nullptr;
         }
 
-        return nullptr;
-    }
-
-    virtual void Set(SizeType index, HypData &&value) override
-    {
-        AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
-        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
-
-        m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), std::move(value.Get<T>()));
-
-        OnElementUpdate(this, &m_values[index]);
-        OnChange(this);
+        return &*it;
     }
 
     virtual void Set(const UUID &uuid, HypData &&value) override
     {
-        // @TODO More efficient lookup
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (m_values[index].GetUUID() == uuid) {
-                AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
+        auto it = m_values.FindIf([&uuid](const auto &item)
+        {
+            return item.GetUUID() == uuid;
+        });
 
-                m_values[index] = UIDataSourceElement<T>(m_values[index].GetUUID(), std::move(value.Get<T>()));
+        if (it == m_values.End()) {
+            HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
+        }
 
-                OnElementUpdate(this, &m_values[index]);
-                OnChange(this);
+        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-                return;
+        *it = UIDataSourceElement<T>(uuid, std::move(value.Get<T>()));
+
+        OnElementUpdate(this, &*it);
+        OnChange(this);
+
+        return;
+    }
+
+    virtual bool Remove(const UUID &uuid) override
+    {
+        bool changed = false;
+
+        for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
+            if (it->GetUUID() == uuid) {
+                OnElementRemove(this, &*it);
+
+                it = m_values.Erase(it);
+
+                changed = true;
+            } else {
+                ++it;
             }
         }
 
-        HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
-    }
+        if (changed) {
+            OnChange(this);
+        }
 
-    virtual void Remove(SizeType index) override
-    {
-        AssertThrowMsg(index < m_values.Size(), "Index out of bounds");
-
-        OnElementRemove(this, &m_values[index]);
-
-        m_values.EraseAt(index);
-
-        OnChange(this);
+        return changed;
     }
 
     virtual void RemoveAllWithPredicate(const Proc<bool, IUIDataSourceElement *> &predicate) override
     {
-        Array<IUIDataSourceElement *> elements_to_remove;
+        bool changed = false;
 
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (predicate(&m_values[index])) {
-                elements_to_remove.PushBack(&m_values[index]);
+        for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
+            if (predicate(&*it)) {
+                OnElementRemove(this, &*it);
+
+                it = m_values.Erase(it);
+
+                changed = true;
+            } else {
+                ++it;
             }
         }
 
-        if (elements_to_remove.Any()) {
-            for (SizeType index = 0; index < elements_to_remove.Size(); index++) {
-                OnElementRemove(this, elements_to_remove[index]);
-
-                const auto it = m_values.FindIf([element_to_remove = elements_to_remove[index]](const UIDataSourceElement<T> &element)
-                {
-                    return &element == element_to_remove;
-                });
-
-                if (it != m_values.End()) {
-                    m_values.Erase(it);
-                }
-            }
-
+        if (changed) {
             OnChange(this);
         }
+
+        // for (SizeType index = 0; index < m_values.Size(); index++) {
+        //     if (predicate(&m_values[index])) {
+        //         elements_to_remove.PushBack(&m_values[index]);
+        //     }
+        // }
+
+        // if (elements_to_remove.Any()) {
+        //     for (SizeType index = 0; index < elements_to_remove.Size(); index++) {
+        //         OnElementRemove(this, elements_to_remove[index]);
+
+        //         const auto it = m_values.FindIf([element_to_remove = elements_to_remove[index]](const UIDataSourceElement<T> &element)
+        //         {
+        //             return &element == element_to_remove;
+        //         });
+
+        //         if (it != m_values.End()) {
+        //             m_values.Erase(it);
+        //         }
+        //     }
+
+        //     OnChange(this);
+        // }
     }
 
     virtual IUIDataSourceElement *FindWithPredicate(const Proc<bool, const IUIDataSourceElement *> &predicate) override
     {
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            if (predicate(&m_values[index])) {
-                return &m_values[index];
-            }
+        auto it = m_values.FindIf([&predicate](const UIDataSourceElement<T> &item) -> bool
+        {
+            return predicate(&item);
+        });
+
+        if (it != m_values.End()) {
+            return &*it;
         }
 
         return nullptr;
@@ -345,8 +363,8 @@ public:
     {
         // @TODO check if delegate has any functions bound,
         // or better yet, have a way to call in bulk (prevent lots of mutex locks/unlocks)
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            OnElementRemove(this, &m_values[index]);
+        for (auto &it : m_values) {
+            OnElementRemove(this, &it);
         }
 
         m_values.Clear();
@@ -357,17 +375,21 @@ public:
     virtual Array<IUIDataSourceElement *> GetValues() override
     {
         Array<IUIDataSourceElement *> values;
-        values.Resize(m_values.Size());
 
-        for (SizeType index = 0; index < m_values.Size(); index++) {
-            values[index] = &m_values[index];
+        for (auto it = m_values.Begin(); it != m_values.End(); ++it) {
+            // only do first layer
+            if (it.GetCurrentNode()->GetParent() != nullptr) {
+                break;
+            }
+
+            values.PushBack(&*it);
         }
 
         return values;
     }
 
 private:
-    Array<UIDataSourceElement<T>>   m_values;
+    Forest<UIDataSourceElement<T>>  m_values;
 };
 
 namespace detail {

@@ -30,6 +30,16 @@ public:
 
     virtual void Init() override;
 
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+
+    bool HasSubItems() const;
+
+    HYP_FORCE_INLINE bool IsExpanded() const
+        { return m_is_expanded; }
+
+    void SetIsExpanded(bool is_expanded);
+
 protected:
     virtual void SetIsSelectedItem(bool is_selected_item);
 
@@ -37,7 +47,9 @@ protected:
 
 private:
     RC<UIObject>    m_inner_element;
+    RC<UIObject>    m_expanded_element;
     bool            m_is_selected_item;
+    bool            m_is_expanded;
 };
 
 #pragma endregion UIListViewItem
@@ -60,8 +72,7 @@ public:
     /*! \brief Get the number of items in the list view.
      * 
      * \return The number of items in the list view. */
-    HYP_NODISCARD HYP_FORCE_INLINE
-    uint NumListViewItems() const
+    HYP_FORCE_INLINE uint NumListViewItems() const
         { return m_list_view_items.Size(); }
 
     virtual void Init() override;
