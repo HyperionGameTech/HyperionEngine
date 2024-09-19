@@ -329,7 +329,7 @@ public:
 
             RC<UIGridRow> row = grid->AddRow();
 
-            RC<UIGridColumn> col = row->AddColumn();
+            RC<UIGridColumn> column = row->AddColumn();
 
             RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 5, 2 });
@@ -340,12 +340,11 @@ public:
                 continue;
             }
 
-            RC<UIObject> element = factory->CreateUIObject(stage, it.second.getter(Span<HypData> { const_cast<HypData *>(&value), 1 }));
-            AssertThrow(element != nullptr);
+            if (RC<UIObject> element = factory->CreateUIObject(stage, it.second.getter(Span<HypData> { const_cast<HypData *>(&value), 1 }))) {
+                panel->AddChildUIObject(element);
+            }
 
-            panel->AddChildUIObject(element);
-
-            col->AddChildUIObject(panel);
+            column->AddChildUIObject(panel);
         }
 
         return grid;
@@ -676,7 +675,6 @@ public:
                 HypData component_hyp_data;
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data)) {
-
                     HYP_LOG(Editor, LogLevel::ERR, "Failed to get component of type {} with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity.Value());
 
                     continue;
@@ -692,10 +690,9 @@ public:
 
                 RC<UIPanel> component_content = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                RC<UIObject> element = factory->CreateUIObject(stage, component_hyp_data);
-                AssertThrow(element != nullptr);
-
-                component_content->AddChildUIObject(element);
+                if (RC<UIObject> element = factory->CreateUIObject(stage, component_hyp_data)) {
+                    component_content->AddChildUIObject(element);
+                }
 
                 column->AddChildUIObject(component_content);
             }
@@ -768,10 +765,9 @@ public:
 
             FixedArray<HypData, 1> args = { HypData(node_rc) };
 
-            RC<UIObject> element = factory->CreateUIObject(stage, value.property.getter(args.ToSpan()));
-            AssertThrow(element != nullptr);
-
-            content->AddChildUIObject(element);
+            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property.getter(args.ToSpan()))) {
+                content->AddChildUIObject(element);
+            }
 
             panel->AddChildUIObject(content);
         }
@@ -1224,7 +1220,19 @@ void HyperionEditorImpl::InitSceneOutline()
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
             Weak<Node> editor_node_weak = node.ToWeak();
 
-            data_source->Push(editor_node_weak);
+            UUID parent_node_uuid = UUID::Invalid();
+
+            if (Node *parent_node = node->GetParent()) {
+                // const NodeTag &data_source_element_uuid_tag = parent_node->GetTag(NAME("DataSourceElementUUID"));
+
+                // if (data_source_element_uuid_tag.IsValid()) {
+                //     parent_node_uuid = data_source_element_uuid_tag.value.Get<UUID>();
+                // }
+
+                parent_node_uuid = parent_node->GetUUID();
+            }
+
+            data_source->Push(node->GetUUID(), editor_node_weak, parent_node_uuid);
         }
 
         EditorDelegates::GetInstance().WatchNode(node.Get());
@@ -1379,7 +1387,7 @@ void HyperionEditorImpl::InitDetailView()
             node_property_ref.node = node.ToWeak();
             node_property_ref.property = std::move(it.second);
 
-            data_source->Push(HypData(std::move(node_property_ref)));
+            data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
 
         EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, ANSIStringView name)

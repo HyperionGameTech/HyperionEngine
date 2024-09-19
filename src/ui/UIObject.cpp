@@ -125,7 +125,8 @@ UIObject::UIObject(UIObjectType type)
       m_accepts_focus(true),
       m_data_source_element_uuid(UUID::Invalid()),
       m_affects_parent_size(true),
-      m_needs_repaint(true)
+      m_needs_repaint(true),
+      m_deferred_updates(UIObjectUpdateType::NONE)
 {
 }
 
@@ -212,7 +213,25 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
     recalculate_position |= m_scroll_offset.Advance(delta * 0.25f);
 
     if (recalculate_position) {
-        UpdatePosition();
+        m_deferred_updates |= UIObjectUpdateType::UPDATE_POSITION | UIObjectUpdateType::UPDATE_CHILDREN_SIZE;
+    }
+
+    if (m_deferred_updates) {
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_SIZE) {
+            UpdateSize(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_SIZE);
+        }
+
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_POSITION) {
+            UpdatePosition(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_POSITION);
+        }
+
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_MATERIAL) {
+            UpdateMaterial(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL);
+        }
+
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_MESH_DATA) {
+            UpdateMeshData(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA);
+        }
     }
 
     if (m_computed_visibility && NeedsRepaint()) {
@@ -306,6 +325,8 @@ void UIObject::UpdatePosition(bool update_children)
     if (!IsInit()) {
         return;
     }
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_POSITION | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_POSITION : UIObjectUpdateType::NONE));
 
     const NodeProxy &node = GetNode();
 
@@ -405,6 +426,8 @@ void UIObject::UpdateSize(bool update_children)
     if (!IsInit()) {
         return;
     }
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_SIZE | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_SIZE : UIObjectUpdateType::NONE));
 
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetAABB(CalculateAABB());
@@ -895,7 +918,7 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    if (NodeProxy child_node = ui_object->GetNode()) {
+    if (const NodeProxy &child_node = ui_object->GetNode()) {
         if (child_node->IsOrHasParent(node.Get())) {
             bool removed = child_node->Remove();
 
@@ -1248,6 +1271,41 @@ UIObject *UIObject::GetParentUIObject() const
     return nullptr;
 }
 
+UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
+{
+    HYP_SCOPE;
+    
+    const Scene *scene = GetScene();
+
+    if (!scene) {
+        return nullptr;
+    }
+
+    const NodeProxy &node = GetNode();
+
+    if (!node) {
+        return nullptr;
+    }
+
+    Node *parent_node = node->GetParent();
+
+    while (parent_node) {
+        if (parent_node->GetEntity().IsValid()) {
+            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
+                AssertThrow(ui_component->ui_object != nullptr);
+
+                if (ui_component->ui_object->GetType() == type) {
+                    return ui_component->ui_object.Get();
+                }
+            }
+        }
+
+        parent_node = parent_node->GetParent();
+    }
+
+    return nullptr;
+}
+
 Vec2i UIObject::GetParentScrollOffset() const
 {
     HYP_SCOPE;
@@ -1477,6 +1535,8 @@ void UIObject::ComputeOffsetPosition()
 void UIObject::UpdateMeshData(bool update_children)
 {
     HYP_SCOPE;
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MESH_DATA | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA : UIObjectUpdateType::NONE));
     
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
@@ -1514,6 +1574,8 @@ void UIObject::UpdateMeshData(bool update_children)
 void UIObject::UpdateMaterial(bool update_children)
 {
     HYP_SCOPE;
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MATERIAL | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL : UIObjectUpdateType::NONE));
     
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)

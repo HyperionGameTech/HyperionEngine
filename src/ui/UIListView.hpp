@@ -33,6 +33,9 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
+    HYP_FORCE_INLINE const RC<UIObject> &GetInnerElement() const
+        { return m_inner_element; }
+
     bool HasSubItems() const;
 
     HYP_FORCE_INLINE bool IsExpanded() const
@@ -62,6 +65,8 @@ class HYP_API UIListView : public UIPanel
     HYP_OBJECT_BODY(UIListView);
 
 public:
+    friend class UIListViewItem;
+
     UIListView(UIStage *stage, NodeProxy node_proxy);
     UIListView(const UIListView &other)                 = delete;
     UIListView &operator=(const UIListView &other)      = delete;
@@ -82,12 +87,17 @@ public:
 
     virtual void UpdateSize(bool update_children = true) override;
 
+    UIListViewItem *FindListViewItem(const UUID &data_source_element_uuid) const;
+
     Delegate<void, UIListViewItem *>    OnSelectedItemChange;
 
 protected:
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 
     void UpdateLayout();
+
+private:
+    static UIListViewItem *FindListViewItem(const UIObject *parent_object, const UUID &data_source_element_uuid);
 
     Array<UIObject *>           m_list_view_items;
     Weak<UIListViewItem>        m_selected_item;

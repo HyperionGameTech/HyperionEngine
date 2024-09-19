@@ -47,70 +47,53 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
 {
     AssertThrow(render_proxy.mesh.IsValid());
 
-    auto it = index_map.Find(id.Value());
+    auto index_map_it = index_map.Find(id.Value());
 
-    if (it != index_map.End()) {
-        uint32 num_instances = render_proxy.num_instances;
-
-#if 0//def HYP_DEBUG_MODE
-        // Sanity checks
-
-        if (batch_index != 0) {
-            // Must have a draw call with the given batch
-            bool found_with_batch_index = false;
-
-            for (const SizeType draw_call_index : it->second) {
-                DrawCall &draw_call = draw_calls[draw_call_index];
-
-                if (draw_call.batch_index == batch_index) {
-                    found_with_batch_index = true;
-                    break;
-                }
-            }
-
-            AssertThrow(found_with_batch_index);
-        }
-
-        // if batch_index is 0, we create a new batch
-#endif
-
-        for (const SizeType draw_call_index : it->second) {
-            DrawCall &draw_call = draw_calls[draw_call_index];
-
-            if ((num_instances = PushEntityToBatch(draw_call, render_proxy.entity.GetID(), num_instances))) {
-                // filled up, continue looking in array,
-                // if all are filled, we push a new one
-                continue;
-            }
-
-            return;
-        }
-    } else {
-        it = index_map.Insert(id.Value(), { }).first;
+    if (index_map_it == index_map.End()) {
+        index_map_it = index_map.Insert(id.Value(), { }).first;
     }
 
-    uint32 num_instances = render_proxy.num_instances;
+    const uint32 initial_index_map_size = index_map_it->second.Size();
+    
+    uint32 index_map_index = 0;
 
-    while (num_instances != 0) {
-        if (batch_index == 0) {
-            batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireTicket();
+    for (uint32 num_instances = render_proxy.num_instances; num_instances != 0;) {
+        DrawCall *draw_call;
+
+        if (index_map_index < initial_index_map_size) {
+            // we have elements for the specific DrawCallID -- try to reuse them as much as possible
+            draw_call = &draw_calls[index_map_it->second[index_map_index++]];
+
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(draw_call->id == id);
+            AssertThrow(draw_call->batch_index != 0);
+#endif
+        } else {
+            // check if we need to allocate new batch (if it has not been provided as first argument)
+            if (batch_index == 0) {
+                batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireTicket();
+            }
+
+            draw_call = &draw_calls.EmplaceBack();
+            draw_call->id = id;
+            draw_call->draw_command_index = ~0u;
+            draw_call->mesh_id = render_proxy.mesh.GetID();
+            draw_call->material_id = render_proxy.material.GetID();
+            draw_call->skeleton_id = render_proxy.skeleton.GetID();
+            draw_call->entity_id_count = 0;
+            draw_call->batch_index = batch_index;
+
+            index_map_it->second.PushBack(draw_calls.Size() - 1);
+        
+            batch_index = 0;
         }
 
-        const SizeType draw_call_index = draw_calls.Size();
+        num_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), num_instances);
+    }
 
-        DrawCall &draw_call = draw_calls.EmplaceBack();
-        draw_call.id = id;
-        draw_call.draw_command_index = ~0u;
-        draw_call.mesh_id = render_proxy.mesh.GetID();
-        draw_call.material_id = render_proxy.material.GetID();
-        draw_call.skeleton_id = render_proxy.skeleton.GetID();
-        draw_call.entity_id_count = 0;
-        draw_call.batch_index = batch_index;
-
-        num_instances = PushEntityToBatch(draw_call, render_proxy.entity.GetID(), num_instances);
-        batch_index = 0;
-
-        it->second.PushBack(draw_call_index);
+    if (batch_index != 0) {
+        // ticket has not been used at this point (always gets set to 0 after used) - need to release it
+        g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(batch_index);
     }
 }
 

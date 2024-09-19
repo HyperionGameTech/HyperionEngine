@@ -74,21 +74,6 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
 
     UpdateSize(true);
     UpdatePosition(true);
-    
-
-    // ForEachChildUIObject_Proc([this](const RC<UIObject> &object) -> UIObjectIterationResult
-    // {
-    //     object->UpdateSize(true);
-
-    //     return UIObjectIterationResult::CONTINUE;
-    // }, false);
-
-    // ForEachChildUIObject_Proc([this](const RC<UIObject> &object) -> UIObjectIterationResult
-    // {
-    //     object->UpdatePosition(true);
-
-    //     return UIObjectIterationResult::CONTINUE;
-    // }, false);
 
     SetNeedsRepaintFlag();
 }

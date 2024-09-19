@@ -175,7 +175,7 @@ public:
     HYP_FORCE_INLINE IUIDataSourceElementFactory *GetElementFactory() const
         { return m_element_factory; }
 
-    virtual void Push(HypData &&value) = 0;
+    virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid = UUID::Invalid()) = 0;
     virtual const IUIDataSourceElement *Get(const UUID &uuid) const = 0;
     virtual void Set(const UUID &uuid, HypData &&value) = 0;
     virtual bool Remove(const UUID &uuid) = 0;
@@ -191,27 +191,34 @@ public:
     virtual SizeType Size() const = 0;
     virtual void Clear() = 0;
 
-    virtual Array<IUIDataSourceElement *> GetValues() = 0;
+    virtual Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> GetValues() = 0;
 
     /*! \brief General purpose delegate that is called whenever the data source changes */
-    Delegate<void, UIDataSourceBase *>                          OnChange;
+    Delegate<void, UIDataSourceBase *>                                                  OnChange;
 
     /*! \brief Called when an element is added to the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementAdd;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementAdd;
 
     /*! \brief Called when an element is removed from the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementRemove;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementRemove;
 
     /*! \brief Called when an element is updated in the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *>  OnElementUpdate;
+    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementUpdate;
 
 protected:
-    IUIDataSourceElementFactory                                 *m_element_factory;
+    IUIDataSourceElementFactory                                                         *m_element_factory;
 };
 
 template <class T>
 class HYP_API UIDataSource : public UIDataSourceBase
 {
+    static HYP_FORCE_INLINE IUIDataSourceElement *GetParentElementFromIterator(typename Forest<UIDataSourceElement<T>>::Iterator iterator)
+    {
+        return iterator.GetCurrentNode()->GetParent() != nullptr
+            ? &**iterator.GetCurrentNode()->GetParent()
+            : nullptr;
+    }
+
 public:
     UIDataSource()
         : UIDataSourceBase(UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>()))
@@ -224,7 +231,7 @@ public:
     UIDataSource &operator=(UIDataSource &&other) noexcept  = delete;
     virtual ~UIDataSource()                                 = default;
     
-    virtual void Push(HypData &&value) override
+    virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid) override
     {
         if (!value.IsValid()) {
             return;
@@ -232,9 +239,18 @@ public:
 
         AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-        auto it = m_values.Add(UIDataSourceElement<T>(UUID(), std::move(value.Get<T>())));
+        typename Forest<UIDataSourceElement<T>>::ConstIterator parent_it = m_values.End();
 
-        OnElementAdd(this, &*it);
+        if (parent_uuid != UUID::Invalid()) {
+            parent_it = m_values.FindIf([&parent_uuid](const auto &item)
+            {
+                return item.GetUUID() == parent_uuid;
+            });
+        }
+
+        auto it = m_values.Add(UIDataSourceElement<T>(uuid, std::move(value.Get<T>())), parent_it);
+
+        OnElementAdd(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
     }
 
@@ -267,7 +283,7 @@ public:
 
         *it = UIDataSourceElement<T>(uuid, std::move(value.Get<T>()));
 
-        OnElementUpdate(this, &*it);
+        OnElementUpdate(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
 
         return;
@@ -279,7 +295,7 @@ public:
 
         for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
             if (it->GetUUID() == uuid) {
-                OnElementRemove(this, &*it);
+                OnElementRemove(this, &*it, GetParentElementFromIterator(it));
 
                 it = m_values.Erase(it);
 
@@ -302,7 +318,7 @@ public:
 
         for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
             if (predicate(&*it)) {
-                OnElementRemove(this, &*it);
+                OnElementRemove(this, &*it, GetParentElementFromIterator(it));
 
                 it = m_values.Erase(it);
 
@@ -363,8 +379,8 @@ public:
     {
         // @TODO check if delegate has any functions bound,
         // or better yet, have a way to call in bulk (prevent lots of mutex locks/unlocks)
-        for (auto &it : m_values) {
-            OnElementRemove(this, &it);
+        for (auto it = m_values.Begin(); it != m_values.End(); ++it) {
+            OnElementRemove(this, &*it, GetParentElementFromIterator(it));
         }
 
         m_values.Clear();
@@ -372,17 +388,13 @@ public:
         OnChange(this);
     }
 
-    virtual Array<IUIDataSourceElement *> GetValues() override
+    virtual Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> GetValues() override
     {
-        Array<IUIDataSourceElement *> values;
+        Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> values;
+        values.Reserve(m_values.Size());
 
         for (auto it = m_values.Begin(); it != m_values.End(); ++it) {
-            // only do first layer
-            if (it.GetCurrentNode()->GetParent() != nullptr) {
-                break;
-            }
-
-            values.PushBack(&*it);
+            values.EmplaceBack(&*it, GetParentElementFromIterator(it));
         }
 
         return values;

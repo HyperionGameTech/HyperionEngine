@@ -118,6 +118,23 @@ enum class UIObjectIterationResult : uint8
     STOP
 };
 
+enum class UIObjectUpdateType : uint32
+{
+    NONE                        = 0x0,
+
+    UPDATE_SIZE                 = 0x1,
+    UPDATE_POSITION             = 0x2,
+    UPDATE_MATERIAL             = 0x4,
+    UPDATE_MESH_DATA            = 0x8,
+
+    UPDATE_CHILDREN_SIZE        = UPDATE_SIZE << 16,
+    UPDATE_CHILDREN_POSITION    = UPDATE_POSITION << 16,
+    UPDATE_CHILDREN_MATERIAL    = UPDATE_MATERIAL << 16,
+    UPDATE_CHILDREN_MESH_DATA   = UPDATE_MESH_DATA << 16,
+};
+
+HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)
+
 struct UIObjectAspectRatio
 {
     float x = 1.0f;
@@ -562,6 +579,10 @@ public:
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
     UIObject *GetParentUIObject() const;
 
+    /*! \brief Get the closest parent UIObject with UIObjectType \ref{type} if one exists.
+     *  \returns A pointer to the closest parent UIObject with UIObjectType \ref{type} or nullptr if none exists. */ 
+    UIObject *GetClosestParentUIObject(UIObjectType type) const;
+
     virtual void AddChildUIObject(UIObject *ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
@@ -643,6 +664,19 @@ public:
     virtual void UpdatePosition(bool update_children = true);
     virtual void UpdateSize(bool update_children = true);
 
+    /*! \brief Set deferred updates to apply to the UI object.
+     *  \details Deferred updates are used to defer updates to the UI object until the next Update() call.
+     *  \param update_type The type of update to apply.
+     *  \param update_children If true, also apply the update on all child UIObjects when the deferred update is processed. */
+    void SetDeferredUpdate(EnumFlags<UIObjectUpdateType> update_type, bool update_children = true)
+    {
+        if (update_children) {
+            update_type |= update_type << 16;
+        }
+
+        m_deferred_updates |= update_type;
+    }
+
     /*! \brief Get the focus state of the UI object.
      *  \details The focus state of the UI object is used to determine if the object is currently focused, hovered, pressed, etc.
      *  \return The focus state of the UI object. */
@@ -705,6 +739,9 @@ public:
      *  \param data_source_element_uuid The UUID of the associated data source element. */
     HYP_FORCE_INLINE void SetDataSourceElementUUID(UUID data_source_element_uuid)
         { m_data_source_element_uuid = data_source_element_uuid; }
+
+    /*! \internal */
+    void ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep = true) const;
 
     // Events
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
@@ -786,11 +823,6 @@ protected:
 
     void Repaint();
     virtual bool Repaint_Internal();
-
-    HYP_FORCE_INLINE const Handle<Texture> &GetCachedTexture() const
-        { return m_cached_texture; }
-
-    void ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep = true) const;
 
     UIStage                         *m_stage;
 
@@ -878,8 +910,9 @@ private:
 
     bool                            m_affects_parent_size;
 
-    Handle<Texture>                 m_cached_texture;
     AtomicVar<bool>                 m_needs_repaint;
+
+    EnumFlags<UIObjectUpdateType>   m_deferred_updates;
 
     NodeProxy                       m_node_proxy;
 
