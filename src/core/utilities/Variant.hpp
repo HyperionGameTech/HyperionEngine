@@ -3,9 +3,14 @@
 #ifndef HYPERION_VARIANT_HPP
 #define HYPERION_VARIANT_HPP
 
+#include <core/containers/StaticArray.hpp>
+
 #include <core/memory/Memory.hpp>
+
 #include <core/utilities/TypeID.hpp>
+
 #include <core/system/Debug.hpp>
+
 #include <core/Traits.hpp>
 
 #include <math/MathUtil.hpp>
@@ -19,6 +24,9 @@ namespace hyperion {
 
 namespace utilities {
 namespace detail {
+
+template <class VariantType>
+struct TypeIndexHelper;
 
 template <class ... Ts>
 struct VariantHelper;
@@ -157,11 +165,13 @@ class VariantBase
 protected:
     using Helper = VariantHelper<Types...>;
 
-    static const inline TypeID invalid_type_id = TypeID::ForType<void>();
+    friend struct TypeIndexHelper<VariantBase<Types...>>;
+
+    static const inline int invalid_type_index = -1;
 
 public:
     VariantBase()
-        : m_current_type_id(invalid_type_id)
+        : m_current_index(-1)
     {
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(m_storage.GetPointer(), sizeof(m_storage));
@@ -175,8 +185,8 @@ public:
         : VariantBase()
     {
         if (other.IsValid()) {
-            if (Helper::MoveConstruct(other.m_current_type_id, m_storage.GetPointer(), other.m_storage.GetPointer())) {
-                m_current_type_id = other.m_current_type_id;
+            if (Helper::MoveConstruct(other.CurrentTypeID(), m_storage.GetPointer(), other.m_storage.GetPointer())) {
+                m_current_index = other.m_current_index;
             }
         }
     }
@@ -188,28 +198,28 @@ public:
         }
 
         if (IsValid()) {
-            if (other.m_current_type_id == m_current_type_id) {
-                Helper::MoveAssign(m_current_type_id, m_storage.GetPointer(), other.m_storage.GetPointer());
+            if (other.m_current_index == m_current_index) {
+                Helper::MoveAssign(CurrentTypeID(), m_storage.GetPointer(), other.m_storage.GetPointer());
             } else {
-                Helper::Destruct(m_current_type_id, m_storage.GetPointer());
+                Helper::Destruct(CurrentTypeID(), m_storage.GetPointer());
 
-                m_current_type_id = invalid_type_id;
+                m_current_index = invalid_type_index;
 
                 if (other.IsValid()) {
-                    if (Helper::MoveConstruct(other.m_current_type_id, m_storage.GetPointer(), other.m_storage.GetPointer())) {
-                        m_current_type_id = other.m_current_type_id;
+                    if (Helper::MoveConstruct(other.CurrentTypeID(), m_storage.GetPointer(), other.m_storage.GetPointer())) {
+                        m_current_index = other.m_current_index;
                     }
                 }
             }
         } else if (other.IsValid()) {
-            if (Helper::MoveConstruct(other.m_current_type_id, m_storage.GetPointer(), other.m_storage.GetPointer())) {
-                m_current_type_id = other.m_current_type_id;
+            if (Helper::MoveConstruct(other.CurrentTypeID(), m_storage.GetPointer(), other.m_storage.GetPointer())) {
+                m_current_index = other.m_current_index;
             }
         }
 
-        AssertThrow(m_current_type_id == other.m_current_type_id);
+        AssertThrow(m_current_index == other.m_current_index);
 
-        other.m_current_type_id = invalid_type_id;
+        other.m_current_index = invalid_type_index;
 
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(other.m_storage.GetPointer(), sizeof(other.m_storage));
@@ -220,37 +230,42 @@ public:
 
     template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T> && std::is_copy_constructible_v<T>>>
     explicit VariantBase(const T &value)
-        : m_current_type_id(invalid_type_id)
+        : m_current_index(invalid_type_index)
     {
         static_assert(Helper::template holds_type<T> || resolution_failure<T>, "Type is not valid for the variant");
 
         const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrow(Helper::CopyConstruct(type_id, m_storage.GetPointer(), std::addressof(value)));
-        m_current_type_id = type_id;
+
+        m_current_index = TypeIndexHelper<VariantBase<Types...>>{}(type_id);
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_base_of_v<VariantBase, T>>>
     explicit VariantBase(T &&value) noexcept
-        : m_current_type_id(invalid_type_id)
+        : m_current_index(invalid_type_index)
     {
         static_assert(Helper::template holds_type<T> || resolution_failure<T>, "Type is not valid for the variant");
 
         const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrow(Helper::MoveConstruct(type_id, m_storage.GetPointer(), std::addressof(value)));
-        m_current_type_id = type_id;
+
+        m_current_index = TypeIndexHelper<VariantBase<Types...>>{}(type_id);
     }
 
     ~VariantBase()
     {
         if (IsValid()) {
-            Helper::Destruct(m_current_type_id, m_storage.GetPointer());
+            Helper::Destruct(CurrentTypeID(), m_storage.GetPointer());
         }
     }
     
     HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return m_current_type_id; }
+        { return CurrentTypeID(); }
+    
+    HYP_FORCE_INLINE int GetTypeIndex() const
+        { return m_current_index; }
     
     HYP_FORCE_INLINE void *GetPointer()
         { return m_storage.GetPointer(); }
@@ -260,7 +275,7 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const VariantBase &other) const
     {
-        if (m_current_type_id != other.m_current_type_id) {
+        if (m_current_index != other.m_current_index) {
             return false;
         }
 
@@ -268,15 +283,15 @@ public:
             return true;
         }
 
-        return Helper::Compare(m_current_type_id, m_storage.GetPointer(), other.m_storage.GetPointer());
+        return Helper::Compare(CurrentTypeID(), m_storage.GetPointer(), other.m_storage.GetPointer());
     }
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const
-        { return m_current_type_id == TypeID::ForType<NormalizedType<T>>(); }
+        { return CurrentTypeID() == TypeID::ForType<NormalizedType<T>>(); }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return m_current_type_id != invalid_type_id; }
+        { return m_current_index != invalid_type_index; }
 
     template <class T, class ReturnType = NormalizedType<T>>
     HYP_FORCE_INLINE bool Get(ReturnType *out_value) const
@@ -346,19 +361,19 @@ public:
         static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
 
         if (IsValid()) {
-            Helper::Destruct(m_current_type_id, m_storage.GetPointer());
+            Helper::Destruct(CurrentTypeID(), m_storage.GetPointer());
         }
 
-        m_current_type_id = invalid_type_id;
+        m_current_index = invalid_type_index;
 
-        const auto type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrowMsg(
             Helper::CopyConstruct(type_id, m_storage.GetPointer(), &value),
             "Not a valid type for the Variant"
         );
 
-        m_current_type_id = type_id;
+        m_current_index = TypeIndexHelper<VariantBase<Types...>>{}(type_id);
     }
 
     template <class T>
@@ -367,19 +382,19 @@ public:
         static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
 
         if (IsValid()) {
-            Helper::Destruct(m_current_type_id, m_storage.GetPointer());
+            Helper::Destruct(CurrentTypeID(), m_storage.GetPointer());
         }
 
-        m_current_type_id = invalid_type_id;
+        m_current_index = invalid_type_index;
 
-        const auto type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrowMsg(
             Helper::MoveConstruct(type_id, m_storage.GetPointer(), &value),
             "Not a valid type for the Variant"
         );
 
-        m_current_type_id = type_id;
+        m_current_index = TypeIndexHelper<VariantBase<Types...>>{}(type_id);
     }
 
     /*! \brief Resets the Variant into an invalid state.
@@ -388,22 +403,22 @@ public:
     void Reset()
     {
         if (IsValid()) {
-            Helper::Destruct(m_current_type_id, m_storage.GetPointer());
+            Helper::Destruct(CurrentTypeID(), m_storage.GetPointer());
         }
 
-        m_current_type_id = invalid_type_id;
+        m_current_index = invalid_type_index;
     }
 
     HashCode GetHashCode() const
     {
-        return Helper::GetHashCode(m_current_type_id, m_storage.GetPointer());
+        return Helper::GetHashCode(CurrentTypeID(), m_storage.GetPointer());
     }
 
 protected:
     static constexpr SizeType max_size = MathUtil::Max(sizeof(Types)...);
     static constexpr SizeType max_align = MathUtil::Max(alignof(Types)...);
 
-    TypeID m_current_type_id;
+    int m_current_index;
 
     struct alignas(max_align) Storage
     {
@@ -412,6 +427,13 @@ protected:
         void *GetPointer() { return static_cast<void *>(&data_buffer[0]); }
         const void *GetPointer() const { return static_cast<const void *>(&data_buffer[0]); }
     } m_storage;
+
+    HYP_FORCE_INLINE TypeID CurrentTypeID() const
+    {
+        static constexpr TypeID type_ids[sizeof...(Types)] { TypeID::ForType<Types>()... };
+
+        return type_ids[m_current_index];
+    }
 };
 
 template <bool IsCopyable, class... Types>
@@ -441,10 +463,10 @@ public:
         : Base()
     {
         if (other.IsValid()) {
-            AssertThrowMsg(Base::Helper::CopyConstruct(other.m_current_type_id, Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
+            AssertThrowMsg(Base::Helper::CopyConstruct(other.CurrentTypeID(), Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
                 "Variant types not compatible");
 
-            Base::m_current_type_id = other.m_current_type_id;
+            Base::m_current_index = other.m_current_index;
         }
     }
 
@@ -455,29 +477,29 @@ public:
         }
 
         if (Base::IsValid()) {
-            if (other.m_current_type_id == Base::m_current_type_id) {
-                AssertThrowMsg(Base::Helper::CopyAssign(Base::m_current_type_id, Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
+            if (other.m_current_index == Base::m_current_index) {
+                AssertThrowMsg(Base::Helper::CopyAssign(Base::CurrentTypeID(), Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
                     "Variant types not compatible");
             } else {
-                Base::Helper::Destruct(Base::m_current_type_id, Base::m_storage.GetPointer());
+                Base::Helper::Destruct(Base::CurrentTypeID(), Base::m_storage.GetPointer());
 
-                Base::m_current_type_id = Base::invalid_type_id;
+                Base::m_current_index = Base::invalid_type_index;
 
                 if (other.IsValid()) {
-                    AssertThrowMsg(Base::Helper::CopyConstruct(other.m_current_type_id, Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
+                    AssertThrowMsg(Base::Helper::CopyConstruct(other.CurrentTypeID(), Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
                         "Variant types not compatible");
 
-                    Base::m_current_type_id = other.m_current_type_id;
+                    Base::m_current_index = other.m_current_index;
                 }
             }
         } else if (other.IsValid()) {
-            AssertThrowMsg(Base::Helper::CopyConstruct(other.m_current_type_id, Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
+            AssertThrowMsg(Base::Helper::CopyConstruct(other.CurrentTypeID(), Base::m_storage.GetPointer(), other.m_storage.GetPointer()),
                 "Variant types not compatible");
 
-            Base::m_current_type_id = other.m_current_type_id;
+            Base::m_current_index = other.m_current_index;
         }
 
-        AssertThrow(Base::m_current_type_id == other.m_current_type_id);
+        AssertThrow(Base::m_current_index == other.m_current_index);
 
         return *this;
     }
@@ -580,6 +602,9 @@ struct Variant
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_holder.GetTypeID(); }
     
+    HYP_FORCE_INLINE int GetTypeIndex() const
+        { return m_holder.GetTypeIndex(); }
+    
     HYP_FORCE_INLINE bool operator==(const Variant &other) const
         { return m_holder == other.m_holder; }
     
@@ -666,52 +691,115 @@ private:
 
 namespace detail {
 
-template <class T, class FunctionType>
-struct Visit_Impl
+#pragma region TypeIndex
+
+template <class T>
+struct TypeIndex_Impl
 {
-    template <class... Types>
-    constexpr bool operator()(const utilities::Variant<Types...> &variant, const FunctionType &fn) const
+    constexpr bool operator()(TypeID type_id, int &index) const
     {
-        if (!variant.template Is<T>()) {
+        constexpr TypeID other_type_id = TypeID::ForType<T>();
+
+        if (type_id != other_type_id) {
+            ++index;
+
             return false;
         }
-
-        fn(variant.template GetUnchecked<T>());
 
         return true;
     }
 };
 
 template <class VariantType>
-struct VisitHelper;
+struct TypeIndexHelper;
 
 template <class T>
-struct VisitHelper<utilities::Variant<T>>
+struct TypeIndexHelper<VariantBase<T>>
 {
-    template <class FunctionType>
-    constexpr void operator()(const utilities::Variant<T> &variant, FunctionType &&fn) const
+    constexpr int operator()(TypeID type_id) const
     {
-        if (!variant.HasValue()) {
-            return;
-        }
+        int index = 0;
         
-        Visit_Impl<T, FunctionType>{}(variant, fn);
+        if (!TypeIndex_Impl<T>{}(type_id, index)) {
+            return -1;
+        }
+
+        return index;
     }
 };
 
 template <class T, class... Types>
-struct VisitHelper<utilities::Variant<T, Types...>>
+struct TypeIndexHelper<VariantBase<T, Types...>>
 {
-    template <class FunctionType>
-    constexpr void operator()(const utilities::Variant<T, Types...> &variant, FunctionType &&fn) const
+    constexpr int operator()(TypeID type_id) const
     {
-        if (!variant.HasValue()) {
-            return;
-        }
+        int value = 0;
         
-        Visit_Impl<T, FunctionType>{}(variant, fn) || (Visit_Impl<Types, FunctionType>{}(variant, fn) || ...);
+        if (!(TypeIndex_Impl<T>{}(type_id, value) || (TypeIndex_Impl<Types>{}(type_id, value) || ...))) {
+            return -1;
+        }
+
+        return value;
     }
 };
+
+#pragma endregion TypeIndex
+
+#pragma region VisitHelper
+
+// template <class T, class FunctionType>
+// struct Visit_Impl
+// {
+//     template <class... Types>
+//     constexpr bool operator()(const utilities::Variant<Types...> &variant, const FunctionType &fn) const
+//     {
+//         if (!variant.template Is<T>()) {
+//             return false;
+//         }
+
+//         fn(variant.template GetUnchecked<T>());
+
+//         return true;
+//     }
+// };
+
+template <class VariantType, class FunctionType, class T>
+static inline void Variant_InvokeFunction(const VariantType &variant, FunctionType &fn)
+{
+    fn(variant.template GetUnchecked<T>());
+}
+
+template <class VariantType>
+struct VisitHelper;
+
+template <class... Types>
+struct VisitHelper<utilities::Variant<Types...>>
+{
+    template <class FunctionType>
+    void operator()(const utilities::Variant<Types...> &variant, FunctionType &&fn) const
+    {
+        using InvokeFunctionWrapper = std::add_pointer_t<void(const utilities::Variant<Types...> &, FunctionType &)>;
+        
+        static const InvokeFunctionWrapper invoke_fns[sizeof...(Types)] = {
+            &Variant_InvokeFunction<utilities::Variant<Types...>, FunctionType, Types>...
+        };
+
+        if (!variant.IsValid()) {
+            return;
+        }
+
+        const int type_index = variant.GetTypeIndex();
+
+#ifdef HYP_DEBUG_MODE
+        // Sanity check
+        AssertThrow(type_index < sizeof...(Types));
+#endif
+
+        invoke_fns[type_index](variant, fn);
+    }
+};
+
+#pragma endregion VisitHelper
 
 } // namespace detail
 

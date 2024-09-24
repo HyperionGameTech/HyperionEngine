@@ -1575,8 +1575,15 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    Variant<int, float, double> v;
+    Variant<int, float, double, String> v;
     v = 5.0;
+
+    v.Visit([](auto &&value)
+    {
+        HYP_LOG(Editor, LogLevel::DEBUG, "Value = {}", value);
+    });
+
+    v = String("HELLO WORLD");
 
     v.Visit([](auto &&value)
     {
