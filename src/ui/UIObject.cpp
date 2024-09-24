@@ -232,6 +232,10 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
         if (m_deferred_updates & UIObjectUpdateType::UPDATE_MESH_DATA) {
             UpdateMeshData(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA);
         }
+
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY) {
+            UpdateComputedVisibility(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY);
+        }
     }
 
     if (m_computed_visibility && NeedsRepaint()) {
@@ -368,7 +372,7 @@ void UIObject::UpdatePosition(bool update_children)
 
     node->LockTransform();
 
-    UpdateComputedVisibility();
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }
 
 UIObjectSize UIObject::GetSize() const
@@ -422,6 +426,9 @@ void UIObject::SetMaxSize(UIObjectSize size)
 void UIObject::UpdateSize(bool update_children)
 {
     HYP_SCOPE;
+
+    // @TODO : UpdateSize() needs to update parent object size when parent has AUTO sizing.
+    // Needs to update child element's sizes when size is PERCENT or FILL.
 
     if (!IsInit()) {
         return;
@@ -762,14 +769,35 @@ void UIObject::SetIsVisible(bool is_visible)
 {
     HYP_SCOPE;
 
+    if (is_visible == m_is_visible) {
+        return;
+    }
+
     m_is_visible = is_visible;
 
-    UpdateComputedVisibility();
+    if (const NodeProxy &node = GetNode()) {
+        if (m_is_visible) {
+            if (m_affects_parent_size) {
+                node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            }
+        } else {
+            node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+        }
+    }
+
+    if (UIObject *parent = GetParentUIObject()) {
+        // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
+        parent->UpdateSize();
+    } else {
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
+    }
 }
 
 void UIObject::UpdateComputedVisibility(bool update_children)
 {
     HYP_SCOPE;
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY : UIObjectUpdateType::NONE));
 
     bool computed_visibility = m_computed_visibility;
 
@@ -809,7 +837,6 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
-            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateComputedVisibility();
 
             return UIObjectIterationResult::CONTINUE;
@@ -1102,7 +1129,7 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
         bounding_box_component.transform_hash_code = node->GetWorldTransform().GetHashCode();
     }
 
-    UpdateComputedVisibility();
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }
 
 BoundingBox UIObject::CalculateAABB() const
@@ -1146,6 +1173,10 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
         } else {
             node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
+    }
+
+    if (UIObject *parent = GetParentUIObject()) {
+        parent->UpdateSize();
     }
 }
 
@@ -2138,15 +2169,6 @@ bool UIObject::NeedsRepaint() const
 void UIObject::SetNeedsRepaintFlag(bool needs_repaint)
 { 
     m_needs_repaint.Set(needs_repaint, MemoryOrder::RELEASE);
-
-    if (needs_repaint) {
-        ForEachParentUIObject([](UIObject *parent)
-        {
-            parent->m_needs_repaint.Set(true, MemoryOrder::RELEASE);
-
-            return UIObjectIterationResult::CONTINUE;
-        });
-    }
 }
 
 void UIObject::Repaint()

@@ -56,7 +56,7 @@ void UIListViewItem::AddChildUIObject(UIObject *ui_object)
     
     if (ui_object->GetType() == UIObjectType::LIST_VIEW_ITEM) {
         if (!m_expanded_element) {
-            m_expanded_element = GetStage()->CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            m_expanded_element = GetStage()->CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
             m_expanded_element->SetIsVisible(m_is_expanded);
 
             UIObject::AddChildUIObject(m_expanded_element);

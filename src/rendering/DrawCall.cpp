@@ -109,6 +109,7 @@ DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
                 const SizeType num_remaining_entities = max_entities_per_instance_batch - draw_call.entity_id_count;
 
                 if (num_remaining_entities != 0) {
+                    /// vvv @TODO: Why?
                     --draw_call.entity_id_count;
 
                     return &draw_call;

@@ -120,17 +120,19 @@ enum class UIObjectIterationResult : uint8
 
 enum class UIObjectUpdateType : uint32
 {
-    NONE                        = 0x0,
+    NONE                                = 0x0,
 
-    UPDATE_SIZE                 = 0x1,
-    UPDATE_POSITION             = 0x2,
-    UPDATE_MATERIAL             = 0x4,
-    UPDATE_MESH_DATA            = 0x8,
+    UPDATE_SIZE                         = 0x1,
+    UPDATE_POSITION                     = 0x2,
+    UPDATE_MATERIAL                     = 0x4,
+    UPDATE_MESH_DATA                    = 0x8,
+    UPDATE_COMPUTED_VISIBILITY          = 0x10,
 
-    UPDATE_CHILDREN_SIZE        = UPDATE_SIZE << 16,
-    UPDATE_CHILDREN_POSITION    = UPDATE_POSITION << 16,
-    UPDATE_CHILDREN_MATERIAL    = UPDATE_MATERIAL << 16,
-    UPDATE_CHILDREN_MESH_DATA   = UPDATE_MESH_DATA << 16,
+    UPDATE_CHILDREN_SIZE                = UPDATE_SIZE << 16,
+    UPDATE_CHILDREN_POSITION            = UPDATE_POSITION << 16,
+    UPDATE_CHILDREN_MATERIAL            = UPDATE_MATERIAL << 16,
+    UPDATE_CHILDREN_MESH_DATA           = UPDATE_MESH_DATA << 16,
+    UPDATE_CHILDREN_COMPUTED_VISIBILITY = UPDATE_COMPUTED_VISIBILITY << 16,
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)

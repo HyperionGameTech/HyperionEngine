@@ -165,11 +165,18 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         bool removed = false;
 
-        for (auto &proxy_groups : collection->GetProxyGroups()) {
-            for (auto &it : proxy_groups) {
-                removed |= it.second.RemoveRenderProxy(entity);
-            }
-        }
+        // for (auto &proxy_groups : collection->GetProxyGroups()) {
+            // for (auto &it : proxy_groups) {
+            //     removed |= it.second.RemoveRenderProxy(entity);
+            // }
+
+            auto &proxy_groups = collection->GetProxyGroups()[pass_type];
+
+            auto it = proxy_groups.Find(attributes);
+            AssertThrow(it != proxy_groups.End());
+
+            removed |= it->second.RemoveRenderProxy(entity);
+        // }
 
         proxy_list.MarkToRemove(entity);
 
@@ -304,6 +311,11 @@ bool RenderProxyGroup::RemoveRenderProxy(ID<Entity> entity)
     m_render_proxies.Erase(it);
 
     return true;
+}
+
+typename Array<RenderProxy>::Iterator RenderProxyGroup::RemoveRenderProxy(typename Array<RenderProxy>::ConstIterator iterator)
+{
+    return m_render_proxies.Erase(iterator);
 }
 
 void RenderProxyGroup::ResetRenderGroup()

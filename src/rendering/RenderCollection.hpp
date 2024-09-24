@@ -86,16 +86,18 @@ public:
     void ClearProxies();
 
     void AddRenderProxy(const RenderProxy &render_proxy);
-    bool RemoveRenderProxy(ID<Entity> entity);
 
-    const Array<RenderProxy> &GetRenderProxies() const
+    bool RemoveRenderProxy(ID<Entity> entity);
+    typename Array<RenderProxy>::Iterator RemoveRenderProxy(typename Array<RenderProxy>::ConstIterator iterator);
+
+    HYP_FORCE_INLINE const Array<RenderProxy> &GetRenderProxies() const
         { return m_render_proxies; }
 
     void ResetRenderGroup();
 
     void SetRenderGroup(const Handle<RenderGroup> &render_group);
 
-    const Handle<RenderGroup> &GetRenderGroup() const
+    HYP_FORCE_INLINE const Handle<RenderGroup> &GetRenderGroup() const
         { return m_render_group; }
 };
 

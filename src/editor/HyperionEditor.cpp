@@ -1575,13 +1575,21 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+    Variant<int, float, double> v;
+    v = 5.0;
+
+    v.Visit([](auto &&value)
+    {
+        HYP_LOG(Editor, LogLevel::DEBUG, "Value = {}", value);
+    });
+
     // const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
     // AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
 
     // const HypClass *mesh_class = Mesh::GetClass();
     // const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
 
-    // HYP_BREAKPOINT;
+    HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();

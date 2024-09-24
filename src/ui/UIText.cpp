@@ -813,6 +813,7 @@ void UIText::UpdateTextAABB()
         m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, true);
         m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, false);
     } else {
+        // HYP_BREAKPOINT;
         HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
     }
 

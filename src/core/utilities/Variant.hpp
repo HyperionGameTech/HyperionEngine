@@ -537,7 +537,13 @@ public:
 
 } // namespace detail
 
-template <class ...Types>
+template <class... Types>
+struct Variant;
+
+template <class... Types, class FunctionType>
+static inline void Visit(const Variant<Types...> &variant, FunctionType &&fn);
+
+template <class... Types>
 struct Variant
     : private ConstructAssignmentTraits<
         true,
@@ -645,15 +651,79 @@ struct Variant
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { return m_holder.GetHashCode(); }
 
+    template <class FunctionType>
+    HYP_FORCE_INLINE void Visit(FunctionType &&fn) const
+    {
+        ::hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
+    }
+
 private:
     utilities::detail::Variant<
         utilities::detail::VariantHelper<Types...>::copy_constructible,
         Types...
     > m_holder;
 };
+
+namespace detail {
+
+template <class T, class FunctionType>
+struct Visit_Impl
+{
+    template <class... Types>
+    constexpr bool operator()(const utilities::Variant<Types...> &variant, const FunctionType &fn) const
+    {
+        if (!variant.template Is<T>()) {
+            return false;
+        }
+
+        fn(variant.template GetUnchecked<T>());
+
+        return true;
+    }
+};
+
+template <class VariantType>
+struct VisitHelper;
+
+template <class T>
+struct VisitHelper<utilities::Variant<T>>
+{
+    template <class FunctionType>
+    constexpr void operator()(const utilities::Variant<T> &variant, FunctionType &&fn) const
+    {
+        if (!variant.HasValue()) {
+            return;
+        }
+        
+        Visit_Impl<T, FunctionType>{}(variant, fn);
+    }
+};
+
+template <class T, class... Types>
+struct VisitHelper<utilities::Variant<T, Types...>>
+{
+    template <class FunctionType>
+    constexpr void operator()(const utilities::Variant<T, Types...> &variant, FunctionType &&fn) const
+    {
+        if (!variant.HasValue()) {
+            return;
+        }
+        
+        Visit_Impl<T, FunctionType>{}(variant, fn) || (Visit_Impl<Types, FunctionType>{}(variant, fn) || ...);
+    }
+};
+
+} // namespace detail
+
+template <class... Types, class FunctionType>
+static inline void Visit(const Variant<Types...> &variant, FunctionType &&fn)
+{
+    detail::VisitHelper<Variant<Types...>>{}(variant, std::forward<FunctionType>(fn));
+}
+
 } // namespace utilities
 
-template <class ...Types>
+template <class... Types>
 using Variant = utilities::Variant<Types...>;
 
 } // namespace hyperion
