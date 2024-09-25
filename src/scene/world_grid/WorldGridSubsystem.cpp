@@ -19,8 +19,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 #pragma region WorldGridSubsystem

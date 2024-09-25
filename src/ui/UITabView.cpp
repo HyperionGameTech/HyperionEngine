@@ -7,8 +7,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 #pragma region UITab
@@ -141,7 +139,7 @@ void UITabView::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
-    RC<UIObject> tab = RawPtrToRefCountedPtrHelper<UIObject>{}(ui_object);
+    RC<UIObject> tab = ToRefCountedPtr(ui_object);
     AssertThrow(tab != nullptr);
 
     tab->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
@@ -186,9 +184,9 @@ bool UITabView::RemoveChildUIObject(UIObject *ui_object)
     return RemoveTab(it->Get()->GetName());
 }
 
-void UITabView::UpdateSize(bool update_children)
+void UITabView::UpdateSize_Internal(bool update_children)
 {
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 
     UpdateTabSizes();
 }

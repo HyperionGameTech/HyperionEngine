@@ -87,7 +87,7 @@ public:
         const auto _end = End();
 
         for (; it != _end; ++it, ++other_it) {
-            if (*it != *other_it) {
+            if (!(*it == *other_it)) {
                 return true;
             }
         }

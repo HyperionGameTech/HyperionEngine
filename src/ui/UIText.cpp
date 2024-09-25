@@ -766,7 +766,6 @@ void UIText::Init()
 
     UIObject::Init();
 
-    UpdateSize();
     UpdateRenderData();
 }
 
@@ -775,6 +774,10 @@ void UIText::SetText(const String &text)
     HYP_SCOPE;
 
     UIObject::SetText(text);
+
+    if (!IsInit()) {
+        return;
+    }
 
     UpdateSize();
     UpdateRenderData();
@@ -801,6 +804,10 @@ void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
 
     m_font_atlas = font_atlas;
 
+    if (!IsInit()) {
+        return;
+    }
+
     UpdateSize();
     UpdateRenderData();
 }
@@ -813,7 +820,6 @@ void UIText::UpdateTextAABB()
         m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, true);
         m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, false);
     } else {
-        // HYP_BREAKPOINT;
         HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
     }
 
@@ -865,6 +871,7 @@ void UIText::UpdateRenderData()
         InitObject(m_texture);
 
         UpdateMaterial(false);
+        UpdateMeshData(false);
     }
 
     if (font_atlas != nullptr && font_atlas_texture != nullptr) {
@@ -877,6 +884,12 @@ void UIText::UpdateRenderData()
 bool UIText::Repaint_Internal()
 {
     HYP_SCOPE;
+
+    if (!m_texture.IsValid()) {
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text for element: {} - no font atlas texture set", GetName());
+
+        return false;
+    }
 
     const Vec2i size = GetActualSize();
 
@@ -918,13 +931,13 @@ Material::TextureSet UIText::GetMaterialTextures() const
     };
 }
 
-void UIText::UpdateSize(bool update_children)
+void UIText::UpdateSize_Internal(bool update_children)
 {
     HYP_SCOPE;
 
     UpdateTextAABB();
 
-    UIObject::UpdateSize(update_children);
+    UIObject::UpdateSize_Internal(update_children);
 
     const Vec3f extent_with_bearing = m_text_aabb_with_bearing.GetExtent();
     const Vec3f extent_without_bearing = m_text_aabb_without_bearing.GetExtent();

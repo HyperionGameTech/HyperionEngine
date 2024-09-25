@@ -27,8 +27,15 @@
 #include <core/containers/Stack.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/String.hpp>
+
+#include <core/object/HypClass.hpp>
+#include <core/object/HypMember.hpp>
+#include <core/object/HypData.hpp>
+
 #include <core/functional/Delegate.hpp>
+
 #include <core/logging/Logger.hpp>
+
 #include <core/Name.hpp>
 
 #include <math/Vector2.hpp>
@@ -42,11 +49,11 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 #define UI_OBJECT_CREATE_FUNCTION(name) \
     { \
         String(HYP_STR(name)).ToUpper(), \
-        [](UIStage *stage, Name name, Vec2i position, UIObjectSize size) -> RC<UIObject> \
-            { return stage->CreateUIObject<UI##name>(name, position, size, false); } \
+        [](UIStage *stage, Name name, Vec2i position, UIObjectSize size) -> Pair<RC<UIObject>, const HypClass *> \
+            { return { stage->CreateUIObject<UI##name>(name, position, size, false), GetClass<UI##name>() }; } \
     }
 
-static const FlatMap<String, std::add_pointer_t<RC<UIObject>(UIStage *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
+static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass *>(UIStage *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
     UI_OBJECT_CREATE_FUNCTION(Panel),
@@ -123,6 +130,9 @@ static const Array<String> g_standard_ui_object_attributes {
     "VISIBLE",
     "PADDING",
     "TEXT",
+    "TEXTSIZE",
+    "TEXTCOLOR",
+    "BACKGROUNDCOLOR",
     "DEPTH"
 };
 
@@ -290,6 +300,55 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
     return { };
 }
 
+static bool ParseHypData(const String &str, HypData &out_hyp_data)
+{
+    // Read string as JSON
+    json::ParseResult parse_result = json::JSON::Parse(str);
+
+    if (!parse_result.ok) {
+        HYP_LOG(Assets, LogLevel::ERR, "Failed to parse JSON string \"{}\": {}", str, parse_result.message);
+
+        return false;
+    }
+
+    // Convert JSON to HypData
+
+    const json::JSONValue &json_value = parse_result.value;
+
+    if (json_value.IsNull() || json_value.IsUndefined()) {
+        out_hyp_data = HypData();
+
+        return true;
+    }
+
+    if (json_value.IsBool()) {
+        out_hyp_data = HypData(json_value.AsBool());
+
+        return true;
+    }
+
+    if (json_value.IsString()) {
+        out_hyp_data = HypData(json_value.AsString().ToUTF8());
+
+        return true;
+    }
+
+    if (json_value.IsNumber()) {
+        const bool is_integer = json::JSONNumber(MathUtil::Floor(json_value.AsNumber())) != json_value.AsNumber();
+
+        if (is_integer) {
+            out_hyp_data = HypData(int(json_value.AsNumber()));
+        } else {
+            out_hyp_data = HypData(double(json_value.AsNumber()));
+        }
+
+        return true;
+    }
+
+    // Arrays and objects are not supported
+    return false;
+}
+
 class UISAXHandler : public xml::SAXHandler
 {
 public:
@@ -337,7 +396,10 @@ public:
                 }
             }
 
-            RC<UIObject> ui_object = node_create_functions_it->second(m_ui_stage, ui_object_name, position, size);
+            Pair<RC<UIObject>, const HypClass *> create_result = node_create_functions_it->second(m_ui_stage, ui_object_name, position, size);
+
+            const RC<UIObject> &ui_object = create_result.first;
+            const HypClass *hyp_class = create_result.second;
 
             // Set properties based on attributes
             if (const Pair<String, String> *it = attributes.TryGet("parentalignment")) {
@@ -446,7 +508,46 @@ public:
 
                     HYP_LOG(Assets, LogLevel::WARNING, "Unknown event attribute: {}", attribute.first);
                 } else if (!g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
-                    ui_object->SetNodeTag(CreateNameFromDynamicString(attribute.first.ToLower()), NodeTag(attribute.second));
+                    const String attribute_name_lower = attribute.first.ToLower();
+
+                    // Check HypClass attributes
+                    if (hyp_class != nullptr) {
+                        auto member_it = FindIf(hyp_class->GetMembers().Begin(), hyp_class->GetMembers().End(), [&](const auto &it)
+                        {
+                            if (const String *ui_attribute_name_ptr = it.GetAttribute("xmlattribute"); ui_attribute_name_ptr && ui_attribute_name_ptr->ToLower() == attribute_name_lower) {
+                                return true;
+                            }
+
+                            return false;
+                        });
+
+                        if (member_it != hyp_class->GetMembers().End()) {
+                            FixedArray<HypData, 2> target_and_value;
+
+                            target_and_value[0] = HypData(ui_object);
+
+                            if (!ParseHypData(attribute.second, target_and_value[1])) {
+                                HYP_LOG(Assets, LogLevel::ERR, "Failed to parse JSON or JSON could not be converted to HypData: {}", attribute.second);
+
+                                continue;
+                            }
+
+                            if (HypProperty *property = dynamic_cast<HypProperty *>(&*member_it); property && property->HasSetter()) {
+                                property->InvokeSetter(AnyRef(ui_object.Get()), target_and_value[1]);
+                            } else if (HypField *field = dynamic_cast<HypField *>(&*member_it)) {
+                                field->Set(target_and_value[0], target_and_value[1]);
+                            } else if (HypMethod *method = dynamic_cast<HypMethod *>(&*member_it); method && method->params.Size() == 2) {
+                                method->Invoke(Span<HypData> { target_and_value.Data(), 2 });
+                            } else {
+                                HYP_LOG(Assets, LogLevel::ERR, "Failed to set HypClass property: {}", member_it->GetName());
+                            }
+
+                            continue;
+                        }
+                    }
+
+                    // Finally, if not found, set node tag
+                    ui_object->SetNodeTag(CreateNameFromDynamicString(attribute_name_lower), NodeTag(attribute.second));
                 }
             }
 

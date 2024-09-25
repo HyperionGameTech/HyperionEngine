@@ -2,7 +2,6 @@
 
 #include <math/Transform.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

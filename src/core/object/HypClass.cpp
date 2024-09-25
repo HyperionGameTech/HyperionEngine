@@ -16,8 +16,6 @@
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 #pragma region HypClassMemberIterator
@@ -37,9 +35,9 @@ void HypClassMemberIterator::Advance()
     const HypClass *target = m_iterating_parent != nullptr ? m_iterating_parent : m_hyp_class;
 
     if (m_phase == Phase::MAX) {
-        target = m_iterating_parent = target->GetParent();
-
-        m_phase = Phase::ITERATE_PROPERTIES;
+        if ((target = m_iterating_parent = target->GetParent())) {
+            m_phase = Phase::ITERATE_PROPERTIES;
+        }
     }
 
     if (!target) {
@@ -51,8 +49,9 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetProperties().Size()) {
             m_current_value = target->GetProperties()[m_current_index++];
         } else {
-            m_current_index = 0;
             m_phase = Phase::ITERATE_METHODS;
+            m_current_index = 0;
+            m_current_value = nullptr;
 
             Advance();
         }
@@ -62,8 +61,9 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetMethods().Size()) {
             m_current_value = target->GetMethods()[m_current_index++];
         } else {
-            m_current_index = 0;
             m_phase = Phase::ITERATE_FIELDS;
+            m_current_index = 0;
+            m_current_value = nullptr;
             
             Advance();
         }
@@ -73,8 +73,9 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetFields().Size()) {
             m_current_value = target->GetFields()[m_current_index++];
         } else {
-            m_current_index = 0;
             m_phase = Phase::MAX;
+            m_current_index = 0;
+            m_current_value = nullptr;
 
             Advance();
         }

@@ -381,6 +381,11 @@ struct HypProperty : public IHypMember
         return type_id;
     }
 
+    virtual const String *GetAttribute(UTF8StringView key) const override
+    {
+        return nullptr;
+    }
+
     HYP_FORCE_INLINE bool IsValid() const
         { return type_id != TypeID::Void() && HasGetter(); }
 

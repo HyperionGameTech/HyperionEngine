@@ -4,8 +4,6 @@
 #include <rendering/Shader.hpp>
 #include <rendering/PostFX.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 FXAAEffect::FXAAEffect()
@@ -25,7 +23,7 @@ void FXAAEffect::OnRemoved()
 
 ShaderRef FXAAEffect::CreateShader()
 {
-    return g_shader_manager->GetOrCreate(NAME("FXAA"));
+    return ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("FXAA"));
 }
 
 } // namespace hyperion

@@ -10,7 +10,6 @@
 #include <core/utilities/Span.hpp>
 
 #include <core/Defines.hpp>
-#include <core/Name.hpp>
 #include <core/Util.hpp>
 
 namespace hyperion {

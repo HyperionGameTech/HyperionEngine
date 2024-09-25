@@ -2,7 +2,6 @@
 
 #include <math/BoundingBox.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

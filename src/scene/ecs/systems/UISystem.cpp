@@ -3,8 +3,6 @@
 #include <scene/ecs/systems/UISystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void UISystem::OnEntityAdded(ID<Entity> entity)

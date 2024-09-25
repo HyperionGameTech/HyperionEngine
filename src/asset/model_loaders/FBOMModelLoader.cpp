@@ -14,8 +14,6 @@
 
 #include <util/fs/FsUtil.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);

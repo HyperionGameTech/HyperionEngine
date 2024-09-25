@@ -10,7 +10,6 @@
 
 #include <dotnet/interop/ManagedGuid.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 namespace hyperion::dotnet {

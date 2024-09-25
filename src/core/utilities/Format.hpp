@@ -43,6 +43,17 @@ struct Formatter< StringType, T, std::enable_if_t< std::is_integral_v< T > > >
 };
 
 template <class StringType>
+struct Formatter< StringType, char >
+{
+    auto operator()(char value) const
+    {
+        const char char_array[2] = { value, '\0' };
+
+        return StringType(&char_array[0]);
+    }
+};
+
+template <class StringType>
 struct Formatter< StringType, bool >
 {
     auto operator()(bool value) const
@@ -452,7 +463,7 @@ struct FormatString_BuildTuple_Impl;
 template <auto Str, class Transformer, SizeType SubIndex>
 struct FormatString_BuildTuple_Impl< Str, Transformer, SizeType(-1), SizeType(-1), SubIndex >
 {
-    template <class ... Args>
+    template <class... Args>
     constexpr auto operator()(Args &&... args) const
     {
         return MakeTuple(Str);
@@ -462,7 +473,7 @@ struct FormatString_BuildTuple_Impl< Str, Transformer, SizeType(-1), SizeType(-1
 template <auto Str, class Transformer, SizeType StringIndexStart, SizeType StringIndexEnd, SizeType SubIndex>
 struct FormatString_BuildTuple_Impl
 {
-    template <class ... Args>
+    template <class... Args>
     constexpr auto operator()(Args &&... args) const
     {
         constexpr auto inner_value = containers::helpers::Substr< Str, StringIndexStart + 1, StringIndexEnd >::value;
@@ -501,7 +512,7 @@ struct FormatString_BuildTuple_Impl
 template <auto Str, class Transformer, SizeType SubIndex>
 struct FormatString_BuildTuple
 {
-    template <class ... Args>
+    template <class... Args>
     constexpr auto operator()(Args &&... args) const
     {
         return FormatString_BuildTuple_Impl<
@@ -532,7 +543,7 @@ containers::detail::String<StringType> FormatString_ProcessTuple_ProcessElements
     return ConcatRuntimeStrings< StringType >(FormatString_FormatElement_Runtime< StringType >(args.template GetElement< Indices >())...);
 }
 
-template <int StringType, class ... Ts>
+template <int StringType, class... Ts>
 struct FormatString_ProcessTuple_Impl
 {
     using Types = Tuple< Ts... >;
@@ -570,7 +581,7 @@ struct FormatTransformer
     }
 };
 
-template <auto Str, class ... Args>
+template <auto Str, class... Args>
 constexpr auto Format_Impl(Args &&... args)
 {
     return (FormatString_ProcessTuple< containers::detail::StringType::UTF8 >(

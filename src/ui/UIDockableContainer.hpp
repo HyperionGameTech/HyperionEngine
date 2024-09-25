@@ -66,9 +66,10 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
     virtual void Init() override;
-    virtual void UpdateSize(bool update_children) override;
 
 private:
+    virtual void UpdateSize_Internal(bool update_children = true) override;
+
     void UpdateLayout();
 
     FixedArray<RC<UIDockableItem>, uint32(UIDockableItemPosition::MAX)> m_dockable_items;

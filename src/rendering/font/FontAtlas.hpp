@@ -3,20 +3,19 @@
 #ifndef HYPERION_FONTATLAS_HPP
 #define HYPERION_FONTATLAS_HPP
 
-#include <rendering/font/FontFace.hpp>
-#include <rendering/font/Glyph.hpp>
-#include <rendering/Texture.hpp>
+#include <core/Defines.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/containers/Array.hpp>
 #include <core/utilities/Optional.hpp>
 
+#include <rendering/font/FontFace.hpp>
+#include <rendering/font/Glyph.hpp>
+#include <rendering/Texture.hpp>
+
 #include <util/json/JSON.hpp>
 
 #include <util/img/Bitmap.hpp>
-
-#include <core/Defines.hpp>
-#include <Engine.hpp>
 
 namespace hyperion {
 

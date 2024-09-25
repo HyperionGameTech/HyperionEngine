@@ -321,6 +321,10 @@ public:
     
     bool IsOrHasParent(const Node *node) const;
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsRoot() const
+        { return m_parent_node == nullptr; }
+
     /*! \returns A pointer to the Scene this Node and its children are attached to. May be null. */
     HYP_METHOD()
     HYP_FORCE_INLINE Scene *GetScene() const

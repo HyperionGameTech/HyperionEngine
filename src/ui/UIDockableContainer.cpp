@@ -5,8 +5,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 static const HashMap<String, UIDockableItemPosition> g_dockable_item_position_map = {
@@ -102,11 +100,11 @@ void UIDockableContainer::AddChildUIObject(UIObject *ui_object, UIDockableItemPo
     UpdateSize(true);
 }
 
-void UIDockableContainer::UpdateSize(bool update_children)
+void UIDockableContainer::UpdateSize_Internal(bool update_children)
 {
     HYP_SCOPE;
 
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 
     UpdateLayout();
 }

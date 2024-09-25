@@ -8,9 +8,9 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
-#include <Engine.hpp>
+#include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 
@@ -42,6 +42,52 @@ void UIGridRow::Init()
     UIPanel::Init();
 }
 
+void UIGridRow::AddChildUIObject(UIObject *ui_object)
+{
+    if (ui_object->GetType() == UIObjectType::GRID_COLUMN) {
+        UIObject::AddChildUIObject(ui_object);
+
+        m_columns.PushBack(ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridColumn>());
+
+        UpdateLayout();
+
+        return;
+    }
+
+    RC<UIGridColumn> column = FindEmptyColumn();
+    
+    if (column == nullptr) {
+        column = AddColumn();
+    }
+
+    column->AddChildUIObject(ui_object);
+
+    UpdateLayout();
+}
+
+bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
+{
+    HYP_SCOPE;
+
+    const bool removed = UIObject::RemoveChildUIObject(ui_object);
+
+    if (!removed) {
+        return false;
+    }
+
+    if (ui_object->GetType() == UIObjectType::GRID_COLUMN) {
+        auto it = m_columns.FindAs(ui_object);
+
+        if (it != m_columns.End()) {
+            m_columns.Erase(it);
+
+            UpdateLayout();
+        }
+    }
+
+    return true;
+}
+
 RC<UIGridColumn> UIGridRow::FindEmptyColumn() const
 {
     for (const RC<UIGridColumn> &column : m_columns) {
@@ -57,7 +103,7 @@ RC<UIGridColumn> UIGridRow::FindEmptyColumn() const
     return nullptr;
 }
 
-void UIGridRow::SetNumColumns(SizeType num_columns)
+void UIGridRow::SetNumColumns(uint32 num_columns)
 {
     if (GetStage() == nullptr) {
         return;
@@ -79,7 +125,7 @@ void UIGridRow::SetNumColumns(SizeType num_columns)
         const SizeType num_columns_to_add = num_columns - current_num_columns;
 
         for (SizeType i = 0; i < num_columns_to_add; i++) {
-            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(NAME("Column"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
             UIObject::AddChildUIObject(column);
 
             m_columns.PushBack(std::move(column));
@@ -95,7 +141,7 @@ RC<UIGridColumn> UIGridRow::AddColumn()
         return nullptr;
     }
 
-    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(NAME("Column"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     UIObject::AddChildUIObject(column);
 
     m_columns.PushBack(column);
@@ -127,9 +173,9 @@ void UIGridRow::UpdateLayout()
     }
 }
 
-void UIGridRow::UpdateSize(bool update_children)
+void UIGridRow::UpdateSize_Internal(bool update_children)
 {
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 
     UpdateLayout();
 }
@@ -140,26 +186,18 @@ void UIGridRow::UpdateSize(bool update_children)
 
 UIGrid::UIGrid(UIStage *parent, NodeProxy node_proxy)
     : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID),
-      m_num_columns(12)
+      m_num_columns(0)
 {
 }
 
-void UIGrid::SetNumColumns(SizeType num_columns)
+void UIGrid::SetNumColumns(uint32 num_columns)
 {
     m_num_columns = num_columns;
 
-    for (const RC<UIGridRow> &row : m_rows) {
-        if (!row) {
-            continue;
-        }
-
-        row->SetNumColumns(num_columns);
-    }
-
-    UpdateLayout();
+    // Do not update existing rows - only newly added rows will be affected
 }
 
-void UIGrid::SetNumRows(SizeType num_rows)
+void UIGrid::SetNumRows(uint32 num_rows)
 {
     if (GetStage() == nullptr) {
         return;
@@ -181,7 +219,7 @@ void UIGrid::SetNumRows(SizeType num_rows)
         const SizeType num_rows_to_add = num_rows - current_num_rows;
 
         for (SizeType i = 0; i < num_rows_to_add; i++) {
-            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(NAME("Row"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
             UIObject::AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
@@ -195,14 +233,14 @@ RC<UIGridRow> UIGrid::AddRow()
 {
     AssertThrow(GetStage() != nullptr);
 
-    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(NAME("Row"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    row->SetNumColumns(m_num_columns);
+    
     UIObject::AddChildUIObject(row);
 
     m_rows.PushBack(row);
 
     UpdateLayout();
-
-    AssertThrow(row->GetStage() != nullptr);
 
     return row;
 }
@@ -216,6 +254,16 @@ void UIGrid::Init()
 
 void UIGrid::AddChildUIObject(UIObject *ui_object)
 {
+    if (ui_object->GetType() == UIObjectType::GRID_ROW) {
+        UIObject::AddChildUIObject(ui_object);
+
+        m_rows.PushBack(ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridRow>());
+
+        UpdateLayout();
+
+        return;
+    }
+
     RC<UIGridColumn> column;
 
     for (const RC<UIGridRow> &row : m_rows) {
@@ -228,13 +276,18 @@ void UIGrid::AddChildUIObject(UIObject *ui_object)
         if (column != nullptr) {
             column->AddChildUIObject(ui_object);
 
+            UpdateLayout();
+
             return;
         }
     }
 
     AddRow();
+
     column = m_rows.Back()->FindEmptyColumn();
     column->AddChildUIObject(ui_object);
+
+    UpdateLayout();
 }
 
 bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
@@ -251,8 +304,8 @@ bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
 
             m_rows.EraseAt(i);
 
-            // Updates layout as well
             UpdateSize(false);
+            UpdateLayout();
 
             return true;
         }
@@ -261,11 +314,9 @@ bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
     return UIObject::RemoveChildUIObject(ui_object);
 }
 
-void UIGrid::UpdateSize(bool update_children)
+void UIGrid::UpdateSize_Internal(bool update_children)
 {
-    UIPanel::UpdateSize(update_children);
-
-    UpdateLayout();
+    UIPanel::UpdateSize_Internal(update_children);
 }
 
 void UIGrid::UpdateLayout()
@@ -306,6 +357,15 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
     {
         HYP_NAMED_SCOPE("Add element from data source to grid view");
 
+        SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+        HYP_DEFER([this]()
+        {
+            SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
+        });
+
         // add new row
         RC<UIGridRow> row = AddRow();
         AssertThrow(row != nullptr);
@@ -339,7 +399,16 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
             return row->GetDataSourceElementUUID() == uuid;
         });
 
-        if (it != m_rows.End()) {            
+        if (it != m_rows.End()) {
+            SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+            HYP_DEFER([this]()
+            {
+                SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+                SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
+            });
+
             RemoveChildUIObject(*it);
         }
     });

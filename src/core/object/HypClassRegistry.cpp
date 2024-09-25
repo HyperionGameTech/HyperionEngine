@@ -8,8 +8,6 @@
 
 #include <dotnet/Class.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 #pragma region HypClassRegistry

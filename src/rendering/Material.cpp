@@ -80,10 +80,10 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
     RENDER_COMMAND(UpdateMaterialTexture)(
         ID<Material> id,
         SizeType texture_index,
-        Handle<Texture> texture
+        const Handle<Texture> &texture
     ) : id(id),
         texture_index(texture_index),
-        texture(std::move(texture))
+        texture(texture)
     {
     }
 
@@ -156,27 +156,27 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 
 #pragma region Material
 
-Material::ParameterTable Material::DefaultParameters()
+const Material::ParameterTable &Material::DefaultParameters()
 {
-    ParameterTable parameters;
-
-    parameters.Set(MATERIAL_KEY_ALBEDO,               Vec4f(1.0f));
-    parameters.Set(MATERIAL_KEY_METALNESS,            0.0f);
-    parameters.Set(MATERIAL_KEY_ROUGHNESS,            0.65f);
-    parameters.Set(MATERIAL_KEY_TRANSMISSION,         0.0f);
-    parameters.Set(MATERIAL_KEY_EMISSIVE,             0.0f);
-    parameters.Set(MATERIAL_KEY_SPECULAR,             0.0f);
-    parameters.Set(MATERIAL_KEY_SPECULAR_TINT,        0.0f);
-    parameters.Set(MATERIAL_KEY_ANISOTROPIC,          0.0f);
-    parameters.Set(MATERIAL_KEY_SHEEN,                0.0f);
-    parameters.Set(MATERIAL_KEY_SHEEN_TINT,           0.0f);
-    parameters.Set(MATERIAL_KEY_CLEARCOAT,            0.0f);
-    parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS,      0.0f);
-    parameters.Set(MATERIAL_KEY_SUBSURFACE,           0.0f);
-    parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f);
-    parameters.Set(MATERIAL_KEY_UV_SCALE,             Vec2f(1.0f));
-    parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT,      0.05f);
-    parameters.Set(MATERIAL_KEY_ALPHA_THRESHOLD,      0.2f);
+    static const ParameterTable parameters {
+        { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
+        { MATERIAL_KEY_METALNESS, 0.0f },
+        { MATERIAL_KEY_ROUGHNESS, 0.65f },
+        { MATERIAL_KEY_TRANSMISSION, 0.0f },
+        { MATERIAL_KEY_EMISSIVE, 0.0f },
+        { MATERIAL_KEY_SPECULAR, 0.0f },
+        { MATERIAL_KEY_SPECULAR_TINT, 0.0f },
+        { MATERIAL_KEY_ANISOTROPIC, 0.0f },
+        { MATERIAL_KEY_SHEEN, 0.0f },
+        { MATERIAL_KEY_SHEEN_TINT, 0.0f },
+        { MATERIAL_KEY_CLEARCOAT, 0.0f },
+        { MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f },
+        { MATERIAL_KEY_SUBSURFACE, 0.0f },
+        { MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f },
+        { MATERIAL_KEY_UV_SCALE, Vec2f(1.0f) },
+        { MATERIAL_KEY_PARALLAX_HEIGHT, 0.05f },
+        { MATERIAL_KEY_ALPHA_THRESHOLD, 0.2f }
+    };
 
     return parameters;
 }
@@ -322,7 +322,7 @@ void Material::EnqueueRenderUpdates()
     AssertReady();
 
     if (!m_mutation_state.IsDirty()) {
-        HYP_LOG(Material, LogLevel::WARNING, "EnqueueRenderUpdates called on material with ID #{} (name: {}) that is not dirty", GetID().Value(), GetName());
+        HYP_LOG_ONCE(Material, LogLevel::WARNING, "EnqueueRenderUpdates called on material with ID #{} (name: {}) that is not dirty", GetID().Value(), GetName());
 
         return;
     }
@@ -627,7 +627,7 @@ void MaterialCache::Add(const Handle<Material> &material)
 
     HYP_LOG(Material, LogLevel::WARNING, "Adding material with hash {} to material cache", hc.Value());
 
-    m_map.Set(hc.Value(), material);
+    m_map.Set(hc, material);
 }
 
 Handle<Material> MaterialCache::CreateMaterial(
@@ -677,7 +677,7 @@ Handle<Material> MaterialCache::GetOrCreate(
 
     Mutex::Guard guard(m_mutex);
 
-    const auto it = m_map.Find(hc.Value());
+    const auto it = m_map.Find(hc);
 
     if (it != m_map.End()) {
         if (Handle<Material> handle = it->second.Lock()) {
@@ -694,11 +694,13 @@ Handle<Material> MaterialCache::GetOrCreate(
         textures
     );
 
+    AssertThrow(!handle->IsDynamic());
+
     HYP_LOG(Material, LogLevel::DEBUG, "Adding material with hash {} to material cache", hc.Value());
 
     InitObject(handle);
 
-    m_map.Set(hc.Value(), handle);
+    m_map.Set(hc, handle);
 
     return handle;
 }
@@ -936,7 +938,6 @@ void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(ID<Material> id)
 
     m_descriptor_sets_to_update_flag.Set(0x3, MemoryOrder::RELEASE);
 }
-
 
 void MaterialDescriptorSetManager::Initialize()
 {

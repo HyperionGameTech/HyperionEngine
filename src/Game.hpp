@@ -27,6 +27,7 @@ using dotnet::Object;
 using dotnet::Assembly;
 
 class Engine;
+class GameThread;
 
 struct ManagedGameInfo
 {

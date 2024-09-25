@@ -1,6 +1,8 @@
 #ifndef HYPERION_KEYBOARD_HPP
 #define HYPERION_KEYBOARD_HPP
 
+#include <core/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -81,6 +83,8 @@ enum class KeyCode : uint16
     ARROW_DOWN = 81,
     ARROW_UP = 82,
 };
+
+HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char &out_char);
 
 struct KeyboardEvent
 {

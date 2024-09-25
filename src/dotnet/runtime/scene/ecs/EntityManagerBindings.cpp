@@ -21,7 +21,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;
@@ -172,11 +171,4 @@ HYP_EXPORT ComponentID NodeLinkComponent_AddComponent(EntityManager *manager, Ma
     return manager->AddComponent(entity, std::move(*component));
 }
 
-HYP_EXPORT void NodeLinkComponent_LockReference(void *ref_count_data, ManagedNode *out_node)
-{
-    Weak<Node> weak_ptr;
-    weak_ptr.SetRefCountData_Internal(static_cast<Weak<Node>::WeakRefCountedPtrBase::RefCountDataType *>(ref_count_data), false /* inc_ref */);
-
-    *out_node = CreateManagedNodeFromWeakPtr(weak_ptr);
-}
 } // extern "C"

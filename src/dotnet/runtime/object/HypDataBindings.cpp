@@ -16,7 +16,6 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;
@@ -46,7 +45,7 @@ HYP_EXPORT void HypData_GetTypeID(const HypData *hyp_data, TypeID *out_type_id)
     *out_type_id = hyp_data->GetTypeID();
 }
 
-HYP_EXPORT bool HypData_IsValid(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsValid(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -56,13 +55,13 @@ HYP_EXPORT bool HypData_IsValid(const HypData *hyp_data)
 }
 
 #define HYP_DEFINE_HYPDATA_GET(type, name) \
-    HYP_EXPORT bool HypData_Get##name(const HypData *hyp_data, type *out_value) \
+    HYP_EXPORT int8 HypData_Get##name(const HypData *hyp_data, int8 strict, type *out_value) \
     { \
         if (!hyp_data || !out_value) { \
             return false; \
         } \
         \
-        if (hyp_data->Is<type>()) { \
+        if (hyp_data->Is<type>(bool(strict))) { \
             *out_value = hyp_data->Get<type>(); \
             \
             return true; \
@@ -72,17 +71,17 @@ HYP_EXPORT bool HypData_IsValid(const HypData *hyp_data)
     }
 
 #define HYP_DEFINE_HYPDATA_IS(type, name) \
-    HYP_EXPORT bool HypData_Is##name(const HypData *hyp_data) \
+    HYP_EXPORT int8 HypData_Is##name(const HypData *hyp_data, int8 strict) \
     { \
         if (!hyp_data) { \
             return false; \
         } \
         \
-        return hyp_data->Is<type>(); \
+        return hyp_data->Is<type>(bool(strict)); \
     }
 
 #define HYP_DEFINE_HYPDATA_SET(type, name) \
-    HYP_EXPORT bool HypData_Set##name(HypData *hyp_data, type value) \
+    HYP_EXPORT int8 HypData_Set##name(HypData *hyp_data, type value) \
     { \
         if (!hyp_data) { \
             return false; \
@@ -132,7 +131,7 @@ HYP_DEFINE_HYPDATA_IS(bool, Bool)
 #undef HYP_DEFINE_HYPDATA_IS
 #undef HYP_DEFINE_HYPDATA_SET
 
-HYP_EXPORT bool HypData_IsArray(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsArray(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -141,7 +140,7 @@ HYP_EXPORT bool HypData_IsArray(const HypData *hyp_data)
     return hyp_data->Is<Array<HypData>>();
 }
 
-HYP_EXPORT bool HypData_GetArray(HypData *hyp_data, HypData **out_array, uint32 *out_size)
+HYP_EXPORT int8 HypData_GetArray(HypData *hyp_data, HypData **out_array, uint32 *out_size)
 {
     if (!hyp_data || !out_array || !out_size) {
         return false;
@@ -159,7 +158,7 @@ HYP_EXPORT bool HypData_GetArray(HypData *hyp_data, HypData **out_array, uint32 
     return false;
 }
 
-HYP_EXPORT bool HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 size)
+HYP_EXPORT int8 HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 size)
 {
     if (!hyp_data || !elements) {
         return false;
@@ -177,7 +176,7 @@ HYP_EXPORT bool HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 si
     return true;
 }
 
-HYP_EXPORT bool HypData_IsString(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsString(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -186,7 +185,7 @@ HYP_EXPORT bool HypData_IsString(const HypData *hyp_data)
     return hyp_data->Is<String>();
 }
 
-HYP_EXPORT bool HypData_GetString(const HypData *hyp_data, const char **out_str)
+HYP_EXPORT int8 HypData_GetString(const HypData *hyp_data, const char **out_str)
 {
     if (!hyp_data || !out_str) {
         return false;
@@ -203,7 +202,7 @@ HYP_EXPORT bool HypData_GetString(const HypData *hyp_data, const char **out_str)
     return false;
 }
 
-HYP_EXPORT bool HypData_SetString(HypData *hyp_data, const char *str)
+HYP_EXPORT int8 HypData_SetString(HypData *hyp_data, const char *str)
 {
     if (!hyp_data || !str) {
         return false;
@@ -214,7 +213,7 @@ HYP_EXPORT bool HypData_SetString(HypData *hyp_data, const char *str)
     return true;
 }
 
-HYP_EXPORT bool HypData_IsID(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsID(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -223,7 +222,7 @@ HYP_EXPORT bool HypData_IsID(const HypData *hyp_data)
     return hyp_data->Is<IDBase>();
 }
 
-HYP_EXPORT bool HypData_GetID(const HypData *hyp_data, IDBase *out_id)
+HYP_EXPORT int8 HypData_GetID(const HypData *hyp_data, IDBase *out_id)
 {
     if (!hyp_data || !out_id) {
         return false;
@@ -238,7 +237,7 @@ HYP_EXPORT bool HypData_GetID(const HypData *hyp_data, IDBase *out_id)
     return false;
 }
 
-HYP_EXPORT bool HypData_SetID(HypData *hyp_data, uint32 id_value)
+HYP_EXPORT int8 HypData_SetID(HypData *hyp_data, uint32 id_value)
 {
     if (!hyp_data) {
         return false;
@@ -249,7 +248,7 @@ HYP_EXPORT bool HypData_SetID(HypData *hyp_data, uint32 id_value)
     return true;
 }
 
-HYP_EXPORT bool HypData_IsHypObject(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsHypObject(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -275,7 +274,7 @@ HYP_EXPORT bool HypData_IsHypObject(const HypData *hyp_data)
     }
 }
 
-HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
+HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, void **out_object)
 {
     if (!hyp_data || !out_object) {
         return false;
@@ -325,7 +324,7 @@ HYP_EXPORT bool HypData_GetHypObject(const HypData *hyp_data, void **out_object)
     return false;
 }
 
-HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *native_address)
+HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *native_address)
 {
     if (!hyp_data || !hyp_class || !native_address) {
         return false;
@@ -365,7 +364,7 @@ HYP_EXPORT bool HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
     return false;
 }
 
-HYP_EXPORT bool HypData_IsHypStruct(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsHypStruct(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -380,7 +379,7 @@ HYP_EXPORT bool HypData_IsHypStruct(const HypData *hyp_data)
     return hyp_class->IsStructType();
 }
 
-HYP_EXPORT bool HypData_GetHypStruct(const HypData *hyp_data, void **out_ptr)
+HYP_EXPORT int8 HypData_GetHypStruct(const HypData *hyp_data, void **out_ptr)
 {
     if (!hyp_data || !out_ptr) {
         return false;
@@ -413,7 +412,7 @@ HYP_EXPORT bool HypData_GetHypStruct(const HypData *hyp_data, void **out_ptr)
     return true;
 }
 
-HYP_EXPORT bool HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_class, uint32 size, void *object_ptr)
+HYP_EXPORT int8 HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_class, uint32 size, void *object_ptr)
 {
     if (!hyp_data || !hyp_class || !object_ptr) {
         return false;
@@ -441,7 +440,7 @@ HYP_EXPORT bool HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
 }
 
 
-HYP_EXPORT bool HypData_IsByteBuffer(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsByteBuffer(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
@@ -450,7 +449,7 @@ HYP_EXPORT bool HypData_IsByteBuffer(const HypData *hyp_data)
     return hyp_data->Is<ByteBuffer>();
 }
 
-HYP_EXPORT bool HypData_GetByteBuffer(const HypData *hyp_data, const void **out_ptr, uint32 *out_size)
+HYP_EXPORT int8 HypData_GetByteBuffer(const HypData *hyp_data, const void **out_ptr, uint32 *out_size)
 {
     if (!hyp_data || !out_ptr || !out_size) {
         return false;
@@ -468,7 +467,7 @@ HYP_EXPORT bool HypData_GetByteBuffer(const HypData *hyp_data, const void **out_
     return false;
 }
 
-HYP_EXPORT bool HypData_SetByteBuffer(HypData *hyp_data, const void *ptr, uint32 size)
+HYP_EXPORT int8 HypData_SetByteBuffer(HypData *hyp_data, const void *ptr, uint32 size)
 {
     if (!hyp_data || !ptr) {
         return false;

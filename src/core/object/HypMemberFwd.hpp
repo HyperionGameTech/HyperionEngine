@@ -6,6 +6,9 @@
 #include <core/Defines.hpp>
 #include <core/Name.hpp>
 
+#include <core/containers/String.hpp>
+
+#include <core/utilities/StringView.hpp>
 #include <core/utilities/TypeID.hpp>
 
 namespace hyperion {
@@ -17,6 +20,7 @@ public:
 
     virtual Name GetName() const = 0;
     virtual TypeID GetTypeID() const = 0;
+    virtual const String *GetAttribute(UTF8StringView key) const = 0;
 };
 
 } // namespace hyperion

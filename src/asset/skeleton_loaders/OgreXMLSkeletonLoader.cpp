@@ -7,11 +7,11 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/containers/Stack.hpp>
+
 #include <Types.hpp>
 
 #include <util/xml/SAXParser.hpp>
-
-#include <Engine.hpp>
 
 #include <algorithm>
 

@@ -175,13 +175,13 @@ struct LogOnceHelper
     template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogLevel LogOnceLogLevel, auto LogOnceFormatString, class... LogOnceArgTypes>
     static void ExecuteLogOnce(const LogChannel &channel, LogOnceArgTypes &&... args)
     {
-        static bool logged = false;
-
-        if (logged) {
-            return;
-        }
-
-        Logger::GetInstance().Log< LogOnceLogLevel, LogOnceFunctionName, LogOnceFormatString >(channel, std::forward<LogOnceArgTypes>(args)...);
+        static struct LogOnceHelper_Impl
+        {
+            LogOnceHelper_Impl(const LogChannel &channel, LogOnceArgTypes &&... args)
+            {
+                Logger::GetInstance().Log< LogOnceLogLevel, LogOnceFunctionName, LogOnceFormatString >(channel, std::forward<LogOnceArgTypes>(args)...);
+            }
+        } impl { channel, std::forward<LogOnceArgTypes>(args)... };
     }
 };
 

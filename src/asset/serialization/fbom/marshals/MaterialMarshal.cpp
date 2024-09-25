@@ -14,7 +14,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <Engine.hpp>
+#include <HyperionEngine.hpp>
 
 namespace hyperion::fbom {
 

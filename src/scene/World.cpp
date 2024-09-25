@@ -21,8 +21,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 using renderer::RTUpdateStateFlags;

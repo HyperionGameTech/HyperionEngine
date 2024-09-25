@@ -2,8 +2,6 @@
 
 #include <dotnet/runtime/scene/ManagedNode.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void ManagedNode::Dispose()

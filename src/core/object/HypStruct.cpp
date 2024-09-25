@@ -5,8 +5,6 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 bool HypStruct::CreateStructInstance(dotnet::ObjectReference &out_object_reference, const void *object_ptr, SizeType size) const

@@ -149,41 +149,27 @@ struct ShaderProperty
         return *this;
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const ShaderProperty &other) const
+    HYP_FORCE_INLINE bool operator==(const ShaderProperty &other) const
         { return name == other.name; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const ShaderProperty &other) const
+    HYP_FORCE_INLINE bool operator!=(const ShaderProperty &other) const
         { return name != other.name; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const String &str) const
+    HYP_FORCE_INLINE bool operator==(const String &str) const
         { return name == str; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const String &str) const
+    HYP_FORCE_INLINE bool operator!=(const String &str) const
         { return name != str; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const ShaderProperty &other) const
+    HYP_FORCE_INLINE bool operator<(const ShaderProperty &other) const
         { return name < other.name; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsValueGroup() const
+    HYP_FORCE_INLINE bool IsValueGroup() const
         { return possible_values.Any(); }
 
     /*! \brief If this ShaderProperty is a value group, returns the number of possible values,
      *  otherwise returns 0. If a default value is set for this ShaderProperty, that is taken into account */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType ValueGroupSize() const
+    HYP_FORCE_INLINE  SizeType ValueGroupSize() const
     {
         if (!IsValueGroup()) {
             return 0;
@@ -204,9 +190,7 @@ struct ShaderProperty
 
     /*! \brief If this ShaderProperty is a value group, returns an Array of all possible values.
      *  Otherwise, returns the currently set value (if applicable). If a default value is set for this ShaderProperty, that is included in the Array. */
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    FlatSet<ShaderProperty> GetAllPossibleValues()
+    HYP_FORCE_INLINE FlatSet<ShaderProperty> GetAllPossibleValues()
     {
         FlatSet<ShaderProperty> result;
 
@@ -232,39 +216,25 @@ struct ShaderProperty
         return result;
     }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool HasValue() const
+    HYP_FORCE_INLINE bool HasValue() const
         { return value.IsValid(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const String &GetName() const
+    HYP_FORCE_INLINE const String &GetName() const
         { return name; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ShaderPropertyFlags GetFlags() const
+    HYP_FORCE_INLINE ShaderPropertyFlags GetFlags() const
         { return flags; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsPermutable() const
+    HYP_FORCE_INLINE bool IsPermutable() const
         { return is_permutation; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsVertexAttribute() const
+    HYP_FORCE_INLINE bool IsVertexAttribute() const
         { return flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE; }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsOptionalVertexAttribute() const
+    HYP_FORCE_INLINE bool IsOptionalVertexAttribute() const
         { return IsVertexAttribute() && IsPermutable(); }
     
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    String GetValueString() const
+    HYP_FORCE_INLINE String GetValueString() const
     {
         if (const String *str = value.TryGet<String>()) {
             return *str;
@@ -275,9 +245,7 @@ struct ShaderProperty
         }
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(name.GetHashCode());

@@ -900,9 +900,15 @@ void Array<T, NumInlineBytes>::Resize(SizeType new_size)
 
         auto *buffer = GetStorage();
 
-        while (Size() < new_size) {
-            // construct item at index
-            Memory::Construct<T>(&buffer[m_size++].data_buffer);
+        if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>) {
+            Memory::MemSet(&buffer[m_size].data_buffer, 0, sizeof(T) * diff);
+
+            m_size += diff;
+        } else {
+            while (Size() < new_size) {
+                // construct item at index
+                Memory::Construct<T>(&buffer[m_size++].data_buffer);
+            }
         }
     } else {
         const SizeType diff = current_size - new_size;

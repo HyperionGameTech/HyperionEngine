@@ -2,8 +2,6 @@
 
 #include <asset/texture_loaders/TextureLoader.hpp>
 
-#include <Engine.hpp>
-
 #include <util/StringUtil.hpp>
 #include <util/img/stb_image.h>
 

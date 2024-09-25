@@ -59,7 +59,8 @@ public:
         : m_phase(other.m_phase),
           m_hyp_class(other.m_hyp_class),
           m_iterating_parent(other.m_iterating_parent),
-          m_current_index(other.m_current_index)
+          m_current_index(other.m_current_index),
+          m_current_value(other.m_current_value)
     {
     }
 
@@ -73,24 +74,27 @@ public:
         m_hyp_class = other.m_hyp_class;
         m_iterating_parent = other.m_iterating_parent;
         m_current_index = other.m_current_index;
+        m_current_value = other.m_current_value;
 
         return *this;
     }
 
-    bool operator==(const HypClassMemberIterator &other) const
+    HYP_FORCE_INLINE bool operator==(const HypClassMemberIterator &other) const
     {
         return m_phase == other.m_phase
             && m_hyp_class == other.m_hyp_class
             && m_iterating_parent == other.m_iterating_parent
-            && m_current_index == other.m_current_index;
+            && m_current_index == other.m_current_index
+            && m_current_value == other.m_current_value;
     }
 
-    bool operator!=(const HypClassMemberIterator &other) const
+    HYP_FORCE_INLINE bool operator!=(const HypClassMemberIterator &other) const
     {
         return m_phase != other.m_phase
             || m_hyp_class != other.m_hyp_class
             || m_iterating_parent != other.m_iterating_parent
-            || m_current_index != other.m_current_index;
+            || m_current_index != other.m_current_index
+            || m_current_value != other.m_current_value;
     }
 
     HYP_FORCE_INLINE HypClassMemberIterator &operator++()

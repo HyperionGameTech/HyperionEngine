@@ -327,7 +327,6 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
     Threads::AssertOnThread(m_owner_thread_id);
 
     const Vec4f world_position = Vec4f(position.x * float(GetActualSize().x), position.y * float(GetActualSize().y), 0.0f, 1.0f);
-        //m_scene->GetCamera()->TransformScreenToWorld(position);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };
 
     Ray ray;
@@ -336,12 +335,12 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
     RayTestResults ray_test_results;
 
-    for (auto [entity_id, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+    for (auto [entity, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!ui_component.ui_object) {
             continue;
         }
 
-        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_component.ui_object->IsVisible()) {
+        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_component.ui_object->GetComputedVisibility()) {
             continue;
         }
 
@@ -353,7 +352,8 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
             RayHit hit { };
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = -float(ui_component.ui_object->GetComputedDepth());
-            hit.id = entity_id.value;
+            hit.id = entity.Value();
+            hit.user_data = ui_component.ui_object.Get();
 
             ray_test_results.AddHit(hit);
         }
@@ -362,7 +362,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
     out_objects.Reserve(ray_test_results.Size());
 
     for (const RayHit &hit : ray_test_results) {
-        if (RC<UIObject> ui_object = GetUIObjectForEntity(ID<Entity>(hit.id))) {
+        if (RC<UIObject> ui_object = static_cast<const UIObject *>(hit.user_data)->RefCountedPtrFromThis()) {
             out_objects.PushBack(std::move(ui_object));
         }
     }
@@ -461,10 +461,10 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         if (mouse_buttons != MouseButtonState::NONE) { // mouse drag event
             EnumFlags<UIEventHandlerResult> mouse_drag_event_handler_result = UIEventHandlerResult::OK;
 
-            for (const Pair<ID<Entity>, UIObjectPressedState> &it : m_mouse_button_pressed_states) {
+            for (const Pair<Weak<UIObject>, UIObjectPressedState> &it : m_mouse_button_pressed_states) {
                 if (it.second.held_time >= 0.05f) {
                     // signal mouse drag
-                    if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
+                    if (RC<UIObject> ui_object = it.first.Lock()) {
                         mouse_drag_event_handler_result |= ui_object->OnMouseDrag(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
@@ -504,7 +504,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         first_hit = ui_object;
                     }
 
-                    if (m_hovered_entities.Contains(ui_object->GetEntity())) {
+                    if (m_hovered_ui_objects.Contains(ui_object)) {
                         // Already hovered, trigger mouse move event instead
                         mouse_move_event_handler_result |= ui_object->OnMouseMove(MouseEvent {
                             .input_manager      = input_manager,
@@ -524,6 +524,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
             first_hit = nullptr;
 
+            // HYP_LOG(UI, LogLevel::DEBUG, "Ray test results: {}", ray_test_results.Size());
+
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
                     if (first_hit != nullptr) {
@@ -536,17 +538,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         first_hit = ui_object;
                     }
 
-                    if (!m_hovered_entities.Insert(ui_object->GetEntity()).second) {
-                        // Already hovered, trigger mouse move event instead
-                        event_handler_result |= ui_object->OnMouseMove(MouseEvent {
-                            .input_manager      = input_manager,
-                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                            .absolute_position  = mouse_position,
-                            .mouse_buttons      = mouse_buttons,
-                            .is_down            = false
-                        });
-
+                    if (!m_hovered_ui_objects.Insert(ui_object).second) {
                         continue;
                     }
 
@@ -561,21 +553,25 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .is_down            = false
                     });
 
-
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
+                    // HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
+                    //     ::hyperion::GetClass(ui_object.GetTypeID())->GetName(),
+                    //     ui_object->GetName(),
+                    //     ui_object->GetText(),
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->GetActualInnerSize(),
+                    //     ui_object->GetWorldAABB(),
+                    //     ui_object->GetNode()->GetEntityAABB(),
+                    //     bounding_box_component.local_aabb,
+                    //     bounding_box_component.world_aabb,
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->TransformScreenCoordsToRelative(mouse_position));
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on: {}, Text: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Material ID: {}",
+                        ::hyperion::GetClass(ui_object.GetTypeID())->GetName(),
                         ui_object->GetName(),
-                        ui_object->GetText(),
-                        ui_object->GetActualSize(),
-                        ui_object->GetActualInnerSize(),
-                        ui_object->GetWorldAABB(),
-                        ui_object->GetNode()->GetEntityAABB(),
-                        bounding_box_component.local_aabb,
-                        bounding_box_component.world_aabb,
-                        ui_object->GetActualSize(),
-                        ui_object->TransformScreenCoordsToRelative(mouse_position));
+                        ui_object->GetMaterial()->GetID().Value());
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
@@ -584,31 +580,30 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
             }
         }
 
-        for (auto it = m_hovered_entities.Begin(); it != m_hovered_entities.End();) {
-            const auto ray_test_results_it = ray_test_results.FindIf([entity = *it](const RC<UIObject> &ui_object)
-            {
-                return ui_object->GetEntity() == entity;
-            });
+        for (auto it = m_hovered_ui_objects.Begin(); it != m_hovered_ui_objects.End();) {
+            const auto ray_test_results_it = ray_test_results.FindAs(*it);
 
             if (ray_test_results_it == ray_test_results.End()) {
-                if (RC<UIObject> other_ui_object = GetUIObjectForEntity(*it)) {
-                    other_ui_object->SetFocusState(other_ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
+                if (RC<UIObject> ui_object = it->Lock()) {
+                    ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
-                    other_ui_object->OnMouseLeave(MouseEvent {
+                    ui_object->OnMouseLeave(MouseEvent {
                         .input_manager      = input_manager,
-                        .position           = other_ui_object->TransformScreenCoordsToRelative(mouse_position),
-                        .previous_position  = other_ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                         .absolute_position  = mouse_position,
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
                 }
 
-                it = m_hovered_entities.Erase(it);
+                it = m_hovered_ui_objects.Erase(it);
             } else {
                 ++it;
             }
         }
+
+        HYP_LOG(UI, LogLevel::DEBUG, "Hovered objects: {}", m_hovered_ui_objects.Size());
 
         break;
     }
@@ -642,7 +637,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         focused_object = ui_object.Get();
                     }
 
-                    auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.Find(ui_object->GetEntity());
+                    auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.Find(ui_object);
 
                     if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End()) {
                         if ((mouse_button_pressed_states_it->second.mouse_buttons & event.GetMouseButtons()) == event.GetMouseButtons()) {
@@ -652,7 +647,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
                         mouse_button_pressed_states_it->second.mouse_buttons |= event.GetMouseButtons();
                     } else {
-                        mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object->GetEntity(), {
+                        mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object, {
                             event.GetMouseButtons(),
                             0.0f
                         }).first;
@@ -684,10 +679,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
         TestRay(mouse_screen, ray_test_results);
 
         for (auto &it : m_mouse_button_pressed_states) {
-            const auto ray_test_results_it = ray_test_results.FindIf([entity = it.first](const RC<UIObject> &ui_object)
-            {
-                return ui_object->GetEntity() == entity;
-            });
+            const auto ray_test_results_it = ray_test_results.Find(it.first);
 
             if (ray_test_results_it != ray_test_results.End()) {
                 // trigger click
@@ -710,7 +702,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
         for (auto &it : m_mouse_button_pressed_states) {
             // trigger mouse up
-            if (RC<UIObject> ui_object = GetUIObjectForEntity(it.first)) {
+            if (RC<UIObject> ui_object = it.first.Lock()) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                 event_handler_result |= ui_object->OnMouseUp(MouseEvent {
@@ -788,7 +780,7 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 break;
             }
 
-            ui_object = RawPtrToRefCountedPtrHelper<UIObject>{}(ui_object->GetParentUIObject());
+            ui_object = ToRefCountedPtr(ui_object->GetParentUIObject());
         }
 
         break;

@@ -8,7 +8,6 @@
 
 #include <math/Vector2.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

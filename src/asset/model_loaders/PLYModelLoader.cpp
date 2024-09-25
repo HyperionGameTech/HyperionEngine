@@ -7,8 +7,6 @@
 
 #include <util/fs/FsUtil.hpp>
 
-#include <Engine.hpp>
-
 #include <algorithm>
 
 namespace hyperion {

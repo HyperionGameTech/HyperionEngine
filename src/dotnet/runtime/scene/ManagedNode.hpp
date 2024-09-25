@@ -27,37 +27,6 @@ extern "C" struct ManagedNode
 
 static_assert(std::is_trivial_v<ManagedNode>, "ManagedNode must be a trivial type to be used in C#");
 
-static inline HYP_DEPRECATED ManagedNode CreateManagedNodeFromWeakPtr(const Weak<Node> &weak)
-{
-    if (auto rc = weak.Lock()) {
-        // Take ownership of the ref count data
-        RC<Node>::RefCountDataType *ref_count_data = rc.Release_Internal();
-
-        return { ref_count_data };
-    }
-
-    return { nullptr };
-}
-
-static inline HYP_DEPRECATED ManagedNode CreateManagedNodeFromNodeProxy(NodeProxy node_proxy)
-{
-    // hacky cast to get around private inheritance
-    RC<Node> *rc = reinterpret_cast<RC<Node> *>(&node_proxy);
-
-    // Take ownership of the ref count data
-    RC<Node>::RefCountDataType *ref_count_data = rc->Release_Internal();
-
-    return { ref_count_data };
-}
-
-static inline HYP_DEPRECATED NodeProxy CreateNodeProxyFromManagedNode(ManagedNode managed_node)
-{
-    RC<Node> rc;
-    rc.SetRefCountData_Internal(managed_node.ref);
-
-    return NodeProxy(std::move(rc));
-}
-
 } // namespace hyperion
 
 #endif

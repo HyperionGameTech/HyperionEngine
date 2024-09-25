@@ -8,8 +8,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
@@ -20,13 +18,8 @@ UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
     SetPadding({ 10, 5 });
     SetBackgroundColor(Vec4f { 0.1f, 0.1f, 0.1f, 1.0f });
     SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
-}
 
-void UIButton::Init()
-{
-    UIObject::Init();
-
-    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("ButtonText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::CENTER);
     text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     text_element->SetText(m_text);
@@ -34,6 +27,11 @@ void UIButton::Init()
     m_text_element = text_element;
 
     AddChildUIObject(text_element);
+}
+
+void UIButton::Init()
+{
+    UIObject::Init();
 }
 
 void UIButton::SetText(const String &text)

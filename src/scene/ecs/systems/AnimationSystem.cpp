@@ -3,8 +3,6 @@
 #include <scene/ecs/systems/AnimationSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void AnimationSystem::Process(GameCounter::TickUnit delta)

@@ -12,8 +12,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });

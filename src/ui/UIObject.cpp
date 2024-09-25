@@ -30,6 +30,8 @@
 
 #include <core/containers/Queue.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/system/AppContext.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -38,8 +40,6 @@
 #include <core/object/HypClassUtils.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
-
-#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -126,7 +126,8 @@ UIObject::UIObject(UIObjectType type)
       m_data_source_element_uuid(UUID::Invalid()),
       m_affects_parent_size(true),
       m_needs_repaint(true),
-      m_deferred_updates(UIObjectUpdateType::NONE)
+      m_deferred_updates(UIObjectUpdateType::NONE),
+      m_locked_updates(UIObjectUpdateType::NONE)
 {
 }
 
@@ -330,6 +331,10 @@ void UIObject::UpdatePosition(bool update_children)
         return;
     }
 
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_POSITION) {
+        return;
+    }
+
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_POSITION | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_POSITION : UIObjectUpdateType::NONE));
 
     const NodeProxy &node = GetNode();
@@ -363,7 +368,6 @@ void UIObject::UpdatePosition(bool update_children)
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
-            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdatePosition(false);
 
             return UIObjectIterationResult::CONTINUE;
@@ -386,6 +390,10 @@ void UIObject::SetSize(UIObjectSize size)
 
     m_size = size;
 
+    if (!IsInit()) {
+        return;
+    }
+
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
@@ -401,6 +409,10 @@ void UIObject::SetInnerSize(UIObjectSize size)
     HYP_SCOPE;
 
     m_inner_size = size;
+
+    if (!IsInit()) {
+        return;
+    }
 
     UpdateSize();
     UpdatePosition();
@@ -418,6 +430,10 @@ void UIObject::SetMaxSize(UIObjectSize size)
 
     m_max_size = size;
 
+    if (!IsInit()) {
+        return;
+    }
+
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
@@ -427,12 +443,29 @@ void UIObject::UpdateSize(bool update_children)
 {
     HYP_SCOPE;
 
-    // @TODO : UpdateSize() needs to update parent object size when parent has AUTO sizing.
-    // Needs to update child element's sizes when size is PERCENT or FILL.
-
     if (!IsInit()) {
         return;
     }
+
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_SIZE) {
+        return;
+    }
+    
+    UIObject *parent = nullptr;
+
+    if ((parent = GetParentUIObject()) && ((parent->GetSize().GetAllFlags() | parent->GetInnerSize().GetAllFlags() | parent->GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO)) {
+        parent->UpdateSize(/* update_children */ true);
+
+        return;
+    }
+
+    UpdateSize_Internal(update_children);
+}
+
+void UIObject::UpdateSize_Internal(bool update_children)
+{
+    // @TODO : UpdateSize() needs to update parent object size when parent has AUTO sizing.
+    // Needs to update child element's sizes when size is PERCENT or FILL.
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_SIZE | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_SIZE : UIObjectUpdateType::NONE));
 
@@ -447,7 +480,7 @@ void UIObject::UpdateSize(bool update_children)
             if (child->GetSize().GetAllFlags() & UIObjectSize::FILL) {
                 deferred_children.PushBack(child);
             } else {
-                child->UpdateSize();
+                child->UpdateSize_Internal(/* update_children */ true);
             }
 
             return UIObjectIterationResult::CONTINUE;
@@ -455,9 +488,7 @@ void UIObject::UpdateSize(bool update_children)
     }
 
     // auto needs recalculation
-    const bool needs_update_after_children = (m_size.GetAllFlags() & UIObjectSize::AUTO)
-        || (m_inner_size.GetAllFlags() & UIObjectSize::AUTO)
-        || (m_max_size.GetAllFlags() & UIObjectSize::AUTO);
+    const bool needs_update_after_children = UseAutoSizing();
 
     if (needs_update_after_children) {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
@@ -467,7 +498,7 @@ void UIObject::UpdateSize(bool update_children)
     // FILL needs to update the size of the children
     // after the parent has updated its size
     for (const RC<UIObject> &child : deferred_children) {
-        child->UpdateSize();
+        child->UpdateSize_Internal(/* update_children */ true);
     }
 
     SetNeedsRepaintFlag();
@@ -664,6 +695,10 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
 
     m_aspect_ratio = aspect_ratio;
 
+    if (!IsInit()) {
+        return;
+    }
+
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
@@ -674,6 +709,10 @@ void UIObject::SetPadding(Vec2i padding)
     HYP_SCOPE;
 
     m_padding = padding;
+
+    if (!IsInit()) {
+        return;
+    }
 
     UpdateSize();
     UpdatePosition();
@@ -699,7 +738,8 @@ void UIObject::SetBackgroundColor(const Color &background_color)
 
     m_background_color = background_color;
 
-    UpdateMaterial(false);
+    // UpdateMaterial(false);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 Color UIObject::GetTextColor() const
@@ -721,7 +761,8 @@ void UIObject::SetTextColor(const Color &text_color)
 
     m_text_color = text_color;
 
-    UpdateMaterial(true);
+    // UpdateMaterial(true);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 void UIObject::SetText(const String &text)
@@ -756,6 +797,10 @@ void UIObject::SetTextSize(float text_size)
 
     m_text_size = text_size;
 
+    if (!IsInit()) {
+        return;
+    }
+
     UpdateSize();
     UpdatePosition();
 }
@@ -785,9 +830,9 @@ void UIObject::SetIsVisible(bool is_visible)
         }
     }
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (IsInit()) {
         // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
-        parent->UpdateSize();
+        UpdateSize();
     } else {
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
     }
@@ -952,12 +997,6 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             if (removed) {
                 ui_object->OnRemoved_Internal();
 
-                ui_object->UpdateSize();
-                ui_object->UpdatePosition();
-                ui_object->UpdateMeshData();
-
-                ui_object->SetNeedsRepaintFlag();
-
                 return true;
             }
         }
@@ -972,6 +1011,17 @@ int UIObject::RemoveAllChildUIObjects()
 
     int num_removed = 0;
 
+    SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+    HYP_DEFER([this, &num_removed]()
+    {
+        SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+        if (num_removed > 0 && UseAutoSizing()) {
+            UpdateSize(/* update_children */ false);
+        }
+    });
+
     Array<RC<UIObject>> children = GetChildUIObjects(false);
 
     for (const RC<UIObject> &child : children) {
@@ -983,11 +1033,22 @@ int UIObject::RemoveAllChildUIObjects()
     return num_removed;
 }
 
-int UIObject::RemoveAllChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate)
+int UIObject::RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate)
 {
     HYP_SCOPE;
 
     int num_removed = 0;
+
+    SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+    HYP_DEFER([this, &num_removed]()
+    {
+        SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+        if (num_removed > 0 && UseAutoSizing()) {
+            UpdateSize(/* update_children */ false);
+        }
+    });
 
     Array<RC<UIObject>> children = FilterChildUIObjects(predicate, false);
 
@@ -1044,7 +1105,7 @@ RC<UIObject> UIObject::FindChildUIObject(Name name, bool deep) const
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
+RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const
 {
     HYP_SCOPE;
     
@@ -1175,7 +1236,7 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
         }
     }
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (UIObject *parent = GetParentUIObject(); parent && parent->IsInit()) {
         parent->UpdateSize();
     }
 }
@@ -1217,7 +1278,8 @@ Handle<Material> UIObject::CreateMaterial() const
     Material::TextureSet material_textures = GetMaterialTextures();
     
     if (AllowMaterialUpdate()) {
-        Handle<Material> material = g_material_system->CreateMaterial(
+        Handle<Material> material = CreateObject<Material>(
+            NAME("UIObjectMaterial"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1225,9 +1287,19 @@ Handle<Material> UIObject::CreateMaterial() const
 
         material->SetIsDynamic(true);
 
+        InitObject(material);
+
         return material;
     } else {
-        return g_material_system->GetOrCreate(
+        // Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial(
+        //     GetMaterialAttributes(),
+        //     GetMaterialParameters(),
+        //     material_textures
+        // );
+
+        // return material;
+        
+        return MaterialCache::GetInstance()->GetOrCreate(
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1453,14 +1525,9 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
                 const float inner_width = (in_size.GetFlagsX() & UIObjectSize::AUTO) ? inner_extent.x : float(actual_size.x);
                 const float inner_height = (in_size.GetFlagsY() & UIObjectSize::AUTO) ? inner_extent.y : float(actual_size.y);
 
-                // const float ratio = MathUtil::Max((inner_extent.x / MathUtil::Max(inner_extent.y, MathUtil::epsilon_f)), MathUtil::epsilon_f);
-                const float ratio = MathUtil::Max((inner_width / MathUtil::Max(inner_height, MathUtil::epsilon_f)), MathUtil::epsilon_f);
-
                 dynamic_size = Vec2f {
                     inner_width,
                     inner_height
-                    // float(actual_size.y) * ratio,
-                    // float(actual_size.x) / ratio
                 };
             }
 
@@ -1480,7 +1547,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
             // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
             ForEachChildUIObject([this](const RC<UIObject> &object)
             {
-                object->UpdatePosition();
+                object->UpdatePosition(/* update_children */ false);
 
                 return UIObjectIterationResult::CONTINUE;
             }, false);
@@ -1567,6 +1634,10 @@ void UIObject::UpdateMeshData(bool update_children)
 {
     HYP_SCOPE;
 
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_MESH_DATA) {
+        return;
+    }
+
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MESH_DATA | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA : UIObjectUpdateType::NONE));
     
     if (update_children) {
@@ -1606,12 +1677,15 @@ void UIObject::UpdateMaterial(bool update_children)
 {
     HYP_SCOPE;
 
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_MATERIAL) {
+        return;
+    }
+
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MATERIAL | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL : UIObjectUpdateType::NONE));
     
     if (update_children) {
         ForEachChildUIObject([](const RC<UIObject> &child)
         {
-            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateMaterial();
 
             return UIObjectIterationResult::CONTINUE;
@@ -1633,22 +1707,22 @@ void UIObject::UpdateMaterial(bool update_children)
     const Handle<Material> &current_material = mesh_component->material;
 
     MaterialAttributes material_attributes = GetMaterialAttributes();
+    
+    Material::ParameterTable material_parameters = GetMaterialParameters();
+    Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes().GetHashCode() != material_attributes.GetHashCode()) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
 
-        g_safe_deleter->SafeRelease(std::move(mesh_component->material));
+        // g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
         mesh_component->material = std::move(new_material);
         mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 
         return;
     }
-    
-    Material::ParameterTable material_parameters = GetMaterialParameters();
-    Material::TextureSet material_textures = GetMaterialTextures();
 
     bool parameters_changed = material_parameters != current_material->GetParameters();
     bool textures_changed = material_textures != current_material->GetTextures();
@@ -1656,23 +1730,27 @@ void UIObject::UpdateMaterial(bool update_children)
     if (parameters_changed || textures_changed) {
         Handle<Material> new_material;
         
-        if (!current_material->IsDynamic()) {
+        if (current_material->IsDynamic()) {
+            // // temp
+            // AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
+            //     current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
+
+            new_material = current_material;
+        } else {
             new_material = current_material->Clone();
+
+            // // temp
+            // AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 2, "ref count : %u",
+            //     new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
 
             HYP_LOG(UI, LogLevel::DEBUG, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
 
             // release the old material
-            g_safe_deleter->SafeRelease(std::move(mesh_component->material));
-
-            // @TODO Cache new material.
+            // g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
             mesh_component->material = new_material;
             mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
-        } else {
-            new_material = current_material;
         }
-
-        AssertThrow(new_material->IsDynamic());
 
         if (parameters_changed) {
             new_material->SetParameters(material_parameters);
@@ -1851,11 +1929,9 @@ bool UIObject::RemoveNodeTag(Name key)
     return false;
 }
 
-void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject *> &out_deferred_child_objects, bool reverse) const
+void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool reverse) const
 {
     HYP_SCOPE;
-    
-    AssertThrow(proc.IsValid());
 
     if (!m_node_proxy.IsValid()) {
         return;
@@ -1911,23 +1987,9 @@ void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject
         return lhs.second->GetDepth() < rhs.second->GetDepth();
     });
 
-    // if (IsContainer()) {
-        for (const Pair<Node *, UIObject *> &it : children) {
-            it.second->CollectObjects(proc, out_deferred_child_objects);
-        }
-    // } else {
-    //     // Keep non-container objects on the same layer as parent to reduce number of PSOs
-    //     // Using this method flattens out the objects that will be rendered.
-    //     // For containers:                      For non-containers:
-    //     //      *Container Object 1                 *Non-container Object 1
-    //     //      *Child Object 1                     *Non-container Object 2
-    //     //      *Container Object 2                 *Child Object 1
-    //     //      *Child Object 2                     *Child Object 2
-
-    //     for (Pair<Node *, UIObject *> &it : children) {
-    //         out_deferred_child_objects.PushBack(it.second);
-    //     }
-    // }
+    for (const Pair<Node *, UIObject *> &it : children) {
+        it.second->CollectObjects(proc, out_deferred_child_objects);
+    }
 
     if (reverse && entity.IsValid()) {
         UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);
@@ -1938,7 +2000,7 @@ void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject
     }
 }
 
-void UIObject::CollectObjects(const Proc<void, UIObject *> &proc, bool reverse) const
+void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool reverse) const
 {
     HYP_SCOPE;
     
@@ -1984,7 +2046,7 @@ Array<RC<UIObject>> UIObject::GetChildUIObjects(bool deep) const
     return child_objects;
 }
 
-Array<RC<UIObject>> UIObject::FilterChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const
+Array<RC<UIObject>> UIObject::FilterChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const
 {
     HYP_SCOPE;
     
@@ -2052,7 +2114,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
     }
 }
 
-void UIObject::ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep) const
+void UIObject::ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, const RC<UIObject> &> proc, bool deep) const
 {
     ForEachChildUIObject(proc, deep);
 }

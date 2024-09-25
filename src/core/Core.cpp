@@ -4,8 +4,6 @@
 
 #include <core/object/HypClass.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 const HypClass *GetClass(TypeID type_id)

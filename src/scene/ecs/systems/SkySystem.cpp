@@ -2,11 +2,12 @@
 
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
-#include <rendering/RenderEnvironment.hpp>
-#include <rendering/render_components/sky/SkydomeRenderer.hpp>
-#include <util/MeshBuilder.hpp>
 
-#include <Engine.hpp>
+#include <rendering/RenderEnvironment.hpp>
+#include <rendering/Shader.hpp>
+#include <rendering/render_components/sky/SkydomeRenderer.hpp>
+
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion {
 
@@ -38,7 +39,7 @@ void SkySystem::OnEntityAdded(ID<Entity> entity)
         material->SetFaceCullMode(FaceCullMode::FRONT);
         material->SetIsDepthTestEnabled(true);
         material->SetIsDepthWriteEnabled(false);
-        material->SetShader(g_shader_manager->GetOrCreate(
+        material->SetShader(ShaderManagerSystem::GetInstance()->GetOrCreate(
             NAME("Skybox"),
             ShaderProperties(mesh_component.mesh->GetVertexAttributes())
         ));

@@ -2,8 +2,6 @@
 
 #include <dotnet/runtime/ManagedHandle.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void ManagedHandle::IncRef(uint32 type_id)

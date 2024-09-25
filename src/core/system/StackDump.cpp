@@ -19,7 +19,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(StackTrace, Core);
 
 namespace sys {
 
-static Array<String> CreatePlatformStackTrace(uint depth)
+static Array<String> CreatePlatformStackTrace(uint32 depth, uint32 offset)
 {
     Array<String> stack_trace;
     stack_trace.Reserve(depth);
@@ -79,7 +79,7 @@ static Array<String> CreatePlatformStackTrace(uint depth)
 
     SymCleanup(process);
 #elif defined(HYP_UNIX)
-    constexpr int offset = 2;
+    offset += 2;
 
     void **stack = (void **)malloc((depth + offset) * sizeof(void *));
     const int frames = backtrace(stack, depth + offset);
@@ -109,17 +109,17 @@ static Array<String> CreatePlatformStackTrace(uint depth)
     return stack_trace;
 }
 
-StackDump::StackDump(uint depth)
-    : m_trace(CreatePlatformStackTrace(depth))
+StackDump::StackDump(uint32 depth, uint32 offset)
+    : m_trace(CreatePlatformStackTrace(depth, offset))
 {
 }
 
 } // namespace sys
 
 // Implementation of global LogStackTrace() function from Defines.hpp
-HYP_API void LogStackTrace()
+HYP_API void LogStackTrace(int depth)
 {
-    HYP_LOG(StackTrace, LogLevel::DEBUG, "Stack trace:\n\n{}", sys::StackDump(10).ToString());
+    HYP_LOG(StackTrace, LogLevel::DEBUG, "Stack trace:\n\n{}", sys::StackDump(depth, 1).ToString());
 }
 
 } // namespace hyperion

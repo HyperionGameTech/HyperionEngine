@@ -2,10 +2,13 @@
 
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
-#include <audio/AudioManager.hpp>
-#include <math/MathUtil.hpp>
 
-#include <Engine.hpp>
+#include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
+
+#include <audio/AudioManager.hpp>
+
+#include <math/MathUtil.hpp>
 
 namespace hyperion {
 

@@ -3,7 +3,6 @@
 #ifndef HYPERION_DOTNET_CLASS_HPP
 #define HYPERION_DOTNET_CLASS_HPP
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 #include <core/memory/UniquePtr.hpp>

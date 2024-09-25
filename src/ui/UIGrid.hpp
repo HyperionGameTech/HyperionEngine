@@ -9,6 +9,8 @@
 
 namespace hyperion {
 
+class UIGrid;
+
 #pragma region UIGridColumn
 
 HYP_CLASS()
@@ -37,6 +39,8 @@ class HYP_API UIGridRow : public UIPanel
     HYP_OBJECT_BODY(UIGridRow);
 
 public:
+    friend class UIGrid;
+
     UIGridRow(UIStage *stage, NodeProxy node_proxy);
     UIGridRow(const UIGridRow &other)                   = delete;
     UIGridRow &operator=(const UIGridRow &other)        = delete;
@@ -53,13 +57,8 @@ public:
     /*! \brief Gets the number of columns in the row.
      * 
      * \return The number of columns in the row. */
-    HYP_FORCE_INLINE SizeType GetNumColumns() const
+    HYP_FORCE_INLINE uint32 GetNumColumns() const
         { return m_columns.Size(); }
-
-    /*! \brief Sets the number of columns in the row.
-     * 
-     * \param num_columns The number of columns to set. */
-    void SetNumColumns(SizeType num_columns);
     
     /*! \brief Adds a new column to the row.
      * 
@@ -82,11 +81,16 @@ public:
 
     virtual void Init() override;
 
+    virtual void AddChildUIObject(UIObject *ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+
     void UpdateLayout();
     
-    virtual void UpdateSize(bool update_children = true) override;
-    
 private:
+    void SetNumColumns(uint32 num_columns);
+
+    virtual void UpdateSize_Internal(bool update_children = true) override;
+
     Array<RC<UIGridColumn>> m_columns;
 };
 
@@ -110,24 +114,28 @@ public:
     /*! \brief Gets the number of columns in the grid.
      * 
      * \return The number of columns in the grid. */
-    HYP_FORCE_INLINE SizeType GetNumColumns() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE uint32 GetNumColumns() const
         { return m_num_columns; }
 
     /*! \brief Sets the number of columns in the grid.
      * 
      * \param num_columns The number of columns to set. */
-    void SetNumColumns(SizeType num_columns);
+    HYP_METHOD(XMLAttribute="cols")
+    void SetNumColumns(uint32 num_columns);
 
     /*! \brief Gets the number of rows in the grid.
      * 
      * \return The number of rows in the grid. */
-    HYP_FORCE_INLINE SizeType GetNumRows() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE uint32 GetNumRows() const
         { return m_rows.Size(); }
 
     /*! \brief Sets the number of rows in the grid.
      * 
      * \param num_rows The number of rows to set. */
-    void SetNumRows(SizeType num_rows);
+    HYP_METHOD(XMLAttribute="rows")
+    void SetNumRows(uint32 num_rows);
 
     RC<UIGridRow> AddRow();
 
@@ -136,9 +144,9 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
-    virtual void UpdateSize(bool update_children = true) override;
-
 protected:
+    virtual void UpdateSize_Internal(bool update_children = true) override;
+
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 
 private:

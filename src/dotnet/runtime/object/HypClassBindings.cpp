@@ -9,7 +9,6 @@
 
 #include <dotnet/Object.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;
@@ -29,7 +28,6 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
         
         const uint32 index = container.NextIndex();
         container.ConstructAtIndex(index);
-        // container.IncRefStrong(index);
 
         return container.GetObjectPointer(index);
     } else if (hyp_class->UseRefCountedPtr()) {
@@ -38,7 +36,7 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
 
         RC<void> &rc = value.Get<RC<void>>();
         AssertThrow(rc != nullptr);
-;        
+
         return rc.Release();
     } else {
         HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());

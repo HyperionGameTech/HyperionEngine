@@ -434,7 +434,7 @@ struct HypMethod : public IHypMember
         return return_type_id;
     }
 
-    HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
+    virtual const String *GetAttribute(UTF8StringView key) const override
     {
         auto it = attributes.FindAs(key);
 

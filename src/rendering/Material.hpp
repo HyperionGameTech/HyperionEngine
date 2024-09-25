@@ -317,7 +317,7 @@ public:
     using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
 
     /*! \brief Default parameters for a Material. */
-    static ParameterTable DefaultParameters();
+    static const ParameterTable &DefaultParameters();
 
     Material();
     Material(
@@ -640,8 +640,8 @@ public:
     );
 
 private:
-    FlatMap<HashCode::ValueType, WeakHandle<Material>>  m_map;
-    Mutex                                               m_mutex;
+    HashMap<HashCode, WeakHandle<Material>> m_map;
+    Mutex                                   m_mutex;
 };
 
 class HYP_API MaterialDescriptorSetManager

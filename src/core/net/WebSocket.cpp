@@ -12,8 +12,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 #if defined(HYP_CURL) && HYP_CURL
 #include <curl/curl.h>
 #endif

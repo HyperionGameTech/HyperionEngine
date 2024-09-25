@@ -9,8 +9,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -137,11 +135,11 @@ bool UIWindow::RemoveChildUIObject(UIObject *ui_object)
     return UIObject::RemoveChildUIObject(ui_object);
 }
 
-void UIWindow::UpdateSize(bool update_children)
+void UIWindow::UpdateSize_Internal(bool update_children)
 {
     HYP_SCOPE;
 
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 }
 
 #pragma region UIWindow

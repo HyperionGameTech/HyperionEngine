@@ -4,7 +4,6 @@
 
 #include <core/Name.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

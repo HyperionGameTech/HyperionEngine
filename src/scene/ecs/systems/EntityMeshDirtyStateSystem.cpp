@@ -5,8 +5,6 @@
 
 #include <rendering/backend/RenderCommand.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void EntityMeshDirtyStateSystem::OnEntityAdded(ID<Entity> entity)
@@ -28,10 +26,10 @@ void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
 
 void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         // Update the material
         if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty()) {
-            mesh_component.material->EnqueueRenderUpdates();
+            // mesh_component.material->EnqueueRenderUpdates();
         }
 
         // If transform has changed, mark the MeshComponent as dirty

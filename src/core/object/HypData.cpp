@@ -6,8 +6,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 fbom::FBOMResult HypDataMarshalHelper::NoMarshalRegistered(ANSIStringView type_name)

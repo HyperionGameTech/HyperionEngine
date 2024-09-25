@@ -7,8 +7,6 @@
 
 #include <core/object/HypData.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion::fbom {
 
 template <>

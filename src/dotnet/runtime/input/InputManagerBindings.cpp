@@ -2,7 +2,6 @@
 
 #include <input/InputManager.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

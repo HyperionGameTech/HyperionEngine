@@ -10,8 +10,6 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <Engine.hpp>
-
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>

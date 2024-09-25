@@ -85,13 +85,13 @@ public:
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
-    virtual void UpdateSize(bool update_children = true) override;
-
     UIListViewItem *FindListViewItem(const UUID &data_source_element_uuid) const;
 
     Delegate<void, UIListViewItem *>    OnSelectedItemChange;
 
 protected:
+    virtual void UpdateSize_Internal(bool update_children = true) override;
+
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 
     void UpdateLayout();

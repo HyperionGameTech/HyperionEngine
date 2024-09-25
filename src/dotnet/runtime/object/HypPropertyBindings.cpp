@@ -16,7 +16,6 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

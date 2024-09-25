@@ -3,7 +3,6 @@
 #ifndef HYPERION_DOTNET_INTEROP_MANAGED_GUID_HPP
 #define HYPERION_DOTNET_INTEROP_MANAGED_GUID_HPP
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 #include <type_traits>

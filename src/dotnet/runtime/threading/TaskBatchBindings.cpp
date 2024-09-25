@@ -2,7 +2,6 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 #include <type_traits>

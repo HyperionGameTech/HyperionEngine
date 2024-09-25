@@ -21,8 +21,6 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
-#include <core/Base.hpp>
-
 #include <core/object/HypObject.hpp>
 
 #include <core/containers/FlatMap.hpp>

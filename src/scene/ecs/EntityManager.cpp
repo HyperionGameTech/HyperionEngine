@@ -15,8 +15,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 // #define HYP_ENTITY_MANAGER_SYSTEMS_EXECUTION_PARALLEL

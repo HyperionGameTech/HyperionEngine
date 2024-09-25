@@ -22,7 +22,6 @@ public:
     {
         Camera *camera = m_controller->GetCamera();
 
-        DebugLog(LogType::Debug, "Got keydown event, keycode = %u\n", event.key_code);
         if (event.key_code == KeyCode::KEY_W || event.key_code == KeyCode::KEY_S || event.key_code == KeyCode::KEY_A || event.key_code == KeyCode::KEY_D) {
             CameraController *camera_controller = camera->GetCameraController();
 

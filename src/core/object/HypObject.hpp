@@ -27,7 +27,6 @@ class IHypObjectInitializer;
 
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
-
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 
 class IHypObjectInitializer

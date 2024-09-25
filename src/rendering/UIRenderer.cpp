@@ -207,7 +207,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         collection->RemoveEmptyProxyGroups();
 
-        HYP_LOG(UI, LogLevel::DEBUG, "UI is currently using {} render groups", collection->NumRenderGroups());
+        HYP_LOG(UI, LogLevel::DEBUG, "Rebuild UI render collection; using {} render groups", collection->NumRenderGroups());
     }
 
     bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity)

@@ -15,8 +15,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 void ShadowMapUpdaterSystem::OnEntityAdded(ID<Entity> entity)

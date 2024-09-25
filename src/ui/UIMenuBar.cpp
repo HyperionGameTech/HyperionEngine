@@ -10,8 +10,6 @@
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -67,7 +65,7 @@ void UIMenuItem::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
-    RC<UIObject> menu_item = RawPtrToRefCountedPtrHelper<UIObject>{}(ui_object);
+    RC<UIObject> menu_item = ToRefCountedPtr(ui_object);
     AssertThrow(menu_item != nullptr);
 
     m_menu_items.PushBack(menu_item.Cast<UIMenuItem>());
@@ -443,9 +441,9 @@ bool UIMenuBar::RemoveChildUIObject(UIObject *ui_object)
     return true;
 }
 
-void UIMenuBar::UpdateSize(bool update_children)
+void UIMenuBar::UpdateSize_Internal(bool update_children)
 {
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 
     UpdateMenuItemSizes();
 }

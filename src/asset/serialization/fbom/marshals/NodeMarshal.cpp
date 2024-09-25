@@ -13,8 +13,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion::fbom {
 
 template <>

@@ -276,24 +276,19 @@ public:
         return m_data[index].GetRefCountWeak();
     }
 
-    HYP_FORCE_INLINE
-    T *GetPointer(uint32 index)
+    HYP_FORCE_INLINE T *GetPointer(uint32 index)
         { return m_data[index].GetPointer(); }
 
-    HYP_FORCE_INLINE
-    const T *GetPointer(uint32 index) const
+    HYP_FORCE_INLINE const T *GetPointer(uint32 index) const
         { return m_data[index].GetPointer(); }
 
-    HYP_FORCE_INLINE
-    T &Get(uint32 index)
+    HYP_FORCE_INLINE T &Get(uint32 index)
         { return m_data[index].Get(); }
 
-    HYP_FORCE_INLINE
-    ObjectBytes &GetObjectBytes(uint32 index)
+    HYP_FORCE_INLINE ObjectBytes &GetObjectBytes(uint32 index)
         { return m_data[index]; }
 
-    HYP_FORCE_INLINE
-    const ObjectBytes &GetObjectBytes(uint32 index) const
+    HYP_FORCE_INLINE const ObjectBytes &GetObjectBytes(uint32 index) const
         { return m_data[index]; }
     
     virtual void ConstructAtIndex(uint32 index) override

@@ -13,8 +13,6 @@
 
 #include <core/Defines.hpp>
 
-#include <core/ObjectPool.hpp>
-
 #include <core/logging/LoggerFwd.hpp>
 
 #include <GameCounter.hpp>

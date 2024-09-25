@@ -2,7 +2,8 @@
 
 #include <core/system/Debug.hpp>
 
-#include <Engine.hpp>
+#include <core/Name.hpp>
+
 #include <Types.hpp>
 #include <Constants.hpp>
 

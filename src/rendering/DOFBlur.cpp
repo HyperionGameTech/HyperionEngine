@@ -1,7 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/DOFBlur.hpp>
-#include <Engine.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
 
 namespace hyperion {
 
@@ -14,7 +15,7 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    ShaderRef blur_horizontal_shader = g_shader_manager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_HORIZONTAL" }));
+    ShaderRef blur_horizontal_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_HORIZONTAL" }));
     AssertThrow(blur_horizontal_shader.IsValid());
 
     m_blur_horizontal_pass.Reset(new FullScreenPass(
@@ -25,7 +26,7 @@ void DOFBlur::Create()
 
     m_blur_horizontal_pass->Create();
 
-    ShaderRef blur_vertical_shader = g_shader_manager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_VERTICAL" }));
+    ShaderRef blur_vertical_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_VERTICAL" }));
     AssertThrow(blur_vertical_shader.IsValid());
 
     m_blur_vertical_pass.Reset(new FullScreenPass(
@@ -36,7 +37,7 @@ void DOFBlur::Create()
 
     m_blur_vertical_pass->Create();
 
-    ShaderRef blur_mix_shader = g_shader_manager->GetOrCreate(NAME("DOFBlurMix"));
+    ShaderRef blur_mix_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurMix"));
     AssertThrow(blur_mix_shader.IsValid());
 
     m_blur_mix_pass.Reset(new FullScreenPass(

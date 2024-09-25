@@ -4,8 +4,6 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);

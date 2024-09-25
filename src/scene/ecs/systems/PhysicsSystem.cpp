@@ -3,7 +3,8 @@
 #include <scene/ecs/systems/PhysicsSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
-#include <Engine.hpp>
+#include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 namespace hyperion {
 

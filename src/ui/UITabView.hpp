@@ -67,7 +67,6 @@ public:
     virtual ~UITabView() override                       = default;
 
     virtual void Init() override;
-    virtual void UpdateSize(bool update_children = true) override;
 
     /*! \brief Gets the index of the selected tab.
      * 
@@ -118,6 +117,8 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 private:
+    virtual void UpdateSize_Internal(bool update_children = true) override;
+
     void UpdateTabSizes();
 
     RC<UIPanel>         m_container;

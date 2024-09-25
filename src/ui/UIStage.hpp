@@ -236,6 +236,7 @@ private:
         node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
 
         RC<UIObject> ui_object(new T(this, node_proxy));
+        AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
         ui_object->SetName(name);
 
         node_proxy->GetScene()->GetEntityManager()->AddComponent(entity, UIComponent { ui_object });
@@ -249,21 +250,21 @@ private:
 
     bool Remove(ID<Entity> entity);
 
-    ThreadID                                    m_owner_thread_id;
+    ThreadID                                        m_owner_thread_id;
 
-    Vec2i                                       m_surface_size;
+    Vec2i                                           m_surface_size;
 
-    Handle<Scene>                               m_scene;
+    Handle<Scene>                                   m_scene;
 
-    RC<FontAtlas>                               m_default_font_atlas;
+    RC<FontAtlas>                                   m_default_font_atlas;
 
-    FlatMap<ID<Entity>, UIObjectPressedState>   m_mouse_button_pressed_states;
-    FlatSet<ID<Entity>>                         m_hovered_entities;
-    HashMap<KeyCode, Array<Weak<UIObject>>>     m_keyed_down_objects;
+    FlatMap<Weak<UIObject>, UIObjectPressedState>   m_mouse_button_pressed_states;
+    FlatSet<Weak<UIObject>>                         m_hovered_ui_objects;
+    HashMap<KeyCode, Array<Weak<UIObject>>>         m_keyed_down_objects;
 
-    Weak<UIObject>                              m_focused_object;
+    Weak<UIObject>                                  m_focused_object;
 
-    DelegateHandler                             m_on_current_window_changed_handler;
+    DelegateHandler                                 m_on_current_window_changed_handler;
 };
 
 } // namespace hyperion

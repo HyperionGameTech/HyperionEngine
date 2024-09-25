@@ -5,7 +5,6 @@
 
 #include <asset/AssetBatch.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

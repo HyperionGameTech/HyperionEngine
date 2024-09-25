@@ -4,8 +4,6 @@
 
 #include <math/Triangle.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 const Array<Vertex> MeshBuilder::quad_vertices = {

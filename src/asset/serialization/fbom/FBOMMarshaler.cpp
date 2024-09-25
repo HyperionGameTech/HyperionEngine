@@ -2,7 +2,6 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
-#include <Engine.hpp>
 
 namespace hyperion {
 class Engine;

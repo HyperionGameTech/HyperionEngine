@@ -196,17 +196,7 @@ struct HypField : public IHypMember
         return type_id;
     }
 
-    HYP_FORCE_INLINE explicit operator bool() const
-        { return IsValid(); }
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid()
-            && type_id != TypeID::Void()
-            && size != 0;
-    }
-
-    HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
+    virtual const String *GetAttribute(UTF8StringView key) const override
     {
         auto it = attributes.FindAs(key);
 
@@ -215,6 +205,16 @@ struct HypField : public IHypMember
         }
 
         return &it->second;
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return IsValid(); }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return name.IsValid()
+            && type_id != TypeID::Void()
+            && size != 0;
     }
 
     HYP_FORCE_INLINE bool CanSerialize() const

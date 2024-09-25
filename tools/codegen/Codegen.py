@@ -1,5 +1,6 @@
 import os
 import re
+import datetime
 from mako.template import Template
 
 from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_header
@@ -123,6 +124,8 @@ class HypClassDefinition:
         self.members = []
 
         self.base_class = None
+
+        self.last_modified = None
 
         self.is_built = False
 
@@ -362,20 +365,24 @@ class Codegen:
 
         if not os.path.exists(cxx_generated_dir):
             os.makedirs(cxx_generated_dir)
-
-        cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
-        cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
-        self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
+        elif hyp_class.last_modified is None or not os.path.exists(cxx_generated_path) or os.path.getmtime(cxx_generated_path) < hyp_class.last_modified:
+            cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
+            cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
+            self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
+        else:
+            print(f'Skipping C++ codegen for {hyp_class.name} - up to date')
 
         csharp_generated_path = get_generated_path(hyp_class.location.file, self.state.dotnet_output_dir, extension='cs')
         csharp_generated_dir = os.path.dirname(csharp_generated_path)
 
         if not os.path.exists(csharp_generated_dir):
             os.makedirs(csharp_generated_dir)
-
-        csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
-        csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
-        self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
+        elif hyp_class.last_modified is None or not os.path.exists(csharp_generated_path) or os.path.getmtime(csharp_generated_path) < hyp_class.last_modified:
+            csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
+            csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
+            self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
+        else:
+            print(f'Skipping C# codegen for {hyp_class.name} - up to date')
 
         hyp_class.is_built = True
 
@@ -403,7 +410,7 @@ class Codegen:
     def build_hyp_classes(self):
         for file, last_modified in self.header_files:
             # check if corresponding generated file exists
-            generated_path = get_generated_path(file, self.state.output_dir)
+            # generated_path = get_generated_path(file, self.state.output_dir)
 
             # if os.path.exists(generated_path):
             #     generated_last_modified = os.path.getmtime(generated_path)
@@ -492,6 +499,8 @@ class Codegen:
                             parsed_data = parse_cxx_header(content=class_content, options=ParserOptions(preprocessor=make_preprocessor()))
 
                             hyp_class = HypClassDefinition(class_type, source_location, class_name, base_classes, attributes, parsed_data, class_content)
+                            hyp_class.last_modified = last_modified
+                            
                             self.hyp_classes.append(hyp_class)
                         except Exception as e:
                             self.state.add_error(f'Error: Failed to parse class definition for {class_name} in file {file} - {repr(e)}')

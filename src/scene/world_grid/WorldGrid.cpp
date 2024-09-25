@@ -22,8 +22,6 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(WorldGrid, Scene);

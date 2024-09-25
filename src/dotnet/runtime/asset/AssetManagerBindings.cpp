@@ -2,8 +2,6 @@
 
 #include <asset/Assets.hpp>
 
-#include <Engine.hpp>
-
 using namespace hyperion;
 
 extern "C" {

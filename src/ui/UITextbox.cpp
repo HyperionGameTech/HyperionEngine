@@ -8,8 +8,6 @@
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
@@ -31,6 +29,31 @@ UITextbox::UITextbox(UIStage *parent, NodeProxy node_proxy)
         SetScrollOffset(GetScrollOffset() - event_data.wheel * 5, /* smooth */ false);
 
         return UIEventHandlerResult::STOP_BUBBLING;
+    }).Detach();
+
+    OnKeyDown.Bind([this](const KeyboardEvent &event_data) -> UIEventHandlerResult
+    {
+        char key_char;
+
+        const bool shift = event_data.input_manager->IsShiftDown();
+        const bool alt = event_data.input_manager->IsAltDown();
+        const bool ctrl = event_data.input_manager->IsCtrlDown();
+
+        if (KeyCodeToChar(event_data.key_code, shift, alt, ctrl, key_char)) {
+            HYP_LOG(UI, LogLevel::INFO, "Textbox keydown: char = {}", key_char);
+
+            const String &text = GetText();
+
+            if (key_char == '\b') {
+                SetText(text.Substr(0, text.Length() - 2));
+            } else {
+                SetText(text + key_char);
+            }
+
+            return UIEventHandlerResult::STOP_BUBBLING;
+        }
+
+        return UIEventHandlerResult::OK;
     }).Detach();
 }
 

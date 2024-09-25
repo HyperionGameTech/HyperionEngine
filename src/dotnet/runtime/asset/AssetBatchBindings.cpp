@@ -5,7 +5,6 @@
 
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

@@ -223,7 +223,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Extent2D resolution)
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer, framebuffer_extent);
+        AddOwnedAttachment(0, /*InternalFormat::RGBA8_SRGB*/ InternalFormat::RGBA16F, framebuffer, framebuffer_extent);
 
         // Needed for stencil
         AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer, framebuffer_extent);

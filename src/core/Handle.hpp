@@ -415,8 +415,7 @@ struct WeakHandle
     HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
         { return HandleDefinition<T>::GetClassNameString(); }
     
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(String(HandleDefinition<T>::class_name).GetHashCode());
@@ -449,7 +448,8 @@ struct AnyHandle
 
     template <class T>
     AnyHandle(Handle<T> &&handle)
-        : AnyHandle(TypeID::ForType<T>(), IDBase { handle.index })
+        : type_id(TypeID::ForType<T>()),
+          index(handle.index)
     {
         handle.index = 0;
     }
@@ -462,7 +462,8 @@ struct AnyHandle
     HYP_API AnyHandle &operator=(const AnyHandle &other);
 
     AnyHandle(AnyHandle &&other) noexcept
-        : AnyHandle(other.type_id, IDBase { other.index })
+        : type_id(other.type_id),
+          index(other.index)
     {
         other.type_id = TypeID::Void();
         other.index = 0;

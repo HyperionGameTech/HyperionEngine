@@ -450,7 +450,7 @@
 
 namespace hyperion {
 
-extern HYP_API void LogStackTrace();
+extern HYP_API void LogStackTrace(int depth = 10);
 
 } // namespace hyperion
 

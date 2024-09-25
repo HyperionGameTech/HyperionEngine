@@ -10,7 +10,6 @@
 
 #include <math/MathUtil.hpp>
 
-#include <Engine.hpp>
 #include <Game.hpp>
 #include <GameCounter.hpp>
 
@@ -57,7 +56,7 @@ void GameThread::operator()(Game *game)
 
         counter.NextTick();
 
-        g_asset_manager->Update(counter.delta);
+        AssetManager::GetInstance()->Update(counter.delta);
 
         if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);

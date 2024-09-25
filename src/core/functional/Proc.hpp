@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/utilities/Variant.hpp>
+#include <core/utilities/Tuple.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -121,15 +122,18 @@ struct Invoker<void, Args...>
     }
 };
 
-struct ProcBase { };
+class ProcBase { };
 
 } // namespace detail
+
+template <class ReturnType, class... Args>
+class ProcRef;
 
 // non-copyable std::function alternative,
 // with inline storage so no heap allocation occurs.
 // supports move-only types.
-template <class ReturnType, class ...Args>
-struct Proc : detail::ProcBase
+template <class ReturnType, class... Args>
+class Proc : detail::ProcBase
 {
     static constexpr uint inline_storage_size_bytes = 256;
 
@@ -137,6 +141,8 @@ struct Proc : detail::ProcBase
     using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
+    friend class ProcRef<ReturnType, Args...>;
+
     /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc()
         : functor { }
@@ -210,12 +216,70 @@ public:
     HYP_FORCE_INLINE void Reset()
         { functor.Reset(); }
 
+private:
     mutable FunctorDataType functor;
+};
+
+template <class ReturnType, class... Args>
+class ProcRef
+{
+    ProcRef(std::nullptr_t) = delete;
+    
+public:
+    ProcRef(const Proc<ReturnType, Args...> &proc)
+    {
+        AssertThrowMsg(proc.IsValid(), "Cannot construct ProcRef from invalid Proc");
+
+        m_ptr = proc.functor.GetPointer();
+        m_invoke_fn = proc.functor.invoke_fn;
+
+        // m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+        // {
+        //     return (*static_cast<const Proc<ReturnType, Args...> *>(ptr))(std::forward<Args>(args)...);
+        // };
+    }
+
+    template <class Callable, typename = std::enable_if_t< !std::is_same_v< ProcRef, NormalizedType< Callable > > && !std::is_base_of_v< detail::ProcBase, NormalizedType< Callable > > > >
+    ProcRef(Callable &&callable)
+        : m_ptr(const_cast<void *>(static_cast<const void *>(&callable)))
+    {
+        m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+        {
+            return (*static_cast<NormalizedType<Callable> *>(ptr))(std::forward<Args>(args)...);
+        };
+    }
+
+    ProcRef(ReturnType(*fn)(Args...))
+        : m_ptr(fn)
+    {
+        AssertThrowMsg(fn != nullptr, "Cannot construct ProcRef from null function pointer");
+
+        m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+        {
+            return (static_cast<ReturnType(*)(Args...)>(ptr))(std::forward<Args>(args)...);
+        };
+    }
+
+    ProcRef(const ProcRef &other)                   = default;
+    ProcRef &operator=(const ProcRef &other)        = default;
+
+    ProcRef(ProcRef &&other) noexcept               = default;
+    ProcRef &operator=(ProcRef &&other) noexcept    = default;
+
+    ~ProcRef()                                      = default;
+
+    HYP_FORCE_INLINE ReturnType operator()(Args... args) const
+        { return m_invoke_fn(m_ptr, std::forward<Args>(args)...); }
+
+private:
+    void        *m_ptr;
+    ReturnType  (*m_invoke_fn)(void *, Args &&...);
 };
 
 } // namespace functional
 
 using functional::Proc;
+using functional::ProcRef;
 
 } // namespace hyperion
 

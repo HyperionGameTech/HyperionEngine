@@ -3,7 +3,6 @@
 #ifndef HYPERION_COMPONENTS_BASE_HPP
 #define HYPERION_COMPONENTS_BASE_HPP
 
-#include <core/ObjectPool.hpp>
 #include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Defines.hpp>

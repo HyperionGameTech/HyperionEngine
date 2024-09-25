@@ -61,13 +61,13 @@ struct Scalar2D<false>
     Scalar2D(Scalar2D &&other) noexcept = default;
     Scalar2D &operator=(Scalar2D &other) noexcept = default;
 
-    int GetX() const
+    HYP_FORCE_INLINE int GetX() const
         { return x; }
 
-    int GetY() const
+    HYP_FORCE_INLINE int GetY() const
         { return y; }
 
-    explicit operator Vector2() const
+    HYP_FORCE_INLINE explicit operator Vector2() const
         { return Vector2(float(GetX()), float(GetY())); }
 };
 
@@ -133,21 +133,34 @@ public:
     HYP_API bool IsKeyDown(KeyCode key) const;
 
     HYP_METHOD()
-    bool IsKeyUp(KeyCode key) const
+    HYP_FORCE_INLINE bool IsKeyUp(KeyCode key) const
         { return !IsKeyDown(key); }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsShiftDown() const
+        { return IsKeyDown(KeyCode::LEFT_SHIFT) || IsKeyDown(KeyCode::RIGHT_SHIFT); }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsAltDown() const
+        { return IsKeyDown(KeyCode::LEFT_ALT) || IsKeyDown(KeyCode::RIGHT_ALT); }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsCtrlDown() const
+        { return IsKeyDown(KeyCode::LEFT_CTRL) || IsKeyDown(KeyCode::RIGHT_CTRL); }
 
     HYP_METHOD()
     HYP_API bool IsButtonDown(MouseButton btn) const;
 
     HYP_API EnumFlags<MouseButtonState> GetButtonStates() const;
 
-    bool IsButtonUp(MouseButton btn) const
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool IsButtonUp(MouseButton btn) const
         { return !IsButtonDown(btn); }
 
-    ApplicationWindow *GetWindow() const
+    HYP_FORCE_INLINE ApplicationWindow *GetWindow() const
         { return m_window; }
 
-    void SetWindow(ApplicationWindow *window)
+    HYP_FORCE_INLINE void SetWindow(ApplicationWindow *window)
         { m_window = window; }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

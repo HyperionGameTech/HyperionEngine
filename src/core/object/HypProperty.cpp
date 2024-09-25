@@ -3,8 +3,6 @@
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 const HypClass *HypProperty::GetHypClass() const

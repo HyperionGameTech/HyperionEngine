@@ -8,7 +8,6 @@
 
 #include <dotnet/Object.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

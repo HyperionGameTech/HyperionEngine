@@ -2,7 +2,8 @@
 
 #include <core/system/Debug.hpp>
 
-#include <Engine.hpp>
+#include <core/utilities/TypeID.hpp>
+
 #include <Types.hpp>
 
 using namespace hyperion;

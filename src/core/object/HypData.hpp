@@ -175,7 +175,7 @@ struct HypData
         { return const_cast<HypData *>(this)->ToRef(); }
 
     template <class T>
-    HYP_FORCE_INLINE bool Is() const
+    HYP_FORCE_INLINE bool Is(bool strict = false) const
     {
         HYP_SCOPE;
 
@@ -183,6 +183,10 @@ struct HypData
 
         if (!value.IsValid()) {
             return false;
+        }
+        
+        if (strict) {
+            return detail::HypDataTypeChecker_Tuple<T, Tuple<>>{}(value);
         }
         
         return detail::HypDataTypeChecker_Tuple<T, typename HypDataHelper<T>::ConvertibleFrom>{}(value);
@@ -336,17 +340,42 @@ template <class T>
 struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
 {
     using StorageType = T;
-    using ConvertibleFrom = Tuple<>;
+    using ConvertibleFrom = Tuple<
+        int8,
+        int16,
+        int32,
+        int64,
+        uint8,
+        uint16,
+        uint32,
+        uint64,
+        char,
+        float,
+        double,
+        bool
+    >;
 
-    HYP_FORCE_INLINE bool Is(const T &value) const
+    HYP_FORCE_INLINE bool Is(T value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<OtherT, T> > >
+    HYP_FORCE_INLINE bool Is(OtherT value) const
+    {
+        return std::is_fundamental_v<OtherT>;
+    }
+
     constexpr T Get(T value) const
     {
         return value;
+    }
+
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<OtherT, T> > >
+    constexpr T Get(OtherT value) const
+    {
+        return static_cast<T>(value);
     }
 
     void Set(HypData &hyp_data, T value) const

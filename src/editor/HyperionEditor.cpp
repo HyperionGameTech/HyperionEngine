@@ -64,6 +64,8 @@
 
 #include <core/config/Config.hpp>
 
+#include <HyperionEngine.hpp>
+
 // temp
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
@@ -230,7 +232,6 @@ public:
         AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
 
         RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("HypDataGrid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        // grid->SetNumColumns(2);
 
         HashMap<String, EditorPropertyWrapper> properties_by_name;
 
@@ -387,7 +388,6 @@ public:
     virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const Vec3f &value) const override
     {
         RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("Vec3fPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        grid->SetNumColumns(3);
 
         RC<UIGridRow> row = grid->AddRow();
 
@@ -458,7 +458,6 @@ public:
     virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const Quaternion &value) const override
     {
         RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("QuaternionPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        grid->SetNumColumns(3);
 
         RC<UIGridRow> row = grid->AddRow();
 
@@ -1217,18 +1216,16 @@ void HyperionEditorImpl::InitSceneOutline()
 
         AssertThrow(node.IsValid());
 
+        if (node->IsRoot()) {
+            return;
+        }
+
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
             Weak<Node> editor_node_weak = node.ToWeak();
 
             UUID parent_node_uuid = UUID::Invalid();
 
-            if (Node *parent_node = node->GetParent()) {
-                // const NodeTag &data_source_element_uuid_tag = parent_node->GetTag(NAME("DataSourceElementUUID"));
-
-                // if (data_source_element_uuid_tag.IsValid()) {
-                //     parent_node_uuid = data_source_element_uuid_tag.value.Get<UUID>();
-                // }
-
+            if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
                 parent_node_uuid = parent_node->GetUUID();
             }
 
@@ -1574,29 +1571,6 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
-
-    Variant<int, float, double, String> v;
-    v = 5.0;
-
-    v.Visit([](auto &&value)
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "Value = {}", value);
-    });
-
-    v = String("HELLO WORLD");
-
-    v.Visit([](auto &&value)
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "Value = {}", value);
-    });
-
-    // const HypClass *bounding_box_class = GetClass(WeakName("BoundingBox"));
-    // AssertThrow(bounding_box_class->GetManagedClass() != nullptr);
-
-    // const HypClass *mesh_class = Mesh::GetClass();
-    // const HypMethod *test_method = mesh_class->GetMethod(NAME("TestMethod"));
-
-    HYP_BREAKPOINT;
 
 #if 0
     // const HypClass *cls = GetClass<Mesh>();

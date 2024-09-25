@@ -3,8 +3,6 @@
 #ifndef HYPERION_DOTNET_OBJECT_HPP
 #define HYPERION_DOTNET_OBJECT_HPP
 
-#include <Engine.hpp>
-
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/containers/String.hpp>

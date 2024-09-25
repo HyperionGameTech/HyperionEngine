@@ -105,14 +105,10 @@ struct TupleLeaf
 
     ~TupleLeaf() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr bool operator==(const TupleLeaf &other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const TupleLeaf &other) const
         { return value == other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr bool operator!=(const TupleLeaf &other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const TupleLeaf &other) const
         { return value != other.value; }
 };
 
@@ -161,14 +157,10 @@ struct TupleLeaf<Index, T &>
 
     ~TupleLeaf() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr bool operator==(const TupleLeaf &other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const TupleLeaf &other) const
         { return value == other.value; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    constexpr bool operator!=(const TupleLeaf &other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const TupleLeaf &other) const
         { return value != other.value; }
 };
 

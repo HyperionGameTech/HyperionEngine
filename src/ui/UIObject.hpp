@@ -595,7 +595,7 @@ public:
     /*! \brief Remove all child UIObjects from this object that match the predicate.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \returns The number of child UIObjects removed. */
-    virtual int RemoveAllChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate);
+    virtual int RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate);
 
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
@@ -622,7 +622,7 @@ public:
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    RC<UIObject> FindChildUIObject(const Proc<bool, const RC<UIObject> &> &predicate, bool deep = true) const;
+    RC<UIObject> FindChildUIObject(ProcRef<bool, const RC<UIObject> &> predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */ 
@@ -664,7 +664,7 @@ public:
     bool RemoveNodeTag(Name key);
 
     virtual void UpdatePosition(bool update_children = true);
-    virtual void UpdateSize(bool update_children = true);
+    void UpdateSize(bool update_children = true);
 
     /*! \brief Set deferred updates to apply to the UI object.
      *  \details Deferred updates are used to defer updates to the UI object until the next Update() call.
@@ -677,6 +677,15 @@ public:
         }
 
         m_deferred_updates |= update_type;
+    }
+
+    void SetUpdatesLocked(EnumFlags<UIObjectUpdateType> update_type, bool locked)
+    {
+        if (locked) {
+            m_locked_updates |= update_type;
+        } else {
+            m_locked_updates &= ~update_type;
+        }
     }
 
     /*! \brief Get the focus state of the UI object.
@@ -693,7 +702,7 @@ public:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
      *  \param reverse If true, collect the objects in reverse order (from bottom to top in the hierarchy). */
-    void CollectObjects(const Proc<void, UIObject *> &proc, bool reverse = false) const;
+    void CollectObjects(ProcRef<void, UIObject *> proc, bool reverse = false) const;
 
     /*! \brief Collect all nested UIObjects in the hierarchy and push them to the `out_objects` array.
      *  \param out_objects The array to store the collected UIObjects in.
@@ -743,7 +752,7 @@ public:
         { m_data_source_element_uuid = data_source_element_uuid; }
 
     /*! \internal */
-    void ForEachChildUIObject_Proc(const Proc<UIObjectIterationResult, const RC<UIObject> &> &&proc, bool deep = true) const;
+    void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, const RC<UIObject> &> proc, bool deep = true) const;
 
     // Events
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
@@ -760,6 +769,13 @@ public:
     Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
 
 protected:
+    HYP_FORCE_INLINE bool UseAutoSizing() const
+    {
+        return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
+    }
+
+    virtual void UpdateSize_Internal(bool update_children = true);
+
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source);
 
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state);
@@ -813,7 +829,7 @@ protected:
     void UpdateMaterial(bool update_children = true);
 
     Array<RC<UIObject>> GetChildUIObjects(bool deep) const;
-    Array<RC<UIObject>> FilterChildUIObjects(const Proc<bool, const RC<UIObject> &> &predicate, bool deep) const;
+    Array<RC<UIObject>> FilterChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const;
 
     virtual void SetStage_Internal(UIStage *stage);
 
@@ -878,7 +894,7 @@ private:
      *  \param proc The function to call for each collected UIObject.
      *  \param out_deferred_child_objects Array to push child objects to, in the case that its parent type is not a container type (IsContainer() returns false)
      *  \param reverse If true, collect objects in reverse order. */
-    void CollectObjects(const Proc<void, UIObject *> &proc, Array<UIObject *> &out_deferred_child_objects, bool reverse = false) const;
+    void CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool reverse = false) const;
 
     void ComputeOffsetPosition();
 
@@ -915,6 +931,7 @@ private:
     AtomicVar<bool>                 m_needs_repaint;
 
     EnumFlags<UIObjectUpdateType>   m_deferred_updates;
+    EnumFlags<UIObjectUpdateType>   m_locked_updates;
 
     NodeProxy                       m_node_proxy;
 

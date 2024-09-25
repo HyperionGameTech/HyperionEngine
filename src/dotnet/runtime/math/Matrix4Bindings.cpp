@@ -2,7 +2,6 @@
 
 #include <math/Matrix4.hpp>
 
-#include <Engine.hpp>
 #include <Types.hpp>
 
 using namespace hyperion;

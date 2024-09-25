@@ -11,8 +11,6 @@
 
 #include <util/json/JSON.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 using namespace json;

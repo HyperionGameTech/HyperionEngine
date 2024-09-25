@@ -4,8 +4,6 @@
 
 #include <core/object/HypClassUtils.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 Subsystem::Subsystem()

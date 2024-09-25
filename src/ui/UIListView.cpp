@@ -6,12 +6,12 @@
 
 #include <input/InputManager.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/Format.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
-
-#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -22,15 +22,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
     : UIObject(parent, std::move(node_proxy), UIObjectType::LIST_VIEW_ITEM),
       m_is_selected_item(false),
-      m_is_expanded(false)
+      m_is_expanded(true)
 {
-    SetBackgroundColor(Vec4f::Zero());
-}
-
-void UIListViewItem::Init()
-{
-    UIObject::Init();
-
     m_inner_element = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     // Expand / collapse subitems when selected
@@ -44,6 +37,11 @@ void UIListViewItem::Init()
     }).Detach();
 
     UIObject::AddChildUIObject(m_inner_element);
+}
+
+void UIListViewItem::Init()
+{
+    UIObject::Init();
 }
 
 void UIListViewItem::AddChildUIObject(UIObject *ui_object)
@@ -63,10 +61,6 @@ void UIListViewItem::AddChildUIObject(UIObject *ui_object)
         }
 
         m_expanded_element->AddChildUIObject(ui_object);
-
-        if (UIObject *parent_list_view = GetClosestParentUIObject(UIObjectType::LIST_VIEW)) {
-            parent_list_view->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
-        }
 
         return;
     }
@@ -91,10 +85,6 @@ bool UIListViewItem::RemoveChildUIObject(UIObject *ui_object)
             if (!HasSubItems()) {
                 m_expanded_element->RemoveFromParent();
                 m_expanded_element.Reset();
-            }
-
-            if (UIObject *parent_list_view = GetClosestParentUIObject(UIObjectType::LIST_VIEW)) {
-                parent_list_view->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
             }
 
             return true;
@@ -138,24 +128,16 @@ void UIListViewItem::SetIsSelectedItem(bool is_selected_item)
     }
 
     m_is_selected_item = is_selected_item;
-
-    if (is_selected_item) {
-        SetBackgroundColor(Vec4f { 0.25f, 0.25f, 0.25f, 1.0f });
-    } else {
-        SetBackgroundColor(Vec4f::Zero());
-    }
 }
 
 void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 {
     UIObject::SetFocusState_Internal(focus_state);
 
-    if (!m_is_selected_item) {
-        if (focus_state & UIObjectFocusState::HOVER) {
-            SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
-        } else {
-            SetBackgroundColor(Vec4f::Zero());
-        }
+    if (focus_state & UIObjectFocusState::HOVER) {
+        m_inner_element->SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
+    } else {
+        m_inner_element->SetBackgroundColor(Color(0x101012FFu));
     }
 }
 
@@ -218,11 +200,11 @@ bool UIListView::RemoveChildUIObject(UIObject *ui_object)
     return UIObject::RemoveChildUIObject(ui_object);
 }
 
-void UIListView::UpdateSize(bool update_children)
+void UIListView::UpdateSize_Internal(bool update_children)
 {
     HYP_SCOPE;
 
-    UIPanel::UpdateSize(update_children);
+    UIPanel::UpdateSize_Internal(update_children);
 
     UpdateLayout();
 }
@@ -263,6 +245,15 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
     m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Add element from data source to list view");
+
+        SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+        HYP_DEFER([this]()
+        {
+            SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
+        });
 
         RC<UIListViewItem> list_view_item = GetStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         list_view_item->GetNode()->AddTag(NAME("DataSourceElementUUID"), NodeTag(element->GetUUID()));
@@ -318,11 +309,21 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
     {
         HYP_NAMED_SCOPE("Remove element from data source from list view");
 
+        SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
+
+        HYP_DEFER([this]()
+        {
+            SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
+
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
+        });
+
         UIListViewItem *list_view_item = FindListViewItem(element->GetUUID());
 
         if (list_view_item) {
             // If the item is selected, deselect it
-            if (m_selected_item.Lock().Get() == list_view_item) {
+            if (RC<UIListViewItem> selected_item = m_selected_item.Lock(); list_view_item == selected_item.Get()) {
+                selected_item->SetIsSelectedItem(false);
                 m_selected_item.Reset();
 
                 OnSelectedItemChange(nullptr);
@@ -346,15 +347,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID());
 
-        // recreate the list view item content
-        // @TODO: Make a function to update the content of a list view item
         if (list_view_item) {
-            // (*it)->RemoveAllChildUIObjects();
-            // (*it)->AddChildUIObject(m_data_source->GetElementFactory()->CreateUIObject(
-            //     GetStage(),
-            //     element->GetValue()
-            // ));
-
             if (const RC<UIObject> &ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
                 data_source->GetElementFactory()->UpdateUIObject(
                     ui_object.Get(),
