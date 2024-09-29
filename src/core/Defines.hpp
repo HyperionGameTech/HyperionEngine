@@ -60,7 +60,7 @@
 #elif defined(HYP_GCC) && HYP_GCC
     #define HYP_NOTNULL __attribute__((nonnull))
 #elif defined(HYP_MSVC) && HYP_MSVC
-    #define HYP_NOTNULL __declspec(nonnull)
+    #define HYP_NOTNULL 
 #else
     #define HYP_NOTNULL
 #endif
@@ -116,16 +116,6 @@
 #ifdef HYP_MSVC
 #pragma warning( disable : 4251 ) // class needs to have dll-interface to be used by clients of class
 #pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
-#endif
-
-/// Support for checking if VA_OPT is available:
-// https://stackoverflow.com/a/48045656
-#define HYP_PP_THIRD_ARG(a,b,c,...) c
-#define HYP_VA_OPT_SUPPORTED_I(...) HYP_PP_THIRD_ARG(__VA_OPT__(,),true,false,)
-#define HYP_VA_OPT_SUPPORTED HYP_VA_OPT_SUPPORTED_I(?)
-
-#ifndef HYP_VA_OPT_SUPPORTED
-    #define __VA_OPT__(c) c
 #endif
 
 #pragma endregion Compiler and Platform Switches

@@ -24,11 +24,11 @@
 namespace hyperion {
 namespace fbom {
 
-struct FBOMNameTable : public IFBOMSerializable
+struct FBOMNameTable final : public IFBOMSerializable
 {
     HashMap<WeakName, ANSIString>   values;
 
-    virtual ~FBOMNameTable() = default;
+    virtual ~FBOMNameTable() override = default;
 
     HYP_FORCE_INLINE WeakName Add(ANSIStringView str)
     {

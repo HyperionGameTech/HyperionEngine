@@ -20,7 +20,7 @@
 namespace hyperion {
 namespace fbom {
 
-class HYP_API FBOMArray : public IFBOMSerializable
+class HYP_API FBOMArray final : public IFBOMSerializable
 {
 public:
     FBOMArray(const FBOMType &element_type);
@@ -30,7 +30,7 @@ public:
     FBOMArray &operator=(const FBOMArray &other);
     FBOMArray(FBOMArray &&other) noexcept;
     FBOMArray &operator=(FBOMArray &&other) noexcept;
-    virtual ~FBOMArray();
+    virtual ~FBOMArray() override;
 
     HYP_FORCE_INLINE const FBOMType &GetElementType() const
         { return m_element_type; }

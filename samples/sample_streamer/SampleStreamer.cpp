@@ -36,7 +36,6 @@
 
 #include <Game.hpp>
 
-#include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/ByteWriter.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>

@@ -29,68 +29,49 @@ struct HYP_API TimeDiff
     TimeDiff &operator=(TimeDiff &&other) noexcept  = default;
     ~TimeDiff()                                     = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator int64() const
+    HYP_FORCE_INLINE explicit operator int64() const
         { return milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return milliseconds != 0; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator<(const TimeDiff &other) const
         { return milliseconds < other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<=(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator<=(const TimeDiff &other) const
         { return milliseconds <= other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator>(const TimeDiff &other) const
         { return milliseconds > other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>=(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator>=(const TimeDiff &other) const
         { return milliseconds >= other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator==(const TimeDiff &other) const
         { return milliseconds == other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const TimeDiff &other) const
+    HYP_FORCE_INLINE bool operator!=(const TimeDiff &other) const
         { return milliseconds != other.milliseconds; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TimeDiff operator+(const TimeDiff &other) const
+    HYP_FORCE_INLINE TimeDiff operator+(const TimeDiff &other) const
         { return TimeDiff(milliseconds + other.milliseconds); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TimeDiff &operator+=(const TimeDiff &other)
+    HYP_FORCE_INLINE TimeDiff &operator+=(const TimeDiff &other)
         { milliseconds += other.milliseconds; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TimeDiff operator-(const TimeDiff &other) const
+    HYP_FORCE_INLINE TimeDiff operator-(const TimeDiff &other) const
         { return TimeDiff(milliseconds - other.milliseconds); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TimeDiff &operator-=(const TimeDiff &other)
+    HYP_FORCE_INLINE TimeDiff &operator-=(const TimeDiff &other)
         { milliseconds -= other.milliseconds; return *this; }
 
-    HYP_NODISCARD 
     TimeDiff operator+(const Time &other) const;
-
-    HYP_NODISCARD 
     TimeDiff &operator+=(const Time &other);
-
-    HYP_NODISCARD 
     TimeDiff operator-(const Time &other) const;
 
-    HYP_NODISCARD 
     TimeDiff &operator-=(const Time &other);
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
         { return HashCode::GetHashCode(milliseconds); }
 
     int64   milliseconds;
@@ -109,60 +90,46 @@ public:
     Time &operator=(Time &&other) noexcept  = default;
     ~Time()                                 = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    explicit operator uint64() const
+    HYP_FORCE_INLINE explicit operator uint64() const
         { return m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<(const Time &other) const
+    HYP_FORCE_INLINE bool operator<(const Time &other) const
         { return m_value < other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<=(const Time &other) const
+    HYP_FORCE_INLINE bool operator<=(const Time &other) const
         { return m_value <= other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>(const Time &other) const
+    HYP_FORCE_INLINE bool operator>(const Time &other) const
         { return m_value > other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>=(const Time &other) const
+    HYP_FORCE_INLINE bool operator>=(const Time &other) const
         { return m_value >= other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const Time &other) const
+    HYP_FORCE_INLINE bool operator==(const Time &other) const
         { return m_value == other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const Time &other) const
+    HYP_FORCE_INLINE bool operator!=(const Time &other) const
         { return m_value != other.m_value; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Time operator+(const TimeDiff &diff) const
+    HYP_FORCE_INLINE Time operator+(const TimeDiff &diff) const
         { return Time(m_value + diff.milliseconds); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Time &operator+=(const TimeDiff &diff)
+    HYP_FORCE_INLINE Time &operator+=(const TimeDiff &diff)
         { m_value += diff.milliseconds; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    TimeDiff operator-(const Time &other) const
+    HYP_FORCE_INLINE TimeDiff operator-(const Time &other) const
         { return TimeDiff(m_value - other.m_value); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Time operator-(const TimeDiff &diff) const
+    HYP_FORCE_INLINE Time operator-(const TimeDiff &diff) const
         { return Time(m_value - diff.milliseconds); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Time &operator-=(const Time &other)
+    HYP_FORCE_INLINE Time &operator-=(const Time &other)
         { m_value -= other.m_value; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    Time &operator-=(const TimeDiff &diff)
+    HYP_FORCE_INLINE Time &operator-=(const TimeDiff &diff)
         { m_value -= diff.milliseconds; return *this; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
         { return HashCode::GetHashCode(m_value); }
 
     static Time Now();

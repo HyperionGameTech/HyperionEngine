@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-class Triangle;
+struct Triangle;
 
 HYP_STRUCT()
 class HYP_API BoundingBox
@@ -74,8 +74,6 @@ public:
     BoundingBox &operator/=(float scalar);
     BoundingBox operator+(const Vec3f &offset) const;
     BoundingBox &operator+=(const Vec3f &offset);
-    BoundingBox operator-(const Vec3f &offset) const;
-    BoundingBox &operator-=(const Vec3f &offset);
     BoundingBox operator/(const Vec3f &scale) const;
     BoundingBox &operator/=(const Vec3f &scale);
     BoundingBox operator*(const Vec3f &scale) const;

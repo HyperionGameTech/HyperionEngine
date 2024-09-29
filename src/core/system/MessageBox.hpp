@@ -26,29 +26,29 @@ struct MessageBoxButton
     Proc<void>  on_click;
 };
 
-class HYP_API MessageBox
+class HYP_API SystemMessageBox
 {
 public:
-    MessageBox(MessageBoxType type);
+    SystemMessageBox(MessageBoxType type);
 
-    MessageBox(
+    SystemMessageBox(
         MessageBoxType type,
         const String &title,
         const String &message,
         Array<MessageBoxButton> &&button = { }
     );
 
-    MessageBox(const MessageBox &other)             = delete;
-    MessageBox &operator=(const MessageBox &other)  = delete;
+    SystemMessageBox(const SystemMessageBox &other)             = delete;
+    SystemMessageBox &operator=(const SystemMessageBox &other)  = delete;
 
-    MessageBox(MessageBox &&other) noexcept;
-    MessageBox &operator=(MessageBox &&other) noexcept;
+    SystemMessageBox(SystemMessageBox &&other) noexcept;
+    SystemMessageBox &operator=(SystemMessageBox &&other) noexcept;
 
-    ~MessageBox();
+    ~SystemMessageBox();
 
-    MessageBox &Title(const String &title);
-    MessageBox &Text(const String &text);
-    MessageBox &Button(const String &text, Proc<void> &&on_click);
+    SystemMessageBox &Title(const String &title);
+    SystemMessageBox &Text(const String &text);
+    SystemMessageBox &Button(const String &text, Proc<void> &&on_click);
 
     void Show() const;
 
@@ -63,7 +63,7 @@ private:
 
 using sys::MessageBoxButton;
 using sys::MessageBoxType;
-using sys::MessageBox;
+using sys::SystemMessageBox;
 
 } // namespace hyperion
 

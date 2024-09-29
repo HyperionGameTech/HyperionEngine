@@ -26,10 +26,10 @@
 #include <cwchar>
 #endif
 
+namespace hyperion {
 namespace utf {
 
 #ifdef _WIN32
-typedef std::wstring stdstring;
 typedef std::wostream utf8_ostream;
 typedef std::wofstream utf8_ofstream;
 typedef std::wistream utf8_istream;
@@ -64,7 +64,6 @@ inline std::vector<char> ToMultiByte(const wchar_t *wstr)
 #define HYP_UTF8_TOMULTIBYTE(str) utf::ToMultiByte(str).data()
 
 #else
-typedef std::string stdstring;
 typedef std::ostream utf8_ostream;
 typedef std::ofstream utf8_ofstream;
 typedef std::istream utf8_istream;
@@ -81,9 +80,9 @@ static auto &fputs = std::fputs;
 #define HYP_UTF8_TOMULTIBYTE(str) (str)
 #endif
 
-using u32char = hyperion::uint32;
-using u16char = hyperion::uint16;
-using u8char = hyperion::uint8;
+using u32char = uint32;
+using u16char = uint16;
+using u8char = uint8;
 
 #define HYP_UTF8_CHECK_BOUNDS(idx, max) \
     do { if ((idx) == (max)) { return -1; } } while (0)
@@ -568,12 +567,10 @@ inline void utf8_charat(const u8char *str, u8char *dst, hyperion::SizeType max, 
 #define HYP_UTF_IS_TRAIL_SURROGATE(ch) ((ch) >= 0xdc00u && (ch) <= 0xdfffu)
 #define HYP_UTF_SURROGATE_OFFSET       (0x10000u - (0xd800u << 10) - 0xdc00u)
 
-using namespace hyperion;
-
-inline uint32 utf8_append(uint32_t cp, u8char *result)
+inline SizeType utf8_append(uint32_t cp, u8char *result)
 {
     if (result) {
-        uint32 len = 0;
+        SizeType len = 0;
 
         if (cp < 0x80) {
             result[len++] = u8char(cp);
@@ -607,9 +604,9 @@ inline uint32 utf8_append(uint32_t cp, u8char *result)
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline uint32 utf16_to_utf8(const u16char *start, const u16char *end, u8char *result)
+inline SizeType utf16_to_utf8(const u16char *start, const u16char *end, u8char *result)
 {
-    uint32 len = 0;
+    SizeType len = 0;
 
     while (start != end) {
         uint32 cp = HYP_UTF_MASK16(*start++);
@@ -631,9 +628,9 @@ inline uint32 utf16_to_utf8(const u16char *start, const u16char *end, u8char *re
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline uint32 utf32_to_utf8(const u32char *start, const u32char *end, u8char *result)
+inline SizeType utf32_to_utf8(const u32char *start, const u32char *end, u8char *result)
 {
-    uint32 len = 0;
+    SizeType len = 0;
 
     while (start != end) {
         uint32 cp = *start++;
@@ -646,10 +643,10 @@ inline uint32 utf32_to_utf8(const u32char *start, const u32char *end, u8char *re
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline uint32 wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *result)
+inline SizeType wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *result)
 {
 #ifdef _WIN32
-    uint32 len = 0;
+    SizeType len = 0;
 
     if (result) {
         len = WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), (char *)result, 0, NULL, NULL);
@@ -665,7 +662,7 @@ inline uint32 wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *res
 
     return len;
 #else
-    uint32 len = 0;
+    SizeType len = 0;
 
     if (result) {
         while (start != end) {
@@ -707,9 +704,9 @@ inline uint32 wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *res
 #endif
 }
 
-inline uint32 utf8_to_wide(const u8char *start, const u8char *end, wchar_t *result)
+inline SizeType utf8_to_wide(const u8char *start, const u8char *end, wchar_t *result)
 {
-    uint32 len = 0;
+    SizeType len = 0;
 
 #ifdef _WIN32
     if (result) {
@@ -771,30 +768,30 @@ inline uint32 utf8_to_wide(const u8char *start, const u8char *end, wchar_t *resu
     return len;
 }
 
-inline uint32 utf16_to_wide(const u16char *start, const u16char *end, wchar_t *result)
+inline SizeType utf16_to_wide(const u16char *start, const u16char *end, wchar_t *result)
 {
-    const intptr_t len = end - start;
+    const ptrdiff_t len = static_cast<ptrdiff_t>(end - start);
 
     if (result) {
-        for (uint32 i = 0; i < len; i++) {
+        for (SizeType i = 0; i < len; i++) {
             result[i] = (wchar_t)start[i];
         }
     }
 
-    return len;
+    return SizeType(len);
 }
 
-inline uint32 utf32_to_wide(const u32char *start, const u32char *end, wchar_t *result)
+inline SizeType utf32_to_wide(const u32char *start, const u32char *end, wchar_t *result)
 {
-    const intptr_t len = end - start;
+    const ptrdiff_t len = static_cast<ptrdiff_t>(end - start);
 
     if (result) {
-        for (uint32 i = 0; i < len; i++) {
+        for (SizeType i = 0; i < len; i++) {
             result[i] = (wchar_t)start[i];
         }
     }
 
-    return uint32(len);
+    return SizeType(len);
 }
 
 /*! \brief How to use:
@@ -870,9 +867,10 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
     result[buffer_index] = 0;
 }
 
-inline char *get_bytes(u32char &ch) { return reinterpret_cast<char*>(&ch); }
+inline char *get_bytes(u32char &ch) { return reinterpret_cast<char *>(&ch); }
 
 } // namespace utf
+} // namespace hyperion
 
 #undef NOMINMAX
 

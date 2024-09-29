@@ -27,9 +27,9 @@ template <class ... Components>
 struct EntitySetIterator
 {
     EntitySet<Components...>    &set;
-    uint                        index;
+    SizeType                    index;
 
-    EntitySetIterator(EntitySet<Components...> &set, uint index)
+    EntitySetIterator(EntitySet<Components...> &set, SizeType index)
         : set(set),
           index(index)
     {
@@ -41,16 +41,16 @@ struct EntitySetIterator
     EntitySetIterator &operator=(EntitySetIterator &&other) noexcept    = default;
     ~EntitySetIterator()                                                = default;
 
-    EntitySetIterator &operator++()
+    HYP_FORCE_INLINE EntitySetIterator &operator++()
         { ++index; return *this; }
 
-    EntitySetIterator operator++(int)
+    HYP_FORCE_INLINE EntitySetIterator operator++(int)
         { EntitySetIterator it = *this; ++index; return it; }
 
-    bool operator==(const EntitySetIterator &other) const
+    HYP_FORCE_INLINE bool operator==(const EntitySetIterator &other) const
         { return std::addressof(set) == std::addressof(other.set) && index == other.index; }
 
-    bool operator!=(const EntitySetIterator &other) const
+    HYP_FORCE_INLINE bool operator!=(const EntitySetIterator &other) const
         { return !(*this == other); }
 
     Tuple< ID<Entity>, Components &... > operator*()
@@ -63,18 +63,18 @@ struct EntitySetIterator
         );
     }
 
-    Tuple< ID<Entity>, const Components &... > operator*() const
+    Tuple<ID<Entity>, const Components &...> operator*() const
         { return const_cast<EntitySetIterator *>(this)->operator*(); }
 
-    Tuple< ID<Entity>, Components &... > operator->()
+    Tuple<ID<Entity>, Components &...> operator->()
         { return **this; }
 
-    Tuple< ID<Entity>, const Components &... > operator->() const
+    Tuple<ID<Entity>, const Components &...> operator->() const
         { return **this; }
 
 private:
-    template <SizeType ... Indices>
-    Tuple< Components &... > GetComponents(const FixedArray<ComponentID, sizeof...(Components)> &component_ids, std::index_sequence<Indices...>)
+    template <SizeType... Indices>
+    Tuple<Components &...> GetComponents(const FixedArray<ComponentID, sizeof...(Components)> &component_ids, std::index_sequence<Indices...>)
     {
         return Tuple< Components &... >(
             set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetComponent(component_ids[Indices])...
@@ -96,10 +96,10 @@ public:
     friend struct EntitySetIterator<Components...>;
     friend struct EntitySetView<Components...>;
 
-    using Element           = Pair<ID<Entity>, FixedArray<ComponentID, sizeof...(Components)>>;
+    using Element = Pair<ID<Entity>, FixedArray<ComponentID, sizeof...(Components)>>;
 
-    using Iterator          = EntitySetIterator<Components...>;
-    using ConstIterator     = EntitySetIterator<const Components...>;
+    using Iterator = EntitySetIterator<Components...>;
+    using ConstIterator = EntitySetIterator<const Components...>;
 
     static const EntitySetTypeID type_id;
 

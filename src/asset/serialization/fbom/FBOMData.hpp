@@ -62,7 +62,7 @@ class FBOMObject;
 class FBOMArray;
 struct FBOMDeserializedObject;
 
-class HYP_API FBOMData : public IFBOMSerializable
+class HYP_API FBOMData final : public IFBOMSerializable
 {
 public:
     FBOMData(EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE);
@@ -72,7 +72,7 @@ public:
     FBOMData &operator=(const FBOMData &other);
     FBOMData(FBOMData &&other) noexcept;
     FBOMData &operator=(FBOMData &&other) noexcept;
-    virtual ~FBOMData();
+    virtual ~FBOMData() override;
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return !type.IsUnset() || bytes.Any(); }
@@ -141,7 +141,7 @@ public:
         data.SetBytes(sizeof(c_type), &value); \
         return data; \
     } \
-    explicit FBOMData(c_type value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
+    explicit FBOMData(const c_type &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
         : FBOMData(From##type_name(value, flags)) { } \
 
     FBOM_TYPE_FUNCTIONS(UInt8, uint8)
@@ -292,8 +292,8 @@ public:
         return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value), flags);
     }
 
-    template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > && std::is_class_v< NormalizedType<T> > > >
-    explicit FBOMData(const T &value) : FBOMData(FromStruct(value)) { }
+    //template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > && std::is_class_v< NormalizedType<T> > > >
+    //explicit FBOMData(const T &value) : FBOMData(FromStruct(value)) { }
 
 #pragma endregion Struct
 
@@ -404,13 +404,13 @@ public:
         { return Visit(GetUniqueID(), writer, out, attributes); }
 
     virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
-
-    HYP_FORCE_INLINE const RC<HypData> &GetDeserializedObject() const
-        { return m_deserialized_object; }
     
     virtual String ToString(bool deep = true) const override;
     virtual UniqueID GetUniqueID() const override;
     virtual HashCode GetHashCode() const override;
+
+    HYP_FORCE_INLINE const RC<HypData> &GetDeserializedObject() const
+        { return m_deserialized_object; }
 
 private:
     ByteBuffer                  bytes;

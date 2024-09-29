@@ -10,7 +10,7 @@ extern "C" {
 
 HYP_EXPORT void MessageBox_Show(int type, const char *title, const char *message, int buttons, const char **button_texts, void(**button_callbacks)(void))
 {
-    MessageBox message_box { MessageBoxType(type), title, message };
+    SystemMessageBox message_box { MessageBoxType(type), title, message };
 
     for (int i = 0; i < buttons; i++) {
         message_box.Button(button_texts[i], [button_callbacks, i]() -> void

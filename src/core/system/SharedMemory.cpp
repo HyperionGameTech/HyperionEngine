@@ -76,7 +76,7 @@ bool SharedMemory::Close()
         return true;
     }
 #else
-    AssertThrow(false, "Unsupported platform for mapped memory, or not yet implemented!");
+    HYP_FAIL("Unsupported platform for mapped memory, or not yet implemented!");
 #endif
 
     return false;
@@ -104,7 +104,7 @@ bool SharedMemory::Open()
 
     return true;
 #else
-    AssertThrow(false, "Unsupported platform for mapped memory, or not yet implemented!");
+    HYP_FAIL("Unsupported platform for mapped memory, or not yet implemented!");
 
     return false;
 #endif

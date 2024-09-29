@@ -25,6 +25,130 @@ namespace hyperion {
 
 namespace containers {
 
+
+namespace detail {
+
+template <class T, SizeType NumInlineBytes, class T2 = void>
+struct ArrayStorage;
+
+template <class T>
+struct ArrayStorage<T, 0>
+{
+    static constexpr bool use_inline_storage = false;
+    static constexpr SizeType num_inline_bytes = 0;
+    static constexpr SizeType num_inline_elements = 0;
+
+    using Storage = ValueStorage<T>;
+
+    Storage *m_buffer = nullptr;
+    
+    HYP_FORCE_INLINE T *GetBuffer()
+    {
+        return reinterpret_cast<T *>(m_buffer);
+    }
+
+    HYP_FORCE_INLINE const T *GetBuffer() const
+    {
+        return reinterpret_cast<const T *>(m_buffer);
+    }
+
+    HYP_FORCE_INLINE Storage *GetStorage()
+    {
+        return m_buffer;
+    }
+
+    HYP_FORCE_INLINE const Storage *GetStorage() const
+    {
+        return m_buffer;
+    }
+
+    HYP_FORCE_INLINE bool IsDynamic() const
+    {
+        return m_buffer != nullptr;
+    }
+
+    HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
+    {
+        AssertThrow(m_buffer == nullptr);
+        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * size));
+    }
+
+    HYP_FORCE_INLINE void FreeDynamic()
+    {
+        AssertThrow(m_buffer != nullptr);
+
+        Memory::Free(m_buffer);
+        m_buffer = nullptr;
+    }
+};
+
+template <class T, SizeType NumInlineBytes>
+struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< (sizeof(T) <= NumInlineBytes) > >
+{
+    static constexpr bool use_inline_storage = true;
+    static constexpr SizeType num_inline_bytes = NumInlineBytes;
+    static constexpr SizeType num_inline_elements = (num_inline_bytes / sizeof(T));
+
+    using Storage = ValueStorage<T>;
+    
+    union {
+        Storage                                     *m_buffer;
+        ValueStorageArray<T, num_inline_elements>   m_inline_storage;
+    };
+
+    bool                                            m_is_dynamic = false;
+    
+    HYP_FORCE_INLINE T *GetBuffer()
+    {
+        return reinterpret_cast<T *>(m_is_dynamic ? m_buffer : &m_inline_storage[0]);
+    }
+
+    HYP_FORCE_INLINE const T *GetBuffer() const
+    {
+        return reinterpret_cast<const T *>(m_is_dynamic ? m_buffer : &m_inline_storage[0]);
+    }
+
+    HYP_FORCE_INLINE Storage *GetStorage()
+    {
+        return m_is_dynamic ? m_buffer : &m_inline_storage[0];
+    }
+
+    HYP_FORCE_INLINE const Storage *GetStorage() const
+    {
+        return m_is_dynamic ? m_buffer : &m_inline_storage[0];
+    }
+
+    HYP_FORCE_INLINE bool IsDynamic() const
+    {
+        return m_is_dynamic;
+    }
+
+    HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
+    {
+        AssertThrow(!m_is_dynamic);
+        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * size));
+        m_is_dynamic = true;
+    }
+
+    HYP_FORCE_INLINE void FreeDynamic()
+    {
+        AssertThrow(m_is_dynamic);
+
+        Memory::Free(m_buffer);
+        m_buffer = nullptr;
+
+        m_is_dynamic = false;
+    }
+};
+
+template <class T, SizeType NumInlineBytes>
+struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< NumInlineBytes != 0 && (sizeof(T) > NumInlineBytes) > > : ArrayStorage<T, 0>
+{
+
+};
+
+} // namespace detail
+
 template <class T, SizeType NumInlineBytes = 256u>
 class Array;
 
@@ -40,15 +164,15 @@ public:
     using Base = ContainerBase<Array<T, NumInlineBytes>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
-    using Storage = ValueStorage<ValueType>;
+    using Storage = typename detail::ArrayStorage<T, NumInlineBytes>::Storage;
 
     static constexpr bool is_contiguous = true;
     
     static constexpr bool is_pod_type = IsPODType<T>;
     
-    static constexpr bool use_inline_storage = sizeof(T) <= NumInlineBytes && NumInlineBytes != 0;
-    static constexpr SizeType num_inline_bytes = use_inline_storage ? NumInlineBytes : 0;
-    static constexpr SizeType num_inline_elements = use_inline_storage ? (num_inline_bytes / sizeof(T)) : 0;
+    static constexpr bool use_inline_storage = detail::ArrayStorage<T, NumInlineBytes>::use_inline_storage;
+    static constexpr SizeType num_inline_bytes = detail::ArrayStorage<T, NumInlineBytes>::num_inline_bytes;
+    static constexpr SizeType num_inline_elements = detail::ArrayStorage<T, NumInlineBytes>::num_inline_elements;
 
 protected:
     // on PushFront() we can pad the start with this number,
@@ -450,44 +574,24 @@ public:
     )
 
 protected:
-    HYP_FORCE_INLINE
-    T *GetBuffer()
+    HYP_FORCE_INLINE T *GetBuffer()
     {
-        if constexpr (use_inline_storage) {
-            return reinterpret_cast<T *>(m_is_dynamic ? m_buffer : &m_inline_storage[0]);
-        } else {
-            return reinterpret_cast<T *>(m_buffer);
-        }
+        return m_storage.GetBuffer();
     }
 
-    HYP_FORCE_INLINE
-    const T *GetBuffer() const
+    HYP_FORCE_INLINE const T *GetBuffer() const
     {
-        if constexpr (use_inline_storage) {
-            return reinterpret_cast<const T *>(m_is_dynamic ? m_buffer : &m_inline_storage[0]);
-        } else {
-            return reinterpret_cast<const T *>(m_buffer);
-        }
+        return m_storage.GetBuffer();
     }
 
-    HYP_FORCE_INLINE
-    Storage *GetStorage()
+    HYP_FORCE_INLINE Storage *GetStorage()
     {
-        if constexpr (use_inline_storage) {
-            return m_is_dynamic ? m_buffer : &m_inline_storage[0];
-        } else {
-            return m_buffer;
-        }
+        return m_storage.GetStorage();
     }
 
-    HYP_FORCE_INLINE
-    const Storage *GetStorage() const
+    HYP_FORCE_INLINE const Storage *GetStorage() const
     {
-        if constexpr (use_inline_storage) {
-            return m_is_dynamic ? m_buffer : &m_inline_storage[0];
-        } else {
-            return m_buffer;
-        }
+        return m_storage.GetStorage();
     }
 
     void ResizeUninitialized(SizeType new_size);
@@ -508,56 +612,41 @@ protected:
     static_assert(sizeof(Storage) == sizeof(Storage::data_buffer), "Storage struct should not be padded");
     // static_assert(alignof(Storage) == alignof(Storage::data_buffer), "Storage struct should not be padded");
 
-    HYP_FORCE_INLINE
-    static ValueType &ToValueType(Storage &storage)
+    HYP_FORCE_INLINE static ValueType &ToValueType(Storage &storage)
     {
         return *reinterpret_cast<ValueType *>(&storage);
     }
 
-    HYP_FORCE_INLINE
-    static const ValueType &ToValueType(const Storage &storage)
+    HYP_FORCE_INLINE static const ValueType &ToValueType(const Storage &storage)
     {
         return *reinterpret_cast<const ValueType *>(&storage);
     }
 
-    HYP_FORCE_INLINE
-    static ValueType *ToValueTypePtr(Storage &storage)
+    HYP_FORCE_INLINE static ValueType *ToValueTypePtr(Storage &storage)
     {
         return reinterpret_cast<ValueType *>(&storage);
     }
 
-    HYP_FORCE_INLINE
-    static const ValueType *ToValueTypePtr(const Storage &storage)
+    HYP_FORCE_INLINE static const ValueType *ToValueTypePtr(const Storage &storage)
     {
         return reinterpret_cast<const ValueType *>(&storage);
     }
 
-private:
-    union {
-        // dynamic memory
-        Storage                                             *m_buffer;
-        ValueStorageArray<ValueType, num_inline_elements>   m_inline_storage;
-
-        // for debugging
-        ValueType                                           *m_buffer_raw;
-    };
-
 protected:
     SizeType                                                m_start_offset;
-    bool                                                    m_is_dynamic;
+
+    detail::ArrayStorage<T, NumInlineBytes>                 m_storage;
 };
 
 template <class T, SizeType NumInlineBytes>
 Array<T, NumInlineBytes>::Array()
     : m_size(0),
       m_capacity(num_inline_elements),
-      m_buffer(nullptr),
-      m_is_dynamic(false),
       m_start_offset(0)
 {
 #ifdef HYP_DEBUG_MODE
     if constexpr (use_inline_storage) {
-        Memory::Garble(&m_inline_storage[0], num_inline_elements * sizeof(Storage));
+        Memory::Garble(&m_storage.m_inline_storage[0], num_inline_elements * sizeof(Storage));
     }
 #endif
 }
@@ -566,12 +655,10 @@ template <class T, SizeType NumInlineBytes>
 Array<T, NumInlineBytes>::Array(const Array &other)
     : m_size(other.m_size),
       m_capacity(other.m_capacity),
-      m_buffer(nullptr),
-      m_is_dynamic(other.m_is_dynamic),
       m_start_offset(other.m_start_offset)
 {
-    if (m_is_dynamic) {
-        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * other.m_capacity));
+    if (other.m_storage.IsDynamic()) {
+        m_storage.AllocateDynamic(m_capacity);
     }
 
     auto *buffer = GetStorage();
@@ -586,12 +673,16 @@ template <class T, SizeType NumInlineBytes>
 Array<T, NumInlineBytes>::Array(Array &&other) noexcept
     : m_size(other.m_size),
       m_capacity(other.m_capacity),
-      m_buffer(nullptr),
-      m_is_dynamic(other.m_is_dynamic),
       m_start_offset(other.m_start_offset)
 {
-    if (m_is_dynamic) {
-        m_buffer = other.m_buffer;
+    if (other.m_storage.IsDynamic()) {
+        m_storage.m_buffer = other.m_storage.m_buffer;
+        other.m_storage.m_buffer = nullptr;
+
+        if constexpr (use_inline_storage) {
+            m_storage.m_is_dynamic = true;
+            other.m_storage.m_is_dynamic = false;
+        }
     } else {
         auto *buffer = GetStorage();
 
@@ -603,13 +694,11 @@ Array<T, NumInlineBytes>::Array(Array &&other) noexcept
 
     other.m_size = 0;
     other.m_capacity = num_inline_elements;
-    other.m_buffer = nullptr;
-    other.m_is_dynamic = false;
     other.m_start_offset = 0;
 
 #ifdef HYP_DEBUG_MODE
     if constexpr (use_inline_storage) {
-        Memory::Garble(&other.m_inline_storage[0], num_inline_elements * sizeof(Storage));
+        Memory::Garble(&other.m_storage.m_inline_storage[0], num_inline_elements * sizeof(Storage));
     }
 #endif
 }
@@ -623,11 +712,8 @@ Array<T, NumInlineBytes>::~Array()
         Memory::Destruct(buffer[--i].Get());
     }
     
-    // only nullptr if it has been move()'d in which case size would be 0
-    //delete[] m_buffer;
-    if (m_is_dynamic) {
-        Memory::Free(m_buffer);
-        m_buffer = nullptr;
+    if (m_storage.IsDynamic()) {
+        m_storage.FreeDynamic();
     }
 }
 
@@ -646,18 +732,15 @@ auto Array<T, NumInlineBytes>::operator=(const Array &other) -> Array&
             Memory::Destruct(buffer[--i].Get());
         }
 
-        if (m_is_dynamic) {
-            Memory::Free(m_buffer);
-            m_buffer = nullptr;
+        if (m_storage.IsDynamic()) {
+            m_storage.FreeDynamic();
         }
 
-        if (other.m_is_dynamic) {
-            m_is_dynamic = true;
-            m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * other.m_capacity));
+        if (other.m_storage.IsDynamic()) {
             m_capacity = other.m_capacity;
+
+            m_storage.AllocateDynamic(m_capacity);
         } else {
-            m_buffer = nullptr;
-            m_is_dynamic = false;
             m_capacity = num_inline_elements;
         }
 
@@ -698,27 +781,31 @@ auto Array<T, NumInlineBytes>::operator=(Array &&other) noexcept -> Array&
         for (SizeType i = m_size; i > m_start_offset;) {
             Memory::Destruct(buffer[--i].Get());
         }
+    }
 
-        if (m_is_dynamic) {
-            Memory::Free(buffer);
-            m_buffer = nullptr;
-        }
+    if (m_storage.IsDynamic()) {
+        m_storage.FreeDynamic();
     }
     
-    if (other.m_is_dynamic) {
+    if (other.m_storage.IsDynamic()) {
         m_size = other.m_size;
         m_capacity = other.m_capacity;
-        m_buffer = other.m_buffer;
         m_start_offset = other.m_start_offset;
-        m_is_dynamic = true;
-    } else {
-        m_capacity = num_inline_elements;
-        m_is_dynamic = false;
+        
+        m_storage.m_buffer = other.m_storage.m_buffer;
 
         if constexpr (use_inline_storage) {
+            m_storage.m_is_dynamic = true;
+        }
+    } else {
+        m_capacity = num_inline_elements;
+
+        if constexpr (use_inline_storage) {
+            m_storage.m_is_dynamic = false;
+
             // move items individually
             for (SizeType i = 0; i < other.Size(); ++i) {
-                Memory::Construct<T>(&m_inline_storage[i].data_buffer, std::move(other.m_inline_storage[other.m_start_offset + i].Get()));
+                Memory::Construct<T>(&m_storage.m_inline_storage[i].data_buffer, std::move(other.m_storage.m_inline_storage[other.m_start_offset + i].Get()));
             }
         }
 
@@ -728,16 +815,20 @@ auto Array<T, NumInlineBytes>::operator=(Array &&other) noexcept -> Array&
         if constexpr (use_inline_storage) {
             // manually call destructors
             for (SizeType i = other.m_size; i > other.m_start_offset;) {
-                Memory::Destruct(other.m_inline_storage[--i].Get());
+                Memory::Destruct(other.m_storage.m_inline_storage[--i].Get());
             }
         }
     }
 
     other.m_size = 0;
     other.m_capacity = num_inline_elements;
-    other.m_is_dynamic = false;
-    other.m_buffer = nullptr;
     other.m_start_offset = 0;
+    
+    other.m_storage.m_buffer = nullptr;
+
+    if constexpr (use_inline_storage) {
+        other.m_storage.m_is_dynamic = false;
+    }
 
     return *this;
 }
@@ -793,7 +884,7 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
             Memory::Destruct(old_buffer[--i].Get());
         }
 
-        if (m_is_dynamic) {
+        if (m_storage.IsDynamic()) {
             // delete old buffer memory
             Memory::Free(old_buffer);
         }
@@ -801,14 +892,18 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
         // set internal buffer to the new one
         m_capacity = capacity;
         m_size -= static_cast<int64>(m_start_offset) - static_cast<int64>(copy_offset);
-        m_buffer = new_buffer;
-        m_is_dynamic = true;
         m_start_offset = copy_offset;
+        
+        m_storage.m_buffer = new_buffer;
+
+        if constexpr (use_inline_storage) {
+            m_storage.m_is_dynamic = true;
+        }
     } else {
-        if (m_is_dynamic) { // switch from dynamic to non-dynamic
+        if (m_storage.IsDynamic()) { // switch from dynamic to non-dynamic
             if constexpr (use_inline_storage) {
                 for (SizeType i = copy_offset, j = m_start_offset; j < m_size; ++i, ++j) {
-                    m_inline_storage[i].Get() = std::move(old_buffer[j].Get());
+                    m_storage.m_inline_storage[i].Get() = std::move(old_buffer[j].Get());
                 }
             }
 
@@ -819,8 +914,13 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
 
             Memory::Free(old_buffer);
 
-            m_is_dynamic = false;
             m_capacity = num_inline_elements;
+
+            m_storage.m_buffer = nullptr;
+            
+            if constexpr (use_inline_storage) {
+                m_storage.m_is_dynamic = false;
+            }
         } else if (m_start_offset != copy_offset) {
             if constexpr (use_inline_storage) {
                 if (m_start_offset > copy_offset) {
@@ -828,16 +928,16 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
 
                     // shift left
                     for (SizeType index = m_start_offset; index < m_size; ++index) {
-                        const auto move_index = index - diff;
+                        const SizeType move_index = index - diff;
 
                         if constexpr (std::is_move_constructible_v<T>) {
-                            Memory::Construct<T>(&m_inline_storage[move_index].data_buffer, std::move(m_inline_storage[index].Get()));
+                            Memory::Construct<T>(&m_storage.m_inline_storage[move_index].data_buffer, std::move(m_storage.m_inline_storage[index].Get()));
                         } else {
-                            Memory::Construct<T>(&m_inline_storage[move_index].data_buffer, m_inline_storage[index].Get());
+                            Memory::Construct<T>(&m_storage.m_inline_storage[move_index].data_buffer, m_storage.m_inline_storage[index].Get());
                         }
 
                         // manual destructor call
-                        Memory::Destruct(m_inline_storage[index].Get());
+                        Memory::Destruct(m_storage.m_inline_storage[index].Get());
                     }
                 } else {
                     // shift right
@@ -846,16 +946,16 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
                     for (SizeType index = m_size; index > m_start_offset;) {
                         --index;
 
-                        const auto move_index = index + diff;
+                        const SizeType move_index = index + diff;
 
                         if constexpr (std::is_move_constructible_v<T>) {
-                            Memory::Construct<T>(&m_inline_storage[move_index].data_buffer, std::move(m_inline_storage[index].Get()));
+                            Memory::Construct<T>(&m_storage.m_inline_storage[move_index].data_buffer, std::move(m_storage.m_inline_storage[index].Get()));
                         } else {
-                            Memory::Construct<T>(&m_inline_storage[move_index].data_buffer, m_inline_storage[index].Get());
+                            Memory::Construct<T>(&m_storage.m_inline_storage[move_index].data_buffer, m_storage.m_inline_storage[index].Get());
                         }
 
                         // manual destructor call
-                        Memory::Destruct(m_inline_storage[index].Get());
+                        Memory::Destruct(m_storage.m_inline_storage[index].Get());
                     }
                 }
             }

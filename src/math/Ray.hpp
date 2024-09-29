@@ -17,7 +17,7 @@
 namespace hyperion {
 
 class BoundingBox;
-class Triangle;
+struct Triangle;
 class RayTestResults;
 struct RayHit;
 

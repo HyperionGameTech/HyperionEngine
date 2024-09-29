@@ -126,6 +126,26 @@ struct EnumFlags
 
         return *this;
     }
+    
+    HYP_FORCE_INLINE constexpr EnumFlags operator<<(int bits) const
+        { return EnumFlags(value << bits); }
+
+    HYP_FORCE_INLINE EnumFlags &operator<<=(int bits)
+    {
+        value <<= bits;
+
+        return *this;
+    }
+    
+    HYP_FORCE_INLINE constexpr EnumFlags operator>>(int bits) const
+        { return EnumFlags(value >> bits); }
+
+    HYP_FORCE_INLINE EnumFlags &operator>>=(int bits)
+    {
+        value >>= bits;
+
+        return *this;
+    }
 
     HYP_FORCE_INLINE constexpr bool operator[](EnumType flag) const
         { return (value & static_cast<UnderlyingType>(flag)) != 0; }

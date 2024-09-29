@@ -76,7 +76,7 @@ struct FBOMExternalObjectInfo
     }
 };
 
-class HYP_API FBOMObject : public IFBOMSerializable
+class HYP_API FBOMObject final : public IFBOMSerializable
 {
 public:
     FBOMType                            m_object_type;
@@ -92,7 +92,7 @@ public:
     FBOMObject &operator=(const FBOMObject &other);
     FBOMObject(FBOMObject &&other) noexcept;
     FBOMObject &operator=(FBOMObject &&other) noexcept;
-    virtual ~FBOMObject();
+    virtual ~FBOMObject() override;
 
     HYP_FORCE_INLINE bool IsExternal() const
         { return m_external_info.HasValue(); }

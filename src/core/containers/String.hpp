@@ -34,7 +34,7 @@ namespace containers {
 
 namespace detail {
     
-using namespace ::utf;
+using namespace utf;
 
 template <class CharType>
 using CharArray = Array<CharType, 64u>;
@@ -220,14 +220,14 @@ public:
         { return ch != CharType { 0 } && Base::Contains(ch); }
 
     /*! \brief Check if the string contains the given string. */
-    HYP_FORCE_INLINE bool Contains(containers::detail::StringView<StringType> str) const
+    HYP_FORCE_INLINE bool Contains(utilities::detail::StringView<StringType> str) const
         { return FindIndex(str) != not_found; }
 
     /*! \brief Find the index of the first occurrence of the character in the string.
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    HYP_FORCE_INLINE SizeType FindIndex(containers::detail::StringView<StringType> str) const
-        { return containers::detail::StringView<StringType>(*this).FindIndex(str); }
+    HYP_FORCE_INLINE SizeType FindIndex(utilities::detail::StringView<StringType> str) const
+        { return utilities::detail::StringView<StringType>(*this).FindIndex(str); }
 
     /*! \brief Check if the string is empty. */
     HYP_FORCE_INLINE bool Empty() const

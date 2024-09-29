@@ -584,7 +584,7 @@ struct FormatTransformer
 template <auto Str, class... Args>
 constexpr auto Format_Impl(Args &&... args)
 {
-    return (FormatString_ProcessTuple< containers::detail::StringType::UTF8 >(
+    return (FormatString_ProcessTuple< containers::StringType::UTF8 >(
         FormatString_BuildTuple< Str, FormatTransformer >{}(std::forward< Args >(args)...)
     ))();
 }

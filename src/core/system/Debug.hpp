@@ -67,54 +67,29 @@ enum class LogType : int
     #define AssertDebug(...)
 #endif
 
-#if defined(HYP_MSVC) && HYP_MSVC
-    #define DebugLogAssertionMsg(level, cond, msg, ...) \
-        do { \
-            DebugLog(level, "*** assertion failed: (" #cond ") ***\n\t" msg "\n", __VA_ARGS__); \
-        } while (0)
+#define DebugLogAssertionMsg(level, cond, msg, ...) \
+    do { \
+        DebugLog(level, "*** assertion failed: (" #cond ") ***\n\t" #msg "\n", ##__VA_ARGS__); \
+    } while (0)
 
-    #define AssertOrElseMsg(level, cond, stmt, msg, ...) \
-        do { \
-            if (!(cond)) { \
-                DebugLogAssertionMsg(level, cond, msg, __VA_ARGS__); \
-                { stmt; } \
-            } \
-        } while (0)
-
-    #define AssertThrowMsg(cond, msg, ...)          AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg, __VA_ARGS__)
-
-    #ifdef HYP_DEBUG_MODE
-        #define AssertDebugMsg(cond, msg, ...)      AssertThrowMsg(cond, msg, __VA_ARGS__)
-    #else
-        #define AssertDebugMsg(...)
-    #endif
-
-    #define HYP_FAIL(msg, ...)                      AssertOrElseMsg(LogType::Error, false, HYP_THROW("Fatal error"), msg, __VA_ARGS__)
-#else
-    #define DebugLogAssertionMsg(level, cond, msg, ...) \
-        do { \
-            DebugLog(level, "*** assertion failed: (" #cond ") ***\n\t" #msg "\n" __VA_OPT__(,) __VA_ARGS__); \
-        } while (0)
-
-    #define AssertOrElseMsg(level, cond, stmt, msg, ...) \
-        do { \
-            if (!(cond)) { \
-                DebugLogAssertionMsg(level, cond, msg __VA_OPT__(,) __VA_ARGS__); \
-                { stmt; } \
-            } \
-        } while (0)
+#define AssertOrElseMsg(level, cond, stmt, msg, ...) \
+    do { \
+        if (!(cond)) { \
+            DebugLogAssertionMsg(level, cond, msg, ## __VA_ARGS__); \
+            { stmt; } \
+        } \
+    } while (0)
 
 
-    #define AssertThrowMsg(cond, msg, ...)              AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg __VA_OPT__(,) __VA_ARGS__)
+#define AssertThrowMsg(cond, msg, ...)              AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg, ##__VA_ARGS__)
     
-    #ifdef HYP_DEBUG_MODE
-        #define AssertDebugMsg(cond, msg, ...)          AssertThrowMsg(cond, msg __VA_OPT__(,) __VA_ARGS__)
-    #else
-        #define AssertDebugMsg(...)
-    #endif
-
-    #define HYP_FAIL(msg, ...)                          AssertOrElseMsg(LogType::Error, false, HYP_THROW("Fatal error"), msg __VA_OPT__(,) __VA_ARGS__)
+#ifdef HYP_DEBUG_MODE
+    #define AssertDebugMsg(cond, msg, ...)          AssertThrowMsg(cond, msg, ##__VA_ARGS__)
+#else
+    #define AssertDebugMsg(...)
 #endif
+
+#define HYP_FAIL(msg, ...)                          AssertOrElseMsg(LogType::Error, false, HYP_THROW("Fatal error"), msg, ##__VA_ARGS__)
 
 #ifdef HYP_DEBUG_MODE
 
@@ -128,24 +103,21 @@ struct EnsureValidPointerWrapper
     {
     }
 
-    HYP_FORCE_INLINE
-    operator T*() const
+    HYP_FORCE_INLINE operator T*() const
     {
         AssertThrowMsg(ptr != nullptr, "EnsureValidPointer check failed");
 
         return ptr;
     }
 
-    HYP_FORCE_INLINE
-    T *operator->() const
+    HYP_FORCE_INLINE T *operator->() const
     {
         AssertThrowMsg(ptr != nullptr, "EnsureValidPointer check failed");
 
         return ptr;
     }
 
-    HYP_FORCE_INLINE
-    T &operator*() const
+    HYP_FORCE_INLINE T &operator*() const
     {
         AssertThrowMsg(ptr != nullptr, "EnsureValidPointer check failed");
 

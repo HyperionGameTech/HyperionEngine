@@ -54,7 +54,7 @@ public:
     FBOMType &operator=(const FBOMType &other);
     FBOMType(FBOMType &&other) noexcept;
     FBOMType &operator=(FBOMType &&other) noexcept;
-    virtual ~FBOMType();
+    virtual ~FBOMType() override;
 
     FBOMType Extend(const FBOMType &object) const;
 

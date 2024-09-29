@@ -138,8 +138,8 @@ class Engine : public BasicObject<Engine>
 public:
     HYP_API static const Handle<Engine> &GetInstance();
 
-    Engine();
-    ~Engine();
+    HYP_API Engine();
+    HYP_API ~Engine();
 
     HYP_FORCE_INLINE const RC<AppContext> &GetAppContext() const
         { return m_app_context; }

@@ -97,23 +97,18 @@ public:
     Script &operator=(Script &&other) noexcept  = delete;
     ~Script();
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ScriptDesc &GetDescriptor() const
+    HYP_FORCE_INLINE const ScriptDesc &GetDescriptor() const
         { return m_desc; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const CompiledScript &GetCompiledScript() const
+    HYP_FORCE_INLINE const CompiledScript &GetCompiledScript() const
         { return m_compiled_script; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ManagedScript &GetManagedScript()
+    HYP_FORCE_INLINE ManagedScript &GetManagedScript()
         { return m_managed_script; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const ManagedScript &GetManagedScript() const
+    HYP_FORCE_INLINE const ManagedScript &GetManagedScript() const
         { return m_managed_script; }
 
-    HYP_NODISCARD
     EnumFlags<CompiledScriptState> GetState() const;
 
 private:

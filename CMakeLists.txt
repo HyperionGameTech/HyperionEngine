@@ -12,11 +12,7 @@ set(RENDERING_BACKEND "Vulkan" CACHE STRING "Rendering backend to use")
 
 # set HYP_PLATFORM_NAME
 if(WIN32)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(HYP_PLATFORM_NAME "Win64")
-    else()
-        set(HYP_PLATFORM_NAME "Win32")
-    endif()
+    set(HYP_PLATFORM_NAME "Win32")
 elseif(APPLE)
     set(HYP_PLATFORM_NAME "Mac")
 elseif(UNIX)
@@ -68,11 +64,11 @@ if(MSVC)
     if(HYP_DEBUG_MODE)
         message(STATUS "Generating PDB for Hyperion library")
 
-        set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD /Zi")
+        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD /Zi")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
-        set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
+        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD")
     endif()
 else()
     # no exceptions
@@ -185,6 +181,7 @@ file(GLOB_RECURSE PLATFORM_FILES "src/core/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
     if(NOT ${PLATFORM_FILE} MATCHES "src/core/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
+        message(STATUS "Removed source file ${PLATFORM_FILE} for non-matching platform")
     endif()
 endforeach()
 
@@ -451,11 +448,20 @@ include_directories(
 # set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
+# find python executable
+find_program(PYTHON_EXECUTABLE_PATH NAMES python3 python)
+
+if(NOT PYTHON_EXECUTABLE_PATH)
+    message(FATAL_ERROR "Python executable not found on the system")
+else()
+    message(STATUS "Python executable path: ${PYTHON_EXECUTABLE_PATH}")
+endif()
+
 function(generate_reflection_library)
     # execute on build
     add_custom_command(
         OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
-        COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+        COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Running Python codegen script"
     )
@@ -469,7 +475,7 @@ file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/generated)
 
 # execute codegen script on configure
 execute_process(
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+    COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
@@ -551,8 +557,6 @@ function(create_csharp_library output_name csharp_sources)
     file(WRITE ${CSHARP_PROJECT_DIR}/${output_name}.xml "<configuration>\n")
 
     if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
-        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
-    elseif(${HYP_PLATFORM_NAME} STREQUAL "Win64")
         file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"hyperion.dll\" />\n")
     elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
         file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.xml "  <dllmap dll=\"libhyperion\" target=\"libhyperion.dylib\" />\n")

@@ -56,6 +56,8 @@ static int FindNextButtonID(int startIndex, int buttons, const char *buttonTexts
     return -1;
 }
 
+extern "C" {
+
 int ShowMessageBox(int type, const char *title, const char *message, int buttons, const char *buttonTexts[3])
 {
     int buttonIndices[16] = { -1 };
@@ -138,4 +140,6 @@ int ShowMessageBox(int type, const char *title, const char *message, int buttons
     }
 
     return buttonIndex;
+}
+
 }

@@ -25,7 +25,7 @@ enum StringType : int
 
 namespace detail {
     
-using namespace ::utf;
+using namespace utf;
 
 template <class CharType>
 using CharArray = Array<CharType, 64u>;

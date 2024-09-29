@@ -156,17 +156,10 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
 } // namespace editor
 } // namespace hyperion
 
-#ifdef HYP_MSVC
-    #define HYP_DEFINE_EDITOR_ACTION(action_name, ...) \
-        class EditorAction_##action_name; \
-        static ::hyperion::editor::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
-        class EditorAction_##action_name : public ::hyperion::editor::EditorAction<HYP_STATIC_STRING(HYP_STR(action_name)), __VA_ARGS__>
-#else
-    #define HYP_DEFINE_EDITOR_ACTION(action_name, ...) \
-        class EditorAction_##action_name; \
-        static ::hyperion::editor::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
-        class EditorAction_##action_name : public ::hyperion::editor::EditorAction<HYP_STATIC_STRING(HYP_STR(action_name)) __VA_OPT__(,) __VA_ARGS__>
-#endif
+#define HYP_DEFINE_EDITOR_ACTION(action_name, ...) \
+    class EditorAction_##action_name; \
+    static ::hyperion::editor::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
+    class EditorAction_##action_name : public ::hyperion::editor::EditorAction<HYP_STATIC_STRING(HYP_STR(action_name)) __VA_OPT__(,) __VA_ARGS__>
 
 #endif
 

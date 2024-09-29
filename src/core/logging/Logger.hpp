@@ -210,34 +210,12 @@ using logging::LogLevel;
     #undef HYP_LOG_ONCE
 #endif
 
-#ifdef HYP_MSVC
-    #define HYP_LOG(channel, level, fmt, ...) \
-        hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, hyperion::StaticString< sizeof(fmt) >(fmt) >(hyperion::Log_##channel, __VA_ARGS__)
+#define HYP_LOG(channel, level, fmt, ...) \
+    hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
 
-    #define HYP_LOG_ONCE(channel, level, fmt, ...) \
-        do { \
-            static bool HYP_CONCAT(_log_once_, __LINE__) = false; \
-            if (!HYP_CONCAT(_log_once_, __LINE__)) { \
-                HYP_CONCAT(_log_once_, __LINE__) = true; \
-                HYP_LOG(channel, level, fmt, __VA_ARGS__); \
-            } \
-        } while (0)
-#else
-    #define HYP_LOG(channel, level, fmt, ...) \
-        hyperion::logging::Logger::GetInstance().Log< level, HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__)
-
-    // #define HYP_LOG_ONCE(channel, level, fmt, ...) \
-    //     do { \
-    //         static bool HYP_CONCAT(_log_once_, __LINE__) = false; \
-    //         if (!HYP_CONCAT(_log_once_, __LINE__)) { \
-    //             HYP_CONCAT(_log_once_, __LINE__) = true; \
-    //             HYP_LOG(channel, level, fmt __VA_OPT__(,) __VA_ARGS__); \
-    //         } \
-    //     } while (0)
-    #define HYP_LOG_ONCE(channel, level, fmt, ...) \
-        do { \
-            ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce< HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, level, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__); \
-        } while (0)
-#endif
+#define HYP_LOG_ONCE(channel, level, fmt, ...) \
+    do { \
+        ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce< HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, level, HYP_STATIC_STRING(fmt) >(hyperion::Log_##channel __VA_OPT__(,) __VA_ARGS__); \
+    } while (0)
 
 #endif

@@ -12,12 +12,12 @@ extern int ShowMessageBox(int type, const char *title, const char *message, int 
 namespace hyperion {
 namespace sys {
 
-MessageBox::MessageBox(MessageBoxType type)
+SystemMessageBox::SystemMessageBox(MessageBoxType type)
     : m_type(type)
 {
 }
 
-MessageBox::MessageBox(
+SystemMessageBox::SystemMessageBox(
     MessageBoxType type,
     const String &title,
     const String &message,
@@ -34,7 +34,7 @@ MessageBox::MessageBox(
     }
 }
 
-MessageBox::MessageBox(MessageBox &&other) noexcept
+SystemMessageBox::SystemMessageBox(SystemMessageBox &&other) noexcept
     : m_type(other.m_type),
       m_title(std::move(other.m_title)),
       m_message(std::move(other.m_message)),
@@ -42,7 +42,7 @@ MessageBox::MessageBox(MessageBox &&other) noexcept
 {
 }
 
-MessageBox &MessageBox::operator=(MessageBox &&other) noexcept
+SystemMessageBox &SystemMessageBox::operator=(SystemMessageBox &&other) noexcept
 {
     if (this == &other) {
         return *this;
@@ -56,23 +56,23 @@ MessageBox &MessageBox::operator=(MessageBox &&other) noexcept
     return *this;
 }
 
-MessageBox::~MessageBox() = default;
+SystemMessageBox::~SystemMessageBox() = default;
 
-MessageBox &MessageBox::Title(const String &title)
+SystemMessageBox &SystemMessageBox::Title(const String &title)
 {
     m_title = title;
 
     return *this;
 }
 
-MessageBox &MessageBox::Text(const String &text)
+SystemMessageBox &SystemMessageBox::Text(const String &text)
 {
     m_message = text;
 
     return *this;
 }
 
-MessageBox &MessageBox::Button(const String &text, Proc<void> &&on_click)
+SystemMessageBox &SystemMessageBox::Button(const String &text, Proc<void> &&on_click)
 {
     if (m_buttons.Size() >= 3) {
         HYP_LOG(Core, LogLevel::WARNING, "MessageBox does not support > 3 buttons");
@@ -85,7 +85,7 @@ MessageBox &MessageBox::Button(const String &text, Proc<void> &&on_click)
     return *this;
 }
 
-void MessageBox::Show() const
+void SystemMessageBox::Show() const
 {
     const char *button_texts[3];
 

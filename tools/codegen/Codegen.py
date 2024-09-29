@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import datetime
 from mako.template import Template
 
@@ -15,24 +16,24 @@ CXX_DUMMY_CLASS_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file
 CSHARP_CLASS_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'class_template.cs'))
 CSHARP_MODULE_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'module_template.cs'))
 
-CXX_PREPROCESSOR_DEFINES = [
-    'HYP_API=',
-    'HYP_CLASS(...)=',
-    'HYP_STRUCT(...)=',
-    'HYP_FIELD(...)=',
-    'HYP_PROPERTY(...)=',
-    'HYP_METHOD(...)=',
-    'HYP_OBJECT_BODY(...)=',
-    'HYP_FORCE_INLINE=',
-    'HYP_NODISCARD=',
-    'HYP_DEPRECATED='
-]
+CXX_PREAMBLE = """
+#define HYP_API
+#define HYP_CLASS(...)
+#define HYP_STRUCT(...)
+#define HYP_FIELD(...)
+#define HYP_PROPERTY(...)
+#define HYP_METHOD(...)
+#define HYP_OBJECT_BODY(...)
+#define HYP_FORCE_INLINE inline
+#define HYP_NODISCARD
+#define HYP_DEPRECATED
+""".rstrip()
 
-def make_preprocessor(defines=CXX_PREPROCESSOR_DEFINES, **kwargs):
+def make_preprocessor(**kwargs):
     if os.name == 'nt':
-        return make_msvc_preprocessor(defines=defines, **kwargs)
+        return make_msvc_preprocessor(**kwargs)
     else:
-        return make_gcc_preprocessor(defines=defines, **kwargs)
+        return make_gcc_preprocessor(**kwargs)
 
 class SourceLocation:
     def __init__(self, file, index):
@@ -238,7 +239,7 @@ class HypClassDefinition:
                 dummy_content = CXX_DUMMY_CLASS_TEMPLATE.render(content=member_content)
 
                 try:
-                    parsed_data = parse_cxx_header(content=dummy_content, options=ParserOptions(preprocessor=make_preprocessor()))
+                    parsed_data = parse_cxx_header(content=CXX_PREAMBLE + '\n' + dummy_content, options=ParserOptions(preprocessor=make_preprocessor()))
 
                     member = None
                     
@@ -496,7 +497,7 @@ class Codegen:
                         attributes = parse_attributes_string(class_match.group(1))
 
                         try:
-                            parsed_data = parse_cxx_header(content=class_content, options=ParserOptions(preprocessor=make_preprocessor()))
+                            parsed_data = parse_cxx_header(content=CXX_PREAMBLE + '\n' + class_content, options=ParserOptions(preprocessor=make_preprocessor()))
 
                             hyp_class = HypClassDefinition(class_type, source_location, class_name, base_classes, attributes, parsed_data, class_content)
                             hyp_class.last_modified = last_modified
