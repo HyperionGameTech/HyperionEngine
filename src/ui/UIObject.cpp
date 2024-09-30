@@ -1711,7 +1711,7 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());

@@ -142,11 +142,7 @@ constexpr WeakName operator "" _nw(const char *, SizeType);
 #define NAME(str) HYP_NAME(str)
 #endif
 
-#ifdef HYP_MSVC
-    #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt, __VA_ARGS__).Data())
-#else
-    #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt __VA_OPT__(,) __VA_ARGS__).Data())
-#endif
+#define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt, ##__VA_ARGS__).Data())
 
 } // namespace hyperion
 

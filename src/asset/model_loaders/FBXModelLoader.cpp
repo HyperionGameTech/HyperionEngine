@@ -657,7 +657,8 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         }
     }
 
-    const auto ReadMatrix = [](const FBXObject &object) -> Matrix4 {
+    const auto ReadMatrix = [](const FBXObject &object) -> Matrix4
+    {
         if (!object) {
             return Matrix4::zeros;
         }

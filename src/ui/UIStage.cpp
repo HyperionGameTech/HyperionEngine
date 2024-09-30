@@ -585,6 +585,11 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
             if (ray_test_results_it == ray_test_results.End()) {
                 if (RC<UIObject> ui_object = it->Lock()) {
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse leave on {}: {}, Material ID: {}",
+                        ::hyperion::GetClass(ui_object.GetTypeID())->GetName(),
+                        ui_object->GetName(),
+                        ui_object->GetMaterial()->GetID().Value());
+
                     ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     ui_object->OnMouseLeave(MouseEvent {
@@ -595,6 +600,8 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                         .mouse_buttons      = event.GetMouseButtons(),
                         .is_down            = false
                     });
+                } else {
+                    HYP_LOG(UI, LogLevel::WARNING, "Focused element has been destroyed");
                 }
 
                 it = m_hovered_ui_objects.Erase(it);
@@ -602,8 +609,6 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
                 ++it;
             }
         }
-
-        HYP_LOG(UI, LogLevel::DEBUG, "Hovered objects: {}", m_hovered_ui_objects.Size());
 
         break;
     }

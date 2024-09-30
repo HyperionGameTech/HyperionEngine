@@ -155,7 +155,7 @@ public:
 
     template <class T>
     HYP_FORCE_INLINE static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, bool) ApproxEqual(const T &a, const T &b)
-        { return a.DistanceSquared(b) < std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, double> ? epsilon_d : epsilon_f; }
+        { return a.DistanceSquared(b) < (std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, double> ? epsilon_d : epsilon_f); }
 
     template <class T>
     HYP_FORCE_INLINE static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, double> ? epsilon_d : epsilon_f)

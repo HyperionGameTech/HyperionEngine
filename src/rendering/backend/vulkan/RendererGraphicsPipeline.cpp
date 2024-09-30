@@ -95,10 +95,10 @@ void GraphicsPipelinePlatformImpl<Platform::VULKAN>::UpdateViewport(
     //}
 
     VkViewport vk_viewport { };
-    vk_viewport.x = viewport.position.x;
-    vk_viewport.y = viewport.position.y;
-    vk_viewport.width = viewport.extent.x;
-    vk_viewport.height = viewport.extent.y;
+    vk_viewport.x = float(viewport.position.x);
+    vk_viewport.y = float(viewport.position.y);
+    vk_viewport.width = float(viewport.extent.x);
+    vk_viewport.height = float(viewport.extent.y);
     vk_viewport.minDepth = 0.0f;
     vk_viewport.maxDepth = 1.0f;
     vkCmdSetViewport(command_buffer->GetPlatformImpl().command_buffer, 0, 1, &vk_viewport);
@@ -252,10 +252,10 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     };
 
     VkViewport vk_viewport { };
-    vk_viewport.x = m_platform_impl.viewport.position.x;
-    vk_viewport.y = m_platform_impl.viewport.position.y;
-    vk_viewport.width = m_platform_impl.viewport.extent.x;
-    vk_viewport.height = m_platform_impl.viewport.extent.y;
+    vk_viewport.x = float(m_platform_impl.viewport.position.x);
+    vk_viewport.y = float(m_platform_impl.viewport.position.y);
+    vk_viewport.width = float(m_platform_impl.viewport.extent.x);
+    vk_viewport.height = float(m_platform_impl.viewport.extent.y);
     vk_viewport.minDepth = 0.0f;
     vk_viewport.maxDepth = 1.0f;
 

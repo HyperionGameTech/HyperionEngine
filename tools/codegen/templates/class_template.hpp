@@ -1,5 +1,10 @@
 #pragma region ${hyp_class.name}
 
+<% is_component = hyp_class.has_attribute("component") %> \
+% if is_component:
+${"#include <scene/ecs/ComponentInterface.hpp>"}
+% endif
+
 namespace hyperion {
 
 <% start_macro_names = { HypClassType.CLASS: 'HYP_BEGIN_CLASS', HypClassType.STRUCT: 'HYP_BEGIN_STRUCT' } %> \
@@ -21,10 +26,14 @@ ${start_macro_names[hyp_class.class_type]}(${hyp_class.name}, ${f"NAME(\"{hyp_cl
             <% s += f"HypProperty(NAME(HYP_STR({member.name})), {property_args})" %> \
         % endif
         <% s += ',' if i != len(hyp_class.members) - 1 else '' %> \
-        <% s += '\n' %>
+        <% s += '\n' %> \
     % endfor
     ${s}
 ${end_macro_names[hyp_class.class_type]}
+
+% if is_component:
+    ${f"HYP_REGISTER_COMPONENT({hyp_class.name});"}
+% endif
 
 } // namespace hyperion
 

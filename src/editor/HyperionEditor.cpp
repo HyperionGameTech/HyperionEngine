@@ -1940,7 +1940,7 @@ void HyperionEditor::Init()
 
 #endif
 
-#if 1
+#if 0
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {

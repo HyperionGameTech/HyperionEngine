@@ -443,7 +443,7 @@ public:
         {
             total_read += byte_buffer.Size();
 
-            for (uint32 i = 0; i < byte_buffer.Size(); i++)
+            for (SizeType i = 0; i < byte_buffer.Size(); i++)
             {
                 if (byte_buffer[i] == '\n')
                 {
@@ -452,7 +452,7 @@ public:
 
                     if (stop)
                     {
-                        const uint32 amount_remaining = total_read - total_processed;
+                        const SizeType amount_remaining = total_read - total_processed;
 
                         if (amount_remaining != 0) {
                             Rewind(amount_remaining);

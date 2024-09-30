@@ -142,7 +142,15 @@ public:
         return data; \
     } \
     explicit FBOMData(const c_type &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
-        : FBOMData(From##type_name(value, flags)) { } \
+        : type(FBOM##type_name()), \
+          m_flags(flags) \
+    { \
+        static_assert(std::is_standard_layout_v<c_type>, "Type " #c_type " must be standard layout"); \
+        \
+        AssertThrowMsg(sizeof(c_type) == type.size, "sizeof(" #c_type ") must be equal to FBOM" #type_name "::size"); \
+        \
+        SetBytes(sizeof(c_type), &value); \
+    }
 
     FBOM_TYPE_FUNCTIONS(UInt8, uint8)
     FBOM_TYPE_FUNCTIONS(UInt16, uint16)

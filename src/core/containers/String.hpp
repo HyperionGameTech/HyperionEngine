@@ -258,7 +258,7 @@ public:
     template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
     HYP_FORCE_INLINE void Append(const OtherCharType *str)
     {
-        const int size = utf::utf_strlen<OtherCharType, false>(str);
+        const SizeType size = utf::utf_strlen<OtherCharType, false>(str);
 
         Append(str, str + size);
     }
@@ -271,7 +271,7 @@ public:
         // const SizeType size = SizeType(_end - _begin);
 
         if constexpr (std::is_same_v<OtherCharType, u32char>) {
-            const uint32 len = utf::utf32_to_utf8(_begin, _end, nullptr);
+            const SizeType len = utf::utf32_to_utf8(_begin, _end, nullptr);
 
             if (len == 0) {
                 return;
@@ -285,7 +285,7 @@ public:
                 Append(CharType(buffer[i]));
             }
         } else if constexpr (std::is_same_v<OtherCharType, u16char>) {
-            const uint32 len = utf::utf16_to_utf8(_begin, _end, nullptr);
+            const SizeType len = utf::utf16_to_utf8(_begin, _end, nullptr);
 
             if (len == 0) {
                 return;
@@ -299,7 +299,7 @@ public:
                 Append(CharType(buffer[i]));
             }
         } else if constexpr (std::is_same_v<OtherCharType, wchar_t>) {
-            const uint32 len = utf::wide_to_utf8(_begin, _end, nullptr);
+            const SizeType len = utf::wide_to_utf8(_begin, _end, nullptr);
 
             if (len == 0) {
                 return;
@@ -320,11 +320,11 @@ public:
     template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
     HYP_FORCE_INLINE void Append(OtherCharType ch)
     {
-        int cp = 0;
+        SizeType codepoints = 0;
         utf::u8char buffer[sizeof(utf::u32char) + 1] = { '\0' };
-        utf::char32to8(static_cast<utf::u32char>(ch), &buffer[0], cp);
+        utf::char32to8(static_cast<utf::u32char>(ch), &buffer[0], codepoints);
 
-        for (int i = 0; i < cp; i++) {
+        for (SizeType i = 0; i < codepoints; i++) {
             Append(CharType(buffer[i]));
         }
     }
@@ -381,15 +381,15 @@ public:
             }
         } else {
             for (SizeType i = 0; i < size;) {
-                int cp = 0;
+                SizeType codepoints = 0;
 
                 const utf::u32char char_32 = utf::char8to32(
                     data + i,
                     MathUtil::Min(sizeof(utf::u32char), size - i),
-                    cp
+                    codepoints
                 );
 
-                i += cp;
+                i += codepoints;
 
                 if (separator_values.Contains(char_32)) {
                     tokens.PushBack(std::move(working_string));
@@ -435,16 +435,16 @@ public:
 
             if (it != container.End() - 1) {
                 if constexpr (is_utf8 && std::is_same_v<utf::u32char, decltype(separator)>) {
-                    int separator_length = 0;
+                    SizeType codepoints = 0;
                     utf::u8char separator_bytes[sizeof(utf::u32char) + 1] = { '\0' };
-                    utf::char32to8(separator, separator_bytes, separator_length);
+                    utf::char32to8(separator, separator_bytes, codepoints);
 
 #ifdef HYP_DEBUG_MODE
-                    AssertThrow(separator_length <= HYP_ARRAY_SIZE(separator_bytes));
+                    AssertThrow(codepoints <= HYP_ARRAY_SIZE(separator_bytes));
 #endif
 
-                    for (int separator_byte_index = 0; separator_byte_index < separator_length; separator_byte_index++) {
-                        result.Append(separator_bytes[separator_byte_index]);
+                    for (SizeType codepoint = 0; codepoint < codepoints; codepoint++) {
+                        result.Append(separator_bytes[codepoint]);
                     }
                 } else {
                     result.Append(separator);
@@ -551,7 +551,7 @@ public:
         } else if constexpr (is_ansi) {
             return String<UTF8>(Data());
         } else if constexpr (is_utf16) {
-            uint32 len = utf::utf16_to_utf8(Data(), Data() + Size(), nullptr);
+            SizeType len = utf::utf16_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
                 return String<UTF8>::empty;
@@ -564,7 +564,7 @@ public:
 
             return String<UTF8>(buffer.ToByteView());
         } else if constexpr (is_utf32) {
-            uint32 len = utf::utf32_to_utf8(Data(), Data() + Size(), nullptr);
+            SizeType len = utf::utf32_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
                 return String<UTF8>::empty;
@@ -577,7 +577,7 @@ public:
 
             return String<UTF8>(buffer.ToByteView());
         } else if constexpr (is_wide) {
-            uint32 len = utf::wide_to_utf8(Data(), Data() + Size(), nullptr);
+            SizeType len = utf::wide_to_utf8(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
                 return String<UTF8>::empty;
@@ -599,7 +599,7 @@ public:
         if constexpr (is_wide) {
             return *this;
         } else if constexpr (is_utf8 || is_ansi) {
-            uint32 len = utf::utf8_to_wide(reinterpret_cast<const utf::u8char *>(Data()), reinterpret_cast<const utf::u8char *>(Data()) + Size(), nullptr);
+            SizeType len = utf::utf8_to_wide(reinterpret_cast<const utf::u8char *>(Data()), reinterpret_cast<const utf::u8char *>(Data()) + Size(), nullptr);
 
             if (len == 0) {
                 return String<WIDE_CHAR>::empty;
@@ -612,7 +612,7 @@ public:
 
             return String<WIDE_CHAR>(buffer.Data());
         } else if constexpr (is_utf16) {
-            uint32 len = utf::utf16_to_wide(Data(), Data() + Size(), nullptr);
+            SizeType len = utf::utf16_to_wide(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
                 return String<WIDE_CHAR>::empty;
@@ -625,7 +625,7 @@ public:
 
             return String<WIDE_CHAR>(buffer.Data());
         } else if constexpr (is_utf32) {
-            uint32 len = utf::utf32_to_wide(Data(), Data() + Size(), nullptr);
+            SizeType len = utf::utf32_to_wide(Data(), Data() + Size(), nullptr);
 
             if (len == 0) {
                 return String<WIDE_CHAR>::empty;
@@ -706,8 +706,8 @@ String<StringType>::String(const CharType *str)
         return;
     }
     
-    int cp;
-    const int len = utf::utf_strlen<CharType, is_utf8>(str, cp);
+    SizeType codepoints;
+    const SizeType len = utf::utf_strlen<CharType, is_utf8>(str, codepoints);
 
     if (len == -1) {
         // invalid utf8 string
@@ -719,11 +719,11 @@ String<StringType>::String(const CharType *str)
 
     m_length = len;
     
-    Base::Resize(cp + 1);
+    Base::Resize(codepoints + 1);
 
     CharType *data = Data();
 
-    for (int i = 0; i < cp; ++i) {
+    for (SizeType i = 0; i < codepoints; ++i) {
         data[i] = str[i];
     }
 }
@@ -739,7 +739,7 @@ String<StringType>::String(const CharType *_begin, const CharType *_end)
     const SizeType size = SizeType(_end - _begin);
 
     if constexpr (is_utf8) {
-        const int len = utf::utf8_strlen(_begin, _end);
+        const SizeType len = utf::utf8_strlen(_begin, _end);
 
         if (len == -1) {
             // invalid utf8 string
@@ -755,7 +755,7 @@ String<StringType>::String(const CharType *_begin, const CharType *_end)
 
     CharType *data = Data();
 
-    for (int i = 0; i < size; ++i) {
+    for (SizeType i = 0; i < size; ++i) {
         data[i] = _begin[i];
     }
 }
@@ -927,13 +927,13 @@ bool String<StringType>::operator==(const CharType *str) const
         return *this == empty;
     }
 
-    const auto len = utf::utf_strlen<CharType, is_utf8>(str);
+    const SizeType len = utf::utf_strlen<CharType, is_utf8>(str);
 
     if (len == -1) {
         return false; // invalid utf string
     }
 
-    if (m_length != static_cast<SizeType>(len)) {
+    if (m_length != len) {
         return false;
     }
 
@@ -1123,7 +1123,7 @@ auto String<StringType>::ToLower() const -> String
 
     for (SizeType i = 0; i < Size();) {
         if constexpr (is_utf8) {
-            int cp = 0;
+            SizeType codepoints = 0;
 
             union
             {
@@ -1132,12 +1132,12 @@ auto String<StringType>::ToLower() const -> String
             };
 
             // evil union byte magic
-            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), cp);
+            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), codepoints);
             char_i32 = std::tolower(char_i32);
 
             result.Append(char_u32);
 
-            i += cp;
+            i += codepoints;
         } else {
             result.Append(std::tolower(result[i]));
 
@@ -1151,11 +1151,32 @@ auto String<StringType>::ToLower() const -> String
 template <int StringType>
 auto String<StringType>::ToUpper() const -> String
 {
-    String result(*this);
+    String result;
+    result.Reserve(Size());
 
-    std::transform(result.Begin(), result.End(), result.Begin(), [](auto ch) {
-        return std::toupper(ch);
-    });
+    for (SizeType i = 0; i < Size();) {
+        if constexpr (is_utf8) {
+            SizeType codepoints = 0;
+
+            union
+            {
+                utf::u32char char_u32;
+                int char_i32;
+            };
+
+            // evil union byte magic
+            char_u32 = utf::char8to32(Data() + i, sizeof(utf::u32char), codepoints);
+            char_i32 = std::toupper(char_i32);
+
+            result.Append(char_u32);
+
+            i += codepoints;
+        } else {
+            result.Append(std::toupper(result[i]));
+
+            i++;
+        }
+    }
 
     return result;
 }
@@ -1286,17 +1307,17 @@ String<StringType> String<StringType>::Escape() const
         }
     } else {
         for (SizeType i = 0; i < size;) {
-            int cp = 0;
+            SizeType codepoints = 0;
 
             union { uint32 char_u32; uint8 char_u8[sizeof(utf::u32char)]; };
             
             char_u32 = utf::char8to32(
                 Data() + i,
                 MathUtil::Min(sizeof(utf::u32char), size - i),
-                cp
+                codepoints
             );
 
-            i += cp;
+            i += codepoints;
 
             switch (char_u32) {
             case uint32('\n'):
@@ -1332,15 +1353,15 @@ String<StringType> String<StringType>::Escape() const
             default:
                 result.Append(char_u8[0]);
 
-                if (cp >= 2) {
+                if (codepoints >= 2) {
                     result.Append(char_u8[1]);
                 }
                 
-                if (cp >= 3) {
+                if (codepoints >= 3) {
                     result.Append(char_u8[2]);
                 }
 
-                if (cp == 4) {
+                if (codepoints == 4) {
                     result.Append(char_u8[3]);
                 }
 

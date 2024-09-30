@@ -189,7 +189,7 @@ struct ComponentInterfaceRegistration
     }
 };
 
-#define HYP_REGISTER_COMPONENT(type, ...) static ComponentInterfaceRegistration< type __VA_OPT__(,) __VA_ARGS__ > type##_ComponentInterface_Registration { }
+#define HYP_REGISTER_COMPONENT(type, ...) static ComponentInterfaceRegistration< type, ##__VA_ARGS__ > type##_ComponentInterface_Registration { }
 #define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag > > tag##_EntityTag_ComponentInterface_Registration { }
 
 } // namespace hyperion

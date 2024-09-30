@@ -21,10 +21,10 @@ class HypClass;
 
 enum class ManagedClassFlags : uint32
 {
-    NONE = 0x0,
-    CLASS_TYPE = 0x1,
+    NONE        = 0x0,
+    CLASS_TYPE  = 0x1,
     STRUCT_TYPE = 0x2,
-    ENUM_TYPE = 0x4
+    ENUM_TYPE   = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)

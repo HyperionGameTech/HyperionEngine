@@ -12,7 +12,7 @@ namespace platform {
 template <>
 struct FramebufferPlatformImpl<Platform::VULKAN>
 {
-    Framebuffer<Platform::VULKAN>             *self = nullptr;
+    Framebuffer<Platform::VULKAN>                   *self = nullptr;
     FixedArray<VkFramebuffer, max_frames_in_flight> handles { VK_NULL_HANDLE };
 };
 

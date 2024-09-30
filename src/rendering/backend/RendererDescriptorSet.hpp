@@ -43,31 +43,31 @@ enum class DescriptorSetElementType : uint32
     MAX
 };
 
-constexpr uint descriptor_set_element_type_to_buffer_type[uint(DescriptorSetElementType::MAX)] = {
+constexpr uint32 descriptor_set_element_type_to_buffer_type[uint32(DescriptorSetElementType::MAX)] = {
     0,                                                          // UNSET
-    (1u << uint(GPUBufferType::CONSTANT_BUFFER)),               // UNIFORM_BUFFER
-    (1u << uint(GPUBufferType::CONSTANT_BUFFER)),               // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint(GPUBufferType::STORAGE_BUFFER))
-        | (1u << uint(GPUBufferType::ATOMIC_COUNTER))
-        | (1u << uint(GPUBufferType::STAGING_BUFFER))
-        | (1u << uint(GPUBufferType::INDIRECT_ARGS_BUFFER)),    // STORAGE_BUFFER
+    (1u << uint32(GPUBufferType::CONSTANT_BUFFER)),               // UNIFORM_BUFFER
+    (1u << uint32(GPUBufferType::CONSTANT_BUFFER)),               // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GPUBufferType::STORAGE_BUFFER))
+        | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GPUBufferType::STAGING_BUFFER))
+        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)),    // STORAGE_BUFFER
     
-    (1u << uint(GPUBufferType::STORAGE_BUFFER))
-        | (1u << uint(GPUBufferType::ATOMIC_COUNTER))
-        | (1u << uint(GPUBufferType::STAGING_BUFFER))
-        | (1u << uint(GPUBufferType::INDIRECT_ARGS_BUFFER)),    // STORAGE_BUFFER_DYNAMIC
+    (1u << uint32(GPUBufferType::STORAGE_BUFFER))
+        | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GPUBufferType::STAGING_BUFFER))
+        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)),    // STORAGE_BUFFER_DYNAMIC
     0,                                                          // IMAGE
     0,                                                          // IMAGE_STORAGE
     0,                                                          // SAMPLER
-    (1u << uint(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER))  // ACCELERATION_STRUCTURE
+    (1u << uint32(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER))  // ACCELERATION_STRUCTURE
 };
 
 struct DescriptorSetLayoutElement
 {
     DescriptorSetElementType    type = DescriptorSetElementType::UNSET;
-    uint                        binding = -1; // has to be set
-    uint                        count = 1; // Set to -1 for bindless
-    uint                        size = -1;
+    uint32                      binding = ~0u; // has to be set
+    uint32                      count = 1; // Set to -1 for bindless
+    uint32                      size = ~0u;
 
     HYP_FORCE_INLINE bool IsBindless() const
         { return count == ~0u; }
@@ -116,10 +116,10 @@ struct DescriptorDeclaration
     DescriptorSlot      slot = DESCRIPTOR_SLOT_NONE;
     Name                name;
     ConditionFunction   cond = nullptr;
-    uint                count = 1;
-    uint                size = uint(-1);
+    uint32              count = 1;
+    uint32              size = uint32(-1);
     bool                is_dynamic = false;
-    uint                index = ~0u;
+    uint32              index = ~0u;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -140,7 +140,7 @@ struct DescriptorDeclaration
 
 struct DescriptorSetDeclaration
 {
-    uint                                                            set_index = ~0u;
+    uint32                                                          set_index = ~0u;
     Name                                                            name = Name::Invalid();
     FixedArray<Array<DescriptorDeclaration>, DESCRIPTOR_SLOT_MAX>   slots = { };
 
@@ -151,7 +151,7 @@ struct DescriptorSetDeclaration
 
     DescriptorSetDeclaration()                                                      = default;
 
-    DescriptorSetDeclaration(uint set_index, Name name, bool is_reference = false, bool is_template = false)
+    DescriptorSetDeclaration(uint32 set_index, Name name, bool is_reference = false, bool is_template = false)
         : set_index(set_index),
           name(name),
           is_reference(is_reference),
@@ -169,27 +169,27 @@ struct DescriptorSetDeclaration
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
-        return slots[uint(slot) - 1];
+        return slots[uint32(slot) - 1];
     }
 
     HYP_FORCE_INLINE const Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot) const
     {
         AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
 
-        return slots[uint(slot) - 1];
+        return slots[uint32(slot) - 1];
     }
 
     HYP_FORCE_INLINE void AddDescriptorDeclaration(renderer::DescriptorDeclaration decl)
     {
         AssertThrow(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
 
-        decl.index = uint(slots[uint(decl.slot) - 1].Size());
-        slots[uint(decl.slot) - 1].PushBack(std::move(decl));
+        decl.index = uint32(slots[uint32(decl.slot) - 1].Size());
+        slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
     }
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
         Returns -1 if not found */
-    uint CalculateFlatIndex(DescriptorSlot slot, Name name) const;
+    uint32 CalculateFlatIndex(DescriptorSlot slot, Name name) const;
 
     DescriptorDeclaration *FindDescriptorDeclaration(Name name) const;
 
@@ -234,7 +234,7 @@ public:
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE uint GetDescriptorSetIndex(Name name) const
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(Name name) const
     {
         for (const auto &it : m_elements) {
             if (it.name == name) {
@@ -242,7 +242,7 @@ public:
             }
         }
 
-        return -1;
+        return ~0u;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -262,7 +262,7 @@ private:
 public:
     struct DeclareSet
     {
-        DeclareSet(DescriptorTableDeclaration *table, uint set_index, Name name)
+        DeclareSet(DescriptorTableDeclaration *table, uint32 set_index, Name name)
         {
             AssertThrow(table != nullptr);
 
@@ -279,15 +279,15 @@ public:
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(DescriptorTableDeclaration *table, Name set_name, DescriptorSlot slot_type, Name descriptor_name, DescriptorDeclaration::ConditionFunction cond = nullptr, uint count = 1, uint size = -1, bool is_dynamic = false)
+        DeclareDescriptor(DescriptorTableDeclaration *table, Name set_name, DescriptorSlot slot_type, Name descriptor_name, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool is_dynamic = false)
         {
             AssertThrow(table != nullptr);
 
-            uint set_index = ~0u;
+            uint32 set_index = ~0u;
 
-            for (uint i = 0; i < table->m_elements.Size(); ++i) {
+            for (SizeType i = 0; i < table->m_elements.Size(); ++i) {
                 if (table->m_elements[i].name == set_name) {
-                    set_index = i;
+                    set_index = uint32(i);
                     break;
                 }
             }
@@ -298,7 +298,7 @@ public:
             AssertThrow(decl.set_index == set_index);
             AssertThrow(slot_type > 0 && slot_type < decl.slots.Size());
 
-            const uint slot_index = decl.slots[uint(slot_type) - 1].Size();
+            const uint32 slot_index = uint32(decl.slots[uint32(slot_type) - 1].Size());
 
             DescriptorDeclaration descriptor_decl { };
             descriptor_decl.index = slot_index;
@@ -308,7 +308,7 @@ public:
             descriptor_decl.size = size;
             descriptor_decl.count = count;
             descriptor_decl.is_dynamic = is_dynamic;
-            decl.slots[uint(slot_type) - 1].PushBack(descriptor_decl);
+            decl.slots[uint32(slot_type) - 1].PushBack(descriptor_decl);
         }
     };
 };
@@ -412,7 +412,7 @@ public:
     HYP_FORCE_INLINE const HashMap<Name, DescriptorSetLayoutElement> &GetElements() const
         { return m_elements; }
 
-    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint binding, uint count, uint size = -1)
+    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint32 binding, uint32 count, uint32 size = ~0u)
         { m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size }); }
 
     HYP_FORCE_INLINE const DescriptorSetLayoutElement *GetElement(Name name) const
@@ -456,8 +456,8 @@ struct DescriptorSetElement
     
     using ValueType = Variant<GPUBufferRef<PLATFORM>, ImageViewRef<PLATFORM>, SamplerRef<PLATFORM>, TLASRef<PLATFORM>>;
 
-    FlatMap<uint, ValueType>    values;
-    Range<uint>                 dirty_range { };
+    FlatMap<uint32, ValueType>  values;
+    Range<uint32>               dirty_range { };
 
     ~DescriptorSetElement()
     {
@@ -524,31 +524,31 @@ public:
 
     bool HasElement(Name name) const;
 
-    void SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<PLATFORM> &ref);
-    void SetElement(Name name, uint index, const GPUBufferRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const GPUBufferRef<PLATFORM> &ref);
     void SetElement(Name name, const GPUBufferRef<PLATFORM> &ref);
     
-    void SetElement(Name name, uint index, const ImageViewRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const ImageViewRef<PLATFORM> &ref);
     void SetElement(Name name, const ImageViewRef<PLATFORM> &ref);
     
-    void SetElement(Name name, uint index, const SamplerRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const SamplerRef<PLATFORM> &ref);
     void SetElement(Name name, const SamplerRef<PLATFORM> &ref);
     
-    void SetElement(Name name, uint index, const TLASRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const TLASRef<PLATFORM> &ref);
     void SetElement(Name name, const TLASRef<PLATFORM> &ref);
 
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, uint bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, uint32 bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, uint32 bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, uint32 bind_index) const;
+    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
 
     DescriptorSetRef<PLATFORM> Clone() const;
 
 private:
     template <class T>
-    DescriptorSetElement<PLATFORM> &SetElement(Name name, uint index, const T &ref)
+    DescriptorSetElement<PLATFORM> &SetElement(Name name, uint32 index, const T &ref)
     {
         const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
         AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
@@ -572,14 +572,14 @@ private:
                 const GPUBufferType buffer_type = ref->GetBufferType();
 
                 AssertThrowMsg(
-                    (descriptor_set_element_type_to_buffer_type[uint(layout_element->type)] & (1u << uint(buffer_type))),
+                    (descriptor_set_element_type_to_buffer_type[uint32(layout_element->type)] & (1u << uint32(buffer_type))),
                     "Buffer type %u is not in the allowed types for element %s",
-                    uint(buffer_type),
+                    uint32(buffer_type),
                     name.LookupString()
                 );
 
                 if (layout_element->size != 0 && layout_element->size != ~0u) {
-                    const uint remainder = ref->Size() % layout_element->size;
+                    const uint32 remainder = ref->Size() % layout_element->size;
 
                     AssertThrowMsg(
                         remainder == 0,
@@ -627,7 +627,7 @@ private:
     }
 
     template <class T>
-    void PrefillElements(Name name, uint count, const Optional<T> &placeholder_value = { })
+    void PrefillElements(Name name, uint32 count, const Optional<T> &placeholder_value = { })
     {
         bool is_bindless = false;
 
@@ -664,7 +664,7 @@ private:
         element.values.Clear();
         element.values.Reserve(count);
 
-        for (uint i = 0; i < count; i++) {
+        for (uint32 i = 0; i < count; i++) {
             if (placeholder_value.HasValue()) {
                 element.values.Set(i, placeholder_value.Get());
             } else {
@@ -725,7 +725,7 @@ public:
         \param name The name of the descriptor set
         \param frame_index The index of the frame for the descriptor set
         \return The descriptor set, or an unset reference if not found */
-    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(Name name, uint frame_index) const
+    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(Name name, uint32 frame_index) const
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             if (set->GetLayout().GetName() == name) {
@@ -739,7 +739,7 @@ public:
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
         \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE uint GetDescriptorSetIndex(Name name) const
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(Name name) const
         { return m_decl.GetDescriptorSetIndex(name); }
 
     /*! \brief Create all descriptor sets in the table
@@ -749,7 +749,7 @@ public:
     {
         Result result = Result { };
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
                 const Name descriptor_set_name = set->GetLayout().GetName();
 
@@ -792,7 +792,7 @@ public:
         \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
         \return The result of the operation */
-    Result Update(Device<PLATFORM> *device, uint frame_index)
+    Result Update(Device<PLATFORM> *device, uint32 frame_index)
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
@@ -815,20 +815,17 @@ public:
         return Result { };
     }
 
-    HYP_FORCE_INLINE
-    void Bind(Frame<PLATFORM> *frame, const GraphicsPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint>> &offsets)
+    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const GraphicsPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets)
     {
         Bind<GraphicsPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
     }
 
-    HYP_FORCE_INLINE
-    void Bind(Frame<PLATFORM> *frame, const ComputePipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint>> &offsets) const
+    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const ComputePipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
     {
         Bind<ComputePipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
     }
 
-    HYP_FORCE_INLINE
-    void Bind(Frame<PLATFORM> *frame, const RaytracingPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint>> &offsets) const
+    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const RaytracingPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
     {
         Bind<RaytracingPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
     }
@@ -839,12 +836,12 @@ public:
         \param pipeline The pipeline to bind the descriptor sets to
         \param offsets The offsets to bind dynamic descriptor sets with */
     template <class PipelineRef>
-    void Bind(CommandBuffer<PLATFORM> *command_buffer, uint frame_index, const PipelineRef &pipeline, const ArrayMap<Name, ArrayMap<Name, uint>> &offsets) const
+    void Bind(CommandBuffer<PLATFORM> *command_buffer, uint32 frame_index, const PipelineRef &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
 
-            const uint set_index = GetDescriptorSetIndex(descriptor_set_name);
+            const uint32 set_index = GetDescriptorSetIndex(descriptor_set_name);
 
             if (set->GetLayout().GetDynamicElements().Empty()) {
                 set->Bind(command_buffer, pipeline, set_index);

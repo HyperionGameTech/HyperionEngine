@@ -184,19 +184,11 @@ static bool PreprocessShaderSource(
 )
 {
 
-#ifdef HYP_MSVC
-    #define GLSL_ERROR(level, error_message, ...) \
-        { \
-            HYP_LOG(ShaderCompiler, level, error_message, __VA_ARGS__); \
-            out_error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
-        }
-#else
-    #define GLSL_ERROR(level, error_message, ...) \
-        { \
-            HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
-            out_error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
-        }
-#endif
+#define GLSL_ERROR(level, error_message, ...) \
+    { \
+        HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__); \
+        out_error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
+    }
 
     auto default_resources = DefaultResources();
 
@@ -373,6 +365,8 @@ static bool PreprocessShaderSource(
 
     glslang_shader_delete(shader);
 
+#undef GLSL_ERROR
+
     return true;
 }
 
@@ -387,19 +381,11 @@ static ByteBuffer CompileToSPIRV(
 )
 {
 
-#ifdef HYP_MSVC
-    #define GLSL_ERROR(level, error_message, ...) \
-        { \
-            HYP_LOG(ShaderCompiler, level, error_message, __VA_ARGS__); \
-            error_messages.PushBack(HYP_FORMAT(error_message, __VA_ARGS__)); \
-        }
-#else
-    #define GLSL_ERROR(level, error_message, ...) \
-        { \
-            HYP_LOG(ShaderCompiler, level, error_message __VA_OPT__(,) __VA_ARGS__); \
-            error_messages.PushBack(HYP_FORMAT(error_message __VA_OPT__(,) __VA_ARGS__)); \
-        }
-#endif
+#define GLSL_ERROR(level, error_message, ...) \
+    { \
+        HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__); \
+        error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
+    }
 
     auto default_resources = DefaultResources();
 

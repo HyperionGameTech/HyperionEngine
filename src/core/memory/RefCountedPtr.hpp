@@ -990,11 +990,11 @@ public:
     {
         RefCountedPtr<T, CountType> rc;
 
-        if (Base::m_ref->IncRefCount_Strong() == 1) { // atomic, acquire for atomic RC pointers
-            Base::m_ref->template Init<T>(static_cast<T *>(Base::m_ref->value));
-        }
+        if (Base::m_ref->value) {
+            Base::m_ref->IncRefCount_Strong();
 
-        rc.SetRefCountData_Internal(Base::m_ref, false /* inc_ref */);
+            rc.SetRefCountData_Internal(Base::m_ref, false /* inc_ref */);
+        }
 
         return rc;
     }

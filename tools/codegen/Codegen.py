@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import datetime
+import json
 from mako.template import Template
 
 from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_header
@@ -129,6 +130,16 @@ class HypClassDefinition:
         self.last_modified = None
 
         self.is_built = False
+
+    def get_attribute(self, attribute_name):
+        for k, v in self.attributes:
+            if k.lower() == attribute_name.lower():
+                return v
+
+        return None
+
+    def has_attribute(self, attribute_name):
+        return self.get_attribute(attribute_name) is not None
 
     def parse_members(self, state):
         class_data = self.parsed_data.namespace.classes[0]
@@ -296,6 +307,10 @@ class CodegenState:
     def dotnet_output_dir(self):
         return os.path.join(self.src_dir, 'dotnet', 'runtime', 'gen')
 
+    @property
+    def metadata_path(self):
+        return os.path.join(self.output_dir, 'metadata.json')
+
     def add_error(self, error):
         self.errors.append(error)
 
@@ -307,11 +322,15 @@ class Codegen:
         self.source_files = []
         self.hyp_classes = []
 
+        self.metadata = {}
+
         self.cxx_generated_sources = {}
         self.csharp_generated_sources = {}
 
     def run(self):
         self.make_output_dir()
+
+        self.load_metadata()
 
         self.read_input_files()
         self.build_hyp_classes()
@@ -325,67 +344,38 @@ class Codegen:
             print(f'Location: {hyp_class.location.file}:{hyp_class.location.index}')
 
             self.build_hyp_class(hyp_class)
+            
+        if self.state.is_success:
+            self.update_metadata()
+            self.write_generated_sources()
+            self.write_metadata()
 
-        self.write_generated_sources()
+    def load_metadata(self):
+        metadata_path = self.state.metadata_path
+        metadata_dir = os.path.dirname(metadata_path)
 
-    def build_hyp_class(self, hyp_class):
-        if hyp_class.is_built:
-            return
-        
-        hyp_class.parse_members(self.state)
-        
-        base_class = None
+        if not os.path.exists(metadata_dir):
+            os.path.makedirs(metadata_dir)
 
-        # build base classes first to initialize dependencies
-        for base_class_name in hyp_class.base_classes:
-            existing_base_class = None
+        if os.path.isfile(metadata_path):
+            try:
+                metadata_json = json.load(open(metadata_path, 'r'))
 
-            for existing_hyp_class in self.hyp_classes:
-                if existing_hyp_class.name == base_class_name:
-                    existing_base_class = existing_hyp_class
-                    break
+                self.metadata = metadata_json
+            except Exception as e:
+                sys.stderr.write(f"Failed to load metadata json file at {metadata_path}: {repr(e)}\n")
 
-            if existing_base_class is None:
-                continue
+        self.metadata = {}
 
-            self.build_hyp_class(existing_base_class)
+    def write_metadata(self):
+        metadata_path = self.state.metadata_path
+        metadata_dir = os.path.dirname(metadata_path)
 
-            if base_class is not None:
-                self.state.add_error(f'Error: Multiple base classes for {hyp_class.name} - {base_class.name}, {base_class_name}')
-                return
+        if not os.path.exists(metadata_dir):
+            os.path.makedirs(metadata_dir)
 
-            base_class = existing_base_class
-
-        hyp_class.base_class = base_class
-
-        # get generated path - should match structure of hyp class
-        # get extension of hyp class file
-        
-        cxx_generated_path = get_generated_path(hyp_class.location.file, self.state.output_dir, extension='generated.cpp')
-        cxx_generated_dir = os.path.dirname(cxx_generated_path)
-
-        if not os.path.exists(cxx_generated_dir):
-            os.makedirs(cxx_generated_dir)
-        elif hyp_class.last_modified is None or not os.path.exists(cxx_generated_path) or os.path.getmtime(cxx_generated_path) < hyp_class.last_modified:
-            cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
-            cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
-            self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
-        else:
-            print(f'Skipping C++ codegen for {hyp_class.name} - up to date')
-
-        csharp_generated_path = get_generated_path(hyp_class.location.file, self.state.dotnet_output_dir, extension='cs')
-        csharp_generated_dir = os.path.dirname(csharp_generated_path)
-
-        if not os.path.exists(csharp_generated_dir):
-            os.makedirs(csharp_generated_dir)
-        elif hyp_class.last_modified is None or not os.path.exists(csharp_generated_path) or os.path.getmtime(csharp_generated_path) < hyp_class.last_modified:
-            csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
-            csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
-            self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
-        else:
-            print(f'Skipping C# codegen for {hyp_class.name} - up to date')
-
-        hyp_class.is_built = True
+        with open(metadata_path, 'w') as f:
+            json.dump(self.metadata, f)
 
     def make_output_dir(self):
         if not os.path.exists(self.state.output_dir):
@@ -397,6 +387,8 @@ class Codegen:
             os.path.join(self.state.src_dir, "core", "object"),
             os.path.join(self.state.src_dir, "core", "Defines.hpp"),
         ]
+
+        # @TODO : Skip files that have not been modified since seen in metadata.json
 
         for root, dirs, files in os.walk(self.state.src_dir):
             for file in files:
@@ -410,17 +402,6 @@ class Codegen:
 
     def build_hyp_classes(self):
         for file, last_modified in self.header_files:
-            # check if corresponding generated file exists
-            # generated_path = get_generated_path(file, self.state.output_dir)
-
-            # if os.path.exists(generated_path):
-            #     generated_last_modified = os.path.getmtime(generated_path)
-
-            #     if generated_last_modified >= last_modified:
-            #         # skip if generated file is newer than source file
-            #         print(f'Skipping codegen for {file} - up to date')
-            #         continue
-
             with open(os.path.join(self.state.src_dir, file), 'r') as f:
                 content = f.read()
 
@@ -505,7 +486,67 @@ class Codegen:
                             self.hyp_classes.append(hyp_class)
                         except Exception as e:
                             self.state.add_error(f'Error: Failed to parse class definition for {class_name} in file {file} - {repr(e)}')
+    
+    def build_hyp_class(self, hyp_class):
+        if hyp_class.is_built:
+            return
+        
+        hyp_class.parse_members(self.state)
+        
+        base_class = None
 
+        # build base classes first to initialize dependencies
+        for base_class_name in hyp_class.base_classes:
+            existing_base_class = None
+
+            for existing_hyp_class in self.hyp_classes:
+                if existing_hyp_class.name == base_class_name:
+                    existing_base_class = existing_hyp_class
+                    break
+
+            if existing_base_class is None:
+                continue
+
+            self.build_hyp_class(existing_base_class)
+
+            if base_class is not None:
+                self.state.add_error(f'Error: Multiple base classes for {hyp_class.name} - {base_class.name}, {base_class_name}')
+                return
+
+            base_class = existing_base_class
+
+        hyp_class.base_class = base_class
+
+        # get generated path - should match structure of hyp class
+        # get extension of hyp class file
+        
+        cxx_generated_path = get_generated_path(hyp_class.location.file, self.state.output_dir, extension='generated.cpp')
+        cxx_generated_dir = os.path.dirname(cxx_generated_path)
+
+        if not os.path.exists(cxx_generated_dir):
+            os.makedirs(cxx_generated_dir)
+        
+        if hyp_class.last_modified is None or self.metadata.get(hyp_class.name, {}).get("last_modified", 0) < hyp_class.last_modified:
+            cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
+            cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
+            self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
+        else:
+            sys.stdout.write(f'Skipping C++ codegen for {hyp_class.name} - up to date\n')
+
+        csharp_generated_path = get_generated_path(hyp_class.location.file, self.state.dotnet_output_dir, extension='cs')
+        csharp_generated_dir = os.path.dirname(csharp_generated_path)
+
+        if not os.path.exists(csharp_generated_dir):
+            os.makedirs(csharp_generated_dir)
+        
+        if hyp_class.last_modified is None or self.metadata.get(hyp_class.name, {}).get("last_modified", 0) < hyp_class.last_modified:
+            csharp_source = self.csharp_generated_sources.get(csharp_generated_path, GeneratedSource(hyp_class.location))
+            csharp_source.content += CSHARP_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
+            self.csharp_generated_sources.update({csharp_generated_path: csharp_source})
+        else:
+            sys.stdout.write(f'Skipping C# codegen for {hyp_class.name} - up to date\n')
+
+        hyp_class.is_built = True
 
     def extract_class_name(self, class_match):
         class_name_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(\w+)', class_match)
@@ -533,3 +574,8 @@ class Codegen:
 
             with open(path, 'w') as f:
                 f.write(module_content)
+
+    def update_metadata(self):
+        for hyp_class in self.hyp_classes:
+            self.metadata.update({ hyp_class.name: self.metadata.get(hyp_class.name, {}) })
+            self.metadata.get(hyp_class.name).update({ "last_modified": hyp_class.last_modified })

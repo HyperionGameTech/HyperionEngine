@@ -29,7 +29,6 @@ Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface
       m_descriptor_set_manager(new DescriptorSetManager<Platform::VULKAN>),
       m_async_compute(new AsyncCompute<Platform::VULKAN>)
 {
-    m_physical = physical;
     m_features->SetPhysicalDevice(m_physical);
     
     m_queue_family_indices = FindQueueFamilies(m_physical, m_surface);

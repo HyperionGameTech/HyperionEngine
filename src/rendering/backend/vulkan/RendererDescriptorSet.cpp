@@ -47,8 +47,8 @@ static VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
 
 struct VulkanDescriptorElementInfo
 {
-    uint                binding;
-    uint                index;
+    uint32              binding;
+    uint32              index;
     VkDescriptorType    descriptor_type;
 
     union {
@@ -169,8 +169,8 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
 
     for (const Array<DescriptorDeclaration> &slot : decl_ptr->slots) {
         for (const DescriptorDeclaration &descriptor : slot) {
-            const uint descriptor_index = decl_ptr->CalculateFlatIndex(descriptor.slot, descriptor.name);
-            AssertThrow(descriptor_index != uint(-1));
+            const uint32 descriptor_index = decl_ptr->CalculateFlatIndex(descriptor.slot, descriptor.name);
+            AssertThrow(descriptor_index != ~0u);
             
             if (descriptor.cond != nullptr && !descriptor.cond()) {
                 // Skip this descriptor, condition not met
@@ -220,7 +220,7 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
     }
 
     // build a list of dynamic elements, paired by their element index so we can sort it after.
-    Array<Pair<Name, uint>> dynamic_elements_with_index;
+    Array<Pair<Name, uint32>> dynamic_elements_with_index;
 
     // Add to list of dynamic buffer names
     for (const auto &it : m_elements) {
@@ -231,14 +231,14 @@ DescriptorSetLayout<Platform::VULKAN>::DescriptorSetLayout(const DescriptorSetDe
         }
     }
 
-    std::sort(dynamic_elements_with_index.Begin(), dynamic_elements_with_index.End(), [](const Pair<Name, uint> &a, const Pair<Name, uint> &b)
+    std::sort(dynamic_elements_with_index.Begin(), dynamic_elements_with_index.End(), [](const Pair<Name, uint32> &a, const Pair<Name, uint32> &b)
     {
         return a.second < b.second;
     });
 
     m_dynamic_elements.Resize(dynamic_elements_with_index.Size());
 
-    for (uint i = 0; i < dynamic_elements_with_index.Size(); i++) {
+    for (SizeType i = 0; i < dynamic_elements_with_index.Size(); i++) {
         m_dynamic_elements[i] = std::move(dynamic_elements_with_index[i].first);
     }
 }
@@ -324,7 +324,7 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
         const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
         AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
 
-        for (uint i = element.dirty_range.GetStart(); i < element.dirty_range.GetEnd(); i++) {
+        for (uint32 i = element.dirty_range.GetStart(); i < element.dirty_range.GetEnd(); i++) {
             VulkanDescriptorElementInfo descriptor_element_info { };
             descriptor_element_info.binding = layout_element->binding;
             descriptor_element_info.index = i;
@@ -337,7 +337,7 @@ Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
             }
 
             if (value_it->second.Is<GPUBufferRef<Platform::VULKAN>>()) {
-                const bool layout_has_size = layout_element->size != 0 && layout_element->size != uint(-1);
+                const bool layout_has_size = layout_element->size != 0 && layout_element->size != ~0u;
 
                 const bool is_dynamic = layout_element->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
                     || layout_element->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
@@ -493,13 +493,13 @@ bool DescriptorSet<Platform::VULKAN>::HasElement(Name name) const
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const GPUBufferRef<Platform::VULKAN> &ref)
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint32 index, const GPUBufferRef<Platform::VULKAN> &ref)
 {
     SetElement<GPUBufferRef<Platform::VULKAN>>(name, index, ref);
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, uint buffer_size, const GPUBufferRef<Platform::VULKAN> &ref)
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef<Platform::VULKAN> &ref)
 {
     SetElement<GPUBufferRef<Platform::VULKAN>>(name, index, ref);
 }
@@ -511,7 +511,7 @@ void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const GPUBufferRef<P
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const ImageViewRef<Platform::VULKAN> &ref)
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint32 index, const ImageViewRef<Platform::VULKAN> &ref)
 {
     SetElement<ImageViewRef<Platform::VULKAN>>(name, index, ref);
 }
@@ -523,7 +523,7 @@ void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const ImageViewRef<P
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const SamplerRef<Platform::VULKAN> &ref)
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint32 index, const SamplerRef<Platform::VULKAN> &ref)
 {
     SetElement<SamplerRef<Platform::VULKAN>>(name, index, ref);
 }
@@ -535,7 +535,7 @@ void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const SamplerRef<Pla
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint index, const TLASRef<Platform::VULKAN> &ref)
+void DescriptorSet<Platform::VULKAN>::SetElement(Name name, uint32 index, const TLASRef<Platform::VULKAN> &ref)
 {
     SetElement<TLASRef<Platform::VULKAN>>(name, index, ref);
 }
@@ -547,7 +547,7 @@ void DescriptorSet<Platform::VULKAN>::SetElement(Name name, const TLASRef<Platfo
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, uint32 bind_index) const
 {
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,
@@ -562,12 +562,12 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
-    Array<uint> offsets_flat;
+    Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
-    for (uint i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
         const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
 
         const auto it = offsets.Find(dynamic_element_name);
@@ -589,7 +589,7 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, uint32 bind_index) const
 {
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,
@@ -604,12 +604,12 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
-    Array<uint> offsets_flat;
+    Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
-    for (uint i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
         const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
 
         const auto it = offsets.Find(dynamic_element_name);
@@ -631,7 +631,7 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, uint32 bind_index) const
 {
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,
@@ -646,12 +646,12 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 }
 
 template <>
-void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint> &offsets, uint bind_index) const
+void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
-    Array<uint> offsets_flat;
+    Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
-    for (uint i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
         const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
 
         const auto it = offsets.Find(dynamic_element_name);
@@ -832,7 +832,7 @@ template <>
 DescriptorTable<Platform::VULKAN>::DescriptorTable(const DescriptorTableDeclaration &decl)
     : m_decl(decl)
 {
-    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_sets[frame_index].Reserve(decl.GetElements().Size());
     }
 
@@ -841,7 +841,7 @@ DescriptorTable<Platform::VULKAN>::DescriptorTable(const DescriptorTableDeclarat
             const DescriptorSetDeclaration *decl_ptr = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(set_decl.name);
             AssertThrowMsg(decl_ptr != nullptr, "Invalid global descriptor set reference: %s", set_decl.name.LookupString());
 
-            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 DescriptorSetRef<Platform::VULKAN> descriptor_set = g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(set_decl.name, frame_index);
                 AssertThrowMsg(descriptor_set.IsValid(), "Invalid global descriptor set reference: %s", set_decl.name.LookupString());
 
@@ -853,7 +853,7 @@ DescriptorTable<Platform::VULKAN>::DescriptorTable(const DescriptorTableDeclarat
         
         DescriptorSetLayout<Platform::VULKAN> layout(set_decl);
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             m_sets[frame_index].PushBack(layout.CreateDescriptorSet());
         }
     }

@@ -77,9 +77,10 @@ private:
         HYP_FORCE_INLINE IteratorBase &operator++()
         {
             if constexpr (is_utf8) {
-                int cp;
-                utf::char8to32(ptr, sizeof(utf::u32char), cp);
-                ptr += cp;
+                SizeType codepoints;
+                utf::char8to32(ptr, sizeof(utf::u32char), codepoints);
+
+                ptr += codepoints;
             } else {
                 ++ptr;
             }
@@ -90,10 +91,10 @@ private:
         HYP_FORCE_INLINE IteratorBase operator++(int) const
         {
             if constexpr (is_utf8) {
-                int cp;
-                utf::char8to32(ptr, sizeof(utf::u32char), cp);
+                SizeType codepoints;
+                utf::char8to32(ptr, sizeof(utf::u32char), codepoints);
 
-                return { ptr + cp };
+                return { ptr + codepoints };
             } else {
                 return { ptr + 1 };
             }
@@ -147,9 +148,9 @@ public:
           m_end(nullptr),
           m_length(0)
     {
-        int cp = 0;
-        m_length = utf::utf_strlen< CharType, is_utf8 >(str, cp);
-        m_end = m_begin + cp;
+        SizeType codepoints = 0;
+        m_length = utf::utf_strlen<CharType, is_utf8>(str, codepoints);
+        m_end = m_begin + codepoints;
     }
 
     constexpr StringView(const CharType *_begin, const CharType *_end)
@@ -284,7 +285,7 @@ public:
             if constexpr (is_utf8) {
                 return utf::utf8_strlen(m_begin, str.m_begin);
             } else {
-                return static_cast<SizeType>(str.m_begin - m_begin);
+                return SizeType(str.m_begin - m_begin);
             }
         }
 

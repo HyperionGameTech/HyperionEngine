@@ -373,9 +373,8 @@ Texture::Texture() : Texture(TextureDesc {
 {
 }
 
-Texture::Texture(const TextureDesc &texture_desc) : Texture(
-    renderer::Image(texture_desc)
-)
+Texture::Texture(const TextureDesc &texture_desc)
+    : Texture(renderer::Image(texture_desc))
 {
 }
 
@@ -398,6 +397,11 @@ Texture::Texture(
 {
     AssertThrowMsg(m_image.IsValid(), "Image must be valid");
     AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
+
+    const Vec3u extent = m_image->GetTextureDesc().extent;
+    AssertThrow(extent.x <= 32768);
+    AssertThrow(extent.y <= 32768);
+    AssertThrow(extent.z <= 32768);
 }
 
 Texture::Texture(
@@ -408,6 +412,11 @@ Texture::Texture(
 {
     AssertThrowMsg(m_image.IsValid(), "Image must be valid");
     AssertThrowMsg(m_image_view.IsValid(), "ImageView must be valid");
+
+    const Vec3u extent = m_image->GetTextureDesc().extent;
+    AssertThrow(extent.x <= 32768);
+    AssertThrow(extent.y <= 32768);
+    AssertThrow(extent.z <= 32768);
 }
 
 Texture::~Texture()

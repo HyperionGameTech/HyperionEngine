@@ -856,7 +856,7 @@ void UIText::UpdateRenderData()
 
     const NodeProxy &node = GetNode();
 
-    const Vec2u size = MathUtil::Max(Vec2u(GetActualSize()), Vec2u::One());
+    const Vec2u size = Vec2u(MathUtil::Max(GetActualSize(), Vec2i::One()));
 
     if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size) {
         m_texture = CreateObject<Texture>(TextureDesc {

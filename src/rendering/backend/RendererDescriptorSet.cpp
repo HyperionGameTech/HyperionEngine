@@ -12,7 +12,7 @@ DescriptorTableDeclaration *g_static_descriptor_table_decl = new DescriptorTable
 
 DescriptorDeclaration *DescriptorSetDeclaration::FindDescriptorDeclaration(Name name) const
 {
-    for (uint slot_index = 0; slot_index < DESCRIPTOR_SLOT_MAX; slot_index++) {
+    for (uint32 slot_index = 0; slot_index < DESCRIPTOR_SLOT_MAX; slot_index++) {
         for (const DescriptorDeclaration &decl : slots[slot_index]) {
             if (decl.name == name) {
                 return const_cast<DescriptorDeclaration *>(&decl);
@@ -23,15 +23,15 @@ DescriptorDeclaration *DescriptorSetDeclaration::FindDescriptorDeclaration(Name 
     return nullptr;
 }
 
-uint DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, Name name) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, Name name) const
 {
     AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
-    uint flat_index = 0;
+    uint32 flat_index = 0;
 
-    for (uint slot_index = 0; slot_index < uint(slot); slot_index++) {
-        if (slot_index == uint(slot) - 1) {
-            uint decl_index = 0;
+    for (uint32 slot_index = 0; slot_index < uint32(slot); slot_index++) {
+        if (slot_index == uint32(slot) - 1) {
+            uint32 decl_index = 0;
 
             for (const DescriptorDeclaration &decl : slots[slot_index]) {
                 if (decl.name == name) {
@@ -45,7 +45,7 @@ uint DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, Name name
         flat_index += slots[slot_index].Size();
     }
 
-    return uint(-1);
+    return ~0u;
 }
 
 DescriptorSetDeclaration *DescriptorTableDeclaration::FindDescriptorSetDeclaration(Name name) const
