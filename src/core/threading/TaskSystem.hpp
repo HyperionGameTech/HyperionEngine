@@ -9,6 +9,7 @@
 #include <core/containers/LinkedList.hpp>
 
 #include <core/functional/Proc.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -47,8 +48,9 @@ enum TaskThreadPoolName : uint32
 
 using OnTaskBatchCompletedCallback = Proc<void>;
 
-struct TaskBatch
+class TaskBatch
 {
+public:
     TaskSemaphore                           semaphore;
     uint32                                  num_enqueued = 0;
 
@@ -72,6 +74,14 @@ struct TaskBatch
 #ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     DataRaceDetector                        data_race_detector;
 #endif
+
+    /*! \brief Delegate that is called when the TaskBatch is complete (before next_batch has completed) */
+    Delegate<void>                          OnComplete;
+
+    ~TaskBatch()
+    {
+        AssertThrowMsg(IsCompleted(), "TaskBatch must be in completed state by the time the destructor is called!");
+    }
 
     /*! \brief Add a task to be ran with this batch
      *  \note Do not call this function after the TaskBatch has been enqueued (before it has been completed). */
@@ -108,7 +118,11 @@ struct TaskBatch
 
         for (auto it = executors.Begin(); it != executors.End(); ++it) {
             it->Execute();
+
+            semaphore.Release(1);
         }
+
+        OnComplete();
 
         if (execute_dependent_batches && next_batch != nullptr) {
             next_batch->ExecuteBlocking(execute_dependent_batches);
@@ -128,6 +142,8 @@ struct TaskBatch
         executors.Clear();
         task_refs.Clear();
         next_batch = nullptr;
+
+        OnComplete.RemoveAll(/* thread_safe */ false);
     }
 };
 

@@ -158,11 +158,7 @@ public:
             int counter_value = 0;
 
             if (semaphore != nullptr) {
-                counter_value = semaphore->Release(1);
-            }
-
-            if (counter_value == 0 && callback.IsValid()) {
-                callback();
+                counter_value = semaphore->Release(1, callback);
             }
 
             task_executed->notify_all();
@@ -176,11 +172,7 @@ public:
             int counter_value = 0;
 
             if (semaphore != nullptr) {
-                counter_value = semaphore->Release(1);
-            }
-
-            if (counter_value == 0 && callback.IsValid()) {
-                callback();
+                counter_value = semaphore->Release(1, callback);
             }
 
             task_executed->notify_all();

@@ -7,6 +7,8 @@ namespace Hyperion
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void TaskDelegate();
 
+    internal delegate void TaskBatchOnCompleteDelegate();
+
     /// <summary>
     ///  Represents a native (C++) TaskBatch (see TaskSystem.hpp)
     /// </summary>
@@ -68,15 +70,16 @@ namespace Hyperion
             TaskBatch_AddTask(ptr, fn);
         }
 
-        async public void Execute()
+        public async Task<void> Execute()
         {
-            TaskBatch_Launch(ptr);
-            
-            // Implement a simple awaiter for TaskBatch
-            while (!IsCompleted)
+            var completionSource = new TaskCompletionSource();
+
+            TaskBatch_Launch(ptr, Marshal.GetFunctionPointerForDelegate(new TaskBatchOnCompleteDelegate(() =>
             {
-                await Task.Delay(1);
-            }
+                completionSource.SetResult();
+            })));
+
+            return completionSource.Task;
         }
 
         public void AwaitCompletion()
@@ -106,6 +109,6 @@ namespace Hyperion
         private static extern void TaskBatch_AwaitCompletion(IntPtr taskBatchPtr);
 
         [DllImport("hyperion", EntryPoint = "TaskBatch_Launch")]
-        private static extern void TaskBatch_Launch(IntPtr taskBatchPtr);
+        private static extern void TaskBatch_Launch(IntPtr taskBatchPtr, IntPtr onCompletePtr);
     }
 }

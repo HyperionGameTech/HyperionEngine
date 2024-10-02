@@ -109,6 +109,8 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 
     if (batch->num_enqueued == 0) {
         // enqueue next batch immediately if it exists and no tasks are added to this batch
+        batch->OnComplete();
+
         if (next_batch != nullptr) {
             EnqueueBatch(next_batch);
         }
@@ -133,8 +135,8 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
             &(*it),
             &batch->semaphore,
             next_batch != nullptr
-                ? [this, next_batch, num_enqueued = batch->num_enqueued]() { EnqueueBatch(next_batch); }
-                : OnTaskCompletedCallback()
+                ? OnTaskCompletedCallback([this, &OnComplete = batch->OnComplete, next_batch]() { OnComplete(); EnqueueBatch(next_batch); })
+                : OnTaskCompletedCallback(&batch->OnComplete)
         );
 
         batch->task_refs.EmplaceBack(task_id, task_thread->GetScheduler());

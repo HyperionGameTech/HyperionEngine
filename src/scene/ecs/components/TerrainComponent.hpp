@@ -75,7 +75,7 @@ enum TerrainComponentFlagBits : TerrainComponentFlags
     TERRAIN_COMPONENT_FLAG_INIT = 0x1
 };
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct TerrainComponent
 {
     HYP_FIELD(SerializeAs=Seed)

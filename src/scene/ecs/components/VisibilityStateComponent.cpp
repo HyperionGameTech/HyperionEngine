@@ -3,6 +3,4 @@
 
 namespace hyperion {
 
-HYP_REGISTER_COMPONENT(VisibilityStateComponent, ComponentInterfaceFlags::NO_SERIALIZE);
-
 } // namespace hyperion

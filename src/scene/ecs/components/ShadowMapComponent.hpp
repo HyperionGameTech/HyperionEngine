@@ -22,7 +22,7 @@ namespace hyperion {
 
 class RenderComponentBase;
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct ShadowMapComponent
 {
     HYP_FIELD(SerializeAs=Mode)

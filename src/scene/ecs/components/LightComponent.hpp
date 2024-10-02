@@ -19,7 +19,7 @@ enum class LightComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(LightComponentFlags)
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct LightComponent
 {
     HYP_FIELD(SerializeAs=Light, EditorProperty="Light")

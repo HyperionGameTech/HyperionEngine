@@ -3,9 +3,10 @@
 #ifndef HYPERION_CONTAINER_BASE_HPP
 #define HYPERION_CONTAINER_BASE_HPP
 
-#include <core/utilities/Pair.hpp>
 #include <core/memory/Memory.hpp>
+
 #include <core/Defines.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 

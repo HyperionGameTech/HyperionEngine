@@ -59,7 +59,7 @@ struct AudioPlaybackState
     }
 };
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct AudioComponent
 {
     HYP_FIELD(SerializeAs=AudioSource, EditorProperty="Audio Source")

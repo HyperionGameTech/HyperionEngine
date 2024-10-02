@@ -29,7 +29,7 @@ enum class UIEventHandlerResult : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIEventHandlerResult)
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct UIComponent
 {
     HYP_FIELD()

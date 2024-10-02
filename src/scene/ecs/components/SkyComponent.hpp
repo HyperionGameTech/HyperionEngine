@@ -11,7 +11,7 @@ namespace hyperion {
 
 class SkydomeRenderer;
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct SkyComponent
 {
     HYP_FIELD()

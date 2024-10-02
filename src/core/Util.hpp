@@ -3,8 +3,8 @@
 #ifndef HYPERION_UTIL_HPP
 #define HYPERION_UTIL_HPP
 
-#include <core/utilities/ValueStorage.hpp>
 #include <core/containers/StaticString.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Types.hpp>
@@ -252,6 +252,7 @@ constexpr auto PrettyFunctionName()
 #define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName< HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT) >()
 
 #pragma region IsFunctor
+
 template <class T, class T2 = void>
 struct IsFunctor
 {
@@ -281,6 +282,7 @@ struct FunctionTraits<R(Args...)>
     static constexpr uint num_args = sizeof...(Args);
     static constexpr bool is_member_function = false;
     static constexpr bool is_functor = false;
+    static constexpr bool is_function_pointer = false;
 
     template <uint N>
     struct Arg
@@ -291,7 +293,10 @@ struct FunctionTraits<R(Args...)>
 };
 
 template <class R, class... Args>
-struct FunctionTraits<R(*)(Args...)> : public FunctionTraits<R(Args...)> {};
+struct FunctionTraits<R(*)(Args...)> : public FunctionTraits<R(Args...)>
+{
+    static constexpr bool is_function_pointer = true;
+};
 
 template <class R, class C, class... Args>
 struct FunctionTraits<R(C::*)(Args...), std::enable_if_t< !IsFunctor<R(C::*)(Args...) >::value > > : public FunctionTraits<R(Args...)>

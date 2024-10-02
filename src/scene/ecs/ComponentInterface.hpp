@@ -28,15 +28,19 @@
 
 namespace hyperion {
 
+
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
 
 struct HypData;
+class HypClass;
+
+extern HYP_API const HypClass *GetClass(TypeID);
 
 enum class ComponentInterfaceFlags : uint32
 {
-    NONE            = 0x0,
-    NO_SERIALIZE    = 0x1
+    NONE        = 0x0,
+    ENTITY_TAG  = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
@@ -59,6 +63,9 @@ public:
           m_component_container_factory(component_container_factory),
           m_flags(flags)
     {
+        if (!(m_flags & ComponentInterfaceFlags::ENTITY_TAG)) {
+            AssertThrowMsg(::hyperion::GetClass(m_type_id) != nullptr, "No HypClass registered for Component of type %s", type_name.Data());
+        }
     }
 
     ComponentInterface(const ComponentInterface &)                  = delete;
@@ -102,6 +109,9 @@ public:
 
     HYP_FORCE_INLINE ANSIStringView GetTypeName() const
         { return m_type_name; }
+
+    HYP_FORCE_INLINE const HypClass *GetClass() const
+        { return ::hyperion::GetClass(m_type_id); }
 
     HYP_FORCE_INLINE HypData CreateComponent() const
         { return m_component_factory->CreateComponent(); }
@@ -190,7 +200,7 @@ struct ComponentInterfaceRegistration
 };
 
 #define HYP_REGISTER_COMPONENT(type, ...) static ComponentInterfaceRegistration< type, ##__VA_ARGS__ > type##_ComponentInterface_Registration { }
-#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag > > tag##_EntityTag_ComponentInterface_Registration { }
+#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent<EntityTag::tag>, ComponentInterfaceFlags::ENTITY_TAG > tag##_EntityTag_ComponentInterface_Registration { }
 
 } // namespace hyperion
 

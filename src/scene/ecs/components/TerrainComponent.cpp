@@ -3,6 +3,4 @@
 
 namespace hyperion {
 
-HYP_REGISTER_COMPONENT(TerrainComponent);
-
 } // namespace hyperion

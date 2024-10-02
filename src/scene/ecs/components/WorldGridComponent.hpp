@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct WorldGridPatchComponent
 {
     HYP_FIELD(SerializeAs=PatchInfo)

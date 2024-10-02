@@ -5,6 +5,6 @@
 
 namespace hyperion {
 
-HYP_REGISTER_COMPONENT(MeshComponent);
+//HYP_REGISTER_COMPONENT(MeshComponent);
 
 } // namespace hyperion

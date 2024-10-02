@@ -28,9 +28,9 @@ namespace detail {
 
 struct DelegateHandlerData
 {
-    uint    id = 0;
+    uint32  id = 0;
     void    *delegate = nullptr;
-    void    (*remove_fn)(void *, uint) = nullptr;
+    void    (*remove_fn)(void *, uint32) = nullptr;
     void    (*detach_fn)(void *, DelegateHandler &&delegate_handler) = nullptr;
 
     HYP_API ~DelegateHandlerData();
@@ -222,23 +222,40 @@ class Delegate : public DelegateBase<ReturnType>
     using ProcType = Proc<ReturnType, Args...>;
 
 public:
-    Delegate() = default;
+    Delegate()
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        : m_num_procs(0)
+#endif
+    {
+    }
 
-    Delegate(const Delegate &other) = delete;
-    Delegate &operator=(const Delegate &other) = delete;
+    Delegate(const Delegate &other)                 = delete;
+    Delegate &operator=(const Delegate &other)      = delete;
 
     Delegate(Delegate &&other) noexcept
         : m_procs(std::move(other.m_procs)),
+#ifdef HYP_DELEGATE_THREAD_SAFE
+          m_num_procs(other.m_num_procs.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+#endif
           m_detached_handlers(std::move(other.m_detached_handlers)),
           m_id_generator(std::move(other.m_id_generator))
     {
     }
 
-    Delegate &operator=(Delegate &&other) noexcept = delete;
+    Delegate &operator=(Delegate &&other) noexcept  = delete;
 
     virtual ~Delegate() override
     {
         m_detached_handlers.Clear();
+    }
+
+    HYP_FORCE_INLINE bool AnyBound() const
+    {
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        return m_num_procs.Get(MemoryOrder::ACQUIRE) != 0;
+#else
+        return m_procs.Any();
+#endif
     }
 
     /*! \brief Bind a Proc<> to the Delegate.
@@ -249,7 +266,7 @@ public:
      * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     DelegateHandler Bind(ProcType &&proc)
     {
-        const uint id = m_id_generator.NextID();
+        const uint32 id = m_id_generator.NextID();
 
 #ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
@@ -257,24 +274,46 @@ public:
 
         m_procs.Insert({ id, RC<ProcType>::Construct(std::move(proc)) });
 
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        m_num_procs.Increment(1, MemoryOrder::RELEASE);
+#endif
+
         return CreateDelegateHandler(id);
     }
 
     /*! \brief Remove all bound handlers from the Delegate.
+     *  \param thread_safe If true, locks mutex before performing any critical operations to the delegate.
      *  \return The number of handlers removed. */
-    int RemoveAll()
+    int RemoveAll(bool thread_safe = true)
     {
+        const auto ResetImpl = [this]() -> int
+        {
+            const SizeType num_removed = m_procs.Size();
+
+            m_procs.Clear();
+
+            m_id_generator.Reset();
+
+            return int(num_removed);
+        };
+
 #ifdef HYP_DELEGATE_THREAD_SAFE
-        Mutex::Guard guard(m_mutex);
+        if (thread_safe) {
+            m_mutex.Lock();
+        }
 #endif
 
-        const SizeType num_removed = m_procs.Size();
+        const int num_removed = ResetImpl();
+        
+#ifdef HYP_DELEGATE_THREAD_SAFE
+        m_num_procs.Decrement(uint32(num_removed), MemoryOrder::RELEASE);
 
-        m_procs.Clear();
+        if (thread_safe) {
+            m_mutex.Unlock();
+        }
+#endif
 
-        m_id_generator.Reset();
-
-        return int(num_removed);
+        return num_removed;
     }
 
     /*! \brief Remove a DelegateHandler from the Delegate
@@ -302,7 +341,7 @@ public:
      *
      * \param id The ID of the handler to remove.
      * \return True if the handler was removed, false otherwise. */
-    bool Remove(uint id)
+    bool Remove(uint32 id)
     {
 //         { // remove from detached handlers
 // #ifdef HYP_DELEGATE_THREAD_SAFE
@@ -330,6 +369,10 @@ public:
             }
 
             m_procs.Erase(it);
+            
+#ifdef HYP_DELEGATE_THREAD_SAFE
+            m_num_procs.Decrement(1, MemoryOrder::RELEASE);
+#endif
 
             m_id_generator.FreeID(id);
         }
@@ -342,9 +385,17 @@ public:
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
-    template <class ... ArgTypes>
+    template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes &&... args)
     {
+        if (!AnyBound()) {
+            if constexpr (std::is_void_v<ReturnType>) {
+                return;
+            } else {
+                return { };
+            }
+        }
+
         // @TODO refactor to not use reference counted pointers
         //  - use same array, but just set the procs as invalid when removed
         //  - then, when broadcasting, just skip the invalid procs
@@ -406,7 +457,7 @@ public:
         { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
 private:
-    static void RemoveDelegateHandlerCallback(void *delegate, uint id)
+    static void RemoveDelegateHandlerCallback(void *delegate, uint32 id)
     {
         Delegate *delegate_casted = static_cast<Delegate *>(delegate);
 
@@ -430,7 +481,7 @@ private:
         m_detached_handlers.PushBack(std::move(handler));
     }
 
-    DelegateHandler CreateDelegateHandler(uint id)
+    DelegateHandler CreateDelegateHandler(uint32 id)
     {
         return DelegateHandler(RC<functional::detail::DelegateHandlerData>(new functional::detail::DelegateHandlerData {
             id,
@@ -440,13 +491,17 @@ private:
         }));
     }
 
-    FlatMap<uint, RC<ProcType>> m_procs;
-    Mutex                       m_mutex;
+    FlatMap<uint32, RC<ProcType>>   m_procs;
 
-    Array<DelegateHandler>      m_detached_handlers;
-    Mutex                       m_detached_handlers_mutex;
+#ifdef HYP_DELEGATE_THREAD_SAFE
+    AtomicVar<uint32>               m_num_procs;
+    Mutex                           m_mutex;
+#endif
 
-    IDGenerator                 m_id_generator;
+    Array<DelegateHandler>          m_detached_handlers;
+    Mutex                           m_detached_handlers_mutex;
+
+    IDGenerator                     m_id_generator;
 };
 } // namespace functional
 

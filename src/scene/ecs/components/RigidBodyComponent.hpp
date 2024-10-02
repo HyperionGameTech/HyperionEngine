@@ -20,7 +20,7 @@ enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
     RIGID_BODY_COMPONENT_FLAG_DIRTY  = 0x2
 };
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct RigidBodyComponent
 {
     HYP_FIELD(SerializeAs=RigidBody)

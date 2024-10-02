@@ -50,7 +50,7 @@ void AssetBatch::LoadAsync(uint num_batches)
             batch_procs.PushBack(std::move(m_procs[i]));
         }
 
-        AddTask([asset_manager = m_asset_manager, batch_procs = std::move(batch_procs), asset_map = m_enqueued_assets.Get()](...) mutable
+        AddTask([asset_manager = m_asset_manager, batch_procs = std::move(batch_procs), asset_map = m_enqueued_assets.Get()]() mutable -> void
         {
             HYP_NAMED_SCOPE("Processing assets in batch");
 

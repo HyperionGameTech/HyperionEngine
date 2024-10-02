@@ -20,7 +20,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct EnvGridComponent
 {
     HYP_FIELD(SerializeAs=EnvGridType)

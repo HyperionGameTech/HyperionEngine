@@ -55,7 +55,7 @@ struct AnimationPlaybackState
     }
 };
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct AnimationComponent
 {
     HYP_FIELD(SerializeAs=PlaybackState)

@@ -49,8 +49,14 @@ HYP_EXPORT void TaskBatch_AddTask(TaskBatch *task_batch, TaskDelegate delegate)
     });
 }
 
-HYP_EXPORT void TaskBatch_Launch(TaskBatch *task_batch)
+HYP_EXPORT void TaskBatch_Launch(TaskBatch *task_batch, void(*callback)(void))
 {
+    if (!task_batch) {
+        return;
+    }
+
+    task_batch->OnComplete.Bind(callback);
+
     TaskSystem::GetInstance().EnqueueBatch(task_batch);
 }
 } // extern "C"

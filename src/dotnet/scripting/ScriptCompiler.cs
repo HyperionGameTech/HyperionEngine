@@ -233,16 +233,27 @@ namespace Hyperion
             process.StartInfo.Arguments = $"build";
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.WorkingDirectory = projectOutputDirectory;
-            process.StartInfo.RedirectStandardOutput = false;
-            process.StartInfo.RedirectStandardError = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
             process.StartInfo.CreateNoWindow = true;
+            process.OutputDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
+            {
+                Logger.Log(LogType.Info, "{0}", eventArgs.Data);
+            };
+            process.ErrorDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
+            {
+                Logger.Log(LogType.Error, "{0}", eventArgs.Data);
+            };
             process.Start();
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
 
             process.WaitForExit();
 
             if (process.ExitCode != 0)
             {
-                Logger.Log(LogType.Error, "Failed to compile script. Check the output log for more information");
+                Logger.Log(LogType.Error, "Failed to compile script. Check the output log for more information.");
 
                 MessageBox.Critical()
                     .Title("Script Compilation Error")

@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct BoundingBoxComponent
 {
     HYP_FIELD(SerializeAs=LocalAABB)

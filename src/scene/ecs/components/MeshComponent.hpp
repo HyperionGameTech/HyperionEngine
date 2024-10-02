@@ -27,19 +27,19 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<sizeof(Vec4u)>;
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct MeshComponent
 {
-    HYP_FIELD(SerializeAs=Mesh)
+    HYP_FIELD(SerializeAs=Mesh, EditorProperty="Mesh")
     Handle<Mesh>            mesh;
 
-    HYP_FIELD(SerializeAs=Material)
+    HYP_FIELD(SerializeAs=Material, EditorProperty="Material")
     Handle<Material>        material;
 
-    HYP_FIELD(SerializeAs=Skeleton)
+    HYP_FIELD(SerializeAs=Skeleton, EditorProperty="Skeleton")
     Handle<Skeleton>        skeleton;
 
-    HYP_FIELD(SerializeAs=NumInstances)
+    HYP_FIELD(SerializeAs=NumInstances, EditorProperty="Instance Count")
     uint32                  num_instances = 1;
 
     HYP_FIELD()

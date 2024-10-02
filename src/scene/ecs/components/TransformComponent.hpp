@@ -9,7 +9,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct TransformComponent
 {
     HYP_FIELD(SerializeAs=Transform, EditorProperty="Transform")

@@ -4,7 +4,10 @@
 #define HYPERION_PROC_HPP
 
 #include <core/Defines.hpp>
+#include <core/Util.hpp>
+
 #include <core/memory/Memory.hpp>
+
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Tuple.hpp>
 
@@ -155,30 +158,40 @@ public:
     {
     }
 
-    /*! \brief Constructs a Proc object from a lambda or function pointer. */
-    template <class Functor>
-    Proc(Functor &&fn)
+    /*! \brief Constructs a Proc object from a callable object. */
+    template <class Func, typename = std::enable_if_t< !std::is_pointer_v<Func> > >
+    Proc(Func &&fn)
     {
-        using FunctorNormalized = NormalizedType<Functor>;
+        using FuncNormalized = NormalizedType<Func>;
 
-        static_assert(!std::is_base_of_v<detail::ProcBase, FunctorNormalized>, "Object should not be ProcBase");
+        static_assert(!std::is_base_of_v<detail::ProcBase, FuncNormalized>, "Object should not be ProcBase");
 
-        // if constexpr (std::is_function_v<std::remove_pointer_t<FunctorNormalized>>) {
+        // if constexpr (std::is_function_v<std::remove_pointer_t<FuncNormalized>>) {
 
-        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FunctorNormalized>;
+        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
 
-        if constexpr (sizeof(FunctorNormalized) <= sizeof(InlineStorage) && alignof(Functor) <= InlineStorage::alignment) {
+        if constexpr (sizeof(FuncNormalized) <= sizeof(InlineStorage) && alignof(Func) <= InlineStorage::alignment) {
             functor.memory.template Set<InlineStorage>({ });
-            Memory::Construct<FunctorNormalized>(functor.GetPointer(), std::forward<Functor>(fn));
+            Memory::Construct<FuncNormalized>(functor.GetPointer(), std::forward<Func>(fn));
 
-            if constexpr (!std::is_trivially_destructible_v<FunctorNormalized>) {
-                functor.delete_fn = &Memory::Destruct<FunctorNormalized>;
+            if constexpr (!std::is_trivially_destructible_v<FuncNormalized>) {
+                functor.delete_fn = &Memory::Destruct<FuncNormalized>;
             }
         } else {
             // Use heap allocation if the functor is too large for inline storage or alignment doesn't match.
-            functor.memory.template Set<void *>(Memory::AllocateAndConstruct<FunctorNormalized>(std::forward<Functor>(fn)));
-            functor.delete_fn = &Memory::DestructAndFree<FunctorNormalized>;
+            functor.memory.template Set<void *>(Memory::AllocateAndConstruct<FuncNormalized>(std::forward<Func>(fn)));
+            functor.delete_fn = &Memory::DestructAndFree<FuncNormalized>;
         }
+    }
+    /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
+     *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
+    template <class Func>
+    Proc(Func *fn)
+    {
+        using FuncNormalized = NormalizedType<Func>;
+
+        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
+        functor.memory.template Set<void *>(static_cast<void *>(fn));
     }
 
     Proc(const Proc &other)             = delete;
@@ -223,15 +236,24 @@ private:
 template <class ReturnType, class... Args>
 class ProcRef
 {
-    ProcRef(std::nullptr_t) = delete;
-    
+    static ReturnType(*const s_invalid_invoke_fn)(void *, Args &&...);
+
 public:
+    explicit ProcRef(std::nullptr_t)
+        : m_ptr(nullptr),
+          m_invoke_fn(s_invalid_invoke_fn)
+    {
+    }
+    
     ProcRef(const Proc<ReturnType, Args...> &proc)
     {
-        AssertThrowMsg(proc.IsValid(), "Cannot construct ProcRef from invalid Proc");
-
-        m_ptr = proc.functor.GetPointer();
-        m_invoke_fn = proc.functor.invoke_fn;
+        if (proc.IsValid()) {
+            m_ptr = proc.functor.GetPointer();
+            m_invoke_fn = proc.functor.invoke_fn;
+        } else {
+            m_ptr = nullptr;
+            m_invoke_fn = s_invalid_invoke_fn;
+        }
 
         // m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
         // {
@@ -268,12 +290,26 @@ public:
 
     ~ProcRef()                                      = default;
 
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return m_ptr != nullptr; }
+
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE bool IsValid() const
+        { return m_ptr != nullptr; }
+
     HYP_FORCE_INLINE ReturnType operator()(Args... args) const
         { return m_invoke_fn(m_ptr, std::forward<Args>(args)...); }
 
 private:
     void        *m_ptr;
     ReturnType  (*m_invoke_fn)(void *, Args &&...);
+};
+
+template <class ReturnType, class... Args>
+ReturnType(*const ProcRef<ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &&...) = [](void *, Args &&...) -> ReturnType
+{
+    HYP_FAIL("Cannot invoke ProcRef that is in invalid state");
 };
 
 } // namespace functional

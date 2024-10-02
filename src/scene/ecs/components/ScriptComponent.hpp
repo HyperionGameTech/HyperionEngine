@@ -28,7 +28,7 @@ enum class ScriptComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 
-HYP_STRUCT()
+HYP_STRUCT(Component)
 struct ScriptComponent
 {
     HYP_FIELD(SerializeAs=Script)

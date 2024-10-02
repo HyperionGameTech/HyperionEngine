@@ -29,7 +29,7 @@ class ByteWriter
 public:
     static constexpr uint32 string_length_mask = uint32(-1) << 8;
     // number of bits needed to encode string type in string header
-    static constexpr uint32 string_type_mask = MathUtil::FastLog2(uint32(StringType::MAX)) + 1;
+    static constexpr uint32 string_type_mask = uint32(MathUtil::FastLog2(uint32(StringType::MAX)) + 1);
 
     ByteWriter()                                    = default;
     ByteWriter(const ByteWriter &other)             = delete;

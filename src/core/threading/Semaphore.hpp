@@ -4,7 +4,10 @@
 #define HYPERION_SEMAPHORE_HPP
 
 #include <core/Defines.hpp>
+
 #include <core/threading/AtomicVar.hpp>
+
+#include <core/functional/Proc.hpp>
 
 #include <Types.hpp>
 
@@ -50,9 +53,15 @@ struct AtomicSemaphoreImpl
         }
     }
 
-    CounterType Release(CounterType delta = 1)
+    CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
-        return value.Decrement(delta, MemoryOrder::SEQUENTIAL) - delta;
+        CounterType value = value.Decrement(delta, MemoryOrder::SEQUENTIAL) - delta;
+
+        if (value <= 0 && if_signalled_proc.IsValid()) {
+            if_signalled_proc();
+        }
+
+        return value;
     }
 
     void Produce(CounterType increment = 1)
@@ -102,17 +111,25 @@ struct ConditionVarSemaphoreImpl
     void Acquire()
     {
         std::unique_lock<std::mutex> lock(mutex);
+
         while (value > 0) {
             cv.wait(lock);
         }
     }
 
-    CounterType Release(CounterType delta = 1)
+    CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
+        
         const CounterType previous_value = value;
         value -= delta;
+
+        if (value <= 0 && if_signalled_proc.IsValid()) {
+            if_signalled_proc();
+        }
+
         cv.notify_all();
+
         return previous_value - delta;
     }
 
@@ -167,8 +184,8 @@ public:
     HYP_FORCE_INLINE void Acquire()
         { m_impl.Acquire(); }
 
-    HYP_FORCE_INLINE CounterType Release(CounterType delta = 1)
-        { return m_impl.Release(delta); }
+    HYP_FORCE_INLINE CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+        { return m_impl.Release(delta, if_signalled_proc); }
 
     HYP_FORCE_INLINE void Produce(CounterType increment = 1)
         { m_impl.Produce(increment); }

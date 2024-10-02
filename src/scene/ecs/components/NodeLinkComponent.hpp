@@ -11,7 +11,7 @@ namespace hyperion {
 
 class Node;
 
-HYP_STRUCT()
+HYP_STRUCT(Component, NoSerialize)
 struct NodeLinkComponent
 {
     HYP_FIELD()
