@@ -1711,7 +1711,7 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
@@ -1731,17 +1731,17 @@ void UIObject::UpdateMaterial(bool update_children)
         Handle<Material> new_material;
         
         if (current_material->IsDynamic()) {
-            // // temp
-            // AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
-            //     current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
+            // temp
+            AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
+                current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
 
             new_material = current_material;
         } else {
             new_material = current_material->Clone();
 
-            // // temp
-            // AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 2, "ref count : %u",
-            //     new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
+            // temp
+            AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 3, "ref count : %u",
+                new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
 
             HYP_LOG(UI, LogLevel::DEBUG, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
 
@@ -1751,6 +1751,8 @@ void UIObject::UpdateMaterial(bool update_children)
             mesh_component->material = new_material;
             mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
         }
+
+        AssertThrow(new_material->IsDynamic());
 
         if (parameters_changed) {
             new_material->SetParameters(material_parameters);
@@ -1929,7 +1931,7 @@ bool UIObject::RemoveNodeTag(Name key)
     return false;
 }
 
-void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool reverse) const
+void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool only_visible) const
 {
     HYP_SCOPE;
 
@@ -1950,13 +1952,11 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
 
         if (ui_component && ui_component->ui_object) {
             // Visibility affects all child nodes as well, so return from here.
-            if (!ui_component->ui_object->GetComputedVisibility()) {
+            if (only_visible && !ui_component->ui_object->GetComputedVisibility()) {
                 return;
             }
 
-            if (!reverse) {
-                proc(ui_component->ui_object);
-            }
+            proc(ui_component->ui_object);
         }
     }
 
@@ -1988,36 +1988,28 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
     });
 
     for (const Pair<Node *, UIObject *> &it : children) {
-        it.second->CollectObjects(proc, out_deferred_child_objects);
-    }
-
-    if (reverse && entity.IsValid()) {
-        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);
-
-        if (ui_component && ui_component->ui_object) {
-            proc(ui_component->ui_object);
-        }
+        it.second->CollectObjects(proc, out_deferred_child_objects, only_visible);
     }
 }
 
-void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool reverse) const
+void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible) const
 {
     HYP_SCOPE;
     
     Array<UIObject *> deferred_child_objects;
-    CollectObjects(proc, deferred_child_objects);
+    CollectObjects(proc, deferred_child_objects, only_visible);
 
     for (UIObject *child_object : deferred_child_objects) {
-        child_object->CollectObjects(proc, reverse);
+        child_object->CollectObjects(proc, only_visible);
     }
 }
 
-void UIObject::CollectObjects(Array<UIObject *> &out_objects, bool reverse) const
+void UIObject::CollectObjects(Array<UIObject *> &out_objects, bool only_visible) const
 {
     CollectObjects([&out_objects](UIObject *ui_object)
     {
         out_objects.PushBack(ui_object);
-    }, reverse);
+    }, only_visible);
 }
 
 Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const

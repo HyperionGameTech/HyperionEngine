@@ -548,7 +548,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         AssertThrow(mesh_component->proxy != nullptr);
 
         m_render_list.PushEntityToRender(entity, *mesh_component->proxy);
-    });
+    }, /* only_visible */ true);
 
     m_render_list.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
 }

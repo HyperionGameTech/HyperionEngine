@@ -661,26 +661,26 @@ public:
      *   \param frame_index The frame index to get the descriptor set for
      *   \returns The descriptor set for the given material and frame index or nullptr if not found
      */
-    const DescriptorSetRef &GetDescriptorSet(ID<Material> material, uint frame_index) const;
+    const DescriptorSetRef &GetDescriptorSet(ID<Material> id, uint frame_index) const;
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
      *  \note If this function is called form the render thread, the descriptor set will
      *  be created immediately. If called from any other thread, the descriptor set will
      *  be created on the next call to Update.
-     *  \param id The ID of the material to add
+     *  \param material The material to add
      */
-    void AddMaterial(ID<Material> id);
+    void AddMaterial(const WeakHandle<Material> &material);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
      *  \note If this function is called form the render thread, the descriptor set will
      *  be created immediately. If called from any other thread, the descriptor set will
      *  be created on the next call to Update.
-     *  \param id The ID of the material to add
+     *  \param material The material to add
      *  \param textures The textures to add to the material
      */
-    void AddMaterial(ID<Material> id, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    void AddMaterial(const WeakHandle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
      *  for the material from the manager. Usable from any thread.
@@ -693,7 +693,7 @@ public:
      */
     void RemoveMaterial(ID<Material> material);
 
-    void SetNeedsDescriptorSetUpdate(ID<Material> id);
+    void SetNeedsDescriptorSetUpdate(const WeakHandle<Material> &material);
 
     /*! \brief Initialize the MaterialDescriptorSetManager - Only to be used by the owning Engine instance. */
     void Initialize();
@@ -707,16 +707,16 @@ public:
 private:
     void CreateInvalidMaterialDescriptorSet();
 
-    HashMap<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
+    HashMap<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
 
-    Array<Pair<ID<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
-    Array<ID<Material>>                                                             m_pending_removal;
-    Mutex                                                                           m_pending_mutex;
-    AtomicVar<bool>                                                                 m_pending_addition_flag;
+    Array<Pair<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
+    Array<ID<Material>>                                                                     m_pending_removal;
+    Mutex                                                                                   m_pending_mutex;
+    AtomicVar<bool>                                                                         m_pending_addition_flag;
 
-    FixedArray<Array<ID<Material>>, max_frames_in_flight>                           m_descriptor_sets_to_update;
-    Mutex                                                                           m_descriptor_sets_to_update_mutex;
-    AtomicVar<uint>                                                                 m_descriptor_sets_to_update_flag;
+    FixedArray<Array<WeakHandle<Material>>, max_frames_in_flight>                           m_descriptor_sets_to_update;
+    Mutex                                                                                   m_descriptor_sets_to_update_mutex;
+    AtomicVar<uint>                                                                         m_descriptor_sets_to_update_flag;
 };
 
 } // namespace hyperion

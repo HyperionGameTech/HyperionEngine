@@ -23,6 +23,12 @@ namespace hyperion {
 
 class HypClass;
 
+template <class T>
+struct Handle;
+
+template <class T>
+struct WeakHandle;
+
 namespace dotnet {
 class Object;
 } // namespace dotnet
@@ -115,6 +121,16 @@ public:
     }
 
 protected:
+    HYP_FORCE_INLINE Handle<T> HandleFromThis() const
+    {
+        return Handle<T>(m_id);
+    }
+
+    HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
+    {
+        return WeakHandle<T>(m_id);
+    }
+
     void SetReady(bool is_ready)
     {
         if (is_ready) {

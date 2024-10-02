@@ -215,11 +215,12 @@ struct Handle : HandleBase
         index = 0;
     }
     
-    HYP_FORCE_INLINE static Name GetTypeName()
-        { return HandleDefinition<T>::GetNameForType(); }
-    
-    HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
-        { return HandleDefinition<T>::GetClassNameString(); }
+    static Name GetTypeName()
+    {
+        static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());
+
+        return type_name;
+    }
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -263,6 +264,16 @@ struct WeakHandle
     WeakHandle()
         : index(0)
     {
+    }
+
+    /*! \brief Construct a WeakHandle from the given ID.
+     *  \param id The ID of the object to reference. */
+    explicit WeakHandle(IDType id)
+        : index(id.Value())
+    {
+        if (index != 0) {
+            GetContainer().IncRefWeak(index - 1);
+        }
     }
 
     WeakHandle(const Handle<T> &other)
@@ -409,16 +420,17 @@ struct WeakHandle
         index = 0;
     }
     
-    HYP_FORCE_INLINE static Name GetTypeName()
-        { return HandleDefinition<T>::GetNameForType(); }
-    
-    HYP_FORCE_INLINE static constexpr const char *GetClassNameString()
-        { return HandleDefinition<T>::GetClassNameString(); }
+    static Name GetTypeName()
+    {
+        static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());
+
+        return type_name;
+    }
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(String(HandleDefinition<T>::class_name).GetHashCode());
+        hc.Add(GetTypeName().GetHashCode());
         hc.Add(index);
 
         return hc;
@@ -569,17 +581,6 @@ ObjectContainer<T> *WeakHandle<T>::s_container = nullptr;
         static constexpr const char *class_name = HYP_STR(T); \
         static constexpr SizeType max_size = (_max_size); \
         \
-        static constexpr const char *GetClassNameString() \
-        { \
-            return class_name; \
-        } \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = NAME(HYP_STR(T)); \
-            return name; \
-        } \
-        \
         HYP_API static UniquePtr<ObjectContainerBase> *GetAllottedContainerPointer(); \
     };
 
@@ -595,17 +596,6 @@ ObjectContainer<T> *WeakHandle<T>::s_container = nullptr;
     { \
         static constexpr const char *class_name = HYP_STR(ns) "::" HYP_STR(T); \
         static constexpr SizeType max_size = (_max_size); \
-        \
-        static constexpr const char *GetClassNameString() \
-        { \
-            return class_name; \
-        } \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = NAME(HYP_STR(ns::T)); \
-            return name; \
-        } \
         \
         HYP_API static UniquePtr<ObjectContainerBase> *GetAllottedContainerPointer(); \
     };

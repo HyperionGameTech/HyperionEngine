@@ -91,6 +91,13 @@ struct ID : IDBase
 
     TypeID GetTypeID() const
         { return TypeID::ForType<NormalizedType<T>>(); }
+    
+    static Name GetTypeName()
+    {
+        static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());
+
+        return type_name;
+    }
 
     static ID FromIndex(uint index)
     {
@@ -102,7 +109,7 @@ struct ID : IDBase
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(GetTypeID().GetHashCode());
+        hc.Add(GetTypeName().GetHashCode());
         hc.Add(value);
 
         return hc;

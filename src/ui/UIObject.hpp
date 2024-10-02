@@ -701,13 +701,13 @@ public:
 
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
-     *  \param reverse If true, collect the objects in reverse order (from bottom to top in the hierarchy). */
-    void CollectObjects(ProcRef<void, UIObject *> proc, bool reverse = false) const;
+     *  \param only_visible If true, skips objects with computed visibility as non-visible */
+    void CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible = true) const;
 
     /*! \brief Collect all nested UIObjects in the hierarchy and push them to the `out_objects` array.
      *  \param out_objects The array to store the collected UIObjects in.
-     *  \param reverse If true, collect the objects in reverse order (from bottom to top in the hierarchy). */
-    void CollectObjects(Array<UIObject *> &out_objects, bool reverse = false) const;
+     *  \param only_visible If true, skips objects with computed visibility as non-visible */
+    void CollectObjects(Array<UIObject *> &out_objects, bool only_visible = true) const;
 
     /*! \brief Transform a screen coordinate to a relative coordinate within the UIObject.
      *  \param coords The screen coordinates to transform.
@@ -893,8 +893,8 @@ private:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
      *  \param out_deferred_child_objects Array to push child objects to, in the case that its parent type is not a container type (IsContainer() returns false)
-     *  \param reverse If true, collect objects in reverse order. */
-    void CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool reverse = false) const;
+     *  \param only_visible If true, skips objects with computed visibility as non-visible */
+    void CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool only_visible = true) const;
 
     void ComputeOffsetPosition();
 
