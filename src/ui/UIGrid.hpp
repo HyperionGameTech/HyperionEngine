@@ -83,13 +83,14 @@ public:
 
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
-
-    void UpdateLayout();
     
 private:
     void SetNumColumns(uint32 num_columns);
 
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    void UpdateColumnSizes();
+    void UpdateColumnOffsets();
+
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     Array<RC<UIGridColumn>> m_columns;
 };
@@ -145,7 +146,7 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 protected:
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 

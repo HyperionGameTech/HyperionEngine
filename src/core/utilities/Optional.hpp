@@ -123,6 +123,50 @@ public:
     HYP_FORCE_INLINE explicit operator bool() const
         { return m_has_value; }
 
+    HYP_FORCE_INLINE bool operator==(const Optional &other) const
+    {
+        if (m_has_value != other.m_has_value) {
+            return false;
+        }
+
+        if (m_has_value) {
+            return Get() == other.Get();
+        }
+
+        return true;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const Optional &other) const
+    {
+        if (m_has_value != other.m_has_value) {
+            return true;
+        }
+
+        if (m_has_value) {
+            return Get() != other.Get();
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const T &value) const
+    {
+        if (!m_has_value) {
+            return false;
+        }
+
+        return Get() == value;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const T &value) const
+    {
+        if (!m_has_value) {
+            return true;
+        }
+
+        return Get() != value;
+    }
+
     HYP_FORCE_INLINE T *TryGet()
     {
         if (m_has_value) {
@@ -335,6 +379,34 @@ public:
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return m_ptr != nullptr; }
+
+    HYP_FORCE_INLINE bool operator==(const Optional &other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const Optional &other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const T &value) const
+    {
+        if (m_ptr == nullptr) {
+            return false;
+        }
+
+        return *m_ptr == value;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const T &value) const
+    {
+        if (m_ptr == nullptr) {
+            return true;
+        }
+
+        return *m_ptr != value;
+    }
 
     HYP_FORCE_INLINE typename std::remove_reference_t< T > *TryGet()
     {

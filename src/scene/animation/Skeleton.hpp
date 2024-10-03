@@ -63,8 +63,8 @@ class HYP_API Skeleton : public BasicObject<Skeleton>
 public:
     Skeleton();
     Skeleton(const RC<Bone> &root_bone);
-    Skeleton(const Skeleton &other) = delete;
-    Skeleton &operator=(const Skeleton &other) = delete;
+    Skeleton(const Skeleton &other)             = delete;
+    Skeleton &operator=(const Skeleton &other)  = delete;
     ~Skeleton();
 
     /*! \brief Get the mutation state of this skeleton.

@@ -132,13 +132,13 @@ public:
     /*! \brief Get the axis-aligned bounding box for the mesh.
         If the mesh has not been initialized, the AABB will be invalid, unless SetAABB() has been called.
         Otherwise, the AABB will be calculated from the mesh vertices. */
-    HYP_METHOD(SerializeAs=AABB)
+    HYP_METHOD(SerializeAs=AABB, Property="AABB")
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
     /*! \brief Manually set the AABB for the mesh. If CalculateAABB is called after this, or the mesh data is changed, the
         manually set AABB will be overwritten. */
-    HYP_METHOD(SerializeAs=AABB)
+    HYP_METHOD(SerializeAs=AABB, Property="AABB")
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 

@@ -33,6 +33,7 @@ struct HypField : public IHypMember
 {
     Name                                            name;
     TypeID                                          type_id;
+    TypeID                                          target_type_id;
     uint32                                          offset;
     uint32                                          size;
 
@@ -47,6 +48,7 @@ struct HypField : public IHypMember
     HypField(Span<HypClassAttribute> attributes = { })
         : name(Name::Invalid()),
           type_id(TypeID::Void()),
+          target_type_id(TypeID::Void()),
           offset(0),
           size(0),
           attributes(HypClassAttribute::ToHashMap(attributes))
@@ -57,6 +59,7 @@ struct HypField : public IHypMember
     HypField(Name name, FieldType ThisType::*member, uint32 offset, Span<HypClassAttribute> attributes = { })
         : name(name),
           type_id(TypeID::ForType<FieldType>()),
+          target_type_id(TypeID::ForType<ThisType>()),
           offset(offset),
           size(sizeof(FieldType)),
           attributes(HypClassAttribute::ToHashMap(attributes))
@@ -186,6 +189,11 @@ struct HypField : public IHypMember
     HypField &operator=(HypField &&other) noexcept  = default;
     virtual ~HypField() override                    = default;
 
+    virtual HypMemberType GetMemberType() const override
+    {
+        return HypMemberType::TYPE_FIELD;
+    }
+
     virtual Name GetName() const override
     {
         return name;
@@ -237,7 +245,7 @@ struct HypField : public IHypMember
         deserialize_proc(target_data, data);
     }
 
-    HYP_FORCE_INLINE HypData Get(HypData &target_data) const
+    HYP_FORCE_INLINE HypData Get(const HypData &target_data) const
     {
         return get_proc(target_data);
     }

@@ -362,6 +362,8 @@ class Codegen:
                 metadata_json = json.load(open(metadata_path, 'r'))
 
                 self.metadata = metadata_json
+
+                return
             except Exception as e:
                 sys.stderr.write(f"Failed to load metadata json file at {metadata_path}: {repr(e)}\n")
 
@@ -525,7 +527,7 @@ class Codegen:
 
         if not os.path.exists(cxx_generated_dir):
             os.makedirs(cxx_generated_dir)
-        
+
         if hyp_class.last_modified is None or self.metadata.get(hyp_class.name, {}).get("last_modified", 0) < hyp_class.last_modified:
             cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
             cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)

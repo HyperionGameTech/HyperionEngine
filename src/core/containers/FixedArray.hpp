@@ -108,12 +108,6 @@ public:
         return impl.Contains(value);
     }
 
-    HYP_FORCE_INLINE T &At(KeyType index)
-        { AssertThrow(index < Sz); return m_values[index]; }
-
-    HYP_FORCE_INLINE const T &At(KeyType index) const
-        { AssertThrow(index < Sz); return m_values[index]; }
-
     HYP_FORCE_INLINE T &operator[](KeyType index)
         { return m_values[index]; }
 

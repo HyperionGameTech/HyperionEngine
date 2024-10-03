@@ -155,6 +155,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
                 continue;
             }
 
+            constexpr TypeID t = TypeID::ForType<Node>();
+
             auto deserialize_fields_it = deserialize_fields.FindAs(serialize_as->Data());
 
             if (deserialize_fields_it == deserialize_fields.End()) {
@@ -176,7 +178,9 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
                     continue;
                 }
 
-                property->InvokeSetter_Serialized(ref, it.second);
+                HYP_LOG(Serialization, LogLevel::DEBUG, "Deserializing property '{}' on object, calling setter for HypClass '{}'", it.first, hyp_class->GetName());
+
+                property->InvokeSetter_Serialized(target_data, it.second);
             }
 
             auto deserialize_methods_it = deserialize_methods.FindAs(it.first);

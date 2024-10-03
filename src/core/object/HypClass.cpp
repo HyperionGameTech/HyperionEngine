@@ -20,8 +20,9 @@ namespace hyperion {
 
 #pragma region HypClassMemberIterator
 
-HypClassMemberIterator::HypClassMemberIterator(const HypClass *hyp_class, Phase phase)
-    : m_phase(phase),
+HypClassMemberIterator::HypClassMemberIterator(const HypClass *hyp_class, EnumFlags<HypMemberType> member_types, Phase phase)
+    : m_member_types(member_types),
+      m_phase(phase),
       m_hyp_class(hyp_class),
       m_iterating_parent(nullptr),
       m_current_index(0),
@@ -36,7 +37,7 @@ void HypClassMemberIterator::Advance()
 
     if (m_phase == Phase::MAX) {
         if ((target = m_iterating_parent = target->GetParent())) {
-            m_phase = Phase::ITERATE_PROPERTIES;
+            m_phase = NextPhase(m_member_types, m_phase);
         }
     }
 
@@ -49,7 +50,7 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetProperties().Size()) {
             m_current_value = target->GetProperties()[m_current_index++];
         } else {
-            m_phase = Phase::ITERATE_METHODS;
+            m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
             m_current_value = nullptr;
 
@@ -61,7 +62,7 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetMethods().Size()) {
             m_current_value = target->GetMethods()[m_current_index++];
         } else {
-            m_phase = Phase::ITERATE_FIELDS;
+            m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
             m_current_value = nullptr;
             
@@ -73,7 +74,7 @@ void HypClassMemberIterator::Advance()
         if (m_current_index < target->GetFields().Size()) {
             m_current_value = target->GetFields()[m_current_index++];
         } else {
-            m_phase = Phase::MAX;
+            m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
             m_current_value = nullptr;
 
@@ -149,6 +150,70 @@ void HypClass::Initialize()
     if (m_parent_name.IsValid()) {
         m_parent = GetClass(m_parent_name);
         AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
+    }
+
+    // Build properties from `Property=` attributes on methods and fields
+    HashMap<String, Array<IHypMember *>> properties_to_build;
+
+    for (IHypMember &member : GetMembers(false)) {
+        if (const String *property_attribute_ptr = member.GetAttribute("property")) {
+            auto properties_to_build_it = properties_to_build.Find(*property_attribute_ptr);
+
+            if (properties_to_build_it == properties_to_build.End()) {
+                properties_to_build_it = properties_to_build.Insert({
+                    *property_attribute_ptr,
+                    { }
+                }).first;
+            }
+
+            properties_to_build_it->second.PushBack(&member);
+        }
+    }
+
+    for (const auto &it : properties_to_build) {
+        if (it.second.Empty()) {
+            continue;
+        }
+
+        auto find_field_it = it.second.FindIf([](IHypMember *member)
+        {
+            return member->GetMemberType() == HypMemberType::TYPE_FIELD;
+        });
+
+        if (find_field_it != it.second.End()) {
+            HypProperty *property_ptr = new HypProperty(HypProperty::MakeHypProperty(static_cast<HypField *>(*find_field_it)));
+
+            m_properties.PushBack(property_ptr);
+            m_properties_by_name.Set(property_ptr->name, property_ptr);
+
+            continue;
+        }
+
+        const auto find_getter_it = it.second.FindIf([](IHypMember *member)
+        {
+            return member->GetMemberType() == HypMemberType::TYPE_METHOD
+                && static_cast<HypMethod *>(member)->params.Size() == 1;
+        });
+
+        const auto find_setter_it = it.second.FindIf([](IHypMember *member)
+        {
+            return member->GetMemberType() == HypMemberType::TYPE_METHOD
+                && static_cast<HypMethod *>(member)->params.Size() == 2;
+        });
+
+        if (find_getter_it != it.second.End() || find_setter_it != it.second.End()) {
+            HypProperty *property_ptr = new HypProperty(HypProperty::MakeHypProperty(
+                find_getter_it != it.second.End() ? static_cast<HypMethod *>(*find_getter_it) : nullptr,
+                find_setter_it != it.second.End() ? static_cast<HypMethod *>(*find_setter_it) : nullptr
+            ));
+
+            m_properties.PushBack(property_ptr);
+            m_properties_by_name.Set(property_ptr->name, property_ptr);
+
+            continue;
+        }
+
+        HYP_FAIL("Invalid property definition for \"%s\": Must be HYP_FIELD() or getter/setter pair of HYP_METHOD()", it.first.Data());
     }
 }
 

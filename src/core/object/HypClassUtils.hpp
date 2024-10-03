@@ -16,14 +16,6 @@ namespace hyperion {
 #define HYP_DEFINE_CLASS(T, ...) \
     static ::hyperion::detail::HypClassRegistration<T, HypClassFlags::CLASS_TYPE> T##_ClassRegistration { NAME(HYP_STR(T)), {}, {}, Span<HypMember> { { __VA_ARGS__ } } }
 
-// #define HYP_DEFINE_STRUCT(T, ...) \
-//     static ::hyperion::detail::HypStructRegistration<T> T##_StructRegistration { HypClassFlags::STRUCT_TYPE, Span<HypMember> { { __VA_ARGS__ } } }
-
-// #define HYP_FIELD(name) HypField(NAME(HYP_STR(name)), &Type::name, offsetof(Type, name))
-
-// #define HYP_PROPERTY(name, ...) HypProperty(NAME(HYP_STR(name)), __VA_ARGS__)
-
-// #define HYP_METHOD(name) HypMethod(NAME(HYP_STR(name)), &Type::name)
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
 #define HYP_BEGIN_STRUCT(cls, ...) static struct HypStructInitializer_##cls \

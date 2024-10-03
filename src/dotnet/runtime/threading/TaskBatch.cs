@@ -62,15 +62,10 @@ namespace Hyperion
 
         public void AddTask(TaskDelegate fn)
         {
-            if (!IsCompleted)
-            {
-                throw new InvalidOperationException("TaskBatch is not completed, cannot add tasks");
-            }
-
             TaskBatch_AddTask(ptr, fn);
         }
 
-        public async Task<void> Execute()
+        public Task Execute()
         {
             var completionSource = new TaskCompletionSource();
 

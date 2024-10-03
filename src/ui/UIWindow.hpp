@@ -34,7 +34,7 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 protected:
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     RC<UIPanel>     m_title_bar;
     RC<UIPanel>     m_content;

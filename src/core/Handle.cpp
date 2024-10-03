@@ -93,7 +93,7 @@ AnyHandle::~AnyHandle()
 AnyRef AnyHandle::ToRef() const
 {
     if (!type_id || index == 0) {
-        return AnyRef();
+        return AnyRef(type_id, nullptr);
     }
 
     ObjectContainerBase &container = ObjectPool::GetContainer(type_id);

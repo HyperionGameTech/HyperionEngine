@@ -171,7 +171,7 @@ public:
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 protected:
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void OnRemoved_Internal() override;
 

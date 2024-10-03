@@ -357,7 +357,7 @@ void UIObject::UpdatePosition(bool update_children)
         }
     }
 
-    node->UnlockTransform();
+    // node->UnlockTransform();
 
     node->SetLocalTranslation(Vec3f {
         float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
@@ -374,7 +374,7 @@ void UIObject::UpdatePosition(bool update_children)
         });
     }
 
-    node->LockTransform();
+    // node->LockTransform();
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }
@@ -1173,18 +1173,18 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
     bounding_box_component.local_aabb = aabb;
 
     if (const NodeProxy &node = GetNode()) {
-        const bool transform_locked = node->IsTransformLocked();
+        // const bool transform_locked = node->IsTransformLocked();
 
-        if (transform_locked) {
-            node->UnlockTransform();
-        }
+        // if (transform_locked) {
+        //     node->UnlockTransform();
+        // }
 
         node->SetEntityAABB(aabb);
         node->UpdateWorldTransform();
 
-        if (transform_locked) {
-            node->LockTransform();
-        }
+        // if (transform_locked) {
+        //     node->LockTransform();
+        // }
 
         bounding_box_component.world_aabb = aabb * node->GetWorldTransform();
         bounding_box_component.transform_hash_code = node->GetWorldTransform().GetHashCode();
@@ -1731,17 +1731,17 @@ void UIObject::UpdateMaterial(bool update_children)
         Handle<Material> new_material;
         
         if (current_material->IsDynamic()) {
-            // temp
-            AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
-                current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
+            // // temp
+            // AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
+            //     current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
 
             new_material = current_material;
         } else {
             new_material = current_material->Clone();
 
-            // temp
-            AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 3, "ref count : %u",
-                new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
+            // // temp
+            // AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 2, "ref count : %u",
+            //     new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
 
             HYP_LOG(UI, LogLevel::DEBUG, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
 

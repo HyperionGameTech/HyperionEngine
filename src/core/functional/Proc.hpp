@@ -107,10 +107,14 @@ struct ProcFunctorInternal
 template <class ReturnType, class... Args>
 struct Invoker
 {
-    template <class Functor>
+    template <class Func>
     static HYP_NODISCARD ReturnType InvokeFn(void *ptr, Args &&... args)
     {
-        return (*static_cast<Functor *>(ptr))(std::forward<Args>(args)...);
+        if constexpr (std::is_function_v<std::remove_pointer_t<Func>>) {
+            return reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
+        } else {
+            return (*static_cast<Func *>(ptr))(std::forward<Args>(args)...);
+        }
     }
 };
 
@@ -118,14 +122,19 @@ struct Invoker
 template <class... Args>
 struct Invoker<void, Args...>
 {
-    template <class Functor>
+    template <class Func>
     static void InvokeFn(void *ptr, Args &&... args)
     {
-        (*static_cast<Functor *>(ptr))(std::forward<Args>(args)...);
+        if constexpr (std::is_function_v<std::remove_pointer_t<Func>>) {
+            reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
+        } else {
+            (*static_cast<Func *>(ptr))(std::forward<Args>(args)...);
+        }
     }
 };
 
 class ProcBase { };
+class ProcRefBase { };
 
 } // namespace detail
 
@@ -159,7 +168,7 @@ public:
     }
 
     /*! \brief Constructs a Proc object from a callable object. */
-    template <class Func, typename = std::enable_if_t< !std::is_pointer_v<Func> > >
+    template <class Func, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<Func> > && !std::is_base_of_v< detail::ProcRefBase, NormalizedType<Func> > > >
     Proc(Func &&fn)
     {
         using FuncNormalized = NormalizedType<Func>;
@@ -183,15 +192,19 @@ public:
             functor.delete_fn = &Memory::DestructAndFree<FuncNormalized>;
         }
     }
+
     /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
      *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
     template <class Func>
     Proc(Func *fn)
+        : Proc()
     {
         using FuncNormalized = NormalizedType<Func>;
 
-        functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
-        functor.memory.template Set<void *>(static_cast<void *>(fn));
+        if (fn != nullptr) {
+            functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
+            functor.memory.template Set<void *>(reinterpret_cast<void *>(fn));
+        }
     }
 
     Proc(const Proc &other)             = delete;
@@ -215,6 +228,9 @@ public:
     HYP_FORCE_INLINE explicit operator bool() const
         { return functor.HasValue(); }
 
+    HYP_FORCE_INLINE bool operator!() const
+        { return !functor.HasValue(); }
+
     /*! \brief Returns true if the Proc object is valid, false otherwise. */
     HYP_FORCE_INLINE bool IsValid() const
         { return functor.HasValue(); }
@@ -234,7 +250,7 @@ private:
 };
 
 template <class ReturnType, class... Args>
-class ProcRef
+class ProcRef : public detail::ProcRefBase
 {
     static ReturnType(*const s_invalid_invoke_fn)(void *, Args &&...);
 
@@ -245,23 +261,23 @@ public:
     {
     }
     
-    ProcRef(const Proc<ReturnType, Args...> &proc)
+    ProcRef(Proc<ReturnType, Args...> &proc)
+        : ProcRef(nullptr)
     {
         if (proc.IsValid()) {
-            m_ptr = proc.functor.GetPointer();
-            m_invoke_fn = proc.functor.invoke_fn;
-        } else {
-            m_ptr = nullptr;
-            m_invoke_fn = s_invalid_invoke_fn;
-        }
+            m_ptr = const_cast<void *>(static_cast<const void *>(&proc));
 
-        // m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
-        // {
-        //     return (*static_cast<const Proc<ReturnType, Args...> *>(ptr))(std::forward<Args>(args)...);
-        // };
+            m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+            {
+                const Proc<ReturnType, Args...> &proc = *static_cast<const Proc<ReturnType, Args...> *>(ptr);
+                AssertThrowMsg(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
+
+                return proc(std::forward<Args>(args)...);
+            };
+        }
     }
 
-    template <class Callable, typename = std::enable_if_t< !std::is_same_v< ProcRef, NormalizedType< Callable > > && !std::is_base_of_v< detail::ProcBase, NormalizedType< Callable > > > >
+    template <class Callable, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<Callable> > && !std::is_base_of_v< detail::ProcRefBase, NormalizedType< Callable > > && !std::is_base_of_v< detail::ProcBase, NormalizedType< Callable > > > >
     ProcRef(Callable &&callable)
         : m_ptr(const_cast<void *>(static_cast<const void *>(&callable)))
     {
@@ -272,14 +288,16 @@ public:
     }
 
     ProcRef(ReturnType(*fn)(Args...))
-        : m_ptr(fn)
+        : ProcRef(nullptr)
     {
-        AssertThrowMsg(fn != nullptr, "Cannot construct ProcRef from null function pointer");
+        if (fn != nullptr) {
+            m_ptr = reinterpret_cast<void *>(fn);
 
-        m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
-        {
-            return (static_cast<ReturnType(*)(Args...)>(ptr))(std::forward<Args>(args)...);
-        };
+            m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+            {
+                return (reinterpret_cast<ReturnType(*)(Args...)>(ptr))(std::forward<Args>(args)...);
+            };
+        }
     }
 
     ProcRef(const ProcRef &other)                   = default;
@@ -293,6 +311,9 @@ public:
     /*! \brief Returns true if the Proc object is valid, false otherwise. */
     HYP_FORCE_INLINE explicit operator bool() const
         { return m_ptr != nullptr; }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return m_ptr == nullptr; }
 
     /*! \brief Returns true if the Proc object is valid, false otherwise. */
     HYP_FORCE_INLINE bool IsValid() const

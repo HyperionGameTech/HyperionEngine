@@ -40,7 +40,7 @@ HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_t
     *out_type_id = property->type_id;
 }
 
-HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, const void *target_ptr, HypData *out_result)
+HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)
 {
     if (!property || !target_class || !target_ptr || !out_result) {
         return false;
@@ -50,7 +50,9 @@ HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypC
         return false;
     }
 
-    *out_result = property->InvokeGetter(ConstAnyRef(target_class->GetTypeID(), target_ptr));
+    HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+
+    *out_result = property->InvokeGetter(target_data);
 
     return true;
 }
@@ -65,7 +67,9 @@ HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty *property, const HypC
         return false;
     }
 
-    property->InvokeSetter(AnyRef(target_class->GetTypeID(), target_ptr), *value);
+    HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+
+    property->InvokeSetter(target_data, *value);
 
     return true;
 }

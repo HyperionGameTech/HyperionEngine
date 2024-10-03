@@ -664,7 +664,7 @@ public:
     bool RemoveNodeTag(Name key);
 
     virtual void UpdatePosition(bool update_children = true);
-    void UpdateSize(bool update_children = true);
+    virtual void UpdateSize(bool update_children = true);
 
     /*! \brief Set deferred updates to apply to the UI object.
      *  \details Deferred updates are used to defer updates to the UI object until the next Update() call.
@@ -774,7 +774,7 @@ protected:
         return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
     }
 
-    virtual void UpdateSize_Internal(bool update_children = true);
+    virtual void UpdateSize_Internal(bool update_children);
 
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source);
 

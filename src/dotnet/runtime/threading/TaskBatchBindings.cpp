@@ -55,8 +55,9 @@ HYP_EXPORT void TaskBatch_Launch(TaskBatch *task_batch, void(*callback)(void))
         return;
     }
 
-    task_batch->OnComplete.Bind(callback);
+    task_batch->OnComplete.Bind(callback).Detach();
 
     TaskSystem::GetInstance().EnqueueBatch(task_batch);
 }
+
 } // extern "C"

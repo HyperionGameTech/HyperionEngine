@@ -122,7 +122,7 @@ protected:
     virtual Material::ParameterTable GetMaterialParameters() const override;
     virtual Material::TextureSet GetMaterialTextures() const override;
 
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void OnFontAtlasUpdate_Internal() override;
 

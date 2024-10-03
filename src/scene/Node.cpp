@@ -789,14 +789,18 @@ void Node::UpdateWorldTransform()
         m_world_transform = m_local_transform;
     }
 
-    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
-        m_scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(m_entity);
-        m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
+    const RC<EntityManager> &entity_manager = m_scene->GetEntityManager();
 
-        if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
+    if (m_entity.IsValid() && entity_manager != nullptr) {
+        if (entity_manager->HasTag<EntityTag::STATIC>(m_entity) || !entity_manager->HasTag<EntityTag::DYNAMIC>(m_entity)) {
+            entity_manager->AddTag<EntityTag::DYNAMIC>(m_entity);
+            entity_manager->RemoveTag<EntityTag::STATIC>(m_entity);
+        }
+
+        if (TransformComponent *transform_component = entity_manager->TryGetComponent<TransformComponent>(m_entity)) {
             transform_component->transform = m_world_transform;
         } else {
-            m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
+            entity_manager->AddComponent<TransformComponent>(m_entity, TransformComponent {
                 m_world_transform
             });
         }

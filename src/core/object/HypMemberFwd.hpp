@@ -13,10 +13,22 @@
 
 namespace hyperion {
 
+enum class HypMemberType : uint8
+{
+    NONE            = 0x0,
+    TYPE_FIELD      = 0x1,
+    TYPE_METHOD     = 0x2,
+    TYPE_PROPERTY   = 0x4
+};
+
+HYP_MAKE_ENUM_FLAGS(HypMemberType)
+
 class IHypMember
 {
 public:
     virtual ~IHypMember() = default;
+
+    virtual HypMemberType GetMemberType() const = 0;
 
     virtual Name GetName() const = 0;
     virtual TypeID GetTypeID() const = 0;

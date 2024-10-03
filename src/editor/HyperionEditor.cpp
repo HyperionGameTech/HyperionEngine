@@ -81,90 +81,20 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 namespace editor {
 
-struct EditorPropertyWrapper
-{
-    IHypMember                      *member = nullptr;
-    Proc<HypData, Span<HypData>>    getter;
-    Proc<void, Span<HypData>>       setter;
-};
-
-static HashMap<String, EditorPropertyWrapper> BuildEditorProperties(const HypData &data)
+static HashMap<String, HypProperty *> BuildEditorProperties(const HypData &data)
 {
     const HypClass *hyp_class = GetClass(data.GetTypeID());
     AssertThrowMsg(hyp_class != nullptr, "Cannot build editor properties for object with TypeID %u - no HypClass registered", data.GetTypeID().Value());
 
-    HashMap<String, EditorPropertyWrapper> properties_by_name;
+    HashMap<String, HypProperty *> properties_by_name;
 
-    for (auto it = hyp_class->GetMembers().Begin(); it != hyp_class->GetMembers().End(); ++it) {
-        HypProperty *property;
-        HypMethod *method;
-        HypField *field;
-
-        if ((property = dynamic_cast<HypProperty *>(&*it))) {
+    for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
+        if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
             if (!property->HasGetter() || !property->HasSetter()) {
                 continue;
             }
 
-            EditorPropertyWrapper property_wrapper;
-
-            property_wrapper.member = &*it;
-
-            property_wrapper.getter = [property](Span<HypData> args) -> HypData
-            {
-                return property->InvokeGetter(args[0].ToRef());
-            };
-
-            property_wrapper.setter = [property](Span<HypData> args) -> void
-            {
-                property->InvokeSetter(args[0].ToRef(), args[1]);
-            };
-
-            properties_by_name[property->name.LookupString()] = std::move(property_wrapper);
-        } else if ((method = dynamic_cast<HypMethod *>(&*it))) {
-            const String *editor_property = nullptr;
-
-            if (!(editor_property = method->GetAttribute("editorproperty"))) {
-                continue;
-            }
-
-            EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-            if (method->params.Size() == 1) {
-                // set `member` to the getter
-                property_wrapper.member = &*it;
-
-                property_wrapper.getter = [method](Span<HypData> args) -> HypData
-                {
-                    return method->Invoke(args);
-                };
-            } else if (method->params.Size() == 2) {
-                property_wrapper.setter = [method](Span<HypData> args) -> void
-                {
-                    method->Invoke(args);
-                };
-            } else {
-                continue;
-            }
-        } else if ((field = dynamic_cast<HypField *>(&*it))) {
-            const String *editor_property = nullptr;
-
-            if (!(editor_property = field->GetAttribute("editorproperty"))) {
-                continue;
-            }
-
-            EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-            property_wrapper.member = &*it;
-            
-            property_wrapper.getter = [field](Span<HypData> args) -> HypData
-            {
-                return field->Get(args[0]);
-            };
-
-            property_wrapper.setter = [field](Span<HypData> args) -> void
-            {
-                field->Set(args[0], args[1]);
-            };
+            properties_by_name[property->name.LookupString()] = property;
         } else {
             HYP_UNREACHABLE();
         }
@@ -231,80 +161,17 @@ public:
         const HypClass *hyp_class = GetClass(value.GetTypeID());
         AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
 
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Name::Unique("HypDataGrid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-        HashMap<String, EditorPropertyWrapper> properties_by_name;
+        HashMap<String, HypProperty *> properties_by_name;
 
-        for (auto it = hyp_class->GetMembers().Begin(); it != hyp_class->GetMembers().End(); ++it) {
-            HypProperty *property;
-            HypMethod *method;
-            HypField *field;
-
-            if ((property = dynamic_cast<HypProperty *>(&*it))) {
+        for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
+            if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
                 if (!property->HasGetter() || !property->HasSetter()) {
                     continue;
                 }
 
-                EditorPropertyWrapper property_wrapper;
-
-                property_wrapper.member = &*it;
-
-                property_wrapper.getter = [property](Span<HypData> args) -> HypData
-                {
-                    return property->InvokeGetter(args[0].ToRef());
-                };
-
-                property_wrapper.setter = [property](Span<HypData> args) -> void
-                {
-                    property->InvokeSetter(args[0].ToRef(), args[1]);
-                };
-
-                properties_by_name[property->name.LookupString()] = std::move(property_wrapper);
-            } else if ((method = dynamic_cast<HypMethod *>(&*it))) {
-                const String *editor_property = nullptr;
-
-                if (!(editor_property = method->GetAttribute("editorproperty"))) {
-                    continue;
-                }
-
-                EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-                if (method->params.Size() == 1) {
-                    // set `member` to the getter
-                    property_wrapper.member = &*it;
-
-                    property_wrapper.getter = [method](Span<HypData> args) -> HypData
-                    {
-                        return method->Invoke(args);
-                    };
-                } else if (method->params.Size() == 2) {
-                    property_wrapper.setter = [method](Span<HypData> args) -> void
-                    {
-                        method->Invoke(args);
-                    };
-                } else {
-                    continue;
-                }
-            } else if ((field = dynamic_cast<HypField *>(&*it))) {
-                const String *editor_property = nullptr;
-
-                if (!(editor_property = field->GetAttribute("editorproperty"))) {
-                    continue;
-                }
-
-                EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-                property_wrapper.member = &*it;
-                
-                property_wrapper.getter = [field](Span<HypData> args) -> HypData
-                {
-                    return field->Get(args[0]);
-                };
-
-                property_wrapper.setter = [field](Span<HypData> args) -> void
-                {
-                    field->Set(args[0], args[1]);
-                };
+                properties_by_name[property->name.LookupString()] = property;
             } else {
                 HYP_UNREACHABLE();
             }
@@ -316,34 +183,30 @@ public:
         // }
 
         for (auto &it : properties_by_name) {
-            if (!it.second.member) {
-                HYP_FAIL("Property %s: no member pointer set", it.first.Data());
-            }
-
-            if (!it.second.getter.IsValid()) {
-                HYP_FAIL("Property %s has no getter", it.first.Data());
-            }
-
-            if (!it.second.setter.IsValid()) {
-                HYP_FAIL("Property %s has no setter", it.first.Data());
-            }
-
             RC<UIGridRow> row = grid->AddRow();
 
             RC<UIGridColumn> column = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 5, 2 });
+
+            HypData getter_result = it.second->InvokeGetter(value);
+            AssertThrow(getter_result.IsValid());
             
-            IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(it.second.member->GetTypeID());
+            IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(getter_result.GetTypeID());
             
             if (!factory) {
+                HYP_LOG(Editor, LogLevel::WARNING, "No factory registered for TypeID {} when creating UI element for attribute \"{}\"", getter_result.GetTypeID().Value(), it.first);
+
                 continue;
             }
 
-            if (RC<UIObject> element = factory->CreateUIObject(stage, it.second.getter(Span<HypData> { const_cast<HypData *>(&value), 1 }))) {
-                panel->AddChildUIObject(element);
-            }
+            RC<UIObject> element = factory->CreateUIObject(stage, getter_result);
+            AssertThrow(element != nullptr);
+
+            HYP_LOG(Editor, LogLevel::DEBUG, "Element for attribute \"{}\": {}\tsize: {}", it.first, GetClass(element.GetTypeID())->GetName(), element->GetActualSize());
+            
+            panel->AddChildUIObject(element);
 
             column->AddChildUIObject(panel);
         }
@@ -663,7 +526,7 @@ public:
                 IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(component_type_id);
 
                 if (!factory) {
-                    HYP_LOG(Editor, LogLevel::ERR, "No editor UI component factory registered for component of type", component_interface->GetTypeName());
+                    HYP_LOG(Editor, LogLevel::ERR, "No editor UI component factory registered for component of type \"{}\"", component_interface->GetTypeName());
 
                     continue;
                 }
@@ -674,7 +537,7 @@ public:
                 HypData component_hyp_data;
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data)) {
-                    HYP_LOG(Editor, LogLevel::ERR, "Failed to get component of type {} with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity.Value());
+                    HYP_LOG(Editor, LogLevel::ERR, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity.Value());
 
                     continue;
                 }
@@ -689,9 +552,10 @@ public:
 
                 RC<UIPanel> component_content = stage->CreateUIObject<UIPanel>(Name::Unique(), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                if (RC<UIObject> element = factory->CreateUIObject(stage, component_hyp_data)) {
-                    component_content->AddChildUIObject(element);
-                }
+                RC<UIObject> element = factory->CreateUIObject(stage, component_hyp_data);
+                AssertThrow(element != nullptr);
+
+                component_content->AddChildUIObject(element);
 
                 column->AddChildUIObject(component_content);
             }
@@ -725,9 +589,9 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(ID<Entity>, EntityUIDataSourceElementFactory);
 
 struct EditorNodePropertyRef
 {
-    String                  title;
-    Weak<Node>              node;
-    EditorPropertyWrapper   property;
+    String      title;
+    Weak<Node>  node;
+    HypProperty *property = nullptr;
 };
 
 class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef>
@@ -740,7 +604,7 @@ public:
             return nullptr;
         }
 
-        IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(value.property.member->GetTypeID());
+        IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(value.property->GetTypeID());
 
         if (!factory) {
             return nullptr;
@@ -748,13 +612,13 @@ public:
 
         // Create panel
         RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("PropertyPanel"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
+        // panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
 
         {
             RC<UIText> header_text = stage->CreateUIObject<UIText>(NAME("Header"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             header_text->SetText(value.title);
             header_text->SetTextColor(Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-            header_text->SetBackgroundColor(Vec4f(0.1f, 0.1f, 0.1f, 1.0f));
+            // header_text->SetBackgroundColor(Vec4f(0.1f, 0.1f, 0.1f, 1.0f));
 
             panel->AddChildUIObject(header_text);
         }
@@ -764,7 +628,7 @@ public:
 
             FixedArray<HypData, 1> args = { HypData(node_rc) };
 
-            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property.getter(args.ToSpan()))) {
+            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property->InvokeGetter(args[0]))) {
                 content->AddChildUIObject(element);
             }
 
@@ -1289,100 +1153,25 @@ void HyperionEditorImpl::InitDetailView()
 
         UIDataSourceBase *data_source = list_view->GetDataSource();
         
-        HashMap<String, EditorPropertyWrapper> properties_by_name;
+        HashMap<String, HypProperty *> properties_by_name;
 
-        for (auto it = hyp_class->GetMembers().Begin(); it != hyp_class->GetMembers().End(); ++it) {
-            HypProperty *property;
-            HypMethod *method;
-            HypField *field;
-
-            if ((property = dynamic_cast<HypProperty *>(&*it))) {
+        for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
+            if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
                 if (!property->HasGetter() || !property->HasSetter()) {
                     continue;
                 }
 
-                EditorPropertyWrapper property_wrapper;
-
-                property_wrapper.member = &*it;
-
-                property_wrapper.getter = [property](Span<HypData> args) -> HypData
-                {
-                    return property->InvokeGetter(args[0].ToRef());
-                };
-
-                property_wrapper.setter = [property](Span<HypData> args) -> void
-                {
-                    property->InvokeSetter(args[0].ToRef(), args[1]);
-                };
-
-                properties_by_name[property->name.LookupString()] = std::move(property_wrapper);
-            } else if ((method = dynamic_cast<HypMethod *>(&*it))) {
-                const String *editor_property = nullptr;
-
-                if (!(editor_property = method->GetAttribute("editorproperty"))) {
-                    continue;
-                }
-
-                EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-                if (method->params.Size() == 1) {
-                    // set `member` to the getter
-                    property_wrapper.member = &*it;
-
-                    property_wrapper.getter = [method](Span<HypData> args) -> HypData
-                    {
-                        return method->Invoke(args);
-                    };
-                } else if (method->params.Size() == 2) {
-                    property_wrapper.setter = [method](Span<HypData> args) -> void
-                    {
-                        method->Invoke(args);
-                    };
-                } else {
-                    continue;
-                }
-            } else if ((field = dynamic_cast<HypField *>(&*it))) {
-                const String *editor_property = nullptr;
-
-                if (!(editor_property = field->GetAttribute("editorproperty"))) {
-                    continue;
-                }
-
-                EditorPropertyWrapper &property_wrapper = properties_by_name[*editor_property];
-
-                property_wrapper.member = &*it;
-                
-                property_wrapper.getter = [field](Span<HypData> args) -> HypData
-                {
-                    return field->Get(args[0]);
-                };
-
-                property_wrapper.setter = [field](Span<HypData> args) -> void
-                {
-                    field->Set(args[0], args[1]);
-                };
+                properties_by_name[property->name.LookupString()] = property;
             } else {
                 HYP_UNREACHABLE();
             }
         }
 
         for (auto &it : properties_by_name) {
-            if (!it.second.member) {
-                HYP_FAIL("Property %s: no member pointer set", it.first.Data());
-            }
-
-            if (!it.second.getter.IsValid()) {
-                HYP_FAIL("Property %s has no getter", it.first.Data());
-            }
-
-            if (!it.second.setter.IsValid()) {
-                HYP_FAIL("Property %s has no setter", it.first.Data());
-            }
-
             EditorNodePropertyRef node_property_ref;
             node_property_ref.title = it.first;
             node_property_ref.node = node.ToWeak();
-            node_property_ref.property = std::move(it.second);
+            node_property_ref.property = it.second;
 
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
@@ -1406,7 +1195,7 @@ void HyperionEditorImpl::InitDetailView()
             if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
                 IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, name](const IUIDataSourceElement *item)
                 {
-                    return item->GetValue().Get<EditorNodePropertyRef>().property.member->GetName() == name;
+                    return item->GetValue().Get<EditorNodePropertyRef>().property->GetName() == name;
                 });
 
                 AssertThrow(data_source_element != nullptr);
@@ -1489,19 +1278,15 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
 void HyperionEditorImpl::Initialize()
 {
-    // Forest<int> forest;
-    // auto node_1 = forest.Add(1);
-    // forest.Add(2);
-    // forest.Add(3);
+    // const HypClass *mesh_hyp_class = Mesh::GetClass();
+    // AssertThrow(mesh_hyp_class != nullptr);
 
-    // forest.Add(4, node_1);
-    // auto node_5 = forest.Add(5, node_1);
-    // auto node_6 = forest.Add(6, node_5);
+    // for (auto &it : mesh_hyp_class->GetMembers(false)) {
+    //     HYP_LOG(Editor, LogLevel::DEBUG, "Member {} -> TypeID {}", it.GetName(), it.GetTypeID().Value());
+    // }
 
-    // HYP_LOG(Editor, LogLevel::INFO, "Forest size: {}", forest.Size());
-
-    // for (auto &it : forest) {
-    //     HYP_LOG(Editor, LogLevel::INFO, "Forest node : {}", it);
+    // for (auto &it : mesh_hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY)) {
+    //     HYP_LOG(Editor, LogLevel::DEBUG, "[PROPERTY] Member {} -> TypeID {}", it.GetName(), it.GetTypeID().Value());
     // }
 
     // HYP_BREAKPOINT;

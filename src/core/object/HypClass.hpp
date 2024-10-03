@@ -52,11 +52,46 @@ class HypClassMemberIterator
 
     friend class HypClassMemberList;
 
-    HYP_API HypClassMemberIterator(const HypClass *hyp_class, Phase phase);
+    static Phase NextPhase(EnumFlags<HypMemberType> allowed_types, Phase current)
+    {
+        const auto GetNext = [](Phase phase) -> Phase
+        {
+            if (phase == Phase::MAX) {
+                return Phase::ITERATE_PROPERTIES;
+            }
+
+            return static_cast<Phase>(static_cast<int>(phase) + 1);
+        };
+
+        const auto CanDoNext = [allowed_types](Phase next_phase) -> bool
+        {
+            switch (next_phase) {
+            case Phase::ITERATE_PROPERTIES:
+                return allowed_types & HypMemberType::TYPE_PROPERTY;
+            case Phase::ITERATE_METHODS:
+                return allowed_types & HypMemberType::TYPE_METHOD;
+            case Phase::ITERATE_FIELDS:
+                return allowed_types & HypMemberType::TYPE_FIELD;
+            default:
+                return true;
+            }
+        };
+
+        Phase next_phase = GetNext(current);
+
+        while (!CanDoNext(next_phase)) {
+            next_phase = GetNext(next_phase);
+        }
+
+        return next_phase;
+    }
+
+    HYP_API HypClassMemberIterator(const HypClass *hyp_class, EnumFlags<HypMemberType> member_types, Phase phase);
 
 public:
     HypClassMemberIterator(const HypClassMemberIterator &other)
-        : m_phase(other.m_phase),
+        : m_member_types(other.m_member_types),
+          m_phase(other.m_phase),
           m_hyp_class(other.m_hyp_class),
           m_iterating_parent(other.m_iterating_parent),
           m_current_index(other.m_current_index),
@@ -70,6 +105,7 @@ public:
             return *this;
         }
 
+        m_member_types = other.m_member_types;
         m_phase = other.m_phase;
         m_hyp_class = other.m_hyp_class;
         m_iterating_parent = other.m_iterating_parent;
@@ -81,7 +117,8 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const HypClassMemberIterator &other) const
     {
-        return m_phase == other.m_phase
+        return m_member_types == other.m_member_types
+            && m_phase == other.m_phase
             && m_hyp_class == other.m_hyp_class
             && m_iterating_parent == other.m_iterating_parent
             && m_current_index == other.m_current_index
@@ -90,7 +127,8 @@ public:
 
     HYP_FORCE_INLINE bool operator!=(const HypClassMemberIterator &other) const
     {
-        return m_phase != other.m_phase
+        return m_member_types != other.m_member_types
+            || m_phase != other.m_phase
             || m_hyp_class != other.m_hyp_class
             || m_iterating_parent != other.m_iterating_parent
             || m_current_index != other.m_current_index
@@ -134,12 +172,14 @@ public:
 private:
     HYP_API void Advance();
 
-    Phase               m_phase;
-    const HypClass      *m_hyp_class;
-    const HypClass      *m_iterating_parent;
-    SizeType            m_current_index;
+    EnumFlags<HypMemberType>    m_member_types;
 
-    mutable IHypMember  *m_current_value;
+    Phase                       m_phase;
+    const HypClass              *m_hyp_class;
+    const HypClass              *m_iterating_parent;
+    SizeType                    m_current_index;
+
+    mutable IHypMember          *m_current_value;
 };
 
 class HypClassMemberList
@@ -148,8 +188,9 @@ public:
     using Iterator = HypClassMemberIterator;
     using ConstIterator = HypClassMemberIterator;
 
-    HypClassMemberList(const HypClass *hyp_class)
-        : m_hyp_class(hyp_class)
+    HypClassMemberList(const HypClass *hyp_class, EnumFlags<HypMemberType> member_types)
+        : m_hyp_class(hyp_class),
+          m_member_types(member_types)
     {
     }
 
@@ -161,10 +202,11 @@ public:
 
     ~HypClassMemberList()                                               = default;
 
-    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(m_hyp_class, HypClassMemberIterator::Phase::MAX))
+    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::MAX))
 
 private:
-    const HypClass  *m_hyp_class;
+    const HypClass              *m_hyp_class;
+    EnumFlags<HypMemberType>    m_member_types;
 };
 
 class HYP_API HypClass
@@ -228,8 +270,11 @@ public:
         return &it->second;
     }
 
-    HYP_FORCE_INLINE HypClassMemberList GetMembers() const
-        { return HypClassMemberList(this); }
+    HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> member_types) const
+        { return { this, member_types }; }
+
+    HYP_FORCE_INLINE HypClassMemberList GetMembers(bool include_properties = false) const
+        { return { this, HypMemberType::TYPE_METHOD | HypMemberType::TYPE_FIELD | (include_properties ? HypMemberType::TYPE_PROPERTY : HypMemberType::NONE) }; }
 
     IHypMember *GetMember(WeakName name) const;
 

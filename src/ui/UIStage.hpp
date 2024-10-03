@@ -233,7 +233,7 @@ private:
 
         const ID<Entity> entity = node_proxy->GetScene()->GetEntityManager()->AddEntity();
         node_proxy->SetEntity(entity);
-        node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
+        // node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
 
         RC<UIObject> ui_object(new T(this, node_proxy));
         AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());

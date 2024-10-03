@@ -49,7 +49,8 @@ void UIGridRow::AddChildUIObject(UIObject *ui_object)
 
         m_columns.PushBack(ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridColumn>());
 
-        UpdateLayout();
+        UpdateColumnSizes();
+        UpdateColumnOffsets();
 
         return;
     }
@@ -62,7 +63,8 @@ void UIGridRow::AddChildUIObject(UIObject *ui_object)
 
     column->AddChildUIObject(ui_object);
 
-    UpdateLayout();
+    UpdateColumnSizes();
+    UpdateColumnOffsets();
 }
 
 bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
@@ -81,7 +83,8 @@ bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
         if (it != m_columns.End()) {
             m_columns.Erase(it);
 
-            UpdateLayout();
+            UpdateColumnSizes();
+            UpdateColumnOffsets();
         }
     }
 
@@ -125,14 +128,15 @@ void UIGridRow::SetNumColumns(uint32 num_columns)
         const SizeType num_columns_to_add = num_columns - current_num_columns;
 
         for (SizeType i = 0; i < num_columns_to_add; i++) {
-            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(column);
 
             m_columns.PushBack(std::move(column));
         }
     }
 
-    UpdateLayout();
+    UpdateColumnSizes();
+    UpdateColumnOffsets();
 }
 
 RC<UIGridColumn> UIGridRow::AddColumn()
@@ -141,17 +145,18 @@ RC<UIGridColumn> UIGridRow::AddColumn()
         return nullptr;
     }
 
-    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     UIObject::AddChildUIObject(column);
 
     m_columns.PushBack(column);
 
-    UpdateLayout();
+    UpdateColumnSizes();
+    UpdateColumnOffsets();
 
     return column;
 }
 
-void UIGridRow::UpdateLayout()
+void UIGridRow::UpdateColumnSizes()
 {
     const Vec2i actual_size = GetActualSize();
 
@@ -166,10 +171,26 @@ void UIGridRow::UpdateLayout()
             continue;
         }
 
-        column->SetSize(UIObjectSize({ MathUtil::Floor<float, int>(100.0f * column_percent), UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        column->SetSize(UIObjectSize({ MathUtil::Floor<float, int>(100.0f * column_percent), UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    }
+}
+
+void UIGridRow::UpdateColumnOffsets()
+{
+    const Vec2i actual_size = GetActualSize();
+
+    Vec2i offset { 0, 0 };
+
+    for (SizeType i = 0; i < m_columns.Size(); i++) {
+        const RC<UIGridColumn> &column = m_columns[i];
+
+        if (!column) {
+            continue;
+        }
+
         column->SetPosition(offset);
 
-        offset.x += MathUtil::Floor<float, int>(float(actual_size.x) * column_percent);
+        offset.x += column->GetActualSize().x;
     }
 }
 
@@ -177,7 +198,7 @@ void UIGridRow::UpdateSize_Internal(bool update_children)
 {
     UIPanel::UpdateSize_Internal(update_children);
 
-    UpdateLayout();
+    UpdateColumnOffsets();
 }
 
 #pragma endregion UIGridRow
@@ -219,7 +240,7 @@ void UIGrid::SetNumRows(uint32 num_rows)
         const SizeType num_rows_to_add = num_rows - current_num_rows;
 
         for (SizeType i = 0; i < num_rows_to_add; i++) {
-            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
@@ -233,7 +254,7 @@ RC<UIGridRow> UIGrid::AddRow()
 {
     AssertThrow(GetStage() != nullptr);
 
-    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     row->SetNumColumns(m_num_columns);
     
     UIObject::AddChildUIObject(row);
@@ -327,10 +348,6 @@ void UIGrid::UpdateLayout()
 
     int y_offset = 0;
 
-    const Vec2i actual_size = GetActualSize();
-
-    const float row_percent = 1.0f / float(m_rows.Size());
-
     for (SizeType i = 0; i < m_rows.Size(); i++) {
         RC<UIGridRow> &row = m_rows[i];
 
@@ -338,10 +355,9 @@ void UIGrid::UpdateLayout()
             continue;
         }
 
-        row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { MathUtil::Floor<float, int>(100.0f * row_percent), UIObjectSize::PERCENT }));
         row->SetPosition({ 0, y_offset });
 
-        y_offset += MathUtil::Floor<float, int>(float(actual_size.y) * row_percent);
+        y_offset += row->GetActualSize().y;
     }
 }
 

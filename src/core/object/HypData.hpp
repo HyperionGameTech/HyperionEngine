@@ -888,6 +888,11 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
         return value.Is<T>();
     }
 
+    // HYP_FORCE_INLINE bool Is(const Any &value) const
+    // {
+    //     return value.Is<T>();
+    // }
+
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
         return value.Is<T>();
@@ -904,6 +909,13 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
 
         return static_cast<T *>(value.GetPointer());
     }
+
+    // T *Get(const Any &value) const
+    // {
+    //     AssertThrow(value.Is<T>());
+
+    //     return value.Get<T>();
+    // }
 
     T *Get(const AnyHandle &value) const
     {
@@ -1097,17 +1109,17 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         return true;
     }
 
-    Name Get(const Any &value) const
+    HYP_FORCE_INLINE Name Get(const Any &value) const
     {
         return CreateNameFromDynamicString(value.Get<ANSIString>());
     }
 
-    Name Get(const ANSIString &value) const
+    HYP_FORCE_INLINE Name Get(const ANSIString &value) const
     {
         return CreateNameFromDynamicString(value);
     }
 
-    void Set(HypData &hyp_data, Name value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Name value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<ANSIString>(value.LookupString()));
     }
@@ -1603,11 +1615,17 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !implementation_exists<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
 {
-    using ConvertibleFrom = Tuple<AnyRef, AnyHandle, RC<void>>;
+    using ConvertibleFrom = Tuple<T *, AnyRef, AnyHandle, RC<void>>;
 
     HYP_FORCE_INLINE bool Is(const Any &value) const
     {
         return value.Is<T>();
+    }
+
+    HYP_FORCE_INLINE bool Is(T *value) const
+    {
+        // Dereferencing a null pointer would be bad - so we'll just pretend it's not the type
+        return value != nullptr;
     }
 
     HYP_FORCE_INLINE bool Is(const AnyRef &value) const
@@ -1632,6 +1650,11 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
     T &Get(const Any &value) const
     {
         return value.Get<T>();
+    }
+
+    T &Get(T *value) const
+    {
+        return *value;
     }
 
     T &Get(const AnyRef &value) const

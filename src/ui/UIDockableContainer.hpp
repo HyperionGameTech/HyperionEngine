@@ -68,7 +68,7 @@ public:
     virtual void Init() override;
 
 private:
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     void UpdateLayout();
 

@@ -136,7 +136,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
             &batch->semaphore,
             next_batch != nullptr
                 ? OnTaskCompletedCallback([this, &OnComplete = batch->OnComplete, next_batch]() { OnComplete(); EnqueueBatch(next_batch); })
-                : OnTaskCompletedCallback(&batch->OnComplete)
+                : OnTaskCompletedCallback(batch->OnComplete.AnyBound() ? &batch->OnComplete : nullptr)
         );
 
         batch->task_refs.EmplaceBack(task_id, task_thread->GetScheduler());

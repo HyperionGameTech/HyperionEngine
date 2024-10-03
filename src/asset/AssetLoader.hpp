@@ -54,6 +54,13 @@ struct LoadedAsset
     {
     }
 
+    template <class T, typename = std::enable_if_t< !std::is_same_v<T, AssetValue> > >
+    LoadedAsset(LoaderResult result, T &&value)
+        : result(std::move(result)),
+          value(Any(std::forward<T>(value)))
+    {
+    }
+
     LoadedAsset(const LoadedAsset &other)                   = delete;
     LoadedAsset &operator=(const LoadedAsset &other)        = delete;
     LoadedAsset(LoadedAsset &&other) noexcept               = default;

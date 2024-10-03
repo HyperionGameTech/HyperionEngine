@@ -162,6 +162,7 @@ struct HypMethod : public IHypMember
 {
     Name                                                name;
     TypeID                                              return_type_id;
+    TypeID                                              target_type_id;
     Array<HypMethodParameter>                           params;
     EnumFlags<HypMethodFlags>                           flags;
     HashMap<String, String>                             attributes;
@@ -173,6 +174,7 @@ struct HypMethod : public IHypMember
     HypMethod(Span<HypClassAttribute> attributes = {})
         : name(Name::Invalid()),
           return_type_id(TypeID::Void()),
+          target_type_id(TypeID::Void()),
           flags(HypMethodFlags::NONE),
           attributes(HypClassAttribute::ToHashMap(attributes))
     {
@@ -261,7 +263,8 @@ struct HypMethod : public IHypMember
               }
           })
     {
-        return_type_id = TypeID::ForType<NormalizedType< ReturnType >>();
+        return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
+        target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
 
         params.Reserve(sizeof...(ArgTypes) + 1);
         detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
@@ -354,7 +357,8 @@ struct HypMethod : public IHypMember
               }
           })
     {
-        return_type_id = TypeID::ForType<NormalizedType< ReturnType >>();
+        return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
+        target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
 
         params.Reserve(sizeof...(ArgTypes) + 1);
         detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
@@ -423,6 +427,11 @@ struct HypMethod : public IHypMember
     HypMethod(HypMethod &&other) noexcept               = default;
     HypMethod &operator=(HypMethod &&other) noexcept    = default;
     virtual ~HypMethod() override                       = default;
+
+    virtual HypMemberType GetMemberType() const override
+    {
+        return HypMemberType::TYPE_METHOD;
+    }
 
     virtual Name GetName() const override
     {

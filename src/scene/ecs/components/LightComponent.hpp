@@ -22,7 +22,7 @@ HYP_MAKE_ENUM_FLAGS(LightComponentFlags)
 HYP_STRUCT(Component)
 struct LightComponent
 {
-    HYP_FIELD(SerializeAs=Light, EditorProperty="Light")
+    HYP_FIELD(SerializeAs=Light, Property="Light")
     Handle<Light>                   light;
 
     HYP_FIELD()

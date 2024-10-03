@@ -90,7 +90,7 @@ public:
     Delegate<void, UIListViewItem *>    OnSelectedItemChange;
 
 protected:
-    virtual void UpdateSize_Internal(bool update_children = true) override;
+    virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source) override;
 
@@ -99,8 +99,8 @@ protected:
 private:
     static UIListViewItem *FindListViewItem(const UIObject *parent_object, const UUID &data_source_element_uuid);
 
-    Array<UIObject *>           m_list_view_items;
-    Weak<UIListViewItem>        m_selected_item;
+    Array<UIObject *>                   m_list_view_items;
+    Weak<UIListViewItem>                m_selected_item;
 };
 
 #pragma endregion UIListView

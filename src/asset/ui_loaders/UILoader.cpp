@@ -512,7 +512,7 @@ public:
 
                     // Check HypClass attributes
                     if (hyp_class != nullptr) {
-                        auto member_it = FindIf(hyp_class->GetMembers().Begin(), hyp_class->GetMembers().End(), [&](const auto &it)
+                        auto member_it = FindIf(hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(), hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(), [&](const auto &it)
                         {
                             if (const String *ui_attribute_name_ptr = it.GetAttribute("xmlattribute"); ui_attribute_name_ptr && ui_attribute_name_ptr->ToLower() == attribute_name_lower) {
                                 return true;
@@ -521,7 +521,7 @@ public:
                             return false;
                         });
 
-                        if (member_it != hyp_class->GetMembers().End()) {
+                        if (member_it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End()) {
                             FixedArray<HypData, 2> target_and_value;
 
                             target_and_value[0] = HypData(ui_object);
@@ -533,11 +533,7 @@ public:
                             }
 
                             if (HypProperty *property = dynamic_cast<HypProperty *>(&*member_it); property && property->HasSetter()) {
-                                property->InvokeSetter(AnyRef(ui_object.Get()), target_and_value[1]);
-                            } else if (HypField *field = dynamic_cast<HypField *>(&*member_it)) {
-                                field->Set(target_and_value[0], target_and_value[1]);
-                            } else if (HypMethod *method = dynamic_cast<HypMethod *>(&*member_it); method && method->params.Size() == 2) {
-                                method->Invoke(Span<HypData> { target_and_value.Data(), 2 });
+                                property->InvokeSetter(target_and_value[0], target_and_value[1]);
                             } else {
                                 HYP_LOG(Assets, LogLevel::ERR, "Failed to set HypClass property: {}", member_it->GetName());
                             }
