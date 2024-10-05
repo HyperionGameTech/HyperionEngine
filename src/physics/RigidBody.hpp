@@ -184,19 +184,19 @@ public:
     void Init();
 
     /*! \brief Get the world-space transform of this RigidBody. */
-    HYP_METHOD(SerializeAs=Transform)
+    HYP_METHOD(Serialize, Property="Transform")
     HYP_FORCE_INLINE const Transform &GetTransform() const
         { return m_transform; }
     
-    HYP_METHOD(SerializeAs=Transform)
+    HYP_METHOD(Serialize, Property="Transform")
     HYP_FORCE_INLINE void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
-    HYP_METHOD(SerializeAs=Shape)
+    HYP_METHOD(Serialize, Property="Shape")
     HYP_FORCE_INLINE const RC<PhysicsShape> &GetShape() const
         { return m_shape; }
 
-    HYP_METHOD(SerializeAs=Shape)
+    HYP_METHOD(Serialize, Property="Shape")
     void SetShape(const RC<PhysicsShape> &shape);
 
     HYP_FORCE_INLINE PhysicsMaterial &GetPhysicsMaterial()
@@ -207,11 +207,11 @@ public:
 
     void SetPhysicsMaterial(const PhysicsMaterial &physics_material);
 
-    HYP_METHOD(SerializeAs=IsKinematic)
+    HYP_METHOD(Serialize, Property="IsKinematic")
     HYP_FORCE_INLINE bool IsKinematic() const
         { return m_is_kinematic; }
 
-    HYP_METHOD(SerializeAs=IsKinematic)
+    HYP_METHOD(Serialize, Property="IsKinematic")
     HYP_FORCE_INLINE void SetIsKinematic(bool is_kinematic)
         { m_is_kinematic = is_kinematic; }
 

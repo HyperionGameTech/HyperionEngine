@@ -12,7 +12,7 @@ namespace hyperion {
 HYP_STRUCT(Component)
 struct TransformComponent
 {
-    HYP_FIELD(SerializeAs=Transform, Property="Transform")
+    HYP_FIELD(Property="Transform", Serialize=true, Editor=true)
     Transform   transform;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

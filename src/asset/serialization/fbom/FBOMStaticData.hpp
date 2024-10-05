@@ -176,16 +176,13 @@ struct FBOMStaticData
 
     ~FBOMStaticData() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<(const FBOMStaticData &other) const
+    HYP_FORCE_INLINE bool operator<(const FBOMStaticData &other) const
         { return offset < other.offset; }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool IsWritten() const
+    HYP_FORCE_INLINE bool IsWritten() const
         { return flags & FBOMStaticDataFlags::WRITTEN; }
 
-    HYP_FORCE_INLINE
-    void SetIsWritten(bool is_written)
+    HYP_FORCE_INLINE void SetIsWritten(bool is_written)
     {
         if (is_written) {
             flags |= FBOMStaticDataFlags::WRITTEN;
@@ -195,16 +192,10 @@ struct FBOMStaticData
     }
 
     /*! \brief Set a custom identifier for this object (overrides the underlying data's unique identifier) */
-    HYP_FORCE_INLINE
-    void SetUniqueID(UniqueID id)
+    HYP_FORCE_INLINE void SetUniqueID(UniqueID id)
         { m_id.Set(id); }
 
-    HYP_FORCE_INLINE
-    void UnsetCustomUniqueID()
-        { m_id.Unset(); }
-
-    HYP_NODISCARD HYP_FORCE_INLINE
-    UniqueID GetUniqueID() const
+    HYP_FORCE_INLINE UniqueID GetUniqueID() const
     {
         if (m_id.HasValue()) {
             return *m_id;
@@ -217,8 +208,7 @@ struct FBOMStaticData
         return UniqueID::Invalid();
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         if (data != nullptr) {
             return data->GetHashCode();
@@ -227,8 +217,7 @@ struct FBOMStaticData
         return HashCode(0);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    String ToString() const
+    HYP_FORCE_INLINE String ToString() const
     {
         if (data != nullptr) {
             return data->ToString();

@@ -91,22 +91,22 @@ public:
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
-    HYP_METHOD(SerializeAs=StreamedMeshData)
+    HYP_METHOD(Serialize, Property="StreamedMeshData")
     HYP_FORCE_INLINE const RC<StreamedMeshData> &GetStreamedMeshData() const
         { return m_streamed_mesh_data; }
 
     /*! \brief Set the mesh data for the Mesh. Only usable on the Render thread. If needed
         from another thread, use the static version of this function. */
-    HYP_METHOD(SerializeAs=StreamedMeshData)
+    HYP_METHOD(Serialize, Property="StreamedMeshData")
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
 
     static void SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
 
-    HYP_METHOD(SerializeAs=VertexAttributes)
+    HYP_METHOD(Serialize, Property="VertexAttributes")
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
-    HYP_METHOD(SerializeAs=VertexAttributes)
+    HYP_METHOD(Serialize, Property="VertexAttributes")
     HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet &attributes)
         { m_mesh_attributes.vertex_attributes = attributes; }
 
@@ -116,7 +116,7 @@ public:
     HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &attributes)
         { m_mesh_attributes = attributes; }
 
-    HYP_METHOD(SerializeAs=Topology)
+    HYP_METHOD(Serialize, Property="Topology")
     HYP_FORCE_INLINE Topology GetTopology() const
         { return m_mesh_attributes.topology; }
 
@@ -132,13 +132,13 @@ public:
     /*! \brief Get the axis-aligned bounding box for the mesh.
         If the mesh has not been initialized, the AABB will be invalid, unless SetAABB() has been called.
         Otherwise, the AABB will be calculated from the mesh vertices. */
-    HYP_METHOD(SerializeAs=AABB, Property="AABB")
+    HYP_METHOD(Property="AABB", Serialize=true, Editor=true)
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
     /*! \brief Manually set the AABB for the mesh. If CalculateAABB is called after this, or the mesh data is changed, the
         manually set AABB will be overwritten. */
-    HYP_METHOD(SerializeAs=AABB, Property="AABB")
+    HYP_METHOD(Property="AABB", Serialize=true, Editor=true)
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 

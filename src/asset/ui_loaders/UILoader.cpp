@@ -514,7 +514,7 @@ public:
                     if (hyp_class != nullptr) {
                         auto member_it = FindIf(hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(), hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(), [&](const auto &it)
                         {
-                            if (const String *ui_attribute_name_ptr = it.GetAttribute("xmlattribute"); ui_attribute_name_ptr && ui_attribute_name_ptr->ToLower() == attribute_name_lower) {
+                            if (const HypClassAttributeValue &attr = it.GetAttribute("xmlattribute"); attr && attr.GetString().ToLower() == attribute_name_lower) {
                                 return true;
                             }
 
@@ -532,8 +532,8 @@ public:
                                 continue;
                             }
 
-                            if (HypProperty *property = dynamic_cast<HypProperty *>(&*member_it); property && property->HasSetter()) {
-                                property->InvokeSetter(target_and_value[0], target_and_value[1]);
+                            if (HypProperty *property = dynamic_cast<HypProperty *>(&*member_it); property && property->CanSet()) {
+                                property->Set(target_and_value[0], target_and_value[1]);
                             } else {
                                 HYP_LOG(Assets, LogLevel::ERR, "Failed to set HypClass property: {}", member_it->GetName());
                             }

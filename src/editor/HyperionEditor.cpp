@@ -90,7 +90,7 @@ static HashMap<String, HypProperty *> BuildEditorProperties(const HypData &data)
 
     for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
         if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
-            if (!property->HasGetter() || !property->HasSetter()) {
+            if (!property->CanGet() || !property->CanSet()) {
                 continue;
             }
 
@@ -167,7 +167,11 @@ public:
 
         for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
             if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
-                if (!property->HasGetter() || !property->HasSetter()) {
+                if (!property->GetAttribute("editor")) {
+                    continue;
+                }
+
+                if (!property->CanGet() || !property->CanSet()) {
                     continue;
                 }
 
@@ -190,7 +194,7 @@ public:
             RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 5, 2 });
 
-            HypData getter_result = it.second->InvokeGetter(value);
+            HypData getter_result = it.second->Get(value);
             AssertThrow(getter_result.IsValid());
             
             IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(getter_result.GetTypeID());
@@ -313,6 +317,38 @@ public:
 };
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIDataSourceElementFactory);
+
+
+class Uint32UIDataSourceElementFactory : public UIDataSourceElementFactory<uint32>
+{
+public:
+    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const uint32 &value) const override
+    {
+        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+        RC<UIGridRow> row = grid->AddRow();
+
+        {
+            RC<UIGridColumn> col = row->AddColumn();
+            
+            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            textbox->SetText(HYP_FORMAT("{}", value));
+
+            col->AddChildUIObject(textbox);
+        }
+
+        return grid;
+    }
+
+    virtual void UpdateUIObject_Internal(UIObject *ui_object, const uint32 &value) const override
+    {
+        ui_object->FindChildUIObject(NAME("Value"))
+            .Cast<UITextbox>()
+            ->SetText(HYP_FORMAT("{}", value));
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIDataSourceElementFactory);
 
 
 class QuaternionUIDataSourceElementFactory : public UIDataSourceElementFactory<Quaternion>
@@ -628,7 +664,7 @@ public:
 
             FixedArray<HypData, 1> args = { HypData(node_rc) };
 
-            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property->InvokeGetter(args[0]))) {
+            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property->Get(args[0]))) {
                 content->AddChildUIObject(element);
             }
 
@@ -944,6 +980,8 @@ void HyperionEditorImpl::CreateMainPanel()
 
                 ui_image->SetTexture(m_scene_texture);
             }
+        } else {
+            HYP_FAIL("Failed to find Scene_Image element");
         }
         
         GetUIStage()->AddChildUIObject(loaded_ui);
@@ -1064,7 +1102,7 @@ void HyperionEditorImpl::InitSceneOutline()
                 
                 data_source->Set(
                     data_source_element->GetUUID(),
-                    AnyRef(&node_ref)
+                    HypData(std::move(node_ref))
                 );
             }
         }
@@ -1093,7 +1131,7 @@ void HyperionEditorImpl::InitSceneOutline()
                 parent_node_uuid = parent_node->GetUUID();
             }
 
-            data_source->Push(node->GetUUID(), editor_node_weak, parent_node_uuid);
+            data_source->Push(node->GetUUID(), HypData(editor_node_weak), parent_node_uuid);
         }
 
         EditorDelegates::GetInstance().WatchNode(node.Get());
@@ -1157,7 +1195,7 @@ void HyperionEditorImpl::InitDetailView()
 
         for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
             if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
-                if (!property->HasGetter() || !property->HasSetter()) {
+                if (!property->CanGet() || !property->CanSet()) {
                     continue;
                 }
 
@@ -1206,7 +1244,7 @@ void HyperionEditorImpl::InitDetailView()
                     
                     data_source->Set(
                         data_source_element->GetUUID(),
-                        AnyRef(&node_property_ref)
+                        HypData(&node_property_ref)
                     );
                 }
             }
@@ -1364,10 +1402,10 @@ void HyperionEditor::Init()
     // Handle<Mesh> mesh = CreateObject<Mesh>();
     
     // if (HypProperty *property = cls->GetProperty("VertexAttributes")) {
-    //     auto vertex_attributes_value = property->InvokeGetter(*mesh);
+    //     auto vertex_attributes_value = property->Get(*mesh);
     //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
 
-    //     decltype(auto) vertex_attributes_value1 = property->InvokeGetter<VertexAttributeSet>(*mesh);
+    //     decltype(auto) vertex_attributes_value1 = property->Get<VertexAttributeSet>(*mesh);
     //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
     // }
 
@@ -1387,9 +1425,9 @@ void HyperionEditor::Init()
     // }
 
     if (HypProperty *property = cls->GetProperty("Light")) {
-        // property->InvokeSetter(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
+        // property->Set(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
 
-        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->InvokeGetter(light_component).ToString());
+        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->Get(light_component).ToString());
 
         if (const HypClass *light_class = property->GetHypClass()) {
             AssertThrow(property->GetTypeID() == TypeID::ForType<Light>());
@@ -1397,10 +1435,10 @@ void HyperionEditor::Init()
             HypProperty *light_radius_property = light_class->GetProperty("radius");
             AssertThrow(light_radius_property != nullptr);
 
-            light_radius_property->InvokeSetter(property->InvokeGetter(light_component), 123.4f);
+            light_radius_property->Set(property->Get(light_component), 123.4f);
         }
 
-        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->InvokeGetter<Handle<Light>>(light_component)->GetRadius());
+        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->Get<Handle<Light>>(light_component)->GetRadius());
     }
 #endif
 
@@ -1709,7 +1747,7 @@ void HyperionEditor::Init()
 
 #if 1
         // testing serialization / deserialization
-        FileByteWriter byte_writer("Scene.hyp");
+        FileByteWriter byte_writer("Scene2.hyp");
         fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
         writer.Append(*GetScene());
         auto write_err = writer.Emit(&byte_writer);
@@ -1723,12 +1761,10 @@ void HyperionEditor::Init()
 
     batch->LoadAsync();
 
-#endif
-
-#if 1
+#else
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
-    if (auto err = reader.LoadFromFile("Scene.hyp", loaded_scene_data)) {
+    if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data)) {
         HYP_FAIL("failed to load: %s", *err.message);
     }
     DebugLog(LogType::Debug, "static data buffer size: %u\n", reader.m_static_data_buffer.Size());
@@ -1736,6 +1772,25 @@ void HyperionEditor::Init()
     Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
     
     DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
+
+    // auto sun = loaded_scene->GetRoot()->FindChildByName("Sun");
+    // if (sun.IsValid()) {
+    //     json::JSONObject sun_json;
+    //     sun_json["name"] = sun.GetName();
+
+    //     LightComponent *light_component = loaded_scene->GetEntityManager()->TryGetComponent<LightComponent>(sun.GetEntity());
+    //     AssertThrow(light_component != nullptr);
+
+    //     sun_json["light_type"] = uint32(light_component->light->GetType());
+    //     sun_json["light_color"] = uint32(light_component->light->GetColor());
+    //     sun_json["light_intensity"] = light_component->light->GetIntensity();
+
+    //     DebugLog(LogType::Debug, "Sun: %s\n", json::JSONValue(sun_json).ToString(true).Data());
+
+    //     HYP_BREAKPOINT;
+    // } else {
+    //     HYP_FAIL("Sun not found");
+    // }
 
     Proc<void, const NodeProxy &, int> DebugPrintNode;
 

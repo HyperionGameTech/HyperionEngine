@@ -33,7 +33,7 @@ UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
             SetIsExpanded(!IsExpanded());
         }
         
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     UIObject::AddChildUIObject(m_inner_element);

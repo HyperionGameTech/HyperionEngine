@@ -37,7 +37,7 @@ enum class WorldGridPatchState
 HYP_STRUCT()
 struct WorldGridPatchNeighbor
 {
-    HYP_FIELD(SerializeAs=Coord)
+    HYP_FIELD(Serialize, Property="Coord")
     Vec2i   coord;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
@@ -53,19 +53,19 @@ struct WorldGridPatchUpdate
 HYP_STRUCT()
 struct WorldGridPatchInfo
 {
-    HYP_FIELD(SerializeAs=Extent)
+    HYP_FIELD(Serialize, Property="Extent")
     Vec3i                                   extent;
 
-    HYP_FIELD(SerializeAs=Coord)
+    HYP_FIELD(Serialize, Property="Coord")
     Vec2i                                   coord;
     
-    HYP_FIELD(SerializeAs=Scale)
+    HYP_FIELD(Serialize, Property="Scale")
     Vec3f                                   scale = Vec3f::One();
 
-    HYP_FIELD(SerializeAs=State)
+    HYP_FIELD(Serialize, Property="State")
     WorldGridPatchState                     state = WorldGridPatchState::UNLOADED;
 
-    HYP_FIELD(SerializeAs=Neighbors)
+    HYP_FIELD(Serialize, Property="Neighbors")
     FixedArray<WorldGridPatchNeighbor, 8>   neighbors;
 
     HYP_FIELD()

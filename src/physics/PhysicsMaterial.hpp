@@ -13,7 +13,7 @@ namespace physics {
 HYP_STRUCT()
 struct PhysicsMaterial
 {
-    HYP_FIELD(SerializeAs=Mass)
+    HYP_FIELD(Serialize, Property="Mass")
     float mass = 0.0f;
 
     HYP_FORCE_INLINE float GetMass() const

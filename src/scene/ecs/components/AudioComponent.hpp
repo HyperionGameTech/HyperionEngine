@@ -35,16 +35,16 @@ enum AudioLoopMode
 HYP_STRUCT()
 struct AudioPlaybackState
 {
-    HYP_FIELD(SerializeAs=Status)
+    HYP_FIELD(Property="Status", Serialize=true, Editor=true)
     AudioPlaybackStatus status = AUDIO_PLAYBACK_STATUS_STOPPED;
 
-    HYP_FIELD(SerializeAs=LoopMode)
+    HYP_FIELD(Property="LoopMode", Serialize=true, Editor=true)
     AudioLoopMode       loop_mode = AUDIO_LOOP_MODE_ONCE;
 
-    HYP_FIELD(SerializeAs=Speed)
+    HYP_FIELD(Property="Speed", Serialize=true, Editor=true)
     float               speed = 1.0f;
 
-    HYP_FIELD(SerializeAs=CurrentTime)
+    HYP_FIELD(Property="CurrentTime", Serialize=true, Editor=true)
     float               current_time = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -62,10 +62,10 @@ struct AudioPlaybackState
 HYP_STRUCT(Component)
 struct AudioComponent
 {
-    HYP_FIELD(SerializeAs=AudioSource, Property="AudioSource")
+    HYP_FIELD(Serialize, Property="AudioSource", Property="AudioSource")
     Handle<AudioSource>     audio_source;
 
-    HYP_FIELD(SerializeAs=PlaybackState, Property="PlaybackState")
+    HYP_FIELD(Serialize, Property="PlaybackState", Property="PlaybackState")
     AudioPlaybackState      playback_state;
 
     HYP_FIELD()

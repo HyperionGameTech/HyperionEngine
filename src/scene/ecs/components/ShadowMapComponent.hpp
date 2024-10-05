@@ -25,13 +25,13 @@ class RenderComponentBase;
 HYP_STRUCT(Component)
 struct ShadowMapComponent
 {
-    HYP_FIELD(SerializeAs=Mode)
+    HYP_FIELD(Serialize, Property="Mode")
     ShadowMode              mode = ShadowMode::STANDARD;
 
-    HYP_FIELD(SerializeAs=Radius)
+    HYP_FIELD(Serialize, Property="Radius")
     float                   radius = 20.0f;
 
-    HYP_FIELD(SerializeAs=Resolution)
+    HYP_FIELD(Serialize, Property="Resolution")
     Vec2u                   resolution = Vec2u { 512, 512 };
 
     HYP_FIELD()

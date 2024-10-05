@@ -121,8 +121,8 @@ struct HypClassRegistration : public HypClassRegistrationBase
 template <class T, EnumFlags<HypClassFlags> Flags>
 struct HypStructRegistration : public HypClassRegistrationBase
 {   
-    HypStructRegistration(Name name, Name parent_name, Span<HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, parent_name, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
+    HypStructRegistration(Name name, Span<HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, {}, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

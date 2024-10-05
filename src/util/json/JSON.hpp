@@ -368,13 +368,13 @@ public:
     {
     }
 
-    JSONValue(JSONNull _null)
-        : m_inner(std::move(_null))
+    JSONValue(JSONNull)
+        : m_inner(JSONNull())
     {
     }
 
-    JSONValue(JSONUndefined undefined)
-        : m_inner(std::move(undefined))
+    JSONValue(JSONUndefined)
+        : m_inner(JSONUndefined())
     {
     }
 

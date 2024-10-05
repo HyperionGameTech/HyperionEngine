@@ -122,12 +122,22 @@ struct HypData
     }
 
     template <class T, typename = std::enable_if_t< !std::is_same_v< T, HypData > > >
-    HypData(T &&value)
+    explicit HypData(T &&value)
         : HypData()
     {
         HYP_NAMED_SCOPE("Construct HypData from T");
 
         HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
+    }
+    
+    template <class T, typename = std::enable_if_t< !std::is_same_v< T, HypData > > >
+    HypData &operator=(T &&value)
+    {
+        HYP_NAMED_SCOPE("Assign HypData from T");
+
+        HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
+
+        return *this;
     }
 
     HypData(const HypData &other)                   = delete;
@@ -1773,7 +1783,7 @@ struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleFrom...>>
 template <class VariantType, class ReturnType, class... Types, SizeType... Indices>
 HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType &&value, Optional<ReturnType> &out_value, std::index_sequence<Indices...>)
 {
-    const auto InvokeGetter = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
+    const auto Get = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
     {
         using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
         using StorageType = typename HypDataHelper<SelectedType>::StorageType;
@@ -1795,7 +1805,7 @@ HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType &&value, Optional<Ret
         return true;
     };
 
-    return ((HypDataTypeChecker<Types>{}(value) && InvokeGetter(out_value, std::integral_constant<SizeType, Indices>{})) || ...);
+    return ((HypDataTypeChecker<Types>{}(value) && Get(out_value, std::integral_constant<SizeType, Indices>{})) || ...);
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>

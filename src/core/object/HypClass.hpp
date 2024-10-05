@@ -257,18 +257,10 @@ public:
         { return m_flags & HypClassFlags::STRUCT_TYPE; }
 
     HYP_FORCE_INLINE bool IsAbstract() const
-        { return m_attributes.Contains("abstract"); }
+        { return bool(m_attributes["abstract"]); }
 
-    HYP_FORCE_INLINE const String *GetAttribute(UTF8StringView key) const
-    {
-        auto it = m_attributes.FindAs(key);
-
-        if (it == m_attributes.End()) {
-            return nullptr;
-        }
-
-        return &it->second;
-    }
+    HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(ANSIStringView key) const
+        { return m_attributes[key]; }
 
     HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> member_types) const
         { return { this, member_types }; }
@@ -331,7 +323,7 @@ protected:
     Name                            m_name;
     Name                            m_parent_name;
     const HypClass                  *m_parent;
-    HashMap<String, String>         m_attributes;
+    HypClassAttributeList           m_attributes;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;

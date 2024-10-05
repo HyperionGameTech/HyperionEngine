@@ -216,9 +216,9 @@ constexpr SizeType utf_strlen(const T *str, SizeType &out_codepoints)
     }
 }
 
-inline int utf8_strcmp(const char *s1, const char *s2)
+inline int utf8_strncmp(const char *s1, const char *s2, SizeType count)
 {
-    for (; *s1 || *s2;) {
+    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); i++) {
         unsigned char c;
 
         u32char c1 = 0;
@@ -275,12 +275,17 @@ inline int utf8_strcmp(const char *s1, const char *s2)
     return 0;
 }
 
-inline int utf32_strcmp(const u32char *lhs, const u32char *rhs)
+template <class T, bool IsUtf8>
+int utf_strncmp(const T *lhs, const T *rhs, SizeType count)
 {
-    const u32char *s1 = lhs;
-    const u32char *s2 = rhs;
+    if constexpr (IsUtf8) {
+        return utf8_strncmp(lhs, rhs, count);
+    }
 
-    for (; *s1 || *s2; s1++, s2++) {
+    const T *s1 = lhs;
+    const T *s2 = rhs;
+
+    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); s1++, s2++, i++) {
         if (*s1 < *s2) {
             return -1;
         } else if (*s1 > *s2) {
@@ -294,22 +299,7 @@ inline int utf32_strcmp(const u32char *lhs, const u32char *rhs)
 template <class T, bool IsUtf8>
 int utf_strcmp(const T *lhs, const T *rhs)
 {
-    if constexpr (IsUtf8) {
-        return utf8_strcmp(lhs, rhs);
-    }
-
-    const T *s1 = lhs;
-    const T *s2 = rhs;
-
-    for (; *s1 || *s2; s1++, s2++) {
-        if (*s1 < *s2) {
-            return -1;
-        } else if (*s1 > *s2) {
-            return 1;
-        }
-    }
-
-    return 0;
+    return utf_strncmp<T, IsUtf8>(lhs, rhs, 0);
 }
 
 inline char *utf8_strcpy(char *dst, const char *src)

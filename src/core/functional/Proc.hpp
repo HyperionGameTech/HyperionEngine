@@ -25,7 +25,7 @@ template <class MemoryType, class ReturnType, class... Args>
 struct ProcFunctorInternal
 {
     Variant<MemoryType, void *> memory;
-    ReturnType                  (*invoke_fn)(void *, Args &&...);
+    ReturnType                  (*invoke_fn)(void *, Args &...);
     void                        (*delete_fn)(void *);
 
     ProcFunctorInternal()
@@ -89,9 +89,6 @@ struct ProcFunctorInternal
             : memory.template GetUnchecked<MemoryType>().GetPointer();
     }
 
-    HYP_FORCE_INLINE ReturnType Invoke(Args &&... args)
-        { return invoke_fn(GetPointer(), std::forward<Args>(args)...); }
-
     HYP_FORCE_INLINE void Reset()
     {
         if (delete_fn) {
@@ -108,12 +105,12 @@ template <class ReturnType, class... Args>
 struct Invoker
 {
     template <class Func>
-    static HYP_NODISCARD ReturnType InvokeFn(void *ptr, Args &&... args)
+    static HYP_NODISCARD ReturnType InvokeFn(void *ptr, Args &... args)
     {
         if constexpr (std::is_function_v<std::remove_pointer_t<Func>>) {
-            return reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
+            return reinterpret_cast<Func>(ptr)(args...);
         } else {
-            return (*static_cast<Func *>(ptr))(std::forward<Args>(args)...);
+            return (*static_cast<Func *>(ptr))(args...);
         }
     }
 };
@@ -123,12 +120,12 @@ template <class... Args>
 struct Invoker<void, Args...>
 {
     template <class Func>
-    static void InvokeFn(void *ptr, Args &&... args)
+    static void InvokeFn(void *ptr, Args &... args)
     {
         if constexpr (std::is_function_v<std::remove_pointer_t<Func>>) {
-            reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
+            reinterpret_cast<Func>(ptr)(args...);
         } else {
-            (*static_cast<Func *>(ptr))(std::forward<Args>(args)...);
+            (*static_cast<Func *>(ptr))(args...);
         }
     }
 };
@@ -239,7 +236,7 @@ public:
      *  \param args Arguments to pass to the underlying function or lambda.
      *  \return The return value of the underlying function or lambda. If the return type is void, no value is returned. */
     HYP_FORCE_INLINE ReturnType operator()(Args... args) const
-        { return functor.Invoke(std::forward<Args>(args)...); }
+        { return functor.invoke_fn(functor.GetPointer(), args...); }
 
     /*! \brief Resets the Proc object, releasing any resources it may hold. \ref{IsValid} will return false after calling this function. */
     HYP_FORCE_INLINE void Reset()
@@ -252,7 +249,7 @@ private:
 template <class ReturnType, class... Args>
 class ProcRef : public detail::ProcRefBase
 {
-    static ReturnType(*const s_invalid_invoke_fn)(void *, Args &&...);
+    static ReturnType(*const s_invalid_invoke_fn)(void *, Args &...);
 
 public:
     explicit ProcRef(std::nullptr_t)
@@ -267,12 +264,12 @@ public:
         if (proc.IsValid()) {
             m_ptr = const_cast<void *>(static_cast<const void *>(&proc));
 
-            m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+            m_invoke_fn = [](void *ptr, Args &... args) -> ReturnType
             {
                 const Proc<ReturnType, Args...> &proc = *static_cast<const Proc<ReturnType, Args...> *>(ptr);
                 AssertThrowMsg(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
 
-                return proc(std::forward<Args>(args)...);
+                return proc(args...);
             };
         }
     }
@@ -281,9 +278,9 @@ public:
     ProcRef(Callable &&callable)
         : m_ptr(const_cast<void *>(static_cast<const void *>(&callable)))
     {
-        m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+        m_invoke_fn = [](void *ptr, Args &... args) -> ReturnType
         {
-            return (*static_cast<NormalizedType<Callable> *>(ptr))(std::forward<Args>(args)...);
+            return (*static_cast<NormalizedType<Callable> *>(ptr))(args...);
         };
     }
 
@@ -293,9 +290,9 @@ public:
         if (fn != nullptr) {
             m_ptr = reinterpret_cast<void *>(fn);
 
-            m_invoke_fn = [](void *ptr, Args &&... args) -> ReturnType
+            m_invoke_fn = [](void *ptr, Args &... args) -> ReturnType
             {
-                return (reinterpret_cast<ReturnType(*)(Args...)>(ptr))(std::forward<Args>(args)...);
+                return (reinterpret_cast<ReturnType(*)(Args...)>(ptr))(args...);
             };
         }
     }
@@ -320,15 +317,15 @@ public:
         { return m_ptr != nullptr; }
 
     HYP_FORCE_INLINE ReturnType operator()(Args... args) const
-        { return m_invoke_fn(m_ptr, std::forward<Args>(args)...); }
+        { return m_invoke_fn(m_ptr, args...); }
 
 private:
     void        *m_ptr;
-    ReturnType  (*m_invoke_fn)(void *, Args &&...);
+    ReturnType  (*m_invoke_fn)(void *, Args &...);
 };
 
 template <class ReturnType, class... Args>
-ReturnType(*const ProcRef<ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &&...) = [](void *, Args &&...) -> ReturnType
+ReturnType(*const ProcRef<ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &...) = [](void *, Args &...) -> ReturnType
 {
     HYP_FAIL("Cannot invoke ProcRef that is in invalid state");
 };

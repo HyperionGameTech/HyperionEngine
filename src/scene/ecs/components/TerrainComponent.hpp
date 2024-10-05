@@ -27,7 +27,7 @@ enum class TerrainPatchState
 HYP_STRUCT()
 struct TerrainPatchNeighbor
 {
-    HYP_FIELD(SerializeAs=Coord)
+    HYP_FIELD(Serialize, Property="Coord")
     TerrainPatchCoord coord;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
@@ -37,19 +37,19 @@ struct TerrainPatchNeighbor
 HYP_STRUCT()
 struct TerrainPatchInfo
 {
-    HYP_FIELD(SerializeAs=Extent)
+    HYP_FIELD(Serialize, Property="Extent")
     Vec3u                               extent;
 
-    HYP_FIELD(SerializeAs=Coord)
+    HYP_FIELD(Serialize, Property="Coord")
     TerrainPatchCoord                   coord;
 
-    HYP_FIELD(SerializeAs=Scale)
+    HYP_FIELD(Serialize, Property="Scale")
     Vec3f                               scale = Vec3f::One();
 
-    HYP_FIELD(SerializeAs=State)
+    HYP_FIELD(Serialize, Property="State")
     TerrainPatchState                   state = TerrainPatchState::UNLOADED;
 
-    HYP_FIELD(SerializeAs=Neighbors)
+    HYP_FIELD(Serialize, Property="Neighbors")
     FixedArray<TerrainPatchNeighbor, 8> neighbors;
     
     HYP_FIELD()
@@ -78,16 +78,16 @@ enum TerrainComponentFlagBits : TerrainComponentFlags
 HYP_STRUCT(Component)
 struct TerrainComponent
 {
-    HYP_FIELD(SerializeAs=Seed)
+    HYP_FIELD(Serialize, Property="Seed")
     uint32                  seed = 0;
 
-    HYP_FIELD(SerializeAs=PatchSize)
+    HYP_FIELD(Serialize, Property="PatchSize")
     Vec3u                   patch_size = { 32, 32, 32 };
 
-    HYP_FIELD(SerializeAs=Scale)
+    HYP_FIELD(Serialize, Property="Scale")
     Vec3f                   scale = Vec3f::One();
 
-    HYP_FIELD(SerializeAs=MaxDistance)
+    HYP_FIELD(Serialize, Property="MaxDistance")
     float                   max_distance = 2.0f;
 
     HYP_FIELD()

@@ -30,16 +30,16 @@ using MeshComponentUserData = UserData<sizeof(Vec4u)>;
 HYP_STRUCT(Component)
 struct MeshComponent
 {
-    HYP_FIELD(SerializeAs=Mesh, Property="Mesh")
+    HYP_FIELD(Property="Mesh", Serialize=true, Editor=true)
     Handle<Mesh>            mesh;
 
-    HYP_FIELD(SerializeAs=Material, Property="Material")
+    HYP_FIELD(Property="Material", Serialize=true, Editor=true)
     Handle<Material>        material;
 
-    HYP_FIELD(SerializeAs=Skeleton, Property="Skeleton")
+    HYP_FIELD(Property="Skeleton", Serialize=true, Editor=true)
     Handle<Skeleton>        skeleton;
 
-    HYP_FIELD(SerializeAs=NumInstances, Property="NumInstances")
+    HYP_FIELD(Property="NumInstances", Serialize=true, Editor=true)
     uint32                  num_instances = 1;
 
     HYP_FIELD()

@@ -37,7 +37,7 @@ struct HypField : public IHypMember
     uint32                                          offset;
     uint32                                          size;
 
-    HashMap<String, String>                         attributes;
+    HypClassAttributeList                           attributes;
 
     Proc<HypData, const HypData &>                  get_proc;
     Proc<void, HypData &, const HypData &>          set_proc;
@@ -51,7 +51,7 @@ struct HypField : public IHypMember
           target_type_id(TypeID::Void()),
           offset(0),
           size(0),
-          attributes(HypClassAttribute::ToHashMap(attributes))
+          attributes(attributes)
     {
     }
 
@@ -62,7 +62,7 @@ struct HypField : public IHypMember
           target_type_id(TypeID::ForType<ThisType>()),
           offset(offset),
           size(sizeof(FieldType)),
-          attributes(HypClassAttribute::ToHashMap(attributes))
+          attributes(attributes)
     {
         get_proc = [member](const HypData &target_data) -> HypData
         {
@@ -116,7 +116,7 @@ struct HypField : public IHypMember
             }
         };
 
-        if (this->attributes.Contains("serializeas")) {
+        if (this->attributes["serialize"]) {
             serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
@@ -204,15 +204,9 @@ struct HypField : public IHypMember
         return type_id;
     }
 
-    virtual const String *GetAttribute(UTF8StringView key) const override
+    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        auto it = attributes.FindAs(key);
-
-        if (it == attributes.End()) {
-            return nullptr;
-        }
-
-        return &it->second;
+        return attributes[key];
     }
 
     HYP_FORCE_INLINE explicit operator bool() const

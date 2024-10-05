@@ -42,12 +42,6 @@ class FBOMObjectMarshalerBase;
 template <class T>
 class FBOMMarshaler;
 
-template <class T, class MarshalerType>
-struct FBOMHasMarshal
-{
-    static constexpr bool value = false;
-};
-
 namespace detail {
 
 struct FBOMMarshalerRegistrationBase

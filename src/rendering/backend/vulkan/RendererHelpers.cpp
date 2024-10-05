@@ -121,20 +121,25 @@ VkImageViewType ToVkImageViewType(ImageType type, bool is_array)
 {
     if (is_array) {
         switch (type) {
-        case ImageType::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        case ImageType::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        case ImageType::TEXTURE_TYPE_2D:
+            return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        case ImageType::TEXTURE_TYPE_CUBEMAP:
+            return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        default:
+            HYP_FAIL("Unhandled texture type case %d", int(type));
         }
-
-        AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
     }
 
     switch (type) {
-    case ImageType::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D;
-    case ImageType::TEXTURE_TYPE_3D:      return VK_IMAGE_VIEW_TYPE_3D;
-    case ImageType::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_VIEW_TYPE_CUBE;
+    case ImageType::TEXTURE_TYPE_2D:
+        return VK_IMAGE_VIEW_TYPE_2D;
+    case ImageType::TEXTURE_TYPE_3D:
+        return VK_IMAGE_VIEW_TYPE_3D;
+    case ImageType::TEXTURE_TYPE_CUBEMAP:
+        return VK_IMAGE_VIEW_TYPE_CUBE;
+    default:
+        HYP_FAIL("Unhandled texture type case %d", int(type));
     }
-
-    AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
 }
 
 } // namespace renderer

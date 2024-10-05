@@ -4,18 +4,22 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
+
 #include <core/functional/Proc.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Semaphore.hpp>
+
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
+
+#include <core/threading/AtomicVar.hpp>
+#include <core/threading/Semaphore.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/Threads.hpp>
-#include <core/Util.hpp>
+
+#include <core/Traits.hpp>
+#include <core/Defines.hpp>
 
 #include <Types.hpp>
-#include <core/Defines.hpp>
 
 #include <utility>
 #include <type_traits>

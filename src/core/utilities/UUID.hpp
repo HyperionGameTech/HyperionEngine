@@ -19,10 +19,10 @@ enum class UUIDVersion
 HYP_STRUCT()
 struct alignas(16) UUID
 {
-    HYP_FIELD(SerializeAs=Data0)
+    HYP_FIELD(Serialize, Property="Data0")
     uint64  data0;
 
-    HYP_FIELD(SerializeAs=Data1)
+    HYP_FIELD(Serialize, Property="Data1")
     uint64  data1;
 
     constexpr UUID(uint64 data0, uint64 data1)

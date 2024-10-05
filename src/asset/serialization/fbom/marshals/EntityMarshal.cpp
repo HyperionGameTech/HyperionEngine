@@ -69,7 +69,9 @@ public:
                     return;
                 }
 
-                if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("noserialize") != nullptr) {
+                if (component_interface->GetClass() != nullptr && bool(component_interface->GetClass()->GetAttribute("noserialize"))) {
+                    HYP_LOG(Serialization, LogLevel::INFO, "HypClass for component '{}' has the NoSerialize attribute set; skipping", component_interface->GetTypeName());
+
                     continue;
                 }
 
@@ -160,8 +162,8 @@ public:
                 continue;
             }
 
-            if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("noserialize") != nullptr) {
-                HYP_LOG(Serialization, LogLevel::WARNING, "HypClass for component '{}' has the NoSerialize attribute set", component_interface->GetTypeName());
+            if (component_interface->GetClass() != nullptr && bool(component_interface->GetClass()->GetAttribute("noserialize"))) {
+                HYP_LOG(Serialization, LogLevel::INFO, "HypClass for component '{}' has the NoSerialize attribute set; skipping", component_interface->GetTypeName());
 
                 continue;
             }

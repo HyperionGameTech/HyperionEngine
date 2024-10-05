@@ -103,7 +103,7 @@ namespace Hyperion
 
             foreach (var property in this.scene.HypClass.Properties)
             {
-                var result = property.InvokeGetter(this.scene);
+                var result = property.Get(this.scene);
                 var camera = result.GetValue();
 
                 if (camera != null)

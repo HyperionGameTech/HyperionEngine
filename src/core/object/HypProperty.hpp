@@ -164,7 +164,7 @@ struct HypPropertyGetter
         return get_proc(target);
     }
 
-    fbom::FBOMData Invoke_Serialized(const HypData &target) const
+    fbom::FBOMData Serialize(const HypData &target) const
     {
         AssertThrow(IsValid());
 
@@ -299,7 +299,7 @@ struct HypPropertySetter
         set_proc(target, value);
     }
 
-    void Invoke_Serialized(HypData &target, const fbom::FBOMData &value) const
+    void Deserialize(HypData &target, const fbom::FBOMData &value) const
     {
         AssertThrow(IsValid());
 
@@ -320,11 +320,13 @@ struct HypPropertySetter
 
 struct HypProperty : public IHypMember
 {
-    Name                name;
-    TypeID              type_id;
+    Name                    name;
+    TypeID                  type_id;
 
-    HypPropertyGetter   getter;
-    HypPropertySetter   setter;
+    HypClassAttributeList   attributes;
+
+    HypPropertyGetter       getter;
+    HypPropertySetter       setter;
 
     HypProperty() = default;
 
@@ -335,18 +337,19 @@ struct HypProperty : public IHypMember
 
     HypProperty(Name name, HypPropertyGetter &&getter)
         : name(name),
+          type_id(getter.type_info.value_type_id),
+          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
           getter(std::move(getter))
     {
-        type_id = this->getter.type_info.value_type_id;
     }
 
     HypProperty(Name name, HypPropertyGetter &&getter, HypPropertySetter &&setter)
         : name(name),
+          type_id(getter.type_info.value_type_id),
+          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
           getter(std::move(getter)),
           setter(std::move(setter))
     {
-        type_id = this->getter.type_info.value_type_id;
-
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(this->setter.type_info.value_type_id == type_id, "Setter value type id should match property type id");
 #endif
@@ -355,10 +358,11 @@ struct HypProperty : public IHypMember
     template <class ValueType, class TargetType, typename = std::enable_if_t< !std::is_member_function_pointer_v<ValueType TargetType::*> > >
     HypProperty(Name name, ValueType TargetType::*member)
         : name(name),
+          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
           getter(HypPropertyGetter(member)),
           setter(HypPropertySetter(member))
     {
-        type_id = this->getter.type_info.value_type_id;
+        type_id = getter.type_info.value_type_id;
     }
 
     HypProperty(const HypProperty &other)                   = delete;
@@ -383,37 +387,43 @@ struct HypProperty : public IHypMember
         return type_id;
     }
 
-    virtual const String *GetAttribute(UTF8StringView key) const override
+    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        return nullptr;
+        return attributes[key];
     }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return type_id != TypeID::Void() && HasGetter(); }
+        { return type_id != TypeID::Void() && CanGet(); }
 
     // getter
 
-    HYP_FORCE_INLINE bool HasGetter() const
+    HYP_FORCE_INLINE bool CanGet() const
         { return getter.IsValid(); }
 
-    HYP_NODISCARD HYP_FORCE_INLINE HypData InvokeGetter(const HypData &target) const
+    HYP_NODISCARD HYP_FORCE_INLINE HypData Get(const HypData &target) const
         { return getter.Invoke(target); }
 
     // Serializing getter
 
-    HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData InvokeGetter_Serialized(const HypData &target) const
-        { return getter.Invoke_Serialized(target); }
+    HYP_FORCE_INLINE bool CanSerialize() const
+        { return getter.IsValid(); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData Serialize(const HypData &target) const
+        { return getter.Serialize(target); }
 
     // setter
 
-    HYP_FORCE_INLINE bool HasSetter() const
+    HYP_FORCE_INLINE bool CanSet() const
         { return setter.IsValid(); }
 
-    HYP_FORCE_INLINE void InvokeSetter(HypData &target, const HypData &value) const
+    HYP_FORCE_INLINE void Set(HypData &target, const HypData &value) const
         { setter.Invoke(target, value); }
 
-    HYP_FORCE_INLINE void InvokeSetter_Serialized(HypData &target, const fbom::FBOMData &serialized_value) const
-        { setter.Invoke_Serialized(target, serialized_value); }
+    HYP_FORCE_INLINE bool CanDeserialize() const
+        { return setter.IsValid(); }
+
+    HYP_FORCE_INLINE void Deserialize(HypData &target, const fbom::FBOMData &serialized_value) const
+        { setter.Deserialize(target, serialized_value); }
 
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
     HYP_API const HypClass *GetHypClass() const;

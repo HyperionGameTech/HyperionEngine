@@ -11,10 +11,10 @@ namespace hyperion {
 HYP_STRUCT(Component)
 struct BoundingBoxComponent
 {
-    HYP_FIELD(SerializeAs=LocalAABB)
+    HYP_FIELD(Property="LocalAABB", Serialize=true, Editor=true)
     BoundingBox local_aabb;
 
-    HYP_FIELD(SerializeAs=WorldAABB)
+    HYP_FIELD(Property="WorldAABB", Serialize=true, Editor=true)
     BoundingBox world_aabb;
 
     HYP_FIELD()

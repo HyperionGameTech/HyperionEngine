@@ -16,6 +16,7 @@
 #include <core/logging/LoggerFwd.hpp>
 
 #include <core/Defines.hpp>
+#include <core/Traits.hpp>
 
 #include <core/system/Debug.hpp>
 

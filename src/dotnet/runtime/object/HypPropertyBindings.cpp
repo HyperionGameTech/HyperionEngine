@@ -46,13 +46,13 @@ HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypC
         return false;
     }
 
-    if (!property->HasGetter()) {
+    if (!property->CanGet()) {
         return false;
     }
 
     HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
 
-    *out_result = property->InvokeGetter(target_data);
+    *out_result = property->Get(target_data);
 
     return true;
 }
@@ -63,13 +63,13 @@ HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty *property, const HypC
         return false;
     }
 
-    if (!property->HasSetter()) {
+    if (!property->CanSet()) {
         return false;
     }
 
     HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
 
-    property->InvokeSetter(target_data, *value);
+    property->Set(target_data, *value);
 
     return true;
 }

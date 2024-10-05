@@ -48,25 +48,25 @@ static constexpr SizeType script_max_class_name_length = 1024;
 HYP_STRUCT()
 struct ManagedScript
 {
-    HYP_FIELD(SerializeAs=UUID)
+    HYP_FIELD(Serialize, Property="UUID")
     UUID    uuid;
 
-    HYP_FIELD(SerializeAs=Path)
+    HYP_FIELD(Serialize, Property="Path")
     char    path[script_max_path_length];
 
-    HYP_FIELD(SerializeAs=AssemblyPath)
+    HYP_FIELD(Serialize, Property="AssemblyPath")
     char    assembly_path[script_max_path_length];
 
-    HYP_FIELD(SerializeAs=ClassName)
+    HYP_FIELD(Serialize, Property="ClassName")
     char    class_name[script_max_class_name_length];
 
-    HYP_FIELD(SerializeAs=State)
+    HYP_FIELD(Serialize, Property="State")
     uint32  state;
     
-    HYP_FIELD(SerializeAs=HotReloadVersion)
+    HYP_FIELD(Serialize, Property="HotReloadVersion")
     int32   hot_reload_version;
 
-    HYP_FIELD(SerializeAs=LastModifiedTimestamp)
+    HYP_FIELD(Serialize, Property="LastModifiedTimestamp")
     uint64  last_modified_timestamp;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

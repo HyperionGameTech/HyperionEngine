@@ -101,8 +101,8 @@ public:
     /*! \brief Returns a copy of the ByteBuffer's data. */
     ByteArray ToByteArray() const
     {
-        const auto size = GetInternalArray().Size();
-        const auto *data = GetInternalArray().Data();
+        const SizeType size = GetInternalArray().Size();
+        const ubyte *data = GetInternalArray().Data();
 
         ByteArray byte_array;
         byte_array.Resize(size);

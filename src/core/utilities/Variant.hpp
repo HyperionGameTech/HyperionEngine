@@ -814,6 +814,8 @@ static inline void Visit(const Variant<Types...> &variant, FunctionType &&fn)
 template <class... Types>
 using Variant = utilities::Variant<Types...>;
 
+using utilities::Visit;
+
 } // namespace hyperion
 
 #endif

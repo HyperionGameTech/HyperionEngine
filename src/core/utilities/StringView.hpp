@@ -409,7 +409,7 @@ constexpr bool operator<(const StringView<string_type> &lhs, const StringView<st
         return false;
     }
 
-    return utf::utf_strcmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data()) < 0;
+    return utf::utf_strncmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int string_type>

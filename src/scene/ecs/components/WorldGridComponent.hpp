@@ -15,7 +15,7 @@ namespace hyperion {
 HYP_STRUCT(Component)
 struct WorldGridPatchComponent
 {
-    HYP_FIELD(SerializeAs=PatchInfo)
+    HYP_FIELD(Serialize, Property="PatchInfo")
     WorldGridPatchInfo  patch_info;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const

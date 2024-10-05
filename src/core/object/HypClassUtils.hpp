@@ -18,16 +18,17 @@ namespace hyperion {
 
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
-#define HYP_BEGIN_STRUCT(cls, ...) static struct HypStructInitializer_##cls \
+
+#define HYP_BEGIN_STRUCT(cls, ...) static struct HypClassInitializer_##cls \
     { \
         using Type = cls; \
         \
         using RegistrationType = ::hyperion::detail::HypStructRegistration<Type, HypClassFlags::STRUCT_TYPE>; \
         \
-        static RegistrationType s_struct_registration; \
-    } g_struct_initializer_##cls { }; \
+        static RegistrationType s_class_registration; \
+    } g_class_initializer_##cls { }; \
     \
-    HypStructInitializer_##cls::RegistrationType HypStructInitializer_##cls::s_struct_registration { NAME(HYP_STR(cls)), {}, {}, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), Span<HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT } } };
 

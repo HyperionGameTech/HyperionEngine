@@ -96,12 +96,9 @@ HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<HypClassAtt
       m_name(name),
       m_parent_name(parent_name),
       m_parent(nullptr),
+      m_attributes(attributes),
       m_flags(flags)
 {
-    for (HypClassAttribute attr : attributes) {
-        m_attributes[attr.name] = attr.value;
-    }
-
     // initialize properties containers
     for (HypMember &member : members) {
         if (HypProperty *property = member.value.TryGet<HypProperty>()) {
@@ -152,18 +149,23 @@ void HypClass::Initialize()
         AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
     }
 
+    HYP_LOG(Object, LogLevel::INFO, "Initializing HypClass \"{}\"", m_name);
+
+    for (const auto &it : m_attributes) {
+        HYP_LOG(Object, LogLevel::INFO, "\tAttribute {} = {}", it.GetName(), it.GetValue().ToString());
+    }
+
     // Build properties from `Property=` attributes on methods and fields
     HashMap<String, Array<IHypMember *>> properties_to_build;
 
     for (IHypMember &member : GetMembers(false)) {
-        if (const String *property_attribute_ptr = member.GetAttribute("property")) {
-            auto properties_to_build_it = properties_to_build.Find(*property_attribute_ptr);
+        if (const HypClassAttributeValue &attr = member.GetAttribute("property")) {
+            const String &attr_string = attr.GetString();
+
+            auto properties_to_build_it = properties_to_build.Find(attr_string);
 
             if (properties_to_build_it == properties_to_build.End()) {
-                properties_to_build_it = properties_to_build.Insert({
-                    *property_attribute_ptr,
-                    { }
-                }).first;
+                properties_to_build_it = properties_to_build.Insert({ attr_string, { } }).first;
             }
 
             properties_to_build_it->second.PushBack(&member);
@@ -175,7 +177,7 @@ void HypClass::Initialize()
             continue;
         }
 
-        auto find_field_it = it.second.FindIf([](IHypMember *member)
+        const auto find_field_it = it.second.FindIf([](IHypMember *member)
         {
             return member->GetMemberType() == HypMemberType::TYPE_FIELD;
         });
@@ -185,6 +187,8 @@ void HypClass::Initialize()
 
             m_properties.PushBack(property_ptr);
             m_properties_by_name.Set(property_ptr->name, property_ptr);
+
+            HYP_LOG(Object, LogLevel::DEBUG, "Built property \"{}\" on HypClass \"{}\" from field", property_ptr->name, m_name);
 
             continue;
         }
@@ -209,6 +213,8 @@ void HypClass::Initialize()
 
             m_properties.PushBack(property_ptr);
             m_properties_by_name.Set(property_ptr->name, property_ptr);
+
+            HYP_LOG(Object, LogLevel::DEBUG, "Built property \"{}\" on HypClass \"{}\" from methods", property_ptr->name, m_name);
 
             continue;
         }

@@ -633,15 +633,15 @@ EnumFlags<UIEventHandlerResult> UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
-                    if (first_hit != nullptr) {
-                        // We don't want to check the current object if it's not a child of the first hit object,
-                        // since it would be behind the first hit object.
-                        if (!first_hit->IsOrHasParent(ui_object)) {
-                            continue;
-                        }
-                    } else {
-                        first_hit = ui_object;
-                    }
+                    // if (first_hit != nullptr) {
+                    //     // We don't want to check the current object if it's not a child of the first hit object,
+                    //     // since it would be behind the first hit object.
+                    //     if (!first_hit->IsOrHasParent(ui_object)) {
+                    //         continue;
+                    //     }
+                    // } else {
+                    //     first_hit = ui_object;
+                    // }
 
                     if (focused_object == nullptr && ui_object->AcceptsFocus()) {
                         ui_object->Focus();

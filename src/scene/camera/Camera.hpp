@@ -233,98 +233,98 @@ public:
         );
     }
 
-    HYP_METHOD(SerializeAs=Width)
+    HYP_METHOD(Serialize, Property="Width")
     HYP_FORCE_INLINE int GetWidth() const
         { return m_width; }
 
 
-    HYP_METHOD(SerializeAs=Width)
+    HYP_METHOD(Serialize, Property="Width")
     HYP_FORCE_INLINE void SetWidth(int width)
         { m_width = width; }
 
-    HYP_METHOD(SerializeAs=Height)
+    HYP_METHOD(Serialize, Property="Height")
     HYP_FORCE_INLINE int GetHeight() const
         { return m_height; }
 
-    HYP_METHOD(SerializeAs=Height)
+    HYP_METHOD(Serialize, Property="Height")
     HYP_FORCE_INLINE void SetHeight(int height)
         { m_height = height; }
 
-    HYP_METHOD(SerializeAs=Near)
+    HYP_METHOD(Serialize, Property="Near")
     HYP_FORCE_INLINE float GetNear() const
         { return m_near; }
 
-    HYP_METHOD(SerializeAs=Near)
+    HYP_METHOD(Serialize, Property="Near")
     HYP_FORCE_INLINE void SetNear(float _near)
         { m_near = _near; }
 
-    HYP_METHOD(SerializeAs=Far)
+    HYP_METHOD(Serialize, Property="Far")
     HYP_FORCE_INLINE float GetFar() const
         { return m_far; }
 
-    HYP_METHOD(SerializeAs=Far)
+    HYP_METHOD(Serialize, Property="Far")
     HYP_FORCE_INLINE void SetFar(float _far)
         { m_far = _far; }
 
     // perspective only
-    HYP_METHOD(SerializeAs=FOV)
+    HYP_METHOD(Serialize, Property="FOV")
     HYP_FORCE_INLINE float GetFOV() const
         { return m_fov; }
 
     // ortho only
-    HYP_METHOD(SerializeAs=Left)
+    HYP_METHOD(Serialize, Property="Left")
     HYP_FORCE_INLINE float GetLeft() const
         { return m_left; }
 
-    HYP_METHOD(SerializeAs=Left)
+    HYP_METHOD(Serialize, Property="Left")
     HYP_FORCE_INLINE void SetLeft(float left)
         { m_left = left; }
 
-    HYP_METHOD(SerializeAs=Right)
+    HYP_METHOD(Serialize, Property="Right")
     HYP_FORCE_INLINE float GetRight() const
         { return m_right; }
 
-    HYP_METHOD(SerializeAs=Right)
+    HYP_METHOD(Serialize, Property="Right")
     HYP_FORCE_INLINE void SetRight(float right)
         { m_right = right; }
 
-    HYP_METHOD(SerializeAs=Bottom)
+    HYP_METHOD(Serialize, Property="Bottom")
     HYP_FORCE_INLINE float GetBottom() const
         { return m_bottom; }
 
-    HYP_METHOD(SerializeAs=Bottom)
+    HYP_METHOD(Serialize, Property="Bottom")
     HYP_FORCE_INLINE void SetBottom(float bottom)
         { m_bottom = bottom; }
 
-    HYP_METHOD(SerializeAs=Top)
+    HYP_METHOD(Serialize, Property="Top")
     HYP_FORCE_INLINE float GetTop() const
         { return m_top; }
         
-    HYP_METHOD(SerializeAs=Top)
+    HYP_METHOD(Serialize, Property="Top")
     HYP_FORCE_INLINE void SetTop(float top)
         { m_top = top; }
 
-    HYP_METHOD(SerializeAs=Translation)
+    HYP_METHOD(Serialize, Property="Translation")
     HYP_FORCE_INLINE const Vec3f &GetTranslation() const
         { return m_translation; }
 
-    HYP_METHOD(SerializeAs=Translation)
+    HYP_METHOD(Serialize, Property="Translation")
     void SetTranslation(const Vec3f &translation);
 
     void SetNextTranslation(const Vec3f &translation);
 
-    HYP_METHOD(SerializeAs=Direction)
+    HYP_METHOD(Serialize, Property="Direction")
     HYP_FORCE_INLINE const Vec3f &GetDirection() const
         { return m_direction; }
 
-    HYP_METHOD(SerializeAs=Direction)
+    HYP_METHOD(Serialize, Property="Direction")
     void SetDirection(const Vec3f &direction);
 
-    HYP_METHOD(SerializeAs=Up)
+    HYP_METHOD(Serialize, Property="Up")
     HYP_FORCE_INLINE const Vec3f &GetUpVector() const
         { return m_up; }
 
-    HYP_METHOD(SerializeAs=Up)
+    HYP_METHOD(Serialize, Property="Up")
     HYP_FORCE_INLINE void SetUpVector(const Vec3f &up);
 
     HYP_METHOD()
@@ -342,26 +342,26 @@ public:
     HYP_METHOD()
     void Rotate(const Vec3f &axis, float radians);
 
-    HYP_METHOD(SerializeAs=Frustum)
+    HYP_METHOD(Serialize, Property="Frustum")
     HYP_FORCE_INLINE const Frustum &GetFrustum() const
         { return m_frustum; }
 
-    HYP_METHOD(SerializeAs=Frustum)
+    HYP_METHOD(Serialize, Property="Frustum")
     HYP_FORCE_INLINE void SetFrustum(const Frustum &frustum)
         { m_frustum = frustum; }
 
-    HYP_METHOD(SerializeAs=ViewMatrix)
+    HYP_METHOD(Serialize, Property="ViewMatrix")
     HYP_FORCE_INLINE const Matrix4 &GetViewMatrix() const
         { return m_view_mat; }
 
-    HYP_METHOD(SerializeAs=ViewMatrix)
+    HYP_METHOD(Serialize, Property="ViewMatrix")
     void SetViewMatrix(const Matrix4 &view_mat);
 
-    HYP_METHOD(SerializeAs=ViewMatrix)
+    HYP_METHOD(Serialize, Property="ViewMatrix")
     HYP_FORCE_INLINE const Matrix4 &GetProjectionMatrix() const
         { return m_proj_mat; }
 
-    HYP_METHOD(SerializeAs=ViewMatrix)
+    HYP_METHOD(Serialize, Property="ViewMatrix")
     void SetProjectionMatrix(const Matrix4 &proj_mat);
 
     HYP_METHOD()

@@ -15,7 +15,7 @@ namespace Hyperion
             get
             {
                 return (string)GetProperty(PropertyNames.BasePath)
-                    .InvokeGetter(this)
+                    .Get(this)
                     .GetValue();
             }
         }

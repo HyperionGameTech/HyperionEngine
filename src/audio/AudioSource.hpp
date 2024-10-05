@@ -51,44 +51,44 @@ public:
 
     void Init();
 
-    HYP_METHOD(SerializeAs=Format)
+    HYP_METHOD(Serialize, Property="Format")
     HYP_FORCE_INLINE AudioSourceFormat GetFormat() const
         { return m_format; }
 
-    HYP_METHOD(SerializeAs=Format)
+    HYP_METHOD(Serialize, Property="Format")
     HYP_FORCE_INLINE void SetFormat(AudioSourceFormat format)
         { m_format = format; }
 
-    HYP_METHOD(SerializeAs=Freq)
+    HYP_METHOD(Serialize, Property="Freq")
     HYP_FORCE_INLINE uint64 GetFreq() const
         { return m_freq; }
 
-    HYP_METHOD(SerializeAs=Freq)
+    HYP_METHOD(Serialize, Property="Freq")
     HYP_FORCE_INLINE void SetFreq(uint64 freq)
         { m_freq = freq; }
 
-    HYP_METHOD(SerializeAs=Data)
+    HYP_METHOD(Serialize, Property="Data")
     HYP_FORCE_INLINE const ByteBuffer &GetData() const
         { return m_data; }
 
-    HYP_METHOD(SerializeAs=Data)
+    HYP_METHOD(Serialize, Property="Data")
     HYP_FORCE_INLINE void SetData(const ByteBuffer &data)
         { m_data = data; }
 
-    HYP_METHOD(SerializeAs=SampleLength)
+    HYP_METHOD(Serialize, Property="SampleLength")
     HYP_FORCE_INLINE uint32 GetSampleLength() const
         { return m_sample_length; }
 
-    HYP_METHOD(SerializeAs=SampleLength)
+    HYP_METHOD(Serialize, Property="SampleLength")
     HYP_FORCE_INLINE void SetSampleLength(uint32 sample_length)
         { m_sample_length = sample_length; }
 
     /*! \brief Get duration in seconds. */
-    HYP_METHOD(SerializeAs=Duration)
+    HYP_METHOD(Serialize, Property="Duration")
     HYP_FORCE_INLINE double GetDuration() const
         { return double(m_sample_length) / double(m_freq); }
 
-    HYP_METHOD(SerializeAs=Duration)
+    HYP_METHOD(Serialize, Property="Duration")
     HYP_FORCE_INLINE void SetDuration(double duration)
         { m_sample_length = uint32(duration * double(m_freq)); }
 

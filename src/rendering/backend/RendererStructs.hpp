@@ -127,28 +127,28 @@ enum class TextureMode : uint32
 HYP_STRUCT()
 struct TextureDesc
 {
-    HYP_FIELD(SerializeAs=Type)
+    HYP_FIELD(Serialize, Property="Type")
     ImageType       type = ImageType::TEXTURE_TYPE_2D;
 
-    HYP_FIELD(SerializeAs=Format)
+    HYP_FIELD(Serialize, Property="Format")
     InternalFormat  format = InternalFormat::RGBA8;
 
-    HYP_FIELD(SerializeAs=Extent)
+    HYP_FIELD(Serialize, Property="Extent")
     Vec3u           extent = Vec3u::One();
 
-    HYP_FIELD(SerializeAs=MinFilterMode)
+    HYP_FIELD(Serialize, Property="MinFilterMode")
     FilterMode      filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
 
-    HYP_FIELD(SerializeAs=MagFilterMode)
+    HYP_FIELD(Serialize, Property="MagFilterMode")
     FilterMode      filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
 
-    HYP_FIELD(SerializeAs=WrapMode)
+    HYP_FIELD(Serialize, Property="WrapMode")
     WrapMode        wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
 
-    HYP_FIELD(SerializeAs=NumLayers)
+    HYP_FIELD(Serialize, Property="NumLayers")
     uint32          num_layers = 1;
 
-    HYP_FIELD(SerializeAs=NumFaces)
+    HYP_FIELD(Serialize, Property="NumFaces")
     uint32          num_faces = 1;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

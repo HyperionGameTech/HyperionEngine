@@ -94,12 +94,12 @@ public:
     /*! \brief Get the root Bone of this skeleton, which all nested Bones fall under.
      *  If no root bone was set on this Skeleton, nullptr is returned
      *  \returns The root bone of this skeleton, or nullptr */
-    HYP_METHOD(SerializeAs=RootBone)
+    HYP_METHOD(Serialize, Property="RootBone")
     const RC<Bone> &GetRootBone() const;
 
     /*! \brief Set the root Bone of this skeleton, which all nested Bones fall under.
      *  \param bone The root bone to set on this skeleton. */
-    HYP_METHOD(SerializeAs=RootBone)
+    HYP_METHOD(Serialize, Property="RootBone")
     void SetRootBone(const RC<Bone> &bone);
 
     /*! \brief Returns the number of bones in this skeleton.
@@ -108,13 +108,13 @@ public:
 
     /*! \brief Get the array of animations that are associated with this skeleton.
      *  \returns The array of animations associated with this skeleton. */
-    HYP_METHOD(SerializeAs=Animations)
+    HYP_METHOD(Serialize, Property="Animations")
     const Array<Animation> &GetAnimations() const
         { return m_animations; }
 
     /*! \brief Set the array of animations that are associated with this skeleton.
      *  \param animations The array of animations to set on this skeleton. */
-    HYP_METHOD(SerializeAs=Animations)
+    HYP_METHOD(Serialize, Property="Animations")
     void SetAnimations(const Array<Animation> &animations)
         { m_animations = animations; }
 

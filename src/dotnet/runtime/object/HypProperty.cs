@@ -34,7 +34,7 @@ namespace Hyperion
             }
         }
         
-        public HypData InvokeGetter(HypObject hypObject)
+        public HypData Get(HypObject hypObject)
         {
             if (ptr == IntPtr.Zero)
             {
@@ -56,7 +56,7 @@ namespace Hyperion
             return new HypData(resultBuffer);
         }
 
-        public void InvokeSetter(HypObject hypObject, HypData value)
+        public void Set(HypObject hypObject, HypData value)
         {
             if (ptr == IntPtr.Zero)
             {

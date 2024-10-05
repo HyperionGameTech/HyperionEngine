@@ -23,10 +23,10 @@ namespace hyperion {
 HYP_STRUCT(Component)
 struct EnvGridComponent
 {
-    HYP_FIELD(SerializeAs=EnvGridType)
+    HYP_FIELD(Serialize, Property="EnvGridType")
     EnvGridType env_grid_type = ENV_GRID_TYPE_SH;
 
-    HYP_FIELD(SerializeAs=GridSize)
+    HYP_FIELD(Serialize, Property="GridSize")
     Vec3u       grid_size = { 16, 4, 16 };
 
     HYP_FIELD()

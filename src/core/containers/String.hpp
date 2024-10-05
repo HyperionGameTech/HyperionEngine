@@ -1483,7 +1483,7 @@ constexpr bool operator<(const String<string_type> &lhs, const utilities::detail
     }
 
     // @FIXME: Use strncmp instead as string_view may not be null-terminated
-    return utf::utf_strcmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data()) < 0;
+    return utf::utf_strncmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int string_type>
@@ -1498,7 +1498,7 @@ constexpr bool operator<(const utilities::detail::StringView<string_type> &lhs, 
     }
 
     // @FIXME: Use strncmp instead as string_view may not be null-terminated
-    return utf::utf_strcmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data()) < 0;
+    return utf::utf_strncmp<typename utilities::detail::StringView<string_type>::CharType, utilities::detail::StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int string_type>

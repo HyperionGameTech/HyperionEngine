@@ -5,11 +5,11 @@ import datetime
 import json
 from mako.template import Template
 
-from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_header
+from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_header, ParsedData
 from cxxheaderparser.cxxheaderparser.preprocessor import make_gcc_preprocessor, make_msvc_preprocessor
 from cxxheaderparser.cxxheaderparser.options import ParserOptions
 
-from util import parse_cxx_member_function_name, parse_cxx_field_name, get_generated_path, map_type, parse_attributes_string
+from util import parse_cxx_field_name, get_generated_path, map_type, parse_attributes_string, format_attribute_value
 
 CXX_CLASS_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'class_template.hpp'))
 CXX_MODULE_TEMPLATE = Template(filename=os.path.join(os.path.dirname(__file__), 'templates', 'module_template.hpp'))
@@ -56,7 +56,7 @@ class GeneratedSource:
         self.content = content
 
 class HypMemberDefinition:
-    def __init__(self, member_type, name, attributes=[], method_return_type=None, method_args=None, property_args=None):
+    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'str | None'=None, method_args: 'list[str | None]'=None, property_args: 'list[str] | None'=None):
         self.member_type = member_type
         self.name = name
         self.attributes = attributes
@@ -115,7 +115,7 @@ class HypMemberDefinition:
         raise Exception('Member is not a method')
 
 class HypClassDefinition:
-    def __init__(self, class_type, location, name, base_classes, attributes, parsed_data, content):
+    def __init__(self, class_type: int, location: SourceLocation, name: str, base_classes: 'list[str]', attributes: 'list[tuple[str, str, int]]', parsed_data: ParsedData, content: str):
         self.class_type = class_type
         self.location = location
         self.name = name
@@ -131,10 +131,10 @@ class HypClassDefinition:
 
         self.is_built = False
 
-    def get_attribute(self, attribute_name):
-        for k, v in self.attributes:
-            if k.lower() == attribute_name.lower():
-                return v
+    def get_attribute(self, attribute_name: str):
+        for name, value, attr_type in self.attributes:
+            if name.lower() == attribute_name.lower():
+                return value
 
         return None
 
@@ -158,7 +158,7 @@ class HypClassDefinition:
         matches = re.finditer(r'HYP_(FIELD|PROPERTY|METHOD)(?:\((.*)\))?', self.content)
 
         for match in matches:
-            inner_args = []
+            inner_args: 'list[tuple[str, str, int]]' = []
 
             if match.group(2):
                 inner_args = parse_attributes_string(match.group(2))
@@ -293,7 +293,7 @@ class HypClassDefinition:
                     state.add_error(f'Error: Failed to parse member definition for {member_content} - {repr(e)}')
 
 class CodegenState:
-    def __init__(self, src_dir, output_dir):
+    def __init__(self, src_dir: str, output_dir: str):
         self.src_dir = src_dir
         self.output_dir = output_dir
 
@@ -390,8 +390,6 @@ class Codegen:
             os.path.join(self.state.src_dir, "core", "Defines.hpp"),
         ]
 
-        # @TODO : Skip files that have not been modified since seen in metadata.json
-
         for root, dirs, files in os.walk(self.state.src_dir):
             for file in files:
                 filepath = os.path.relpath(os.path.join(root, file), self.state.src_dir)
@@ -476,7 +474,6 @@ class Codegen:
                     if any([hyp_class.name == class_name for hyp_class in self.hyp_classes]):
                         self.state.add_error(f'Error: Class {class_name} already defined in file {file}')
                     else:
-                        # attributes must be array of tuple (str, str)
                         attributes = parse_attributes_string(class_match.group(1))
 
                         try:
@@ -489,7 +486,7 @@ class Codegen:
                         except Exception as e:
                             self.state.add_error(f'Error: Failed to parse class definition for {class_name} in file {file} - {repr(e)}')
     
-    def build_hyp_class(self, hyp_class):
+    def build_hyp_class(self, hyp_class: 'HypClassDefinition'):
         if hyp_class.is_built:
             return
         
@@ -530,7 +527,7 @@ class Codegen:
 
         if hyp_class.last_modified is None or self.metadata.get(hyp_class.name, {}).get("last_modified", 0) < hyp_class.last_modified:
             cxx_source = self.cxx_generated_sources.get(cxx_generated_path, GeneratedSource(hyp_class.location))
-            cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType)
+            cxx_source.content += CXX_CLASS_TEMPLATE.render(hyp_class=hyp_class, HypMemberType=HypMemberType, HypClassType=HypClassType, format_attribute_value=format_attribute_value)
             self.cxx_generated_sources.update({cxx_generated_path: cxx_source})
         else:
             sys.stdout.write(f'Skipping C++ codegen for {hyp_class.name} - up to date\n')

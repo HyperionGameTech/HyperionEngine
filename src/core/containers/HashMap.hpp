@@ -472,9 +472,28 @@ public:
     InsertResult Insert(const KeyType &key, ValueType &&value);
     InsertResult Insert(KeyType &&key, const ValueType &value);
     InsertResult Insert(KeyType &&key, ValueType &&value);
+    InsertResult Insert(const Pair<KeyType, ValueType> &pair);
     InsertResult Insert(Pair<KeyType, ValueType> &&pair);
 
     void Clear();
+
+    template <class OtherContainerType>
+    void Merge(const OtherContainerType &other)
+    {
+        for (const auto &item : other) {
+            Insert(item);
+        }
+    }
+
+    template <class OtherContainerType>
+    void Merge(OtherContainerType &&other)
+    {
+        for (auto &item : other) {
+            Insert(std::move(item));
+        }
+
+        other.Clear();
+    }
     
     HYP_FORCE_INLINE Iterator Begin()
         { return Iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { m_buckets.Data(), m_buckets[0].head }); }
@@ -861,6 +880,12 @@ auto HashMap<KeyType, ValueType>::Insert(KeyType &&key, ValueType &&value) -> In
         std::move(key),
         std::move(value)
     });
+}
+
+template <class KeyType, class ValueType>
+auto HashMap<KeyType, ValueType>::Insert(const Pair<KeyType, ValueType> &pair) -> InsertResult
+{
+    return Insert_Internal(Pair<KeyType, ValueType>(pair));
 }
 
 template <class KeyType, class ValueType>

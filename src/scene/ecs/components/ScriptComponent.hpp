@@ -31,7 +31,7 @@ HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 HYP_STRUCT(Component)
 struct ScriptComponent
 {
-    HYP_FIELD(SerializeAs=Script)
+    HYP_FIELD(Property="Script", Serialize=true, Editor=true)
     ManagedScript                   script = { };
 
     HYP_FIELD()

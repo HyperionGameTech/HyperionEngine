@@ -536,11 +536,11 @@ public:
      *  it is considered static and should not be modified as it may be shared across many
      *  objects.
      *  \return True if the Material is dynamic, false if it is static. */
-    HYP_METHOD(SerializeAs=IsDynamic)
+    HYP_METHOD(Property="IsDynamic", Serialize=true)
     HYP_FORCE_INLINE bool IsDynamic() const
         { return m_is_dynamic; }
 
-    HYP_METHOD(SerializeAs=IsDynamic)
+    HYP_METHOD(Property="IsDynamic", Serialize=true)
     HYP_FORCE_INLINE void SetIsDynamic(bool is_dynamic)
         { m_is_dynamic = is_dynamic; }
 

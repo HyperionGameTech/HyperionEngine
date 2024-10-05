@@ -20,9 +20,6 @@ struct Triangle;
 HYP_STRUCT()
 class HYP_API BoundingBox
 {
-    HYP_PROPERTY(Min, &BoundingBox::min)
-    HYP_PROPERTY(Max, &BoundingBox::max)
-
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 
 public:
@@ -141,10 +138,10 @@ public:
         return BoundingBox(-MathUtil::Infinity<Vec3f>(), +MathUtil::Infinity<Vec3f>());
     }
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Min", Serialize=true, Editor=true)
     Vec3f   min;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Max", Serialize=true, Editor=true)
     Vec3f   max;
 };
 

@@ -3,6 +3,13 @@ import os
 
 from cxxheaderparser.cxxheaderparser.types import Reference, Pointer, FundamentalSpecifier
 
+class HypAttributeType:
+    NIL = 0
+    STRING = 1
+    INT = 2
+    DOUBLE = 3
+    BOOL = 4
+
 CXX_TO_CSHARP_TYPE_MAPPING = {
     'int': 'int',
     'float': 'float',
@@ -94,7 +101,7 @@ def map_type(type_object):
 
     return name
 
-def parse_attributes_string(attributes_string):
+def parse_attributes_string(attributes_string) -> 'list[tuple[str, str, int]]':
     if not attributes_string or len(attributes_string) == 0:
         return []
     
@@ -103,29 +110,71 @@ def parse_attributes_string(attributes_string):
     in_string_literal = False
     previous_char = None
     in_value = False
-    current_arg = ("", "")
+    current_arg = ("", "", HypAttributeType.NIL)
+
+    def add_attribute(current_arg: 'tuple[str, str, int]'):
+        nonlocal inner_args
+
+        hyp_attribute_name = current_arg[0].strip()
+        hyp_attribute_value = current_arg[1].strip()
+        hyp_attribute_type = current_arg[2]
+
+        if hyp_attribute_type == HypAttributeType.NIL:
+            if hyp_attribute_value.lower() == 'true' or hyp_attribute_value.lower() == 'false':
+                hyp_attribute_type = HypAttributeType.BOOL
+            elif len(hyp_attribute_value) == 0:
+                # true if empty string and no type specified
+                hyp_attribute_type = HypAttributeType.BOOL
+                hyp_attribute_value = 'true'
+            else:
+                # default to string
+                hyp_attribute_type = HypAttributeType.STRING
+
+        inner_args.append((hyp_attribute_name, hyp_attribute_value, hyp_attribute_type))
 
     for char in attributes_string:
         if char == '\"' and previous_char != '\\':
             in_string_literal = not in_string_literal
         else:
             if not in_string_literal and char == ',':
-                current_arg = (current_arg[0].strip(), current_arg[1].strip())
-                inner_args.append(current_arg)
-                current_arg = ("", "")
+                add_attribute(current_arg)
+
+                current_arg = ("", "", HypAttributeType.NIL)
                 in_value = False
             elif not in_string_literal and char == '=':
                 in_value = True
             else:
                 if in_value:
-                    current_arg = (current_arg[0], current_arg[1] + char)
+                    hyp_attribute_type = current_arg[2]
+
+                    # if digit and current_arg is int
+                    if in_string_literal:
+                        hyp_attribute_type = HypAttributeType.STRING
+                    elif char.isdigit() and hyp_attribute_type in (HypAttributeType.NIL, HypAttributeType.INT):
+                        hyp_attribute_type = HypAttributeType.INT
+                    elif char.isdigit() and hyp_attribute_type in (HypAttributeType.NIL, HypAttributeType.DOUBLE):
+                        hyp_attribute_type = HypAttributeType.DOUBLE
+                    elif char == '.' and hyp_attribute_type in (HypAttributeType.NIL, HypAttributeType.DOUBLE, HypAttributeType.INT):
+                        hyp_attribute_type = HypAttributeType.DOUBLE
+
+                    current_arg = (current_arg[0], current_arg[1] + char, hyp_attribute_type)
                 else:
-                    current_arg = (current_arg[0] + char, current_arg[1])
+                    current_arg = (current_arg[0] + char, current_arg[1], current_arg[2])
 
         previous_char = char
 
     if len(current_arg[0]) > 0 or len(current_arg[1]) > 0:
-        current_arg = (current_arg[0].strip(), current_arg[1].strip())
-        inner_args.append(current_arg)
+        add_attribute(current_arg)
 
     return inner_args
+
+def format_attribute_value(attribute_value: str, attribute_type: int):
+    if attribute_type == HypAttributeType.NIL:
+        raise ValueError('Attribute type cannot be NIL')
+
+    if attribute_type == HypAttributeType.STRING:
+        return f'"{attribute_value}"'
+    elif attribute_type == HypAttributeType.BOOL:
+        return attribute_value.lower()
+    else:
+        return attribute_value
