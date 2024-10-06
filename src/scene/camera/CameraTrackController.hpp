@@ -4,12 +4,17 @@
 #define HYPERION_CAMERA_TRACK_CONTROLLER_HPP
 
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/CameraTrack.hpp>
 
 namespace hyperion {
+
+HYP_CLASS()
 class CameraTrackController : public PerspectiveCameraController
 {
+    HYP_OBJECT_BODY(CameraTrackController);
+
 public:
     CameraTrackController();
     CameraTrackController(RC<CameraTrack> camera_track);
@@ -25,11 +30,12 @@ public:
 
 protected:
     RC<CameraTrack> m_camera_track;
-    double m_track_time;
+    double          m_track_time;
 
 private:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) override;
 };
+
 } // namespace hyperion
 
 #endif

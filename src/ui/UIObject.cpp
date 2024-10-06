@@ -803,6 +803,8 @@ void UIObject::SetTextSize(float text_size)
 
     UpdateSize();
     UpdatePosition();
+
+    OnTextSizeUpdate();
 }
 
 bool UIObject::IsVisible() const
@@ -2173,6 +2175,7 @@ void UIObject::SetStage_Internal(UIStage *stage)
     SetNeedsRepaintFlag();
 
     OnFontAtlasUpdate_Internal();
+    OnTextSizeUpdate_Internal();
 
     SetAllChildUIObjectsStage(stage);
 }
@@ -2185,6 +2188,18 @@ void UIObject::OnFontAtlasUpdate()
     ForEachChildUIObject([](const RC<UIObject> &child)
     {
         child->OnFontAtlasUpdate_Internal();
+
+        return UIObjectIterationResult::CONTINUE;
+    }, true);
+}
+
+void UIObject::OnTextSizeUpdate()
+{
+    HYP_SCOPE;
+    
+    ForEachChildUIObject([](const RC<UIObject> &child)
+    {
+        child->OnTextSizeUpdate_Internal();
 
         return UIObjectIterationResult::CONTINUE;
     }, true);

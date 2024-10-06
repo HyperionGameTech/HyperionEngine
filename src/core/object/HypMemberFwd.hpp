@@ -33,6 +33,7 @@ public:
     virtual Name GetName() const = 0;
     virtual TypeID GetTypeID() const = 0;
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const = 0;
+    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const = 0;
 };
 
 } // namespace hyperion

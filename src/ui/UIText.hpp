@@ -53,7 +53,7 @@ struct UITextCharacter
 struct UITextRenderData
 {
     Vec4f                   color;
-    Vec2u                   size;
+    Vec2i                   size;
     BoundingBox             aabb;
     Array<UITextCharacter>  characters;
     RC<FontAtlas>           font_atlas;
@@ -140,6 +140,10 @@ protected:
     UITextOptions           m_options;
 
 private:
+    virtual void OnTextSizeUpdate_Internal() override;
+
+    Vec2i GetParentBounds() const;
+
     BoundingBox             m_text_aabb_with_bearing;
     BoundingBox             m_text_aabb_without_bearing;
 

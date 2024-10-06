@@ -286,6 +286,170 @@ namespace Hyperion
             throw new NotImplementedException("Unsupported type to construct HypData: " + type.FullName);
         }
 
+        public bool GetValue(out sbyte value)
+        {
+            return HypData_GetInt8(ref this, false, out value);
+        }
+
+        public bool GetValue(out short value)
+        {
+            return HypData_GetInt16(ref this, false, out value);
+        }
+
+        public bool GetValue(out int value)
+        {
+            return HypData_GetInt32(ref this, false, out value);
+        }
+
+        public bool GetValue(out long value)
+        {
+            return HypData_GetInt64(ref this, false, out value);
+        }
+
+        public bool GetValue(out byte value)
+        {
+            return HypData_GetUInt8(ref this, false, out value);
+        }
+
+        public bool GetValue(out ushort value)
+        {
+            return HypData_GetUInt16(ref this, false, out value);
+        }
+
+        public bool GetValue(out uint value)
+        {
+            return HypData_GetUInt32(ref this, false, out value);
+        }
+
+        public bool GetValue(out ulong value)
+        {
+            return HypData_GetUInt64(ref this, false, out value);
+        }
+
+        public bool GetValue(out float value)
+        {
+            return HypData_GetFloat(ref this, false, out value);
+        }
+
+        public bool GetValue(out double value)
+        {
+            return HypData_GetDouble(ref this, false, out value);
+        }
+
+        public bool GetValue(out bool value)
+        {
+            return HypData_GetBool(ref this, false, out value);
+        }
+
+        public bool GetValue(out string value)
+        {
+            IntPtr stringPtr;
+
+            if (!HypData_GetString(ref this, out stringPtr))
+            {
+                value = null;
+
+                return false;
+            }
+
+            value = Marshal.PtrToStringUTF8(stringPtr);
+
+            return true;
+        }
+
+        public bool GetValue(out IDBase value)
+        {
+            uint id;
+
+            if (!HypData_GetID(ref this, out id))
+            {
+                value = new IDBase(0);
+
+                return false;
+            }
+
+            value = new IDBase(id);
+
+            return true;
+        }
+
+        public bool GetValue<T>(out T value) where T : HypObject
+        {
+            IntPtr valuePtr;
+
+            if (HypData_GetHypObject(ref this, out valuePtr))
+            {
+                if (valuePtr == IntPtr.Zero)
+                {
+                    value = null;
+
+                    return false;
+                }
+
+                value = (T)(*((object*)valuePtr.ToPointer()));
+
+                return true;
+            }
+
+            value = null;
+
+            return false;
+        }
+
+        public bool GetValue(out byte[] value)
+        {
+            IntPtr bufferPtr;
+            uint bufferSize;
+
+            if (!HypData_GetByteBuffer(ref this, out bufferPtr, out bufferSize))
+            {
+                value = null;
+
+                return false;
+            }
+
+            value = new byte[bufferSize];
+
+            unsafe
+            {
+                byte* ptr = (byte*)bufferPtr.ToPointer();
+
+                for (int i = 0; i < bufferSize; i++)
+                {
+                    value[i] = ptr[i];
+                }
+            }
+
+            return true;
+        }
+
+        public bool GetValue(out object[] value)
+        {
+            IntPtr arrayPtr;
+            uint arraySize;
+
+            if (!HypData_GetArray(ref this, out arrayPtr, out arraySize))
+            {
+                value = null;
+
+                return false;
+            }
+
+            value = new object[arraySize];
+
+            unsafe
+            {
+                HypDataBuffer* ptr = (HypDataBuffer*)arrayPtr.ToPointer();
+
+                for (int i = 0; i < arraySize; i++)
+                {
+                    value[i] = ptr[i].GetValue();
+                }
+            }
+
+            return true;
+        }
+
         public unsafe object? GetValue()
         {
             InternalHypDataValue value;

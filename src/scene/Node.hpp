@@ -289,12 +289,12 @@ public:
         { return m_uuid; }
 
     /*! \returns The name that was given to the Node on creation. */
-    HYP_METHOD(Serialize, Property="Name")
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true, Label="Name", Description="The name of the node.")
     HYP_FORCE_INLINE const String &GetName() const
         { return m_name; }
         
     /*! \brief Set the name of this Node. Used for nested lookups. */
-    HYP_METHOD(Serialize, Property="Name")
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true, Label="Name", Description="The name of the node.")
     void SetName(const String &name);
 
     /*! \returns The type of the node. By default, it will just be NODE. */
@@ -334,11 +334,22 @@ public:
      *  \internal Not intended to be used in user code. Use Remove() instead. */
     void SetScene(Scene *scene);
 
-    HYP_METHOD(Serialize, Property="Entity")
+    /*! \brief \returns The underlying entity AABB for this node. */
+    HYP_METHOD(Property="EntityAABB", Serialize=true, Editor=true, Label="AABB", Description="The underlying AABB for this node, not considering child nodes or transform")
+    HYP_FORCE_INLINE const BoundingBox &GetEntityAABB() const
+        { return m_entity_aabb; }
+
+    /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
+    *   \param aabb The entity bounding box to set
+    *   \note Calls to RefreshEntityTransform() will override this value. */
+    HYP_METHOD(Property="EntityAABB", Serialize=true, Editor=true, Label="AABB", Description="The underlying AABB for this node, not considering child nodes or transform")
+    void SetEntityAABB(const BoundingBox &aabb);
+
+    HYP_METHOD(Property="Entity", Serialize=true, Editor=true, Label="Entity", Description="The entity that this node is linked with.")
     HYP_FORCE_INLINE ID<Entity> GetEntity() const
         { return m_entity; }
 
-    HYP_METHOD(Serialize, Property="Entity")
+    HYP_METHOD(Property="Entity", Serialize=true, Editor=true, Label="Entity", Description="The entity that this node is linked with.")
     void SetEntity(ID<Entity> entity);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
@@ -426,11 +437,11 @@ public:
         { return m_descendents; }
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD(Serialize, Property="LocalTransform")
+    HYP_METHOD(Property="LocalTransform", Serialize=true, Editor=true, Label="Local-space Transform")
     void SetLocalTransform(const Transform &transform);
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
-    HYP_METHOD(Serialize, Property="LocalTransform")
+    HYP_METHOD(Property="LocalTransform", Serialize=true, Editor=true, Label="Local-space Transform")
     HYP_FORCE_INLINE const Transform &GetLocalTransform() const
         { return m_local_transform; }
     
@@ -484,12 +495,12 @@ public:
         { SetLocalRotation(m_local_transform.GetRotation() * rotation); }
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
-    HYP_METHOD(Serialize, Property="WorldTransform")
+    HYP_METHOD(Property="WorldTransform", Serialize=true, Editor=true, Label="World-space Transform")
     HYP_FORCE_INLINE const Transform &GetWorldTransform() const
         { return m_world_transform; }
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */
-    HYP_METHOD(Serialize, Property="WorldTransform")
+    HYP_METHOD(Property="WorldTransform", Serialize=true, Editor=true, Label="World-space Transform")
     void SetWorldTransform(const Transform &transform)
     {
         if (m_parent_node == nullptr) {
@@ -584,17 +595,6 @@ public:
 
     /*! \brief Unlock the Node from being transformed. */
     void UnlockTransform();
-
-    /*! \brief \returns The underlying entity AABB for this node. */
-    HYP_METHOD(Serialize, Property="EntityAABB")
-    HYP_FORCE_INLINE const BoundingBox &GetEntityAABB() const
-        { return m_entity_aabb; }
-
-    /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
-    *   \param aabb The entity bounding box to set
-    *   \note Calls to RefreshEntityTransform() will override this value. */
-    HYP_METHOD(Serialize, Property="EntityAABB")
-    void SetEntityAABB(const BoundingBox &aabb);
 
     /*! \brief Get the local-space (model) aabb of the node, excluding the entity's aabb.
      *  \returns The local-space (model) of the node's aabb, excluding the entity's aabb. */

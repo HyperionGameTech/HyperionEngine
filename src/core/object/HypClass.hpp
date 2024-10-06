@@ -262,6 +262,9 @@ public:
     HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(ANSIStringView key) const
         { return m_attributes[key]; }
 
+    HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const
+        { return m_attributes.Get(key, default_value); }
+
     HYP_FORCE_INLINE HypClassMemberList GetMembers(EnumFlags<HypMemberType> member_types) const
         { return { this, member_types }; }
 

@@ -21,7 +21,7 @@ enum VisibilityStateFlagBits : VisibilityStateFlags
     VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
 };
 
-HYP_STRUCT(Component, NoSerialize)
+HYP_STRUCT(Component, Serialize=false, Editor=false)
 struct VisibilityStateComponent
 {
     HYP_FIELD()

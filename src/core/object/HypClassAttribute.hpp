@@ -241,14 +241,22 @@ public:
     HypClassAttributeList &operator=(HypClassAttributeList &&other) noexcept    = default;
     ~HypClassAttributeList()                                                    = default;
 
-    const HypClassAttributeValue &operator[](ANSIStringView name) const
+    HYP_FORCE_INLINE const HypClassAttributeValue &operator[](ANSIStringView name) const
+        { return Get(name); }
+
+    const HypClassAttributeValue &Get(ANSIStringView name) const
     {
         static const HypClassAttributeValue invalid_value { };
 
+        return Get(name, invalid_value);
+    }
+
+    const HypClassAttributeValue &Get(ANSIStringView name, const HypClassAttributeValue &default_value) const
+    {
         const auto it = m_attributes.FindAs(name);
 
         if (it == m_attributes.End()) {
-            return invalid_value;
+            return default_value;
         }
 
         return it->GetValue();

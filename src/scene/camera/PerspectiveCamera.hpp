@@ -6,8 +6,12 @@
 #include <scene/camera/Camera.hpp>
 
 namespace hyperion {
+
+HYP_CLASS()
 class HYP_API PerspectiveCameraController : public CameraController
 {
+    HYP_OBJECT_BODY(PerspectiveCameraController);
+
 public:
     PerspectiveCameraController();
     virtual ~PerspectiveCameraController() override = default;
@@ -18,6 +22,7 @@ public:
     virtual void UpdateViewMatrix() override;
     virtual void UpdateProjectionMatrix() override;
 };
+
 } // namespace hyperion
 
 #endif

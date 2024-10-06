@@ -15,8 +15,11 @@ enum class FirstPersonCameraControllerMode
     MOUSE_FREE
 };
 
+HYP_CLASS()
 class HYP_API FirstPersonCameraController : public PerspectiveCameraController
 {
+    HYP_OBJECT_BODY(FirstPersonCameraController);
+
 public:
     FirstPersonCameraController(FirstPersonCameraControllerMode mode = FirstPersonCameraControllerMode::MOUSE_FREE);
     virtual ~FirstPersonCameraController() = default;
@@ -48,6 +51,7 @@ protected:
     Vec2f                           m_desired_mag;
     Vec2f                           m_prev_mag;
 };
+
 } // namespace hyperion
 
 #endif

@@ -59,13 +59,13 @@ struct AudioPlaybackState
     }
 };
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Audio Component", Description="Controls the state of an audio source.", Editor=true)
 struct AudioComponent
 {
-    HYP_FIELD(Serialize, Property="AudioSource", Property="AudioSource")
+    HYP_FIELD(Property="AudioSource", Serialize=true, Editor=true)
     Handle<AudioSource>     audio_source;
 
-    HYP_FIELD(Serialize, Property="PlaybackState", Property="PlaybackState")
+    HYP_FIELD(Property="PlaybackState", Serialize=true, Editor=true)
     AudioPlaybackState      playback_state;
 
     HYP_FIELD()

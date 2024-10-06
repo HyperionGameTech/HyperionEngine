@@ -272,7 +272,14 @@ class RenderObjectHandle_Strong
 {
     static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
 
-    RenderObjectContainer<T, PLATFORM> *_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+    static RenderObjectContainer<T, PLATFORM> *s_container;
+
+    // static RenderObjectContainer<T, PLATFORM> *GetContainer()
+    // {
+    //     static RenderObjectContainer<T, PLATFORM> *container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+
+    //     return container;
+    // }
 
 public:
     using Type = T;
@@ -287,7 +294,7 @@ public:
         handle.index = index;
         
         if (index != 0) {
-            handle._container->IncRefStrong(index - 1);
+            handle.s_container->IncRefStrong(index - 1);
         }
 
         return handle;
@@ -306,7 +313,7 @@ public:
     RenderObjectHandle_Strong &operator=(std::nullptr_t)
     {
         if (index != 0) {
-            _container->DecRefStrong(index - 1);
+            s_container->DecRefStrong(index - 1);
         }
 
         index = 0;
@@ -318,20 +325,20 @@ public:
         : index(other.index)
     {
         if (index != 0) {
-            _container->IncRefStrong(index - 1);
+            s_container->IncRefStrong(index - 1);
         }
     }
 
     RenderObjectHandle_Strong &operator=(const RenderObjectHandle_Strong &other)
     {
         if (index != 0) {
-            _container->DecRefStrong(index - 1);
+            s_container->DecRefStrong(index - 1);
         }
 
         index = other.index;
 
         if (index != 0) {
-            _container->IncRefStrong(index - 1);
+            s_container->IncRefStrong(index - 1);
         }
 
         return *this;
@@ -346,7 +353,7 @@ public:
     RenderObjectHandle_Strong &operator=(RenderObjectHandle_Strong &&other) noexcept
     {
         if (index != 0) {
-            _container->DecRefStrong(index - 1);
+            s_container->DecRefStrong(index - 1);
         }
 
         index = other.index;
@@ -358,7 +365,7 @@ public:
     ~RenderObjectHandle_Strong()
     {
         if (index != 0) {
-            _container->DecRefStrong(index - 1);
+            s_container->DecRefStrong(index - 1);
         }
     }
 
@@ -393,7 +400,7 @@ public:
         { return index != 0; }
 
     HYP_FORCE_INLINE uint16 GetRefCount() const
-        { return index == 0 ? 0 : _container->GetRefCountStrong(index - 1); }
+        { return index == 0 ? 0 : s_container->GetRefCountStrong(index - 1); }
 
     HYP_FORCE_INLINE T *Get() const &
     {
@@ -401,13 +408,13 @@ public:
             return nullptr;
         }
         
-        return &_container->Get(index - 1);
+        return &s_container->Get(index - 1);
     }
 
     HYP_FORCE_INLINE void Reset()
     {
         if (index != 0) {
-            _container->DecRefStrong(index - 1);
+            s_container->DecRefStrong(index - 1);
         }
 
         index = 0;
@@ -422,13 +429,13 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
     {
         AssertThrowMsg(index != 0, "Render object is not valid");
-        _container->SetDebugName(index - 1, name);
+        s_container->SetDebugName(index - 1, name);
     }
 
     HYP_FORCE_INLINE Name GetName() const
     {
         AssertThrowMsg(index != 0, "Render object is not valid");
-        return _container->GetDebugName(index - 1);
+        return s_container->GetDebugName(index - 1);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -444,6 +451,9 @@ public:
 };
 
 template <class T, PlatformType PLATFORM>
+RenderObjectContainer<T, PLATFORM> *RenderObjectHandle_Strong<T, PLATFORM>::s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+
+template <class T, PlatformType PLATFORM>
 const RenderObjectHandle_Strong<T, PLATFORM> RenderObjectHandle_Strong<T, PLATFORM>::unset = RenderObjectHandle_Strong<T, PLATFORM>();
 
 template <class T, PlatformType PLATFORM>
@@ -457,7 +467,9 @@ class RenderObjectHandle_Weak
 {
     static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
 
-    RenderObjectContainer<T, PLATFORM>  *_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+    // RenderObjectContainer<T, PLATFORM>  *s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+
+    static RenderObjectContainer<T, PLATFORM> *s_container;
 
 public:
     using Type = T;
@@ -470,7 +482,7 @@ public:
         handle.index = index;
         
         if (index != 0) {
-            handle._container->IncRefWeak(index - 1);
+            handle.s_container->IncRefWeak(index - 1);
         }
 
         return handle;
@@ -485,7 +497,7 @@ public:
         : index(other.index)
     {
         if (index != 0) {
-            _container->IncRefWeak(index - 1);
+            s_container->IncRefWeak(index - 1);
         }
     }
 
@@ -493,20 +505,20 @@ public:
         : index(other.index)
     {
         if (index != 0) {
-            _container->IncRefWeak(index - 1);
+            s_container->IncRefWeak(index - 1);
         }
     }
 
     RenderObjectHandle_Weak &operator=(const RenderObjectHandle_Weak &other)
     {
         if (index != 0) {
-            _container->DecRefWeak(index - 1);
+            s_container->DecRefWeak(index - 1);
         }
 
         index = other.index;
 
         if (index != 0) {
-            _container->IncRefWeak(index - 1);
+            s_container->IncRefWeak(index - 1);
         }
 
         return *this;
@@ -521,7 +533,7 @@ public:
     RenderObjectHandle_Weak &operator=(RenderObjectHandle_Weak &&other) noexcept
     {
         if (index != 0) {
-            _container->DecRefWeak(index - 1);
+            s_container->DecRefWeak(index - 1);
         }
 
         index = other.index;
@@ -533,7 +545,7 @@ public:
     ~RenderObjectHandle_Weak()
     {
         if (index != 0) {
-            _container->DecRefWeak(index - 1);
+            s_container->DecRefWeak(index - 1);
         }
     }
 
@@ -543,7 +555,7 @@ public:
             return RenderObjectHandle_Strong<T, PLATFORM>::unset;
         }
 
-        return _container->GetRefCountStrong(index - 1) != 0
+        return s_container->GetRefCountStrong(index - 1) != 0
             ? RenderObjectHandle_Strong<T, PLATFORM>::FromIndex(index)
             : RenderObjectHandle_Strong<T, PLATFORM>::unset;
     }
@@ -563,7 +575,7 @@ public:
     HYP_FORCE_INLINE void Reset()
     {
         if (index != 0) {
-            _container->DecRefWeak(index - 1);
+            s_container->DecRefWeak(index - 1);
         }
 
         index = 0;
@@ -571,6 +583,9 @@ public:
 
     uint index;
 };
+
+template <class T, PlatformType PLATFORM>
+RenderObjectContainer<T, PLATFORM> *RenderObjectHandle_Weak<T, PLATFORM>::s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
 
 template <class T, PlatformType PLATFORM>
 const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>::unset = RenderObjectHandle_Weak<T, PLATFORM>();

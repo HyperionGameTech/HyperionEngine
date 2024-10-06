@@ -20,7 +20,7 @@ enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
     RIGID_BODY_COMPONENT_FLAG_DIRTY  = 0x2
 };
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Rigid Body Component", Description="Controls the properties of an object with rigid body physics.", Editor=true)
 struct RigidBodyComponent
 {
     HYP_FIELD(Serialize, Property="RigidBody")

@@ -37,7 +37,7 @@ Result AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 }
 
 template <>
-Result AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Extent2D new_size)
+Result AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
 {
     for (KeyValuePair<uint, AttachmentDef<Platform::VULKAN>> &it : attachments) {
         AttachmentDef<Platform::VULKAN> &def = it.second;
@@ -45,11 +45,10 @@ Result AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device,
         AssertThrow(def.image.IsValid());
 
         ImageRef<Platform::VULKAN> new_image = MakeRenderObject<Image<Platform::VULKAN>>(
-            TextureDesc
-            {
+            TextureDesc {
                 def.image->GetType(),
                 def.image->GetTextureFormat(),
-                Extent3D(new_size.width, new_size.height, 1)
+                Vec3u { new_size.x, new_size.y, 1 }
             }
         );
 
@@ -100,7 +99,7 @@ Result AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device,
 
 template <>
 Framebuffer<Platform::VULKAN>::Framebuffer(
-    Extent2D extent,
+    Vec2u extent,
     RenderPassStage stage,
     RenderPassMode render_pass_mode,
     uint num_multiview_layers
@@ -159,8 +158,8 @@ Result Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
     framebuffer_create_info.renderPass = m_render_pass->GetHandle();
     framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
     framebuffer_create_info.pAttachments = attachment_image_views.Data();
-    framebuffer_create_info.width = m_extent.width;
-    framebuffer_create_info.height = m_extent.height;
+    framebuffer_create_info.width = m_extent.x;
+    framebuffer_create_info.height = m_extent.y;
     framebuffer_create_info.layers = num_layers;
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -197,7 +196,7 @@ Result Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 }
 
 template <>
-Result Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Extent2D new_size)
+Result Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
 {
     if (m_extent == new_size) {
         HYPERION_RETURN_OK;
@@ -235,8 +234,8 @@ Result Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, E
     framebuffer_create_info.renderPass = m_render_pass->GetHandle();
     framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
     framebuffer_create_info.pAttachments = attachment_image_views.Data();
-    framebuffer_create_info.width = new_size.width;
-    framebuffer_create_info.height = new_size.height;
+    framebuffer_create_info.width = new_size.x;
+    framebuffer_create_info.height = new_size.y;
     framebuffer_create_info.layers = num_layers;
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {

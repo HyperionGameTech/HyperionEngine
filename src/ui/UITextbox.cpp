@@ -21,15 +21,15 @@ UITextbox::UITextbox(UIStage *parent, NodeProxy node_proxy)
     SetBorderRadius(2);
     SetPadding({ 5, 2 });
 
-    OnScroll.RemoveAll();
-    OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
-    {
-        HYP_LOG(UI, LogLevel::INFO, "Scrolling textbox: {}", event_data.wheel);
+    // OnScroll.RemoveAll();
+    // OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
+    // {
+    //     HYP_LOG(UI, LogLevel::INFO, "Scrolling textbox: {}", event_data.wheel);
 
-        SetScrollOffset(GetScrollOffset() - event_data.wheel * 5, /* smooth */ false);
+    //     SetScrollOffset(GetScrollOffset() - event_data.wheel * 5, /* smooth */ false);
 
-        return UIEventHandlerResult::STOP_BUBBLING;
-    }).Detach();
+    //     return UIEventHandlerResult::STOP_BUBBLING;
+    // }).Detach();
 
     OnKeyDown.Bind([this](const KeyboardEvent &event_data) -> UIEventHandlerResult
     {

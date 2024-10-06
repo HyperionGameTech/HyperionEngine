@@ -238,7 +238,7 @@ void Game::OnInputEvent(const SystemEvent &event)
 
             event.GetMouseWheel(&wheel_x, &wheel_y);
 
-            if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+            if (const RC<CameraController> &controller = m_scene->GetCamera()->GetCameraController()) {
                 controller->PushCommand(CameraCommand {
                     .command = CameraCommand::CAMERA_COMMAND_SCROLL,
                     .scroll_data = {
@@ -261,7 +261,7 @@ void Game::OnInputEvent(const SystemEvent &event)
             const float my = (float(mouse_position.y) - float(window_size.y) * 0.5f) / (float(window_size.y));
             
             if (m_scene) {
-                if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+                if (const RC<CameraController> &controller = m_scene->GetCamera()->GetCameraController()) {
                     controller->PushCommand(CameraCommand {
                         .command = CameraCommand::CAMERA_COMMAND_MAG,
                         .mag_data = {

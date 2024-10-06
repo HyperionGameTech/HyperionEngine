@@ -10,39 +10,40 @@ class HypAttributeType:
     DOUBLE = 3
     BOOL = 4
 
+# map c++ types to c# types - (type, is_primitive) - non primitive types need to use generic GetValue() method
 CXX_TO_CSHARP_TYPE_MAPPING = {
-    'int': 'int',
-    'float': 'float',
-    'double': 'double',
-    'bool': 'bool',
-    'char': 'char',
-    'unsigned char': 'byte',
-    'short': 'short',
-    'unsigned short': 'ushort',
-    'long': 'long',
-    'unsigned long': 'ulong',
-    'long long': 'long',
-    'unsigned long long': 'ulong',
-    'uint8': 'byte',
-    'uint16': 'ushort',
-    'uint32': 'uint',
-    'uint64': 'ulong',
-    'int8': 'sbyte',
-    'int16': 'short',
-    'int32': 'int',
-    'int64': 'long',
-    'size_t': 'UIntPtr',
-    'void': 'void',
-    'std::string': 'string',
-    'String': 'string',
-    'ANSIString': 'string',
-    'UTF8StringView': 'string',
-    'ANSIStringView': 'string',
-    'FilePath': 'string',
-    'ByteBuffer': 'byte[]',
-    'ID': 'IDBase',
-    'NodeProxy': 'Node',
-    'Node': 'Node'
+    'int': ('int', True),
+    'float': ('float', True),
+    'double': ('double', True),
+    'bool': ('bool', True),
+    'char': ('char', True),
+    'unsigned char': ('byte', True),
+    'short': ('short', True),
+    'unsigned short': ('ushort', True),
+    'long': ('long', True),
+    'unsigned long': ('ulong', True),
+    'long long': ('long', True),
+    'unsigned long long': ('ulong', True),
+    'uint8': ('byte', True),
+    'uint16': ('ushort', True),
+    'uint32': ('uint', True),
+    'uint64': ('ulong', True),
+    'int8': ('sbyte', True),
+    'int16': ('short', True),
+    'int32': ('int', True),
+    'int64': ('long', True),
+    'size_t': ('ulong', True),
+    'void': ('void', True),
+    'std::string': ('string', True),
+    'String': ('string', True),
+    'ANSIString': ('string', True),
+    'UTF8StringView': ('string', True),
+    'ANSIStringView': ('string', True),
+    'FilePath': ('string', True),
+    'ByteBuffer': ('byte[]', True),
+    'ID': ('IDBase', True),
+    'NodeProxy': ('Node', False),
+    'Node': ('Node', False)
 }
 
 ### Parse a c++ member function declaration (may contain body)
@@ -91,7 +92,7 @@ def map_type(type_object):
     name = last_segment.name
 
     if name in CXX_TO_CSHARP_TYPE_MAPPING:
-        return CXX_TO_CSHARP_TYPE_MAPPING[name]
+        return CXX_TO_CSHARP_TYPE_MAPPING[name][0]
 
     if name == 'RC' and last_segment.specialization:
         return map_type(last_segment.specialization.args[0].arg)

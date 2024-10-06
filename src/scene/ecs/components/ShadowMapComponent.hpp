@@ -22,16 +22,16 @@ namespace hyperion {
 
 class RenderComponentBase;
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Shadow Map Component", Description="Controls shadow map rendering for a light source.", Editor=true)
 struct ShadowMapComponent
 {
-    HYP_FIELD(Serialize, Property="Mode")
+    HYP_FIELD(Property="Mode", Serialize=true, Editor=true)
     ShadowMode              mode = ShadowMode::STANDARD;
 
-    HYP_FIELD(Serialize, Property="Radius")
+    HYP_FIELD(Property="Radius", Serialize=true, Editor=true)
     float                   radius = 20.0f;
 
-    HYP_FIELD(Serialize, Property="Resolution")
+    HYP_FIELD(Property="Resolution", Serialize=true, Editor=true)
     Vec2u                   resolution = Vec2u { 512, 512 };
 
     HYP_FIELD()

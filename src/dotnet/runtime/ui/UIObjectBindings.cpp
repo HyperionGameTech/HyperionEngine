@@ -89,7 +89,7 @@ HYP_EXPORT void UIObject_SetSize(ManagedRefCountedPtr obj, Vec2i *size)
         return;
     }
 
-    ui_object->SetSize(*size);
+    ui_object->SetSize(UIObjectSize(*size));
 }
 
 HYP_EXPORT UIObjectAlignment UIObject_GetOriginAlignment(ManagedRefCountedPtr obj)

@@ -6,8 +6,12 @@
 #include <scene/camera/PerspectiveCamera.hpp>
 
 namespace hyperion {
+
+HYP_CLASS()
 class FollowCameraController : public PerspectiveCameraController
 {
+    HYP_OBJECT_BODY(FollowCameraController);
+
 public:
     FollowCameraController(const Vector3 &target, const Vector3 &offset);
     virtual ~FollowCameraController() override = default;
@@ -22,20 +26,21 @@ public:
 private:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) override;
 
-    Vector3 m_offset,
-        m_real_offset;
+    Vec3f   m_offset,
+            m_real_offset;
 
-    Vector3 m_target;
+    Vec3f   m_target;
 
-    float m_mx,
-        m_my,
-        m_prev_mx,
-        m_prev_my,
-        m_desired_distance;
+    float   m_mx,
+            m_my,
+            m_prev_mx,
+            m_prev_my,
+            m_desired_distance;
     
-    Vector2 m_mag,
-        m_prev_mag;
+    Vec2f   m_mag,
+            m_prev_mag;
 };
+
 } // namespace hyperion
 
 #endif

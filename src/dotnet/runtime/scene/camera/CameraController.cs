@@ -3,21 +3,51 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    // public abstract class CameraController
-    // {
-    //     protected IntPtr ptr;
+    [HypClassBinding(Name="CameraController")]
+    public class CameraController : HypObject
+    {
+        public CameraController()
+        {
+        }
+    }
 
-    //     protected CameraController(IntPtr ptr)
-    //     {
-    //         this.ptr = ptr;
-    //     }
-    // }
+    [HypClassBinding(Name="OrthoCameraController")]
+    public class OrthoCameraController : CameraController
+    {
+        public OrthoCameraController()
+        {
+        }
+    }
 
-    // public class OrthoCameraController : public CameraController
-    // {
-    //     internal OrthoCameraController(IntPtr ptr)
-    //         : base(ptr)
-    //     {
-    //     }
-    // }
+    [HypClassBinding(Name="PerspectiveCameraController")]
+    public class PerspectiveCameraController : CameraController
+    {
+        public PerspectiveCameraController()
+        {
+        }
+    }
+
+    [HypClassBinding(Name="FollowCameraController")]
+    public class FollowCameraController : PerspectiveCameraController
+    {
+        public FollowCameraController()
+        {
+        }
+    }
+
+    [HypClassBinding(Name="FirstPersonCameraController")]
+    public class FirstPersonCameraController : PerspectiveCameraController
+    {
+        public FirstPersonCameraController()
+        {
+        }
+    }
+
+    [HypClassBinding(Name="CameraTrackController")]
+    public class CameraTrackController : PerspectiveCameraController
+    {
+        public CameraTrackController()
+        {
+        }
+    }
 }

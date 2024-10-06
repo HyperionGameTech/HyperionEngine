@@ -8,13 +8,13 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Editor=false)
 struct BoundingBoxComponent
 {
-    HYP_FIELD(Property="LocalAABB", Serialize=true, Editor=true)
+    HYP_FIELD(Property="LocalAABB", Serialize=true)
     BoundingBox local_aabb;
 
-    HYP_FIELD(Property="WorldAABB", Serialize=true, Editor=true)
+    HYP_FIELD(Property="WorldAABB", Serialize=true)
     BoundingBox world_aabb;
 
     HYP_FIELD()

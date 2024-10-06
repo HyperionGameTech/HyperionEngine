@@ -6,8 +6,12 @@
 #include <scene/camera/Camera.hpp>
 
 namespace hyperion {
+
+HYP_CLASS()
 class OrthoCameraController : public CameraController
 {
+    HYP_OBJECT_BODY(OrthoCameraController);
+
 public:
     OrthoCameraController();
     OrthoCameraController(float left, float right, float bottom, float top, float _near, float _far);
@@ -20,10 +24,14 @@ public:
     virtual void UpdateProjectionMatrix() override;
 
 protected:
-    float m_left, m_right,
-        m_bottom, m_top,
-        m_near, m_far;
+    float   m_left,
+            m_right,
+            m_bottom,
+            m_top,
+            m_near,
+            m_far;
 };
+
 } // namespace hyperion
 
 #endif

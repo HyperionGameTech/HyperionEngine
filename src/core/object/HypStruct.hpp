@@ -83,29 +83,6 @@ public:
     {
         return sizeof(T);
     }
-
-
-    // virtual void Construct(ByteView out_byte_view) const override
-    // {
-    //     AssertThrow(out_byte_view.Size() == sizeof(T));
-
-    //     new (reinterpret_cast<void *>(out_byte_view.Data())) T();
-    // }
-
-    // virtual void CopyConstruct(ConstAnyRef instance_ref, ByteView out_byte_view) const override
-    // {
-    //     AssertThrow(instance_ref.Is<T>());
-    //     AssertThrow(out_byte_view.Size() == sizeof(T));
-
-    //     new (reinterpret_cast<void *>(out_byte_view.Data())) T(instance_ref.Get<T>());
-    // }
-
-    // virtual void Destruct(ByteView byte_view) const override
-    // {
-    //     AssertThrow(byte_view.Size() == sizeof(T));
-
-    //     reinterpret_cast<T *>(byte_view.Data())->~T();
-    // }
     
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {

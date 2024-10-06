@@ -28,7 +28,7 @@ enum class ScriptComponentFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Script Component", Description="A script component that can be attached to an entity.")
 struct ScriptComponent
 {
     HYP_FIELD(Property="Script", Serialize=true, Editor=true)

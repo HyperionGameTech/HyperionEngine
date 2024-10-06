@@ -20,13 +20,13 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Environment Grid", Description="Allows calculatation of indirect lighting in the area surrounding the entity", Editor=true)
 struct EnvGridComponent
 {
-    HYP_FIELD(Serialize, Property="EnvGridType")
+    HYP_FIELD(Property="EnvGridType", Serialize=true, Editor=true)
     EnvGridType env_grid_type = ENV_GRID_TYPE_SH;
 
-    HYP_FIELD(Serialize, Property="GridSize")
+    HYP_FIELD(Property="GridSize", Serialize=true, Editor=true)
     Vec3u       grid_size = { 16, 4, 16 };
 
     HYP_FIELD()

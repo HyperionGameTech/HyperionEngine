@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Editor=false)
 struct BLASComponent
 {
     HYP_FIELD()

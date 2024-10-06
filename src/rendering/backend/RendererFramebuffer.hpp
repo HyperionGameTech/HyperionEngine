@@ -41,7 +41,7 @@ struct AttachmentMap
     }
 
     Result Create(Device<PLATFORM> *device);
-    Result Resize(Device<PLATFORM> *device, Extent2D new_size);
+    Result Resize(Device<PLATFORM> *device, Vec2u new_size);
 
     void Reset()
     {
@@ -87,7 +87,7 @@ struct AttachmentMap
 
     HYP_FORCE_INLINE void AddAttachment(
         uint binding,
-        Extent2D extent,
+        Vec2u extent,
         InternalFormat format,
         ImageType type,
         RenderPassStage stage,
@@ -100,7 +100,7 @@ struct AttachmentMap
             {
                 type,
                 format,
-                Extent3D(extent.width, extent.height, 1)
+                Vec3u { extent.x, extent.y, 1 }
             }
         );
 
@@ -134,7 +134,7 @@ public:
     static constexpr PlatformType platform = PLATFORM;
     
     HYP_API Framebuffer(
-        Extent2D extent,
+        Vec2u extent,
         RenderPassStage stage = RenderPassStage::SHADER,
         RenderPassMode render_pass_mode = RenderPassMode::RENDER_PASS_INLINE,
         uint num_multiview_layers = 0
@@ -150,11 +150,11 @@ public:
     HYP_FORCE_INLINE const FramebufferPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    HYP_FORCE_INLINE uint GetWidth() const
-        { return m_extent.width; }
+    HYP_FORCE_INLINE uint32 GetWidth() const
+        { return m_extent.x; }
 
-    HYP_FORCE_INLINE uint GetHeight() const
-        { return m_extent.height; }
+    HYP_FORCE_INLINE uint32 GetHeight() const
+        { return m_extent.y; }
 
     HYP_FORCE_INLINE Extent2D GetExtent() const
         { return m_extent; }
@@ -198,7 +198,7 @@ public:
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
 
-    HYP_API Result Resize(Device<PLATFORM> *device, Extent2D new_size);
+    HYP_API Result Resize(Device<PLATFORM> *device, Vec2u new_size);
 
     HYP_API void BeginCapture(CommandBuffer<PLATFORM> *command_buffer, uint frame_index);
     HYP_API void EndCapture(CommandBuffer<PLATFORM> *command_buffer, uint frame_index);
@@ -206,7 +206,7 @@ public:
 private:
     FramebufferPlatformImpl<PLATFORM>   m_platform_impl;
 
-    Extent2D                            m_extent;
+    Vec2u                               m_extent;
 
     RenderPassRef<PLATFORM>             m_render_pass;
     AttachmentMap<PLATFORM>             m_attachment_map;

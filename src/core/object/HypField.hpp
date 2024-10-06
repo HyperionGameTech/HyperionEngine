@@ -206,7 +206,12 @@ struct HypField : public IHypMember
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        return attributes[key];
+        return attributes.Get(key);
+    }
+
+    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const override
+    {
+        return attributes.Get(key, default_value);
     }
 
     HYP_FORCE_INLINE explicit operator bool() const

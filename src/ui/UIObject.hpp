@@ -197,7 +197,7 @@ struct UIObjectSize
     {
     }
 
-    UIObjectSize(Vec2i value)
+    explicit UIObjectSize(Vec2i value)
         : flags { DEFAULT, DEFAULT },
           value(value)
     {
@@ -835,6 +835,9 @@ protected:
 
     void OnFontAtlasUpdate();
     virtual void OnFontAtlasUpdate_Internal() { }
+
+    void OnTextSizeUpdate();
+    virtual void OnTextSizeUpdate_Internal() { }
 
     bool NeedsRepaint() const;
     void SetNeedsRepaintFlag(bool needs_repaint = true);

@@ -75,19 +75,19 @@ enum TerrainComponentFlagBits : TerrainComponentFlags
     TERRAIN_COMPONENT_FLAG_INIT = 0x1
 };
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Label="Terrain Component", Description="Controls dynamic terrain.", Editor=true)
 struct TerrainComponent
 {
-    HYP_FIELD(Serialize, Property="Seed")
+    HYP_FIELD(Property="Seed", Serialize=true, Editor=true)
     uint32                  seed = 0;
 
-    HYP_FIELD(Serialize, Property="PatchSize")
+    HYP_FIELD(Property="PatchSize", Serialize=true, Editor=true)
     Vec3u                   patch_size = { 32, 32, 32 };
 
-    HYP_FIELD(Serialize, Property="Scale")
+    HYP_FIELD(Property="Scale", Serialize=true, Editor=true)
     Vec3f                   scale = Vec3f::One();
 
-    HYP_FIELD(Serialize, Property="MaxDistance")
+    HYP_FIELD(Property="MaxDistance", Serialize=true, Editor=true)
     float                   max_distance = 2.0f;
 
     HYP_FIELD()
