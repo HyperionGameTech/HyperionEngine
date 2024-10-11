@@ -569,6 +569,8 @@ public:
     template <class... Args>
     static RefCountedPtr Construct(Args &&... args)
     {
+        static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
+    
         RefCountedPtr rc;
 
         if constexpr (IsHypObject<T>::value) {

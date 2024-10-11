@@ -417,6 +417,8 @@ public:
     template <class ...Args>
     HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr Construct(Args &&... args)
     {
+        static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
+    
         return UniquePtr(new T(std::forward<Args>(args)...));
     }
 
@@ -608,12 +610,28 @@ public:
     }
 };
 
+template <class T>
+struct MakeUniqueHelper
+{
+    template <class... Args>
+    static UniquePtr<T> MakeUnique(Args &&... args)
+    {
+        return UniquePtr<T>::Construct(std::forward<Args>(args)...);
+    }
+};
+
 } // namespace memory
 
 template <class T>
 using UniquePtr = memory::UniquePtr<T>;
 
 using AnyPtr = UniquePtr<void>;
+
+template <class T, class... Args>
+HYP_FORCE_INLINE UniquePtr<T> MakeUnique(Args &&... args)
+{
+    return memory::MakeUniqueHelper<T>::template MakeUnique(std::forward<Args>(args)...);
+}
 
 } // namespace hyperion
 

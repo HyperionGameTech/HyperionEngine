@@ -38,6 +38,6 @@ using utilities::DeferredScope;
 
 } // namespace hyperion
 
-#define HYP_DEFER(...) DeferredScope HYP_UNIQUE_NAME(scope)(__VA_ARGS__)
+#define HYP_DEFER(...) DeferredScope HYP_UNIQUE_NAME(scope)([&] __VA_ARGS__)
 
 #endif
