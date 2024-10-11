@@ -151,28 +151,27 @@ void HypClass::Initialize()
 
     HYP_LOG(Object, LogLevel::INFO, "Initializing HypClass \"{}\"", m_name);
 
-    for (const auto &it : m_attributes) {
-        HYP_LOG(Object, LogLevel::INFO, "\tAttribute {} = {}", it.GetName(), it.GetValue().ToString());
-    }
-
     // Build properties from `Property=` attributes on methods and fields
-    HashMap<String, Array<IHypMember *>> properties_to_build;
+    Array<Pair<String, Array<IHypMember *>>> properties_to_build;
 
     for (IHypMember &member : GetMembers(false)) {
         if (const HypClassAttributeValue &attr = member.GetAttribute("property")) {
             const String &attr_string = attr.GetString();
 
-            auto properties_to_build_it = properties_to_build.Find(attr_string);
+            auto properties_to_build_it = properties_to_build.FindIf([&attr_string](const auto &item)
+            {
+                return item.first == attr_string;
+            });
 
             if (properties_to_build_it == properties_to_build.End()) {
-                properties_to_build_it = properties_to_build.Insert({ attr_string, { } }).first;
+                properties_to_build_it = &properties_to_build.EmplaceBack(attr_string, Array<IHypMember *> { });
             }
 
             properties_to_build_it->second.PushBack(&member);
         }
     }
 
-    for (const auto &it : properties_to_build) {
+    for (const Pair<String, Array<IHypMember *>> &it : properties_to_build) {
         if (it.second.Empty()) {
             continue;
         }

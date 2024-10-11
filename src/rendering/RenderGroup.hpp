@@ -100,7 +100,7 @@ public:
      *  If nullptr is provided for cull_data, no occlusion culling will happen.
      *  \param render_proxies The render proxies to collect draw calls from.
      */
-    void CollectDrawCalls(const Array<RenderProxy> &render_proxies);
+    void CollectDrawCalls(const FlatMap<ID<Entity>, RenderProxy> &render_proxies);
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(Frame *frame);

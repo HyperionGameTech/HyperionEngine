@@ -227,7 +227,7 @@ Mesh::Mesh(
         .vertex_attributes = vertex_attributes,
         .topology = topology
     },
-    m_streamed_mesh_data(new StreamedMeshData(MeshData {
+    m_streamed_mesh_data(RC<StreamedMeshData>::Construct(MeshData {
         std::move(vertices),
         std::move(indices)
     })),
@@ -299,7 +299,7 @@ void Mesh::Init()
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
     if (!m_streamed_mesh_data) {
-        m_streamed_mesh_data.Reset(new StreamedMeshData());
+        m_streamed_mesh_data.Emplace();
     }
 
     { // upload mesh data
@@ -572,7 +572,7 @@ void Mesh::CalculateNormals(bool weighted)
     }
 
     if (!weighted) {
-        m_streamed_mesh_data.Reset(new StreamedMeshData(std::move(mesh_data)));
+        m_streamed_mesh_data.Emplace(std::move(mesh_data));
 
         return;
     }
@@ -667,7 +667,7 @@ void Mesh::CalculateNormals(bool weighted)
 
     normals.clear();
 
-    m_streamed_mesh_data.Reset(new StreamedMeshData(std::move(mesh_data)));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
 void Mesh::CalculateTangents()
@@ -748,7 +748,7 @@ void Mesh::CalculateTangents()
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
 
-    m_streamed_mesh_data.Reset(new StreamedMeshData(std::move(mesh_data)));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
 void Mesh::InvertNormals()
@@ -766,7 +766,7 @@ void Mesh::InvertNormals()
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
 
-    m_streamed_mesh_data.Reset(new StreamedMeshData(std::move(mesh_data)));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
 void Mesh::CalculateAABB()

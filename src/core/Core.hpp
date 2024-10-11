@@ -59,7 +59,7 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 }
 
 template <class T>
-HYP_FORCE_INLINE inline bool InitObject(Handle<T> &handle)
+HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
 {
     if (!handle) {
         return false;

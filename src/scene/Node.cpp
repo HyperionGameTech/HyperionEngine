@@ -243,7 +243,7 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "Name");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Name")));
 #endif
 }
 
@@ -286,7 +286,7 @@ void Node::SetScene(Scene *scene)
         m_scene = scene;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, "Scene");
+        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Scene")));
 #endif
 
         // Move entity from previous scene to new scene
@@ -300,7 +300,7 @@ void Node::SetScene(Scene *scene)
                 m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-                EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
+                EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
 #endif
             }
         }
@@ -348,7 +348,7 @@ void Node::OnNestedNodeRemoved(const NodeProxy &node, bool direct)
 NodeProxy Node::AddChild(const NodeProxy &node)
 {
     if (!node.IsValid()) {
-        return AddChild(NodeProxy(new Node()));
+        return AddChild(NodeProxy(MakeRefCountedPtr<Node>()));
     }
 
     if (node.Get() == this || node->GetParent() == this) {
@@ -638,7 +638,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_entity = entity;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
+        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
 #endif
 
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
@@ -667,19 +667,19 @@ void Node::SetEntity(ID<Entity> entity)
         if (NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
             node_link_component->node = WeakRefCountedPtrFromThis();
         } else {
-            m_scene->GetEntityManager()->AddComponent(m_entity, NodeLinkComponent {
+            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, {
                 WeakRefCountedPtrFromThis()
             });
         }
 
         if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity)) {
-            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, VisibilityStateComponent { });
+            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, { });
         }
     } else {
         m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, "Entity");
+        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
 #endif
 
         SetEntityAABB(BoundingBox::Empty());
@@ -697,9 +697,9 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     m_entity_aabb = aabb;
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "EntityAABB");
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalAABB");
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldAABB");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("EntityAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldAABB")));
 #endif
 }
 
@@ -816,10 +816,10 @@ void Node::UpdateWorldTransform()
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalTransform");
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldTransform");
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "LocalAABB");
-    EditorDelegates::GetInstance().OnNodeUpdate(this, "WorldAABB");
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalTransform")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldTransform")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldAABB")));
 #endif
 }
 
@@ -835,7 +835,7 @@ void Node::RefreshEntityTransform()
         if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
             transform_component->transform = m_world_transform;
         } else {
-            m_scene->GetEntityManager()->AddComponent(m_entity, TransformComponent {
+            m_scene->GetEntityManager()->AddComponent<TransformComponent>(m_entity, TransformComponent {
                 m_world_transform
             });
         }

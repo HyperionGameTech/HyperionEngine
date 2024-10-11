@@ -148,7 +148,7 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
         return { { LoaderResult::Status::ERR, "Failed to load symbol list" } };
     }
 
-    RC<FontAtlas> font_atlas(new FontAtlas(texture_set, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list)));
+    RC<FontAtlas> font_atlas = MakeRefCountedPtr<FontAtlas>(texture_set, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list));
 
     return { { LoaderResult::Status::OK }, font_atlas };
 }

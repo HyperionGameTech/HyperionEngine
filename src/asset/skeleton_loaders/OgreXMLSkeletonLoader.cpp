@@ -197,7 +197,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
     Handle<Skeleton> skeleton_handle = CreateObject<Skeleton>();
 
     for (const auto &item : object.bones) {
-        UniquePtr<Bone> bone(new Bone(item.name));
+        RC<Bone> bone = MakeRefCountedPtr<Bone>(item.name);
 
         bone->SetBindingTransform(Transform(
             item.binding_translation,
@@ -207,7 +207,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
 
         if (item.parent_name.Any()) {
             if (Bone *parent_bone = skeleton_handle->FindBone(item.parent_name)) {
-                parent_bone->AddChild(NodeProxy(bone.Release()));
+                parent_bone->AddChild(NodeProxy(bone));
 
                 continue;
             }
@@ -216,7 +216,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
         } else if (skeleton_handle->GetRootBone() != nullptr) {
             HYP_LOG(Assets, LogLevel::WARNING, "Ogre XML parser: Attempt to set root bone to node '{}' but it has already been set", item.name);
         } else {
-            skeleton_handle->SetRootBone(RC<Bone>(bone.Release()));
+            skeleton_handle->SetRootBone(bone);
         }
     }
 

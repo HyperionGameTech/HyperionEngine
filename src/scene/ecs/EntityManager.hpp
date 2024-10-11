@@ -343,6 +343,8 @@ class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
     HYP_OBJECT_BODY(EntityManager);
 
 public:
+    static constexpr ComponentID invalid_component_id = 0;
+
     EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
@@ -400,7 +402,6 @@ public:
      *
      *  \return The Entity that was added.
      */
-    HYP_METHOD()
     HYP_NODISCARD ID<Entity> AddEntity();
 
     /*! \brief Removes an entity from the EntityManager.
@@ -409,7 +410,6 @@ public:
      *
      *  \return True if the entity was removed, false otherwise.
      */
-    HYP_METHOD()
     bool RemoveEntity(ID<Entity> id);
 
     /*! \brief Moves an entity from one EntityManager to another.
@@ -421,7 +421,6 @@ public:
      */
     void MoveEntity(ID<Entity> entity, EntityManager &other);
     
-    HYP_METHOD()
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_mask);
@@ -434,28 +433,28 @@ public:
         return m_entities.Find(entity) != m_entities.End();
     }
 
-    template <EntityTag tag>
+    template <EntityTag Tag>
     HYP_FORCE_INLINE bool HasTag(ID<Entity> entity) const
-        { return HasComponent<EntityTagComponent<tag>>(entity); }
+        { return HasComponent<EntityTagComponent<Tag>>(entity); }
 
-    template <EntityTag tag>
+    template <EntityTag Tag>
     HYP_FORCE_INLINE void AddTag(ID<Entity> entity)
     {
-        if (HasTag<tag>(entity)) {
+        if (HasTag<Tag>(entity)) {
             return;
         }
 
-        AddComponent<EntityTagComponent<tag>>(entity, EntityTagComponent<tag>());
+        AddComponent<EntityTagComponent<Tag>>(entity, EntityTagComponent<Tag>());
     }
 
-    template <EntityTag tag>
+    template <EntityTag Tag>
     HYP_FORCE_INLINE void RemoveTag(ID<Entity> entity)
     {
-        if (!HasTag<tag>(entity)) {
+        if (!HasTag<Tag>(entity)) {
             return;
         }
 
-        RemoveComponent<EntityTagComponent<tag>>(entity);
+        RemoveComponent<EntityTagComponent<Tag>>(entity);
     }
 
     HYP_FORCE_INLINE Array<EntityTag> GetTags(ID<Entity> entity) const
@@ -651,8 +650,8 @@ public:
         return it->second.components;
     }
 
-    template <class Component>
-    ComponentID AddComponent(ID<Entity> entity, Component &&component)
+    template <class Component, class U = Component>
+    ComponentID AddComponent(ID<Entity> entity, U &&component)
     {
         EnsureValidComponentType<Component>();
 

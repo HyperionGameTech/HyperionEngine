@@ -266,7 +266,7 @@ void SampleStreamer::Init()
             gun.SetLocalRotation(Quaternion(Vec3f(0.0f, 1.0f, 0.0f), M_PI));
             gun_parent->AddChild(gun);
 
-            m_scene->GetEntityManager()->AddComponent(gun[0].GetEntity(), BLASComponent { });
+            m_scene->GetEntityManager()->AddComponent<BLASComponent>(gun[0].GetEntity(), { });
         }
     }
 
@@ -287,7 +287,7 @@ void SampleStreamer::Init()
                 .bucket = Bucket::BUCKET_OPAQUE
             });
 
-            m_scene->GetEntityManager()->AddComponent(box[0].GetEntity(), BLASComponent { });
+            m_scene->GetEntityManager()->AddComponent<BLASComponent>(box[0].GetEntity(), { });
         }
     }
 
@@ -316,15 +316,15 @@ void SampleStreamer::Init()
             }
         );
 
-        m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
+        m_scene->GetEntityManager()->AddComponent<MeshComponent>(entity_id, {
             cube,
             material
         });
-        m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity_id, {
             cube->GetAABB()
         });
-        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
-        m_scene->GetEntityManager()->AddComponent(entity_id, BLASComponent { });
+        m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity_id, { });
+        m_scene->GetEntityManager()->AddComponent<BLASComponent>(entity_id, { });
     }
 
     if (false) {
@@ -341,7 +341,7 @@ void SampleStreamer::Init()
         InitObject(cube);
 
         // add physics
-        m_scene->GetEntityManager()->AddComponent(entity_id, RigidBodyComponent {
+        m_scene->GetEntityManager()->AddComponent<RigidBodyComponent>(entity_id, {
             CreateObject<physics::RigidBody>(
                 RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -1.0f }, Vec3f { 1.0f } })),
                 physics::PhysicsMaterial {
@@ -350,7 +350,7 @@ void SampleStreamer::Init()
             )
         });
 
-        m_scene->GetEntityManager()->AddComponent(entity_id, MeshComponent {
+        m_scene->GetEntityManager()->AddComponent<MeshComponent>(entity_id, {
             cube,
             MaterialCache::GetInstance()->GetOrCreate(
                 {
@@ -367,10 +367,10 @@ void SampleStreamer::Init()
                 }
             )
         });
-        m_scene->GetEntityManager()->AddComponent(entity_id, BoundingBoxComponent {
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity_id, {
             cube->GetAABB()
         });
-        m_scene->GetEntityManager()->AddComponent(entity_id, VisibilityStateComponent { });
+        m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity_id, { });
     }
 
     // Used for RTC streaming or for editor view.
@@ -382,7 +382,7 @@ void SampleStreamer::Init()
         auto terrain_entity = m_scene->GetEntityManager()->AddEntity();
 
         // MeshComponent
-        m_scene->GetEntityManager()->AddComponent(terrain_entity, MeshComponent {
+        m_scene->GetEntityManager()->AddComponent<MeshComponent>(terrain_entity, {
             Handle<Mesh> { },
             MaterialCache::GetInstance()->GetOrCreate({
                 .shader_definition = ShaderDefinition {
@@ -394,7 +394,7 @@ void SampleStreamer::Init()
         });
 
         // TerrainComponent
-        m_scene->GetEntityManager()->AddComponent(terrain_entity, TerrainComponent {
+        m_scene->GetEntityManager()->AddComponent<TerrainComponent>(terrain_entity, {
         });
 
         terrain_node.SetEntity(terrain_entity);
@@ -418,11 +418,11 @@ void SampleStreamer::Init()
 
         sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
-        m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, {
             sun
         });
 
-        m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
+        m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, {
             .mode       = ShadowMode::PCF,
             .radius     = 18.0f,
             .resolution = { 2048, 2048 }
@@ -447,9 +447,9 @@ void SampleStreamer::Init()
     for (auto &light : point_lights) {
         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
 
-        m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
+        m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, { });
 
-        m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(point_light_entity, {
             Transform(
                 light->GetPosition(),
                 Vec3f(1.0f),
@@ -457,7 +457,7 @@ void SampleStreamer::Init()
             )
         });
 
-        m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(point_light_entity, {
             light
         });
     }
@@ -476,7 +476,7 @@ void SampleStreamer::Init()
 
         auto spotlight_entity = m_scene->GetEntityManager()->AddEntity();
 
-        m_scene->GetEntityManager()->AddComponent(spotlight_entity, TransformComponent {
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(spotlight_entity, {
             Transform(
                 spotlight->GetPosition(),
                 Vec3f(1.0f),
@@ -484,7 +484,7 @@ void SampleStreamer::Init()
             )
         });
 
-        m_scene->GetEntityManager()->AddComponent(spotlight_entity, LightComponent {
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(spotlight_entity, {
             spotlight
         });
     }
@@ -527,7 +527,7 @@ void SampleStreamer::Init()
 
         auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
 
-        m_scene->GetEntityManager()->AddComponent(area_light_entity, TransformComponent {
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, {
             Transform(
                 light->GetPosition(),
                 Vec3f(1.0f),
@@ -535,7 +535,7 @@ void SampleStreamer::Init()
             )
         });
 
-        m_scene->GetEntityManager()->AddComponent(area_light_entity, LightComponent {
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, {
             light
         });
     }
@@ -561,7 +561,7 @@ void SampleStreamer::Init()
             auto mesh = MeshBuilder::Quad();
             InitObject(mesh);
 
-            m_scene->GetEntityManager()->AddComponent(plane_entity, MeshComponent {
+            m_scene->GetEntityManager()->AddComponent<MeshComponent>(plane_entity, {
                 mesh,
                 MaterialCache::GetInstance()->GetOrCreate(
                     {
@@ -586,13 +586,13 @@ void SampleStreamer::Init()
                 )
             });
 
-            m_scene->GetEntityManager()->AddComponent(plane_entity, BoundingBoxComponent {
+            m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(plane_entity, {
                 mesh->GetAABB()
             });
 
-            m_scene->GetEntityManager()->AddComponent(plane_entity, VisibilityStateComponent { });
+            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(plane_entity, { });
 
-            // m_scene->GetEntityManager()->AddComponent(plane_entity, RigidBodyComponent {
+            // m_scene->GetEntityManager()->AddComponent<RigidBodyComponent>(plane_entity, {
             //     CreateObject<physics::RigidBody>(
             //         RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(
             //             BoundingBox { Vec3f(-10.0f, -0.1f, -10.0f), Vec3f(10.0f, 0.1f, 10.0f) }
@@ -618,7 +618,7 @@ void SampleStreamer::Init()
                     mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
                 }
 
-                m_scene->GetEntityManager()->AddComponent(zombie_entity, AudioComponent {
+                m_scene->GetEntityManager()->AddComponent<AudioComponent>(zombie_entity, {
                     AssetManager::GetInstance()->Load<AudioSource>("sounds/cartoon001.wav"),
                     {
                         .status = AUDIO_PLAYBACK_STATUS_PLAYING,
@@ -661,24 +661,24 @@ void SampleStreamer::Init()
                 if (auto child_entity = node.GetEntity()) {
                     // Add BLASComponent
 
-                    m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+                    m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, { });
                 }
             }
 
             if (true) {
                 auto env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
-                m_scene->GetEntityManager()->AddComponent(env_grid_entity, TransformComponent {
+                m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, {
                     node.GetWorldTransform()
                 });
 
-                m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
+                m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, {
                     node.GetLocalAABB() * 1.0f,
                     node.GetWorldAABB() * 1.0f
                 });
 
                 // Add env grid component
-                m_scene->GetEntityManager()->AddComponent(env_grid_entity, EnvGridComponent {
+                m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, {
                     EnvGridType::ENV_GRID_TYPE_SH
                 });
 
@@ -1093,7 +1093,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
             auto bullet_entity = m_scene->GetEntityManager()->AddEntity();
             bullet.SetEntity(bullet_entity);
 
-            m_scene->GetEntityManager()->AddComponent(bullet_entity, RigidBodyComponent {
+            m_scene->GetEntityManager()->AddComponent<RigidBodyComponent>(bullet_entity, {
                 CreateObject<physics::RigidBody>(
                     RC<physics::PhysicsShape>(new physics::SpherePhysicsShape(BoundingSphere { Vec3f(0.0f), 0.1f })),
                     physics::PhysicsMaterial {
@@ -1105,7 +1105,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
             RigidBodyComponent &rigid_body_component = m_scene->GetEntityManager()->GetComponent<RigidBodyComponent>(bullet_entity);
             rigid_body_component.rigid_body->ApplyForce(camera_direction * 10.0f);
 
-            m_scene->GetEntityManager()->AddComponent(bullet_entity, MeshComponent {
+            m_scene->GetEntityManager()->AddComponent<MeshComponent>(bullet_entity, {
                 MeshBuilder::NormalizedCubeSphere(4),
                 MaterialCache::GetInstance()->GetOrCreate({
                     .shader_definition = ShaderDefinition {
@@ -1115,11 +1115,11 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
                     .bucket = Bucket::BUCKET_OPAQUE
                 })
             });
-            m_scene->GetEntityManager()->AddComponent(bullet_entity, BoundingBoxComponent {
+            m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(bullet_entity, {
                 BoundingBox(Vec3f(-0.1f), Vec3f(0.1f))
             });
 
-            m_scene->GetEntityManager()->AddComponent(bullet_entity, VisibilityStateComponent { });
+            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(bullet_entity, { });
 #endif
         }
     }

@@ -191,13 +191,13 @@ public:
         return *this;
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_const_v< T > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
+    template <class T, typename = std::enable_if_t< !std::is_const_v< T > > >
     AnyRef(T *value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), value)
     {
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_const_v< T > && !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
+    template <class T, typename = std::enable_if_t< !std::is_const_v< T > > >
     AnyRef &operator=(T *value)
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -313,13 +313,13 @@ public:
         return *this;
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
+    template <class T>
     ConstAnyRef(const T *value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T> *>(value))
     {
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_base_of_v< AnyRefBase, NormalizedType<T> > && !std::is_base_of_v< detail::AnyBase, NormalizedType<T> > > >
+    template <class T>
     ConstAnyRef &operator=(const T *value)
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();

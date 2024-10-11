@@ -242,7 +242,11 @@ public:
 
     virtual SizeType GetSize() const = 0;
 
-    virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const = 0;
+    HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer(void *object_ptr) const
+        { return GetObjectInitializer_Internal(object_ptr); }
+
+    HYP_FORCE_INLINE const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const
+        { return GetObjectInitializer_Internal(const_cast<void *>(object_ptr)); }
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
@@ -316,6 +320,8 @@ public:
     }
 
 protected:
+    virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const = 0;
+
     virtual void CreateInstance_Internal(HypData &out) const = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
@@ -375,22 +381,9 @@ public:
         return sizeof(T);
     }
 
-    virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const override
-    {
-        if (!object_ptr) {
-            return nullptr;
-        }
-
-        return &static_cast<const T *>(object_ptr)->GetObjectInitializer();
-    }
-
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {
-        if (!object_ptr) {
-            return false;
-        }
-
-        return GetManagedObjectFromObjectInitializer(GetObjectInitializer(object_ptr), out_object_reference);
+        return GetManagedObjectFromObjectInitializer(HypClass::GetObjectInitializer(object_ptr), out_object_reference);
     }
 
     virtual bool CanCreateInstance() const override
@@ -403,13 +396,22 @@ public:
     }
     
 protected:
+    virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
+    {
+        if (!object_ptr) {
+            return nullptr;
+        }
+
+        return &static_cast<T *>(object_ptr)->GetObjectInitializer();
+    }
+    
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {
             if constexpr (has_opaque_handle_defined<T>) {
                 out = CreateObject<T>();
             } else {
-                out = RC<T>::Construct();
+                out = MakeRefCountedPtr<T>();
             }
         } else {
             HYP_NOT_IMPLEMENTED_VOID();

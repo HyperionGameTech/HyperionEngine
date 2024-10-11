@@ -938,7 +938,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                 if (!object_type.Is(FBOMBaseObjectType())) {
                     if (HasMarshalForType(object_type)) {
                         // call deserializer function, writing into deserialized object
-                        out_object.m_deserialized_object.Reset(new HypData());
+                        out_object.m_deserialized_object.Emplace();
 
                         if (FBOMResult err = Deserialize(out_object, *out_object.m_deserialized_object)) {
                             out_object.m_deserialized_object.Reset();

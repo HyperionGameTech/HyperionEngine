@@ -29,14 +29,14 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
 {
     switch (initial_state) {
     case StreamedDataState::NONE:
-        m_streamed_data.Reset(new NullStreamedData());
+        m_streamed_data.EmplaceAs<NullStreamedData>();
 
         break;
     case StreamedDataState::LOADED: // fallthrough
     case StreamedDataState::UNPAGED:
         m_texture_data.Set(std::move(texture_data));
 
-        m_streamed_data.Reset(new MemoryStreamedData(m_texture_data->GetHashCode(), StreamedDataState::UNPAGED, [this](HashCode hc, ByteBuffer &out) -> bool
+        m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), StreamedDataState::UNPAGED, [this](HashCode hc, ByteBuffer &out) -> bool
         {
             if (!m_texture_data) {
                 return false;
@@ -61,7 +61,7 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
             out = std::move(writer.GetBuffer());
 
             return true;
-        }));
+        });
 
         break;
     default:

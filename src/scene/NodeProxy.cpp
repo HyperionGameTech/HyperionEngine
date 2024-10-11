@@ -67,18 +67,8 @@ NodeProxy::NodeProxy()
 {
 }
 
-NodeProxy::NodeProxy(Node *ptr)
-    : Base(ptr)
-{
-}
-
-NodeProxy::NodeProxy(const Base &other)
-    : Base(other)
-{
-}
-
-NodeProxy::NodeProxy(Base &&other)
-    : Base(std::move(other))
+NodeProxy::NodeProxy(const RC<Node> &node)
+    : Base(node)
 {
 }
 

@@ -204,7 +204,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     
     BuildVertices(model);
 
-    NodeProxy top(new Node());
+    NodeProxy top(MakeRefCountedPtr<Node>());
 
     Handle<Skeleton> skeleton;
 
@@ -231,12 +231,12 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 
         const ID<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent<TransformComponent>(
             entity,
             TransformComponent { }
         );
 
-        scene->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
             entity,
             VisibilityStateComponent { }
         );
@@ -260,7 +260,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         material->SetShader(g_shader_manager->GetOrCreate(NAME("Forward"), shader_properties));
         InitObject(material);
 
-        scene->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent<MeshComponent>(
             entity,
             MeshComponent {
                 mesh,
@@ -269,7 +269,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             }
         );
 
-        scene->GetEntityManager()->AddComponent(
+        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
             entity,
             BoundingBoxComponent {
                 mesh->GetAABB()
@@ -279,7 +279,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         if (skeleton.IsValid()) {
             InitObject(skeleton);
 
-            scene->GetEntityManager()->AddComponent(
+            scene->GetEntityManager()->AddComponent<AnimationComponent>(
                 entity,
                 AnimationComponent {
                     {
@@ -293,7 +293,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             );
         }
         
-        NodeProxy node(new Node);
+        NodeProxy node(MakeRefCountedPtr<Node>());
         node->SetName(sub_mesh.name);
         node->SetEntity(entity);
 

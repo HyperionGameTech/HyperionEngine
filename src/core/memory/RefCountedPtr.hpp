@@ -12,6 +12,8 @@
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/NotNullPtr.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/system/Debug.hpp>
 
 #include <Types.hpp>
@@ -564,10 +566,18 @@ protected:
     using Base = RefCountedPtrBase<CountType>;
 
 public:
-    template <class ...Args>
+    template <class... Args>
     static RefCountedPtr Construct(Args &&... args)
     {
-        return RefCountedPtr(new T(std::forward<Args>(args)...));
+        RefCountedPtr rc;
+
+        if constexpr (IsHypObject<T>::value) {
+            rc.Reset(Memory::AllocateAndConstructWithContext<T, HypObjectInitializerGuard<T>>(std::forward<Args>(args)...));
+        } else {
+            rc.Reset(Memory::AllocateAndConstruct<T>(std::forward<Args>(args)...));
+        }
+        
+        return rc;
     }
 
     RefCountedPtr()
@@ -622,14 +632,14 @@ public:
         return *this;
     }
 
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr(const RefCountedPtr<Ty, CountType> &other)
         : Base(static_cast<const Base &>(other))
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
     }
     
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> &&std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr &operator=(const RefCountedPtr<Ty, CountType> &other)
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
@@ -639,14 +649,14 @@ public:
         return *this;
     }
 
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> &&std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr(RefCountedPtr<Ty, CountType> &&other) noexcept
         : Base(static_cast<Base &&>(std::move(other)))
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
     }
     
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> &&std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr &operator=(RefCountedPtr<Ty, CountType> &&other) noexcept
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
@@ -706,8 +716,7 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
-        using TyN = NormalizedType<Ty>;
-        static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
         Base::template Reset<Ty>(ptr);
     }
@@ -715,6 +724,22 @@ public:
     /*! \brief Drops the reference to the currently held value, if any. */
     HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
+
+    /*! \brief Like Reset(), but constructs the object in-place. */
+    template <class... Args>
+    HYP_FORCE_INLINE RefCountedPtr &Emplace(Args &&... args)
+    {
+        return (*this = Construct(std::forward<Args>(args)...));
+    }
+
+    /*! \brief Like Emplace() but the first template parameter is specified as the type to construct. */
+    template <class Ty, class... Args>
+    HYP_FORCE_INLINE RefCountedPtr &EmplaceAs(Args &&... args)
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
+
+        return (*this = RefCountedPtr<Ty, CountType>::Construct(std::forward<Args>(args)...));
+    }
 
     /*! \brief Returns a boolean indicating whether the type of this RefCountedPtr is the same as the given type, or if the given type is convertible to the type of this RefCountedPtr. */
     template <class Ty>
@@ -786,10 +811,10 @@ public:
     }
     
     // delete parent constructors
-    RefCountedPtr(const Base &) = delete;
-    RefCountedPtr &operator=(const Base &) = delete;
-    RefCountedPtr(Base &&) noexcept = delete;
-    RefCountedPtr &operator=(Base &&) noexcept = delete;
+    RefCountedPtr(const Base &)                 = delete;
+    RefCountedPtr &operator=(const Base &)      = delete;
+    RefCountedPtr(Base &&) noexcept             = delete;
+    RefCountedPtr &operator=(Base &&) noexcept  = delete;
 
     template <class Ty>
     RefCountedPtr(const RefCountedPtr<Ty, CountType> &other)
@@ -1206,6 +1231,16 @@ private:
     }
 };
 
+template <class T, class CountType = std::atomic<uint>>
+struct MakeRefCountedPtrHelper
+{
+    template <class... Args>
+    static RefCountedPtr<T, CountType> MakeRefCountedPtr(Args &&... args)
+    {
+        return RefCountedPtr<T, CountType>::Construct(std::forward<Args>(args)...);
+    }
+};
+
 } // namespace memory
 
 template <class T, class CountType = std::atomic<uint>>
@@ -1213,6 +1248,12 @@ using Weak = memory::WeakRefCountedPtr<T, CountType>;
 
 template <class T, class CountType = std::atomic<uint>>
 using RC = memory::RefCountedPtr<T, CountType>;
+
+template <class T, class... Args>
+HYP_FORCE_INLINE RC<T> MakeRefCountedPtr(Args &&... args)
+{
+    return memory::MakeRefCountedPtrHelper<T, std::atomic<uint>>::template MakeRefCountedPtr(std::forward<Args>(args)...);
+}
 
 template <class CountType = std::atomic<uint>>
 using EnableRefCountedPtrFromThisBase = memory::EnableRefCountedPtrFromThisBase<CountType>;

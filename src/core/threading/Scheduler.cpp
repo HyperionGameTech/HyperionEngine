@@ -10,11 +10,11 @@ namespace threading {
 
 void SchedulerBase::RequestStop()
 {
-    Threads::AssertOnThread(~m_owner_thread.value, "RequestStop() called from owner thread");
-
     m_stop_requested.Set(true, MemoryOrder::RELAXED);
 
-    WakeUpOwnerThread();
+    if (!Threads::IsOnThread(m_owner_thread)) {
+        WakeUpOwnerThread();
+    }
 }
 
 bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex> &lock)

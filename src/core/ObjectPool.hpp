@@ -17,6 +17,7 @@
 #include <core/containers/LinkedList.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/Memory.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -95,14 +96,16 @@ class ObjectContainer final : public ObjectContainerBase
 #endif
         }
 
-        template <class ...Args>
+        template <class... Args>
         T *Construct(Args &&... args)
         {
 #ifdef HYP_OBJECT_POOL_DEBUG
             AssertThrow(!HasValue());
 #endif
 
-            return new (bytes) T(std::forward<Args>(args)...);
+            Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(bytes, std::forward<Args>(args)...);
+
+            return reinterpret_cast<T *>(&bytes[0]);
         }
 
         HYP_FORCE_INLINE void IncRefStrong()

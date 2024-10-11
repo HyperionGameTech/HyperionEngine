@@ -62,10 +62,10 @@ public:
 
         switch (node_type) {
         case Node::Type::NODE:
-            node = NodeProxy(new Node());
+            node = NodeProxy(MakeRefCountedPtr<Node>());
             break;
         case Node::Type::BONE:
-            node = NodeProxy(new Bone());
+            node = NodeProxy(MakeRefCountedPtr<Bone>());
 
             node_hyp_class = Bone::GetClass();
 

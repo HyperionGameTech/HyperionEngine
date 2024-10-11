@@ -4,6 +4,9 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
@@ -11,6 +14,24 @@
 namespace hyperion {
 
 using renderer::Platform;
+
+#pragma region RenderObjectContainerBase
+
+renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView render_object_type_name)
+    : m_render_object_type_name(render_object_type_name),
+      m_size(0)
+{
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Construct RenderObjectContainer for {}", m_render_object_type_name);
+}
+
+renderer::RenderObjectContainerBase::~RenderObjectContainerBase()
+{
+    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Destroy RenderObjectContainer for {}", m_render_object_type_name);
+}
+
+#pragma endregion RenderObjectContainerBase
+
+#pragma region RenderObjectDeleter
 
 template <>
 renderer::platform::Device<Platform::CURRENT> *RenderObjectDeleter<Platform::CURRENT>::GetDevice()
@@ -60,5 +81,7 @@ void RenderObjectDeleter<Platform::CURRENT>::RemoveAllNow(bool force)
         }
     }
 }
+
+#pragma endregion RenderObjectDeleter
 
 } // namespace hyperion

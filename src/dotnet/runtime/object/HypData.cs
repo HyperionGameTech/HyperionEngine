@@ -53,6 +53,10 @@ namespace Hyperion
         [FieldOffset(0)]
         [MarshalAs(UnmanagedType.U4)]
         public uint valueId;
+
+        [FieldOffset(0)]
+        [MarshalAs(UnmanagedType.U8)]
+        public Name valueName;
         
         [FieldOffset(0)]
         public IntPtr valuePtr;
@@ -162,6 +166,12 @@ namespace Hyperion
             if (value is IDBase)
             {
                 HypData_SetID(ref this, ((IDBase)value).Value);
+                return;
+            }
+
+            if (value is Name)
+            {
+                HypData_SetName(ref this, (Name)value);
                 return;
             }
 
@@ -286,170 +296,6 @@ namespace Hyperion
             throw new NotImplementedException("Unsupported type to construct HypData: " + type.FullName);
         }
 
-        public bool GetValue(out sbyte value)
-        {
-            return HypData_GetInt8(ref this, false, out value);
-        }
-
-        public bool GetValue(out short value)
-        {
-            return HypData_GetInt16(ref this, false, out value);
-        }
-
-        public bool GetValue(out int value)
-        {
-            return HypData_GetInt32(ref this, false, out value);
-        }
-
-        public bool GetValue(out long value)
-        {
-            return HypData_GetInt64(ref this, false, out value);
-        }
-
-        public bool GetValue(out byte value)
-        {
-            return HypData_GetUInt8(ref this, false, out value);
-        }
-
-        public bool GetValue(out ushort value)
-        {
-            return HypData_GetUInt16(ref this, false, out value);
-        }
-
-        public bool GetValue(out uint value)
-        {
-            return HypData_GetUInt32(ref this, false, out value);
-        }
-
-        public bool GetValue(out ulong value)
-        {
-            return HypData_GetUInt64(ref this, false, out value);
-        }
-
-        public bool GetValue(out float value)
-        {
-            return HypData_GetFloat(ref this, false, out value);
-        }
-
-        public bool GetValue(out double value)
-        {
-            return HypData_GetDouble(ref this, false, out value);
-        }
-
-        public bool GetValue(out bool value)
-        {
-            return HypData_GetBool(ref this, false, out value);
-        }
-
-        public bool GetValue(out string value)
-        {
-            IntPtr stringPtr;
-
-            if (!HypData_GetString(ref this, out stringPtr))
-            {
-                value = null;
-
-                return false;
-            }
-
-            value = Marshal.PtrToStringUTF8(stringPtr);
-
-            return true;
-        }
-
-        public bool GetValue(out IDBase value)
-        {
-            uint id;
-
-            if (!HypData_GetID(ref this, out id))
-            {
-                value = new IDBase(0);
-
-                return false;
-            }
-
-            value = new IDBase(id);
-
-            return true;
-        }
-
-        public bool GetValue<T>(out T value) where T : HypObject
-        {
-            IntPtr valuePtr;
-
-            if (HypData_GetHypObject(ref this, out valuePtr))
-            {
-                if (valuePtr == IntPtr.Zero)
-                {
-                    value = null;
-
-                    return false;
-                }
-
-                value = (T)(*((object*)valuePtr.ToPointer()));
-
-                return true;
-            }
-
-            value = null;
-
-            return false;
-        }
-
-        public bool GetValue(out byte[] value)
-        {
-            IntPtr bufferPtr;
-            uint bufferSize;
-
-            if (!HypData_GetByteBuffer(ref this, out bufferPtr, out bufferSize))
-            {
-                value = null;
-
-                return false;
-            }
-
-            value = new byte[bufferSize];
-
-            unsafe
-            {
-                byte* ptr = (byte*)bufferPtr.ToPointer();
-
-                for (int i = 0; i < bufferSize; i++)
-                {
-                    value[i] = ptr[i];
-                }
-            }
-
-            return true;
-        }
-
-        public bool GetValue(out object[] value)
-        {
-            IntPtr arrayPtr;
-            uint arraySize;
-
-            if (!HypData_GetArray(ref this, out arrayPtr, out arraySize))
-            {
-                value = null;
-
-                return false;
-            }
-
-            value = new object[arraySize];
-
-            unsafe
-            {
-                HypDataBuffer* ptr = (HypDataBuffer*)arrayPtr.ToPointer();
-
-                for (int i = 0; i < arraySize; i++)
-                {
-                    value[i] = ptr[i].GetValue();
-                }
-            }
-
-            return true;
-        }
-
         public unsafe object? GetValue()
         {
             InternalHypDataValue value;
@@ -512,6 +358,11 @@ namespace Hyperion
             if (HypData_GetID(ref this, out value.valueId))
             {
                 return new IDBase(value.valueId);
+            }
+
+            if (HypData_GetName(ref this, out value.valueName))
+            {
+                return value.valueName;
             }
 
             if (HypData_IsString(ref this))
@@ -668,6 +519,10 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetID([In] ref HypDataBuffer hypData, [Out] out uint outIdValue);
 
+        [DllImport("hyperion", EntryPoint = "HypData_GetName")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_GetName([In] ref HypDataBuffer hypData, [Out] out Name outNameValue);
+
         [DllImport("hyperion", EntryPoint = "HypData_GetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetHypObject([In] ref HypDataBuffer hypData, [Out] out IntPtr outObjectPtr);
@@ -748,6 +603,10 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsID([In] ref HypDataBuffer hypData);
 
+        [DllImport("hyperion", EntryPoint = "HypData_IsName")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_IsName([In] ref HypDataBuffer hypData);
+
         [DllImport("hyperion", EntryPoint = "HypData_SetInt8")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetInt8([In] ref HypDataBuffer hypData, sbyte value);
@@ -803,6 +662,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_SetID")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetID([In] ref HypDataBuffer hypData, uint id);
+
+        [DllImport("hyperion", EntryPoint = "HypData_SetName")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool HypData_SetName([In] ref HypDataBuffer hypData, Name name);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]

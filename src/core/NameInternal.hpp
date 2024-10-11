@@ -201,6 +201,14 @@ struct WeakName
     HYP_FORCE_INLINE constexpr explicit operator uint64() const
         { return hash_code; }
 
+    HYP_FORCE_INLINE constexpr explicit operator Name() const
+    {
+        Name name;
+        name.hash_code = hash_code;
+
+        return name;
+    }
+
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
         { return HashCode(HashCode::ValueType(hash_code)); }
 

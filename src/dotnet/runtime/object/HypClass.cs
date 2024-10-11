@@ -212,6 +212,23 @@ namespace Hyperion
 
             return new HypClass(ptr);
         }
+
+        public static HypClass GetClass<T>()
+        {
+            return GetClass(typeof(T));
+        }
+
+        public static HypClass GetClass(Type type)
+        {
+            HypClassBinding? hypClassBindingAttribute = (HypClassBinding)Attribute.GetCustomAttribute(type, typeof(HypClassBinding));
+
+            if (hypClassBindingAttribute == null)
+            {
+                throw new InvalidOperationException($"Type {type.Name} is not a HypObject");
+            }
+
+            return hypClassBindingAttribute.HypClass;
+        }
         
         [DllImport("hyperion", EntryPoint = "HypClass_CreateInstance")]
         private static extern IntPtr HypClass_CreateInstance([In] IntPtr hypClassPtr);

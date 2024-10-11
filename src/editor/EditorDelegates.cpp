@@ -16,7 +16,7 @@ EditorDelegates &EditorDelegates::GetInstance()
     return instance;
 }
 
-void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &properties_to_watch, Proc<void, Node *, ANSIStringView> &&proc)
+void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
@@ -24,6 +24,10 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, const FlatSet<Name> &prop
 
     if (it == m_node_watchers.End()) {
         it = m_node_watchers.Insert(watcher_key, NodeWatcher { }).first;
+    }
+
+    for (const HypProperty *property : properties_to_watch) {
+        AssertThrow(property != nullptr);
     }
 
     NodeWatcher &node_watcher = it->second;
@@ -38,32 +42,20 @@ void EditorDelegates::RemoveNodeWatcher(Name watcher_key)
     m_node_watchers.Erase(watcher_key);
 }
 
-void EditorDelegates::WatchNode(Node *node)
+void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    m_nodes.Insert(node);
-}
-
-void EditorDelegates::UnwatchNode(Node *node)
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    m_nodes.Erase(node);
-}
-
-void EditorDelegates::OnNodeUpdate(Node *node, ANSIStringView editor_property_name)
-{
-    // Threads::AssertOnThread(ThreadName::THREAD_GAME);
+    AssertThrow(property != nullptr);
 
     for (Pair<Name, NodeWatcher> &it : m_node_watchers) {
         NodeWatcher &node_watcher = it.second;
 
-        if (!node_watcher.properties_to_watch.Empty() && !node_watcher.properties_to_watch.Contains(editor_property_name)) {
+        if (!node_watcher.properties_to_watch.Empty() && !node_watcher.properties_to_watch.Contains(property)) {
             continue;
         }
 
-        node_watcher.OnChange(node, editor_property_name);
+        node_watcher.OnChange(node, property);
     }
 }
 

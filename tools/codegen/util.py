@@ -43,7 +43,9 @@ CXX_TO_CSHARP_TYPE_MAPPING = {
     'ByteBuffer': ('byte[]', True),
     'ID': ('IDBase', True),
     'NodeProxy': ('Node', False),
-    'Node': ('Node', False)
+    'Node': ('Node', False),
+    'Name': ('Name', False),
+    'WeakName': ('Name', False)
 }
 
 ### Parse a c++ member function declaration (may contain body)

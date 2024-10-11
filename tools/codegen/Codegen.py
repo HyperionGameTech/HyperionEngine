@@ -554,7 +554,7 @@ class Codegen:
         return None
 
     def extract_base_classes(self, class_match):
-        base_classes_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(?:\w+)\s*:\s*((?:public|private|protected)?\s*(?:\w+\s*,?\s*)+)', class_match)
+        base_classes_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(?:\w+)\s*(?:final)?\s*:\s*((?:public|private|protected)?\s*(?:\w+\s*,?\s*)+)', class_match)
         if base_classes_match:
             base_classes = base_classes_match.group(1)
             return [base.strip().split(' ')[-1] for base in base_classes.split(',')]

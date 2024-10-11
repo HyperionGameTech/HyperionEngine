@@ -326,7 +326,6 @@ bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
             m_rows.EraseAt(i);
 
             UpdateSize(false);
-            UpdateLayout();
 
             return true;
         }
@@ -338,6 +337,8 @@ bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
 void UIGrid::UpdateSize_Internal(bool update_children)
 {
     UIPanel::UpdateSize_Internal(update_children);
+
+    UpdateLayout();
 }
 
 void UIGrid::UpdateLayout()

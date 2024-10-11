@@ -214,14 +214,16 @@ public:
 
         static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
             Pair<String, FilePath> { "interop", *interop_assembly_path },
-            Pair<String, FilePath> { "core", *FindAssemblyFilePath(app_context.Get(), "HyperionCore.dll") },
-            Pair<String, FilePath> { "runtime", *FindAssemblyFilePath(app_context.Get(), "HyperionRuntime.dll") }
+            Pair<String, FilePath> { "core", FindAssemblyFilePath(app_context.Get(), "HyperionCore.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionCore.dll"); return { }; }) },
+            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(app_context.Get(), "HyperionRuntime.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionRuntime.dll"); return { }; }) }
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
             auto it = m_core_assemblies.Insert(entry.first, UniquePtr<Assembly>(new Assembly())).first;
 
             Assembly *assembly = it->second.Get();
+
+            HYP_LOG(DotNET, LogLevel::DEBUG, "Loading assembly {} from native side...", entry.first);
 
             // Initialize all core assemblies
             int result = m_initialize_assembly_fptr(
@@ -234,6 +236,8 @@ public:
             if (result != int(LoadAssemblyResult::OK)) {
                 HYP_FAIL("Failed to load core assembly %s: Got error code %d", entry.first.Data(), result);
             }
+
+            HYP_LOG(DotNET, LogLevel::DEBUG, "Loaded assembly {} from native side", entry.first);
         }
     }
 

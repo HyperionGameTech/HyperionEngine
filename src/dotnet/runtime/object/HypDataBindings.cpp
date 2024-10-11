@@ -248,30 +248,48 @@ HYP_EXPORT int8 HypData_SetID(HypData *hyp_data, uint32 id_value)
     return true;
 }
 
+HYP_EXPORT int8 HypData_IsName(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    return hyp_data->Is<Name>();
+}
+
+HYP_EXPORT int8 HypData_GetName(const HypData *hyp_data, Name *out_name)
+{
+    if (!hyp_data || !out_name) {
+        return false;
+    }
+
+    if (hyp_data->Is<Name>()) {
+        *out_name = hyp_data->Get<Name>();
+
+        return true;
+    }
+
+    return false;
+}
+
+HYP_EXPORT int8 HypData_SetName(HypData *hyp_data, Name name_value)
+{
+    if (!hyp_data) {
+        return false;
+    }
+
+    *hyp_data = HypData(name_value);
+
+    return true;
+}
+
 HYP_EXPORT int8 HypData_IsHypObject(const HypData *hyp_data)
 {
     if (!hyp_data) {
         return false;
     }
 
-    TypeID type_id;
-    AnyRef any_ref;
-
-    if (hyp_data->Is<AnyHandle>()) {
-        const AnyHandle &handle = hyp_data->Get<AnyHandle>();
-
-        return handle.IsValid() && GetClass(handle.GetTypeID()) != nullptr;
-    } else if (hyp_data->Is<RC<void>>()) {
-        const RC<void> &rc = hyp_data->Get<RC<void>>();
-
-        return rc != nullptr && GetClass(rc.GetTypeID()) != nullptr;
-    } else if (hyp_data->Is<AnyRef>()) {
-        const AnyRef &any_ref = hyp_data->Get<AnyRef>();
-
-        return any_ref.HasValue() && GetClass(any_ref.GetTypeID()) != nullptr;
-    } else {
-        return false;
-    }
+    return GetClass(hyp_data->GetTypeID()) != nullptr;
 }
 
 HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, void **out_object)
@@ -280,46 +298,36 @@ HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, void **out_object)
         return false;
     }
 
-    TypeID type_id;
-    ConstAnyRef any_ref;
+    *out_object = nullptr;
 
-    if (hyp_data->Is<AnyHandle>()) {
-        const AnyHandle &handle = hyp_data->Get<AnyHandle>();
+    if (!hyp_data->IsValid()) {
+        HYP_LOG(Object, LogLevel::ERR, "Cannot get HypObject from invalid HypData");
 
-        type_id = handle.GetTypeID();
-        any_ref = handle.ToRef();
-    } else if (hyp_data->Is<RC<void>>()) {
-        const RC<void> &rc = hyp_data->Get<RC<void>>();
-
-        type_id = rc.GetTypeID();
-        any_ref = AnyRef(type_id, rc.Get());
-    } else if ((any_ref = hyp_data->ToRef()); any_ref.HasValue()) {
-        type_id = any_ref.GetTypeID();
-    } else {
         return false;
     }
 
-    *out_object = nullptr;
+    const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
 
-    if (type_id && any_ref.HasValue()) {
-        const HypClass *hyp_class = GetClass(type_id);
+    if (!hyp_class) {
+        HYP_LOG(Object, LogLevel::ERR, "No HypClass defined for TypeID {}", hyp_data->GetTypeID().Value());
 
-        if (!hyp_class) {
-            HYP_LOG(Object, LogLevel::ERR, "No HypClass defined for TypeID {}", type_id.Value());
-
-            return false;
-        }
-
-        dotnet::ObjectReference object_reference;
-
-        if (hyp_class->GetManagedObject(any_ref.GetPointer(), object_reference)) {
-            *out_object = object_reference.ptr;
-
-            return true;
-        }
-
-        HYP_LOG(Object, LogLevel::ERR, "Failed to get managed object for instance of HypClass {}", hyp_class->GetName());
+        return false;
     }
+
+    if (!hyp_data->ToRef().HasValue()) {
+        // Null HypData refs still return true - null handling happens on managed side
+        return true;
+    }
+
+    dotnet::ObjectReference object_reference;
+
+    if (hyp_class->GetManagedObject(hyp_data->ToRef().GetPointer(), object_reference)) {
+        *out_object = object_reference.ptr;
+
+        return true;
+    }
+
+    HYP_LOG(Object, LogLevel::ERR, "Failed to get managed object for instance of HypClass {}", hyp_class->GetName());
 
     return false;
 }

@@ -69,7 +69,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(ID<Entity> entity)
     InitObject(mesh_component.skeleton);
 
     if (!mesh_component.proxy) {
-        mesh_component.proxy.Reset(new RenderProxy {
+        mesh_component.proxy.Emplace(RenderProxy {
             Handle<Entity>(entity),
             mesh_component.mesh,
             mesh_component.material,

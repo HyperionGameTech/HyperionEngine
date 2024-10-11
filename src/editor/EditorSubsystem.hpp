@@ -6,6 +6,7 @@
 #include <scene/Subsystem.hpp>
 
 #include <core/containers/Array.hpp>
+
 #include <core/memory/UniquePtr.hpp>
 
 namespace hyperion {

@@ -266,7 +266,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    NodeProxy top(new Node(model.name));
+    NodeProxy top(MakeRefCountedPtr<Node>(model.name));
 
     Handle<MaterialGroup> material_library;
     
@@ -413,7 +413,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             }
         );
 
-        NodeProxy node(new Node(obj_mesh.name));
+        NodeProxy node(MakeRefCountedPtr<Node>(obj_mesh.name));
         node->SetEntity(entity);
         
         top->AddChild(std::move(node));

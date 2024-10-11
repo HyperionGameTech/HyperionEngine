@@ -291,12 +291,12 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 const ID<Entity> patch_entity = mgr.AddEntity();
 
                 // Add WorldGridPatchComponent
-                mgr.AddComponent(patch_entity, WorldGridPatchComponent {
+                mgr.AddComponent<WorldGridPatchComponent>(patch_entity, WorldGridPatchComponent {
                     .patch_info = patch_info
                 });
 
                 // Add TransformComponent
-                mgr.AddComponent(patch_entity, TransformComponent {
+                mgr.AddComponent<TransformComponent>(patch_entity, TransformComponent {
                     .transform = Transform {
                         Vec3f {
                             params.offset.x + (float(patch_info.coord.x) - 0.5f) * (Vec3f(patch_info.extent).Max() - 1.0f) * patch_info.scale.x,
@@ -307,10 +307,10 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 });
 
                 // Add VisibilityStateComponent
-                mgr.AddComponent(patch_entity, VisibilityStateComponent { });
+                mgr.AddComponent<VisibilityStateComponent>(patch_entity, VisibilityStateComponent { });
 
                 // Add BoundingBoxComponent
-                mgr.AddComponent(patch_entity, BoundingBoxComponent { });
+                mgr.AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent { });
 
                 HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} added", patch_info.coord);
 

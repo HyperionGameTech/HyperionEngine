@@ -92,6 +92,14 @@ public:
      *  \note Only call this if you know what you are doing. */
     void SetOwnerThreadID(ThreadID owner_thread_id);
 
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
+
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE void SetName(Name name)
+        { m_name = name; }
+
     /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
     HYP_METHOD(Serialize, Property="Camera")
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
@@ -215,6 +223,8 @@ public:
 
 private:
     void EnqueueRenderUpdates();
+
+    Name                            m_name;
 
     ThreadID                        m_owner_thread_id;
 

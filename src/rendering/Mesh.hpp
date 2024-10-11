@@ -78,6 +78,14 @@ public:
 
     ~Mesh();
 
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
+
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE void SetName(Name name)
+        { m_name = name; }
+
     HYP_FORCE_INLINE const GPUBufferRef &GetVertexBuffer() const
         { return m_vbo; }
 
@@ -91,22 +99,22 @@ public:
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
-    HYP_METHOD(Serialize, Property="StreamedMeshData")
+    HYP_METHOD(Property="StreamedMeshData", Serialize=true)
     HYP_FORCE_INLINE const RC<StreamedMeshData> &GetStreamedMeshData() const
         { return m_streamed_mesh_data; }
 
     /*! \brief Set the mesh data for the Mesh. Only usable on the Render thread. If needed
         from another thread, use the static version of this function. */
-    HYP_METHOD(Serialize, Property="StreamedMeshData")
+    HYP_METHOD(Property="StreamedMeshData", Serialize=true)
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
 
     static void SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
 
-    HYP_METHOD(Serialize, Property="VertexAttributes")
+    HYP_METHOD(Property="VertexAttributes", Serialize=true)
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
-    HYP_METHOD(Serialize, Property="VertexAttributes")
+    HYP_METHOD(Property="VertexAttributes", Serialize=true)
     HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet &attributes)
         { m_mesh_attributes.vertex_attributes = attributes; }
 
@@ -116,7 +124,7 @@ public:
     HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &attributes)
         { m_mesh_attributes = attributes; }
 
-    HYP_METHOD(Serialize, Property="Topology")
+    HYP_METHOD(Property="Topology", Serialize=true)
     HYP_FORCE_INLINE Topology GetTopology() const
         { return m_mesh_attributes.topology; }
 
@@ -158,6 +166,8 @@ private:
     void CalculateAABB();
 
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
+
+    Name                    m_name;
 
     GPUBufferRef            m_vbo;
     GPUBufferRef            m_ibo;

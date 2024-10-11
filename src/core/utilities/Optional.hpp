@@ -216,6 +216,26 @@ public:
 
         return std::forward<T>(default_value);
     }
+
+    template <class Function, typename = std::enable_if_t< std::is_invocable_v< NormalizedType<Function> > > > 
+    HYP_FORCE_INLINE T GetOr(Function &&func) const &
+    {
+        if (m_has_value) {
+            return Get();
+        }
+
+        return func();
+    }
+
+    template <class Function, typename = std::enable_if_t< std::is_invocable_v< NormalizedType<Function> > > >
+    HYP_FORCE_INLINE T GetOr(Function &&func) &&
+    {
+        if (m_has_value) {
+            return std::move(Get());
+        }
+
+        return func();
+    }
     
     HYP_FORCE_INLINE void Set(const T &value)
     {

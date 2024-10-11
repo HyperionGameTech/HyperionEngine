@@ -336,6 +336,14 @@ public:
     Material &operator=(Material &&other) noexcept  = delete;
     ~Material();
 
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
+
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE void SetName(Name name)
+        { m_name = name; }
+
     /*! \brief Get the current mutation state of this Material.
         \return The current mutation state of this Material */
     HYP_FORCE_INLINE DataMutationState GetMutationState() const
@@ -578,6 +586,8 @@ private:
     void EnqueueTextureUpdate(TextureKey key);
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
+
+    Name                                                m_name;
 
     ShaderRef                                           m_shader;
 

@@ -17,6 +17,9 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
@@ -292,13 +295,41 @@ Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
     return insert_result.first->second.Get();
 }
 
-Subsystem *World::GetSubsystem(TypeID type_id)
+Subsystem *World::GetSubsystem(TypeID type_id) const
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     const auto it = m_subsystems.Find(type_id);
+
+    if (it == m_subsystems.End()) {
+        return nullptr;
+    }
+
+    return it->second.Get();
+}
+
+Subsystem *World::GetSubsystemByName(WeakName name) const
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+
+    const auto it = m_subsystems.FindIf([name](const Pair<TypeID, RC<Subsystem>> &item)
+    {
+        if (!item.second) {
+            return false;
+        }
+
+        const HypClass *hyp_class = HypClassRegistry::GetInstance().GetClass(item.second.GetTypeID());
+
+        if (!hyp_class) {
+            return false;
+        }
+
+        return hyp_class->GetName() == name;
+    });
 
     if (it == m_subsystems.End()) {
         return nullptr;
@@ -335,11 +366,6 @@ void World::StopSimulating()
 
 void World::AddScene(const Handle<Scene> &scene)
 {
-    AddScene(Handle<Scene>(scene));
-}
-
-void World::AddScene(Handle<Scene> &&scene)
-{
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
@@ -350,6 +376,7 @@ void World::AddScene(Handle<Scene> &&scene)
 
     if (IsInitCalled()) {
         scene->SetWorld(this);
+
         InitObject(scene);
 
         for (auto &it : m_subsystems) {
@@ -359,7 +386,7 @@ void World::AddScene(Handle<Scene> &&scene)
 
     const ID<Scene> scene_id = scene->GetID();
 
-    m_scenes.PushBack(std::move(scene));
+    m_scenes.PushBack(scene);
 
     Mutex::Guard guard(m_scene_update_mutex);
 
@@ -397,6 +424,24 @@ void World::RemoveScene(const WeakHandle<Scene> &scene_weak)
 
     m_scenes_pending_removal.Insert(scene->GetID());
     m_has_scene_updates.Set(true, MemoryOrder::RELEASE);
+}
+
+const Handle<Scene> &World::GetSceneByName(Name name) const
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    HYP_LOG(Scene, LogLevel::DEBUG, "GetSceneByName({})", name);
+
+    const auto it = m_scenes.FindIf([name](const Handle<Scene> &scene)
+    {
+        HYP_LOG(Scene, LogLevel::DEBUG, "Compare scene name {} == {}", scene->GetName(), name);
+        
+        return scene->GetName() == name;
+    });
+
+    return it != m_scenes.End() ? *it : Handle<Scene>::empty;
 }
 
 const Handle<Scene> &World::GetDetachedScene(ThreadName thread_name)

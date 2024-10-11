@@ -259,7 +259,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
         DeferCreate(m_ltc_sampler, g_engine->GetGPUDevice());
 
         ByteBuffer ltc_matrix_data(sizeof(s_ltc_matrix), s_ltc_matrix);
-        RC<StreamedTextureData> streamed_matrix_data(new StreamedTextureData(
+
+        RC<StreamedTextureData> streamed_matrix_data = MakeRefCountedPtr<StreamedTextureData>(
             TextureData {
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_2D,
@@ -271,14 +272,15 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 },
                 std::move(ltc_matrix_data)
             }
-        ));
+        );
 
         m_ltc_matrix_texture = CreateObject<Texture>(std::move(streamed_matrix_data));
 
         InitObject(m_ltc_matrix_texture);
 
         ByteBuffer ltc_brdf_data(sizeof(s_ltc_brdf), s_ltc_brdf);
-        RC<StreamedTextureData> streamed_brdf_data(new StreamedTextureData(
+
+        RC<StreamedTextureData> streamed_brdf_data = MakeRefCountedPtr<StreamedTextureData>(
             TextureData {
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_2D,
@@ -290,7 +292,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 },
                 std::move(ltc_brdf_data)
             }
-        ));
+        );
 
         m_ltc_brdf_texture = CreateObject<Texture>(std::move(streamed_brdf_data));
 

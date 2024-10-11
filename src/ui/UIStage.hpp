@@ -14,6 +14,7 @@
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
+
 #include <scene/ecs/components/UIComponent.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
@@ -165,7 +166,7 @@ public:
             name = NAME("Unnamed_UIObject");
         }
 
-        NodeProxy node_proxy(new Node(name.LookupString()));
+        NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
         
         if (attach_to_root) {
             node_proxy = GetNode()->AddChild(node_proxy);
@@ -235,11 +236,12 @@ private:
         node_proxy->SetEntity(entity);
         // node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
 
-        RC<UIObject> ui_object(new T(this, node_proxy));
+        RC<UIObject> ui_object = MakeRefCountedPtr<T>(this, node_proxy);
         AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
+        
         ui_object->SetName(name);
 
-        node_proxy->GetScene()->GetEntityManager()->AddComponent(entity, UIComponent { ui_object });
+        node_proxy->GetScene()->GetEntityManager()->AddComponent<UIComponent>(entity, UIComponent { ui_object });
 
         if (init) {
             ui_object->Init();

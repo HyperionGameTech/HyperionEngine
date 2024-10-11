@@ -532,7 +532,9 @@ function(create_csharp_library output_name csharp_sources)
 
     # if name is not equal to HyperionCore then add a reference to HyperionCore
     if(NOT ${output_name} STREQUAL "HyperionCore")
-        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <ProjectReference Include=\"../HyperionCore/HyperionCore.csproj\" />\n")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    <ProjectReference Include=\"../HyperionCore/HyperionCore.csproj\" >\n")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "      <Private>true</Private>\n")
+        file(APPEND ${CSHARP_PROJECT_DIR}/${output_name}.csproj "    </ProjectReference>\n")
     endif()
 
     if(${output_name} STREQUAL "HyperionScripting")

@@ -65,13 +65,7 @@ public:
     };
 
     BasicObject()
-        : BasicObject(Name::Invalid())
-    {
-    }
-
-    BasicObject(Name name)
-        : m_name(name),
-          m_init_state(INIT_STATE_UNINITIALIZED)
+        : m_init_state(INIT_STATE_UNINITIALIZED)
     {
     }
 
@@ -79,8 +73,7 @@ public:
     BasicObject &operator=(const BasicObject &other)    = delete;
 
     BasicObject(BasicObject &&other) noexcept
-        : m_name(std::move(other.m_name)),
-          m_id(other.m_id),
+        : m_id(other.m_id),
           m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
     {
         other.m_id = ID<T> { };
@@ -97,14 +90,6 @@ public:
     /* To be called from ObjectHolder<Type> */
     HYP_FORCE_INLINE void SetID(ID<InnerType> id)
         { m_id = id; }
-
-    /*! \brief Get assigned name of the object */
-    HYP_FORCE_INLINE Name GetName() const
-        { return m_name; }
-
-    /*! \brief Set the assigned name of the object */
-    HYP_FORCE_INLINE void SetName(Name name)
-        { m_name = name; }
 
     HYP_FORCE_INLINE bool IsInitCalled() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }
@@ -164,7 +149,6 @@ protected:
     }
     
     ID<InnerType>               m_id;
-    Name                        m_name;
     AtomicVar<uint16>           m_init_state;
     Array<DelegateHandler>      m_delegate_handlers;
 };

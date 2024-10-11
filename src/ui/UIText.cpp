@@ -395,6 +395,20 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
     AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
     const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(main_texture_atlas->GetExtent().GetXY());
+    
+    struct
+    {
+        Array<FontAtlasCharacterIterator>   chars;
+    } current_word;
+
+    const auto IterateCurrentWord = [&current_word, &callback]()
+    {
+        for (const FontAtlasCharacterIterator &character_iterator : current_word.chars) {
+            callback(character_iterator);
+        }
+
+        current_word = { };
+    };
 
     for (SizeType i = 0; i < length; i++) {
         UITextCharacter character { };
@@ -402,15 +416,23 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
         const utf::u32char ch = text.GetChar(i);
 
         if (ch == utf::u32char(' ')) {
-            // add room for space
-            placement.x += cell_dimensions.x * 0.5f;
-
-            // temp needs to update words that overflow
-            if (parent_bounds.x != 0 && placement.x * text_size >= float(parent_bounds.x)) {
+            if (current_word.chars.Any() && parent_bounds.x != 0 && (current_word.chars.Back().placement.x + current_word.chars.Back().char_width) * text_size >= float(parent_bounds.x)) {
                 // newline
                 placement.x = 0.0f;
                 placement.y += cell_dimensions.y;
+
+                const Vec2f placement_origin = placement;
+                const Vec2f placement_offset = current_word.chars.Front().placement - placement_origin;
+
+                for (FontAtlasCharacterIterator &character_iterator : current_word.chars) {
+                    character_iterator.placement -= placement_offset;
+                }
+            } else {
+                // add room for space
+                placement.x += cell_dimensions.x * 0.5f;
             }
+
+            IterateCurrentWord();
 
             continue;
         }
@@ -419,6 +441,8 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
             // reset placement, add room for newline
             placement.x = 0.0f;
             placement.y += cell_dimensions.y;
+
+            IterateCurrentWord();
 
             continue;
         }
@@ -435,26 +459,21 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
             continue;
         }
 
-        FontAtlasCharacterIterator iter;
+        FontAtlasCharacterIterator &character_iterator = current_word.chars.EmplaceBack();
+        character_iterator.char_value = ch;
+        character_iterator.placement = placement;
+        character_iterator.atlas_pixel_size = atlas_pixel_size;
+        character_iterator.cell_dimensions = cell_dimensions;
+        character_iterator.char_offset = glyph_metrics->image_position;
+        character_iterator.glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) } / 64.0f;
+        character_iterator.glyph_scaling = Vec2f(character_iterator.glyph_dimensions) / (Vec2f(cell_dimensions));
+        character_iterator.bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / 64.0f;
+        character_iterator.char_width = float(glyph_metrics->metrics.advance / 64) / 64.0f;
 
-        iter.char_value = ch;
-
-        iter.placement = placement;
-        iter.atlas_pixel_size = atlas_pixel_size;
-        iter.cell_dimensions = cell_dimensions;
-
-        iter.char_offset = glyph_metrics->image_position;
-
-        iter.glyph_dimensions = Vec2f { float(glyph_metrics->metrics.width), float(glyph_metrics->metrics.height) } / 64.0f;
-        iter.glyph_scaling = Vec2f(iter.glyph_dimensions) / (Vec2f(cell_dimensions));
-
-        iter.bearing_y = float(glyph_metrics->metrics.height - glyph_metrics->metrics.bearing_y) / 64.0f;
-        iter.char_width = float(glyph_metrics->metrics.advance / 64) / 64.0f;
-
-        callback(iter);
-
-        placement.x += iter.char_width;
+        placement.x += character_iterator.char_width;
     }
+
+    IterateCurrentWord();
 }
 
 static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, bool include_bearing)

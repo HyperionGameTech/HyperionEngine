@@ -110,18 +110,16 @@ Scene::Scene(
     Handle<Camera> camera,
     ThreadID owner_thread_id,
     EnumFlags<SceneFlags> flags
-) : m_owner_thread_id(owner_thread_id),
+) : m_name(Name::Unique("Scene_")),
+    m_owner_thread_id(owner_thread_id),
     m_flags(flags),
     m_camera(std::move(camera)),
-    m_root_node_proxy(new Node("<ROOT>", ID<Entity>::invalid, Transform { }, this)),
+    m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", ID<Entity>::invalid, Transform::identity, this)),
     m_environment(new RenderEnvironment(this)),
     m_world(nullptr),
     m_is_non_world_scene(flags & SceneFlags::NON_WORLD),
     m_is_audio_listener(false),
-    m_entity_manager(new EntityManager(
-        owner_thread_id.GetMask(),
-        this
-    )),
+    m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id.GetMask(), this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_previous_delta(0.01667f),
     m_mutation_state(DataMutationState::DIRTY)
@@ -150,7 +148,7 @@ Scene::Scene(
 
 Scene::~Scene()
 {
-    HYP_LOG(Scene, LogLevel::DEBUG, "Destroy scene with ID {} (name: {}) from thread : {}", GetID().Value(), GetName(), ThreadID::Current().name);
+    HYP_LOG(Scene, LogLevel::DEBUG, "Destroy scene with ID {} (name: {}) from thread : {}", GetID().Value(), m_name, ThreadID::Current().name);
     
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();

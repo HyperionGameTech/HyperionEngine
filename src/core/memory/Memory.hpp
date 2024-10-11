@@ -118,18 +118,40 @@ public:
         delete static_cast<T *>(ptr);
     }
 
-    template <class T, class ...Args>
+    template <class T, class... Args>
     static void Construct(void *where, Args &&... args)
     {
         new (where) T(std::forward<Args>(args)...);
     }
 
-    template <class T, class ...Args>
-    [[nodiscard]] static void *AllocateAndConstruct(Args &&... args)
+    template <class T, class Context, class... Args>
+    static void ConstructWithContext(void *where, Args &&... args)
+    {
+        auto context_result = Context(where);
+        
+        new (where) T(std::forward<Args>(args)...);
+    }
+
+    template <class T, class... Args>
+    HYP_NODISCARD static T *AllocateAndConstruct(Args &&... args)
     {
         void *ptr = std::malloc(sizeof(T));
+
         new (ptr) T(std::forward<Args>(args)...);
-        return ptr;
+
+        return static_cast<T *>(ptr);
+    }
+
+    template <class T, class Context, class... Args>
+    HYP_NODISCARD static T *AllocateAndConstructWithContext(Args &&... args)
+    {
+        void *ptr = std::malloc(sizeof(T));
+
+        auto context_result = Context(ptr);
+
+        new (ptr) T(std::forward<Args>(args)...);
+
+        return static_cast<T *>(ptr);
     }
 
     template <class T>

@@ -63,6 +63,8 @@ void Game::Init_Internal()
         SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT
     );
 
+    m_scene->SetName(NAME("Scene_Main"));
+
     m_game_thread->GetSchedulerInstance()->Enqueue([this](GameCounter::TickUnit delta) -> void
     {
         Extent2D window_size;
@@ -93,7 +95,7 @@ void Game::Init_Internal()
         m_input_manager = CreateObject<InputManager>();
         m_input_manager->SetWindow(m_app_context->GetMainWindow());
         
-        m_ui_stage.Reset(new UIStage(Threads::GetThreadID(ThreadName::THREAD_GAME)));
+        m_ui_stage.Emplace(Threads::GetThreadID(ThreadName::THREAD_GAME));
 
         // Call Init method (overridden)
         Init();

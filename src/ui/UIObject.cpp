@@ -162,8 +162,8 @@ void UIObject::Init()
     const Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
 
-    scene->GetEntityManager()->AddComponent(GetEntity(), MeshComponent { GetQuadMesh(), CreateMaterial() });
-    scene->GetEntityManager()->AddComponent(GetEntity(), BoundingBoxComponent { });
+    scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), MeshComponent { GetQuadMesh(), CreateMaterial() });
+    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent { });
 
     OnMouseDown.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDown" }).Detach();
     OnMouseUp.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseUp" }).Detach();

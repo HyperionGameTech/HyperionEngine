@@ -82,7 +82,7 @@ public:
             patch_mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
         } else {
             // Add MeshComponent to patch entity
-            entity_manager->AddComponent(entity, MeshComponent {
+            entity_manager->AddComponent<MeshComponent>(entity, MeshComponent {
                 .mesh       = m_mesh,
                 .material   = m_material
             });

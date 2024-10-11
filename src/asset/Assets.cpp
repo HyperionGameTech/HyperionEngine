@@ -52,9 +52,7 @@ AssetManager::AssetManager()
 
 RC<AssetBatch> AssetManager::CreateBatch()
 {
-    RC<AssetBatch> batch(new AssetBatch(this));
-
-    return batch;
+    return MakeRefCountedPtr<AssetBatch>(this);
 }
 
 void AssetManager::RegisterDefaultLoaders()

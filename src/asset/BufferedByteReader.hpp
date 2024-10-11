@@ -130,7 +130,7 @@ public:
 
     BufferedReader(const FilePath &filepath)
         : filepath(filepath),
-          source(new FileBufferedReaderSource(filepath)),
+          source(MakeRefCountedPtr<FileBufferedReaderSource>(filepath)),
           pos(eof_pos)
     {
         if (source->IsOK())

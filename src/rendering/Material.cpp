@@ -188,8 +188,7 @@ const Material::ParameterTable &Material::DefaultParameters()
 }
 
 Material::Material()
-    : BasicObject(),
-      m_render_attributes {
+    : m_render_attributes {
         .shader_definition  = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
         .bucket             = Bucket::BUCKET_OPAQUE,
         .fill_mode          = FillMode::FILL,
@@ -204,7 +203,7 @@ Material::Material()
 }
 
 Material::Material(Name name, Bucket bucket)
-    : BasicObject(name),
+    : m_name(name),
       m_render_attributes {
         .shader_definition = ShaderDefinition {
             NAME("Forward"),
@@ -223,7 +222,7 @@ Material::Material(
     const MaterialAttributes &attributes,
     const ParameterTable &parameters,
     const TextureSet &textures
-) : BasicObject(name),
+) : m_name(name),
     m_parameters(parameters),
     m_textures(textures),
     m_render_attributes(attributes),

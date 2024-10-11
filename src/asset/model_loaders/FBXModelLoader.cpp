@@ -596,7 +596,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    NodeProxy top(new Node());
+    NodeProxy top(MakeRefCountedPtr<Node>());
     Handle<Skeleton> root_skeleton = CreateObject<Skeleton>();
 
     // Include our root dir as part of the path
@@ -1225,7 +1225,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 #undef INVALID_NODE_CONNECTION
     }
 
-    RC<Bone> root_bone { new Bone() };
+    RC<Bone> root_bone = MakeRefCountedPtr<Bone>();
     root_skeleton->SetRootBone(root_bone);
 
     bool found_first_bone = false;
@@ -1244,7 +1244,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         NodeProxy node_proxy;
 
         if (node.type == FBXNode::Type::NODE) {
-            node_proxy = NodeProxy(new Node);
+            node_proxy = NodeProxy(MakeRefCountedPtr<Node>());
         } else if (node.type == FBXNode::Type::LIMB_NODE) {
             Transform binding_transform;
             binding_transform.SetTranslation(Vector3(
@@ -1255,7 +1255,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             binding_transform.SetRotation(Quaternion(node.local_bind_matrix));
             binding_transform.SetScale(node.local_bind_matrix.ExtractTransformScale());
 
-            Bone *bone = new Bone;
+            RC<Bone> bone = MakeRefCountedPtr<Bone>();
             bone->SetBindingTransform(binding_transform);
 
             node_proxy = NodeProxy(bone);
@@ -1281,12 +1281,12 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
                 const ID<Entity> entity = detached_scene->GetEntityManager()->AddEntity();
 
-                detached_scene->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent<TransformComponent>(
                     entity,
                     TransformComponent { }
                 );
 
-                detached_scene->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent<MeshComponent>(
                     entity,
                     MeshComponent {
                         mesh->GetResultObject(),
@@ -1294,14 +1294,14 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     }
                 );
 
-                detached_scene->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
                     entity,
                     BoundingBoxComponent {
                         mesh->GetResultObject()->GetAABB()
                     }
                 );
 
-                detached_scene->GetEntityManager()->AddComponent(
+                detached_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
                     entity,
                     VisibilityStateComponent { }
                 );

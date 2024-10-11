@@ -28,30 +28,74 @@ namespace detail {
 
 struct DelegateHandlerData
 {
-    uint32  id = 0;
-    void    *delegate = nullptr;
-    void    (*remove_fn)(void *, uint32) = nullptr;
-    void    (*detach_fn)(void *, DelegateHandler &&delegate_handler) = nullptr;
+    uint32  id;
+    void    *delegate;
+    void    (*remove_fn)(void *, uint32);
+    void    (*detach_fn)(void *, DelegateHandler &&delegate_handler);
+
+    DelegateHandlerData(uint32 id, void *delegate, void(*remove_fn)(void *, uint32), void(*detach_fn)(void *, DelegateHandler &&delegate_handler))
+        : id(id),
+          delegate(delegate),
+          remove_fn(remove_fn),
+          detach_fn(detach_fn)
+    {
+    }
+
+    DelegateHandlerData(const DelegateHandlerData &other)               = delete;
+    DelegateHandlerData &operator=(const DelegateHandlerData &other)    = delete;
+
+    DelegateHandlerData(DelegateHandlerData &&other) noexcept
+        : id(other.id),
+          delegate(other.delegate),
+          remove_fn(other.remove_fn),
+          detach_fn(other.detach_fn)
+    {
+        other.id = 0;
+        other.delegate = nullptr;
+        other.remove_fn = nullptr;
+        other.detach_fn = nullptr;
+    }
+
+    DelegateHandlerData &operator=(DelegateHandlerData &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (IsValid()) {
+            AssertThrow(remove_fn != nullptr);
+
+            remove_fn(delegate, id);
+        }
+
+        id = other.id;
+        delegate = other.delegate;
+        remove_fn = other.remove_fn;
+        detach_fn = other.detach_fn;
+
+        other.id = 0;
+        other.delegate = nullptr;
+        other.remove_fn = nullptr;
+        other.detach_fn = nullptr;
+
+        return *this;
+    }
 
     HYP_API ~DelegateHandlerData();
 
     HYP_API void Reset();
     HYP_API void Detach(DelegateHandler &&delegate_handler);
 
-    HYP_FORCE_INLINE
-    bool IsValid() const
+    HYP_FORCE_INLINE bool IsValid() const
         { return id != 0 && delegate != nullptr; }
 
-    HYP_FORCE_INLINE
-    bool operator==(const DelegateHandlerData &other) const
+    HYP_FORCE_INLINE bool operator==(const DelegateHandlerData &other) const
         { return id == other.id && delegate == other.delegate; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const DelegateHandlerData &other) const
+    HYP_FORCE_INLINE bool operator!=(const DelegateHandlerData &other) const
         { return id != other.id || delegate != other.delegate; }
 
-    HYP_FORCE_INLINE
-    bool operator<(const DelegateHandlerData &other) const
+    HYP_FORCE_INLINE bool operator<(const DelegateHandlerData &other) const
         { return id < other.id; }
 };
 
@@ -389,10 +433,11 @@ public:
     ReturnType Broadcast(ArgTypes &&... args)
     {
         if (!AnyBound()) {
-            if constexpr (std::is_void_v<ReturnType>) {
-                return;
+            // If no handlers are bound, return a default constructed object or void
+            if constexpr (!std::is_void_v<ReturnType>) {
+                return detail::DelegateDefaultReturn<ReturnType>::Get();
             } else {
-                return { };
+                return;
             }
         }
 
@@ -406,17 +451,6 @@ public:
 #ifdef HYP_DELEGATE_THREAD_SAFE
             Mutex::Guard guard(m_mutex);
 #endif
-
-            // If no handlers are bound, return a default constructed object or void
-            if (m_procs.Empty()) {
-                if constexpr (!std::is_void_v<ReturnType>) {
-                    // default construct the return object
-                    return detail::DelegateDefaultReturn<ReturnType>::Get();
-                } else {
-                    // void return type
-                    return;
-                }
-            }
 
             procs_array.Reserve(m_procs.Size());
 
@@ -452,7 +486,7 @@ public:
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
-    template <class ... ArgTypes>
+    template <class... ArgTypes>
     HYP_FORCE_INLINE ReturnType operator()(ArgTypes &&... args) const
         { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
@@ -483,12 +517,12 @@ private:
 
     DelegateHandler CreateDelegateHandler(uint32 id)
     {
-        return DelegateHandler(RC<functional::detail::DelegateHandlerData>(new functional::detail::DelegateHandlerData {
+        return DelegateHandler(MakeRefCountedPtr<functional::detail::DelegateHandlerData>(
             id,
             this,
             RemoveDelegateHandlerCallback,
             DetachDelegateHandlerCallback
-        }));
+        ));
     }
 
     FlatMap<uint32, RC<ProcType>>   m_procs;

@@ -59,12 +59,12 @@ struct HypDataGetter_Tuple;
 template <class T, bool IsConst>
 struct HypDataGetReturnTypeHelper
 {
-    using Type = decltype(std::declval<HypDataHelper<T>>().Get(*std::declval<std::conditional_t<IsConst, const T, T> *>()));
+    using Type = decltype(std::declval<HypDataHelper<T>>().Get(*std::declval<std::add_pointer_t<std::conditional_t<IsConst, std::add_const_t<T>, T>>>()));
 };
 
 } // namespace detail
 
-using HypDataSerializeFunction = std::add_pointer_t<fbom::FBOMResult(HypData &&hyp_data, fbom::FBOMData &out_data)>;
+using HypDataSerializeFunction = fbom::FBOMResult(*)(HypData &&hyp_data, fbom::FBOMData &out_data);
 
 /*! \brief A type-safe union that can store any type of data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
@@ -304,7 +304,7 @@ struct HypDataMarshalHelper
             return err;
         }
 
-        object.m_deserialized_object.Reset(new HypData(value));
+        object.m_deserialized_object.Emplace(value);
 
         out_data = fbom::FBOMData::FromObject(std::move(object));
 
@@ -624,7 +624,7 @@ struct HypDataHelper<AnyHandle>
             return err;
         }
 
-        object.m_deserialized_object.Reset(new HypData(std::move(value)));
+        object.m_deserialized_object.Emplace(std::move(value));
 
         out_data = fbom::FBOMData::FromObject(std::move(object));
 
@@ -750,7 +750,7 @@ struct HypDataHelper<RC<void>>
             return err;
         }
 
-        object.m_deserialized_object.Reset(new HypData(std::move(value)));
+        object.m_deserialized_object.Emplace(std::move(value));
 
         out_data = fbom::FBOMData::FromObject(std::move(object));
 
@@ -877,7 +877,7 @@ struct HypDataHelper<AnyRef>
             return err;
         }
 
-        object.m_deserialized_object.Reset(new HypData(std::move(value)));
+        object.m_deserialized_object.Emplace(std::move(value));
 
         out_data = fbom::FBOMData::FromObject(std::move(object));
 
@@ -976,6 +976,38 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
     }
 };
 
+template <class T>
+struct HypDataHelperDecl<const T *, std::enable_if_t< !std::is_same_v<T *, void *> >> {};
+
+template <class T>
+struct HypDataHelper<const T *, std::enable_if_t< !std::is_same_v<T *, void *> >> : HypDataHelper<T *>
+{
+    const T *Get(const ConstAnyRef &value) const
+    {
+        return HypDataHelper<T *>::Get(AnyRef(value.GetTypeID(), const_cast<void *>(value.GetPointer())));
+    }
+
+    const T *Get(const AnyRef &value) const
+    {
+        return HypDataHelper<T *>::Get(value);
+    }
+
+    const T *Get(const AnyHandle &value) const
+    {
+        return HypDataHelper<T *>::Get(value);
+    }
+
+    const T *Get(const RC<void> &value) const
+    {
+        return HypDataHelper<T *>::Get(value);
+    }
+
+    void Set(HypData &hyp_data, const T *value) const
+    {
+        HypDataHelper<T *>::Set(hyp_data, const_cast<T *>(value));
+    }
+};
+
 template <>
 struct HypDataHelperDecl<Any> {};
 
@@ -1031,7 +1063,7 @@ struct HypDataHelper<Any>
             return err;
         }
 
-        object.m_deserialized_object.Reset(new HypData(std::move(value)));
+        object.m_deserialized_object.Emplace(std::move(value));
 
         out_data = fbom::FBOMData::FromObject(std::move(object));
 
@@ -1162,6 +1194,17 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_OK };
     }
 };
+
+
+
+template <>
+struct HypDataHelperDecl<WeakName> {};
+
+template <>
+struct HypDataHelper<WeakName> : HypDataHelper<Name>
+{
+};
+
 
 template <class T>
 struct HypDataHelperDecl<Array<T>> {};

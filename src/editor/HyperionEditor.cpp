@@ -542,7 +542,25 @@ public:
     virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const ID<Entity> &entity) const override
     {
         if (!entity.IsValid()) {
-            return nullptr;
+            RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+            RC<UIGridRow> row = grid->AddRow();
+            RC<UIGridColumn> column = row->AddColumn();
+
+            RC<UIButton> add_entity_button = stage->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            add_entity_button->SetText("Add Entity");
+            add_entity_button->OnClick.Bind([](...) -> UIEventHandlerResult
+            {
+                // @TODO
+
+                HYP_NOT_IMPLEMENTED();
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }).Detach();
+
+            column->AddChildUIObject(add_entity_button);
+
+            return grid;
         }
 
         EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
@@ -830,7 +848,7 @@ private:
 
 void HyperionEditorImpl::CreateHighlightNode()
 {
-    m_highlight_node = NodeProxy(new Node("Editor_Highlight"));
+    m_highlight_node = NodeProxy(MakeRefCountedPtr<Node>("Editor_Highlight"));
 
     const ID<Entity> entity = GetScene()->GetEntityManager()->AddEntity();
 
@@ -1153,9 +1171,9 @@ void HyperionEditorImpl::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), { NAME("Name") }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, ANSIStringView name)
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), { Node::GetClass()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
-        HYP_LOG(Editor, LogLevel::DEBUG, "(scene) Node property changed: {}", name);
+        HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
         // Update name in list view
         // @TODO: Ensure game thread
@@ -1167,31 +1185,24 @@ void HyperionEditorImpl::InitSceneOutline()
         }
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            const IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node](const IUIDataSourceElement *item)
-            {
-                return item->GetValue().ToRef() == node;
-            });
+            const IUIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+            AssertThrow(data_source_element != nullptr);
 
-            if (data_source_element != nullptr) {
-                Weak<Node> node_ref = data_source_element->GetValue().Get<Weak<Node>>();
-                
-                data_source->Set(
-                    data_source_element->GetUUID(),
-                    HypData(std::move(node_ref))
-                );
-            }
+            data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
         }
     });
 
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
+        AssertThrow(node.IsValid());
+
+        HYP_LOG(Editor, LogLevel::DEBUG, "Node added: {}", node->GetName());
+
         RC<UIListView> list_view = list_view_weak.Lock();
 
         if (!list_view) {
             return;
         }
-
-        AssertThrow(node.IsValid());
 
         if (node->IsRoot()) {
             return;
@@ -1206,15 +1217,17 @@ void HyperionEditorImpl::InitSceneOutline()
                 parent_node_uuid = parent_node->GetUUID();
             }
 
-            data_source->Push(node->GetUUID(), HypData(editor_node_weak), parent_node_uuid);
+            data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
         }
-
-        EditorDelegates::GetInstance().WatchNode(node.Get());
     }).Detach();
 
     GetScene()->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
-        EditorDelegates::GetInstance().UnwatchNode(node.Get());
+        if (!node.IsValid()) {
+            return;
+        }
+
+        HYP_LOG(Editor, LogLevel::DEBUG, "Node removed: {}", node->GetName());
 
         RC<UIListView> list_view = list_view_weak.Lock();
 
@@ -1298,13 +1311,13 @@ void HyperionEditorImpl::InitDetailView()
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
 
-        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, ANSIStringView name)
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, const HypProperty *property)
         {
             if (node != m_focused_node.Get()) {
                 return;
             }
 
-            HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", name);
+            HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", property->GetName());
 
             // Update name in list view
 
@@ -1315,9 +1328,9 @@ void HyperionEditorImpl::InitDetailView()
             }
 
             if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-                IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, name](const IUIDataSourceElement *item)
+                IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, property](const IUIDataSourceElement *item)
                 {
-                    return item->GetValue().Get<EditorNodePropertyRef>().property->GetName() == name;
+                    return item->GetValue().Get<EditorNodePropertyRef>().property == property;
                 });
 
                 AssertThrow(data_source_element != nullptr);
@@ -1538,7 +1551,7 @@ void HyperionEditor::Init()
 #endif
 
 
-    GetScene()->GetCamera()->SetCameraController(RC<CameraController>(new EditorCameraController()));
+    GetScene()->GetCamera()->SetCameraController(MakeRefCountedPtr<EditorCameraController>());
 
     GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(NAME("EditorUIRenderer"), GetUIStage());
     
@@ -1845,7 +1858,7 @@ void HyperionEditor::Init()
 
     batch->LoadAsync();
 
-#else
+#elif 0
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data)) {
@@ -1856,25 +1869,6 @@ void HyperionEditor::Init()
     Handle<Scene> loaded_scene = loaded_scene_data.Get<Handle<Scene>>();
     
     DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
-
-    // auto sun = loaded_scene->GetRoot()->FindChildByName("Sun");
-    // if (sun.IsValid()) {
-    //     json::JSONObject sun_json;
-    //     sun_json["name"] = sun.GetName();
-
-    //     LightComponent *light_component = loaded_scene->GetEntityManager()->TryGetComponent<LightComponent>(sun.GetEntity());
-    //     AssertThrow(light_component != nullptr);
-
-    //     sun_json["light_type"] = uint32(light_component->light->GetType());
-    //     sun_json["light_color"] = uint32(light_component->light->GetColor());
-    //     sun_json["light_intensity"] = light_component->light->GetIntensity();
-
-    //     DebugLog(LogType::Debug, "Sun: %s\n", json::JSONValue(sun_json).ToString(true).Data());
-
-    //     HYP_BREAKPOINT;
-    // } else {
-    //     HYP_FAIL("Sun not found");
-    // }
 
     Proc<void, const NodeProxy &, int> DebugPrintNode;
 

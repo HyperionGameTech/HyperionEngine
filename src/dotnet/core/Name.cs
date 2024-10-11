@@ -9,10 +9,10 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Name
     {
-        private ulong hashCode;
+        internal ulong hashCode;
 
-        private static object nameCacheLock = new object();
-        private static Dictionary<string, Name> nameCache = new Dictionary<string, Name>();
+        internal static object nameCacheLock = new object();
+        internal static Dictionary<string, Name> nameCache = new Dictionary<string, Name>();
 
         public Name(ulong hashCode)
         {
@@ -64,6 +64,16 @@ namespace Hyperion
             Name name;
             Name_FromString(nameString, weak, out name);
             return name;
+        }
+
+        public static bool operator == (Name a, Name b)
+        {
+            return a.Equals(b);
+        }
+
+        public static bool operator != (Name a, Name b)
+        {
+            return !a.Equals(b);
         }
 
         [DllImport("hyperion", EntryPoint = "Name_FromString")]

@@ -44,20 +44,8 @@ namespace Hyperion
                 Guid assemblyGuid = Guid.NewGuid();
                 Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
 
-                Logger.Log(LogType.Info, "Loading assembly: {0}...", assemblyPath);
-                
-                Assembly? assembly = null;
-
-                if (isCoreAssembly != 0)
-                {
-                    // Load in same context
-                    assembly = Assembly.LoadFrom(assemblyPath);
-                }
-                else
-                {
-                    AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath);
-                    assembly = assemblyInstance.Assembly;
-                }
+                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath, isCoreAssembly: isCoreAssembly != 0);
+                Assembly? assembly = assemblyInstance.Assembly;
 
                 if (assembly == null)
                 {

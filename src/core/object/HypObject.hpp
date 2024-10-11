@@ -6,6 +6,8 @@
 #include <core/Defines.hpp>
 #include <core/Core.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <core/object/HypObjectEnums.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
@@ -13,6 +15,10 @@
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+
+#ifdef HYP_DEBUG_MODE
+#include <core/threading/Threads.hpp>
+#endif
 
 namespace hyperion {
 
@@ -29,12 +35,20 @@ extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer,
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 
+// Ensure the current HypObjectInitializer being constructed is the same as the one passed
+extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, const void *address);
+extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr);
+
 class IHypObjectInitializer
 {
 public:
     virtual ~IHypObjectInitializer() = default;
 
-    virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) = 0;
+    virtual TypeID GetTypeID() const = 0;
+
+    virtual const HypClass *GetClass() const = 0;
+
+    virtual void SetManagedObject(dotnet::Object *managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
 };
 
@@ -43,23 +57,86 @@ class HypObjectInitializer final : public IHypObjectInitializer
 {
 public:
     HypObjectInitializer(void *native_address)
+        : m_managed_object(nullptr)
     {
-        InitHypObjectInitializer(this, native_address, T::GetTypeID(), T::GetClass());
+        CheckHypObjectInitializer(this, native_address);
+        //InitHypObjectInitializer(this, native_address, T::GetTypeID(), T::GetClass());
     }
 
-    virtual ~HypObjectInitializer() override = default;
-
-    virtual void SetManagedObject(UniquePtr<dotnet::Object> &&managed_object) override
+    virtual ~HypObjectInitializer() override
     {
-        m_managed_object = std::move(managed_object);
+#ifdef HYP_DEBUG_MODE
+        HYP_MT_CHECK_RW(m_data_race_detector);
+#endif
+
+        CleanupHypObjectInitializer(GetClass_Static(), m_managed_object);
+    }
+
+    virtual TypeID GetTypeID() const override
+    {
+        return GetTypeID_Static();
+    }
+
+    virtual const HypClass *GetClass() const override
+    {
+        return GetClass_Static();
+    }
+
+    virtual void SetManagedObject(dotnet::Object *managed_object) override
+    {
+#ifdef HYP_DEBUG_MODE
+        HYP_MT_CHECK_RW(m_data_race_detector);
+#endif
+
+        AssertThrow(m_managed_object == nullptr);
+
+        m_managed_object = managed_object;
     }
 
     virtual dotnet::Object *GetManagedObject() const override
-        { return m_managed_object.Get(); }
+    {
+#ifdef HYP_DEBUG_MODE
+        HYP_MT_CHECK_READ(m_data_race_detector);
+#endif
+
+        return m_managed_object;
+    }
+
+    static TypeID GetTypeID_Static()
+    {
+        static constexpr TypeID type_id = TypeID::ForType<T>();
+
+        return type_id;
+    }
+
+    static const HypClass *GetClass_Static()
+    {
+        static constexpr TypeID type_id = TypeID::ForType<T>();
+
+        return ::hyperion::GetClass(type_id);
+    }
 
 private:
-    UniquePtr<dotnet::Object>   m_managed_object;
+    dotnet::Object      *m_managed_object;
+
+#ifdef HYP_DEBUG_MODE
+    DataRaceDetector    m_data_race_detector;
+#endif
 };
+
+// template <class T>
+// struct HypObjectInitializerRef
+// {
+//     Variant<HypObjectInitializer<T>, IHypObjectInitializer *>   value;
+//     IHypObjectInitializer                                       *ptr;
+
+//     HypObjectInitializerRef()
+//         : ptr(nullptr)
+//     {
+//     }
+
+//     HypObjectInitializerRef
+// };
 
 #define HYP_OBJECT_BODY(T, ...) \
     private: \
@@ -70,6 +147,9 @@ private:
     public: \
         static constexpr bool is_hyp_object = true; \
         \
+        HYP_FORCE_INLINE HypObjectInitializer<T> &GetObjectInitializer() \
+            { return m_hyp_object_initializer; } \
+        \
         HYP_FORCE_INLINE const HypObjectInitializer<T> &GetObjectInitializer() const \
             { return m_hyp_object_initializer; } \
         \
@@ -78,46 +158,15 @@ private:
         \
         static TypeID GetTypeID() \
         { \
-            static constexpr TypeID type_id = TypeID::ForType<T>(); \
-            return type_id; \
+            return HypObjectInitializer<T>::GetTypeID_Static(); \
         } \
         static const HypClass *GetClass() \
         { \
-            static const HypClass *hyp_class = ::hyperion::GetClass(GetTypeID()); \
-            return hyp_class; \
+            return HypObjectInitializer<T>::GetClass_Static(); \
         } \
+        \
     private:
 
-template <class T, class T2 = void>
-struct IsHypObject
-{
-    static constexpr bool value = false;
-};
-
-template <class T>
-struct IsHypObject<T, std::enable_if_t< T::is_hyp_object > >
-{
-    static constexpr bool value = true;
-};
-
-namespace detail {
-
-template <class T, class T2>
-struct HypObjectType_Impl;
-
-template <class T>
-struct HypObjectType_Impl<T, std::false_type>;
-
-template <class T>
-struct HypObjectType_Impl<T, std::true_type>
-{
-    using Type = T;
-};
-
-} // namespace detail
-
-template <class T>
-using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant< IsHypObject<T>::value > >::Type;
 
 // template <class T>
 // HYP_FORCE_INLINE inline bool InitObject(HypObjectType<T> *object)

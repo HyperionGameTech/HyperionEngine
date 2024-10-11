@@ -215,6 +215,8 @@ void UIStage::Init()
         SceneFlags::NON_WORLD
     );
 
+    m_scene->SetName(CreateNameFromDynamicString(ANSIString(GetName().LookupString()) + "_Scene"));
+
     m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
         0.0f, -float(m_surface_size.x),
         0.0f, float(m_surface_size.y),
@@ -226,7 +228,7 @@ void UIStage::Init()
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
 
-    m_scene->GetEntityManager()->AddComponent(m_scene->GetRoot()->GetEntity(), UIComponent { RefCountedPtrFromThis() });
+    m_scene->GetEntityManager()->AddComponent<UIComponent>(m_scene->GetRoot()->GetEntity(), UIComponent { RefCountedPtrFromThis() });
 
     m_scene->GetRoot()->LockTransform();
 

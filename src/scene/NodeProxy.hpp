@@ -97,6 +97,8 @@ struct HYP_API NodeProxyChildren
     for safe access to Node data and lessening the likelihood of a missing Node asset causing a full game crash. */
 class HYP_API NodeProxy : public RC<Node>
 {
+    friend class Node;
+
 protected:
     using Base = RC<Node>;
 
@@ -105,12 +107,7 @@ public:
 
     /*! \brief Construct an empty NodeProxy. */
     NodeProxy();
-    /*! \brief Construct a NodeProxy from a Node pointer. Takes ownership of the Node, so ensure the Node pointer is not used elsewhere. */
-    explicit NodeProxy(Node *ptr);
-
-    NodeProxy(const Base &other);
-    NodeProxy(Base &&other);
-
+    NodeProxy(const RC<Node> &node);
     NodeProxy(const NodeProxy &other);
     NodeProxy &operator=(const NodeProxy &other);
     NodeProxy(NodeProxy &&other) noexcept;

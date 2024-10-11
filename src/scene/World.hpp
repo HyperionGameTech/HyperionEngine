@@ -212,7 +212,10 @@ public:
         return static_cast<T *>(GetSubsystem(TypeID::ForType<T>()));
     }
     
-    Subsystem *GetSubsystem(TypeID type_id);
+    Subsystem *GetSubsystem(TypeID type_id) const;
+
+    HYP_METHOD()
+    Subsystem *GetSubsystemByName(WeakName name) const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE const GameState &GetGameState() const
@@ -225,8 +228,13 @@ public:
     void StopSimulating();
 
     void AddScene(const Handle<Scene> &scene);
-    void AddScene(Handle<Scene> &&scene);
     void RemoveScene(const WeakHandle<Scene> &scene);
+
+    /*! \brief Find a Scene by its Name property. If no Scene with the given name exists, an empty handle is returned. Must be called on the game thread.
+     *  \param name The name of the Scene to find.
+     *  \return The Scene with the given name, or an empty handle if no Scene with the given name exists. */
+    HYP_METHOD()
+    const Handle<Scene> &GetSceneByName(Name name) const;
 
     void Init();
     

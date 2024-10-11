@@ -43,16 +43,23 @@ struct RenderObjectDefinition;
 template <class T, PlatformType PLATFORM>
 constexpr bool has_render_object_defined = implementation_exists<RenderObjectDefinition<T, PLATFORM>>;
 
-template <class T, PlatformType PLATFORM>
-static inline Name GetNameForRenderObject()
+class HYP_API RenderObjectContainerBase
 {
-    static_assert(has_render_object_defined<T, PLATFORM>, "T must be a render object");
+protected:
+    RenderObjectContainerBase(ANSIStringView render_object_type_name);
+    ~RenderObjectContainerBase();
 
-    return RenderObjectDefinition<T, PLATFORM>::GetNameForType();
-}
+public:
+    HYP_FORCE_INLINE ANSIStringView GetRenderObjectTypeName() const
+        { return m_render_object_type_name; }
+
+protected:
+    ANSIStringView  m_render_object_type_name;
+    SizeType        m_size;
+};
 
 template <class T, PlatformType PLATFORM>
-class RenderObjectContainer
+class RenderObjectContainer : public RenderObjectContainerBase
 {
 public:
     static constexpr SizeType max_size = RenderObjectDefinition<T, PLATFORM>::max_size;
@@ -136,7 +143,7 @@ public:
         HYP_FORCE_INLINE T &Get()
         {
 #ifdef HYP_DEBUG_MODE
-            AssertThrowMsg(HasValue(), "Render object of type %s has no value!", GetNameForRenderObject<T, PLATFORM>().LookupString());
+            AssertThrowMsg(HasValue(), "Render object of type %s has no value!", TypeNameHelper<T, true>::value.Data());
 #endif
 
             return storage.Get();
@@ -148,7 +155,7 @@ public:
     };
 
     RenderObjectContainer()
-        : m_size(0)
+        : RenderObjectContainerBase(TypeNameHelper<T, true>::value)
     {
     }
 
@@ -227,7 +234,6 @@ private:
 #ifdef HYP_DEBUG_MODE
     HeapArray<Name, max_size>       m_debug_names;
 #endif
-    SizeType                        m_size;
     IDGenerator                     m_id_generator;
 };
 

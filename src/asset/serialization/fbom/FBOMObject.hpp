@@ -325,8 +325,6 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t< !std::is_same_v< FBOMObject
             return err;
         }
 
-        // out_object.m_deserialized_object.Reset(new HypDataType(in));
-
         if constexpr (HasGetHashCode<NormalizedType<T>, HashCode>::value) {
             if (flags & FBOMObjectSerializeFlags::KEEP_UNIQUE) {
                 out_object.m_unique_id = UniqueID::Generate();

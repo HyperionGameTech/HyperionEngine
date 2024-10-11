@@ -41,12 +41,6 @@ public:
 
     virtual SizeType GetSize() const override = 0;
 
-    virtual const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const override
-    {
-        return nullptr;
-    }
-
-
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
@@ -54,6 +48,11 @@ public:
     virtual void ConstructFromBytes(ConstByteView view, HypData &out) const = 0;
 
 protected:
+    virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
+    {
+        return nullptr;
+    }
+
     virtual void CreateInstance_Internal(HypData &out) const override = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;

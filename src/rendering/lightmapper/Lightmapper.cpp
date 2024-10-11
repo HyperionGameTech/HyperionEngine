@@ -1061,12 +1061,12 @@ Lightmapper::Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scen
 {
     if (m_trace_mode == LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU) {
         if (!m_path_tracer_radiance) {
-            m_path_tracer_radiance.Reset(new LightmapPathTracer(scene->GetTLAS(), LIGHTMAP_SHADING_TYPE_RADIANCE));
+            m_path_tracer_radiance.Emplace(scene->GetTLAS(), LIGHTMAP_SHADING_TYPE_RADIANCE);
             m_path_tracer_radiance->Create();
         }
 
         if (!m_path_tracer_irradiance) {
-            m_path_tracer_irradiance.Reset(new LightmapPathTracer(scene->GetTLAS(), LIGHTMAP_SHADING_TYPE_IRRADIANCE));
+            m_path_tracer_irradiance.Emplace(scene->GetTLAS(), LIGHTMAP_SHADING_TYPE_IRRADIANCE);
             m_path_tracer_irradiance->Create();
         }
     }

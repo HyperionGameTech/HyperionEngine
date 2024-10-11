@@ -294,15 +294,12 @@ void RenderProxyGroup::ClearProxies()
 
 void RenderProxyGroup::AddRenderProxy(const RenderProxy &render_proxy)
 {
-    m_render_proxies.PushBack(render_proxy);
+    m_render_proxies.Insert(Pair<ID<Entity>, RenderProxy> { render_proxy.entity.GetID(), render_proxy });
 }
 
 bool RenderProxyGroup::RemoveRenderProxy(ID<Entity> entity)
 {
-    const auto it = m_render_proxies.FindIf([entity](const RenderProxy &item)
-    {
-        return item.entity == entity;
-    });
+    const auto it = m_render_proxies.Find(entity);
 
     if (it == m_render_proxies.End()) {
         return false;
@@ -313,7 +310,7 @@ bool RenderProxyGroup::RemoveRenderProxy(ID<Entity> entity)
     return true;
 }
 
-typename Array<RenderProxy>::Iterator RenderProxyGroup::RemoveRenderProxy(typename Array<RenderProxy>::ConstIterator iterator)
+typename FlatMap<ID<Entity>, RenderProxy>::Iterator RenderProxyGroup::RemoveRenderProxy(typename FlatMap<ID<Entity>, RenderProxy>::ConstIterator iterator)
 {
     return m_render_proxies.Erase(iterator);
 }

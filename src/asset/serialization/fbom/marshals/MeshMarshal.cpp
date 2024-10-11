@@ -13,13 +13,19 @@
 namespace hyperion::fbom {
 
 template <>
-class FBOMMarshaler<Mesh> : public FBOMObjectMarshalerBase<Mesh>
+class FBOMMarshaler<Mesh> : public HypClassInstanceMarshal
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const Mesh &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override
     {
+        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out)) {
+            return err;
+        }
+
+        const Mesh &in_object = in.Get<Mesh>();
+
         out.SetProperty("Topology", uint32(in_object.GetTopology()));
         out.SetProperty("Attributes", FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
 
@@ -59,14 +65,20 @@ public:
         });
 
         if (mesh_data_it != in.nodes->End()) {
-            streamed_mesh_data.Reset(new StreamedMeshData(mesh_data_it->m_deserialized_object->Get<MeshData>()));
+            streamed_mesh_data.EmplaceAs<StreamedMeshData>(mesh_data_it->m_deserialized_object->Get<MeshData>());
         }
 
-        out = HypData(CreateObject<Mesh>(
+        Handle<Mesh> mesh_handle = CreateObject<Mesh>(
             std::move(streamed_mesh_data),
             topology,
             vertex_attributes
-        ));
+        );
+
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Mesh::GetClass(), AnyRef(*mesh_handle))) {
+            return err;
+        }
+
+        out = HypData(std::move(mesh_handle));
 
         return { FBOMResult::FBOM_OK };
     }

@@ -14,6 +14,7 @@ enum class EditorCameraControllerMode
     MOUSE_LOCKED
 };
 
+HYP_CLASS()
 class HYP_API EditorCameraController : public FirstPersonCameraController
 {
 public:

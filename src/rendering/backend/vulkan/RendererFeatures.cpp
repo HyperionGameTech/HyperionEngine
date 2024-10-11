@@ -158,7 +158,7 @@ void Features::LoadDynamicFunctions(Device *device)
     //HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     //HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
     //HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
-    //HYP_LOAD_FN(vkDebugMarkerSetObjectNameEXT);
+    //HYP_LOAD_FN(vkDebugMarkerSetNameEXT);
 
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
     HYP_LOAD_FN(vkGetMoltenVKConfigurationMVK);

@@ -204,9 +204,11 @@ namespace Hyperion
                         + $"<AssemblyName>{moduleName}</AssemblyName>\n"
                     + "</PropertyGroup>\n"
                     + "<ItemGroup>\n"
-                    + $"<ProjectReference Include=\"{System.IO.Path.Combine(intermediateDirectory, "HyperionCore", "HyperionCore.csproj")}\" />\n"
-                    + $"<ProjectReference Include=\"{System.IO.Path.Combine(intermediateDirectory, "HyperionRuntime", "HyperionRuntime.csproj")}\" />\n"
-                    +   string.Join("", System.IO.Directory.GetFiles(scriptDirectory, "*.cs").Select(script => $"<Compile Include=\"{script}\" />\n"))
+                    + $"<ProjectReference Include=\"{System.IO.Path.Combine(intermediateDirectory, "HyperionRuntime", "HyperionRuntime.csproj")}\">\n"
+                        + "<ReferenceOutputAssembly>true</ReferenceOutputAssembly>\n"
+                        + "<Private>true</Private>\n"
+                    + "</ProjectReference>\n"
+                    + string.Join("", System.IO.Directory.GetFiles(scriptDirectory, "*.cs").Select(script => $"<Compile Include=\"{script}\" />\n"))
                     + "</ItemGroup>\n"
                 + "</Project>\n";
 

@@ -354,7 +354,7 @@ void RenderGroup::CreateGraphicsPipeline()
     );
 }
 
-void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
+void RenderGroup::CollectDrawCalls(const FlatMap<ID<Entity>, RenderProxy> &render_proxies)
 {
     HYP_SCOPE;
 
@@ -372,7 +372,9 @@ void RenderGroup::CollectDrawCalls(const Array<RenderProxy> &render_proxies)
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    for (const RenderProxy &render_proxy : render_proxies) {
+    for (const auto &it : render_proxies) {
+        const RenderProxy &render_proxy = it.second;
+
 #ifdef HYP_DEBUG_MODE
         AssertThrow(render_proxy.mesh.IsValid());
         AssertThrow(render_proxy.material.IsValid());

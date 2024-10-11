@@ -66,7 +66,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
             );
         }
 
-        self->m_streamed_data.Reset(new StreamedTextureData(TextureData {
+        self->m_streamed_data.Emplace(TextureData {
             TextureDesc {
                 current_desc.type,
                 new_format,
@@ -78,7 +78,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
                 current_desc.num_faces
             },
             std::move(new_byte_buffer)
-        }));
+        });
 
         self->m_texture_desc = self->m_streamed_data->GetTextureDesc();
     }
@@ -484,10 +484,10 @@ Image<Platform::VULKAN>::Image(
 {
     m_size = GetByteSize();
 
-    m_streamed_data.Reset(new StreamedTextureData(TextureData {
+    m_streamed_data.Emplace(TextureData {
         m_texture_desc,
         ByteBuffer()
-    }));
+    });
 }
 
 template <>

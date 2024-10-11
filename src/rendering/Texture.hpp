@@ -62,6 +62,15 @@ public:
     Texture &operator=(Texture &&other) noexcept    = delete;
 
     ~Texture();
+
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
+
+
+    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_FORCE_INLINE void SetName(Name name)
+        { m_name = name; }
     
     HYP_FORCE_INLINE const ImageRef &GetImage() const
         { return m_image; }
@@ -116,6 +125,8 @@ public:
     Vec4f Sample(Vec2f uv) const;
 
 protected:
+    Name            m_name;
+
     ImageRef        m_image;
     ImageViewRef    m_image_view;
 };

@@ -72,8 +72,8 @@ constexpr PassType BucketToPassType(Bucket bucket)
 
 struct RenderProxyGroup
 {
-    Array<RenderProxy>  m_render_proxies;
-    Handle<RenderGroup> m_render_group;
+    FlatMap<ID<Entity>, RenderProxy>    m_render_proxies;
+    Handle<RenderGroup>                 m_render_group;
 
 public:
     RenderProxyGroup() = default;
@@ -88,9 +88,9 @@ public:
     void AddRenderProxy(const RenderProxy &render_proxy);
 
     bool RemoveRenderProxy(ID<Entity> entity);
-    typename Array<RenderProxy>::Iterator RemoveRenderProxy(typename Array<RenderProxy>::ConstIterator iterator);
+    typename FlatMap<ID<Entity>, RenderProxy>::Iterator RemoveRenderProxy(typename FlatMap<ID<Entity>, RenderProxy>::ConstIterator iterator);
 
-    HYP_FORCE_INLINE const Array<RenderProxy> &GetRenderProxies() const
+    HYP_FORCE_INLINE const FlatMap<ID<Entity>, RenderProxy> &GetRenderProxies() const
         { return m_render_proxies; }
 
     void ResetRenderGroup();

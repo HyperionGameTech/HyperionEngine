@@ -20,6 +20,7 @@ namespace hyperion {
 
 EditorSubsystem::EditorSubsystem()
 {
+    constexpr TypeID t = TypeID::ForType<Subsystem>();
 }
 
 EditorSubsystem::~EditorSubsystem()

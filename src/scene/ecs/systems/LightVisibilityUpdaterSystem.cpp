@@ -31,7 +31,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
     TransformComponent *transform_component = GetEntityManager().TryGetComponent<TransformComponent>(entity);
 
     if (!transform_component) {
-        GetEntityManager().AddComponent(entity, TransformComponent { initial_transform });
+        GetEntityManager().AddComponent<TransformComponent>(entity, TransformComponent { initial_transform });
         transform_component = &GetEntityManager().GetComponent<TransformComponent>(entity);
     }
 
@@ -43,7 +43,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
         BoundingBoxComponent *bounding_box_component = GetEntityManager().TryGetComponent<BoundingBoxComponent>(entity);
 
         if (!bounding_box_component) {
-            GetEntityManager().AddComponent(entity, BoundingBoxComponent { });
+            GetEntityManager().AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { });
             bounding_box_component = &GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
         }
 
@@ -68,11 +68,11 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
         if (!visibility_state_component) {
             // Directional light sources are always visible
             if (light->GetType() == LightType::DIRECTIONAL) {
-                GetEntityManager().AddComponent(entity, VisibilityStateComponent {
+                GetEntityManager().AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {
                     VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
                 });
             } else {
-                GetEntityManager().AddComponent(entity, VisibilityStateComponent { });
+                GetEntityManager().AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { });
             }
         }
     }
