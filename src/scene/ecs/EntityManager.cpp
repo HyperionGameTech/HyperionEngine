@@ -434,7 +434,7 @@ void EntityManager::EndUpdate()
 #pragma region SystemExecutionGroup
 
 SystemExecutionGroup::SystemExecutionGroup()
-    : m_task_batch(new TaskBatch())
+    : m_task_batch(MakeUnique<TaskBatch>())
 {
 }
 

@@ -21,7 +21,7 @@ UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString &path)
         return nullptr;
     }
 
-    return UniquePtr<DynamicLibrary>(new DynamicLibrary(path, reinterpret_cast<void *>(handle)));
+    return MakeUnique<DynamicLibrary>(path, reinterpret_cast<void *>(handle));
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     void *handle = dlopen(path.Data(), RTLD_NOW);
 
@@ -29,7 +29,7 @@ UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString &path)
         return nullptr;
     }
 
-    return UniquePtr<DynamicLibrary>(new DynamicLibrary(path, handle));
+    return MakeUnique<DynamicLibrary>(path, handle);
 #endif
 }
 

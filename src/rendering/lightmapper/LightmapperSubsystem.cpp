@@ -90,7 +90,7 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
         trace_mode = LIGHTMAP_TRACE_MODE_CPU;
     }
 
-    UniquePtr<Lightmapper> lightmapper(new Lightmapper(trace_mode, scene));
+    UniquePtr<Lightmapper> lightmapper = MakeUnique<Lightmapper>(trace_mode, scene);
 
     Task<void> &task = m_tasks.EmplaceBack();
 

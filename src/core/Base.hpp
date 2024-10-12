@@ -105,7 +105,6 @@ public:
         m_init_state.BitOr(INIT_STATE_INIT_CALLED, MemoryOrder::RELAXED);
     }
 
-protected:
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
     {
         return Handle<T>(m_id);
@@ -116,6 +115,7 @@ protected:
         return WeakHandle<T>(m_id);
     }
 
+protected:
     void SetReady(bool is_ready)
     {
         if (is_ready) {

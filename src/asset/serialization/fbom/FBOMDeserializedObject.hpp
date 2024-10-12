@@ -46,7 +46,7 @@ struct FBOMDeserializedObject
     HYP_FORCE_INLINE void Set(const typename SerializationWrapper<T>::Type &value)
     {
         if (!ptr) {
-            ptr.Reset(new HypData);
+            ptr = MakeUnique<HypData>();
         }
 
         return ptr->Set<typename SerializationWrapper<T>::Type>(value);
@@ -56,7 +56,7 @@ struct FBOMDeserializedObject
     HYP_FORCE_INLINE void Set(typename SerializationWrapper<T>::Type &&value)
     {
         if (!ptr) {
-            ptr.Reset(new HypData);
+            ptr = MakeUnique<HypData>();
         }
 
         return ptr->Set<typename SerializationWrapper<T>::Type>(std::move(value));

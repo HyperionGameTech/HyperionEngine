@@ -60,6 +60,7 @@ struct DebugDrawCommand
 
 class DebugDrawCommandList
 {
+public:
     friend class DebugDrawer;
 
     DebugDrawCommandList(DebugDrawer *debug_drawer)
@@ -67,10 +68,9 @@ class DebugDrawCommandList
     {
     }
 
-    DebugDrawCommandList(const DebugDrawCommandList &other) = delete;
-    DebugDrawCommandList &operator=(const DebugDrawCommandList &other) = delete;
+    DebugDrawCommandList(const DebugDrawCommandList &other)             = delete;
+    DebugDrawCommandList &operator=(const DebugDrawCommandList &other)  = delete;
 
-public:
     void Sphere(const Vec3f &position, float radius = 0.15f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Box(const Vec3f &position, const Vec3f &size = Vec3f::One(), Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Plane(const Vec3f &position, const Vec2f &size = Vec2f::One(), Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));

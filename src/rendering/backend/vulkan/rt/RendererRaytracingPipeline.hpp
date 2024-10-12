@@ -40,8 +40,8 @@ public:
 private:
     struct ShaderBindingTableEntry
     {
-        std::unique_ptr<ShaderBindingTableBuffer<Platform::VULKAN>> buffer;
-        VkStridedDeviceAddressRegionKHR                             strided_device_address_region;
+        UniquePtr<ShaderBindingTableBuffer<Platform::VULKAN>>   buffer;
+        VkStridedDeviceAddressRegionKHR                         strided_device_address_region;
     };
 
     struct

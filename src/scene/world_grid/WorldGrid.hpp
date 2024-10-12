@@ -90,11 +90,10 @@ public:
     WorldGridPatch(const WorldGridPatchInfo &patch_info);
     virtual ~WorldGridPatch();
 
-    HYP_FORCE_INLINE
-    const WorldGridPatchInfo &GetPatchInfo() const
+    HYP_FORCE_INLINE const WorldGridPatchInfo &GetPatchInfo() const
         { return m_patch_info; }
 
-    void SetState(WorldGridPatchState state)
+    HYP_FORCE_INLINE void SetState(WorldGridPatchState state)
         { m_patch_info.state = state; }
 
     virtual void InitializeEntity(const Handle<Scene> &scene, ID<Entity> entity) = 0;

@@ -25,7 +25,7 @@ FBOM &FBOM::GetInstance()
 }
 
 FBOM::FBOM()
-    : m_hyp_class_instance_marshal(new HypClassInstanceMarshal())
+    : m_hyp_class_instance_marshal(MakeUnique<HypClassInstanceMarshal>())
 {
 }
 

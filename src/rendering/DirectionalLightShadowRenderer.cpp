@@ -327,7 +327,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
 
-    m_combine_shadow_maps_pass.Reset(new FullScreenPass(shader, descriptor_table, GetFormat(), GetExtent()));
+    m_combine_shadow_maps_pass = MakeUnique<FullScreenPass>(shader, descriptor_table, GetFormat(), GetExtent());
     m_combine_shadow_maps_pass->Create();
 }
 
@@ -515,7 +515,7 @@ void DirectionalLightShadowRenderer::Init()
 {
     AssertThrow(IsValidComponent());
 
-    m_shadow_pass.Reset(new ShadowPass(Handle<Scene>(GetParent()->GetScene()->GetID()), m_resolution, m_shadow_mode));
+    m_shadow_pass = MakeUnique<ShadowPass>(GetParent()->GetScene()->HandleFromThis(), m_resolution, m_shadow_mode);
     m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
     m_shadow_pass->Create();
 

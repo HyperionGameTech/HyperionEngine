@@ -53,7 +53,7 @@ void Game::Init_Internal()
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     AssertThrowMsg(m_game_thread == nullptr, "Game thread already initialized!");
-    m_game_thread.Reset(new GameThread);
+    m_game_thread = MakeUnique<GameThread>();
 
     AssertThrowMsg(m_app_context != nullptr, "No valid Application instance was provided to Game constructor!");
 

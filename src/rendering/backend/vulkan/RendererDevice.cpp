@@ -25,9 +25,9 @@ Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface
       m_physical(physical),
       m_surface(surface),
       m_allocator(VK_NULL_HANDLE),
-      m_features(UniquePtr<Features>::Construct()),
-      m_descriptor_set_manager(new DescriptorSetManager<Platform::VULKAN>),
-      m_async_compute(new AsyncCompute<Platform::VULKAN>)
+      m_features(MakeUnique<Features>()),
+      m_descriptor_set_manager(MakeUnique<DescriptorSetManager<Platform::VULKAN>>()),
+      m_async_compute(MakeUnique<AsyncCompute<Platform::VULKAN>>())
 {
     m_features->SetPhysicalDevice(m_physical);
     
@@ -110,7 +110,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
     };
 
     /* Find dedicated queues */
-    for (uint32_t i = 0; i < families.Size() && !indices.IsComplete(); i++) {
+    for (uint32 i = 0; i < uint32(families.Size()) && !indices.IsComplete(); i++) {
         if (families[i].queueCount == 0) {
             HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Queue family {} supports no queues, skipping", i);
 

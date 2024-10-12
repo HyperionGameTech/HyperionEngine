@@ -615,7 +615,7 @@ public:
      *  \param name The Name of the child UIObject to find.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
-    RC<UIObject> FindChildUIObject(Name name, bool deep = true) const;
+    RC<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.

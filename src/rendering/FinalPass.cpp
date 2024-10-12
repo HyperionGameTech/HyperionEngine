@@ -283,12 +283,12 @@ void FinalPass::Create()
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
+    m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
         std::move(descriptor_table),
         m_image_format,
         m_extent
-    ));
+    );
 
     m_render_texture_to_screen_pass->SetBlendFunction(BlendFunction(
         BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,

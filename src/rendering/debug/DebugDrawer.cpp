@@ -362,7 +362,7 @@ UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;
 
-    return UniquePtr<DebugDrawCommandList>(new DebugDrawCommandList(this));
+    return MakeUnique<DebugDrawCommandList>(this);
 }
 
 void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)

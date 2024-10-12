@@ -129,12 +129,12 @@ void RenderEnvironment::Init()
     m_gaussian_splatting = CreateObject<GaussianSplatting>();
     InitObject(m_gaussian_splatting);
     
-    m_rt_radiance.Reset(new RTRadianceRenderer(
+    m_rt_radiance = MakeUnique<RTRadianceRenderer>(
         Extent2D { 1024, 1024 },
         g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
             : RT_RADIANCE_RENDERER_OPTION_NONE
-    ));
+    );
     
     if (m_tlas) {
         m_rt_radiance->SetTLAS(m_tlas);

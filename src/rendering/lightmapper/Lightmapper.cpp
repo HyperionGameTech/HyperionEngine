@@ -235,7 +235,7 @@ private:
                                     k == 0 ? center.z : max.z
                                 );
 
-                                m_children.EmplaceBack(new LightmapBVHNode(BoundingBox(new_min, new_max)));
+                                m_children.PushBack(MakeUnique<LightmapBVHNode>(BoundingBox(new_min, new_max)));
                             }
                         }
                     }
@@ -318,7 +318,7 @@ private:
             return nullptr;
         }
 
-        UniquePtr<LightmapBVHNode> root(new LightmapBVHNode(mesh->GetAABB() * transform));
+        UniquePtr<LightmapBVHNode> root = MakeUnique<LightmapBVHNode>(mesh->GetAABB() * transform);
 
         auto ref = mesh->GetStreamedMeshData()->AcquireRef();
         const MeshData &mesh_data = ref->GetMeshData();
@@ -1173,7 +1173,7 @@ void Lightmapper::PerformLightmapping()
             if (lightmap_entities_index_end - lightmap_entities_index_start != 0) {
                 HYP_LOG(Lightmap, LogLevel::INFO, "Adding lightmap job for {} entities", lightmap_entities_index_end - lightmap_entities_index_start);
 
-                UniquePtr<LightmapJob> job(new LightmapJob(CreateLightmapJobParams(lightmap_entities_index_start, lightmap_entities_index_end, std::move(acceleration_structure))));
+                UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(lightmap_entities_index_start, lightmap_entities_index_end, std::move(acceleration_structure)));
 
                 lightmap_entities_index_start = lightmap_entities_index_end;
 
@@ -1185,15 +1185,13 @@ void Lightmapper::PerformLightmapping()
 
         if (m_trace_mode == LIGHTMAP_TRACE_MODE_CPU) {
             if (!acceleration_structure) {
-                acceleration_structure.Reset(new LightmapTopLevelAccelerationStructure);
+                acceleration_structure = MakeUnique<LightmapTopLevelAccelerationStructure>();
             }
 
-            acceleration_structure->Add(UniquePtr<LightmapBottomLevelAccelerationStructure>(
-                new LightmapBottomLevelAccelerationStructure(
-                    lightmap_entity.entity_id,
-                    lightmap_entity.mesh,
-                    lightmap_entity.transform
-                )
+            acceleration_structure->Add(MakeUnique<LightmapBottomLevelAccelerationStructure>(
+                lightmap_entity.entity_id,
+                lightmap_entity.mesh,
+                lightmap_entity.transform
             ));
         }
 
@@ -1205,7 +1203,7 @@ void Lightmapper::PerformLightmapping()
     if (lightmap_entities_index_end - lightmap_entities_index_start != 0) {
         HYP_LOG(Lightmap, LogLevel::INFO, "Adding final lightmap job for {} entities", lightmap_entities_index_end - lightmap_entities_index_start);
 
-        UniquePtr<LightmapJob> job(new LightmapJob(CreateLightmapJobParams(lightmap_entities_index_start, lightmap_entities_index_end, std::move(acceleration_structure))));
+        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(lightmap_entities_index_start, lightmap_entities_index_end, std::move(acceleration_structure)));
 
         AddJob(std::move(job));
     } else {

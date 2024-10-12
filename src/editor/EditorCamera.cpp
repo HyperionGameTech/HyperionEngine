@@ -126,7 +126,7 @@ EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
       m_mode(EditorCameraControllerMode::INACTIVE)
 {
-    m_input_handler.Reset(new EditorCameraInputHandler(this));
+    m_input_handler = MakeUnique<EditorCameraInputHandler>(this);
 }
 
 void EditorCameraController::SetMode(EditorCameraControllerMode mode)

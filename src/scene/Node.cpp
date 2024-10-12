@@ -130,7 +130,7 @@ Node::Node(
     m_local_transform(local_transform),
     m_scene(scene != nullptr ? scene : GetDefaultScene()),
     m_transform_locked(false),
-    m_delegates(new Delegates)
+    m_delegates(MakeUnique<Delegates>())
 {
     SetEntity(entity);
 }

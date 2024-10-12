@@ -50,7 +50,7 @@ TaskSystem::TaskSystem()
         for (auto &it : pool.threads) {
             AssertThrow(THREAD_TASK & mask);
 
-            it.Reset(new TaskThread(Threads::thread_ids.At(ThreadName(mask)), task_thread_pool_info.priority));
+            it = MakeUnique<TaskThread>(Threads::thread_ids.At(ThreadName(mask)), task_thread_pool_info.priority);
             mask <<= 1;
         }
     }

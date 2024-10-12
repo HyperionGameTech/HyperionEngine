@@ -830,10 +830,10 @@ public:
         return static_cast<EntitySet<Components...> &>(*entity_sets_it->second);
     }
 
-    template <class SystemType, class ...Args>
+    template <class SystemType, class... Args>
     HYP_FORCE_INLINE SystemType *AddSystem(Args &&... args)
     {
-        return static_cast<SystemType *>(AddSystemToExecutionGroup(UniquePtr<SystemType>(new SystemType(*this, std::forward<Args>(args)...))));
+        return AddSystemToExecutionGroup(MakeUnique<SystemType>(*this, std::forward<Args>(args)...));
     }
 
     void Initialize();
@@ -854,7 +854,7 @@ public:
         auto it = m_containers.Find<Component>();
 
         if (it == m_containers.End()) {
-            it = m_containers.Set<Component>(UniquePtr<ComponentContainer<Component>>::Construct()).first;
+            it = m_containers.Set<Component>(MakeUnique<ComponentContainer<Component>>()).first;
         }
 
         return static_cast<ComponentContainer<Component> &>(*it->second);

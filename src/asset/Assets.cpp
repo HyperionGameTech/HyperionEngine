@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #include <asset/Assets.hpp>
 #include <asset/AssetBatch.hpp>
 
@@ -44,7 +45,7 @@ const Handle<AssetManager> &AssetManager::GetInstance()
 }
 
 AssetManager::AssetManager()
-    : m_asset_cache(new AssetCache()),
+    : m_asset_cache(MakeUnique<AssetCache>()),
       m_num_pending_batches { 0 }
 {
     RegisterDefaultLoaders();

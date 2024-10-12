@@ -144,8 +144,6 @@ class HYP_API Octree
     static constexpr float min_aabb_size = 1.0f; 
     static const BoundingBox default_bounds;
 
-    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index);
-
 public:
     struct Result
     {
@@ -226,15 +224,13 @@ public:
 
         ~Entry() = default;
 
-        HYP_FORCE_INLINE
-        bool operator==(const Entry &other) const
+        HYP_FORCE_INLINE bool operator==(const Entry &other) const
         {
             return id == other.id
                 && aabb == other.aabb;
         }
 
-        HYP_FORCE_INLINE
-        bool operator!=(const Entry &other) const
+        HYP_FORCE_INLINE bool operator!=(const Entry &other) const
             { return !(*this == other); }
 
         HashCode GetHashCode() const
@@ -248,8 +244,10 @@ public:
         }
     };
 
-    Octree(RC<EntityManager> entity_manager);
-    Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb);
+    Octree(const RC<EntityManager> &entity_manager);
+    Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb);
+    Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index);
+
     Octree(const Octree &other)                 = delete;
     Octree &operator=(const Octree &other)      = delete;
     Octree(Octree &&other) noexcept             = delete;
@@ -266,7 +264,7 @@ public:
 
     /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref{Scene} only
      *  \internal */
-    void SetEntityManager(RC<EntityManager> entity_manager);
+    void SetEntityManager(const RC<EntityManager> &entity_manager);
 
     HYP_FORCE_INLINE BoundingBox &GetAABB()
         { return m_aabb; }
@@ -294,10 +292,10 @@ public:
 
     /*! \brief Get a hashcode of all entities currently in this Octant that have the given tags (child octants affect this too)
     */
-    template <EntityTag... tags>
+    template <EntityTag... Tags>
     HYP_FORCE_INLINE HashCode GetEntryListHash() const
     {
-        const uint32 mask = ((tags == EntityTag::NONE ? 0 : (1u << (uint32(tags) - 1))) | ...);
+        const uint32 mask = ((Tags == EntityTag::NONE ? 0 : (1u << (uint32(Tags) - 1))) | ...);
 
         return HashCode(m_entry_hashes[mask])
             .Add(m_invalidation_marker);

@@ -327,7 +327,7 @@ template <class Component>
 typename ComponentContainer<Component>::Factory ComponentContainer<Component>::factory {
     []() -> UniquePtr<ComponentContainerBase>
     {
-        return UniquePtr<ComponentContainerBase>(new ComponentContainer<Component>());
+        return MakeUnique<ComponentContainer<Component>>();
     }
 };
 

@@ -190,7 +190,7 @@ public:
 
     Iterator Add(T &&value, ConstIterator parent_iterator = Iterator(nullptr))
     {
-        UniquePtr<Node> new_node(new Node { std::move(value) });
+        UniquePtr<Node> new_node = MakeUnique<Node>(std::move(value));
 
         Node *ptr = new_node.Get();
 

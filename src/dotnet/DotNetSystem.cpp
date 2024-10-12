@@ -219,7 +219,7 @@ public:
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
-            auto it = m_core_assemblies.Insert(entry.first, UniquePtr<Assembly>(new Assembly())).first;
+            auto it = m_core_assemblies.Insert(entry.first, MakeUnique<Assembly>()).first;
 
             Assembly *assembly = it->second.Get();
 
@@ -243,7 +243,7 @@ public:
 
     virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
     {
-        UniquePtr<Assembly> assembly(new Assembly());
+        UniquePtr<Assembly> assembly = MakeUnique<Assembly>();
 
         Optional<FilePath> filepath = FindAssemblyFilePath(m_app_context.Get(), path);
 
@@ -593,7 +593,7 @@ void DotNetSystem::Initialize(const RC<AppContext> &app_context)
 
     AssertThrow(m_impl == nullptr);
 
-    m_impl.Reset(new detail::DotNetImpl());
+    m_impl = MakeRefCountedPtr<detail::DotNetImpl>();
     m_impl->Initialize(app_context);
 
     m_is_initialized = true;

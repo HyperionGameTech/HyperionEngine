@@ -190,7 +190,7 @@ struct ComponentInterfaceRegistration
                 return ComponentInterface(
                     TypeID::ForType<ComponentType>(),
                     TypeNameHelper<ComponentType, true>::value,
-                    UniquePtr<ComponentFactoryBase>(new ComponentFactory<ComponentType>()),
+                    MakeUnique<ComponentFactory<ComponentType>>(),
                     ComponentContainer<ComponentType>::GetFactory(),
                     MergeEnumFlags<ComponentInterfaceFlags, Flags...>::value
                 );

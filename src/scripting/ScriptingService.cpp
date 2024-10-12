@@ -137,7 +137,7 @@ protected:
 #pragma region ScriptingService
 
 ScriptingService::ScriptingService(const FilePath &watch_directory, const FilePath &intermediate_directory, const FilePath &binary_output_directory)
-    : m_thread(new ScriptingServiceThread(
+    : m_thread(MakeUnique<ScriptingServiceThread>(
         watch_directory,
         intermediate_directory,
         binary_output_directory,

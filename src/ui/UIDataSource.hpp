@@ -43,11 +43,14 @@ class HYP_API IUIDataSourceElementFactory
 public:
     virtual ~IUIDataSourceElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value/*, Proc<void, const HypData> &&OnChange = {}*/) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value, ConstAnyRef context) const = 0;
+
     virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const = 0;
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, ConstAnyRef context) const = 0;
 };
 
-template <class T>
+template <class T, class Derived>
 class HYP_API UIDataSourceElementFactory : public IUIDataSourceElementFactory
 {
 public:
@@ -55,25 +58,49 @@ public:
 
     virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value) const override final
     {
+        return CreateUIObject(stage, value, ConstAnyRef::Empty());
+    }
+
+    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value, ConstAnyRef context) const override final
+    {
+        Derived factory_instance;
+        static_cast<UIDataSourceElementFactory &>(factory_instance).m_context = context;
+
+        RC<UIObject> result;
+
         if constexpr (std::is_same_v<HypData, T>) {
-            return CreateUIObject_Internal(stage, value);
+            return factory_instance.Create(stage, value);
         } else {
-            return CreateUIObject_Internal(stage, value.Get<T>());
+            return factory_instance.Create(stage, value.Get<T>());
         }
     }
 
     virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const override final
     {
+        return UpdateUIObject(ui_object, value, ConstAnyRef::Empty());
+    }
+
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, ConstAnyRef context) const override final
+    {
+        Derived factory_instance;
+        static_cast<UIDataSourceElementFactory &>(factory_instance).m_context = context;
+
         if constexpr (std::is_same_v<HypData, T>) {
-            return UpdateUIObject_Internal(ui_object, value);
+            return factory_instance.Update(ui_object, value);
         } else {
-            return UpdateUIObject_Internal(ui_object, value.Get<T>());
+            return factory_instance.Update(ui_object, value.Get<T>());
         }
     }
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Internal(UIStage *stage, const T &value) const = 0;
-    virtual void UpdateUIObject_Internal(UIObject *ui_object, const T &value) const = 0;
+    template <class ContextType>
+    const ContextType *GetContext() const
+    {
+        return m_context.TryGet<ContextType>();
+    }
+
+private:
+    ConstAnyRef m_context;
 };
 
 class HYP_API IUIDataSourceElement

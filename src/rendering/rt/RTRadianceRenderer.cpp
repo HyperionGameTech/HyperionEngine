@@ -319,7 +319,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
 void RTRadianceRenderer::CreateTemporalBlending()
 {
-    m_temporal_blending.Reset(new TemporalBlending(
+    m_temporal_blending = MakeUnique<TemporalBlending>(
         m_extent,
         InternalFormat::RGBA8,
         IsPathTracer()
@@ -332,7 +332,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
             m_texture->GetImageView(),
             m_texture->GetImageView(),
         }
-    ));
+    );
 
     m_temporal_blending->Create();
 }

@@ -156,14 +156,11 @@ private:
         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
             { return m_hyp_object_initializer.GetManagedObject(); } \
         \
-        static TypeID GetTypeID() \
-        { \
-            return HypObjectInitializer<T>::GetTypeID_Static(); \
-        } \
-        static const HypClass *GetClass() \
-        { \
-            return HypObjectInitializer<T>::GetClass_Static(); \
-        } \
+        HYP_FORCE_INLINE static TypeID GetTypeID() \
+            { return HypObjectInitializer<T>::GetTypeID_Static(); } \
+        \
+        HYP_FORCE_INLINE static const HypClass *GetClass() \
+            { return HypObjectInitializer<T>::GetClass_Static(); } \
         \
     private:
 

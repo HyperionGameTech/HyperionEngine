@@ -651,14 +651,14 @@ public:
         return *this;
     }
 
-    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> &&std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr(RefCountedPtr<Ty, CountType> &&other) noexcept
         : Base(static_cast<Base &&>(std::move(other)))
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
     }
     
-    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> &&std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr &operator=(RefCountedPtr<Ty, CountType> &&other) noexcept
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");

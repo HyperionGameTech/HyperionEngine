@@ -132,7 +132,7 @@ public:
 
     AssetBatch(AssetManager *asset_manager)
         : TaskBatch(),
-          m_enqueued_assets(new AssetMap),
+          m_enqueued_assets(MakeUnique<AssetMap>()),
           m_asset_manager(asset_manager)
     {
         AssertThrow(asset_manager != nullptr);

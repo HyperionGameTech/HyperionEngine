@@ -274,7 +274,7 @@ public:
         }
     }
 
-    template <class Callable, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<Callable> > && !std::is_base_of_v< detail::ProcRefBase, NormalizedType< Callable > > && !std::is_base_of_v< detail::ProcBase, NormalizedType< Callable > > > >
+    template <class Callable, typename = std::enable_if_t< !std::is_pointer_v< NormalizedType<Callable> > && std::is_invocable_v<NormalizedType<Callable>, Args...> && !std::is_base_of_v< detail::ProcRefBase, NormalizedType< Callable > > && !std::is_base_of_v< detail::ProcBase, NormalizedType< Callable > > > >
     ProcRef(Callable &&callable)
         : m_ptr(const_cast<void *>(static_cast<const void *>(&callable)))
     {

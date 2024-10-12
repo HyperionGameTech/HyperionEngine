@@ -45,19 +45,19 @@ void OctreeState::MarkOctantDirty(OctantID octant_id)
     AssertThrow(rebuild_state != OctantID::Invalid());
 }
 
-Octree::Octree(RC<EntityManager> entity_manager)
-    : Octree(std::move(entity_manager), default_bounds)
+Octree::Octree(const RC<EntityManager> &entity_manager)
+    : Octree(entity_manager, default_bounds)
 {
 }
 
-Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb)
-    : Octree(std::move(entity_manager), aabb, nullptr, 0)
+Octree::Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb)
+    : Octree(entity_manager, aabb, nullptr, 0)
 {
     m_state = new OctreeState;
 }
 
-Octree::Octree(RC<EntityManager> entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index)
-    : m_entity_manager(std::move(entity_manager)),
+Octree::Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index)
+    : m_entity_manager(entity_manager),
       m_aabb(aabb),
       m_parent(nullptr),
       m_is_divided(false),
@@ -84,9 +84,9 @@ Octree::~Octree()
     }
 }
 
-void Octree::SetEntityManager(RC<EntityManager> entity_manager)
+void Octree::SetEntityManager(const RC<EntityManager> &entity_manager)
 {
-    m_entity_manager = std::move(entity_manager);
+    m_entity_manager = entity_manager;
 
     if (IsDivided()) {
         for (Octant &octant : m_octants) {
@@ -224,7 +224,7 @@ void Octree::Divide()
         Octant &octant = m_octants[i];
         AssertThrow(octant.octree == nullptr);
 
-        octant.octree.Reset(new Octree(m_entity_manager, octant.aabb, this, uint8(i)));
+        octant.octree = MakeUnique<Octree>(m_entity_manager, octant.aabb, this, uint8(i));
     }
 
     m_is_divided = true;

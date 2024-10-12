@@ -125,10 +125,7 @@ public:
 
     virtual UniquePtr<IEditorAction> CreateEditorActionInstance() const override
     {
-        UniquePtr<IEditorAction> action;
-        action.Reset(new T());
-
-        return action;
+        return MakeUnique<T>();
     }
 };
 

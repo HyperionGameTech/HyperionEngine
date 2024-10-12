@@ -76,7 +76,7 @@ void WorldGridSubsystem::OnSceneAttached(const Handle<Scene> &scene)
     HYP_SCOPE;
 
     if (scene->IsWorldScene()) {
-        UniquePtr<WorldGrid> &world_grid = m_world_grids.EmplaceBack(new WorldGrid(
+        UniquePtr<WorldGrid> &world_grid = m_world_grids.PushBack(MakeUnique<WorldGrid>(
             WorldGridParams { },
             scene
         ));

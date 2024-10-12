@@ -74,7 +74,7 @@ Class *ClassHolder::NewClass(const HypClass *hyp_class, int32 type_hash, const c
         return it->second.Get();
     }
 
-    it = m_class_objects.Insert(type_hash, UniquePtr<Class>(new Class(this, type_name, parent_class, EnumFlags<ManagedClassFlags>(flags)))).first;
+    it = m_class_objects.Insert(type_hash, MakeUnique<Class>(this, type_name, parent_class, EnumFlags<ManagedClassFlags>(flags))).first;
 
     if (hyp_class != nullptr) {
         HypClassRegistry::GetInstance().RegisterManagedClass(it->second.Get(), hyp_class);

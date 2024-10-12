@@ -54,7 +54,7 @@ template <class T, class MarshalerType>
 struct FBOMMarshalerRegistration : FBOMMarshalerRegistrationBase
 {
     FBOMMarshalerRegistration()
-        : FBOMMarshalerRegistrationBase(TypeID::ForType<T>(), TypeNameWithoutNamespace<T>().Data(), UniquePtr<FBOMMarshalerBase>(new MarshalerType()))
+        : FBOMMarshalerRegistrationBase(TypeID::ForType<T>(), TypeNameHelper<T, true>::value.Data(), MakeUnique<MarshalerType>())
     {
     }
 };
@@ -68,7 +68,7 @@ public:
     virtual ~FBOMObjectMarshalerBase() = default;
 
     virtual FBOMType GetObjectType() const override
-        { return FBOMObjectType(TypeNameWithoutNamespace<T>().Data()); }
+        { return FBOMObjectType(TypeNameHelper<T, true>::value.Data()); }
 
     virtual TypeID GetTypeID() const override final
         { return TypeID::ForType<T>(); }

@@ -4,10 +4,14 @@
 #define HYPERION_UNIQUE_PTR_HPP
 
 #include <core/Defines.hpp>
+
 #include <core/utilities/TypeID.hpp>
+
 #include <core/memory/Memory.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Any.hpp>
+
+#include <core/object/HypObjectFwd.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -228,17 +232,6 @@ class UniquePtr : public detail::UniquePtrBase
 protected:
     using Base = detail::UniquePtrBase;
 
-public:
-    UniquePtr()
-        : Base()
-    {
-    }
-
-    UniquePtr(std::nullptr_t)
-        : Base()
-    {
-    }
-
     /*! \brief Takes ownership of ptr.
     
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
@@ -258,23 +251,28 @@ public:
         Reset<Ty>(ptr);
     }
 
+public:
+    UniquePtr()
+        : Base()
+    {
+    }
+
+    UniquePtr(std::nullptr_t)
+        : Base()
+    {
+    }
+
     explicit UniquePtr(const T &value)
         : Base()
     {
         Base::m_holder.template Construct<T>(value);
     }
 
-    explicit UniquePtr(T &&value)
-        : Base()
-    {
-        Base::m_holder.template Construct<T>(std::move(value));
-    }
-
     UniquePtr(const UniquePtr &other) = delete;
     UniquePtr &operator=(const UniquePtr &other) = delete;
 
     /*! \brief Allows construction from a UniquePtr of a convertible type. */
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     UniquePtr(UniquePtr<Ty> &&other) noexcept
         : Base()
     {
@@ -282,7 +280,7 @@ public:
     }
 
     /*! \brief Allows assign from a UniquePtr of a convertible type. */
-    template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     UniquePtr &operator=(UniquePtr<Ty> &&other) noexcept
     {
         Reset<Ty>(other.Release());
@@ -394,6 +392,22 @@ public:
     HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
+    /*! \brief Like Reset(), but constructs the object in-place. */
+    template <class... Args>
+    HYP_FORCE_INLINE UniquePtr &Emplace(Args &&... args)
+    {
+        return (*this = Construct(std::forward<Args>(args)...));
+    }
+
+    /*! \brief Like Emplace() but the first template parameter is specified as the type to construct. */
+    template <class Ty, class... Args>
+    HYP_FORCE_INLINE UniquePtr &EmplaceAs(Args &&... args)
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
+
+        return (*this = UniquePtr<Ty>::Construct(std::forward<Args>(args)...));
+    }
+
     /*! \brief Releases the ptr to be managed externally.
         The value held within the UniquePtr will be unset,
         and the T* returned from this method will NEED to be deleted
@@ -414,12 +428,20 @@ public:
     }
 
     /*! \brief Constructs a new UniquePtr<T> from the given arguments. */
-    template <class ...Args>
+    template <class... Args>
     HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr Construct(Args &&... args)
     {
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
     
-        return UniquePtr(new T(std::forward<Args>(args)...));
+        UniquePtr ptr;
+
+        if constexpr (IsHypObject<T>::value) {
+            ptr.Reset(Memory::AllocateAndConstructWithContext<T, HypObjectInitializerGuard<T>>(std::forward<Args>(args)...));
+        } else {
+            ptr.Reset(Memory::AllocateAndConstruct<T>(std::forward<Args>(args)...));
+        }
+        
+        return ptr;
     }
 
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr. 

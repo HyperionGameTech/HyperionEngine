@@ -860,10 +860,6 @@ void UIObject::UpdateComputedVisibility(bool update_children)
                 const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
                 const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
 
-                if (GetName() == HYP_WEAK_NAME(MenuItemContents)) {
-                    HYP_LOG(UI, LogLevel::DEBUG, "Testing intersection for parent AABB: {} and menu contents: {}", parent_aabb, self_aabb);
-                }
-
                 computed_visibility = parent_aabb.Overlaps(self_aabb);
             } else {
                 computed_visibility = false;
@@ -1015,8 +1011,7 @@ int UIObject::RemoveAllChildUIObjects()
 
     SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
 
-    HYP_DEFER([this, &num_removed]()
-    {
+    HYP_DEFER({
         SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
 
         if (num_removed > 0 && UseAutoSizing()) {
@@ -1043,8 +1038,7 @@ int UIObject::RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predic
 
     SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
 
-    HYP_DEFER([this, &num_removed]()
-    {
+    HYP_DEFER({
         SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
 
         if (num_removed > 0 && UseAutoSizing()) {
@@ -1087,7 +1081,7 @@ RC<UIObject> UIObject::DetachFromParent()
     return this_ref_counted;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(Name name, bool deep) const
+RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
 {
     HYP_SCOPE;
 

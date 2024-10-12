@@ -275,7 +275,7 @@ void RenderGroup::CreateIndirectRenderer()
     HYP_SCOPE;
     
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
-        m_indirect_renderer.Reset(new IndirectRenderer());
+        m_indirect_renderer = MakeRefCountedPtr<IndirectRenderer>();
         m_indirect_renderer->Create();
     }
 }
@@ -285,7 +285,7 @@ void RenderGroup::CreateCommandBuffers()
     HYP_SCOPE;
 
     if (m_flags & RenderGroupFlags::PARALLEL_RENDERING) {
-        m_command_buffers.Reset(new AsyncCommandBuffers());
+        m_command_buffers = MakeUnique<AsyncCommandBuffers>();
 
         for (uint i = 0; i < max_frames_in_flight; i++) {
             for (CommandBufferRef &command_buffer : (*m_command_buffers)[i]) {

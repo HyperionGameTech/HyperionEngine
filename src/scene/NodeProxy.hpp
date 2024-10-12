@@ -24,8 +24,8 @@ struct HYP_API NodeProxyChildren
 {
     struct HYP_API IteratorBase
     {
-        const Node *node;
-        SizeType index;
+        const Node  *node;
+        SizeType    index;
 
         IteratorBase &operator++()
         {
@@ -39,16 +39,16 @@ struct HYP_API NodeProxyChildren
     {
         using Base = IteratorBase;
 
-        bool operator==(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator==(const Iterator &other) const
             { return node == other.node && index == other.index; }
 
-        bool operator!=(const Iterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return node != other.node || index != other.index; }
 
         NodeProxy &operator*();
         NodeProxy *operator->();
 
-        Iterator &operator++()
+        HYP_FORCE_INLINE Iterator &operator++()
         {
             Base::operator++();
 
@@ -60,16 +60,16 @@ struct HYP_API NodeProxyChildren
     {
         using Base = IteratorBase;
 
-        bool operator==(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator==(const ConstIterator &other) const
             { return node == other.node && index == other.index; }
 
-        bool operator!=(const ConstIterator &other) const
+        HYP_FORCE_INLINE bool operator!=(const ConstIterator &other) const
             { return node != other.node || index != other.index; }
 
         const NodeProxy &operator*() const;
         const NodeProxy *operator->() const;
 
-        ConstIterator &operator++()
+        HYP_FORCE_INLINE ConstIterator &operator++()
         {
             Base::operator++();
 
@@ -79,7 +79,7 @@ struct HYP_API NodeProxyChildren
 
     const Node *node;
 
-    uint Size() const;
+    SizeType Size() const;
 
     Iterator Begin();
     ConstIterator Begin() const;
@@ -206,10 +206,10 @@ public:
         If no Node is held, returns an empty NodeProxy. */
     NodeProxy GetChild(SizeType index);
 
-    NodeProxyChildren GetChildren()
+    HYP_FORCE_INLINE NodeProxyChildren GetChildren()
         { return NodeProxyChildren { const_cast<const Node *>(Base::Get()) }; }
 
-    const NodeProxyChildren GetChildren() const
+    HYP_FORCE_INLINE const NodeProxyChildren GetChildren() const
         { return NodeProxyChildren { Base::Get() }; }
 
     /*! \brief Search for a (potentially nested) node using the syntax `some/child/node`.

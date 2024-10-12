@@ -100,7 +100,7 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : renderer::RenderCommand
         static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
         static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
 
-        UniquePtr<BlueNoiseBuffer> aligned_buffer(new BlueNoiseBuffer);
+        UniquePtr<BlueNoiseBuffer> aligned_buffer = MakeUnique<BlueNoiseBuffer>();
         Memory::MemCpy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
         Memory::MemCpy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
         Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
@@ -633,25 +633,25 @@ void EnvGridPass::CreateRenderTextureToScreenPass()
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
+    m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
         descriptor_table,
         m_image_format,
         m_extent
-    ));
+    );
 
     m_render_texture_to_screen_pass->Create();
 }
 
 void EnvGridPass::CreateTemporalBlending()
 {
-    m_temporal_blending.Reset(new TemporalBlending(
+    m_temporal_blending = MakeUnique<TemporalBlending>(
         m_framebuffer->GetExtent(),
         InternalFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_1,
         TemporalBlendFeedback::LOW,
         m_framebuffer
-    ));
+    );
 
     m_temporal_blending->Create();
 }
@@ -980,12 +980,12 @@ void ReflectionProbePass::CreateRenderTextureToScreenPass()
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
-    m_render_texture_to_screen_pass.Reset(new FullScreenPass(
+    m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
         std::move(descriptor_table),
         m_image_format,
         m_extent
-    ));
+    );
 
     m_render_texture_to_screen_pass->Create();
 }
@@ -1196,7 +1196,7 @@ void ReflectionProbePass::Render(Frame *frame)
 #pragma region Deferred renderer
 
 DeferredRenderer::DeferredRenderer()
-    : m_gbuffer(new GBuffer),
+    : m_gbuffer(MakeUnique<GBuffer>()),
       m_is_initialized(false)
 {
 }
@@ -1252,24 +1252,24 @@ void DeferredRenderer::Create()
         }).Detach();
     }
 
-    m_env_grid_radiance_pass.Reset(new EnvGridPass(EnvGridPassMode::RADIANCE));
+    m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE);
     m_env_grid_radiance_pass->Create();
 
-    m_env_grid_irradiance_pass.Reset(new EnvGridPass(EnvGridPassMode::IRRADIANCE));
+    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE);
     m_env_grid_irradiance_pass->Create();
 
-    m_reflection_probe_pass.Reset(new ReflectionProbePass);
+    m_reflection_probe_pass = MakeUnique<ReflectionProbePass>();
     m_reflection_probe_pass->Create();
 
     m_post_processing.Create();
 
-    m_indirect_pass.Reset(new DeferredPass(DeferredPassMode::INDIRECT_LIGHTING));
+    m_indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING);
     m_indirect_pass->Create();
 
-    m_direct_pass.Reset(new DeferredPass(DeferredPassMode::DIRECT_LIGHTING));
+    m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING);
     m_direct_pass->Create();
 
-    m_depth_pyramid_renderer.Reset(new DepthPyramidRenderer);
+    m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>();
     m_depth_pyramid_renderer->Create();
 
     m_mip_chain = CreateObject<Texture>(TextureDesc {
@@ -1283,7 +1283,7 @@ void DeferredRenderer::Create()
 
     InitObject(m_mip_chain);
 
-    m_hbao.Reset(new HBAO());
+    m_hbao = MakeUnique<HBAO>();
     m_hbao->Create();
 
     CreateBlueNoiseBuffer();
@@ -1318,17 +1318,17 @@ void DeferredRenderer::Create()
             options |= SSR_RENDERER_OPTIONS_CONE_TRACING;
         }
 
-        m_ssr.Reset(new SSRRenderer(ssr_extent, options));
+        m_ssr = MakeUnique<SSRRenderer>(ssr_extent, options);
         m_ssr->Create();
     }
 
-    // m_dof_blur.Reset(new DOFBlur(g_engine->GetGPUInstance()->GetSwapchain()->extent));
+    // m_dof_blur = MakeUnique<DOFBlur>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
     // m_dof_blur->Create();
 
     CreateCombinePass();
     CreateDescriptorSets();
 
-    m_temporal_aa.Reset(new TemporalAA(g_engine->GetGPUInstance()->GetSwapchain()->extent));
+    m_temporal_aa = MakeUnique<TemporalAA>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
     m_temporal_aa->Create();
 
     HYP_SYNC_RENDER();
@@ -1365,7 +1365,7 @@ void DeferredRenderer::CreateCombinePass()
 
     AssertThrow(shader.IsValid());
 
-    m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA8_SRGB));
+    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::RGBA8_SRGB);
     m_combine_pass->Create();
 
     PUSH_RENDER_COMMAND(

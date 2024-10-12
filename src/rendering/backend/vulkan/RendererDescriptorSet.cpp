@@ -815,7 +815,7 @@ RC<VulkanDescriptorSetLayoutWrapper> DescriptorSetManager<Platform::VULKAN>::Get
         return vk_descriptor_set_layout;
     }
 
-    vk_descriptor_set_layout.Reset(new VulkanDescriptorSetLayoutWrapper);
+    vk_descriptor_set_layout = MakeRefCountedPtr<VulkanDescriptorSetLayoutWrapper>();
     
     HYPERION_ASSERT_RESULT(vk_descriptor_set_layout->Create(device, layout));
 

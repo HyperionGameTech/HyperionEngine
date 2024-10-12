@@ -7,9 +7,9 @@ namespace hyperion {
 
 #pragma region NodeProxyChildren
 
-uint NodeProxyChildren::Size() const
+SizeType NodeProxyChildren::Size() const
 {
-    return node ? uint(node->GetChildren().Size()) : 0;
+    return node ? node->GetChildren().Size() : 0;
 }
 
 NodeProxyChildren::Iterator NodeProxyChildren::Begin()

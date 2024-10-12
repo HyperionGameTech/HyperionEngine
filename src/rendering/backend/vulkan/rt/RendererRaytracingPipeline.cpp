@@ -302,7 +302,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
 
     Result result;
 
-    out.buffer.reset(new ShaderBindingTableBuffer<Platform::VULKAN>());
+    out.buffer = MakeUnique<ShaderBindingTableBuffer<Platform::VULKAN>>();
 
     HYPERION_PASS_ERRORS(
         out.buffer->Create(
@@ -322,7 +322,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
             .size           = num_shaders * handle_size
         };
     } else {
-        out.buffer.reset();
+        out.buffer.Reset();
     }
 
     return result;

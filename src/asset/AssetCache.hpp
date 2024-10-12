@@ -89,7 +89,7 @@ public:
         auto it = m_pools.Find<T>();
 
         if (it == m_pools.End()) {
-            it = m_pools.Set<T>(UniquePtr<AssetCachePool<T>>::Construct()).first;
+            it = m_pools.Set<T>(MakeUnique<AssetCachePool<T>>()).first;
         }
 
         return static_cast<AssetCachePool<T> *>(it->second.Get());

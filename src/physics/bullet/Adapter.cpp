@@ -169,14 +169,13 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody> &rigid_body)
             ->calculateLocalInertia(rigid_body->GetPhysicsMaterial().GetMass(), local_inertia);
     }
 
-    UniquePtr<RigidBodyInternalData> internal_data;
-    internal_data.Reset(new RigidBodyInternalData);
+    UniquePtr<RigidBodyInternalData> internal_data = MakeUnique<RigidBodyInternalData>();
 
     btTransform bt_transform;
     bt_transform.setIdentity();
     bt_transform.setOrigin(ToBtVector(rigid_body->GetTransform().GetTranslation()));
     bt_transform.setRotation(ToBtQuaternion(rigid_body->GetTransform().GetRotation()));
-    internal_data->motion_state.Reset(new btDefaultMotionState(bt_transform));
+    internal_data->motion_state = MakeUnique<btDefaultMotionState>(bt_transform);
 
     btRigidBody::btRigidBodyConstructionInfo construction_info(
         rigid_body->GetPhysicsMaterial().GetMass(),
@@ -185,7 +184,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody> &rigid_body)
         local_inertia
     );
 
-    internal_data->rigid_body.Reset(new btRigidBody(construction_info));
+    internal_data->rigid_body = MakeUnique<btRigidBody>(construction_info);
     internal_data->rigid_body->setActivationState(DISABLE_DEACTIVATION);// TEMP
     internal_data->rigid_body->setWorldTransform(bt_transform);
 

@@ -78,7 +78,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
     RC<AppContext> app_context;
 
 #ifdef HYP_SDL
-    app_context.Reset(new SDLAppContext("Hyperion", arguments));
+    app_context = MakeRefCountedPtr<SDLAppContext>("Hyperion", arguments);
 #else
     #error "No AppContext implementation for this platform!"
 #endif

@@ -24,7 +24,7 @@ namespace hyperion {
 
 RTCServer::RTCServer(RTCServerParams params)
     : m_params(std::move(params)),
-      m_thread(new RTCServerThread())
+      m_thread(MakeUnique<RTCServerThread>())
 {
 }
 
@@ -115,7 +115,7 @@ void LibDataChannelRTCServer::Start()
 
     AssertThrowMsg(m_websocket == nullptr, "LibDataChannelRTCServer::Start() called, but m_websocket is not nullptr!");
 
-    m_websocket.Reset(new rtc::WebSocket());
+    m_websocket.Emplace();
 
     m_thread->Start(this);
     m_thread->GetSchedulerInstance()->Enqueue([this]()

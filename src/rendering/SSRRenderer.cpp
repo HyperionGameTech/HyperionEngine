@@ -191,7 +191,7 @@ void SSRRenderer::Create()
     CreateUniformBuffers();
 
     if (use_temporal_blending) {
-        m_temporal_blending.Reset(new TemporalBlending(
+        m_temporal_blending = MakeUnique<TemporalBlending>(
             m_extent,
             InternalFormat::RGBA8,
             TemporalBlendTechnique::TECHNIQUE_1,
@@ -200,7 +200,7 @@ void SSRRenderer::Create()
                 m_image_outputs[1]->GetImageView(),
                 m_image_outputs[1]->GetImageView()
             }
-        ));
+        );
 
         m_temporal_blending->Create();
     }

@@ -248,8 +248,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
 
-        HYP_DEFER([this]()
-        {
+        HYP_DEFER({
             SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
 
             SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
@@ -311,8 +310,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, true);
 
-        HYP_DEFER([this]()
-        {
+        HYP_DEFER({
             SetUpdatesLocked(UIObjectUpdateType::UPDATE_SIZE, false);
 
             SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);

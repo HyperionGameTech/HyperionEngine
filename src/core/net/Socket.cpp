@@ -64,7 +64,7 @@ bool SocketServer::Start()
         return false;
     }
 
-    m_impl.Reset(new SocketServerImpl);
+    m_impl = MakeUnique<SocketServerImpl>();
 
 #ifdef HYP_UNIX
     m_impl->socket_id = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -126,7 +126,7 @@ bool SocketServer::Start()
 
     TriggerProc(NAME("OnServerStarted"), { });
 
-    m_thread.Reset(new SocketServerThread(m_name));
+    m_thread = MakeUnique<SocketServerThread>(m_name);
     m_thread->Start(this);
 
     return true;

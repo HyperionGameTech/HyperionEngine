@@ -357,7 +357,7 @@ public:
                     return;
                 }
 
-                (*allotted_container).Reset(new ObjectContainer<T>());
+                (*allotted_container) = MakeUnique<ObjectContainer<T>>();
             }
 
             ObjectContainerDeclaration(const ObjectContainerDeclaration &)                  = delete;

@@ -197,7 +197,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     TaskSystem::GetInstance().Start();
 
     AssertThrow(m_instance == nullptr);
-    m_instance.Reset(new Instance());
+    m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
     constexpr bool use_debug_layers = true;
@@ -221,22 +221,22 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         HYP_BREAKPOINT;
     }
 
-    m_render_data.Reset(new ShaderGlobals());
+    m_render_data = MakeUnique<ShaderGlobals>();
     m_render_data->Create();
 
-    m_placeholder_data.Reset(new PlaceholderData());
+    m_placeholder_data = MakeUnique<PlaceholderData>();
     m_placeholder_data->Create();
 
     // Create script compilation service
-    m_scripting_service.Reset(new ScriptingService(
+    m_scripting_service = MakeUnique<ScriptingService>(
         g_asset_manager->GetBasePath() / "scripts" / "src",
         g_asset_manager->GetBasePath() / "scripts" / "projects",
         g_asset_manager->GetBasePath() / "scripts" / "bin"
-    ));
+    );
 
     m_scripting_service->Start();
 
-    m_net_request_thread.Reset(new net::NetRequestThread);
+    m_net_request_thread = MakeUnique<net::NetRequestThread>();
     m_net_request_thread->Start();
 
     // must start after net request thread
@@ -344,13 +344,13 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
-    m_deferred_renderer.Reset(new DeferredRenderer);
+    m_deferred_renderer = MakeUnique<DeferredRenderer>();
     m_deferred_renderer->Create();
 
-    m_final_pass.Reset(new FinalPass);
+    m_final_pass = MakeUnique<FinalPass>();
     m_final_pass->Create();
 
-    m_debug_drawer.Reset(new DebugDrawer);
+    m_debug_drawer = MakeUnique<DebugDrawer>();
     m_debug_drawer->Create();
 
     m_world = CreateObject<World>();
@@ -478,7 +478,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
         m_deferred_renderer->Resize(GetGPUInstance()->GetSwapchain()->extent);
 
-        m_final_pass.Reset(new FinalPass);
+        m_final_pass = MakeUnique<FinalPass>();
         m_final_pass->Create();
 
         // HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));

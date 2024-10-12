@@ -127,7 +127,7 @@ public:
 
         m_functor_factories.Set<Loader>([](const String &key, const String &path, AssetBatchCallbacks *callbacks_ptr) -> UniquePtr<ProcessAssetFunctorBase>
         {
-            return UniquePtr<ProcessAssetFunctorBase>(new ProcessAssetFunctor<ResultType>(key, path, callbacks_ptr));
+            return MakeUnique<ProcessAssetFunctor<ResultType>>(key, path, callbacks_ptr);
         });
     }
 

@@ -45,11 +45,11 @@ struct FBOMStaticData
 {
     enum Type
     {
-        FBOM_STATIC_DATA_NONE = 0x00,
-        FBOM_STATIC_DATA_OBJECT = 0x01,
-        FBOM_STATIC_DATA_TYPE = 0x02,
-        FBOM_STATIC_DATA_DATA = 0x04,
-        FBOM_STATIC_DATA_ARRAY = 0x08,
+        FBOM_STATIC_DATA_NONE       = 0x00,
+        FBOM_STATIC_DATA_OBJECT     = 0x01,
+        FBOM_STATIC_DATA_TYPE       = 0x02,
+        FBOM_STATIC_DATA_DATA       = 0x04,
+        FBOM_STATIC_DATA_ARRAY      = 0x08,
         FBOM_STATIC_DATA_NAME_TABLE = 0x10
     } type;
 
@@ -66,7 +66,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMObject &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_OBJECT),
-          data(new FBOMObject(value)),
+          data(MakeUnique<FBOMObject>(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -74,7 +74,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMType &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
-          data(new FBOMType(value)),
+          data(MakeUnique<FBOMType>(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -82,7 +82,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMData &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
-          data(new FBOMData(value)),
+          data(MakeUnique<FBOMData>(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -90,7 +90,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMArray &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_ARRAY),
-          data(new FBOMArray(value)),
+          data(MakeUnique<FBOMArray>(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -98,7 +98,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(const FBOMNameTable &value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_NAME_TABLE),
-          data(new FBOMNameTable(value)),
+          data(MakeUnique<FBOMNameTable>(value)),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -106,7 +106,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(FBOMObject &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
-          data(new FBOMObject(std::move(value))),
+          data(MakeUnique<FBOMObject>(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -114,7 +114,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(FBOMType &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
-          data(new FBOMType(std::move(value))),
+          data(MakeUnique<FBOMType>(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -122,7 +122,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(FBOMData &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
-          data(new FBOMData(std::move(value))),
+          data(MakeUnique<FBOMData>(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -130,7 +130,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(FBOMArray &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_ARRAY),
-          data(new FBOMArray(std::move(value))),
+          data(MakeUnique<FBOMArray>(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -138,7 +138,7 @@ struct FBOMStaticData
 
     explicit FBOMStaticData(FBOMNameTable &&value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_NAME_TABLE),
-          data(new FBOMNameTable(std::move(value))),
+          data(MakeUnique<FBOMNameTable>(std::move(value))),
           offset(offset),
           flags(FBOMStaticDataFlags::NONE)
     {
@@ -161,6 +161,10 @@ struct FBOMStaticData
 
     FBOMStaticData &operator=(FBOMStaticData &&other) noexcept
     {
+        if (this == &other) {
+            return *this;
+        }
+
         type = other.type;
         data = std::move(other.data);
         offset = other.offset;

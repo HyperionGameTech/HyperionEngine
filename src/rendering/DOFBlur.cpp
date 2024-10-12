@@ -18,33 +18,33 @@ void DOFBlur::Create()
     ShaderRef blur_horizontal_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_HORIZONTAL" }));
     AssertThrow(blur_horizontal_shader.IsValid());
 
-    m_blur_horizontal_pass.Reset(new FullScreenPass(
+    m_blur_horizontal_pass = MakeUnique<FullScreenPass>(
         blur_horizontal_shader,
         InternalFormat::RGB8_SRGB,
         m_extent
-    ));
+    );
 
     m_blur_horizontal_pass->Create();
 
     ShaderRef blur_vertical_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ "DIRECTION_VERTICAL" }));
     AssertThrow(blur_vertical_shader.IsValid());
 
-    m_blur_vertical_pass.Reset(new FullScreenPass(
+    m_blur_vertical_pass = MakeUnique<FullScreenPass>(
         blur_vertical_shader,
         InternalFormat::RGB8_SRGB,
         m_extent
-    ));
+    );
 
     m_blur_vertical_pass->Create();
 
     ShaderRef blur_mix_shader = ShaderManagerSystem::GetInstance()->GetOrCreate(NAME("DOFBlurMix"));
     AssertThrow(blur_mix_shader.IsValid());
 
-    m_blur_mix_pass.Reset(new FullScreenPass(
+    m_blur_mix_pass = MakeUnique<FullScreenPass>(
         blur_mix_shader,
         InternalFormat::RGB8_SRGB,
         m_extent
-    ));
+    );
 
     m_blur_mix_pass->Create();
 }

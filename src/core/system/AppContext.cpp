@@ -171,8 +171,7 @@ SDLAppContext::~SDLAppContext()
 
 UniquePtr<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window_options)
 {
-    UniquePtr<SDLApplicationWindow> window;
-    window.Reset(new SDLApplicationWindow(window_options.title.Data(), window_options.size));
+    UniquePtr<SDLApplicationWindow> window = MakeUnique<SDLApplicationWindow>(window_options.title.Data(), window_options.size);
     window->Initialize(window_options);
 
     return window;
@@ -241,12 +240,12 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
         ArgParse::ParseResult parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
 
         if (parse_result) { 
-            new_arguments.Reset(new CommandLineArguments(CommandLineArguments::Merge(parse_result.result, arguments)));
+            new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(parse_result.result, arguments));
         }
     }
 
     if (!new_arguments) {
-        new_arguments.Reset(new CommandLineArguments(arguments));
+        new_arguments = MakeUnique<CommandLineArguments>(arguments);
     }
 
     m_arguments = std::move(new_arguments);

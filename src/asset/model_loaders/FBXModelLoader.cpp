@@ -460,7 +460,7 @@ static uint64 ReadFBXOffset(ByteReader &reader, FBXVersion version)
 
 static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out)
 {
-    out.Reset(new FBXObject);
+    out = MakeUnique<FBXObject>();
 
     uint64 end_position = ReadFBXOffset(reader, version);
     uint64 num_properties = ReadFBXOffset(reader, version);

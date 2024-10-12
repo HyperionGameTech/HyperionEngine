@@ -117,13 +117,13 @@ void HBAO::CreateTemporalBlending()
 {
     HYP_SCOPE;
 
-    m_temporal_blending.Reset(new TemporalBlending(
+    m_temporal_blending = MakeUnique<TemporalBlending>(
         GetFramebuffer()->GetExtent(),
         InternalFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
         TemporalBlendFeedback::LOW,
         GetFramebuffer()
-    ));
+    );
 
     m_temporal_blending->Create();
 }

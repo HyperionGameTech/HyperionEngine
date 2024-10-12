@@ -356,7 +356,7 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 } // namespace terrain
 
 TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : m_noise_combinator(new NoiseCombinator(0x123F/* TODO: seed */))
+    : m_noise_combinator(MakeUnique<NoiseCombinator>(0x123F/* TODO: seed */))
 {
     (*m_noise_combinator)
         .Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountain_height, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * global_terrain_noise_scale)
@@ -427,7 +427,7 @@ UniquePtr<WorldGridPatch> TerrainWorldGridPlugin::CreatePatch(const WorldGridPat
 
     InitObject(mesh);
 
-    return UniquePtr<WorldGridPatch>(new TerrainWorldGridPatch(patch_info, mesh, m_material));
+    return MakeUnique<TerrainWorldGridPatch>(patch_info, mesh, m_material);
 }
 
 } // namespace hyperion

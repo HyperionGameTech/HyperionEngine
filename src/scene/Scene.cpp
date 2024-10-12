@@ -115,7 +115,7 @@ Scene::Scene(
     m_flags(flags),
     m_camera(std::move(camera)),
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", ID<Entity>::invalid, Transform::identity, this)),
-    m_environment(new RenderEnvironment(this)),
+    m_environment(MakeUnique<RenderEnvironment>(this)),
     m_world(nullptr),
     m_is_non_world_scene(flags & SceneFlags::NON_WORLD),
     m_is_audio_listener(false),
