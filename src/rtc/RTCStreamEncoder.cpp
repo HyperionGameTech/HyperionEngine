@@ -462,12 +462,12 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
 
 #ifdef HYP_GSTREAMER
 NullRTCStream::NullRTCStream(RTCStreamType stream_type)
-    : RTCStream(RTC_STREAM_TYPE_VIDEO, UniquePtr<RTCStreamEncoder>(new GStreamerRTCStreamVideoEncoder()))
+    : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<GStreamerRTCStreamVideoEncoder>())
 {
 }
 #else
 NullRTCStream::NullRTCStream(RTCStreamType stream_type)
-    : RTCStream(RTC_STREAM_TYPE_VIDEO, UniquePtr<RTCStreamEncoder>(new NullRTCStreamVideoEncoder()))
+    : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<NullRTCStreamVideoEncoder>())
 {
 }
 #endif // HYP_GSTREAMER
@@ -476,12 +476,12 @@ NullRTCStream::NullRTCStream(RTCStreamType stream_type)
 
 #ifdef HYP_GSTREAMER
 LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type)
-    : RTCStream(RTC_STREAM_TYPE_VIDEO, UniquePtr<RTCStreamEncoder>(new GStreamerRTCStreamVideoEncoder()))
+    : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<GStreamerRTCStreamVideoEncoder>())
 {
 }
 #else
 LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type)
-    : RTCStream(RTC_STREAM_TYPE_VIDEO, UniquePtr<RTCStreamEncoder>(new NullRTCStreamVideoEncoder()))
+    : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<NullRTCStreamVideoEncoder>())
 {
 }
 #endif // HYP_GSTREAMER

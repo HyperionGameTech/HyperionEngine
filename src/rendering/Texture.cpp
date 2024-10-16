@@ -317,12 +317,12 @@ public:
             m_mip_image_views[mip_level] = std::move(mip_image_view);
 
             {
-                RC<FullScreenPass> pass(new FullScreenPass(
+                RC<FullScreenPass> pass = MakeRefCountedPtr<FullScreenPass>(
                     shader,
                     descriptor_table,
                     m_image->GetTextureFormat(),
                     Extent2D { mip_width, mip_height }
-                ));
+                );
 
                 pass->Create();
 
@@ -538,10 +538,10 @@ void Texture::Readback() const
     const SizeType real = result_byte_buffer.Size();
     AssertThrowMsg(expected == real, "Failed to readback texture: expected size: %llu, got %llu", expected, real);
 
-    RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+    RC<StreamedTextureData> streamed_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
         GetTextureDesc(),
         std::move(result_byte_buffer)
-    }));
+    });
 
     m_image->SetStreamedData(streamed_data);
 }

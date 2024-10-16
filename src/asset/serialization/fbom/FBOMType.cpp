@@ -302,7 +302,7 @@ FBOMEncodedType::FBOMEncodedType(const FBOMType &type)
 
 FBOMType FBOMEncodedType::Decode() const
 {
-    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(buffer.ToByteView())));
+    BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(buffer.ToByteView()));
 
     return DecodeEncodedType(*this, reader, index_table.ToSpan());
 }

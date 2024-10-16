@@ -80,7 +80,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         * SizeType(data.height)
         * SizeType(data.num_components);
 
-    RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+    RC<StreamedTextureData> streamed_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             data.format,
@@ -90,7 +90,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
             WrapMode::TEXTURE_WRAP_REPEAT
         },
         ByteBuffer(image_bytes_count, image_bytes)
-    }));
+    });
 
     Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_data));
 

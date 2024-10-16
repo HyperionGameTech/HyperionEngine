@@ -62,7 +62,7 @@ Octree::Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb,
       m_parent(nullptr),
       m_is_divided(false),
       m_state(nullptr),
-      m_visibility_state(new VisibilityState { }),
+      m_visibility_state(MakeRefCountedPtr<VisibilityState>()),
       m_octant_id(index, OctantID::Invalid()),
       m_invalidation_marker(0)
 {

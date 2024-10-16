@@ -91,7 +91,7 @@ FBOMResult FBOMData::ReadObject(FBOMObject &out_object) const
         return { FBOMResult::FBOM_ERR, "Not an object" };
     }
 
-    BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
+    BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(bytes.ToByteView()));
     
     FBOMReader deserializer(FBOMReaderConfig { });
 
@@ -155,7 +155,7 @@ FBOMResult FBOMData::ReadArray(FBOMArray &out_array) const
         return { FBOMResult::FBOM_ERR, "Not an array" };
     }
 
-    BufferedReader byte_reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(bytes.ToByteView())));
+    BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(bytes.ToByteView()));
     
     FBOMReader deserializer { FBOMReaderConfig { } };
     return deserializer.ReadArray(&byte_reader, out_array);

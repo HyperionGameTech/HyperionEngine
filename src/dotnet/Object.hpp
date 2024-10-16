@@ -101,7 +101,7 @@ private:
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod_Internal(const ManagedMethod *method_ptr, Args... args)
     {
-        static_assert(std::is_void_v<ReturnType> || std::is_trivial_v<ReturnType>, "Return type must be trivial to be used in interop");
+        static_assert(std::is_void_v<ReturnType> || std::is_trivially_copyable_v<ReturnType>, "Return type must be trivially copyable to be used in interop");
         static_assert(std::is_void_v<ReturnType> || std::is_object_v<ReturnType>, "Return type must be either a value type or a pointer type to be used in interop (no references)");
 
         if constexpr (sizeof...(args) != 0) {

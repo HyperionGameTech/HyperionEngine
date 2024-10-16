@@ -635,8 +635,9 @@ public:
 
     /*! \brief Gets the relevant script component for this UIObject, if one exists.
      *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
+     *  \param deep If set to true, will find the closest parent ScriptComponent if none is attached to this UIObject.
      *  \return A pointer to a ScriptComponent for this UIObject or any of its parents, or nullptr if none exists. */
-    ScriptComponent *GetScriptComponent() const;
+    ScriptComponent *GetScriptComponent(bool deep = false) const;
 
     /*! \brief Sets the script component for this UIObject.
      *  Adds the ScriptComponent directly to the UIObject. If the UIObject already has a ScriptComponent, it will be replaced.
@@ -755,6 +756,9 @@ public:
     void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, const RC<UIObject> &> proc, bool deep = true) const;
 
     // Events
+    Delegate<UIEventHandlerResult>                          OnInit;
+    Delegate<UIEventHandlerResult>                          OnAttached;
+    Delegate<UIEventHandlerResult>                          OnRemoved;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseUp;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDrag;

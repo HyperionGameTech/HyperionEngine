@@ -201,7 +201,7 @@ bool SocketServer::PollForConnections(Array<RC<SocketClient>> &out_connections)
             continue;
         }
 
-        out_connections.PushBack(RC<SocketClient>(new SocketClient(client_name, SocketID { new_socket })));
+        out_connections.PushBack(MakeRefCountedPtr<SocketClient>(client_name, SocketID { new_socket }));
     }
 
     return true;    

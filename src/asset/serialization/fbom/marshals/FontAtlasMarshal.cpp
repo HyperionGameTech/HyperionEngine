@@ -210,7 +210,7 @@ public:
             return err;
         }
 
-        RC<FontAtlas> result(new FontAtlas(atlas_textures, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list)));
+        RC<FontAtlas> result = MakeRefCountedPtr<FontAtlas>(atlas_textures, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list));
 
         out = HypData(std::move(result));
 

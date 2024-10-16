@@ -28,14 +28,14 @@ Handle<Texture> GlyphImageData::CreateTexture() const
 {
     AssertThrow(byte_buffer.Size() == dimensions.Size());
 
-    RC<StreamedTextureData> streamed_texture_data(new StreamedTextureData(TextureData {
+    RC<StreamedTextureData> streamed_texture_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::R8,
             Vec3u { dimensions.width, dimensions.height, 1 }
         },
         byte_buffer
-    }));
+    });
 
     Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_texture_data));
     InitObject(texture);

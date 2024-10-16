@@ -121,7 +121,7 @@ private:
     }
 
 public:
-    constexpr StringView()
+    constexpr StringView() noexcept
         : m_begin(nullptr),
           m_end(nullptr),
           m_length(0)
@@ -187,31 +187,33 @@ public:
     {
     }
 
-    constexpr StringView(const StringView &other)   = default;
-    StringView &operator=(const StringView &other)  = default;
+    constexpr StringView(const StringView &other) noexcept              = default;
+    constexpr StringView &operator=(const StringView &other) noexcept   = default;
+    constexpr StringView(StringView &&other) noexcept                   = default;
+    constexpr StringView &operator=(StringView &&other) noexcept        = default;
 
-    constexpr StringView(StringView &&other) noexcept
-        : m_begin(other.m_begin),
-          m_end(other.m_end),
-          m_length(other.m_length)
-    {
-        other.m_begin = nullptr;
-        other.m_end = nullptr;
-        other.m_length = 0;
-    }
+    // constexpr StringView(StringView &&other) noexcept
+    //     : m_begin(other.m_begin),
+    //       m_end(other.m_end),
+    //       m_length(other.m_length)
+    // {
+    //     other.m_begin = nullptr;
+    //     other.m_end = nullptr;
+    //     other.m_length = 0;
+    // }
 
-    StringView &operator=(StringView &&other) noexcept
-    {
-        m_begin = other.m_begin;
-        m_end = other.m_end;
-        m_length = other.m_length;
+    // StringView &operator=(StringView &&other) noexcept
+    // {
+    //     m_begin = other.m_begin;
+    //     m_end = other.m_end;
+    //     m_length = other.m_length;
 
-        other.m_begin = nullptr;
-        other.m_end = nullptr;
-        other.m_length = 0;
+    //     other.m_begin = nullptr;
+    //     other.m_end = nullptr;
+    //     other.m_length = 0;
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
     constexpr ~StringView() = default;
 

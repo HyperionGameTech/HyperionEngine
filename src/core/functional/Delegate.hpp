@@ -195,7 +195,7 @@ public:
 
     HYP_FORCE_INLINE DelegateHandlerSet &Add(const DelegateHandler &delegate_handler)
     {
-        m_delegate_handlers.Insert({ Name::Unique(), delegate_handler });
+        m_delegate_handlers.Insert({ Name::Unique("DelegateHandler_"), delegate_handler });
         return *this;
     }
 
@@ -247,12 +247,16 @@ private:
     FlatMap<Name, DelegateHandler>  m_delegate_handlers;
 };
 
-template <class ReturnType>
-class DelegateBase
+class IDelegate
 {
 public:
-    DelegateBase()          = default;
-    virtual ~DelegateBase() = default;
+    virtual ~IDelegate() = default;
+
+    virtual bool AnyBound() const = 0;
+
+    virtual bool Remove(uint32 id) = 0;
+    virtual bool Remove(const DelegateHandler &handler) = 0;
+    virtual int RemoveAll(bool thread_safe = true) = 0;
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
@@ -261,14 +265,15 @@ public:
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class... Args>
-class Delegate : public DelegateBase<ReturnType>
+class Delegate final : public IDelegate
 {
     using ProcType = Proc<ReturnType, Args...>;
 
 public:
     Delegate()
+        : m_id_counter(0)
 #ifdef HYP_DELEGATE_THREAD_SAFE
-        : m_num_procs(0)
+        , m_num_procs(0)
 #endif
     {
     }
@@ -282,8 +287,9 @@ public:
           m_num_procs(other.m_num_procs.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
 #endif
           m_detached_handlers(std::move(other.m_detached_handlers)),
-          m_id_generator(std::move(other.m_id_generator))
+          m_id_counter(other.m_id_counter)
     {
+        other.m_id_counter = 0;
     }
 
     Delegate &operator=(Delegate &&other) noexcept  = delete;
@@ -293,7 +299,13 @@ public:
         m_detached_handlers.Clear();
     }
 
-    HYP_FORCE_INLINE bool AnyBound() const
+    HYP_FORCE_INLINE bool operator!() const
+        { return !AnyBound(); }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return AnyBound(); }
+
+    virtual bool AnyBound() const override
     {
 #ifdef HYP_DELEGATE_THREAD_SAFE
         return m_num_procs.Get(MemoryOrder::ACQUIRE) != 0;
@@ -310,13 +322,13 @@ public:
      * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     DelegateHandler Bind(ProcType &&proc)
     {
-        const uint32 id = m_id_generator.NextID();
-
 #ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
 #endif
 
-        m_procs.Insert({ id, RC<ProcType>::Construct(std::move(proc)) });
+        const uint32 id = m_id_counter++;
+
+        m_procs.Insert({ id, MakeRefCountedPtr<ProcType>(std::move(proc)) });
 
 #ifdef HYP_DELEGATE_THREAD_SAFE
         m_num_procs.Increment(1, MemoryOrder::RELEASE);
@@ -328,7 +340,7 @@ public:
     /*! \brief Remove all bound handlers from the Delegate.
      *  \param thread_safe If true, locks mutex before performing any critical operations to the delegate.
      *  \return The number of handlers removed. */
-    int RemoveAll(bool thread_safe = true)
+    virtual int RemoveAll(bool thread_safe = true) override
     {
         const auto ResetImpl = [this]() -> int
         {
@@ -336,7 +348,7 @@ public:
 
             m_procs.Clear();
 
-            m_id_generator.Reset();
+            m_id_counter = 0;
 
             return int(num_removed);
         };
@@ -363,7 +375,7 @@ public:
     /*! \brief Remove a DelegateHandler from the Delegate
      *  \param handler The DelegateHandler to remove
      *  \return True if the DelegateHandler was removed, false otherwise. */
-    bool Remove(const DelegateHandler &handler)
+    virtual bool Remove(const DelegateHandler &handler) override
     {
         if (!handler.IsValid()) {
             return false;
@@ -385,7 +397,7 @@ public:
      *
      * \param id The ID of the handler to remove.
      * \return True if the handler was removed, false otherwise. */
-    bool Remove(uint32 id)
+    virtual bool Remove(uint32 id) override
     {
 //         { // remove from detached handlers
 // #ifdef HYP_DELEGATE_THREAD_SAFE
@@ -417,18 +429,16 @@ public:
 #ifdef HYP_DELEGATE_THREAD_SAFE
             m_num_procs.Decrement(1, MemoryOrder::RELEASE);
 #endif
-
-            m_id_generator.FreeID(id);
         }
 
         return true;
     }
 
-    /*! \brief Broadcast a message to all bound handlers. Returns the first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound.
+    /*! \brief Broadcast a message to all bound handlers.
      *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
     template <class... ArgTypes>
     ReturnType Broadcast(ArgTypes &&... args)
     {
@@ -464,16 +474,18 @@ public:
         const auto begin = procs_array.Begin();
         const auto end = procs_array.End();
 
-        for (auto it = begin; it != end; ++it) {
+        for (auto it = begin; it != end;) {
             if constexpr (!std::is_void_v<ReturnType>) {
-                if (it == begin) {
-                    result_storage.Construct((**it)(args...));
-
-                    continue;
+                auto current = it;
+                ++it;
+                
+                if (it == end) {
+                    result_storage.Construct((**current)(args...));
                 }
+            } else {
+                (**it)(args...);
+                ++it;
             }
-
-            (**it)(args...);
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {
@@ -481,16 +493,19 @@ public:
         }
     }
 
-    /*! \brief Call operator overload - alias method for Broadcast(). Returns the first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound.
+    /*! \brief Call operator overload - alias method for Broadcast().
      *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
-     *  \return The first result of the handlers, or a default constructed \ref{ReturnType} if no handlers were bound. */
+     *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
     template <class... ArgTypes>
     HYP_FORCE_INLINE ReturnType operator()(ArgTypes &&... args) const
         { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
 private:
+    HYP_FORCE_INLINE uint32 NextID()
+        { return m_id_counter++; }
+
     static void RemoveDelegateHandlerCallback(void *delegate, uint32 id)
     {
         Delegate *delegate_casted = static_cast<Delegate *>(delegate);
@@ -532,15 +547,15 @@ private:
     Mutex                           m_mutex;
 #endif
 
+    uint32                          m_id_counter;
+
     Array<DelegateHandler>          m_detached_handlers;
     Mutex                           m_detached_handlers_mutex;
-
-    IDGenerator                     m_id_generator;
 };
 } // namespace functional
 
+using functional::IDelegate;
 using functional::Delegate;
-using functional::DelegateBase;
 using functional::DelegateHandler;
 using functional::DelegateHandlerSet;
 

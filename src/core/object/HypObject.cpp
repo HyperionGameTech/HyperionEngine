@@ -175,7 +175,6 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
         IHypObjectInitializer *current_initializer = initializer;
 
         do {
-            HYP_LOG(Object, LogLevel::DEBUG, "Set managed object to {} for instance of HypClass {}", (void*)managed_object_ptr, current_initializer->GetClass()->GetName());
             current_initializer->SetManagedObject(managed_object_ptr);
 
             dotnet::ObjectReference tmp;

@@ -61,7 +61,7 @@ void WebSocketThread::operator()(WebSocket *websocket)
 
 WebSocket::WebSocket(const String &url)
     : m_url(url),
-      m_thread(new WebSocketThread)
+      m_thread(MakeUnique<WebSocketThread>())
 {
 #if defined(HYP_CURL) && HYP_CURL
     m_thread->Start(this);

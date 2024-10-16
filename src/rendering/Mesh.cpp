@@ -227,7 +227,7 @@ Mesh::Mesh(
         .vertex_attributes = vertex_attributes,
         .topology = topology
     },
-    m_streamed_mesh_data(RC<StreamedMeshData>::Construct(MeshData {
+    m_streamed_mesh_data(MakeRefCountedPtr<StreamedMeshData>(MeshData {
         std::move(vertices),
         std::move(indices)
     })),

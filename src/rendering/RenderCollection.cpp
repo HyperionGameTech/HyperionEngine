@@ -418,7 +418,7 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 
 RenderList::RenderList()
     : m_render_environment(nullptr),
-      m_draw_collection(new EntityDrawCollection())
+      m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>())
 {
 }
 

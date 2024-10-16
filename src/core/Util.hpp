@@ -297,6 +297,8 @@ HYP_FORCE_INLINE void Swap(T &a, T &b)
     b = TryMove(temp);
 }
 
+#pragma region Algorithms
+
 template <class IteratorType, class ValueType>
 HYP_FORCE_INLINE IteratorType Find(IteratorType _begin, IteratorType _end, ValueType &&value)
 {
@@ -320,6 +322,26 @@ HYP_FORCE_INLINE IteratorType FindIf(IteratorType _begin, IteratorType _end, Pre
 
     return _end;
 }
+
+#pragma endregion Algorithms
+
+#pragma region StaticMessage
+
+template <auto StaticString>
+struct StaticMessage
+{
+    static constexpr auto value = StaticString;
+};
+
+template <auto StaticString>
+constexpr HYP_FORCE_INLINE StaticMessage<StaticString> MakeStaticMessage()
+{
+    return StaticMessage<StaticString> { };
+}
+
+#define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str)>()
+
+#pragma endregion StaticMessage
 
 } // namespace hyperion
 

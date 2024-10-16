@@ -52,7 +52,7 @@ NullRTCClient::NullRTCClient(String id, RTCServer *server)
 
 RC<RTCDataChannel> NullRTCClient::CreateDataChannel(Name name)
 {
-    auto data_channel = RC<RTCDataChannel>(new NullRTCDataChannel());
+    RC<NullRTCDataChannel> data_channel = MakeRefCountedPtr<NullRTCDataChannel>();
 
     m_data_channels.Insert(name, data_channel);
 

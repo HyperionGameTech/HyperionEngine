@@ -245,7 +245,7 @@ ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
 
         HYP_LOG(Shader, LogLevel::DEBUG, "Creating shader '{}'", definition.GetName());
 
-        shader = MakeRenderObject<Shader>(RC<CompiledShader>(new CompiledShader(std::move(compiled_shader))));
+        shader = MakeRenderObject<Shader>(MakeRefCountedPtr<CompiledShader>(std::move(compiled_shader)));
 
         HYP_LOG(Shader, LogLevel::DEBUG, "Shader '{}' created", definition.GetName());
 

@@ -120,7 +120,7 @@ void FBOMWriteStream::AddToObjectLibrary(FBOMObject &object)
 #pragma region FBOMWriter
 
 FBOMWriter::FBOMWriter(const FBOMWriterConfig &config)
-    : FBOMWriter(config, RC<FBOMWriteStream>(new FBOMWriteStream()))
+    : FBOMWriter(config, MakeRefCountedPtr<FBOMWriteStream>())
 {
 }
 

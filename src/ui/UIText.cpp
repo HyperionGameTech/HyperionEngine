@@ -626,7 +626,7 @@ struct RENDER_COMMAND(RepaintUIText) : renderer::RenderCommand
 
 UIText::UIText(UIStage *parent, NodeProxy node_proxy)
     : UIObject(parent, std::move(node_proxy), UIObjectType::TEXT),
-      m_render_data(new UITextRenderData)
+      m_render_data(MakeRefCountedPtr<UITextRenderData>())
 {
     m_text_color = Color(Vec4f::One());
 

@@ -163,7 +163,7 @@ public:
         AssertThrow(GetNode().IsValid());
 
         if (!name.IsValid()) {
-            name = NAME("Unnamed_UIObject");
+            name = CreateNameFromDynamicString(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
         NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
@@ -187,7 +187,7 @@ public:
         return result;
     }
 
-    EnumFlags<UIEventHandlerResult> OnInputEvent(
+    UIEventHandlerResult OnInputEvent(
         InputManager *input_manager,
         const SystemEvent &event
     );
@@ -238,7 +238,7 @@ private:
 
         RC<UIObject> ui_object = MakeRefCountedPtr<T>(this, node_proxy);
         AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
-        
+
         ui_object->SetName(name);
 
         node_proxy->GetScene()->GetEntityManager()->AddComponent<UIComponent>(entity, UIComponent { ui_object });

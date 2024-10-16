@@ -26,11 +26,75 @@ namespace Hyperion
         Window = 17
     }
 
-    public enum UIEventHandlerResult : uint
+    [StructLayout(LayoutKind.Explicit, Size=16, Pack=8)]
+    public struct UIEventHandlerResult
     {
-        Error = 0x1u << 31,
-        Ok = 0x0,
-        StopBubbling = 0x1
+        public static readonly UIEventHandlerResult Error = new UIEventHandlerResult(0x1u << 31);
+        public static readonly UIEventHandlerResult Ok = new UIEventHandlerResult(0x0);
+        public static readonly UIEventHandlerResult StopBubbling = new UIEventHandlerResult(0x1);
+
+        [FieldOffset(0)]
+        private uint code;
+
+        [FieldOffset(8)]
+        private IntPtr message;
+
+        public UIEventHandlerResult(uint code)
+        {
+            this.code = code;
+            this.message = IntPtr.Zero;
+        }
+
+        public uint Code
+        {
+            get
+            {
+                return code;
+            }
+        }
+
+        public string Message
+        {
+            get
+            {
+                return Marshal.PtrToStringAnsi(message);
+            }
+        }
+
+        public static bool operator ==(UIEventHandlerResult a, UIEventHandlerResult b)
+        {
+            return a.code == b.code;
+        }
+
+        public static bool operator !=(UIEventHandlerResult a, UIEventHandlerResult b)
+        {
+            return a.code != b.code;
+        }
+
+        public static UIEventHandlerResult operator |(UIEventHandlerResult a, UIEventHandlerResult b)
+        {
+            return new UIEventHandlerResult(a.code | b.code);
+        }
+
+        public static UIEventHandlerResult operator &(UIEventHandlerResult a, UIEventHandlerResult b)
+        {
+            return new UIEventHandlerResult(a.code & b.code);
+        }
+
+        public static UIEventHandlerResult operator ~(UIEventHandlerResult a)
+        {
+            return new UIEventHandlerResult(~a.code);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is UIEventHandlerResult)
+            {
+                return this == (UIEventHandlerResult)obj;
+            }
+
+            return false;
+        }
     }
 
     public enum UIObjectAlignment : uint

@@ -203,7 +203,7 @@ LoadedAsset PLYModelLoader::BuildModel(LoaderState &state, PLYModel &model)
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    RC<PLYModel> ply_model_ptr(new PLYModel(model));
+    RC<PLYModel> ply_model_ptr = MakeRefCountedPtr<PLYModel>(model);
 
     return { { LoaderResult::Status::OK }, ply_model_ptr };
 }

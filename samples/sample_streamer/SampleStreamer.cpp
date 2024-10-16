@@ -192,7 +192,7 @@ void SampleStreamer::Init()
     auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (font_face_asset.IsOK()) {
-        RC<FontAtlas> atlas(new FontAtlas(font_face_asset.Result()));
+        RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(font_face_asset.Result());
         atlas->Render();
 
         // atlas.RenderSync();
@@ -251,7 +251,7 @@ void SampleStreamer::Init()
     /*m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
         Vector3(0.0f, 7.0f, 0.0f), Vector3(0.0f, 0.0f, 5.0f)
     ));*/
-    m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
+    m_scene->GetCamera()->SetCameraController(MakeRefCountedPtr<FirstPersonCameraController>());
 
     if (false) {
         auto gun_asset = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
@@ -343,7 +343,7 @@ void SampleStreamer::Init()
         // add physics
         m_scene->GetEntityManager()->AddComponent<RigidBodyComponent>(entity_id, {
             CreateObject<physics::RigidBody>(
-                RC<physics::PhysicsShape>(new physics::BoxPhysicsShape(BoundingBox { Vec3f { -1.0f }, Vec3f { 1.0f } })),
+                MakeRefCountedPtr<physics::BoxPhysicsShape>(BoundingBox { Vec3f { -1.0f }, Vec3f { 1.0f } }),
                 physics::PhysicsMaterial {
                     .mass = 1.0f
                 }

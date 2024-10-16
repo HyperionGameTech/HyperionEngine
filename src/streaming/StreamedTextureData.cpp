@@ -123,7 +123,7 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
 {
     m_texture_data.Unset();
 
-    BufferedReader reader(RC<BufferedReaderSource>(new MemoryBufferedReaderSource(byte_buffer.ToByteView())));
+    BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(byte_buffer.ToByteView()));
 
     if (!reader.IsOpen()) {
         return;

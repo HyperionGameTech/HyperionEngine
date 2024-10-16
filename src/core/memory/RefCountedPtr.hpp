@@ -565,6 +565,18 @@ class RefCountedPtr : public RefCountedPtrBase<CountType>
 protected:
     using Base = RefCountedPtrBase<CountType>;
 
+    /*! \brief Takes ownership of ptr. Do not delete the pointer passed to this,
+        as it will be automatically deleted when this object's ref count reaches zero. */
+    template <class Ty>
+    explicit RefCountedPtr(Ty *ptr)
+        : Base()
+    {
+        using TyN = NormalizedType<Ty>;
+        static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
+
+        Base::template Reset<Ty>(ptr);
+    }
+
 public:
     template <class... Args>
     static RefCountedPtr Construct(Args &&... args)
@@ -590,18 +602,6 @@ public:
     RefCountedPtr(std::nullptr_t)
         : Base()
     {
-    }
-
-    /*! \brief Takes ownership of ptr. Do not delete the pointer passed to this,
-        as it will be automatically deleted when this object's ref count reaches zero. */
-    template <class Ty>
-    explicit RefCountedPtr(Ty *ptr)
-        : Base()
-    {
-        using TyN = NormalizedType<Ty>;
-        static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
-
-        Base::template Reset<Ty>(ptr);
     }
     
     // delete parent constructors

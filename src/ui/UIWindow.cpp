@@ -23,6 +23,7 @@ UIWindow::UIWindow(UIStage *parent, NodeProxy node_proxy)
     SetPadding(Vec2i::Zero());
     SetBackgroundColor(Vec4f { 0.2f, 0.2f, 0.2f, 1.0f });
     SetDepth(1000);
+    SetText("Window Title");
 }
 
 void UIWindow::Init()
@@ -46,14 +47,12 @@ void UIWindow::Init()
         title_bar_text->SetParentAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetOriginAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
-        title_bar_text->SetText("Window Title");
+        title_bar_text->SetText(GetText());
         m_title_bar->AddChildUIObject(title_bar_text);
 
         m_title_bar->OnMouseDown.Bind([this](const MouseEvent &event)
         {
-            m_mouse_drag_start.Set(event.absolute_position);
-
-            HYP_LOG(UI, LogLevel::INFO, "Mouse down on title bar at: {}", m_mouse_drag_start.Get());
+            m_mouse_drag_start = event.absolute_position;
 
             return UIEventHandlerResult::STOP_BUBBLING;
         }).Detach();
@@ -65,16 +64,14 @@ void UIWindow::Init()
             return UIEventHandlerResult::STOP_BUBBLING;
         }).Detach();
 
-        m_title_bar->OnMouseMove.Bind([this](const MouseEvent &event)
+        m_title_bar->OnMouseDrag.Bind([this](const MouseEvent &event)
         {
-            if (!m_mouse_drag_start.HasValue()) {
-                return UIEventHandlerResult::OK;
+            if (m_mouse_drag_start.HasValue()) {
+                Vec2i delta = event.absolute_position - *m_mouse_drag_start;
+                SetPosition(GetPosition() + delta);
+
+                m_mouse_drag_start = event.absolute_position;
             }
-
-            Vec2i delta = event.absolute_position - m_mouse_drag_start.Get();
-            SetPosition(GetPosition() + delta);
-
-            m_mouse_drag_start.Set(event.absolute_position);
 
             return UIEventHandlerResult::STOP_BUBBLING;
         }).Detach();
@@ -89,6 +86,17 @@ void UIWindow::Init()
     m_content->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
     m_content->SetPadding(Vec2i { 5, 5 });
     m_content->SetBackgroundColor(Vec4f::Zero()); // Transparent
+
+    OnMouseDown.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnMouseUp.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnMouseDrag.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnMouseHover.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnMouseLeave.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnScroll.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnClick.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnKeyDown.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    OnKeyUp.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
+    
     UIPanel::AddChildUIObject(m_content);
 }
 

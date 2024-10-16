@@ -85,15 +85,13 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
             // Read previous frame hits into CPU buffer
             if (previous_rays.Any()) {
                 // @NOTE Use heap allocation to avoid stack overflow (max_ray_hits_gpu * sizeof(LightmapHit) > 1MB)
-                LightmapHitsBuffer *hits_buffer(new LightmapHitsBuffer);
+                UniquePtr<LightmapHitsBuffer> hits_buffer = MakeUnique<LightmapHitsBuffer>();
 
-                path_tracer_radiance->ReadHitsBuffer(hits_buffer, frame_index);
+                path_tracer_radiance->ReadHitsBuffer(hits_buffer.Get(), frame_index);
                 job->IntegrateRayHits(previous_rays.Data(), hits_buffer->hits.Data(), previous_rays.Size(), LIGHTMAP_SHADING_TYPE_RADIANCE);
 
-                path_tracer_irradiance->ReadHitsBuffer(hits_buffer, frame_index);
+                path_tracer_irradiance->ReadHitsBuffer(hits_buffer.Get(), frame_index);
                 job->IntegrateRayHits(previous_rays.Data(), hits_buffer->hits.Data(), previous_rays.Size(), LIGHTMAP_SHADING_TYPE_IRRADIANCE);
-
-                delete hits_buffer;
             }
 
             ray_offset = job->GetTexelIndex() % MathUtil::Max(job->GetTexelIndices().Size(), 1u);
@@ -1317,7 +1315,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     FixedArray<Handle<Texture>, 2> textures;
 
     for (uint i = 0; i < 2; i++) {
-        RC<StreamedTextureData> streamed_data(new StreamedTextureData(TextureData {
+        RC<StreamedTextureData> streamed_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
             TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 InternalFormat::RGBA32F,
@@ -1327,7 +1325,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
                 WrapMode::TEXTURE_WRAP_REPEAT
             },
             bitmaps[i].ToByteBuffer()
-        }));
+        });
 
         Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_data));
         InitObject(texture);

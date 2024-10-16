@@ -78,6 +78,21 @@ static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClas
 #define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
     { \
         String(HYP_STR(name)).ToUpper(), \
+        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult> * \
+            { return &ui_object->name; } \
+    }
+
+static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult> *(UIObject *)> > g_get_delegate_functions {
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
+};
+
+#undef UI_OBJECT_GET_DELEGATE_FUNCTION
+
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
+    { \
+        String(HYP_STR(name)).ToUpper(), \
         [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, const MouseEvent &> * \
             { return &ui_object->name; } \
     }
@@ -480,12 +495,24 @@ public:
                 if (attribute_name_upper.StartsWith("ON")) {
                     bool found = false;
 
+                    const auto get_delegate_functions_it = g_get_delegate_functions.Find(attribute_name_upper);
+
+                    if (get_delegate_functions_it != g_get_delegate_functions.End()) {
+                        Delegate<UIEventHandlerResult> *delegate = get_delegate_functions_it->second(ui_object.Get());
+
+                        delegate->Bind(UIScriptDelegate< > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                    }
+
+                    if (found) {
+                        continue;
+                    }
+
                     const auto get_delegate_functions_mouse_it = g_get_delegate_functions_mouse.Find(attribute_name_upper);
 
                     if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End()) {
                         Delegate<UIEventHandlerResult, const MouseEvent &> *delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), attribute.second }).Detach();
+                        delegate->Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
 
                         found = true;
                     }
@@ -499,7 +526,7 @@ public:
                     if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End()) {
                         Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< const KeyboardEvent & > { ui_object.Get(), attribute.second }).Detach();
+                        delegate->Bind(UIScriptDelegate< const KeyboardEvent & > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
                     }
 
                     if (found) {
