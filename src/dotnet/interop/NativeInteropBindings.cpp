@@ -17,10 +17,14 @@
 #include <core/object/HypClass.hpp>
 
 #include <dotnet/Class.hpp>
+#include <dotnet/Object.hpp>
 #include <dotnet/Assembly.hpp>
-#include <dotnet/interop/ManagedMethod.hpp>
+#include <dotnet/Method.hpp>
+
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
+#include <dotnet/interop/ManagedAttribute.hpp>
+
 #include <dotnet/DotNetSystem.hpp>
 
 using namespace hyperion;
@@ -29,6 +33,30 @@ using namespace hyperion::dotnet;
 namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(DotNET);
 } // namespace hyperion
+
+static AttributeSet InternManagedAttributeHolder(ManagedAttributeHolder *managed_attribute_holder_ptr)
+{
+    if (!managed_attribute_holder_ptr) {
+        return { };
+    }
+
+    Array<Attribute> attributes;
+    attributes.Reserve(managed_attribute_holder_ptr->managed_attributes_size);
+
+    for (uint32 i = 0; i < managed_attribute_holder_ptr->managed_attributes_size; i++) {
+        AssertThrow(managed_attribute_holder_ptr->managed_attributes_ptr[i].class_ptr != nullptr);
+
+        attributes.PushBack(Attribute {
+            MakeUnique<Object>(
+                managed_attribute_holder_ptr->managed_attributes_ptr[i].class_ptr,
+                managed_attribute_holder_ptr->managed_attributes_ptr[i].object_reference,
+                ObjectFlags::WEAK_REFERENCE // weak reference needed so Object destructor does not try to release it
+            )
+        });
+    }
+
+    return AttributeSet(std::move(attributes));
+}
 
 extern "C" {
 HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version, bool major, bool minor, bool patch)
@@ -63,8 +91,20 @@ HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid
     AssertThrow(class_holder != nullptr);
 
     class_holder->SetInvokeMethodFunction(invoke_method_fptr);
+}
 
-    // @TODO: Store the assembly guid somewhere
+HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_getter_fptr)
+{
+    AssertThrow(class_holder != nullptr);
+
+    class_holder->SetInvokeGetterFunction(invoke_getter_fptr);
+}
+
+HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_setter_fptr)
+{
+    AssertThrow(class_holder != nullptr);
+
+    class_holder->SetInvokeSetterFunction(invoke_setter_fptr);
 }
 
 HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
@@ -100,7 +140,20 @@ HYP_EXPORT bool ManagedClass_FindByTypeHash(ManagedGuid *assembly_guid, ClassHol
     return true;
 }
 
-HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *method_name, ManagedGuid guid, uint32 num_attributes, const char **attribute_names)
+HYP_EXPORT void ManagedClass_SetAttributes(ManagedClass *managed_class, ManagedAttributeHolder *managed_attribute_holder_ptr)
+{
+    AssertThrow(managed_class != nullptr);
+
+    if (!managed_class->class_object || !managed_attribute_holder_ptr) {
+        return;
+    }
+
+    AttributeSet attributes = InternManagedAttributeHolder(managed_attribute_holder_ptr);
+
+    managed_class->class_object->SetAttributes(std::move(attributes));
+}
+
+HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *method_name, ManagedGuid guid, ManagedAttributeHolder *managed_attribute_holder_ptr)
 {
     AssertThrow(managed_class != nullptr);
 
@@ -108,16 +161,7 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *
         return;
     }
 
-    ManagedMethod method_object;
-    method_object.guid = guid;
-
-    if (num_attributes != 0) {
-        method_object.attribute_names.Reserve(num_attributes);
-
-        for (uint32 i = 0; i < num_attributes; i++) {
-            method_object.attribute_names.PushBack(attribute_names[i]);
-        }
-    }
+    AttributeSet attributes = InternManagedAttributeHolder(managed_attribute_holder_ptr);
 
     if (managed_class->class_object->HasMethod(method_name)) {
         HYP_LOG(DotNET, LogLevel::ERR, "Class '{}' already has a method named '{}'!", managed_class->class_object->GetName(), method_name);
@@ -127,7 +171,29 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *
 
     managed_class->class_object->AddMethod(
         method_name,
-        std::move(method_object)
+        Method(guid, std::move(attributes))
+    );
+}
+
+HYP_EXPORT void ManagedClass_AddProperty(ManagedClass *managed_class, const char *property_name, ManagedGuid guid, ManagedAttributeHolder *managed_attribute_holder_ptr)
+{
+    AssertThrow(managed_class != nullptr);
+
+    if (!managed_class->class_object || !property_name) {
+        return;
+    }
+
+    AttributeSet attributes = InternManagedAttributeHolder(managed_attribute_holder_ptr);
+
+    if (managed_class->class_object->HasProperty(property_name)) {
+        HYP_LOG(DotNET, LogLevel::ERR, "Class '{}' already has a property named '{}'!", managed_class->class_object->GetName(), property_name);
+
+        return;
+    }
+
+    managed_class->class_object->AddProperty(
+        property_name,
+        Property(guid, std::move(attributes))
     );
 }
 
@@ -153,25 +219,6 @@ HYP_EXPORT void ManagedClass_SetMarshalObjectFunction(ManagedClass *managed_clas
     AssertThrow(managed_class->class_object != nullptr);
 
     managed_class->class_object->SetMarshalObjectFunction(marshal_object_fptr);
-}
-
-HYP_EXPORT void NativeInterop_AddMethodToCache(ManagedGuid *assembly_guid, ManagedGuid *method_guid, void *method_info_ptr)
-{
-    AssertThrow(assembly_guid != nullptr);
-    AssertThrow(method_guid != nullptr);
-    AssertThrow(method_info_ptr != nullptr);
-
-    DotNetSystem::GetInstance().AddMethodToCache(*assembly_guid, *method_guid, method_info_ptr);
-}
-
-HYP_EXPORT void NativeInterop_AddObjectToCache(ManagedGuid *assembly_guid, ManagedGuid *object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive)
-{
-    AssertThrow(assembly_guid != nullptr);
-    AssertThrow(object_guid != nullptr);
-    AssertThrow(object_ptr != nullptr);
-    AssertThrow(out_object_reference != nullptr);
-
-    DotNetSystem::GetInstance().AddObjectToCache(*assembly_guid, *object_guid, object_ptr, out_object_reference, keep_alive);
 }
 
 } // extern "C"

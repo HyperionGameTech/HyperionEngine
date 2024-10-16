@@ -98,7 +98,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             script_component.object = class_ptr->NewObject();
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
-                if (dotnet::ManagedMethod *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
+                if (dotnet::Method *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
                     HYP_LOG(Script, LogLevel::INFO, "Calling BeforeInit() on script component");
 
@@ -115,7 +115,7 @@ void ScriptSystem::OnEntityAdded(ID<Entity> entity)
             }
 
             if (!(script_component.flags & ScriptComponentFlags::INIT_CALLED)) {
-                if (dotnet::ManagedMethod *init_method_ptr = class_ptr->GetMethod("Init")) {
+                if (dotnet::Method *init_method_ptr = class_ptr->GetMethod("Init")) {
                     HYP_NAMED_SCOPE("Call Init() on script component");
                     HYP_LOG(Script, LogLevel::INFO, "Calling Init() on script component");
 
@@ -181,8 +181,8 @@ void ScriptSystem::Process(GameCounter::TickUnit delta)
         }
 
         if (dotnet::Class *class_ptr = script_component.object->GetClass()) {
-            if (dotnet::ManagedMethod *update_method_ptr = class_ptr->GetMethod("Update")) {
-                if (update_method_ptr->HasAttribute("Hyperion.ScriptMethodStub")) {
+            if (dotnet::Method *update_method_ptr = class_ptr->GetMethod("Update")) {
+                if (update_method_ptr->GetAttributes().HasAttribute("ScriptMethodStub")) {
                     // Stubbed method, don't waste cycles calling it if it's not implemented
                     continue;
                 }

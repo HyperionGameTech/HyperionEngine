@@ -196,9 +196,23 @@ namespace Hyperion
             context.Unload();
 
             int numObjectsRemoved = ManagedObjectCache.Instance.RemoveObjectsForAssembly(guid);
-            int numMethodsRemoved = ManagedMethodCache.Instance.RemoveMethodsForAssembly(guid);
 
-            Logger.Log(LogType.Info, $"Unloaded assembly {guid} from {path}. Removed {numObjectsRemoved} objects, {numMethodsRemoved} methods");
+            Dictionary<Type, int> numCachedObjectsRemoved = new Dictionary<Type, int>();
+
+            foreach (KeyValuePair<Type, IBasicCache> kvp in BasicCacheInstanceManager.Instance.GetInstances())
+            {
+                int numRemoved = kvp.Value.RemoveForAssembly(guid);
+
+                numCachedObjectsRemoved.Add(kvp.Key, numRemoved);
+            }
+
+            Logger.Log(LogType.Info, $"Unloaded assembly {guid} from {path}:");
+            Logger.Log(LogType.Info, $"\tRemoved {numObjectsRemoved} objects.");
+
+            foreach (KeyValuePair<Type, int> kvp in numCachedObjectsRemoved)
+            {
+                Logger.Log(LogType.Info, $"\tRemoved {kvp.Value} {kvp.Key.Name} objects.");
+            }
 
             assembly = null;
             context = null;

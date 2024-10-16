@@ -46,7 +46,9 @@ bool Assembly::Unload()
 
 ClassHolder::ClassHolder(Assembly *owner_assembly)
     : m_owner_assembly(owner_assembly),
-      m_invoke_method_fptr(nullptr)
+      m_invoke_method_fptr(nullptr),
+      m_invoke_getter_fptr(nullptr),
+      m_invoke_setter_fptr(nullptr)
 {
 }
 

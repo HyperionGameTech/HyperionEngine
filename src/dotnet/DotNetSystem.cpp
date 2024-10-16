@@ -52,9 +52,6 @@ public:
     virtual UniquePtr<Assembly> LoadAssembly(const char *path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
-    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const = 0;
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const = 0;
-
     virtual void *GetDelegate(
         const TChar *assembly_path,
         const TChar *type_name,
@@ -65,9 +62,6 @@ public:
 
 using InitializeAssemblyDelegate = int(*)(ManagedGuid *, ClassHolder *, const char *, int32);
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
-
-using AddMethodToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *);
-using AddObjectToCacheDelegate = void(*)(ManagedGuid *, ManagedGuid *, void *, ObjectReference *, bool);
 
 static Optional<FilePath> FindAssemblyFilePath(AppContext *app_context, const char *path)
 {
@@ -104,8 +98,6 @@ public:
         : m_dll(nullptr),
           m_initialize_assembly_fptr(nullptr),
           m_unload_assembly_fptr(nullptr),
-          m_add_method_to_cache_fptr(nullptr),
-          m_add_object_to_cache_fptr(nullptr),
           m_cxt(nullptr),
           m_init_fptr(nullptr),
           m_get_delegate_fptr(nullptr),
@@ -188,30 +180,6 @@ public:
             "UnloadAssembly could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
         );
 
-        m_add_method_to_cache_fptr = (AddMethodToCacheDelegate)GetDelegate(
-            interop_assembly_path_platform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
-            HYP_TEXT("AddMethodToCache"),
-            UNMANAGEDCALLERSONLY_METHOD
-        );
-
-        AssertThrowMsg(
-            m_add_method_to_cache_fptr != nullptr,
-            "AddMethodToCache could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
-        );
-
-        m_add_object_to_cache_fptr = (AddObjectToCacheDelegate)GetDelegate(
-            interop_assembly_path_platform.Data(),
-            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
-            HYP_TEXT("AddObjectToCache"),
-            UNMANAGEDCALLERSONLY_METHOD
-        );
-
-        AssertThrowMsg(
-            m_add_object_to_cache_fptr != nullptr,
-            "AddObjectToCache could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled."
-        );
-
         static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
             Pair<String, FilePath> { "interop", *interop_assembly_path },
             Pair<String, FilePath> { "core", FindAssemblyFilePath(app_context.Get(), "HyperionCore.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionCore.dll"); return { }; }) },
@@ -284,16 +252,6 @@ public:
         m_unload_assembly_fptr(&assembly_guid, &result);
 
         return bool(result);
-    }
-
-    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const override
-    {
-        m_add_method_to_cache_fptr(&assembly_guid, &method_guid, method_info_ptr);
-    }
-
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const override
-    {
-        m_add_object_to_cache_fptr(&assembly_guid, &object_guid, object_ptr, out_object_reference, keep_alive);
     }
 
     virtual void *GetDelegate(
@@ -443,8 +401,6 @@ private:
 
     InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
     UnloadAssemblyDelegate                      m_unload_assembly_fptr;
-    AddMethodToCacheDelegate                    m_add_method_to_cache_fptr;
-    AddObjectToCacheDelegate                    m_add_object_to_cache_fptr;
 
     hostfxr_handle                              m_cxt;
     hostfxr_initialize_for_runtime_config_fn    m_init_fptr;
@@ -473,9 +429,6 @@ public:
     {
         return false;
     }
-
-    virtual void AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const override {}
-    virtual void AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const override {}
 
     virtual void *GetDelegate(
         const TChar *assembly_path,
@@ -545,24 +498,6 @@ bool DotNetSystem::UnloadAssembly(ManagedGuid guid) const
     HYP_NAMED_SCOPE("Unload .NET Assembly");
 
     return m_impl->UnloadAssembly(guid);
-}
-
-void DotNetSystem::AddMethodToCache(ManagedGuid assembly_guid, ManagedGuid method_guid, void *method_info_ptr) const
-{
-    if (!EnsureInitialized()) {
-        return;
-    }
-
-    m_impl->AddMethodToCache(assembly_guid, method_guid, method_info_ptr);
-}
-
-void DotNetSystem::AddObjectToCache(ManagedGuid assembly_guid, ManagedGuid object_guid, void *object_ptr, ObjectReference *out_object_reference, bool keep_alive) const
-{
-    if (!EnsureInitialized()) {
-        return;
-    }
-
-    m_impl->AddObjectToCache(assembly_guid, object_guid, object_ptr, out_object_reference, keep_alive);
 }
 
 bool DotNetSystem::IsEnabled() const

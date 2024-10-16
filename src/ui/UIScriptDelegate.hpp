@@ -86,13 +86,13 @@ public:
         }
         
         if (dotnet::Class *class_ptr = script_component->object->GetClass()) {
-            if (dotnet::ManagedMethod *method_ptr = class_ptr->GetMethod(m_method_name)) {
-                if (!method_ptr->HasAttribute("Hyperion.UIEvent")) {
+            if (dotnet::Method *method_ptr = class_ptr->GetMethod(m_method_name)) {
+                if (!method_ptr->GetAttributes().HasAttribute("UIEvent")) {
                     return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Method does not have the Hyperion.UIEvent attribute"));
                 }
 
                 // Stubbed method, do not call
-                if (method_ptr->HasAttribute("Hyperion.ScriptMethodStub")) {
+                if (method_ptr->GetAttributes().HasAttribute("ScriptMethodStub")) {
                     // // Stubbed method, do not bother calling it
                     HYP_LOG(UI, LogLevel::INFO, "Stubbed method {} for UI object with name: {}", m_method_name, m_ui_object->GetName());
 

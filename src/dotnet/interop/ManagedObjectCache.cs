@@ -13,12 +13,20 @@ namespace Hyperion
         public object obj;
         public GCHandle gcHandle;
 
-        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive)
+        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive, GCHandle? gcHandle)
         {
             this.guid = objectGuid;
             this.assemblyGuid = assemblyGuid;
             this.obj = obj;
-            this.gcHandle = GCHandle.Alloc(this.obj, keepAlive ? GCHandleType.Normal : GCHandleType.Weak);
+
+            if (gcHandle != null)
+            {
+                this.gcHandle = (GCHandle)gcHandle;
+            }
+            else
+            {
+                this.gcHandle = GCHandle.Alloc(this.obj, keepAlive ? GCHandleType.Normal : GCHandleType.Weak);
+            }
         }
 
         public void Dispose()
@@ -56,11 +64,11 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedObject> objects = new Dictionary<Guid, StoredManagedObject>();
         private object lockObject = new object();
 
-        public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive)
+        public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive, GCHandle? gcHandle)
         {
             lock (lockObject)
             {
-                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive);
+                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive, gcHandle);
 
                 objects.Add(objectGuid, storedObject);
 

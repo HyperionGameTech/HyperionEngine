@@ -14,9 +14,7 @@ class HypClass;
 
 namespace dotnet {
 
-extern "C" {
-    struct ManagedMethod;
-}
+struct Method;
 
 class Class;
 class Assembly;
@@ -51,6 +49,18 @@ public:
     HYP_FORCE_INLINE void SetInvokeMethodFunction(InvokeMethodFunction invoke_method_fptr)
         { m_invoke_method_fptr = invoke_method_fptr; }
 
+    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeGetterFunction() const
+        { return m_invoke_getter_fptr; }
+
+    HYP_FORCE_INLINE void SetInvokeGetterFunction(InvokeMethodFunction invoke_getter_fptr)
+        { m_invoke_getter_fptr = invoke_getter_fptr; }
+
+    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeSetterFunction() const
+        { return m_invoke_setter_fptr; }
+
+    HYP_FORCE_INLINE void SetInvokeSetterFunction(InvokeMethodFunction invoke_setter_fptr)
+        { m_invoke_setter_fptr = invoke_setter_fptr; }
+
 private:
     Assembly                            *m_owner_assembly;
 
@@ -58,6 +68,8 @@ private:
 
     // Function pointer to invoke a managed method
     InvokeMethodFunction                m_invoke_method_fptr;
+    InvokeMethodFunction                m_invoke_getter_fptr;
+    InvokeMethodFunction                m_invoke_setter_fptr;
 };
 
 class Assembly

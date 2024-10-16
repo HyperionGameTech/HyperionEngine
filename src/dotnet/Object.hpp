@@ -8,61 +8,39 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/StringView.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/ID.hpp>
 
-#include <dotnet/interop/ManagedMethod.hpp>
+#include <dotnet/Helpers.hpp>
+#include <dotnet/Method.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
 
 #include <type_traits>
+
+namespace hyperion {
+
+enum class ObjectFlags : uint32
+{
+    NONE            = 0x0,
+    WEAK_REFERENCE  = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(ObjectFlags)
+
+} // namespace hyperion
 
 namespace hyperion::dotnet {
 
 class Class;
 class Object;
-
-namespace detail {
-
-template <class T, class T2 = void>
-struct TransformArgument;
-
-template <class T>
-struct DefaultTransformArgument
-{
-    HYP_FORCE_INLINE T operator()(T value) const
-    {
-        return value;
-    }
-};
-
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_arithmetic_v<T> > > : DefaultTransformArgument<T> { };
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v<T> && std::is_standard_layout_v<T> && std::is_trivial_v<T> > > : DefaultTransformArgument<T> { };
-
-template <> struct TransformArgument<void *> : DefaultTransformArgument<void *> { };
-template <> struct TransformArgument<char *> : DefaultTransformArgument<char *> { };
-template <> struct TransformArgument<const char *> : DefaultTransformArgument<const char *> { };
-
-template <class T>
-struct TransformArgument<ID<T>>
-{
-    HYP_FORCE_INLINE typename ID<T>::ValueType operator()(ID<T> id) const
-    {
-        return id.Value();
-    }
-};
-
-template <>
-struct TransformArgument<Object *>
-{
-    HYP_API void *operator()(Object *value) const;
-};
-
-} // namespace detail
+class Method;
+class Property;
 
 class Object
 {
 public:
-    Object(Class *class_ptr, ObjectReference object_reference);
+    Object(Class *class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags = ObjectFlags::NONE);
 
     Object(const Object &)                  = delete;
     Object &operator=(const Object &)       = delete;
@@ -79,7 +57,7 @@ public:
         { return m_object_reference; }
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod(const ManagedMethod *method_ptr, Args... args)
+    ReturnType InvokeMethod(const Method *method_ptr, Args... args)
     {
         return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<Args>{}(args)...);
     }
@@ -87,19 +65,19 @@ public:
     template <class ReturnType, class... Args>
     HYP_FORCE_INLINE ReturnType InvokeMethodByName(UTF8StringView method_name, Args... args)
     {
-        const ManagedMethod *method_ptr = GetMethod(method_name);
+        const Method *method_ptr = GetMethod(method_name);
         AssertThrowMsg(method_ptr != nullptr, "Method %s not found", method_name.Data());
 
         return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<Args>{}(args)...);
     }
 
 private:
-    const ManagedMethod *GetMethod(UTF8StringView method_name) const;
+    const Method *GetMethod(UTF8StringView method_name) const;
 
-    void *InvokeMethod_Internal(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr);
+    void *InvokeMethod_Internal(const Method *method_ptr, void **args_vptr, void *return_value_vptr);
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod_Internal(const ManagedMethod *method_ptr, Args... args)
+    ReturnType InvokeMethod_Internal(const Method *method_ptr, Args... args)
     {
         static_assert(std::is_void_v<ReturnType> || std::is_trivially_copyable_v<ReturnType>, "Return type must be trivially copyable to be used in interop");
         static_assert(std::is_void_v<ReturnType> || std::is_object_v<ReturnType>, "Return type must be either a value type or a pointer type to be used in interop (no references)");
@@ -127,8 +105,11 @@ private:
         }
     }
 
-    Class           *m_class_ptr;
-    ObjectReference m_object_reference;
+    const Property *GetProperty(UTF8StringView method_name) const;
+
+    Class                   *m_class_ptr;
+    ObjectReference         m_object_reference;
+    EnumFlags<ObjectFlags>  m_object_flags;
 };
 
 } // namespace hyperion::dotnet

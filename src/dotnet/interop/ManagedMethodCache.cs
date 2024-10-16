@@ -6,80 +6,92 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    internal struct StoredManagedMethod
-    {
-        public MethodInfo methodInfo;
-        public Guid assemblyGuid;
-    }
+    // public sealed class ManagedMethodCache : BasicCache<MethodInfo>
+    // {
+    //     private static ManagedMethodCache? instance = null;
 
-    internal class ManagedMethodCache
-    {
-        private static ManagedMethodCache? instance = null;
+    //     public static ManagedMethodCache Instance
+    //     {
+    //         get
+    //         {
+    //             if (instance == null)
+    //             {
+    //                 instance = new ManagedMethodCache();
+    //             }
 
-        public static ManagedMethodCache Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new ManagedMethodCache();
-                }
+    //             return instance;
+    //         }
+    //     }
+    // }
 
-                return instance;
-            }
-        }
+    // internal class ManagedMethodCache
+    // {
+    //     private static ManagedMethodCache? instance = null;
 
-        private Dictionary<Guid, StoredManagedMethod> methodCache = new Dictionary<Guid, StoredManagedMethod>();
+    //     public static ManagedMethodCache Instance
+    //     {
+    //         get
+    //         {
+    //             if (instance == null)
+    //             {
+    //                 instance = new ManagedMethodCache();
+    //             }
 
-        public MethodInfo GetMethod(Guid guid)
-        {
-            if (methodCache.ContainsKey(guid))
-            {
-                return methodCache[guid].methodInfo;
-            }
+    //             return instance;
+    //         }
+    //     }
 
-            return null;
-        }
+    //     private Dictionary<Guid, StoredManagedMethod> methodCache = new Dictionary<Guid, StoredManagedMethod>();
 
-        public void AddMethod(Guid assemblyGuid, Guid methodGuid, MethodInfo methodInfo)
-        {
-            if (methodCache.ContainsKey(methodGuid))
-            {
-                if (methodCache[methodGuid].assemblyGuid == assemblyGuid)
-                {
-                    return;
-                }
+    //     public MethodInfo Get(Guid guid)
+    //     {
+    //         if (methodCache.ContainsKey(guid))
+    //         {
+    //             return methodCache[guid].methodInfo;
+    //         }
 
-                throw new Exception("Method already exists in cache for a different assembly!");
-            }
+    //         return null;
+    //     }
 
-            methodCache.Add(methodGuid, new StoredManagedMethod
-            {
-                methodInfo = methodInfo,
-                assemblyGuid = assemblyGuid
-            });
-        }
+    //     public void Add(Guid assemblyGuid, Guid methodGuid, MethodInfo methodInfo)
+    //     {
+    //         if (methodCache.ContainsKey(methodGuid))
+    //         {
+    //             if (methodCache[methodGuid].assemblyGuid == assemblyGuid)
+    //             {
+    //                 return;
+    //             }
 
-        public int RemoveMethodsForAssembly(Guid assemblyGuid)
-        {
-            List<Guid> keysToRemove = new List<Guid>();
+    //             throw new Exception("Method already exists in cache for a different assembly!");
+    //         }
 
-            foreach (KeyValuePair<Guid, StoredManagedMethod> kvp in methodCache)
-            {
-                if (kvp.Value.assemblyGuid == assemblyGuid)
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
+    //         methodCache.Add(methodGuid, new StoredManagedMethod
+    //         {
+    //             methodInfo = methodInfo,
+    //             assemblyGuid = assemblyGuid
+    //         });
+    //     }
 
-            int numKeysToRemove = keysToRemove.Count;
+    //     public int RemoveMethodsForAssembly(Guid assemblyGuid)
+    //     {
+    //         List<Guid> keysToRemove = new List<Guid>();
 
-            foreach (Guid key in keysToRemove)
-            {
-                methodCache.Remove(key);
-            }
+    //         foreach (KeyValuePair<Guid, StoredManagedMethod> kvp in methodCache)
+    //         {
+    //             if (kvp.Value.assemblyGuid == assemblyGuid)
+    //             {
+    //                 keysToRemove.Add(kvp.Key);
+    //             }
+    //         }
 
-            return numKeysToRemove;
-        }
-    }
+    //         int numKeysToRemove = keysToRemove.Count;
+
+    //         foreach (Guid key in keysToRemove)
+    //         {
+    //             methodCache.Remove(key);
+    //         }
+
+    //         return numKeysToRemove;
+    //     }
+    // }
 }

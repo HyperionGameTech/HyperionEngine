@@ -11,6 +11,11 @@ void Class::EnsureLoaded() const
     if (!m_class_holder || !m_class_holder->CheckAssemblyLoaded()) {
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
+
+    AssertThrowMsg(m_class_holder->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set!");
+
+    AssertThrowMsg(GetNewObjectFunction() != nullptr, "Free object function pointer not set!");
+    AssertThrowMsg(GetFreeObjectFunction() != nullptr, "Free object function pointer not set!");
 }
 
 UniquePtr<Object> Class::NewObject()
@@ -77,13 +82,13 @@ bool Class::HasParentClass(const Class *parent_class) const
     return false;
 }
 
-void *Class::InvokeStaticMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr)
+void *Class::InvokeStaticMethod(const Method *method_ptr, void **args_vptr, void *return_value_vptr)
 {
     EnsureLoaded();
     
     AssertThrowMsg(m_class_holder->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set");
 
-    return m_class_holder->GetInvokeMethodFunction()(method_ptr->guid, {}, args_vptr, return_value_vptr);
+    return m_class_holder->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, args_vptr, return_value_vptr);
 }
 
 } // namespace hyperion::dotnet

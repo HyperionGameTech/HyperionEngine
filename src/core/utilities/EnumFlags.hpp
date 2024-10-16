@@ -246,7 +246,7 @@ struct MergeEnumFlags
 
 #define HYP_MAKE_ENUM_FLAGS(_enum) \
     template <> \
-    struct EnumFlagsDecl<_enum> \
+    struct ::hyperion::EnumFlagsDecl<_enum> \
     { \
         static constexpr bool is_enum_flags = true; \
     };

@@ -64,23 +64,55 @@ namespace Hyperion
         internal Guid marshalObjectGuid;
         internal ManagedClassFlags flags;
 
-        public void AddMethod(string methodName, Guid guid, string[] attributeNames)
+        public void SetAttributes(ref ManagedAttributeHolder managedAttributeHolder)
+        {
+            unsafe
+            {
+                fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
+                {
+                    ManagedClass_SetAttributes(ref this, (IntPtr)managedAttributeHolderPtr);
+                }
+            }
+        }
+
+        public void AddMethod(string methodName, Guid guid, ref ManagedAttributeHolder managedAttributeHolder)
         {
             IntPtr methodNamePtr = Marshal.StringToHGlobalAnsi(methodName);
-            IntPtr[] attributeNamesPtrs = new IntPtr[attributeNames.Length];
-
-            for (int i = 0; i < attributeNames.Length; i++)
+            
+            unsafe
             {
-                attributeNamesPtrs[i] = Marshal.StringToHGlobalAnsi(attributeNames[i]);
+                fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
+                {
+                    ManagedClass_AddMethod(ref this, methodNamePtr, guid, (IntPtr)managedAttributeHolderPtr);
+                }
             }
 
-            ManagedClass_AddMethod(ref this, methodNamePtr, guid, (uint)attributeNames.Length, attributeNamesPtrs);
-
             Marshal.FreeHGlobal(methodNamePtr);
+        }
 
-            for (int i = 0; i < attributeNames.Length; i++)
+        public void AddProperty(string propertyName, Guid guid, ref ManagedAttributeHolder managedAttributeHolder)
+        {
+            IntPtr propertyNamePtr = Marshal.StringToHGlobalAnsi(propertyName);
+            
+            unsafe
             {
-                Marshal.FreeHGlobal(attributeNamesPtrs[i]);
+                fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
+                {
+                    ManagedClass_AddProperty(ref this, propertyNamePtr, guid, (IntPtr)managedAttributeHolderPtr);
+                }
+            }
+
+            Marshal.FreeHGlobal(propertyNamePtr);
+        }
+
+        /// <summary>
+        /// Pointer to the C++ dotnet::Class object
+        /// </summary>
+        public IntPtr ClassObjectPtr
+        {
+            get
+            {
+                return classObjectPtr;
             }
         }
 
@@ -101,7 +133,6 @@ namespace Hyperion
                 ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
             }
         }
-
         public FreeObjectDelegate FreeObjectFunction
         {
             set
@@ -138,9 +169,14 @@ namespace Hyperion
             }
         }
 
-        // Add a function pointer to the managed class
+        [DllImport("hyperion", EntryPoint = "ManagedClass_SetAttributes")]
+        private static extern void ManagedClass_SetAttributes([In] ref ManagedClass managedClass, IntPtr managedAttributeHolderPtr);
+
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, uint numAttributes, IntPtr[] attributeNames);
+        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
+
+        [DllImport("hyperion", EntryPoint = "ManagedClass_AddProperty")]
+        private static extern void ManagedClass_AddProperty([In] ref ManagedClass managedClass, IntPtr propertyNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
         private static extern void ManagedClass_SetNewObjectFunction([In] ref ManagedClass managedClass, IntPtr newObjectFunctionPtr);

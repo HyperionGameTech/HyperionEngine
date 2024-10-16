@@ -7,12 +7,17 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
+
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <dotnet/interop/ManagedMethod.hpp>
+#include <dotnet/Method.hpp>
+#include <dotnet/Property.hpp>
+#include <dotnet/Attribute.hpp>
+
 #include <dotnet/interop/ManagedObject.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>
 
@@ -36,24 +41,21 @@ class Object;
 class Class;
 class ClassHolder;
 class Assembly;
-} // namespace hyperion::dotnet
 
 extern "C" {
 
 struct ManagedClass
 {
-    hyperion::int32                 type_hash;
-    hyperion::dotnet::Class         *class_object;
-    hyperion::dotnet::ManagedGuid   assembly_guid;
-    hyperion::dotnet::ManagedGuid   new_object_guid;
-    hyperion::dotnet::ManagedGuid   free_object_guid;
-    hyperion::dotnet::ManagedGuid   marshal_object_guid;
-    hyperion::uint32                flags;
+    int32                   type_hash;
+    Class                   *class_object;
+    ManagedGuid             assembly_guid;
+    ManagedGuid             new_object_guid;
+    ManagedGuid             free_object_guid;
+    ManagedGuid             marshal_object_guid;
+    uint32                  flags;
 };
 
-}
-
-namespace hyperion::dotnet {
+} // extern "C"
 
 namespace detail {
 
@@ -135,6 +137,12 @@ public:
     HYP_FORCE_INLINE MarshalObjectFunction GetMarshalObjectFunction() const
         { return m_marshal_object_fptr; }
 
+    HYP_FORCE_INLINE const AttributeSet &GetAttributes() const
+        { return m_attributes; }
+
+    HYP_FORCE_INLINE void SetAttributes(AttributeSet &&attributes)
+        { m_attributes = std::move(attributes); }
+
     /*! \brief Check if a method exists by name.
      *
      *  \param method_name The name of the method to check.
@@ -150,7 +158,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE ManagedMethod *GetMethod(UTF8StringView method_name)
+    HYP_FORCE_INLINE Method *GetMethod(UTF8StringView method_name)
     {
         auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
@@ -166,7 +174,7 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const ManagedMethod *GetMethod(UTF8StringView method_name) const
+    HYP_FORCE_INLINE const Method *GetMethod(UTF8StringView method_name) const
     {
         auto it = m_methods.FindAs(method_name);
         if (it == m_methods.End()) {
@@ -181,15 +189,71 @@ public:
      *  \param method_name The name of the method to add.
      *  \param method_object The method object to add.
      */
-    HYP_FORCE_INLINE void AddMethod(const String &method_name, ManagedMethod &&method_object)
+    HYP_FORCE_INLINE void AddMethod(const String &method_name, Method &&method_object)
         { m_methods[method_name] = std::move(method_object); }
 
     /*! \brief Get all methods of this class.
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const HashMap<String, ManagedMethod> &GetMethods() const
+    HYP_FORCE_INLINE const HashMap<String, Method> &GetMethods() const
         { return m_methods; }
+
+    /*! \brief Check if a property exists by name.
+     *
+     *  \param property_name The name of the property to check.
+     *
+     *  \return True if the property exists, otherwise false.
+     */
+    HYP_FORCE_INLINE bool HasProperty(UTF8StringView property_name) const
+        { return m_properties.FindAs(property_name) != m_properties.End(); }
+
+    /*! \brief Get a property by name.
+     *
+     *  \param property_name The name of the property to get.
+     *
+     *  \return A pointer to the property object if it exists, otherwise nullptr.
+     */
+    HYP_FORCE_INLINE Property *GetProperty(UTF8StringView property_name)
+    {
+        auto it = m_properties.FindAs(property_name);
+        if (it == m_properties.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+    /*! \brief Get a property by name.
+     *
+     *  \param property_name The name of the property to get.
+     *
+     *  \return A pointer to the property object if it exists, otherwise nullptr.
+     */
+    HYP_FORCE_INLINE const Property *GetProperty(UTF8StringView property_name) const
+    {
+        auto it = m_properties.FindAs(property_name);
+        if (it == m_properties.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+    /*! \brief Add a property to this class.
+     *
+     *  \param property_name The name of the property to add.
+     *  \param property_object The property object to add.
+     */
+    HYP_FORCE_INLINE void AddProperty(const String &property_name, Property &&property_object)
+        { m_properties[property_name] = std::move(property_object); }
+
+    /*! \brief Get all properties of this class.
+     *
+     *  \return A reference to the map of properties.
+     */
+    HYP_FORCE_INLINE const HashMap<String, Property> &GetProperties() const
+        { return m_properties; }
 
     void EnsureLoaded() const;
 
@@ -241,7 +305,7 @@ public:
         auto it = m_methods.FindAs(method_name);
         AssertThrowMsg(it != m_methods.End(), "Method not found");
 
-        const ManagedMethod &method_object = it->second;
+        const Method &method_object = it->second;
 
         void *args_vptr[] = { &args... };
 
@@ -256,18 +320,21 @@ public:
     }
 
 private:
-    void *InvokeStaticMethod(const ManagedMethod *method_ptr, void **args_vptr, void *return_value_vptr);
+    void *InvokeStaticMethod(const Method *method_ptr, void **args_vptr, void *return_value_vptr);
 
     String                          m_name;
     Class                           *m_parent_class;
     EnumFlags<ManagedClassFlags>    m_flags;
-    HashMap<String, ManagedMethod>  m_methods;
+    HashMap<String, Method>         m_methods;
+    HashMap<String, Property>       m_properties;
 
     ClassHolder                     *m_class_holder;
 
     NewObjectFunction               m_new_object_fptr;
     FreeObjectFunction              m_free_object_fptr;
     MarshalObjectFunction           m_marshal_object_fptr;
+
+    AttributeSet                    m_attributes;
 };
 
 } // namespace hyperion::dotnet
