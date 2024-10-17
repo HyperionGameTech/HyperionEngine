@@ -486,7 +486,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
     if (update_children) {
         ForEachChildUIObject([&deferred_children](const RC<UIObject> &child)
         {
-            if (child->GetSize().GetAllFlags() & UIObjectSize::FILL) {
+            if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT)) {
                 deferred_children.PushBack(child);
             } else {
                 child->UpdateSize_Internal(/* update_children */ true);
@@ -726,19 +726,6 @@ void UIObject::SetPadding(Vec2i padding)
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
-}
-
-Color UIObject::GetBackgroundColor() const
-{
-    HYP_SCOPE;
-
-    if (uint32(m_background_color) == 0) {
-        if (const UIObject *parent = GetParentUIObject()) {
-            return parent->GetBackgroundColor();
-        }
-    }
-
-    return m_background_color;
 }
 
 void UIObject::SetBackgroundColor(const Color &background_color)
@@ -1346,7 +1333,7 @@ const Handle<Mesh> &UIObject::GetMesh() const
     return Handle<Mesh>::empty;
 }
 
-UIObject *UIObject::GetParentUIObject() const
+RC<UIObject> UIObject::GetParentUIObject() const
 {
     HYP_SCOPE;
     
@@ -1369,7 +1356,7 @@ UIObject *UIObject::GetParentUIObject() const
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 AssertThrow(ui_component->ui_object != nullptr);
 
-                return ui_component->ui_object.Get();
+                return ui_component->ui_object;
             }
         }
 
@@ -1379,7 +1366,7 @@ UIObject *UIObject::GetParentUIObject() const
     return nullptr;
 }
 
-UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
+RC<UIObject> UIObject::GetClosestParentUIObject(UIObjectType type) const
 {
     HYP_SCOPE;
     
@@ -1403,7 +1390,42 @@ UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
                 AssertThrow(ui_component->ui_object != nullptr);
 
                 if (ui_component->ui_object->GetType() == type) {
-                    return ui_component->ui_object.Get();
+                    return ui_component->ui_object;
+                }
+            }
+        }
+
+        parent_node = parent_node->GetParent();
+    }
+
+    return nullptr;
+}
+
+RC<UIObject> UIObject::GetClosestParentUIObjectWithPredicate(const ProcRef<bool, const RC<UIObject> &> &predicate) const
+{
+    HYP_SCOPE;
+    
+    const Scene *scene = GetScene();
+
+    if (!scene) {
+        return nullptr;
+    }
+
+    const NodeProxy &node = GetNode();
+
+    if (!node) {
+        return nullptr;
+    }
+
+    Node *parent_node = node->GetParent();
+
+    while (parent_node) {
+        if (parent_node->GetEntity().IsValid()) {
+            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
+                AssertThrow(ui_component->ui_object != nullptr);
+
+                if (predicate(ui_component->ui_object)) {
+                    return ui_component->ui_object;
                 }
             }
         }
@@ -1716,7 +1738,7 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());

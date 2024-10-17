@@ -48,11 +48,11 @@ public:
     /*! \brief Packs a 4-component vector into a 32-bit integer.
      *  \param vec The vector to pack.
      *  \return The 32-bit integer packed from the vector. */
-    static inline uint32 PackVec4f(const Vector4 &vec)
+    static inline uint32 PackVec4f(const Vec4f &vec)
     {
         union {
-            uint8 bytes[4];
-            uint32 result;
+            uint8   bytes[4];
+            uint32  result;
         };
 
         bytes[0] = MathUtil::Round<float, uint8>(MathUtil::Clamp(vec.values[0], 0.0f, 1.0f) * 255.0f);

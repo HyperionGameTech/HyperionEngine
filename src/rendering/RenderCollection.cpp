@@ -459,7 +459,7 @@ RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const Framebuff
             Array<RenderProxy> added_proxies;
             added_proxies.Resize(added_proxies_ptrs.Size());
 
-            for (uint i = 0; i < added_proxies_ptrs.Size(); i++) {
+            for (SizeType i = 0; i < added_proxies_ptrs.Size(); i++) {
                 AssertThrow(added_proxies_ptrs[i] != nullptr);
 
                 // Copy the proxy to be added on the render thread

@@ -27,7 +27,8 @@ class alignas(uint32) HYP_API Color
     HYP_PROPERTY(Alpha, &Color::GetAlpha, &Color::SetAlpha)
 
 public:
-    static constexpr uint size = 4;
+    static constexpr uint32 size = 4;
+
     union {
         ubyte   bytes[size];
         struct {

@@ -41,7 +41,7 @@ decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData **args, std::index_se
 {
     auto AssertArgType = [args]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
-        const bool condition = args[Index]->Is< NormalizedType< typename TupleElement< Index, ArgTypes... >::Type > >();
+        const bool condition = args[Index]->Is< NormalizedType< typename TupleElement< Index, ArgTypes... >::Type > >(/* strict */ false);
 
         if (!condition) {
             HYP_FAIL("Invalid argument at index %u: Expected %s",
@@ -174,9 +174,10 @@ struct HypMethod : public IHypMember
     TypeID                                              target_type_id;
     Array<HypMethodParameter>                           params;
     EnumFlags<HypMethodFlags>                           flags;
-    HypClassAttributeList                               attributes;
+    HypClassAttributeSet                                attributes;
 
-    Proc<HypData, Span<HypData>>                        proc;
+    Proc<HypData, HypData **, SizeType>                 proc;
+    Proc<HypData, const Array<HypData *> &>             proc_array;
     Proc<fbom::FBOMData, Span<HypData>>                 serialize_proc;
     Proc<void, Span<HypData>, const fbom::FBOMData &>   deserialize_proc;
 
@@ -194,23 +195,18 @@ struct HypMethod : public IHypMember
         : name(name),
           flags(HypMethodFlags::MEMBER),
           attributes(attributes),
-          proc([mem_fn](Span<HypData> args) -> HypData
+          proc([mem_fn](HypData **args, SizeType num_args) -> HypData
           {
-              AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
+              AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
               const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
 
-              HypData **arg_ptrs = (HypData **)StackAlloc(args.Size() * sizeof(HypData *));
-              for (SizeType i = 0; i < args.Size(); ++i) {
-                  arg_ptrs[i] = &args[i];
-              }
-
               if constexpr (std::is_void_v<ReturnType>) {
-                  detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs);
+                  detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args);
 
                   return HypData();
               } else {
-                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs));
+                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args));
               }
           })
     {
@@ -278,24 +274,19 @@ struct HypMethod : public IHypMember
         : name(name),
           flags(HypMethodFlags::MEMBER),
           attributes(attributes),
-          proc([mem_fn](Span<HypData> args) -> HypData
+          proc([mem_fn](HypData **args, SizeType num_args) -> HypData
           {
-              AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
+              AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
               // replace member function with free function using target pointer as first arg
               const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
 
-              HypData **arg_ptrs = (HypData **)StackAlloc(args.Size() * sizeof(HypData *));
-              for (SizeType i = 0; i < args.Size(); ++i) {
-                  arg_ptrs[i] = &args[i];
-              }
-
               if constexpr (std::is_void_v<ReturnType>) {
-                  detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs);
+                  detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args);
 
                   return HypData();
               } else {
-                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, arg_ptrs));
+                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args));
               }
           })
     {
@@ -390,7 +381,19 @@ struct HypMethod : public IHypMember
     }
 
     HYP_FORCE_INLINE HypData Invoke(Span<HypData> args) const
-        { return proc(args); }
+    {
+        HypData **arg_ptrs = (HypData **)StackAlloc(args.Size() * sizeof(HypData *));
+        for (SizeType i = 0; i < args.Size(); ++i) {
+            arg_ptrs[i] = &args[i];
+        }
+
+        return proc(arg_ptrs, args.Size());
+    }
+
+    HYP_FORCE_INLINE HypData Invoke(const Array<HypData *> &args) const
+    {
+        return proc(const_cast<HypData **>(args.Data()), args.Size());
+    }
 
     HYP_FORCE_INLINE fbom::FBOMData Invoke_Serialized(Span<HypData> args) const
     {

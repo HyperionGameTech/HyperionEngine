@@ -23,7 +23,7 @@ void UITab::Init()
 {
     UIObject::Init();
 
-    RC<UIText> title_element = GetStage()->CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Title", m_name)), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    RC<UIText> title_element = GetStage()->CreateUIObject<UIText>(NAME("TabTitle"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     title_element->SetParentAlignment(UIObjectAlignment::CENTER);
     title_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     title_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -34,8 +34,9 @@ void UITab::Init()
 
     m_title_element = title_element;
 
-    m_contents = GetStage()->CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_Contents", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    m_contents = GetStage()->CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     m_contents->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    m_contents->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
 
 void UITab::SetText(const String &text)
@@ -147,8 +148,7 @@ void UITabView::AddChildUIObject(UIObject *ui_object)
     tab->OnClick.RemoveAll();
     tab->OnClick.Bind([this, name = tab->GetName()](const MouseEvent &data) -> UIEventHandlerResult
     {
-        if (data.mouse_buttons == MouseButtonState::LEFT)
-        {
+        if (data.mouse_buttons == MouseButtonState::LEFT) {
             const uint32 tab_index = GetTabIndex(name);
 
             SetSelectedTabIndex(tab_index);
@@ -205,7 +205,7 @@ void UITabView::SetSelectedTabIndex(uint index)
         node->RemoveAllChildren();
     }
 
-    for (uint i = 0; i < m_tabs.Size(); i++) {
+    for (SizeType i = 0; i < m_tabs.Size(); i++) {
         if (i == m_selected_tab_index) {
             continue;
         }

@@ -877,9 +877,9 @@ void MaterialDescriptorSetManager::EnqueueRemoveMaterial(ID<Material> id)
     
     while (true) {
         const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
-            {
-                return item.first == id;
-            });
+        {
+            return item.first == id;
+        });
 
         if (pending_addition_it == m_pending_addition.End()) {
             break;

@@ -18,6 +18,7 @@ UIButton::UIButton(UIStage *parent, NodeProxy node_proxy)
     SetPadding({ 10, 5 });
     SetBackgroundColor(Vec4f { 0.1f, 0.1f, 0.1f, 1.0f });
     SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
+    SetTextSize(12.0f);
 
     RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::CENTER);
@@ -51,6 +52,8 @@ void UIButton::SetText(const String &text)
 void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 {
     UIObject::SetFocusState_Internal(focus_state);
+
+    HYP_LOG(UI, LogLevel::DEBUG, "Set button with text \"{}\" focus state: {}", GetText(), uint32(focus_state));
 
     UpdateMaterial(false);
     UpdateMeshData();

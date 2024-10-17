@@ -37,7 +37,7 @@ struct HypField : public IHypMember
     uint32                                          offset;
     uint32                                          size;
 
-    HypClassAttributeList                           attributes;
+    HypClassAttributeSet                            attributes;
 
     Proc<HypData, const HypData &>                  get_proc;
     Proc<void, HypData &, const HypData &>          set_proc;

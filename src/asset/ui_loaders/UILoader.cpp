@@ -198,10 +198,12 @@ static Optional<Color> ParseColor(const String &str)
     if (str.StartsWith("#")) {
         int value_index = 0;
 
-        for (int i = 1; i < str.Length() - 1 && value_index < 4; i += 2, value_index++) {
+        for (int i = 1; i < str.Length() && value_index < 4; i += 2, value_index++) {
             const String substr = str.Substr(i, i + 2);
 
             const long value = std::strtol(substr.Data(), nullptr, 16);
+
+            HYP_LOG(UI, LogLevel::DEBUG, "substr: {}, value: {}", substr, value);
 
             if (uint32(value) >= 256) {
                 return { };
@@ -231,7 +233,7 @@ static Optional<Color> ParseColor(const String &str)
         }
     }
 
-    return Color(float(values[0]) / 255.0f, float(values[1]) / 255.0f, float(values[2]) / 255.0f, float(values[3]) / 255.0f);
+    return Color(Vec4f { float(values[0]) / 255.0f, float(values[1]) / 255.0f, float(values[2]) / 255.0f, float(values[3]) / 255.0f });
 }
 
 static Optional<bool> ParseBool(const String &str)
@@ -401,7 +403,7 @@ public:
                 position = ParseVec2i(it->second);
             }
 
-            UIObjectSize size;
+            UIObjectSize size = UIObjectSize(UIObjectSize::AUTO);
 
             if (const Pair<String, String> *it = attributes.TryGet("size")) {
                 if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {

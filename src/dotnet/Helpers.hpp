@@ -3,6 +3,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/containers/String.hpp>
+
 #include <core/ID.hpp>
 
 #include <type_traits>
@@ -45,6 +47,42 @@ template <>
 struct TransformArgument<Object *>
 {
     HYP_API void *operator()(Object *value) const;
+};
+
+template <>
+struct TransformArgument<String>
+{
+    HYP_API const char *operator()(const String &value) const
+    {
+        return value.Data();
+    }
+};
+
+template <>
+struct TransformArgument<UTF8StringView>
+{
+    HYP_API const char *operator()(UTF8StringView value) const
+    {
+        return value.Data();
+    }
+};
+
+template <>
+struct TransformArgument<ANSIString>
+{
+    HYP_API const char *operator()(const ANSIString &value) const
+    {
+        return value.Data();
+    }
+};
+
+template <>
+struct TransformArgument<ANSIStringView>
+{
+    HYP_API const char *operator()(ANSIStringView value) const
+    {
+        return value.Data();
+    }
 };
 
 } // namespace detail

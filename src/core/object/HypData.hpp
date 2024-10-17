@@ -322,9 +322,6 @@ struct HypDataMarshalHelper
 
         if (!data) {
             return { fbom::FBOMResult::FBOM_ERR, "Cannot deserialize unset value" };
-            // out = HypData();
-
-            // return fbom::FBOMResult::FBOM_OK;
         }
 
         fbom::FBOMObject object;

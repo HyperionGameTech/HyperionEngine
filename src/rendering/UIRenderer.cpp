@@ -160,7 +160,11 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 continue;
             }
 
-            if (last_render_proxy_group.drawable_layer != ~0u && last_render_proxy_group.attributes_hash_code == attributes.GetHashCode()) {
+            const HashCode element_hash_code = attributes.GetHashCode()
+                .Combine(mesh.GetID().GetHashCode())
+                .Combine(material.GetID().GetHashCode());
+
+            if (last_render_proxy_group.drawable_layer != ~0u && last_render_proxy_group.attributes_hash_code == element_hash_code) {
                 // Set drawable layer on the attributes so it is grouped properly.
                 attributes.SetDrawableLayer(last_render_proxy_group.drawable_layer);
 
@@ -170,7 +174,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 render_proxy_group.AddRenderProxy(*proxy);
             } else {
                 last_render_proxy_group = {
-                    attributes.GetHashCode(),
+                    element_hash_code,
                     last_render_proxy_group.drawable_layer + 1
                 };
 
@@ -316,7 +320,7 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
     collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
     collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
 
-    if (collection_result.NeedsUpdate()) {
+    // if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
         proxy_list.GetRemovedEntities(removed_proxies);
 
@@ -329,12 +333,14 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
             Array<RenderProxy> added_proxies;
             added_proxies.Resize(added_proxies_ptrs.Size());
 
-            for (uint i = 0; i < added_proxies_ptrs.Size(); i++) {
+            for (SizeType i = 0; i < added_proxies_ptrs.Size(); i++) {
                 AssertThrow(added_proxies_ptrs[i] != nullptr);
 
                 // Copy the proxy to be added on the render thread
                 added_proxies[i] = *added_proxies_ptrs[i];
             }
+
+            HYP_LOG(UI, LogLevel::DEBUG, "Rendering update\n\t{} added\n\t{} removed\n\t{} changed", added_proxies_ptrs.Size(), removed_proxies.Size(), changed_proxies.Size());
 
             PUSH_RENDER_COMMAND(
                 RebuildProxyGroups_UI,
@@ -346,7 +352,7 @@ RenderListCollectionResult UIRenderList::PushUpdatesToRenderThread(const Framebu
                 framebuffer,
                 override_attributes
             );
-        }
+        // }
     }
 
     proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);

@@ -19,8 +19,10 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UIGridColumn
 
 UIGridColumn::UIGridColumn(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_COLUMN)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_COLUMN),
+      m_column_size(1)
 {
+    SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
 
 void UIGridColumn::Init()
@@ -33,8 +35,10 @@ void UIGridColumn::Init()
 #pragma region UIGridRow
 
 UIGridRow::UIGridRow(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_ROW)
+    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_ROW),
+      m_num_columns(0)
 {
+    SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
 
 void UIGridRow::Init()
@@ -106,34 +110,14 @@ RC<UIGridColumn> UIGridRow::FindEmptyColumn() const
     return nullptr;
 }
 
-void UIGridRow::SetNumColumns(uint32 num_columns)
+int UIGridRow::GetNumColumns() const
 {
-    if (GetStage() == nullptr) {
-        return;
-    }
+    return m_num_columns < 0 ? int(m_columns.Size()) : MathUtil::Max(int(m_columns.Size()), m_num_columns);
+}
 
-    const SizeType current_num_columns = m_columns.Size();
-
-    if (num_columns == current_num_columns) {
-        return;
-    }
-
-    if (num_columns < current_num_columns) {
-        for (SizeType i = num_columns; i < current_num_columns; i++) {
-            UIObject::RemoveChildUIObject(m_columns[i]);
-        }
-
-        m_columns.Resize(num_columns);
-    } else {
-        const SizeType num_columns_to_add = num_columns - current_num_columns;
-
-        for (SizeType i = 0; i < num_columns_to_add; i++) {
-            RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-            UIObject::AddChildUIObject(column);
-
-            m_columns.PushBack(std::move(column));
-        }
-    }
+void UIGridRow::SetNumColumns(int num_columns)
+{
+    m_num_columns = num_columns;
 
     UpdateColumnSizes();
     UpdateColumnOffsets();
@@ -158,9 +142,7 @@ RC<UIGridColumn> UIGridRow::AddColumn()
 
 void UIGridRow::UpdateColumnSizes()
 {
-    const Vec2i actual_size = GetActualSize();
-
-    const float column_percent = 1.0f / float(m_columns.Size());
+    const float column_size_percent = 1.0f / float(GetNumColumns());
 
     Vec2i offset { 0, 0 };
 
@@ -171,7 +153,9 @@ void UIGridRow::UpdateColumnSizes()
             continue;
         }
 
-        column->SetSize(UIObjectSize({ MathUtil::Floor<float, int>(100.0f * column_percent), UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        const UIObjectSize current_column_size = column->GetSize();
+
+        column->SetSize(UIObjectSize({ MathUtil::Floor<float, int>(100.0f * float(column->GetColumnSize()) * column_size_percent), UIObjectSize::PERCENT }, { current_column_size.GetValue().y, current_column_size.GetFlagsY() }));
     }
 }
 
@@ -207,15 +191,26 @@ void UIGridRow::UpdateSize_Internal(bool update_children)
 
 UIGrid::UIGrid(UIStage *parent, NodeProxy node_proxy)
     : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID),
-      m_num_columns(0)
+      m_num_columns(-1)
 {
 }
 
-void UIGrid::SetNumColumns(uint32 num_columns)
+void UIGrid::SetNumColumns(int num_columns)
 {
     m_num_columns = num_columns;
 
-    // Do not update existing rows - only newly added rows will be affected
+    HYP_LOG(UI, LogLevel::DEBUG, "Set num columns for grid {} to {}", GetName(), num_columns);
+
+    ForEachChildUIObject_Proc([this](const RC<UIObject> &ui_object)
+    {
+        if (!ui_object.Is<UIGridRow>()) {
+            return UIObjectIterationResult::CONTINUE;
+        }
+
+        ui_object.CastUnsafe<UIGridRow>()->SetNumColumns(m_num_columns);
+
+        return UIObjectIterationResult::CONTINUE;
+    }, false);
 }
 
 void UIGrid::SetNumRows(uint32 num_rows)
@@ -276,9 +271,12 @@ void UIGrid::Init()
 void UIGrid::AddChildUIObject(UIObject *ui_object)
 {
     if (ui_object->GetType() == UIObjectType::GRID_ROW) {
-        UIObject::AddChildUIObject(ui_object);
+        RC<UIGridRow> row = ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridRow>();
+        row->SetNumColumns(m_num_columns);
 
-        m_rows.PushBack(ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridRow>());
+        UIObject::AddChildUIObject(row);
+
+        m_rows.PushBack(row);
 
         UpdateLayout();
 

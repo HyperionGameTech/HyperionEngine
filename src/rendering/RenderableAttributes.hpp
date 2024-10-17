@@ -135,96 +135,70 @@ public:
     RenderableAttributeSet &operator=(RenderableAttributeSet &&other) noexcept  = default;
     ~RenderableAttributeSet()                                                   = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const RenderableAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator==(const RenderableAttributeSet &other) const
         { return GetHashCode() == other.GetHashCode(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator!=(const RenderableAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator!=(const RenderableAttributeSet &other) const
         { return GetHashCode() != other.GetHashCode(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator<(const RenderableAttributeSet &other) const
+    HYP_FORCE_INLINE bool operator<(const RenderableAttributeSet &other) const
         { return GetHashCode().Value() < other.GetHashCode().Value(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ShaderDefinition &GetShaderDefinition() const
+    HYP_FORCE_INLINE const ShaderDefinition &GetShaderDefinition() const
         { return m_material_attributes.shader_definition; }
 
-    HYP_FORCE_INLINE
-    void SetShaderDefinition(const ShaderDefinition &shader_definition)
+    HYP_FORCE_INLINE void SetShaderDefinition(const ShaderDefinition &shader_definition)
     {
         m_material_attributes.shader_definition = shader_definition;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const FramebufferRef &GetFramebuffer() const
+    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
 
-    HYP_FORCE_INLINE
-    void SetFramebuffer(const FramebufferRef &framebuffer)
+    HYP_FORCE_INLINE void SetFramebuffer(const FramebufferRef &framebuffer)
     {
         m_framebuffer = framebuffer;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const MeshAttributes &GetMeshAttributes() const
+    HYP_FORCE_INLINE const MeshAttributes &GetMeshAttributes() const
         { return m_mesh_attributes; }
 
-    HYP_FORCE_INLINE
-    void SetMeshAttributes(const MeshAttributes &mesh_attributes)
+    HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &mesh_attributes)
     {
         m_mesh_attributes = mesh_attributes;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const MaterialAttributes &GetMaterialAttributes() const
+    HYP_FORCE_INLINE const MaterialAttributes &GetMaterialAttributes() const
         { return m_material_attributes; }
 
-    HYP_FORCE_INLINE
-    void SetMaterialAttributes(const MaterialAttributes &material_attributes)
+    HYP_FORCE_INLINE void SetMaterialAttributes(const MaterialAttributes &material_attributes)
     {
         m_material_attributes = material_attributes;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetOverrideFlags() const
+    HYP_FORCE_INLINE uint32 GetOverrideFlags() const
         { return m_override_flags; }
 
-    HYP_FORCE_INLINE
-    void SetOverrideFlags(uint32 override_flags)
+    HYP_FORCE_INLINE void SetOverrideFlags(uint32 override_flags)
     {
         m_override_flags = override_flags;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetDrawableLayer() const
+    HYP_FORCE_INLINE uint32 GetDrawableLayer() const
         { return m_drawable_layer; }
 
-    HYP_FORCE_INLINE
-    void SetDrawableLayer(uint32 drawable_layer)
+    HYP_FORCE_INLINE void SetDrawableLayer(uint32 drawable_layer)
     {
         m_drawable_layer = drawable_layer;
         m_needs_hash_code_recalculation = true;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         if (m_needs_hash_code_recalculation) {
             RecalculateHashCode();

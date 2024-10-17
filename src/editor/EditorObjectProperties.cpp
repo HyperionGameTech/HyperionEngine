@@ -32,7 +32,6 @@ const HypClass *EditorObjectPropertiesBase::GetClass() const
 RC<UIObject> EditorObjectProperties<Vec2f>::CreateUIObject(UIStage *stage) const
 {
     RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    grid->SetNumColumns(2);
 
     RC<UIGridRow> row = grid->AddRow();
 

@@ -323,7 +323,7 @@ struct HypProperty : public IHypMember
     Name                    name;
     TypeID                  type_id;
 
-    HypClassAttributeList   attributes;
+    HypClassAttributeSet    attributes;
 
     HypPropertyGetter       getter;
     HypPropertySetter       setter;

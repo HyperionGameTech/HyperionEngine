@@ -26,7 +26,18 @@ public:
     UIGridColumn &operator=(UIGridColumn &&other) noexcept  = delete;
     virtual ~UIGridColumn() override                        = default;
 
+    HYP_METHOD(Property="ColumnSize", XMLAttribute="colsize")
+    HYP_FORCE_INLINE int GetColumnSize() const
+        { return m_column_size; }
+
+    HYP_METHOD(Property="ColumnSize", XMLAttribute="colsize")
+    HYP_FORCE_INLINE void SetColumnSize(int column_size)
+        { m_column_size = column_size; }
+
     virtual void Init() override;
+
+private:
+    int m_column_size;
 };
 
 #pragma endregion UIGridColumn
@@ -54,11 +65,8 @@ public:
     HYP_FORCE_INLINE const Array<RC<UIGridColumn>> &GetColumns() const
         { return m_columns; }
 
-    /*! \brief Gets the number of columns in the row.
-     * 
-     * \return The number of columns in the row. */
-    HYP_FORCE_INLINE uint32 GetNumColumns() const
-        { return m_columns.Size(); }
+    int GetNumColumns() const;
+    void SetNumColumns(int num_columns);
     
     /*! \brief Adds a new column to the row.
      * 
@@ -79,18 +87,18 @@ public:
         *  If no empty column is found, a null pointer is returned. */
     RC<UIGridColumn> FindEmptyColumn() const;
 
+    void UpdateColumnSizes();
+    void UpdateColumnOffsets();
+
     virtual void Init() override;
 
     virtual void AddChildUIObject(UIObject *ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
     
 private:
-    void SetNumColumns(uint32 num_columns);
-
-    void UpdateColumnSizes();
-    void UpdateColumnOffsets();
-
     virtual void UpdateSize_Internal(bool update_children) override;
+
+    int                     m_num_columns;
 
     Array<RC<UIGridColumn>> m_columns;
 };
@@ -115,27 +123,27 @@ public:
     /*! \brief Gets the number of columns in the grid.
      * 
      * \return The number of columns in the grid. */
-    HYP_METHOD()
-    HYP_FORCE_INLINE uint32 GetNumColumns() const
+    HYP_METHOD(Property="NumColumns")
+    HYP_FORCE_INLINE int GetNumColumns() const
         { return m_num_columns; }
 
     /*! \brief Sets the number of columns in the grid.
      * 
      * \param num_columns The number of columns to set. */
-    HYP_METHOD(XMLAttribute="cols")
-    void SetNumColumns(uint32 num_columns);
+    HYP_METHOD(Property="NumColumns", XMLAttribute="cols")
+    void SetNumColumns(int num_columns);
 
     /*! \brief Gets the number of rows in the grid.
      * 
      * \return The number of rows in the grid. */
-    HYP_METHOD()
+    HYP_METHOD(Property="NumRows")
     HYP_FORCE_INLINE uint32 GetNumRows() const
         { return m_rows.Size(); }
 
     /*! \brief Sets the number of rows in the grid.
      * 
      * \param num_rows The number of rows to set. */
-    HYP_METHOD(XMLAttribute="rows")
+    HYP_METHOD(Property="NumRows", XMLAttribute="rows")
     void SetNumRows(uint32 num_rows);
 
     RC<UIGridRow> AddRow();
@@ -153,7 +161,7 @@ protected:
 private:
     void UpdateLayout();
 
-    SizeType                m_num_columns;
+    int                     m_num_columns;
 
     RC<UIPanel>             m_container;
 

@@ -12,9 +12,8 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
     : UIObject(parent, std::move(node_proxy), type)
 {
     SetBorderRadius(0);
-
-    m_background_color = Color(0x101012FFu);
-    m_text_color = Color(0xFFFFFFFFu);
+    SetBackgroundColor(Color(0x101012FFu));
+    SetTextColor(Color(0xFFFFFFFFu));
 
     OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
     {

@@ -296,11 +296,20 @@ public:
         { return m_ref->type_id; }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() const
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() const &
     {
         RefCountedPtr<T, CountType> rc;
         rc.m_ref = m_ref;
         rc.IncRefCount();
+
+        return rc;
+    }
+
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() &&
+    {
+        RefCountedPtr<T, CountType> rc;
+        std::swap(rc.m_ref, m_ref);
 
         return rc;
     }

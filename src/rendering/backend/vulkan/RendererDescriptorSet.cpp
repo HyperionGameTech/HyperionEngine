@@ -702,7 +702,7 @@ Result DescriptorSetManager<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
 {
     static const Array<VkDescriptorPoolSize> pool_sizes = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-        { VK_DESCRIPTOR_TYPE_SAMPLER,                    64 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER,                    128 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     8 },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,              32000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,              32000 },

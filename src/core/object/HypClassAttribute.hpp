@@ -204,15 +204,15 @@ private:
     HypClassAttributeValue  m_value;
 };
 
-class HypClassAttributeList
+class HypClassAttributeSet
 {
 public:
     using Iterator = typename FlatSet<HypClassAttribute>::Iterator;
     using ConstIterator = typename FlatSet<HypClassAttribute>::ConstIterator;
 
-    HypClassAttributeList()                                                     = default;
+    HypClassAttributeSet()                                                     = default;
 
-    HypClassAttributeList(Span<HypClassAttribute> attributes)
+    HypClassAttributeSet(Span<HypClassAttribute> attributes)
     {
         if (!attributes) {
             return;
@@ -220,26 +220,24 @@ public:
 
         for (const HypClassAttribute &attribute : attributes) {
             m_attributes.Insert(attribute);
-
-            DebugLog(LogType::Debug, "Attribute: %s : %s : %d\n", attribute.GetName().Data(), attribute.GetValue().GetString().Data(), attribute.GetValue().m_value.GetTypeIndex());
         }
     }
 
-    HypClassAttributeList(const FlatSet<HypClassAttribute> &attributes)
+    HypClassAttributeSet(const FlatSet<HypClassAttribute> &attributes)
         : m_attributes(attributes)
     {
     }
 
-    HypClassAttributeList(FlatSet<HypClassAttribute> &&attributes)
+    HypClassAttributeSet(FlatSet<HypClassAttribute> &&attributes)
         : m_attributes(std::move(attributes))
     {
     }
 
-    HypClassAttributeList(const HypClassAttributeList &other)                   = default;
-    HypClassAttributeList &operator=(const HypClassAttributeList &other)        = default;
-    HypClassAttributeList(HypClassAttributeList &&other) noexcept               = default;
-    HypClassAttributeList &operator=(HypClassAttributeList &&other) noexcept    = default;
-    ~HypClassAttributeList()                                                    = default;
+    HypClassAttributeSet(const HypClassAttributeSet &other)                   = default;
+    HypClassAttributeSet &operator=(const HypClassAttributeSet &other)        = default;
+    HypClassAttributeSet(HypClassAttributeSet &&other) noexcept               = default;
+    HypClassAttributeSet &operator=(HypClassAttributeSet &&other) noexcept    = default;
+    ~HypClassAttributeSet()                                                    = default;
 
     HYP_FORCE_INLINE const HypClassAttributeValue &operator[](ANSIStringView name) const
         { return Get(name); }
@@ -262,12 +260,12 @@ public:
         return it->GetValue();
     }
 
-    HYP_FORCE_INLINE void Merge(const HypClassAttributeList &other)
+    HYP_FORCE_INLINE void Merge(const HypClassAttributeSet &other)
     {
         m_attributes.Merge(other.m_attributes);
     }
 
-    HYP_FORCE_INLINE void Merge(HypClassAttributeList &&other)
+    HYP_FORCE_INLINE void Merge(HypClassAttributeSet &&other)
     {
         m_attributes.Merge(std::move(other.m_attributes));
     }

@@ -332,7 +332,7 @@ protected:
     Name                            m_name;
     Name                            m_parent_name;
     const HypClass                  *m_parent;
-    HypClassAttributeList           m_attributes;
+    HypClassAttributeSet            m_attributes;
     EnumFlags<HypClassFlags>        m_flags;
     Array<HypProperty *>            m_properties;
     HashMap<Name, HypProperty *>    m_properties_by_name;
