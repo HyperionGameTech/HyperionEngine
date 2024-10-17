@@ -4,6 +4,7 @@
 #define HYPERION_DOTNET_INTEROP_MANAGED_GUID_HPP
 
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <type_traits>
 
@@ -16,9 +17,26 @@ struct ManagedGuid
     uint64  low;
     uint64  high;
 
+    HYP_FORCE_INLINE bool operator==(const ManagedGuid &other) const
+    {
+        return low == other.low
+            && high == other.high;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ManagedGuid &other) const
+    {
+        return low != other.low
+            || high != other.high;
+    }
+
     HYP_FORCE_INLINE bool IsValid() const
     {
         return low != 0 || high != 0;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode(low).Combine(high);
     }
 };
 

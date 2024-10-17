@@ -195,6 +195,12 @@ struct HashCode
         return hc;
     }
 
+    template <class T, typename = std::enable_if_t<!std::is_same_v<T, HashCode>>>
+    constexpr HashCode Combine(const T &value) const
+    {
+        return Combine(GetHashCode(value));
+    }
+
 private:
     constexpr void HashCombine(const HashCode &other)
     {
