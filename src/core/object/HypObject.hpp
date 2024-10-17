@@ -27,6 +27,7 @@ struct HypData;
 
 namespace dotnet {
 class Object;
+class Class;
 } // namespace dotnet
 
 class IHypObjectInitializer;
@@ -34,6 +35,7 @@ class IHypObjectInitializer;
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
+extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
 
 // Ensure the current HypObjectInitializer being constructed is the same as the one passed
 extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, const void *address);
@@ -48,6 +50,8 @@ public:
 
     virtual const HypClass *GetClass() const = 0;
 
+    virtual dotnet::Class *GetManagedClass() const = 0;
+
     virtual void SetManagedObject(dotnet::Object *managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
 };
@@ -60,7 +64,6 @@ public:
         : m_managed_object(nullptr)
     {
         CheckHypObjectInitializer(this, native_address);
-        //InitHypObjectInitializer(this, native_address, T::GetTypeID(), T::GetClass());
     }
 
     virtual ~HypObjectInitializer() override
@@ -80,6 +83,11 @@ public:
     virtual const HypClass *GetClass() const override
     {
         return GetClass_Static();
+    }
+
+    virtual dotnet::Class *GetManagedClass() const override
+    {
+        return GetHypClassManagedClass(GetClass_Static());
     }
 
     virtual void SetManagedObject(dotnet::Object *managed_object) override
@@ -163,7 +171,6 @@ private:
             { return HypObjectInitializer<T>::GetClass_Static(); } \
         \
     private:
-
 
 // template <class T>
 // HYP_FORCE_INLINE inline bool InitObject(HypObjectType<T> *object)

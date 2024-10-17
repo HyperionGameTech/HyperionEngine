@@ -1247,8 +1247,7 @@ void HyperionEditorImpl::InitSceneOutline()
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     
-    UniquePtr<UIDataSource<Weak<Node>>> temp_data_source = MakeUnique<UIDataSource<Weak<Node>>>();
-    list_view->SetDataSource(std::move(temp_data_source));
+    list_view->SetDataSource(MakeRefCountedPtr<UIDataSource<Weak<Node>>>());
     
     list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem *list_view_item)
     {
@@ -1400,8 +1399,7 @@ void HyperionEditorImpl::InitDetailView()
         HYP_LOG(Editor, LogLevel::DEBUG, "Focused node: ", node->GetName());
 
         { // create new data source
-            UniquePtr<UIDataSource<EditorNodePropertyRef>> data_source = MakeUnique<UIDataSource<EditorNodePropertyRef>>();
-            list_view->SetDataSource(std::move(data_source));
+            list_view->SetDataSource(MakeRefCountedPtr<UIDataSource<EditorNodePropertyRef>>());
         }
 
         UIDataSourceBase *data_source = list_view->GetDataSource();

@@ -206,4 +206,11 @@ HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp
     return hyp_class->GetAllocationMethod();
 }
 
+HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
+{
+    AssertThrow(hyp_class != nullptr);
+
+    return hyp_class->GetManagedClass();
+}
+
 } // namespace hyperion

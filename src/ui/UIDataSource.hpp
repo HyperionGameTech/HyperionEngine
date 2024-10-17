@@ -16,6 +16,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/Util.hpp>
 
@@ -183,8 +184,11 @@ private:
     HypData m_value;
 };
 
-class HYP_API UIDataSourceBase
+HYP_CLASS(Abstract)
+class HYP_API UIDataSourceBase : public EnableRefCountedPtrFromThis<UIDataSourceBase>
 {
+    HYP_OBJECT_BODY(UIDataSourceBase);
+
 protected:
     UIDataSourceBase(IUIDataSourceElementFactory *element_factory)
         : m_element_factory(element_factory)

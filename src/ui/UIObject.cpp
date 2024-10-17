@@ -2234,18 +2234,18 @@ void UIObject::OnTextSizeUpdate()
     }, true);
 }
 
-void UIObject::SetDataSource(UniquePtr<UIDataSourceBase> &&data_source)
+void UIObject::SetDataSource(const RC<UIDataSourceBase> &data_source)
 {
     HYP_SCOPE;
 
-    if (m_data_source) {
+    if (m_data_source != nullptr) {
         m_data_source_on_change_handler.Reset();
         m_data_source_on_element_add_handler.Reset();
         m_data_source_on_element_remove_handler.Reset();
         m_data_source_on_element_update_handler.Reset();
     }
 
-    m_data_source = std::move(data_source);
+    m_data_source = data_source;
 
     SetDataSource_Internal(m_data_source.Get());
 }

@@ -731,26 +731,14 @@ public:
 
     /*! \brief Get the data source associated with this UIObject. The data source is used to populate the UIObject with data.
      *  \return The data source associated with this UIObject. */
-    HYP_FORCE_INLINE UIDataSourceBase *GetDataSource() const
-        { return m_data_source.Get(); }
-
-    /*! \brief Get the data source associated with this UIObject, casted to the specified type.
-     *  \tparam T The type to cast the data source to.
-     *  \return The data source associated with this UIObject, cast to the specified type.
-     *  Nullptr if the data source is not of the specified type. */
-    template <class T>
-    HYP_FORCE_INLINE UIDataSource<T> *GetDataSource() const
-    {
-        if (!m_data_source.IsDynamic<UIDataSource<T>>()) {
-            return nullptr;
-        }
-
-        return static_cast<UIDataSource<T> *>(m_data_source.Get());
-    }
+    HYP_METHOD(Property="DataSource")
+    HYP_FORCE_INLINE const RC<UIDataSourceBase> &GetDataSource() const
+        { return m_data_source; }
 
     /*! \brief Set the data source associated with this UIObject. The data source is used to populate the UIObject with data.
      *  \param data_source The data source to associate with this UIObject. */
-    void SetDataSource(UniquePtr<UIDataSourceBase> &&data_source);
+    HYP_METHOD(Property="DataSource")
+    void SetDataSource(const RC<UIDataSourceBase> &data_source);
 
     /*! \brief Gets the UUID of the associated data source element (if applicable).
      *  Otherwise, returns an empty UUID.
@@ -904,7 +892,7 @@ protected:
 
     float                           m_text_size;
 
-    UniquePtr<UIDataSourceBase>     m_data_source;
+    RC<UIDataSourceBase>            m_data_source;
     DelegateHandler                 m_data_source_on_change_handler;
     DelegateHandler                 m_data_source_on_element_add_handler;
     DelegateHandler                 m_data_source_on_element_remove_handler;
