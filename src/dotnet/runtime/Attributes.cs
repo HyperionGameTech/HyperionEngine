@@ -27,27 +27,24 @@ namespace Hyperion
                 return (HypClass)hypClass;
             }
         }
-    }
 
-    [AttributeUsage(AttributeTargets.Struct, Inherited = false)]
-    public class HypStructBinding : Attribute
-    {
-        public string Name { get; set; }
-
-        public HypClass HypClass
+        public static HypClassBinding? ForType(Type type, bool inheritance = false) 
         {
-            get
-            {
-                HypClass? hypClass = HypClass.GetClass(Name);
+            Type? currentType = type;
 
-                if (hypClass == null)
+            do
+            {
+                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(HypClassBinding));
+
+                if (attribute != null)
                 {
-                    throw new Exception("Failed to load HypClass: " + Name);
+                    return (HypClassBinding)attribute;
                 }
 
-                return (HypClass)hypClass;
-            }
-        }
+                currentType = ((Type)currentType).BaseType;
+            } while (currentType != null && inheritance);
 
+            return null;
+        }
     }
 }

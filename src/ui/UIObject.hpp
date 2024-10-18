@@ -38,8 +38,6 @@ class UIObject;
 class UIStage;
 class UIRenderer;
 class UIDataSourceBase;
-
-template <class T>
 class UIDataSource;
 
 // Helper function to get the scene from a UIStage

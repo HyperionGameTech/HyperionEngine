@@ -247,7 +247,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
     RemoveAllChildUIObjects();
 
-    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Add element from data source to list view");
 
@@ -309,7 +309,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
         AddChildUIObject(list_view_item);
     });
 
-    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Remove element from data source from list view");
 
@@ -340,7 +340,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
         HYP_LOG(UI, LogLevel::WARNING, "Failed to remove list view item with data source element UUID {}", element->GetUUID());
     });
 
-    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Update element from data source in list view");
 

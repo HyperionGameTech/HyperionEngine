@@ -1247,7 +1247,7 @@ void HyperionEditorImpl::InitSceneOutline()
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     
-    list_view->SetDataSource(MakeRefCountedPtr<UIDataSource<Weak<Node>>>());
+    list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<Weak<Node>> { }));
     
     list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem *list_view_item)
     {
@@ -1275,7 +1275,7 @@ void HyperionEditorImpl::InitSceneOutline()
             return UIEventHandlerResult::ERR;
         }
 
-        const IUIDataSourceElement *data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
+        const UIDataSourceElement *data_source_element_value = list_view->GetDataSource()->Get(data_source_element_uuid);
 
         if (!data_source_element_value) {
             return UIEventHandlerResult::ERR;
@@ -1311,7 +1311,7 @@ void HyperionEditorImpl::InitSceneOutline()
         }
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            const IUIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+            const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
             AssertThrow(data_source_element != nullptr);
 
             data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
@@ -1362,7 +1362,7 @@ void HyperionEditorImpl::InitSceneOutline()
         }
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            data_source->RemoveAllWithPredicate([&node](IUIDataSourceElement *item)
+            data_source->RemoveAllWithPredicate([&node](UIDataSourceElement *item)
             {
                 return item->GetValue().ToRef() == node.Get();
             });
@@ -1398,9 +1398,7 @@ void HyperionEditorImpl::InitDetailView()
 
         HYP_LOG(Editor, LogLevel::DEBUG, "Focused node: ", node->GetName());
 
-        { // create new data source
-            list_view->SetDataSource(MakeRefCountedPtr<UIDataSource<EditorNodePropertyRef>>());
-        }
+        list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<EditorNodePropertyRef> { }));
 
         UIDataSourceBase *data_source = list_view->GetDataSource();
         
@@ -1453,7 +1451,7 @@ void HyperionEditorImpl::InitDetailView()
             }
 
             if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-                IUIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, property](const IUIDataSourceElement *item)
+                UIDataSourceElement *data_source_element = data_source->FindWithPredicate([node, property](const UIDataSourceElement *item)
                 {
                     return item->GetValue().Get<EditorNodePropertyRef>().property == property;
                 });

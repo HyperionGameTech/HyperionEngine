@@ -10,4 +10,12 @@ namespace Hyperion
         {
         }
     }
+
+    [HypClassBinding(Name="UIDataSource")]
+    public class UIDataSource : UIDataSourceBase
+    {
+        public UIDataSource()
+        {
+        }
+    }
 }

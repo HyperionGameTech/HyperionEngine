@@ -12,7 +12,7 @@ namespace Hyperion
 
         public T? GetSubsystem<T>() where T : Subsystem
         {
-            HypClassBinding? hypClassBindingAttribute = (HypClassBinding)Attribute.GetCustomAttribute(typeof(T), typeof(HypClassBinding));
+            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(typeof(T));
 
             if (hypClassBindingAttribute == null)
             {

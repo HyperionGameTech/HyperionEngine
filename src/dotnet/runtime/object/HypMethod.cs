@@ -148,7 +148,7 @@ namespace Hyperion
                     argIndex++;
                 }
 
-                for (int i = 0; argIndex < numArgs; i++, argIndex++)
+                for (; argIndex < numArgs; argIndex++)
                 {
                     HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(args[argIndex]);

@@ -17,6 +17,8 @@ enum class EditorCameraControllerMode
 HYP_CLASS()
 class HYP_API EditorCameraController : public FirstPersonCameraController
 {
+    HYP_OBJECT_BODY(EditorCameraController);
+
 public:
     EditorCameraController();
     virtual ~EditorCameraController() = default;

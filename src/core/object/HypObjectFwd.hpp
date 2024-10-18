@@ -26,7 +26,7 @@ struct IsHypObject
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t< T::is_hyp_object > >
+struct IsHypObject<T, std::enable_if_t< T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type > > >
 {
     static constexpr bool value = true;
 };

@@ -170,6 +170,7 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
     }
 
     if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
+        HYP_LOG(Object, LogLevel::DEBUG, "Create new managed {} for address {}", hyp_class->GetName(), native_address);
         dotnet::Object *managed_object_ptr = managed_class->NewObject(hyp_class, native_address).Release();
 
         IHypObjectInitializer *current_initializer = initializer;

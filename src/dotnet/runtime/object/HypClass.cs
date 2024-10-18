@@ -220,7 +220,7 @@ namespace Hyperion
 
         public static HypClass GetClass(Type type)
         {
-            HypClassBinding? hypClassBindingAttribute = (HypClassBinding)Attribute.GetCustomAttribute(type, typeof(HypClassBinding));
+            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(type);
 
             if (hypClassBindingAttribute == null)
             {

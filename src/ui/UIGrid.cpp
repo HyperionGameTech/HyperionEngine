@@ -368,7 +368,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
         return;
     }
 
-    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Add element from data source to grid view");
 
@@ -400,7 +400,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
         }
     });
 
-    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Remove element from data source from list view");
 
@@ -426,7 +426,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
         }
     });
 
-    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, IUIDataSourceElement *element, IUIDataSourceElement *parent)
+    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
     {
         HYP_NAMED_SCOPE("Update element from data source in grid view");
 

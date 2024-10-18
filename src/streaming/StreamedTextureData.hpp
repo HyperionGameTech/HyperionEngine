@@ -18,6 +18,8 @@ namespace hyperion {
 HYP_CLASS()
 class HYP_API StreamedTextureData final : public StreamedData
 {
+    HYP_OBJECT_BODY(StreamedTextureData);
+
     StreamedTextureData(StreamedDataState initial_state, TextureData texture_data);
 
 public:

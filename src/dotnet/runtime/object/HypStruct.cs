@@ -9,7 +9,7 @@ namespace Hyperion
         {
             outHypClass = null;
 
-            HypClassBinding hypClassBindingAttribute = (HypClassBinding)Attribute.GetCustomAttribute(type, typeof(HypClassBinding));
+            HypClassBinding hypClassBindingAttribute = HypClassBinding.ForType(type);
 
             if (hypClassBindingAttribute != null)
             {

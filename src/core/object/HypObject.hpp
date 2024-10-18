@@ -153,7 +153,12 @@ private:
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         \
     public: \
-        static constexpr bool is_hyp_object = true; \
+        struct HypObjectData \
+        { \
+            using Type = T; \
+            \
+            static constexpr bool is_hyp_object = true; \
+        }; \
         \
         HYP_FORCE_INLINE HypObjectInitializer<T> &GetObjectInitializer() \
             { return m_hyp_object_initializer; } \

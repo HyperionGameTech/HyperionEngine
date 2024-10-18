@@ -17,12 +17,14 @@ namespace Hyperion
                     throw new Exception("Native address is not null - object is already initialized");
                 }
 
+                Type type = this.GetType();
+
                 // Read the HypClassBinding attribute
-                HypClassBinding attribute = (HypClassBinding)Attribute.GetCustomAttribute(this.GetType(), typeof(HypClassBinding));
+                HypClassBinding? attribute = HypClassBinding.ForType(type);
 
                 if (attribute == null)
                 {
-                    throw new Exception("Failed to get HypClassBinding attribute");
+                    throw new Exception("Failed to get HypClassBinding attribute for type " + type.Name);
                 }
 
                 HypClass hypClass = attribute.HypClass;
@@ -32,8 +34,17 @@ namespace Hyperion
                     throw new Exception("Invalid HypClass returned from HypClassBinding attribute");
                 }
 
+                // Need to add this to managed object cache,
+                // pass to CreateInstance() so the HypObject in C++ knows not to create another of this..
+                GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
+                ObjectReference objectReference = NativeInterop_AddToManagedObjectCache(ref this);
+
                 _hypClassPtr = hypClass.Address;
                 _nativeAddress = hypClass.CreateInstance();
+
+                gcHandle.Free();
+
+                Logger.Log(LogType.Debug, "Created HypObject of type " + type.Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
             }
 
             if (_hypClassPtr == IntPtr.Zero)
@@ -153,5 +164,8 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetMethod")]
         private static extern IntPtr HypObject_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_AddToManagedObjectCache")]
+        private static extern ObjectReference NativeInterop_AddToManagedObjectCache([In] ref object objectRef);
     }
 }

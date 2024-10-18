@@ -104,50 +104,24 @@ private:
     ConstAnyRef m_context;
 };
 
-class HYP_API IUIDataSourceElement
+class HYP_API UIDataSourceElement
 {
 public:
-    virtual ~IUIDataSourceElement() = default;
-
-    virtual UUID GetUUID() const = 0;
-
-    virtual HypData &GetValue() = 0;
-    virtual const HypData &GetValue() const = 0;
-
-    // virtual Array<IUIDataSourceElement *> GetSubItems() const;
-};
-
-template <class T>
-class HYP_API UIDataSourceElement final : public IUIDataSourceElement
-{
-public:
-    UIDataSourceElement(UUID uuid, const T &value)
-        : m_uuid(uuid),
-          m_value(HypData(value))
-    {
-    }
-
+    template <class T, typename = std::enable_if_t<!std::is_same_v<T, HypData>>>
     UIDataSourceElement(UUID uuid, T &&value)
         : m_uuid(uuid),
-          m_value(HypData(std::move(value)))
+          m_value(HypData(std::forward<T>(value)))
     {
     }
 
-    UIDataSourceElement(const UIDataSourceElement &other)
-        : m_uuid(other.m_uuid),
-          m_value(other.m_value)
+    UIDataSourceElement(UUID uuid, HypData &&value)
+        : m_uuid(uuid),
+          m_value(std::move(value))
     {
     }
 
-    UIDataSourceElement &operator=(const UIDataSourceElement &other)
-    {
-        if (this != &other) {
-            m_uuid = other.m_uuid;
-            m_value = other.m_value;
-        }
-
-        return *this;
-    }
+    UIDataSourceElement(const UIDataSourceElement &other)               = delete;
+    UIDataSourceElement &operator=(const UIDataSourceElement &other)    = delete;
 
     UIDataSourceElement(UIDataSourceElement &&other) noexcept
         : m_uuid(other.m_uuid),
@@ -168,15 +142,15 @@ public:
         return *this;
     }
 
-    virtual ~UIDataSourceElement() override = default;
+    ~UIDataSourceElement() = default;
 
-    virtual UUID GetUUID() const override
+    HYP_FORCE_INLINE UUID GetUUID() const
         { return m_uuid; }
 
-    virtual HypData &GetValue() override
+    HYP_FORCE_INLINE HypData &GetValue()
         { return m_value; }
 
-    virtual const HypData &GetValue() const override
+    HYP_FORCE_INLINE const HypData &GetValue() const
         { return m_value; }
 
 private:
@@ -193,7 +167,7 @@ protected:
     UIDataSourceBase(IUIDataSourceElementFactory *element_factory)
         : m_element_factory(element_factory)
     {
-        AssertThrowMsg(element_factory != nullptr, "No element factory registered for the data source; unable to create UIObjects");
+        // AssertThrowMsg(element_factory != nullptr, "No element factory registered for the data source; unable to create UIObjects");
     }
 
 public:
@@ -207,14 +181,14 @@ public:
         { return m_element_factory; }
 
     virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid = UUID::Invalid()) = 0;
-    virtual const IUIDataSourceElement *Get(const UUID &uuid) const = 0;
+    virtual const UIDataSourceElement *Get(const UUID &uuid) const = 0;
     virtual void Set(const UUID &uuid, HypData &&value) = 0;
     virtual bool Remove(const UUID &uuid) = 0;
-    virtual void RemoveAllWithPredicate(ProcRef<bool, IUIDataSourceElement *> predicate) = 0;
+    virtual void RemoveAllWithPredicate(ProcRef<bool, UIDataSourceElement *> predicate) = 0;
 
-    virtual IUIDataSourceElement *FindWithPredicate(ProcRef<bool, const IUIDataSourceElement *> predicate) = 0;
+    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) = 0;
 
-    HYP_FORCE_INLINE const IUIDataSourceElement *FindWithPredicate(ProcRef<bool, const IUIDataSourceElement *> predicate) const
+    HYP_FORCE_INLINE const UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) const
     {
         return const_cast<UIDataSourceBase *>(this)->FindWithPredicate(predicate);
     }
@@ -222,28 +196,30 @@ public:
     virtual SizeType Size() const = 0;
     virtual void Clear() = 0;
 
-    virtual Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> GetValues() = 0;
+    virtual Array<Pair<UIDataSourceElement *, UIDataSourceElement *>> GetValues() = 0;
 
     /*! \brief General purpose delegate that is called whenever the data source changes */
     Delegate<void, UIDataSourceBase *>                                                  OnChange;
 
     /*! \brief Called when an element is added to the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementAdd;
+    Delegate<void, UIDataSourceBase *, UIDataSourceElement *, UIDataSourceElement *>    OnElementAdd;
 
     /*! \brief Called when an element is removed from the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementRemove;
+    Delegate<void, UIDataSourceBase *, UIDataSourceElement *, UIDataSourceElement *>    OnElementRemove;
 
     /*! \brief Called when an element is updated in the data source */
-    Delegate<void, UIDataSourceBase *, IUIDataSourceElement *, IUIDataSourceElement *>  OnElementUpdate;
+    Delegate<void, UIDataSourceBase *, UIDataSourceElement *, UIDataSourceElement *>    OnElementUpdate;
 
 protected:
     IUIDataSourceElementFactory                                                         *m_element_factory;
 };
 
-template <class T>
+HYP_CLASS()
 class HYP_API UIDataSource : public UIDataSourceBase
 {
-    static HYP_FORCE_INLINE IUIDataSourceElement *GetParentElementFromIterator(typename Forest<UIDataSourceElement<T>>::Iterator iterator)
+    HYP_OBJECT_BODY(UIDataSource);
+
+    static HYP_FORCE_INLINE UIDataSourceElement *GetParentElementFromIterator(typename Forest<UIDataSourceElement>::Iterator iterator)
     {
         return iterator.GetCurrentNode()->GetParent() != nullptr
             ? &**iterator.GetCurrentNode()->GetParent()
@@ -251,8 +227,16 @@ class HYP_API UIDataSource : public UIDataSourceBase
     }
 
 public:
+    // temp : fixme
     UIDataSource()
-        : UIDataSourceBase(UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>()))
+        : UIDataSource(TypeWrapper<Any> { })
+    {
+    }
+
+    template <class T>
+    UIDataSource(TypeWrapper<T>)
+        : UIDataSourceBase(UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
+          m_element_type_id(TypeID::ForType<T>())
     {
     }
 
@@ -268,9 +252,15 @@ public:
             return;
         }
 
-        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
+        if (value.GetTypeID() != m_element_type_id) {
+            HYP_FAIL("Cannot add element with TypeID %u to UIDataSource - expected TypeID %u",
+                value.GetTypeID().Value(),
+                m_element_type_id.Value());
+        }
 
-        typename Forest<UIDataSourceElement<T>>::ConstIterator parent_it = m_values.End();
+        // AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
+
+        typename Forest<UIDataSourceElement>::ConstIterator parent_it = m_values.End();
 
         if (parent_uuid != UUID::Invalid()) {
             parent_it = m_values.FindIf([&parent_uuid](const auto &item)
@@ -279,13 +269,13 @@ public:
             });
         }
 
-        auto it = m_values.Add(UIDataSourceElement<T>(uuid, std::move(value.Get<T>())), parent_it);
+        auto it = m_values.Add(UIDataSourceElement(uuid, std::move(value)), parent_it);
 
         OnElementAdd(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
     }
 
-    virtual const IUIDataSourceElement *Get(const UUID &uuid) const override
+    virtual const UIDataSourceElement *Get(const UUID &uuid) const override
     {
         auto it = m_values.FindIf([&uuid](const auto &item)
         {
@@ -301,6 +291,12 @@ public:
 
     virtual void Set(const UUID &uuid, HypData &&value) override
     {
+        if (value.GetTypeID() != m_element_type_id) {
+            HYP_FAIL("Cannot set element with TypeID %u in UIDataSource - expected TypeID %u",
+                value.GetTypeID().Value(),
+                m_element_type_id.Value());
+        }
+
         auto it = m_values.FindIf([&uuid](const auto &item)
         {
             return item.GetUUID() == uuid;
@@ -310,9 +306,9 @@ public:
             HYP_FAIL("Element with UUID %s not found", uuid.ToString().Data());
         }
 
-        AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
+        // AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
 
-        *it = UIDataSourceElement<T>(uuid, std::move(value.Get<T>()));
+        *it = UIDataSourceElement(uuid, std::move(value));
 
         OnElementUpdate(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);
@@ -324,7 +320,7 @@ public:
     {
         bool changed = false;
 
-        for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
+        for (typename Forest<UIDataSourceElement>::Iterator it = m_values.Begin(); it != m_values.End();) {
             if (it->GetUUID() == uuid) {
                 OnElementRemove(this, &*it, GetParentElementFromIterator(it));
 
@@ -343,11 +339,11 @@ public:
         return changed;
     }
 
-    virtual void RemoveAllWithPredicate(ProcRef<bool, IUIDataSourceElement *> predicate) override
+    virtual void RemoveAllWithPredicate(ProcRef<bool, UIDataSourceElement *> predicate) override
     {
         bool changed = false;
 
-        for (typename Forest<UIDataSourceElement<T>>::Iterator it = m_values.Begin(); it != m_values.End();) {
+        for (typename Forest<UIDataSourceElement>::Iterator it = m_values.Begin(); it != m_values.End();) {
             if (predicate(&*it)) {
                 OnElementRemove(this, &*it, GetParentElementFromIterator(it));
 
@@ -362,34 +358,11 @@ public:
         if (changed) {
             OnChange(this);
         }
-
-        // for (SizeType index = 0; index < m_values.Size(); index++) {
-        //     if (predicate(&m_values[index])) {
-        //         elements_to_remove.PushBack(&m_values[index]);
-        //     }
-        // }
-
-        // if (elements_to_remove.Any()) {
-        //     for (SizeType index = 0; index < elements_to_remove.Size(); index++) {
-        //         OnElementRemove(this, elements_to_remove[index]);
-
-        //         const auto it = m_values.FindIf([element_to_remove = elements_to_remove[index]](const UIDataSourceElement<T> &element)
-        //         {
-        //             return &element == element_to_remove;
-        //         });
-
-        //         if (it != m_values.End()) {
-        //             m_values.Erase(it);
-        //         }
-        //     }
-
-        //     OnChange(this);
-        // }
     }
 
-    virtual IUIDataSourceElement *FindWithPredicate(ProcRef<bool, const IUIDataSourceElement *> predicate) override
+    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) override
     {
-        auto it = m_values.FindIf([&predicate](const UIDataSourceElement<T> &item) -> bool
+        auto it = m_values.FindIf([&predicate](const UIDataSourceElement &item) -> bool
         {
             return predicate(&item);
         });
@@ -419,9 +392,9 @@ public:
         OnChange(this);
     }
 
-    virtual Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> GetValues() override
+    virtual Array<Pair<UIDataSourceElement *, UIDataSourceElement *>> GetValues() override
     {
-        Array<Pair<IUIDataSourceElement *, IUIDataSourceElement *>> values;
+        Array<Pair<UIDataSourceElement *, UIDataSourceElement *>> values;
         values.Reserve(m_values.Size());
 
         for (auto it = m_values.Begin(); it != m_values.End(); ++it) {
@@ -432,7 +405,8 @@ public:
     }
 
 private:
-    Forest<UIDataSourceElement<T>>  m_values;
+    TypeID                      m_element_type_id;
+    Forest<UIDataSourceElement> m_values;
 };
 
 namespace detail {
