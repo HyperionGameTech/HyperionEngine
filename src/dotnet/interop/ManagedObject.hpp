@@ -15,6 +15,9 @@ struct ObjectReference
 {
     ManagedGuid guid;
     void        *ptr;
+
+    bool operator==(const ObjectReference &other) const = default;
+    bool operator!=(const ObjectReference &other) const = default;
 };
 
 static_assert(sizeof(ObjectReference) == 24, "ObjectReference size mismatch with C#");

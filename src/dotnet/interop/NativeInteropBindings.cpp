@@ -107,6 +107,22 @@ HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid
     class_holder->SetInvokeSetterFunction(invoke_setter_fptr);
 }
 
+HYP_EXPORT ObjectReference NativeInterop_SetAddObjectToCacheFunction(AddObjectToCacheFunction add_object_to_cache_fptr)
+{
+    DotNetSystem::GetInstance().SetAddObjectToCacheFunction(add_object_to_cache_fptr);
+}
+
+HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, ObjectReference *out_object_reference)
+{
+    AssertThrow(ptr != nullptr);
+    AssertThrow(out_object_reference != nullptr);
+    
+    AddObjectToCacheFunction fptr = DotNetSystem::GetInstance().GetAddObjectToCacheFunction();
+    AssertThrowMsg(fptr != nullptr, "AddObjectToCache function pointer not set!");
+
+    fptr(ptr, out_object_reference);
+}
+
 HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
 {
     AssertThrow(assembly_guid != nullptr);

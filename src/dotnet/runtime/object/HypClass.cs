@@ -191,6 +191,18 @@ namespace Hyperion
             return instancePtr;
         }
 
+        public IntPtr InitInstance(ObjectReference objectReference)
+        {
+            IntPtr instancePtr = HypClass_InitInstance(ptr, ref objectReference);
+
+            if (instancePtr == IntPtr.Zero)
+            {
+                throw new Exception("Failed to initialize HypObject");
+            }
+
+            return instancePtr;
+        }
+
         public static bool operator==(HypClass a, HypClass b)
         {
             return a.ptr == b.ptr;
@@ -232,6 +244,9 @@ namespace Hyperion
         
         [DllImport("hyperion", EntryPoint = "HypClass_CreateInstance")]
         private static extern IntPtr HypClass_CreateInstance([In] IntPtr hypClassPtr);
+        
+        [DllImport("hyperion", EntryPoint = "HypClass_InitInstance")]
+        private static extern IntPtr HypClass_InitInstance([In] IntPtr hypClassPtr, [In] ref ObjectReference objectReference);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);

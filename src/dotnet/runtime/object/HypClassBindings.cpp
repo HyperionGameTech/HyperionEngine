@@ -19,9 +19,7 @@ extern "C" {
 
 HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
 {
-    if (!hyp_class) {
-        return nullptr;
-    }
+    AssertThrow(hyp_class != nullptr);
 
     if (hyp_class->UseHandles()) {
         ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
@@ -41,6 +39,75 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
     } else {
         HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
     }
+
+
+    // HypData value;
+    // hyp_class->CreateInstance(value);
+
+    // if (hyp_class->UseHandles()) {
+    //     return value.Get<AnyHandle>().Release().GetPointer();
+    // } else if (hyp_class->UseRefCountedPtr()) {
+    //     return value.Get<RC<void>>().Release();
+    // } else {
+    //     HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+    // }
+}
+
+HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::ObjectReference *object_reference)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(object_reference != nullptr);
+
+    void *created_object_ptr = nullptr;
+
+    {
+        // Suppress default managed object creation
+        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+
+        if (hyp_class->UseHandles()) {
+            ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+            
+            const uint32 index = container.NextIndex();
+            container.ConstructAtIndex(index);
+
+            created_object_ptr = container.GetObjectPointer(index);
+        } else if (hyp_class->UseRefCountedPtr()) {
+            HypData value;
+            hyp_class->CreateInstance(value);
+
+            RC<void> &rc = value.Get<RC<void>>();
+            AssertThrow(rc != nullptr);
+
+            created_object_ptr = rc.Release();
+        } else {
+            HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+        }
+    }
+
+    IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(created_object_ptr);
+    AssertThrow(initializer != nullptr);
+
+    // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
+    // as it is managed by the .NET runtime
+    UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(hyp_class->GetManagedClass(), *object_reference, ObjectFlags::WEAK_REFERENCE);
+
+    SetHypObjectInitializerManagedObject(initializer, created_object_ptr, std::move(managed_object));
+
+    return created_object_ptr;
+
+    // HypData value;
+
+    // // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
+    // // as it is managed by the .NET runtime
+    // hyp_class->CreateInstance(value, MakeUnique<dotnet::Object>(hyp_class->GetManagedClass(), *object_reference, ObjectFlags::WEAK_REFERENCE));
+
+    // if (hyp_class->UseHandles()) {
+    //     return value.Get<AnyHandle>().Release().GetPointer();
+    // } else if (hyp_class->UseRefCountedPtr()) {
+    //     return value.Get<RC<void>>().Release();
+    // } else {
+    //     HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+    // }
 }
 
 HYP_EXPORT const HypClass *HypClass_GetClassByName(const char *name)

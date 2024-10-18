@@ -8,6 +8,7 @@ namespace Hyperion
 {
     public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
+    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outObjectReferencePtr);
 
     internal enum LoadAssemblyResult : int
     {
@@ -83,6 +84,8 @@ namespace Hyperion
                 NativeInterop_SetInvokeMethodFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
                 NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeGetter));
                 NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, classHolderPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeSetter));
+
+                NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
 
                 Type[] types = assembly.GetTypes();
 
@@ -488,14 +491,12 @@ namespace Hyperion
 
             if (!methodInfo.IsStatic)
             {
-                StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+                thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
 
-                if (storedObject == null)
+                if (thisObject == null)
                 {
                     throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
                 }
-
-                thisObject = ((StoredManagedObject)storedObject).obj;
             }
 
             object? returnValue = methodInfo.Invoke(thisObject, parameters);
@@ -510,16 +511,14 @@ namespace Hyperion
             Type returnType = propertyInfo.PropertyType;
             Type thisType = propertyInfo.DeclaringType;
 
-            StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+            object? thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
 
-            if (storedObject == null)
+            if (thisObject == null)
             {
                 throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
             }
 
-            object thisObject = ((StoredManagedObject)storedObject).obj;
-
-            object? returnValue = propertyInfo.GetValue(thisObject);
+            object? returnValue = propertyInfo.GetValue((object)thisObject);
 
             MarshalHelpers.MarshalOutObject(outPtr, returnType, returnValue);
         }
@@ -531,19 +530,52 @@ namespace Hyperion
             Type returnType = propertyInfo.PropertyType;
             Type thisType = propertyInfo.DeclaringType;
 
-            StoredManagedObject? storedObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+            object? thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
 
-            if (storedObject == null)
+            if (thisObject == null)
             {
                 throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
             }
 
-            object thisObject = ((StoredManagedObject)storedObject).obj;
-
             object? value = null;
             MarshalHelpers.MarshalInObject(paramsPtr, propertyInfo.PropertyType, out value);
 
-            propertyInfo.SetValue(thisObject, value);
+            propertyInfo.SetValue((object)thisObject, value);
+        }
+
+        /// <summary>
+        /// Adds a managed object to the managed object cache. The object is not kept alive,
+        /// as it is intended for objects that are already handled by the .NET runtime,
+        /// with no UniquePtr<Object> in C++.
+        /// </summary>
+        public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, IntPtr outObjectReferencePtr)
+        {
+            ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
+            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)outObjectReferencePtr);
+
+            object obj = objectWrapperRef.obj;
+
+            if (obj == null)
+            {
+                throw new ArgumentNullException(nameof(obj));
+            }
+
+            Type type = obj.GetType();
+
+            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
+
+            if (assemblyInstance == null)
+            {
+                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+            }
+
+            Guid assemblyGuid = assemblyInstance.Guid;
+            IntPtr classHolderPtr = assemblyInstance.ClassHolderPtr;
+
+            Guid objectGuid = Guid.NewGuid();
+
+            // reassign ref
+            objectReferenceRef = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive: false, gcHandle: null);
         }
 
         public static void FreeObject(ObjectReference obj)
@@ -574,5 +606,8 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeSetterFunction")]
         private static extern void NativeInterop_SetInvokeSetterFunction([In] ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr invokeSetterPtr);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetAddObjectToCacheFunction")]
+        private static extern void NativeInterop_SetAddObjectToCacheFunction(IntPtr addObjectToCachePtr);
     }
 }

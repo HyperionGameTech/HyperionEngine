@@ -28,6 +28,8 @@ class DotNetImpl;
 
 } // namespace detail
 
+using AddObjectToCacheFunction = void(*)(void *ptr, ObjectReference *out_object_reference);
+
 class DotNetSystem
 {
 public:
@@ -44,6 +46,12 @@ public:
     UniquePtr<Assembly> LoadAssembly(const char *path) const;
     bool UnloadAssembly(ManagedGuid guid) const;
 
+    HYP_FORCE_INLINE AddObjectToCacheFunction GetAddObjectToCacheFunction() const
+        { return m_add_object_to_cache_fptr; }
+
+    HYP_FORCE_INLINE void SetAddObjectToCacheFunction(AddObjectToCacheFunction add_object_to_cache_fptr)
+        { m_add_object_to_cache_fptr = add_object_to_cache_fptr; }
+
     bool IsEnabled() const;
 
     bool IsInitialized() const;
@@ -56,6 +64,8 @@ private:
 
     bool                        m_is_initialized;
     RC<detail::DotNetImplBase>  m_impl;
+
+    AddObjectToCacheFunction    m_add_object_to_cache_fptr;
 };
 
 } // namespace dotnet

@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/TypeID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #ifdef HYP_DEBUG_MODE
 #include <core/threading/Threads.hpp>
@@ -14,6 +15,10 @@
 #include <type_traits>
 
 namespace hyperion {
+
+namespace dotnet {
+class Object;
+} // namespace dotnet
 
 class HypClass;
 
@@ -31,13 +36,42 @@ struct IsHypObject<T, std::enable_if_t< T::HypObjectData::is_hyp_object && std::
     static constexpr bool value = true;
 };
 
+enum class HypObjectInitializerFlags : uint32
+{
+    NONE                                = 0x0,
+    SUPPRESS_MANAGED_OBJECT_CREATION    = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
+
+extern HYP_API void PushHypObjectInitializerFlags(EnumFlags<HypObjectInitializerFlags> flags);
+extern HYP_API void PopHypObjectInitializerFlags();
+
+struct HypObjectInitializerFlagsGuard
+{
+    HypObjectInitializerFlagsGuard(EnumFlags<HypObjectInitializerFlags> flags)
+    {
+        PushHypObjectInitializerFlags(flags);
+    }
+
+    HypObjectInitializerFlagsGuard(const HypObjectInitializerFlagsGuard &other)                 = delete;
+    HypObjectInitializerFlagsGuard &operator=(const HypObjectInitializerFlagsGuard &other)      = delete;
+    HypObjectInitializerFlagsGuard(HypObjectInitializerFlagsGuard &&other) noexcept             = delete;
+    HypObjectInitializerFlagsGuard &operator=(HypObjectInitializerFlagsGuard &&other) noexcept  = delete;
+
+    ~HypObjectInitializerFlagsGuard()
+    {
+        PopHypObjectInitializerFlags();
+    }
+};
+
 struct HypObjectInitializerGuardBase
 {
     HYP_API HypObjectInitializerGuardBase(const HypClass *hyp_class, void *address);
     HYP_API ~HypObjectInitializerGuardBase();
 
-    const HypClass  *hyp_class;
-    void            *address;
+    const HypClass              *hyp_class;
+    void                        *address;
 
 #ifdef HYP_DEBUG_MODE
     ThreadID        initializer_thread_id;

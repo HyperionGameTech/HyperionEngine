@@ -32,7 +32,7 @@ class Class;
 
 class IHypObjectInitializer;
 
-extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
+extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
@@ -40,6 +40,8 @@ extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 // Ensure the current HypObjectInitializer being constructed is the same as the one passed
 extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, const void *address);
 extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr);
+
+extern HYP_API void SetHypObjectInitializerManagedObject(IHypObjectInitializer *initializer, void *native_address, UniquePtr<dotnet::Object> &&managed_object);
 
 class IHypObjectInitializer
 {

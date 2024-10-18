@@ -500,12 +500,12 @@ struct AnyHandle
     HYP_FORCE_INLINE bool operator==(const AnyHandle &other) const
         { return type_id == other.type_id && index == other.index; }
     
+    HYP_FORCE_INLINE bool operator!=(const AnyHandle &other) const
+        { return type_id != other.type_id || index != other.index; }
+    
     template <class T>
     HYP_FORCE_INLINE bool operator==(const Handle<T> &other) const
         { return type_id == other.GetTypeID() && index == other.index; }
-    
-    HYP_FORCE_INLINE bool operator!=(const AnyHandle &other) const
-        { return type_id != other.type_id || index != other.index; }
     
     template <class T>
     HYP_FORCE_INLINE bool operator!=(const Handle<T> &other) const

@@ -10,14 +10,13 @@ namespace Hyperion
     {
         public Guid guid;
         public Guid assemblyGuid;
-        public object obj;
+        public WeakReference weakReference;
         public GCHandle gcHandle;
 
         public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive, GCHandle? gcHandle)
         {
             this.guid = objectGuid;
             this.assemblyGuid = assemblyGuid;
-            this.obj = obj;
 
             if (gcHandle != null)
             {
@@ -25,8 +24,10 @@ namespace Hyperion
             }
             else
             {
-                this.gcHandle = GCHandle.Alloc(this.obj, keepAlive ? GCHandleType.Normal : GCHandleType.Weak);
+                this.gcHandle = GCHandle.Alloc(obj, keepAlive ? GCHandleType.Normal : GCHandleType.Weak);
             }
+
+            this.weakReference = new WeakReference(obj);
         }
 
         public void Dispose()
@@ -66,27 +67,27 @@ namespace Hyperion
 
         public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive, GCHandle? gcHandle)
         {
+            StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive, gcHandle);
+
             lock (lockObject)
             {
-                StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive, gcHandle);
-
                 objects.Add(objectGuid, storedObject);
-
-                return storedObject.ToObjectReference();
             }
+            
+            return storedObject.ToObjectReference();
         }
 
-        public StoredManagedObject? GetObject(Guid guid)
+        public object? GetObject(Guid guid)
         {
             lock (lockObject)
             {
                 if (objects.ContainsKey(guid))
                 {
-                    return objects[guid];
+                    return objects[guid].weakReference.Target;
                 }
-
-                return null;
             }
+
+            return null;
         }
 
         public bool RemoveObject(Guid guid)

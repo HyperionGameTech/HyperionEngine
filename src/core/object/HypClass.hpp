@@ -311,6 +311,15 @@ public:
         CreateInstance_Internal(out);
     }
 
+    HYP_FORCE_INLINE void CreateInstance(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const
+    {
+        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s", GetName().LookupString());
+
+        AssertThrowMsg(managed_object != nullptr, "Managed object must not be null for this overload of CreateInstance()");
+
+        CreateInstance_Internal(out, std::move(managed_object));
+    }
+
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {
         AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
@@ -323,6 +332,7 @@ protected:
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const = 0;
 
     virtual void CreateInstance_Internal(HypData &out) const = 0;
+    virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
@@ -413,6 +423,26 @@ protected:
             } else {
                 out = MakeRefCountedPtr<T>();
             }
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
+
+    virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const override
+    {
+        // Suppress default managed object creation if a managed object has been passed in
+        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+
+        if constexpr (std::is_default_constructible_v<T>) {
+            if constexpr (has_opaque_handle_defined<T>) {
+                out = CreateObject<T>();
+            } else {
+                out = MakeRefCountedPtr<T>();
+            }
+
+            void *address = out.ToRef().GetPointer();
+
+            SetHypObjectInitializerManagedObject(GetObjectInitializer(address), address, std::move(managed_object));
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

@@ -17,17 +17,8 @@ struct ManagedGuid
     uint64  low;
     uint64  high;
 
-    HYP_FORCE_INLINE bool operator==(const ManagedGuid &other) const
-    {
-        return low == other.low
-            && high == other.high;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const ManagedGuid &other) const
-    {
-        return low != other.low
-            || high != other.high;
-    }
+    bool operator==(const ManagedGuid &other) const = default;
+    bool operator!=(const ManagedGuid &other) const = default;
 
     HYP_FORCE_INLINE bool IsValid() const
     {

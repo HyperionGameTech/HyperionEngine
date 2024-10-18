@@ -29,6 +29,28 @@ struct HypObjectInitializerContext
 };
 
 thread_local Stack<HypObjectInitializerContext> g_contexts = { };
+thread_local Stack<EnumFlags<HypObjectInitializerFlags>> g_hyp_object_initializer_flags_stack = { };
+
+HYP_API void PushHypObjectInitializerFlags(EnumFlags<HypObjectInitializerFlags> flags)
+{
+    g_hyp_object_initializer_flags_stack.Push(flags);
+}
+
+HYP_API void PopHypObjectInitializerFlags()
+{
+    AssertThrowMsg(g_hyp_object_initializer_flags_stack.Any(), "No HypObjectInitializerFlags to pop! Push/pop out of sync somewhere?");
+
+    g_hyp_object_initializer_flags_stack.Pop();
+}
+
+static EnumFlags<HypObjectInitializerFlags> GetCurrentHypObjectInitializerFlags()
+{
+    if (!g_hyp_object_initializer_flags_stack.Any()) {
+        return HypObjectInitializerFlags::NONE;
+    }
+
+    return g_hyp_object_initializer_flags_stack.Top();
+}
 
 #pragma region HypObjectInitializerGuardBase
 
@@ -73,7 +95,17 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(address);
     AssertThrow(initializer != nullptr);
 
-    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class);
+    UniquePtr<dotnet::Object> managed_object;
+
+    if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) {
+        if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
+            HYP_LOG(Object, LogLevel::DEBUG, "Create new managed {} for address {}", hyp_class->GetName(), address);
+
+            managed_object = managed_class->NewObject(hyp_class, address);
+        }
+    }
+
+    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class, std::move(managed_object));
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(initializer_thread_id == Threads::CurrentThreadID());
@@ -157,7 +189,7 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     }
 }
 
-HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class)
+HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object)
 {
     AssertThrow(initializer != nullptr);
     AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class! Is HYP_DEFINE_CLASS missing for the type?");
@@ -169,10 +201,22 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
         static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address)->weak.GetRefCountData_Internal()->type_id = type_id;
     }
 
-    if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-        HYP_LOG(Object, LogLevel::DEBUG, "Create new managed {} for address {}", hyp_class->GetName(), native_address);
-        dotnet::Object *managed_object_ptr = managed_class->NewObject(hyp_class, native_address).Release();
+    SetHypObjectInitializerManagedObject(initializer, native_address, std::move(managed_object));
+}
 
+HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr)
+{
+    // No cleanup on the managed object needed if we have a parent class - parent class will manage it
+    if (managed_object_ptr != nullptr && hyp_class->GetParent() == nullptr) {
+        delete managed_object_ptr;
+    }
+}
+
+HYP_API void SetHypObjectInitializerManagedObject(IHypObjectInitializer *initializer, void *native_address, UniquePtr<dotnet::Object> &&managed_object)
+{
+    AssertThrow(initializer != nullptr);
+
+    if (dotnet::Object *managed_object_ptr = managed_object.Release()) {
         IHypObjectInitializer *current_initializer = initializer;
 
         do {
@@ -187,16 +231,6 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
                 current_initializer = nullptr;
             }
         } while (current_initializer != nullptr);
-    } else {
-        HYP_LOG(Object, LogLevel::WARNING, "No managed class found for HypClass {}; Cannot create managed object", hyp_class->GetName());
-    }
-}
-
-HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr)
-{
-    // No cleanup on the managed object needed if we have a parent class - parent class will manage it
-    if (managed_object_ptr != nullptr && hyp_class->GetParent() == nullptr) {
-        delete managed_object_ptr;
     }
 }
 

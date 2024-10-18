@@ -251,7 +251,7 @@ protected:
             return *this;
         }
 
-        DropRefCount();
+        DecRefCount();
 
         m_ref = other.m_ref;
 
@@ -263,8 +263,7 @@ protected:
     RefCountedPtrBase(RefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-        /// NOTE: Cast away constness -- modifying / dereferencing empty_ref_count_data
-        /// of any type is already ill-formed
+        // NOTE: Cast away constness -- modifying empty_ref_count_data or dereferencing its value (always nullptr) shouldn't happen anyway.
         other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
     }
 
@@ -274,7 +273,7 @@ protected:
             return *this;
         }
 
-        DropRefCount();
+        DecRefCount();
 
         m_ref = other.m_ref;
         other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
@@ -286,7 +285,7 @@ public:
 
     ~RefCountedPtrBase()
     {
-        DropRefCount();
+        DecRefCount();
     }
 
     HYP_FORCE_INLINE void *Get() const
@@ -316,14 +315,14 @@ public:
 
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE void Reset()
-        { DropRefCount(); }
+        { DecRefCount(); }
     
     template <class Ty>
     HYP_FORCE_INLINE void Reset(Ty *ptr)
     {
         using TyN = NormalizedType<Ty>;
 
-        DropRefCount();
+        DecRefCount();
 
         if (ptr) {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, TyN>) {
@@ -357,7 +356,7 @@ public:
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
     HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType * HYP_NOTNULL ref, bool inc_ref = true)
     {
-        DropRefCount();
+        DecRefCount();
         m_ref = ref;
 
         if (inc_ref) {
@@ -367,23 +366,17 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE void *Release_Internal()
     {
-        void *ptr = nullptr;
+        void *ptr = m_ref->value;
 
         if (m_ref->HasValue()) {
-            ptr = m_ref->value;
-
             if (m_ref->DecRefCount_Strong() == 0u) {
-                m_ref->value = nullptr;
-
-                m_ref->Destruct();
-
                 if (m_ref->UseCount_Weak() == 0u) {
                     delete m_ref.Get();
                 }
             }
-
-            m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
         }
+
+        m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
         return ptr;
     }
@@ -407,7 +400,7 @@ protected:
         m_ref->IncRefCount_Strong();
     }
     
-    void DropRefCount()
+    void DecRefCount()
     {
         if (m_ref->HasValue()) {
 #ifdef HYP_DEBUG_MODE
@@ -420,9 +413,9 @@ protected:
                     delete m_ref.Get();
                 }
             }
-
-            m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
         }
+
+        m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
     }
 
     NotNullPtr<RefCountDataType>    m_ref;
@@ -458,7 +451,7 @@ public:
 
     WeakRefCountedPtrBase &operator=(const RefCountedPtrBase<CountType> &other)
     {
-        DropRefCount();
+        DecRefCount();
 
         m_ref = other.m_ref;
         
@@ -469,7 +462,7 @@ public:
 
     WeakRefCountedPtrBase &operator=(const WeakRefCountedPtrBase &other)
     {
-        DropRefCount();
+        DecRefCount();
 
         m_ref = other.m_ref;
 
@@ -490,7 +483,7 @@ public:
             return *this;
         }
 
-        DropRefCount();
+        DecRefCount();
 
         m_ref = other.m_ref;
         other.m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
@@ -500,12 +493,12 @@ public:
 
     ~WeakRefCountedPtrBase()
     {
-        DropRefCount();
+        DecRefCount();
     }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE void Reset()
-        { DropRefCount(); }
+        { DecRefCount(); }
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> CastUnsafe() const
@@ -522,7 +515,7 @@ public:
     /*! \brief Sets the internal reference to the given RefCountDataType. Only for internal use. */
     HYP_FORCE_INLINE void SetRefCountData_Internal(RefCountDataType * HYP_NOTNULL ref, bool inc_ref = true)
     {
-        DropRefCount();
+        DecRefCount();
         m_ref = ref;
 
         if (inc_ref) {
@@ -549,15 +542,15 @@ protected:
         m_ref->IncRefCount_Weak();
     }
     
-    HYP_FORCE_INLINE void DropRefCount()
+    HYP_FORCE_INLINE void DecRefCount()
     {
         if (m_ref->HasValue()) {
             if (m_ref->DecRefCount_Weak() == 0u && m_ref->UseCount_Strong() == 0u) {
                 delete m_ref.Get();
             }
-
-            m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
         }
+
+        m_ref = const_cast<RefCountDataType *>(&RefCountedPtrBase<CountType>::empty_ref_count_data);
     }
 
     NotNullPtr<RefCountDataType>    m_ref;
