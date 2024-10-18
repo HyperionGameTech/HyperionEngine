@@ -19,6 +19,19 @@ namespace Hyperion
     
     public class NativeInterop
     {
+        private static bool VerifyEngineVersion(string versionString, bool major, bool minor, bool patch)
+        {
+            var versionParts = versionString.Split('.');
+
+            uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
+            uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
+            uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
+
+            uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
+
+            // Verify the engine version (major, minor)
+            return NativeInterop_VerifyEngineVersion(assemblyEngineVersion, major, minor, patch);
+        }
 
         [UnmanagedCallersOnly]
         public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr classHolderPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
@@ -30,6 +43,7 @@ namespace Hyperion
 
                 if (isCoreAssembly != 0)
                 {
+                    // Check for assemblies having already been loaded
                     if (AssemblyCache.Instance.Get(assemblyPath) != null)
                     {
                         // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
@@ -43,7 +57,7 @@ namespace Hyperion
                 Guid assemblyGuid = Guid.NewGuid();
                 Marshal.StructureToPtr(assemblyGuid, outAssemblyGuid, false);
 
-                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath, isCoreAssembly: isCoreAssembly != 0);
+                AssemblyInstance assemblyInstance = AssemblyCache.Instance.Add(assemblyGuid, assemblyPath, classHolderPtr, isCoreAssembly: isCoreAssembly != 0);
                 Assembly? assembly = assemblyInstance.Assembly;
 
                 if (assembly == null)
@@ -57,18 +71,8 @@ namespace Hyperion
 
                 if (hyperionCoreDependency != null)
                 {
-                    string versionString = hyperionCoreDependency.Version.ToString();
-
-                    var versionParts = versionString.Split('.');
-
-                    uint majorVersion = versionParts.Length > 0 ? uint.Parse(versionParts[0]) : 0;
-                    uint minorVersion = versionParts.Length > 1 ? uint.Parse(versionParts[1]) : 0;
-                    uint patchVersion = versionParts.Length > 2 ? uint.Parse(versionParts[2]) : 0;
-
-                    uint assemblyEngineVersion = (majorVersion << 16) | (minorVersion << 8) | patchVersion;
-
                     // Verify the engine version (major, minor)
-                    if (!NativeInterop_VerifyEngineVersion(assemblyEngineVersion, true, true, false))
+                    if (!VerifyEngineVersion(hyperionCoreDependency.Version.ToString(), true, true, false))
                     {
                         Logger.Log(LogType.Error, "Assembly version does not match engine version");
 
@@ -87,7 +91,7 @@ namespace Hyperion
                     if (type.IsClass || (type.IsValueType && !type.IsEnum))
                     {
                         // Register classes and structs
-                        InitManagedClass(assemblyGuid, classHolderPtr, type);
+                        InitManagedClass(type);
                     }
                 }
             }
@@ -160,7 +164,7 @@ namespace Hyperion
                 object attribute = attributes[i];
                 Type attributeType = attribute.GetType();
 
-                IntPtr attributeManagedClassObjectPtr = InitManagedClass(assemblyGuid, classHolderPtr, attributeType);
+                IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType);
 
                 // add the attribute to the object cache
                 Guid attributeGuid = Guid.NewGuid();
@@ -240,8 +244,18 @@ namespace Hyperion
             }
         }
 
-        private static unsafe IntPtr InitManagedClass(Guid assemblyGuid, IntPtr classHolderPtr, Type type)
+        private static unsafe IntPtr InitManagedClass(Type type)
         {
+            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
+
+            if (assemblyInstance == null)
+            {
+                throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+            }
+
+            Guid assemblyGuid = assemblyInstance.Guid;
+            IntPtr classHolderPtr = assemblyInstance.ClassHolderPtr;
+
             // @FIXME: Will not be able to find classes in other assemblies! 
             if (ManagedClass_FindByTypeHash(classHolderPtr, type.GetHashCode(), out IntPtr foundManagedClassObjectPtr))
             {
@@ -258,7 +272,7 @@ namespace Hyperion
 
             if (baseType != null)
             {
-                parentClassObjectPtr = InitManagedClass(assemblyGuid, classHolderPtr, baseType);
+                parentClassObjectPtr = InitManagedClass(baseType);
             }
 
             string typeName = type.Name;
