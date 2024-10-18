@@ -8,7 +8,7 @@ namespace Hyperion
 {
     public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr paramsPtr, IntPtr outPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
-    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outObjectReferencePtr);
+    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr);
 
     internal enum LoadAssemblyResult : int
     {
@@ -260,9 +260,9 @@ namespace Hyperion
             IntPtr classHolderPtr = assemblyInstance.ClassHolderPtr;
 
             // @FIXME: Will not be able to find classes in other assemblies! 
-            if (ManagedClass_FindByTypeHash(classHolderPtr, type.GetHashCode(), out IntPtr foundManagedClassObjectPtr))
+            if (ManagedClass_FindByTypeHash(classHolderPtr, type.GetHashCode(), out IntPtr foundClassObjectPtr))
             {
-                return foundManagedClassObjectPtr;
+                return foundClassObjectPtr;
             }
 
             Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
@@ -548,7 +548,7 @@ namespace Hyperion
         /// as it is intended for objects that are already handled by the .NET runtime,
         /// with no UniquePtr<Object> in C++.
         /// </summary>
-        public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, IntPtr outObjectReferencePtr)
+        public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr)
         {
             ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)outObjectReferencePtr);
@@ -571,6 +571,12 @@ namespace Hyperion
 
             Guid assemblyGuid = assemblyInstance.Guid;
             IntPtr classHolderPtr = assemblyInstance.ClassHolderPtr;
+
+            // ManagedClass must be registered for the given object's type.
+            if (!ManagedClass_FindByTypeHash(classHolderPtr, type.GetHashCode(), out outClassObjectPtr))
+            {
+                throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+            }
 
             Guid objectGuid = Guid.NewGuid();
 

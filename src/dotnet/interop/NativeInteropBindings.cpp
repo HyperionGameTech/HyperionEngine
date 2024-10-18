@@ -112,15 +112,16 @@ HYP_EXPORT ObjectReference NativeInterop_SetAddObjectToCacheFunction(AddObjectTo
     DotNetSystem::GetInstance().SetAddObjectToCacheFunction(add_object_to_cache_fptr);
 }
 
-HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, ObjectReference *out_object_reference)
+HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, Class **out_class_object_ptr, ObjectReference *out_object_reference)
 {
     AssertThrow(ptr != nullptr);
+    AssertThrow(out_class_object_ptr != nullptr);
     AssertThrow(out_object_reference != nullptr);
     
     AddObjectToCacheFunction fptr = DotNetSystem::GetInstance().GetAddObjectToCacheFunction();
     AssertThrowMsg(fptr != nullptr, "AddObjectToCache function pointer not set!");
 
-    fptr(ptr, out_object_reference);
+    fptr(ptr, out_class_object_ptr, out_object_reference);
 }
 
 HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)

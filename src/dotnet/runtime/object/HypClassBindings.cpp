@@ -53,9 +53,10 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
     // }
 }
 
-HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::ObjectReference *object_reference)
+HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Class *class_object_ptr, dotnet::ObjectReference *object_reference)
 {
     AssertThrow(hyp_class != nullptr);
+    AssertThrow(class_object_ptr != nullptr);
     AssertThrow(object_reference != nullptr);
 
     void *created_object_ptr = nullptr;
@@ -89,25 +90,14 @@ HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Object
 
     // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
     // as it is managed by the .NET runtime
-    UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(hyp_class->GetManagedClass(), *object_reference, ObjectFlags::WEAK_REFERENCE);
+
+    // @FIXME: Don't use hyp_class->GetManagedClass(), instead, take Class* passed into the function
+    // this will allow C# derived classes to be used
+    UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(class_object_ptr, *object_reference, ObjectFlags::WEAK_REFERENCE);
 
     SetHypObjectInitializerManagedObject(initializer, created_object_ptr, std::move(managed_object));
 
     return created_object_ptr;
-
-    // HypData value;
-
-    // // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
-    // // as it is managed by the .NET runtime
-    // hyp_class->CreateInstance(value, MakeUnique<dotnet::Object>(hyp_class->GetManagedClass(), *object_reference, ObjectFlags::WEAK_REFERENCE));
-
-    // if (hyp_class->UseHandles()) {
-    //     return value.Get<AnyHandle>().Release().GetPointer();
-    // } else if (hyp_class->UseRefCountedPtr()) {
-    //     return value.Get<RC<void>>().Release();
-    // } else {
-    //     HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
-    // }
 }
 
 HYP_EXPORT const HypClass *HypClass_GetClassByName(const char *name)

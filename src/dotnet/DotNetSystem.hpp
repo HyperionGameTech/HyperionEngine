@@ -20,6 +20,7 @@ using sys::AppContext;
 namespace dotnet {
 
 struct ObjectReference;
+class Class;
 
 namespace detail {
 
@@ -28,7 +29,7 @@ class DotNetImpl;
 
 } // namespace detail
 
-using AddObjectToCacheFunction = void(*)(void *ptr, ObjectReference *out_object_reference);
+using AddObjectToCacheFunction = void(*)(void *ptr, Class **out_class_object_ptr, ObjectReference *out_object_reference);
 
 class DotNetSystem
 {

@@ -191,9 +191,9 @@ namespace Hyperion
             return instancePtr;
         }
 
-        public IntPtr InitInstance(ObjectReference objectReference)
+        public IntPtr InitInstance(IntPtr classObjectPtr, ObjectReference objectReference)
         {
-            IntPtr instancePtr = HypClass_InitInstance(ptr, ref objectReference);
+            IntPtr instancePtr = HypClass_InitInstance(ptr, classObjectPtr, ref objectReference);
 
             if (instancePtr == IntPtr.Zero)
             {
@@ -246,7 +246,7 @@ namespace Hyperion
         private static extern IntPtr HypClass_CreateInstance([In] IntPtr hypClassPtr);
         
         [DllImport("hyperion", EntryPoint = "HypClass_InitInstance")]
-        private static extern IntPtr HypClass_InitInstance([In] IntPtr hypClassPtr, [In] ref ObjectReference objectReference);
+        private static extern IntPtr HypClass_InitInstance([In] IntPtr hypClassPtr, [In] IntPtr classObjectPtr, [In] ref ObjectReference objectReference);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);

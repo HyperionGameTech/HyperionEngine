@@ -50,10 +50,12 @@ namespace Hyperion
                     IntPtr objectWrapperPtr = (IntPtr)Unsafe.AsPointer(ref objectWrapper);
                     IntPtr objectReferencePtr = (IntPtr)Unsafe.AsPointer(ref objectReference);
 
-                    NativeInterop_AddObjectToCache(objectWrapperPtr, objectReferencePtr);
+                    IntPtr classObjectPtr = IntPtr.Zero;
+
+                    NativeInterop_AddObjectToCache(objectWrapperPtr, out classObjectPtr, objectReferencePtr);
 
                     _hypClassPtr = hypClass.Address;
-                    _nativeAddress = hypClass.InitInstance(objectReference);
+                    _nativeAddress = hypClass.InitInstance(classObjectPtr, objectReference);
 
 #if DEBUG
                     HypObject_Verify(_hypClassPtr, _nativeAddress, objectReferencePtr);
@@ -61,8 +63,6 @@ namespace Hyperion
                 }
 
                 gcHandle.Free();
-
-                Logger.Log(LogType.Debug, "Created HypObject of type " + type.Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
             }
             else
             {
@@ -82,6 +82,8 @@ namespace Hyperion
             }
 
             HypObject_IncRef(_hypClassPtr, _nativeAddress);
+
+            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~HypObject()
@@ -186,6 +188,6 @@ namespace Hyperion
         private static extern IntPtr HypObject_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_AddObjectToCache")]
-        private static extern void NativeInterop_AddObjectToCache([In] IntPtr objectWrapperPtr, [Out] IntPtr outObjectReferencePtr);
+        private static extern void NativeInterop_AddObjectToCache([In] IntPtr objectWrapperPtr, [Out] out IntPtr outClassObjectPtr, [Out] IntPtr outObjectReferencePtr);
     }
 }

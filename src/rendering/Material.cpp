@@ -849,6 +849,9 @@ void MaterialDescriptorSetManager::AddMaterial(const WeakHandle<Material> &mater
 
         // if on render thread, initialize and add immediately
         if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
+            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Creating material descriptor sets : Currently {} descriptor sets allocated",
+                renderer::RenderObjects<renderer::Platform::CURRENT>::template GetRenderObjectContainer<renderer::DescriptorSet>().GetCount());
+
             for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
             }

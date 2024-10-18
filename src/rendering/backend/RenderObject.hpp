@@ -127,8 +127,7 @@ public:
             return uint(count) - 1;
         }
 
-        HYP_FORCE_INLINE
-        void IncRefWeak()
+        HYP_FORCE_INLINE void IncRefWeak()
             { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
 
         HYP_FORCE_INLINE uint DecRefWeak()
@@ -149,7 +148,6 @@ public:
             return storage.Get();
         }
 
-    private:
         HYP_FORCE_INLINE bool HasValue() const
             { return has_value; }
     };
@@ -228,6 +226,21 @@ public:
         m_debug_names[index] = name;
 #endif
     }
+
+#ifdef HYP_DEBUG_MODE
+    HYP_FORCE_INLINE uint32 GetCount() const
+    {
+        uint32 count = 0;
+
+        for (SizeType i = 0; i < m_data.Size(); i++) {
+            if (m_data[i].HasValue()) {
+                ++count;
+            }
+        }
+
+        return count;
+    }
+#endif
 
 private:
     HeapArray<Instance, max_size>   m_data;
