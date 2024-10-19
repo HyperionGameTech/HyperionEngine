@@ -19,7 +19,7 @@ class HYP_API UIGridColumn : public UIPanel
     HYP_OBJECT_BODY(UIGridColumn);
 
 public:
-    UIGridColumn(UIStage *stage, NodeProxy node_proxy);
+    UIGridColumn();
     UIGridColumn(const UIGridColumn &other)                 = delete;
     UIGridColumn &operator=(const UIGridColumn &other)      = delete;
     UIGridColumn(UIGridColumn &&other) noexcept             = delete;
@@ -52,7 +52,7 @@ class HYP_API UIGridRow : public UIPanel
 public:
     friend class UIGrid;
 
-    UIGridRow(UIStage *stage, NodeProxy node_proxy);
+    UIGridRow();
     UIGridRow(const UIGridRow &other)                   = delete;
     UIGridRow &operator=(const UIGridRow &other)        = delete;
     UIGridRow(UIGridRow &&other) noexcept               = delete;
@@ -113,7 +113,7 @@ class HYP_API UIGrid : public UIPanel
     HYP_OBJECT_BODY(UIGrid);
 
 public:
-    UIGrid(UIStage *stage, NodeProxy node_proxy);
+    UIGrid();
     UIGrid(const UIGrid &other)                 = delete;
     UIGrid &operator=(const UIGrid &other)      = delete;
     UIGrid(UIGrid &&other) noexcept             = delete;

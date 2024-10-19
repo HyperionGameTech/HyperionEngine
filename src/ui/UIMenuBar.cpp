@@ -16,8 +16,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIMenuItem
 
-UIMenuItem::UIMenuItem(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UIObjectType::MENU_ITEM)
+UIMenuItem::UIMenuItem()
+    : UIObject(UIObjectType::MENU_ITEM)
 {
     SetBorderRadius(0);
     SetPadding({ 5, 2 });
@@ -225,8 +225,8 @@ void UIMenuItem::OnFontAtlasUpdate_Internal()
 
 #pragma region UIMenuBar
 
-UIMenuBar::UIMenuBar(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::MENU_BAR),
+UIMenuBar::UIMenuBar()
+    : UIPanel(UIObjectType::MENU_BAR),
       m_selected_menu_item_index(~0u)
 {
     SetBorderRadius(0);
@@ -356,9 +356,9 @@ void UIMenuBar::AddChildUIObject(UIObject *ui_object)
 
     UIPanel::AddChildUIObject(ui_object);
 
-    RC<UIObject> ui_object_rc = FindChildUIObject([ui_object](const RC<UIObject> &child)
+    RC<UIObject> ui_object_rc = FindChildUIObject([ui_object](UIObject *child)
     {
-        return child.Get() == ui_object;
+        return child == ui_object;
     });
 
     AssertThrow(ui_object_rc != nullptr);

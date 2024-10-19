@@ -228,7 +228,7 @@ void UIStage::Init()
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
 
-    m_scene->GetEntityManager()->AddComponent<UIComponent>(m_scene->GetRoot()->GetEntity(), UIComponent { RefCountedPtrFromThis() });
+    m_scene->GetEntityManager()->AddComponent<UIComponent>(m_scene->GetRoot()->GetEntity(), UIComponent { this });
 
     m_scene->GetRoot()->LockTransform();
 
@@ -240,6 +240,7 @@ void UIStage::Init()
 void UIStage::AddChildUIObject(UIObject *ui_object)
 {
     HYP_SCOPE;
+    
     Threads::AssertOnThread(m_owner_thread_id);
 
     if (!ui_object) {
@@ -251,8 +252,7 @@ void UIStage::AddChildUIObject(UIObject *ui_object)
     // Check if no parent stage
     if (m_stage == nullptr) {
         // Set child object stage to this
-        ui_object->m_stage = this;
-        ui_object->SetAllChildUIObjectsStage(this);
+        ui_object->SetStage(this);
     }
 }
 
@@ -334,11 +334,13 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
     RayTestResults ray_test_results;
 
     for (auto [entity, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
-        if (!ui_component.ui_object) {
+        UIObject *ui_object = ui_component.ui_object;
+        
+        if (!ui_object) {
             continue;
         }
 
-        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_component.ui_object->GetComputedVisibility()) {
+        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_object->GetComputedVisibility()) {
             continue;
         }
 
@@ -349,9 +351,9 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
         if (aabb.ContainsPoint(direction)) {
             RayHit hit { };
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
-            hit.distance = -float(ui_component.ui_object->GetComputedDepth());
+            hit.distance = -float(ui_object->GetComputedDepth());
             hit.id = entity.Value();
-            hit.user_data = ui_component.ui_object.Get();
+            hit.user_data = ui_object;
 
             ray_test_results.AddHit(hit);
         }
@@ -374,7 +376,9 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
     Threads::AssertOnThread(m_owner_thread_id);
 
     if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
-        return ui_component->ui_object;
+        if (ui_component->ui_object != nullptr) {
+            return ui_component->ui_object->RefCountedPtrFromThis();
+        }
     }
 
     return nullptr;

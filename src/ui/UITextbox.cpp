@@ -14,8 +14,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UITextbox
 
-UITextbox::UITextbox(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::TEXTBOX),
+UITextbox::UITextbox()
+    : UIPanel(UIObjectType::TEXTBOX),
       m_character_index(0)
 {
     SetBorderRadius(2);

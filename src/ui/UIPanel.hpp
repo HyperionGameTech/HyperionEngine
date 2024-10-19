@@ -17,10 +17,10 @@ class HYP_API UIPanel : public UIObject
     HYP_OBJECT_BODY(UIPanel);
 
 protected:
-    UIPanel(UIStage *stage, NodeProxy node_proxy, UIObjectType type);
+    UIPanel(UIObjectType type);
 
 public:
-    UIPanel(UIStage *stage, NodeProxy node_proxy);
+    UIPanel();
     UIPanel(const UIPanel &other)                   = delete;
     UIPanel &operator=(const UIPanel &other)        = delete;
     UIPanel(UIPanel &&other) noexcept               = delete;

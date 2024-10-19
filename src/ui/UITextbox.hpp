@@ -18,7 +18,7 @@ class HYP_API UITextbox : public UIPanel
     HYP_OBJECT_BODY(UITextbox);
 
 public:
-    UITextbox(UIStage *stage, NodeProxy node_proxy);
+    UITextbox();
     UITextbox(const UITextbox &other)                   = delete;
     UITextbox &operator=(const UITextbox &other)        = delete;
     UITextbox(UITextbox &&other) noexcept               = delete;

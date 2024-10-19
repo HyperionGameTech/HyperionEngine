@@ -19,7 +19,7 @@ class HYP_API UITab : public UIObject
     HYP_OBJECT_BODY(UITab);
 
 public:
-    UITab(UIStage *stage, NodeProxy node_proxy);
+    UITab();
     UITab(const UITab &other)                   = delete;
     UITab &operator=(const UITab &other)        = delete;
     UITab(UITab &&other) noexcept               = delete;
@@ -59,7 +59,7 @@ class HYP_API UITabView : public UIPanel
     HYP_OBJECT_BODY(UITabView);
 
 public:
-    UITabView(UIStage *stage, NodeProxy node_proxy);
+    UITabView();
     UITabView(const UITabView &other)                   = delete;
     UITabView &operator=(const UITabView &other)        = delete;
     UITabView(UITabView &&other) noexcept               = delete;

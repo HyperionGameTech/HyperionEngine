@@ -15,8 +15,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIWindow
 
-UIWindow::UIWindow(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::WINDOW)
+UIWindow::UIWindow()
+    : UIPanel(UIObjectType::WINDOW)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);

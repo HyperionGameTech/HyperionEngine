@@ -68,7 +68,7 @@ class HYP_API UIText : public UIObject
 public:
     friend struct RenderCommand_UpdateUITextRenderData;
 
-    UIText(UIStage *stage, NodeProxy node_proxy);
+    UIText();
     UIText(const UIText &other)                 = delete;
     UIText &operator=(const UIText &other)      = delete;
     UIText(UIText &&other) noexcept             = delete;

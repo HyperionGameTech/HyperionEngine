@@ -18,8 +18,8 @@ static const HashMap<String, UIDockableItemPosition> g_dockable_item_position_ma
 
 #pragma region UIDockableItem
 
-UIDockableItem::UIDockableItem(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::DOCKABLE_ITEM)
+UIDockableItem::UIDockableItem()
+    : UIPanel(UIObjectType::DOCKABLE_ITEM)
 {
 }
 
@@ -27,23 +27,22 @@ UIDockableItem::UIDockableItem(UIStage *parent, NodeProxy node_proxy)
 
 #pragma region UIDockableContainer
 
-UIDockableContainer::UIDockableContainer(UIStage *stage, NodeProxy node_proxy)
-    : UIPanel(stage, std::move(node_proxy), UIObjectType::DOCKABLE_CONTAINER)
+UIDockableContainer::UIDockableContainer()
+    : UIPanel(UIObjectType::DOCKABLE_CONTAINER)
+{
+}
+
+void UIDockableContainer::Init()
 {
     for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
         m_dockable_items[i] = GetStage()->CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
     }
 
+    UIPanel::Init();
+
     for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
         UIObject::AddChildUIObject(m_dockable_items[i]);
     }
-}
-
-void UIDockableContainer::Init()
-{
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    UIPanel::Init();
 }
 
 void UIDockableContainer::AddChildUIObject(UIObject *ui_object)

@@ -124,7 +124,7 @@ HYP_STRUCT(Component)
 struct UIComponent
 {
     HYP_FIELD()
-    RC<UIObject>    ui_object;
+    UIObject    *ui_object = nullptr;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

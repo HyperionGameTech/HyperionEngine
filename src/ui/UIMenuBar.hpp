@@ -30,7 +30,7 @@ class HYP_API UIMenuItem : public UIObject
     HYP_OBJECT_BODY(UIMenuItem);
 
 public:
-    UIMenuItem(UIStage *stage, NodeProxy node_proxy);
+    UIMenuItem();
     UIMenuItem(const UIMenuItem &other)                 = delete;
     UIMenuItem &operator=(const UIMenuItem &other)      = delete;
     UIMenuItem(UIMenuItem &&other) noexcept             = delete;
@@ -108,7 +108,7 @@ class HYP_API UIMenuBar : public UIPanel
     HYP_OBJECT_BODY(UIMenuBar);
 
 public:
-    UIMenuBar(UIStage *stage, NodeProxy node_proxy);
+    UIMenuBar();
     UIMenuBar(const UIMenuBar &other)                   = delete;
     UIMenuBar &operator=(const UIMenuBar &other)        = delete;
     UIMenuBar(UIMenuBar &&other) noexcept               = delete;

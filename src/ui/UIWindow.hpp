@@ -19,7 +19,7 @@ class HYP_API UIWindow : public UIPanel
     HYP_OBJECT_BODY(UIWindow);
 
 public:
-    UIWindow(UIStage *stage, NodeProxy node_proxy);
+    UIWindow();
     UIWindow(const UIWindow &other)                 = delete;
     UIWindow &operator=(const UIWindow &other)      = delete;
     UIWindow(UIWindow &&other) noexcept             = delete;

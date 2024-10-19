@@ -16,7 +16,7 @@ class HYP_API UIButton : public UIObject
     HYP_OBJECT_BODY(UIButton);
 
 public:
-    UIButton(UIStage *stage, NodeProxy node_proxy);
+    UIButton();
     UIButton(const UIButton &other)                 = delete;
     UIButton &operator=(const UIButton &other)      = delete;
     UIButton(UIButton &&other) noexcept             = delete;

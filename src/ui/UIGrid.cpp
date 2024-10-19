@@ -18,8 +18,8 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIGridColumn
 
-UIGridColumn::UIGridColumn(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_COLUMN),
+UIGridColumn::UIGridColumn()
+    : UIPanel(UIObjectType::GRID_COLUMN),
       m_column_size(1)
 {
     SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
@@ -34,8 +34,8 @@ void UIGridColumn::Init()
 
 #pragma region UIGridRow
 
-UIGridRow::UIGridRow(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID_ROW),
+UIGridRow::UIGridRow()
+    : UIPanel(UIObjectType::GRID_ROW),
       m_num_columns(0)
 {
     SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
@@ -189,8 +189,8 @@ void UIGridRow::UpdateSize_Internal(bool update_children)
 
 #pragma region UIGrid
 
-UIGrid::UIGrid(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::GRID),
+UIGrid::UIGrid()
+    : UIPanel(UIObjectType::GRID),
       m_num_columns(-1)
 {
 }
@@ -201,13 +201,13 @@ void UIGrid::SetNumColumns(int num_columns)
 
     HYP_LOG(UI, LogLevel::DEBUG, "Set num columns for grid {} to {}", GetName(), num_columns);
 
-    ForEachChildUIObject_Proc([this](const RC<UIObject> &ui_object)
+    ForEachChildUIObject_Proc([this](UIObject *ui_object)
     {
-        if (!ui_object.Is<UIGridRow>()) {
+        if (ui_object->GetType() != UIObjectType::GRID_ROW) {
             return UIObjectIterationResult::CONTINUE;
         }
 
-        ui_object.CastUnsafe<UIGridRow>()->SetNumColumns(m_num_columns);
+        static_cast<UIGridRow *>(ui_object)->SetNumColumns(m_num_columns);
 
         return UIObjectIterationResult::CONTINUE;
     }, false);
@@ -447,7 +447,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
                     continue;
                 }
 
-                if (const RC<UIObject> &ui_object = column->GetChildUIObject(0)) {
+                if (RC<UIObject> ui_object = column->GetChildUIObject(0)) {
                     data_source->GetElementFactory()->UpdateUIObject(
                         ui_object.Get(),
                         element->GetValue()

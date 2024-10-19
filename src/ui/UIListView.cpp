@@ -19,11 +19,17 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 #pragma region UIListViewItem
 
-UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UIObjectType::LIST_VIEW_ITEM),
+UIListViewItem::UIListViewItem()
+    : UIObject(UIObjectType::LIST_VIEW_ITEM),
       m_is_selected_item(false),
       m_is_expanded(true)
 {
+}
+
+void UIListViewItem::Init()
+{
+    UIObject::Init();
+
     m_inner_element = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     // Expand / collapse subitems when selected
@@ -38,11 +44,6 @@ UIListViewItem::UIListViewItem(UIStage *parent, NodeProxy node_proxy)
     }).Detach();
 
     UIObject::AddChildUIObject(m_inner_element);
-}
-
-void UIListViewItem::Init()
-{
-    UIObject::Init();
 }
 
 void UIListViewItem::AddChildUIObject(UIObject *ui_object)
@@ -146,8 +147,8 @@ void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_
 
 #pragma region UIListView
 
-UIListView::UIListView(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::LIST_VIEW)
+UIListView::UIListView()
+    : UIPanel(UIObjectType::LIST_VIEW)
 {
     OnClick.Bind([this](...)
     {
@@ -351,7 +352,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
         const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID());
 
         if (list_view_item) {
-            if (const RC<UIObject> &ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
+            if (RC<UIObject> ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
                 data_source->GetElementFactory()->UpdateUIObject(
                     ui_object.Get(),
                     element->GetValue()
@@ -376,15 +377,15 @@ UIListViewItem *UIListView::FindListViewItem(const UIObject *parent_object, cons
 
     UIListViewItem *result_ptr = nullptr;
 
-    parent_object->ForEachChildUIObject_Proc([&data_source_element_uuid, &result_ptr](const RC<UIObject> &object)
+    parent_object->ForEachChildUIObject_Proc([&data_source_element_uuid, &result_ptr](UIObject *object)
     {
         if (object->GetType() == UIObjectType::LIST_VIEW_ITEM && object->GetDataSourceElementUUID() == data_source_element_uuid) {
-            result_ptr = static_cast<UIListViewItem *>(object.Get());
+            result_ptr = static_cast<UIListViewItem *>(object);
 
             return UIObjectIterationResult::STOP;
         }
 
-        if (UIListViewItem *result = FindListViewItem(object.Get(), data_source_element_uuid)) {
+        if (UIListViewItem *result = FindListViewItem(object, data_source_element_uuid)) {
             result_ptr = result;
 
             return UIObjectIterationResult::STOP;

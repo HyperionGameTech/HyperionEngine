@@ -21,7 +21,7 @@ class HYP_API UIListViewItem : public UIObject
 public:
     friend class UIListView;
 
-    UIListViewItem(UIStage *stage, NodeProxy node_proxy);
+    UIListViewItem();
     UIListViewItem(const UIListViewItem &other)                 = delete;
     UIListViewItem &operator=(const UIListViewItem &other)      = delete;
     UIListViewItem(UIListViewItem &&other) noexcept             = delete;
@@ -67,7 +67,7 @@ class HYP_API UIListView : public UIPanel
 public:
     friend class UIListViewItem;
 
-    UIListView(UIStage *stage, NodeProxy node_proxy);
+    UIListView();
     UIListView(const UIListView &other)                 = delete;
     UIListView &operator=(const UIListView &other)      = delete;
     UIListView(UIListView &&other) noexcept             = delete;

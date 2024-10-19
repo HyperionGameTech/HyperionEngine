@@ -19,7 +19,7 @@ class HYP_API UIImage : public UIObject
     HYP_OBJECT_BODY(UIImage);
 
 public:
-    UIImage(UIStage *stage, NodeProxy node_proxy);
+    UIImage();
     UIImage(const UIImage &other)                   = delete;
     UIImage &operator=(const UIImage &other)        = delete;
     UIImage(UIImage &&other) noexcept               = delete;

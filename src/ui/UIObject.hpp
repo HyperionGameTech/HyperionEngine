@@ -314,7 +314,6 @@ public:
     friend class UIRenderer;
     friend class UIStage;
 
-    UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type);
     UIObject(const UIObject &other)                 = delete;
     UIObject &operator=(const UIObject &other)      = delete;
     UIObject(UIObject &&other) noexcept             = delete;
@@ -338,6 +337,9 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE UIStage *GetStage() const
         { return m_stage; }
+
+    HYP_METHOD()
+    void SetStage(UIStage *stage);
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsInit() const
@@ -607,7 +609,7 @@ public:
     /*! \brief Remove all child UIObjects from this object that match the predicate.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \returns The number of child UIObjects removed. */
-    virtual int RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate);
+    virtual int RemoveAllChildUIObjects(ProcRef<bool, UIObject *> predicate);
 
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
@@ -634,7 +636,7 @@ public:
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    RC<UIObject> FindChildUIObject(ProcRef<bool, const RC<UIObject> &> predicate, bool deep = true) const;
+    RC<UIObject> FindChildUIObject(ProcRef<bool, UIObject *> predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */ 
@@ -643,7 +645,7 @@ public:
     /*! \brief Gets the child UIObject at the specified index.
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
-    const RC<UIObject> &GetChildUIObject(int index) const;
+    RC<UIObject> GetChildUIObject(int index) const;
 
     /*! \brief Gets the relevant script component for this UIObject, if one exists.
      *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
@@ -753,7 +755,7 @@ public:
         { m_data_source_element_uuid = data_source_element_uuid; }
 
     /*! \internal */
-    void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, const RC<UIObject> &> proc, bool deep = true) const;
+    void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, UIObject *> proc, bool deep = true) const;
 
     // Events
     Delegate<UIEventHandlerResult>                          OnInit;
@@ -773,7 +775,7 @@ public:
     Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
 
 protected:
-    RC<UIObject> GetClosestParentUIObjectWithPredicate(const ProcRef<bool, const RC<UIObject> &> &predicate) const;
+    RC<UIObject> GetClosestParentUIObjectWithPredicate(const ProcRef<bool, UIObject *> &predicate) const;
 
     HYP_FORCE_INLINE bool UseAutoSizing() const
     {
@@ -834,8 +836,8 @@ protected:
     void UpdateMeshData(bool update_children = true);
     void UpdateMaterial(bool update_children = true);
 
-    Array<RC<UIObject>> GetChildUIObjects(bool deep) const;
-    Array<RC<UIObject>> FilterChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const;
+    Array<UIObject *> GetChildUIObjects(bool deep) const;
+    Array<UIObject *> FilterChildUIObjects(ProcRef<bool, UIObject *> predicate, bool deep) const;
 
     virtual void SetStage_Internal(UIStage *stage);
 
@@ -943,6 +945,8 @@ private:
     EnumFlags<UIObjectUpdateType>   m_locked_updates;
 
     NodeProxy                       m_node_proxy;
+
+    Array<RC<UIObject>>             m_child_ui_objects;
 
     Array<DelegateHandler>          m_delegate_handlers;
 };

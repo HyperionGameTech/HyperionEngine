@@ -106,6 +106,13 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return UIObjectQuadMeshHelper::GetQuadMesh();
 }
 
+// @TODO: Refactor UIObject to hold an array of RC<UIObject> for child elements,
+// and iterate over that instead of constantly using the EntityManager and having to Lock()
+// the Weak<UIObject> that UIComponent holds.
+
+// OR: Rather than using Weak<UIObject> at all, we just store the raw UIObject pointer on UIComponent,
+// and the destructor for UIObject will set it to nullptr.
+
 UIObject::UIObject(UIObjectType type)
     : m_type(type),
       m_stage(nullptr),
@@ -131,16 +138,6 @@ UIObject::UIObject(UIObjectType type)
 {
 }
 
-UIObject::UIObject(UIStage *stage, NodeProxy node_proxy, UIObjectType type)
-    : UIObject(type)
-{
-    AssertThrowMsg(stage != nullptr, "Invalid UIStage pointer provided to UIObject!");
-    AssertThrowMsg(node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
-    
-    m_stage = stage;
-    m_node_proxy = std::move(node_proxy);
-}
-
 UIObject::~UIObject()
 {
     HYP_LOG(UI, LogLevel::DEBUG, "Destroying UIObject with name: {}", GetName());
@@ -148,8 +145,13 @@ UIObject::~UIObject()
     // Remove the entity from the entity manager
     if (ID<Entity> entity = GetEntity()) {
         Scene *scene = GetScene();
+
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
+
+        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
+            ui_component->ui_object = nullptr;
+        }
 
         scene->GetEntityManager()->RemoveEntity(entity);
     }
@@ -158,6 +160,12 @@ UIObject::~UIObject()
 void UIObject::Init()
 {
     HYP_SCOPE;
+
+    if (m_type != UIObjectType::STAGE) {
+        AssertThrowMsg(m_stage != nullptr, "Invalid UIStage pointer provided to UIObject!");
+    }
+    
+    AssertThrowMsg(m_node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
 
     const Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
@@ -202,7 +210,7 @@ void UIObject::Update(GameCounter::TickUnit delta)
     Update_Internal(delta);
 
     // update in breadth-first order
-    ForEachChildUIObject([this, delta](const RC<UIObject> &child)
+    ForEachChildUIObject([this, delta](UIObject *child)
     {
         child->Update_Internal(delta);
 
@@ -287,6 +295,15 @@ void UIObject::OnRemoved_Internal()
     }
 
     OnRemoved();
+}
+
+void UIObject::SetStage(UIStage *stage)
+{
+    HYP_SCOPE;
+
+    m_stage = stage;
+
+    SetAllChildUIObjectsStage(stage);
 }
 
 Name UIObject::GetName() const
@@ -375,7 +392,7 @@ void UIObject::UpdatePosition(bool update_children)
     });
 
     if (update_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([](UIObject *child)
         {
             child->UpdatePosition(false);
 
@@ -481,10 +498,10 @@ void UIObject::UpdateSize_Internal(bool update_children)
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetAABB(CalculateAABB());
 
-    Array<RC<UIObject>> deferred_children;
+    Array<UIObject *> deferred_children;
 
     if (update_children) {
-        ForEachChildUIObject([&deferred_children](const RC<UIObject> &child)
+        ForEachChildUIObject([&deferred_children](UIObject *child)
         {
             if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT)) {
                 deferred_children.PushBack(child);
@@ -506,7 +523,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
 
     // FILL needs to update the size of the children
     // after the parent has updated its size
-    for (const RC<UIObject> &child : deferred_children) {
+    for (UIObject *child : deferred_children) {
         child->UpdateSize_Internal(/* update_children */ true);
     }
 
@@ -633,7 +650,7 @@ void UIObject::Blur(bool blur_children)
     }
 
     if (blur_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([](UIObject *child)
         {
             child->Blur(false);
 
@@ -874,7 +891,7 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     }
 
     if (update_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([](UIObject *child)
         {
             child->UpdateComputedVisibility();
 
@@ -898,7 +915,7 @@ bool UIObject::HasFocus(bool include_children) const
     bool has_focus = false;
 
     // check if any child has focus
-    ForEachChildUIObject([&has_focus](const RC<UIObject> &child)
+    ForEachChildUIObject([&has_focus](UIObject *child)
     {
         // Don't include children in the `HasFocus` check as we're already iterating over them
         if (child->HasFocus(false)) {
@@ -967,6 +984,7 @@ void UIObject::AddChildUIObject(UIObject *ui_object)
         return;
     }
 
+    m_child_ui_objects.PushBack(ui_object->RefCountedPtrFromThis());
     ui_object->OnAttached_Internal(this);
 }
 
@@ -986,12 +1004,36 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
 
     if (const NodeProxy &child_node = ui_object->GetNode()) {
         if (child_node->IsOrHasParent(node.Get())) {
-            bool removed = child_node->Remove();
+            Node *parent_node = child_node->GetParent();
+            bool node_removed = child_node->Remove();
 
-            if (removed) {
+            if (node_removed) {
                 ui_object->OnRemoved_Internal();
 
-                return true;
+                Array<RC<UIObject>> *target_array = &m_child_ui_objects;
+                
+                AssertThrow(parent_node != nullptr);
+
+                if (UIComponent *parent_ui_component = parent_node->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
+                    AssertThrow(parent_ui_component->ui_object != nullptr);
+
+                    auto it = parent_ui_component->ui_object->m_child_ui_objects.FindAs(ui_object);
+
+                    if (it != parent_ui_component->ui_object->m_child_ui_objects.End()) {
+                        parent_ui_component->ui_object->m_child_ui_objects.Erase(it);
+
+                        return true;
+                    }
+
+                    HYP_LOG(UI, LogLevel::ERR, "Failed to remove UIObject {} from parent: Parent UIObject {} did not have the child object in its children array!", ui_object->GetName(), parent_ui_component->ui_object->GetName());
+
+                    return false;
+                } else {
+                    HYP_LOG(UI, LogLevel::ERR, "Failed to remove UIObject {} from parent: Parent node ({}) had no UIComponent!", ui_object->GetName(), parent_node->GetName());
+
+                    return false;
+                }
+
             }
         }
     }
@@ -1015,18 +1057,30 @@ int UIObject::RemoveAllChildUIObjects()
         }
     });
 
-    Array<RC<UIObject>> children = GetChildUIObjects(false);
+    const NodeProxy &node = GetNode();
 
-    for (const RC<UIObject> &child : children) {
-        if (RemoveChildUIObject(child)) {
-            ++num_removed;
+    for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
+        if (const NodeProxy &child_node = child_ui_object->GetNode()) {
+            child_node->Remove();
         }
     }
+
+    num_removed = int(m_child_ui_objects.Size());
+
+    m_child_ui_objects.Clear();
+
+    // Array<RC<UIObject>> children = GetChildUIObjects(false);
+
+    // for (const RC<UIObject> &child : children) {
+    //     if (RemoveChildUIObject(child)) {
+    //         ++num_removed;
+    //     }
+    // }
 
     return num_removed;
 }
 
-int UIObject::RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate)
+int UIObject::RemoveAllChildUIObjects(ProcRef<bool, UIObject *> predicate)
 {
     HYP_SCOPE;
 
@@ -1042,11 +1096,31 @@ int UIObject::RemoveAllChildUIObjects(ProcRef<bool, const RC<UIObject> &> predic
         }
     });
 
-    Array<RC<UIObject>> children = FilterChildUIObjects(predicate, false);
+    // Array<RC<UIObject>> children = FilterChildUIObjects(predicate, false);
 
-    for (const RC<UIObject> &child : children) {
-        if (RemoveChildUIObject(child)) {
+    // for (const RC<UIObject> &child : children) {
+    //     if (RemoveChildUIObject(child)) {
+    //         ++num_removed;
+    //     }
+    // }
+
+    // for (const RC<UIObject> &child_ui_object : children) {
+    //     if (const NodeProxy &child_node = child_ui_object->GetNode()) {
+    //         child_node->Remove();
+    //     }
+    // }
+
+    for (auto it = m_child_ui_objects.Begin(); it != m_child_ui_objects.End();) {
+        if (predicate(it->Get())) {
+            if (const NodeProxy &child_node = (*it)->GetNode()) {
+                child_node->Remove();
+            }
+
             ++num_removed;
+
+            it = m_child_ui_objects.Erase(it);
+        } else {
+            ++it;
         }
     }
 
@@ -1083,10 +1157,10 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
 
     RC<UIObject> found_object;
 
-    ForEachChildUIObject([name, &found_object](const RC<UIObject> &child)
+    ForEachChildUIObject([name, &found_object](UIObject *child)
     {
         if (child->GetName() == name) {
-            found_object = child;
+            found_object = child->RefCountedPtrFromThis();
 
             return UIObjectIterationResult::STOP;
         }
@@ -1097,16 +1171,16 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const
+RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool, UIObject *> predicate, bool deep) const
 {
     HYP_SCOPE;
     
     RC<UIObject> found_object;
 
-    ForEachChildUIObject([&found_object, &predicate](const RC<UIObject> &child)
+    ForEachChildUIObject([&found_object, &predicate](UIObject *child)
     {
         if (predicate(child)) {
-            found_object = child;
+            found_object = child->RefCountedPtrFromThis();
 
             return UIObjectIterationResult::STOP;
         }
@@ -1354,9 +1428,9 @@ RC<UIObject> UIObject::GetParentUIObject() const
     while (parent_node) {
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                AssertThrow(ui_component->ui_object != nullptr);
-
-                return ui_component->ui_object;
+                if (ui_component->ui_object != nullptr) {
+                    return ui_component->ui_object->RefCountedPtrFromThis();
+                }
             }
         }
 
@@ -1387,10 +1461,10 @@ RC<UIObject> UIObject::GetClosestParentUIObject(UIObjectType type) const
     while (parent_node) {
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                AssertThrow(ui_component->ui_object != nullptr);
-
-                if (ui_component->ui_object->GetType() == type) {
-                    return ui_component->ui_object;
+                if (ui_component->ui_object != nullptr) {
+                    if (ui_component->ui_object->GetType() == type) {
+                        return ui_component->ui_object->RefCountedPtrFromThis();
+                    }
                 }
             }
         }
@@ -1401,7 +1475,7 @@ RC<UIObject> UIObject::GetClosestParentUIObject(UIObjectType type) const
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestParentUIObjectWithPredicate(const ProcRef<bool, const RC<UIObject> &> &predicate) const
+RC<UIObject> UIObject::GetClosestParentUIObjectWithPredicate(const ProcRef<bool, UIObject *> &predicate) const
 {
     HYP_SCOPE;
     
@@ -1422,10 +1496,10 @@ RC<UIObject> UIObject::GetClosestParentUIObjectWithPredicate(const ProcRef<bool,
     while (parent_node) {
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                AssertThrow(ui_component->ui_object != nullptr);
-
-                if (predicate(ui_component->ui_object)) {
-                    return ui_component->ui_object;
+                if (ui_component->ui_object != nullptr) {
+                    if (predicate(ui_component->ui_object)) {
+                        return ui_component->ui_object->RefCountedPtrFromThis();
+                    }
                 }
             }
         }
@@ -1572,7 +1646,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
             // - when resizing, the node just sees objects offset by X where X is some number based on the previous size
             //   which is then included in the GetLocalAABB() calculation.
             // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
-            ForEachChildUIObject([this](const RC<UIObject> &object)
+            ForEachChildUIObject([this](UIObject *object)
             {
                 object->UpdatePosition(/* update_children */ false);
 
@@ -1668,7 +1742,7 @@ void UIObject::UpdateMeshData(bool update_children)
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MESH_DATA | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA : UIObjectUpdateType::NONE));
     
     if (update_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([](UIObject *child)
         {
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateMeshData();
@@ -1711,7 +1785,7 @@ void UIObject::UpdateMaterial(bool update_children)
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MATERIAL | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL : UIObjectUpdateType::NONE));
     
     if (update_children) {
-        ForEachChildUIObject([](const RC<UIObject> &child)
+        ForEachChildUIObject([](UIObject *child)
         {
             child->UpdateMaterial();
 
@@ -1798,32 +1872,34 @@ void UIObject::UpdateMaterial(bool update_children)
 bool UIObject::HasChildUIObjects() const
 {
     HYP_SCOPE;
+
+    return m_child_ui_objects.Any();
     
-    const Scene *scene = GetScene();
+    // const Scene *scene = GetScene();
 
-    if (!scene) {
-        return false;
-    }
+    // if (!scene) {
+    //     return false;
+    // }
 
-    const NodeProxy &node = GetNode();
+    // const NodeProxy &node = GetNode();
 
-    if (!node) {
-        return false;
-    }
+    // if (!node) {
+    //     return false;
+    // }
 
-    for (const NodeProxy &descendent : node->GetDescendents()) {
-        if (!descendent || !descendent->GetEntity()) {
-            continue;
-        }
+    // for (const NodeProxy &descendent : node->GetDescendents()) {
+    //     if (!descendent || !descendent->GetEntity()) {
+    //         continue;
+    //     }
 
-        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(descendent->GetEntity())) {
-            if (ui_component->ui_object != nullptr) {
-                return true;
-            }
-        }
-    }
+    //     if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(descendent->GetEntity())) {
+    //         if (ui_component->ui_object != nullptr) {
+    //             return true;
+    //         }
+    //     }
+    // }
 
-    return false;
+    // return false;
 }
 
 ScriptComponent *UIObject::GetScriptComponent(bool deep) const
@@ -1889,20 +1965,18 @@ void UIObject::RemoveScriptComponent()
     scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
 }
 
-const RC<UIObject> &UIObject::GetChildUIObject(int index) const
+RC<UIObject> UIObject::GetChildUIObject(int index) const
 {
     HYP_SCOPE;
-    
-    static const RC<UIObject> empty { };
 
-    const RC<UIObject> *child_object_ptr = &empty;
+    UIObject *child_object_ptr = nullptr;
 
     int current_index = 0;
 
-    ForEachChildUIObject([&child_object_ptr, &current_index, index](const RC<UIObject> &child)
+    ForEachChildUIObject([&child_object_ptr, &current_index, index](UIObject *child)
     {
         if (current_index == index) {
-            child_object_ptr = &child;
+            child_object_ptr = child;
 
             return UIObjectIterationResult::STOP;
         }
@@ -1912,7 +1986,7 @@ const RC<UIObject> &UIObject::GetChildUIObject(int index) const
         return UIObjectIterationResult::CONTINUE;
     }, false);
 
-    return *child_object_ptr;
+    return child_object_ptr ? child_object_ptr->RefCountedPtrFromThis() : nullptr;
 }
 
 void UIObject::SetNodeProxy(NodeProxy node_proxy)
@@ -1966,30 +2040,18 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
 {
     HYP_SCOPE;
 
-    if (!m_node_proxy.IsValid()) {
-        return;
-    }
-    
-    const Scene *scene = GetScene();
+    Scene *scene = GetScene();
 
     if (!scene) {
         return;
     }
-
-    const ID<Entity> entity = m_node_proxy->GetEntity();
-
-    if (entity.IsValid()) {
-        UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity);
-
-        if (ui_component && ui_component->ui_object) {
-            // Visibility affects all child nodes as well, so return from here.
-            if (only_visible && !ui_component->ui_object->GetComputedVisibility()) {
-                return;
-            }
-
-            proc(ui_component->ui_object);
-        }
+    
+    // Visibility affects all child nodes as well, so return from here.
+    if (only_visible && !GetComputedVisibility()) {
+        return;
     }
+
+    proc(const_cast<UIObject *>(this));
 
     Array<Pair<Node *, UIObject *>> children;
     children.Reserve(m_node_proxy->GetChildren().Size());
@@ -2003,13 +2065,18 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
             ? scene->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
             : nullptr;
 
-        if (!ui_component || !ui_component->ui_object) {
+
+        if (!ui_component) {
+            continue;
+        }
+
+        if (!ui_component->ui_object) {
             continue;
         }
 
         children.PushBack({
             it.Get(),
-            ui_component->ui_object.Get()
+            ui_component->ui_object
         });
     }
 
@@ -2053,13 +2120,13 @@ Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
     return (Vec2f(coords) - absolute_position) / Vec2f(actual_size);
 }
 
-Array<RC<UIObject>> UIObject::GetChildUIObjects(bool deep) const
+Array<UIObject *> UIObject::GetChildUIObjects(bool deep) const
 {
     HYP_SCOPE;
     
-    Array<RC<UIObject>> child_objects;
+    Array<UIObject *> child_objects;
 
-    ForEachChildUIObject([&child_objects](const RC<UIObject> &child)
+    ForEachChildUIObject([&child_objects](UIObject *child)
     {
         child_objects.PushBack(child);
 
@@ -2069,13 +2136,13 @@ Array<RC<UIObject>> UIObject::GetChildUIObjects(bool deep) const
     return child_objects;
 }
 
-Array<RC<UIObject>> UIObject::FilterChildUIObjects(ProcRef<bool, const RC<UIObject> &> predicate, bool deep) const
+Array<UIObject *> UIObject::FilterChildUIObjects(ProcRef<bool, UIObject *> predicate, bool deep) const
 {
     HYP_SCOPE;
     
-    Array<RC<UIObject>> child_objects;
+    Array<UIObject *> child_objects;
 
-    ForEachChildUIObject([&child_objects, &predicate](const RC<UIObject> &child)
+    ForEachChildUIObject([&child_objects, &predicate](UIObject *child)
     {
         if (predicate(child)) {
             child_objects.PushBack(child);
@@ -2137,7 +2204,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
     }
 }
 
-void UIObject::ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, const RC<UIObject> &> proc, bool deep) const
+void UIObject::ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, UIObject *> proc, bool deep) const
 {
     ForEachChildUIObject(proc, deep);
 }
@@ -2183,7 +2250,7 @@ void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
 {
     HYP_SCOPE;
     
-    ForEachChildUIObject([this, stage](const RC<UIObject> &ui_object)
+    ForEachChildUIObject([this, stage](UIObject *ui_object)
     {
         if (ui_object == this) {
             return UIObjectIterationResult::CONTINUE;
@@ -2214,7 +2281,7 @@ void UIObject::OnFontAtlasUpdate()
     HYP_SCOPE;
     
     // Update font atlas for all children
-    ForEachChildUIObject([](const RC<UIObject> &child)
+    ForEachChildUIObject([](UIObject *child)
     {
         child->OnFontAtlasUpdate_Internal();
 
@@ -2226,7 +2293,7 @@ void UIObject::OnTextSizeUpdate()
 {
     HYP_SCOPE;
     
-    ForEachChildUIObject([](const RC<UIObject> &child)
+    ForEachChildUIObject([](UIObject *child)
     {
         child->OnTextSizeUpdate_Internal();
 

@@ -8,8 +8,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
-    : UIObject(parent, std::move(node_proxy), type)
+UIPanel::UIPanel(UIObjectType type)
+    : UIObject(type)
 {
     SetBorderRadius(0);
     SetBackgroundColor(Color(0x101012FFu));
@@ -28,8 +28,8 @@ UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy, UIObjectType type)
     }).Detach();
 }
 
-UIPanel::UIPanel(UIStage *parent, NodeProxy node_proxy)
-    : UIPanel(parent, std::move(node_proxy), UIObjectType::PANEL)
+UIPanel::UIPanel()
+    : UIPanel(UIObjectType::PANEL)
 {
 }
 

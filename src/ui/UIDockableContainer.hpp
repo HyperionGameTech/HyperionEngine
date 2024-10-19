@@ -35,7 +35,7 @@ class HYP_API UIDockableItem : public UIPanel
     HYP_OBJECT_BODY(UIDockableItem);
 
 public:
-    UIDockableItem(UIStage *stage, NodeProxy node_proxy);
+    UIDockableItem();
     UIDockableItem(const UIDockableItem &other)                 = delete;
     UIDockableItem &operator=(const UIDockableItem &other)      = delete;
     UIDockableItem(UIDockableItem &&other) noexcept             = delete;
@@ -53,7 +53,7 @@ class HYP_API UIDockableContainer : public UIPanel
     HYP_OBJECT_BODY(UIDockableContainer);
 
 public:
-    UIDockableContainer(UIStage *stage, NodeProxy node_proxy);
+    UIDockableContainer();
     UIDockableContainer(const UIDockableContainer &other)                   = delete;
     UIDockableContainer &operator=(const UIDockableContainer &other)        = delete;
     UIDockableContainer(UIDockableContainer &&other) noexcept               = delete;

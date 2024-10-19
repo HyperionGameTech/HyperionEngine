@@ -4,8 +4,8 @@
 
 namespace hyperion {
 
-UIImage::UIImage(UIStage *parent, NodeProxy node_proxy)
-    : UIObject(parent, std::move(node_proxy), UIObjectType::IMAGE)
+UIImage::UIImage()
+    : UIObject(UIObjectType::IMAGE)
 {
 }
 
