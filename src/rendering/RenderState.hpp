@@ -71,7 +71,7 @@ struct RenderBinding<Scene>
 
     ID<Scene>           id;
     RenderEnvironment   *render_environment = nullptr;
-    const RenderList    *render_list = nullptr;
+    const RenderCollector    *render_collector = nullptr;
     SceneDrawProxy      scene;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -146,7 +146,7 @@ struct RenderState
             scene_bindings.Push(RenderBinding<Scene> {
                 scene->GetID(),
                 scene->GetEnvironment(),
-                &scene->GetRenderList(),
+                &scene->GetRenderCollector(),
                 scene->GetProxy()
             });
         }

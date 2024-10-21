@@ -86,14 +86,13 @@ public:
 
     BoundingBox &Clear();
 
-    BoundingBox &Extend(const Vec3f &vec);
-    BoundingBox &Extend(const BoundingBox &bb);
+    BoundingBox Union(const Vec3f &vec) const;
+
+    BoundingBox Union(const BoundingBox &other) const;
+    BoundingBox Intersection(const BoundingBox &other) const;
 
     // do the AABB's overlap at all?
     bool Overlaps(const BoundingBox &other) const;
-    
-    // do any of other's corners lie inside this AABB?
-    bool Intersects(const BoundingBox &other) const;
 
     // does this AABB completely contain other?
     bool Contains(const BoundingBox &other) const;

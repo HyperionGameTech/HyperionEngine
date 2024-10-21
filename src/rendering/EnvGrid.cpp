@@ -381,7 +381,7 @@ void EnvGrid::Init()
 
         InitObject(m_camera);
 
-        m_render_list.SetCamera(m_camera);
+        m_render_collector.SetCamera(m_camera);
     }
 
     HYP_LOG(EnvGrid, LogLevel::INFO, "Created {} total ambient EnvProbes in grid", num_ambient_probes);
@@ -396,7 +396,7 @@ void EnvGrid::InitGame()
 void EnvGrid::OnRemoved()
 {
     m_camera.Reset();
-    m_render_list.Reset();
+    m_render_collector.Reset();
     m_ambient_shader.Reset();
 
     PUSH_RENDER_COMMAND(
@@ -428,7 +428,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     m_camera->Update(delta);
 
     GetParent()->GetScene()->CollectStaticEntities(
-        m_render_list,
+        m_render_collector,
         m_camera,
         RenderableAttributeSet(
             MeshAttributes { },
@@ -872,13 +872,13 @@ void EnvGrid::RenderEnvProbe(
         g_engine->GetRenderState().SetActiveEnvProbe(probe.GetID());
         g_engine->GetRenderState().BindScene(GetParent()->GetScene());
 
-        m_render_list.CollectDrawCalls(
+        m_render_collector.CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE)),
             nullptr
         );
 
-        m_render_list.ExecuteDrawCalls(
+        m_render_collector.ExecuteDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE)),
             nullptr,

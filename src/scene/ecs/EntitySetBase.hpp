@@ -25,7 +25,7 @@ struct EntitySetIDGeneratorBase
     static inline std::atomic<uint> counter { 0u };
 };
 
-template <class ... Components>
+template <class... Components>
 struct EntitySetIDGenerator : EntitySetIDGeneratorBase
 {
     static EntitySetTypeID GetID()
@@ -39,7 +39,7 @@ struct EntitySetIDGenerator : EntitySetIDGeneratorBase
 class EntitySetBase
 {
 public:
-    template <class ... Components>
+    template <class... Components>
     static EntitySetTypeID GenerateEntitySetTypeID()
     {
         return EntitySetIDGenerator<Components...>::GetID();

@@ -284,7 +284,7 @@ private:
     FramebufferRef          m_framebuffer;
     ShaderRef               m_shader;
     Handle<Camera>          m_camera;
-    RenderList              m_render_list;
+    RenderCollector         m_render_collector;
 
     Matrix4                 m_projection_matrix;
     FixedArray<Matrix4, 6>  m_view_matrices;

@@ -314,12 +314,10 @@ BoundingBox Light::GetAABB() const
     if (m_type == LightType::AREA_RECT) {
         const Pair<Vec3f, Vec3f> rect = CalculateAreaLightRect();
 
-        BoundingBox aabb;
-        aabb.Extend(rect.first);
-        aabb.Extend(rect.second);
-        aabb.Extend(m_position + m_normal * m_radius);
-
-        return aabb;
+        return BoundingBox::Empty()
+            .Union(rect.first)
+            .Union(rect.second)
+            .Union(m_position + m_normal * m_radius);
     }
 
     if (m_type == LightType::POINT) {

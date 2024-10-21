@@ -7,6 +7,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderResources.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
 
@@ -26,6 +27,68 @@
 
 namespace hyperion {
 
+enum class MaterialTextureKey : uint64
+{
+    NONE                            = 0,
+
+    ALBEDO_MAP                      = 1 << 0,
+    NORMAL_MAP                      = 1 << 1,
+    AO_MAP                          = 1 << 2,
+    PARALLAX_MAP                    = 1 << 3,
+    METALNESS_MAP                   = 1 << 4,
+    ROUGHNESS_MAP                   = 1 << 5,
+    RADIANCE_MAP                    = 1 << 6,
+    IRRADIANCE_MAP                  = 1 << 7,
+    RESERVED0                       = 1 << 8,
+    RESERVED1                       = 1 << 9,
+    RESERVED2                       = 1 << 10,
+    RESERVED3                       = 1 << 11,
+    RESERVED4                       = 1 << 12,
+    RESERVED5                       = 1 << 13,
+
+    // terrain
+
+    SPLAT_MAP                       = 1 << 14,
+
+    BASE_TERRAIN_COLOR_MAP          = 1 << 15,
+    BASE_TERRAIN_NORMAL_MAP         = 1 << 16,
+    BASE_TERRAIN_AO_MAP             = 1 << 17,
+    BASE_TERRAIN_PARALLAX_MAP       = 1 << 18,
+
+    TERRAIN_LEVEL1_COLOR_MAP        = 1 << 19,
+    TERRAIN_LEVEL1_NORMAL_MAP       = 1 << 20,
+    TERRAIN_LEVEL1_AO_MAP           = 1 << 21,
+    TERRAIN_LEVEL1_PARALLAX_MAP     = 1 << 22,
+
+    TERRAIN_LEVEL2_COLOR_MAP        = 1 << 23,
+    TERRAIN_LEVEL2_NORMAL_MAP       = 1 << 24,
+    TERRAIN_LEVEL2_AO_MAP           = 1 << 25,
+    TERRAIN_LEVEL2_PARALLAX_MAP     = 1 << 26
+};
+
+class MaterialRenderResources final : public RenderResourcesBase
+{
+public:
+    MaterialRenderResources(const WeakHandle<Material> &material_weak);
+    virtual ~MaterialRenderResources() override;
+
+    void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
+    void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);
+
+protected:
+    virtual void Initialize() override;
+    virtual void Destroy() override;
+    virtual void Update() override;
+
+private:
+    void CreateDescriptorSets();
+    void DestroyDescriptorSets();
+
+    WeakHandle<Material>                            m_material_weak;
+    FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
+    Mutex                                           m_mutex;
+};
+
 HYP_CLASS()
 class HYP_API Material : public BasicObject<Material>
 {
@@ -37,46 +100,7 @@ public:
     static constexpr uint max_parameters = 32u;
     static constexpr uint max_textures = 32u;
 
-    using TextureKeyType = uint64;
-
-    enum TextureKey : TextureKeyType
-    {
-        MATERIAL_TEXTURE_NONE                           = 0,
-
-        MATERIAL_TEXTURE_ALBEDO_MAP                     = 1 << 0,
-        MATERIAL_TEXTURE_NORMAL_MAP                     = 1 << 1,
-        MATERIAL_TEXTURE_AO_MAP                         = 1 << 2,
-        MATERIAL_TEXTURE_PARALLAX_MAP                   = 1 << 3,
-        MATERIAL_TEXTURE_METALNESS_MAP                  = 1 << 4,
-        MATERIAL_TEXTURE_ROUGHNESS_MAP                  = 1 << 5,
-        MATERIAL_TEXTURE_RADIANCE_MAP                   = 1 << 6,
-        MATERIAL_TEXTURE_IRRADIANCE_MAP                 = 1 << 7,
-        MATERIAL_TEXTURE_RESERVED0                      = 1 << 8,
-        MATERIAL_TEXTURE_RESERVED1                      = 1 << 9,
-        MATERIAL_TEXTURE_RESERVED2                      = 1 << 10,
-        MATERIAL_TEXTURE_RESERVED3                      = 1 << 11,
-        MATERIAL_TEXTURE_RESERVED4                      = 1 << 12,
-        MATERIAL_TEXTURE_RESERVED5                      = 1 << 13,
-
-        // terrain
-
-        MATERIAL_TEXTURE_SPLAT_MAP                      = 1 << 14,
-
-        MATERIAL_TEXTURE_BASE_TERRAIN_COLOR_MAP         = 1 << 15,
-        MATERIAL_TEXTURE_BASE_TERRAIN_NORMAL_MAP        = 1 << 16,
-        MATERIAL_TEXTURE_BASE_TERRAIN_AO_MAP            = 1 << 17,
-        MATERIAL_TEXTURE_BASE_TERRAIN_PARALLAX_MAP      = 1 << 18,
-
-        MATERIAL_TEXTURE_TERRAIN_LEVEL1_COLOR_MAP       = 1 << 19,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL1_NORMAL_MAP      = 1 << 20,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL1_AO_MAP          = 1 << 21,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL1_PARALLAX_MAP    = 1 << 22,
-
-        MATERIAL_TEXTURE_TERRAIN_LEVEL2_COLOR_MAP       = 1 << 23,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL2_NORMAL_MAP      = 1 << 24,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL2_AO_MAP          = 1 << 25,
-        MATERIAL_TEXTURE_TERRAIN_LEVEL2_PARALLAX_MAP    = 1 << 26
-    };
+    friend class MaterialRenderResources;
 
     struct Parameter
     {
@@ -314,7 +338,7 @@ public:
     };
 
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
-    using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
+    using TextureSet = EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>;
 
     /*! \brief Default parameters for a Material. */
     static const ParameterTable &DefaultParameters();
@@ -402,14 +426,7 @@ public:
      *  Otherwise, it will be initialized when the Material is initialized.
      *  \param key The texture slot to set the texture on
      *  \param texture The Texture handle to set. */
-    void SetTexture(TextureKey key, Handle<Texture> &&texture);
-
-    /*! \brief Sets the texture with the given key on this Material.
-     *  If the Material has already been initialized, the Texture is initialized.
-     *  Otherwise, it will be initialized when the Material is initialized.
-     *  \param key The texture slot to set the texture on
-     *  \param texture The Texture handle to set. */
-    void SetTexture(TextureKey key, const Handle<Texture> &texture);
+    void SetTexture(MaterialTextureKey key, const Handle<Texture> &texture);
 
     /*! \brief Sets the texture at the given index on this Material.
      *  If the Material has already been initialized, the Texture is initialized.
@@ -434,7 +451,7 @@ public:
      *  texture key. If no Texture was set, nullptr is returned.
      *  \param key The key of the texture to find
      *  \return Handle for the found Texture, or an empty Handle if not found. */
-    const Handle<Texture> &GetTexture(TextureKey key) const;
+    const Handle<Texture> &GetTexture(MaterialTextureKey key) const;
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
      *  index. If no Texture was set, nullptr is returned.
@@ -539,6 +556,12 @@ public:
     HYP_FORCE_INLINE bool IsStatic() const
         { return !m_is_dynamic; }
 
+    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources()
+        { return *m_render_resources; }
+
+    HYP_FORCE_INLINE const MaterialRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     /*! \brief If a Material is
      *  dynamic, it is expected to change frequently and may be modified. Otherwise,
      *  it is considered static and should not be modified as it may be shared across many
@@ -583,23 +606,21 @@ public:
     }
 
 private:
-    void EnqueueTextureUpdate(TextureKey key);
-    void EnqueueDescriptorSetCreate();
-    void EnqueueDescriptorSetDestroy();
+    Name                                m_name;
 
-    Name                                                m_name;
+    ShaderRef                           m_shader;
 
-    ShaderRef                                           m_shader;
+    ParameterTable                      m_parameters;
+    TextureSet                          m_textures;
 
-    ParameterTable                                      m_parameters;
-    TextureSet                                          m_textures;
+    MaterialAttributes                  m_render_attributes;
 
-    MaterialAttributes                                  m_render_attributes;
+    bool                                m_is_dynamic;
 
-    bool                                                m_is_dynamic;
+    MaterialShaderData                  m_shader_data;
+    mutable DataMutationState           m_mutation_state;
 
-    MaterialShaderData                                  m_shader_data;
-    mutable DataMutationState                           m_mutation_state;
+    RC<MaterialRenderResources>         m_render_resources;
 };
 
 HYP_CLASS()
@@ -638,16 +659,36 @@ public:
     void Add(const Handle<Material> &material);
 
     Handle<Material> CreateMaterial(
+        Name name,
         MaterialAttributes attributes = { },
         const Material::ParameterTable &parameters = Material::DefaultParameters(),
         const Material::TextureSet &textures = { }
     );
 
+    HYP_FORCE_INLINE Handle<Material> CreateMaterial(
+        MaterialAttributes attributes = { },
+        const Material::ParameterTable &parameters = Material::DefaultParameters(),
+        const Material::TextureSet &textures = { }
+    )
+    {
+        return CreateMaterial(Name::Invalid(), attributes, parameters, textures);
+    }
+
     Handle<Material> GetOrCreate(
+        Name name,
         MaterialAttributes attributes = { },
         const Material::ParameterTable &parameters = Material::DefaultParameters(),
         const Material::TextureSet &textures = { }
     );
+
+    HYP_FORCE_INLINE Handle<Material> GetOrCreate(
+        MaterialAttributes attributes = { },
+        const Material::ParameterTable &parameters = Material::DefaultParameters(),
+        const Material::TextureSet &textures = { }
+    )
+    {
+        return GetOrCreate(Name::Invalid(), attributes, parameters, textures);
+    }
 
 private:
     HashMap<HashCode, WeakHandle<Material>> m_map;
@@ -680,7 +721,7 @@ public:
      *  be created on the next call to Update.
      *  \param material The material to add
      */
-    void AddMaterial(const WeakHandle<Material> &material);
+    void AddMaterial(const Handle<Material> &material);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
@@ -690,20 +731,20 @@ public:
      *  \param material The material to add
      *  \param textures The textures to add to the material
      */
-    void AddMaterial(const WeakHandle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    void AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
      *  for the material from the manager. Usable from any thread.
-     *  \param material The ID of the material to remove
+     *  \param material A weak handle to the material to remove
      */
-    void EnqueueRemoveMaterial(ID<Material> material);
+    void EnqueueRemoveMaterial(const WeakHandle<Material> &material);
 
     /*! \brief Remove a material from the manager. Only to be used from the render thread.
      *  \param material The ID of the material to remove
      */
     void RemoveMaterial(ID<Material> material);
 
-    void SetNeedsDescriptorSetUpdate(const WeakHandle<Material> &material);
+    void SetNeedsDescriptorSetUpdate(const Handle<Material> &material);
 
     /*! \brief Initialize the MaterialDescriptorSetManager - Only to be used by the owning Engine instance. */
     void Initialize();
@@ -720,7 +761,7 @@ private:
     HashMap<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
 
     Array<Pair<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
-    Array<ID<Material>>                                                                     m_pending_removal;
+    Array<WeakHandle<Material>>                                                             m_pending_removal;
     Mutex                                                                                   m_pending_mutex;
     AtomicVar<bool>                                                                         m_pending_addition_flag;
 

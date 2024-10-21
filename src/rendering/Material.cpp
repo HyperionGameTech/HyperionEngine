@@ -107,7 +107,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
                 }
             }
 
-            g_engine->GetMaterialDescriptorSetManager().SetNeedsDescriptorSetUpdate(material);
+            g_engine->GetMaterialDescriptorSetManager().SetNeedsDescriptorSetUpdate(material_locked);
         }
 
         HYPERION_RETURN_OK;
@@ -132,7 +132,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptorSet) : renderer::RenderCommand
     virtual Result operator()() override
     {
         if (Handle<Material> material_locked = material.Lock()) {
-            g_engine->GetMaterialDescriptorSetManager().AddMaterial(material, std::move(textures));
+            g_engine->GetMaterialDescriptorSetManager().AddMaterial(material_locked, std::move(textures));
         }
 
         HYPERION_RETURN_OK;
@@ -141,10 +141,10 @@ struct RENDER_COMMAND(CreateMaterialDescriptorSet) : renderer::RenderCommand
 
 struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 {
-    ID<Material>    id;
+    WeakHandle<Material>    material;
 
-    RENDER_COMMAND(RemoveMaterialDescriptorSet)(ID<Material> id)
-        : id(id)
+    RENDER_COMMAND(RemoveMaterialDescriptorSet)(const WeakHandle<Material> &material)
+        : material(material)
     {
     }
 
@@ -152,13 +152,146 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        g_engine->GetMaterialDescriptorSetManager().RemoveMaterial(id);
+        g_engine->GetMaterialDescriptorSetManager().RemoveMaterial(material.GetID());
 
         HYPERION_RETURN_OK;
     }
 };
 
 #pragma endregion Render commands
+
+#pragma region MaterialRenderResources
+
+MaterialRenderResources::MaterialRenderResources(const WeakHandle<Material> &material_weak)
+    : m_material_weak(material_weak)
+{
+}
+
+MaterialRenderResources::~MaterialRenderResources()
+{
+    if (m_material_weak.IsValid()) {
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            DestroyDescriptorSets();
+        }
+    }
+}
+
+void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_textures.Set(texture_key, texture);
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_textures = std::move(textures);
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::Initialize()
+{
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Initializing material render resources for material {}", material->GetName());
+
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            CreateDescriptorSets();
+        }
+    }
+}
+
+void MaterialRenderResources::Destroy()
+{
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Destroying material render resources for material {}", material->GetName());
+
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            DestroyDescriptorSets();
+        }
+    }
+}
+
+void MaterialRenderResources::Update()
+{
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Updating material render resources for material {}", material->GetName());
+
+        Mutex::Guard guard(m_mutex);
+
+        for (const auto &it : m_textures) {
+            const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
+
+            if (texture_index >= max_bound_textures) {
+                HYP_LOG(Material, LogLevel::WARNING, "Texture index {} is out of bounds of max bound textures ({})", texture_index, max_bound_textures);
+
+                continue;
+            }
+
+            const Handle<Texture> &texture = it.second;
+
+            PUSH_RENDER_COMMAND(
+                UpdateMaterialTexture,
+                m_material_weak,
+                texture_index,
+                texture
+            );
+        }
+    }
+}
+
+void MaterialRenderResources::CreateDescriptorSets()
+{
+    if (!m_material_weak.IsValid()) {
+        return;
+    }
+
+    HYP_LOG(Material, LogLevel::DEBUG, "Creating descriptor sets for material with ID #{}", m_material_weak.GetID().Value());
+
+    FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
+
+    for (const Pair<MaterialTextureKey, Handle<Texture>> &it : m_textures) {
+        const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
+
+        if (texture_index >= texture_bindings.Size()) {
+            continue;
+        }
+
+        if (const Handle<Texture> &texture = it.second) {
+            texture_bindings[texture_index] = texture;
+        }
+    }
+
+    PUSH_RENDER_COMMAND(
+        CreateMaterialDescriptorSet,
+        m_material_weak,
+        std::move(texture_bindings)
+    );
+}
+
+void MaterialRenderResources::DestroyDescriptorSets()
+{
+    if (!m_material_weak.IsValid()) {
+        return;
+    }
+
+    PUSH_RENDER_COMMAND(
+        RemoveMaterialDescriptorSet,
+        m_material_weak
+    );
+}
+
+#pragma endregion MaterialRenderResources
 
 #pragma region Material
 
@@ -242,14 +375,6 @@ Material::~Material()
     }
 
     g_safe_deleter->SafeRelease(std::move(m_shader));
-
-    if (IsInitCalled()) {
-        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            EnqueueDescriptorSetDestroy();
-        }
-
-        //HYP_SYNC_RENDER();
-    }
 }
 
 void Material::Init()
@@ -259,6 +384,8 @@ void Material::Init()
     }
 
     BasicObject::Init();
+
+    m_render_resources = MakeRefCountedPtr<MaterialRenderResources>(WeakHandleFromThis());
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {
@@ -270,54 +397,25 @@ void Material::Init()
         }
     }
 
+    FlatMap<MaterialTextureKey, Handle<Texture>> textures;
+
     for (SizeType i = 0; i < m_textures.Size(); i++) {
+        MaterialTextureKey key = m_textures.KeyAt(i);
+
         if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
             InitObject(texture);
+
+            textures.Set(key, texture);
         }
     }
-    
-    if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-        EnqueueDescriptorSetCreate();
-    }
+
+    m_render_resources->SetTextures(std::move(textures));
 
     m_mutation_state |= DataMutationState::DIRTY;
 
     SetReady(true);
 
     EnqueueRenderUpdates();
-}
-
-void Material::EnqueueDescriptorSetCreate()
-{
-    HYP_LOG(Material, LogLevel::DEBUG, "EnqueueCreate material descriptor set for material with ID #{} (name: {})", GetID().Value(), GetName());
-
-    FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
-
-    for (const Pair<TextureKey, Handle<Texture> &> it : m_textures) {
-        const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(it.first);
-
-        if (texture_index >= texture_bindings.Size()) {
-            continue;
-        }
-
-        if (const Handle<Texture> &texture = it.second) {
-            texture_bindings[texture_index] = texture;
-        }
-    }
-
-    PUSH_RENDER_COMMAND(
-        CreateMaterialDescriptorSet,
-        WeakHandleFromThis(),
-        std::move(texture_bindings)
-    );
-}
-
-void Material::EnqueueDescriptorSetDestroy()
-{
-    PUSH_RENDER_COMMAND(
-        RemoveMaterialDescriptorSet,
-        GetID()
-    );
 }
 
 void Material::EnqueueRenderUpdates()
@@ -373,22 +471,6 @@ void Material::EnqueueRenderUpdates()
     );
 
     m_mutation_state = DataMutationState::CLEAN;
-}
-
-void Material::EnqueueTextureUpdate(TextureKey key)
-{
-    AssertReady();
-
-    const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(key);
-
-    const Handle<Texture> &texture = m_textures.Get(key);
-
-    PUSH_RENDER_COMMAND(
-        UpdateMaterialTexture,
-        WeakHandleFromThis(),
-        texture_index,
-        texture
-    );
 }
 
 void Material::SetShader(const ShaderRef &shader)
@@ -463,7 +545,7 @@ void Material::ResetParameters()
     }
 }
 
-void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
+void Material::SetTexture(MaterialTextureKey key, const Handle<Texture> &texture)
 {
     if (IsStatic()) {
         HYP_LOG(Material, LogLevel::WARNING, "Setting texture on static material with ID #{} (name: {})", GetID().Value(), GetName());
@@ -478,17 +560,10 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
     if (IsInitCalled()) {
         InitObject(texture);
 
-        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            EnqueueTextureUpdate(key);
-        }
+        m_render_resources->SetTexture(key, texture);
 
         m_mutation_state |= DataMutationState::DIRTY;
     }
-}
-
-void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)
-{
-    SetTexture(key, Handle<Texture>(texture));
 }
 
 void Material::SetTextureAtIndex(uint index, const Handle<Texture> &texture)
@@ -518,22 +593,24 @@ void Material::SetTextures(const TextureSet &textures)
         }
 
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            for (const Pair<TextureKey, Handle<Texture> &> it : m_textures) {
-                const SizeType texture_index = decltype(m_textures)::EnumToOrdinal(it.first);
+            FlatMap<MaterialTextureKey, Handle<Texture>> textures;
 
-                if (texture_index >= max_bound_textures) {
-                    continue;
+            for (SizeType i = 0; i < m_textures.Size(); i++) {
+                MaterialTextureKey key = m_textures.KeyAt(i);
+
+                if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
+                    textures.Set(key, texture);
                 }
-
-                EnqueueTextureUpdate(it.first);
             }
+
+            m_render_resources->SetTextures(std::move(textures));
         }
 
         m_mutation_state |= DataMutationState::DIRTY;
     }
 }
 
-const Handle<Texture> &Material::GetTexture(TextureKey key) const
+const Handle<Texture> &Material::GetTexture(MaterialTextureKey key) const
 {
     return m_textures.Get(key);
 }
@@ -546,7 +623,7 @@ const Handle<Texture> &Material::GetTextureAtIndex(uint index) const
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = CreateObject<Material>(
-        Name::Unique(*m_name),
+        m_name,
         m_render_attributes,
         m_parameters,
         m_textures
@@ -636,6 +713,7 @@ void MaterialCache::Add(const Handle<Material> &material)
 }
 
 Handle<Material> MaterialCache::CreateMaterial(
+    Name name,
     MaterialAttributes attributes,
     const Material::ParameterTable &parameters,
     const Material::TextureSet &textures
@@ -649,7 +727,7 @@ Handle<Material> MaterialCache::CreateMaterial(
     }
 
     Handle<Material> handle = CreateObject<Material>(
-        Name::Unique("material"),
+        name,
         attributes,
         parameters,
         textures
@@ -661,6 +739,7 @@ Handle<Material> MaterialCache::CreateMaterial(
 }
 
 Handle<Material> MaterialCache::GetOrCreate(
+    Name name,
     MaterialAttributes attributes,
     const Material::ParameterTable &parameters,
     const Material::TextureSet &textures
@@ -674,6 +753,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     }
 
     // @TODO: For textures hashcode, asset path should be used rather than texture ID
+    // textures may later be destroyed and their IDs reused which would cause a hash collision
 
     HashCode hc;
     hc.Add(attributes.GetHashCode());
@@ -691,9 +771,13 @@ Handle<Material> MaterialCache::GetOrCreate(
             return handle;
         }
     }
+    
+    if (!name.IsValid()) {
+        name = CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
+    }
 
     Handle<Material> handle = CreateObject<Material>(
-        CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value())),
+        name,
         attributes,
         parameters,
         textures
@@ -775,113 +859,121 @@ const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Materi
     return it->second[frame_index];
 }
 
-void MaterialDescriptorSetManager::AddMaterial(const WeakHandle<Material> &material)
+void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material)
 {
-    if (Handle<Material> material_locked = material.Lock()) {
-        HYP_LOG(Material, LogLevel::DEBUG, "Add material descriptor set for material with ID #{} from thread: {}", material.GetID().Value(), Threads::CurrentThreadID().name);
-
-        const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
-        AssertThrow(declaration != nullptr);
-
-        renderer::DescriptorSetLayout layout(*declaration);
-
-        FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
-
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>(layout);
-
-            for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-                descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-            }
-        }
-
-        // if on render thread, initialize and add immediately
-        if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
-            }
-
-            m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
-
-            return;
-        }
-
-        Mutex::Guard guard(m_pending_mutex);
-
-        m_pending_addition.PushBack({
-            material,
-            std::move(descriptor_sets)
-        });
-
-        m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
+    if (!material.IsValid()) {
+        return;
     }
+
+    HYP_LOG(Material, LogLevel::DEBUG, "Add material descriptor set for material with ID #{} from thread: {}", material.GetID().Value(), Threads::CurrentThreadID().name);
+
+    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
+    AssertThrow(declaration != nullptr);
+
+    renderer::DescriptorSetLayout layout(*declaration);
+
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>(layout);
+
+        for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
+            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        }
+    }
+
+    // if on render thread, initialize and add immediately
+    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
+        }
+
+        m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
+
+        return;
+    }
+
+    Mutex::Guard guard(m_pending_mutex);
+
+    m_pending_addition.PushBack({
+        material,
+        std::move(descriptor_sets)
+    });
+
+    m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
 }
 
-void MaterialDescriptorSetManager::AddMaterial(const WeakHandle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
+void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
 {
-    if (Handle<Material> material_locked = material.Lock()) {
-        HYP_LOG(Material, LogLevel::DEBUG, "Add material descriptor set for material with ID #{} from thread {}", material.GetID().Value(), Threads::CurrentThreadID().name);
+    if (!material.IsValid()) {
+        return;
+    }
 
-        const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
-        AssertThrow(declaration != nullptr);
+    HYP_LOG(Material, LogLevel::DEBUG, "Add material descriptor set for material with ID #{} from thread {}", material.GetID().Value(), Threads::CurrentThreadID().name);
 
-        const renderer::DescriptorSetLayout layout(*declaration);
+    const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
+    AssertThrow(declaration != nullptr);
 
-        FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+    const renderer::DescriptorSetLayout layout(*declaration);
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            descriptor_sets[frame_index] = layout.CreateDescriptorSet();
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
-            for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-                if (texture_index < textures.Size()) {
-                    const Handle<Texture> &texture = textures[texture_index];
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        descriptor_sets[frame_index] = layout.CreateDescriptorSet();
 
-                    if (texture.IsValid() && texture->GetImageView() != nullptr) {
-                        descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
+        for (uint texture_index = 0; texture_index < max_bound_textures; texture_index++) {
+            if (texture_index < textures.Size()) {
+                const Handle<Texture> &texture = textures[texture_index];
 
-                        continue;
-                    }
+                if (texture.IsValid() && texture->GetImageView() != nullptr) {
+                    descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
+
+                    continue;
                 }
-
-                descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-            }
-        }
-
-        // if on render thread, initialize and add immediately
-        if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
-            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Creating material descriptor sets : Currently {} descriptor sets allocated",
-                renderer::RenderObjects<renderer::Platform::CURRENT>::template GetRenderObjectContainer<renderer::DescriptorSet>().GetCount());
-
-            for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
             }
 
-            m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
-
-            return;
+            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
-
-        Mutex::Guard guard(m_pending_mutex);
-
-        m_pending_addition.PushBack({
-            material,
-            std::move(descriptor_sets)
-        });
-
-        m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
     }
+
+    // if on render thread, initialize and add immediately
+    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
+        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Creating material descriptor sets : Currently {} descriptor sets allocated",
+            renderer::RenderObjects<renderer::Platform::CURRENT>::template GetRenderObjectContainer<renderer::DescriptorSet>().GetCount());
+
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
+        }
+
+        m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
+
+        return;
+    }
+
+    Mutex::Guard guard(m_pending_mutex);
+
+    m_pending_addition.PushBack({
+        material,
+        std::move(descriptor_sets)
+    });
+
+    m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
 }
 
-void MaterialDescriptorSetManager::EnqueueRemoveMaterial(ID<Material> id)
+void MaterialDescriptorSetManager::EnqueueRemoveMaterial(const WeakHandle<Material> &material)
 {
-    HYP_LOG(Material, LogLevel::DEBUG, "EnqueueRemove material with ID {} from thread {}", id.Value(), Threads::CurrentThreadID().name);
+    if (!material.IsValid()) {
+        return;
+    }
+
+    HYP_LOG(Material, LogLevel::DEBUG, "EnqueueRemove material with ID {} from thread {}", material.GetID().Value(), Threads::CurrentThreadID().name);
 
     Mutex::Guard guard(m_pending_mutex);
     
     while (true) {
-        const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
+        const auto pending_addition_it = m_pending_addition.FindIf([&material](const auto &item)
         {
-            return item.first == id;
+            return item.first == material;
         });
 
         if (pending_addition_it == m_pending_addition.End()) {
@@ -891,8 +983,8 @@ void MaterialDescriptorSetManager::EnqueueRemoveMaterial(ID<Material> id)
         m_pending_addition.Erase(pending_addition_it);
     }
 
-    if (!m_pending_removal.Contains(id)) {
-        m_pending_removal.PushBack(id);
+    if (!m_pending_removal.Contains(material)) {
+        m_pending_removal.PushBack(material);
     }
 
     m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
@@ -902,13 +994,17 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
+    if (!id.IsValid()) {
+        return;
+    }
+
     { // remove from pending
         Mutex::Guard guard(m_pending_mutex);
     
         while (true) {
             const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
             {
-                return item.first == id;
+                return item.first.GetID() == id;
             });
 
             if (pending_addition_it == m_pending_addition.End()) {
@@ -918,7 +1014,7 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
             m_pending_addition.Erase(pending_addition_it);
         }
 
-        const auto pending_removal_it = m_pending_removal.Find(id);
+        const auto pending_removal_it = m_pending_removal.FindAs(id);
 
         if (pending_removal_it != m_pending_removal.End()) {
             m_pending_removal.Erase(pending_removal_it);
@@ -938,23 +1034,25 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
     }
 }
 
-void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(const WeakHandle<Material> &material)
+void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(const Handle<Material> &material)
 {
-    if (Handle<Material> material_locked = material.Lock()) {
-        Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
+    if (!material.IsValid()) {
+        return;
+    }
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const auto it = m_descriptor_sets_to_update[frame_index].Find(material);
+    Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
 
-            if (it != m_descriptor_sets_to_update[frame_index].End()) {
-                continue;
-            }
+    for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const auto it = m_descriptor_sets_to_update[frame_index].FindAs(material);
 
-            m_descriptor_sets_to_update[frame_index].PushBack(material);
+        if (it != m_descriptor_sets_to_update[frame_index].End()) {
+            continue;
         }
 
-        m_descriptor_sets_to_update_flag.Set(0x3, MemoryOrder::RELEASE);
+        m_descriptor_sets_to_update[frame_index].PushBack(material);
     }
+
+    m_descriptor_sets_to_update_flag.Set(0x3, MemoryOrder::RELEASE);
 }
 
 void MaterialDescriptorSetManager::Initialize()
@@ -978,7 +1076,7 @@ void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(Frame *frame)
         const auto material_descriptor_sets_it = m_material_descriptor_sets.FindAs(*it);
 
         if (material_descriptor_sets_it != m_material_descriptor_sets.End()) {
-            HYP_LOG(Material, LogLevel::DEBUG, "Releasing descriptor sets for material with ID {} from thread {}", it->Value(), Threads::CurrentThreadID().name);
+            HYP_LOG(Material, LogLevel::DEBUG, "Releasing descriptor sets for material with ID {} from thread {}", it->GetID().Value(), Threads::CurrentThreadID().name);
 
             for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 SafeRelease(std::move(material_descriptor_sets_it->second[frame_index]));

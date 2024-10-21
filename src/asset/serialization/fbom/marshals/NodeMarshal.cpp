@@ -58,7 +58,7 @@ public:
 
         NodeProxy node;
         
-        const HypClass *node_hyp_class = Node::GetClass();
+        const HypClass *node_hyp_class = Node::Class();
 
         switch (node_type) {
         case Node::Type::NODE:
@@ -67,7 +67,7 @@ public:
         case Node::Type::BONE:
             node = NodeProxy(MakeRefCountedPtr<Bone>());
 
-            node_hyp_class = Bone::GetClass();
+            node_hyp_class = Bone::Class();
 
             break;
         default:

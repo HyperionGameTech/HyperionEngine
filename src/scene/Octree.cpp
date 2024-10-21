@@ -838,7 +838,7 @@ Octree::InsertResult Octree::Rebuild()
     for (auto &it : new_entries) {
         if (it.aabb.IsFinite()) {
             if (IsRoot()) {
-                m_aabb.Extend(it.aabb);
+                m_aabb = m_aabb.Union(it.aabb);
             } else {
                 AssertThrow(m_aabb.Contains(it.aabb));
             }
@@ -899,9 +899,7 @@ Octree::InsertResult Octree::RebuildExtendInternal(const BoundingBox &extend_inc
     }
 
     // have to grow the aabb by rebuilding the octree
-    BoundingBox new_aabb(m_aabb);
-    // extend the new aabb to include the entity
-    new_aabb.Extend(extend_include_aabb);
+    BoundingBox new_aabb(m_aabb.Union(extend_include_aabb));
     // grow our new aabb by a predetermined growth factor,
     // to keep it from constantly resizing
     new_aabb *= growth_factor;
@@ -942,7 +940,7 @@ void Octree::CollectEntities(Array<ID<Entity>> &out) const
 
     out.Reserve(out.Size() + m_entries.Size());
 
-    for (auto &entry : m_entries) {
+    for (const Octree::Entry &entry : m_entries) {
         out.PushBack(entry.id);
     }
 
@@ -961,14 +959,14 @@ void Octree::CollectEntitiesInRange(const Vector3 &position, float radius, Array
 
     const BoundingBox inclusion_aabb(position - radius, position + radius);
 
-    if (!inclusion_aabb.Intersects(m_aabb)) {
+    if (!inclusion_aabb.Overlaps(m_aabb)) {
         return;
     }
 
     out.Reserve(out.Size() + m_entries.Size());
 
     for (const Octree::Entry &entry : m_entries) {
-        if (inclusion_aabb.Intersects(entry.aabb)) {
+        if (inclusion_aabb.Overlaps(entry.aabb)) {
             out.PushBack(entry.id);
         }
     }

@@ -168,7 +168,7 @@ public:
                 if (texture_index < std::size(texture_keys)) {
                     if (Optional<Handle<Texture>> texture_opt = subobject.m_deserialized_object->TryGet<Handle<Texture>>()) {
                         textures.Set(
-                            Material::TextureKey(texture_keys[texture_index]), 
+                            MaterialTextureKey(texture_keys[texture_index]), 
                             *texture_opt
                         );
 
@@ -181,7 +181,7 @@ public:
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
         material_handle->SetShader(std::move(shader));
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Material::GetClass(), AnyRef(*material_handle))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Material::Class(), AnyRef(*material_handle))) {
             return err;
         }
 

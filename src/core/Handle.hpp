@@ -360,6 +360,15 @@ struct WeakHandle
             ? Handle<T>(IDType { index })
             : Handle<T>();
     }
+
+    HYP_FORCE_INLINE T *GetUnsafe() const
+    {
+        if (index == 0) {
+            return nullptr;
+        }
+
+        return &GetContainer().Get(index - 1);
+    }
     
     HYP_FORCE_INLINE bool operator!() const
         { return !IsValid(); }

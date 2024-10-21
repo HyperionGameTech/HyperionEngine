@@ -35,7 +35,7 @@ void SkySystem::OnEntityAdded(ID<Entity> entity)
     if (!mesh_component.material) {
         Handle<Material> material = CreateObject<Material>();
         material->SetBucket(Bucket::BUCKET_SKYBOX);
-        material->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, sky_component.render_component->GetCubemap());
+        material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.render_component->GetCubemap());
         material->SetFaceCullMode(FaceCullMode::FRONT);
         material->SetIsDepthTestEnabled(true);
         material->SetIsDepthWriteEnabled(false);

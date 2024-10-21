@@ -165,13 +165,14 @@ BoundingBox &BoundingBox::operator*=(const Transform &transform)
         return *this;
     }
 
-    auto corners = GetCorners();
+    FixedArray<Vec3f, 8> corners = GetCorners();
 
     Clear();
 
-    for (auto &corner : corners) {
+    for (Vec3f &corner : corners) {
         corner = transform.GetMatrix() * corner;
-        Extend(corner);
+
+        *this = Union(corner);
     }
 
     return *this;
@@ -190,18 +191,28 @@ BoundingBox &BoundingBox::Clear()
     return *this;
 }
 
-BoundingBox &BoundingBox::Extend(const Vec3f &vec)
+BoundingBox BoundingBox::Union(const Vec3f &vec) const
 {
-    min = Vec3f::Min(min, vec);
-    max = Vec3f::Max(max, vec);
-    return *this;
+    return BoundingBox {
+        Vec3f::Min(min, vec),
+        Vec3f::Max(max, vec)
+    };
 }
 
-BoundingBox &BoundingBox::Extend(const BoundingBox &bb)
+BoundingBox BoundingBox::Union(const BoundingBox &other) const
 {
-    min = Vec3f::Min(min, bb.min);
-    max = Vec3f::Max(max, bb.max);
-    return *this;
+    return BoundingBox {
+        Vec3f::Min(min, other.min),
+        Vec3f::Max(max, other.max)
+    };
+}
+
+BoundingBox BoundingBox::Intersection(const BoundingBox &other) const
+{
+    return BoundingBox {
+        Vec3f::Max(min, other.min),
+        Vec3f::Min(max, other.max)
+    };
 }
 
 bool BoundingBox::Overlaps(const BoundingBox &other) const
@@ -211,22 +222,6 @@ bool BoundingBox::Overlaps(const BoundingBox &other) const
     if (max.z < other.min.z || min.z > other.max.z) return false;
 
     return true;
-}
-
-bool BoundingBox::Intersects(const BoundingBox &other) const
-{
-    const FixedArray<Vec3f, 8> corners = other.GetCorners();
-
-    if (ContainsPoint(corners[0])) return true;
-    if (ContainsPoint(corners[1])) return true;
-    if (ContainsPoint(corners[2])) return true;
-    if (ContainsPoint(corners[3])) return true;
-    if (ContainsPoint(corners[4])) return true;
-    if (ContainsPoint(corners[5])) return true;
-    if (ContainsPoint(corners[6])) return true;
-    if (ContainsPoint(corners[7])) return true;
-
-    return false;
 }
 
 bool BoundingBox::Contains(const BoundingBox &other) const

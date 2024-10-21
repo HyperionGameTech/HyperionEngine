@@ -228,10 +228,6 @@ void UIStage::Init()
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
 
-    m_scene->GetEntityManager()->AddComponent<UIComponent>(m_scene->GetRoot()->GetEntity(), UIComponent { this });
-
-    m_scene->GetRoot()->LockTransform();
-
     SetNodeProxy(m_scene->GetRoot());
 
     UIObject::Init();
@@ -344,7 +340,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
             continue;
         }
 
-        BoundingBox aabb(bounding_box_component.world_aabb);
+        BoundingBox aabb = ui_object->GetAABBClamped();
         aabb.min.z = -1.0f;
         aabb.max.z = 1.0f;
      
@@ -557,18 +553,20 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
-                        ::hyperion::GetClass(ui_object.GetTypeID())->GetName(),
-                        ui_object->GetName(),
-                        ui_object->GetText(),
-                        ui_object->GetActualSize(),
-                        ui_object->GetActualInnerSize(),
-                        ui_object->GetWorldAABB(),
-                        ui_object->GetNode()->GetEntityAABB(),
-                        bounding_box_component.local_aabb,
-                        bounding_box_component.world_aabb,
-                        ui_object->GetActualSize(),
-                        ui_object->TransformScreenCoordsToRelative(mouse_position));
+                    // HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Depth: {}, Computed Depth: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
+                    //     GetClass(ui_object.GetTypeID())->GetName(),
+                    //     ui_object->GetName(),
+                    //     ui_object->GetText(),
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->GetActualInnerSize(),
+                    //     ui_object->GetDepth(),
+                    //     ui_object->GetComputedDepth(),
+                    //     ui_object->GetWorldAABB(),
+                    //     ui_object->GetNode()->GetEntityAABB(),
+                    //     bounding_box_component.local_aabb,
+                    //     bounding_box_component.world_aabb,
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->TransformScreenCoordsToRelative(mouse_position));
 
                     // MeshComponent *mesh_component = ui_object->GetNode()->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ui_object->GetEntity());
                     // AssertThrow(mesh_component != nullptr);
@@ -702,6 +700,14 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
 
+                HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
+                    GetClass(ui_object.GetTypeID())->GetName(),
+                    ui_object->GetName(),
+                    ui_object->GetText(),
+                    ui_object->GetActualSize(),
+                    ui_object->GetActualInnerSize(),
+                    ui_object->GetActualSizeClamped());
+
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
@@ -805,7 +811,11 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 break;
             }
 
-            ui_object = ui_object->GetParentUIObject();
+            if (UIObject *parent = ui_object->GetParentUIObject()) {
+                ui_object = parent->RefCountedPtrFromThis();
+            } else {
+                break;
+            }
         }
 
         break;

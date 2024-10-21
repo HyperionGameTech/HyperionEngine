@@ -192,8 +192,8 @@ ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, Shado
 
 ShadowPass::~ShadowPass()
 {
-    m_render_list_statics.Reset();
-    m_render_list_dynamics.Reset();
+    m_render_collector_statics.Reset();
+    m_render_collector_dynamics.Reset();
     m_parent_scene.Reset();
     m_shadow_map_all.Reset();
     m_shadow_map_statics.Reset();
@@ -391,13 +391,13 @@ void ShadowPass::Render(Frame *frame)
         if (GetShouldRerenderStaticObjectsSignal().Consume()) {
             HYP_LOG(Shadows, LogLevel::DEBUG, "Rerendering static objects for shadow map");
 
-            m_render_list_statics.CollectDrawCalls(
+            m_render_collector_statics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_list_statics.ExecuteDrawCalls(
+            m_render_collector_statics.ExecuteDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -414,13 +414,13 @@ void ShadowPass::Render(Frame *frame)
         }
 
         { // Render dynamics
-            m_render_list_dynamics.CollectDrawCalls(
+            m_render_collector_dynamics.CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_list_dynamics.ExecuteDrawCalls(
+            m_render_collector_dynamics.ExecuteDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -524,8 +524,8 @@ void DirectionalLightShadowRenderer::Init()
     m_camera->SetFramebuffer(m_shadow_pass->GetFramebuffer());
     InitObject(m_camera);
 
-    m_shadow_pass->GetRenderListStatics().SetCamera(m_camera);
-    m_shadow_pass->GetRenderListDynamics().SetCamera(m_camera);
+    m_shadow_pass->GetRenderCollectorStatics().SetCamera(m_camera);
+    m_shadow_pass->GetRenderCollectorDynamics().SetCamera(m_camera);
 }
 
 // called from game thread
@@ -574,10 +574,10 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     }
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    Task<RenderListCollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
         return GetParent()->GetScene()->CollectStaticEntities(
-            m_shadow_pass->GetRenderListStatics(),
+            m_shadow_pass->GetRenderCollectorStatics(),
             m_camera,
             renderable_attribute_set
         );
@@ -586,20 +586,20 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
         GetParent()->GetScene()->CollectDynamicEntities(
-            m_shadow_pass->GetRenderListDynamics(),
+            m_shadow_pass->GetRenderCollectorDynamics(),
             m_camera,
             renderable_attribute_set
         );
     });
 #else
-    RenderListCollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
-        m_shadow_pass->GetRenderListStatics(),
+    RenderCollector::CollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
+        m_shadow_pass->GetRenderCollectorStatics(),
         m_camera,
         renderable_attribute_set
     );
 
     GetParent()->GetScene()->CollectDynamicEntities(
-        m_shadow_pass->GetRenderListDynamics(),
+        m_shadow_pass->GetRenderCollectorDynamics(),
         m_camera,
         renderable_attribute_set
     );
@@ -612,7 +612,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    RenderListCollectionResult &statics_collection_result = statics_collection_task.Await();
+    RenderCollector::CollectionResult &statics_collection_result = statics_collection_task.Await();
 #endif
 
     // Need to re-render static objects if:

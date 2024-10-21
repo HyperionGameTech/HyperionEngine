@@ -66,12 +66,13 @@ void UITextbox::Init()
     UIPanel::SetBackgroundColor(Vec4f::One());
 
     SetInnerSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    // SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     m_text_element = GetStage()->CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     m_text_element->SetText(m_text);
     m_text_element->SetTextSize(12.0f);
     m_text_element->SetTextColor(Vec4f { 0, 0, 0, 1 }); // black
-    m_text_element->SetAffectsParentSize(false);
+    // m_text_element->SetAffectsParentSize(false);
 
     UIObject::AddChildUIObject(m_text_element);
 }
@@ -129,16 +130,17 @@ void UITextbox::UpdateCursor()
 {
     if (GetFocusState() & UIObjectFocusState::FOCUSED) {
         if (m_cursor_element == nullptr) {
-            m_cursor_element = GetStage()->CreateUIObject<UIPanel>(NAME("TextboxCursor"), Vec2i { 0, 0 }, UIObjectSize({ 1, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
+            m_cursor_element = GetStage()->CreateUIObject<UIPanel>(NAME("TextboxCursor"), Vec2i { 0, 0 }, UIObjectSize({ 1, UIObjectSize::PIXEL }, { 90, UIObjectSize::PERCENT }));
             m_cursor_element->SetBackgroundColor(Vec4f { 0, 0, 0, 1 }); // black
 
-            AddChildUIObject(m_cursor_element);
+            HYP_LOG(UI, LogLevel::DEBUG, "Textbox size before adding cursor element {}, inner size: {}, parent size: {}, cursor size: {}", GetActualSize(), GetActualInnerSize(), GetParentUIObject()->GetActualSize(), m_cursor_element->GetActualSize());
+            UIObject::AddChildUIObject(m_cursor_element);
 
-            // TODO: Implement cursor blinking animation
+            HYP_LOG(UI, LogLevel::DEBUG, "Textbox size after adding cursor element {}, inner size: {}, parent size: {}, cursor size: {}", GetActualSize(), GetActualInnerSize(), GetParentUIObject()->GetActualSize(), m_cursor_element->GetActualSize());
         }
     } else {
         if (m_cursor_element != nullptr) {
-            RemoveChildUIObject(m_cursor_element);
+            UIObject::RemoveChildUIObject(m_cursor_element);
 
             m_cursor_element = nullptr;
         }

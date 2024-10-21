@@ -94,14 +94,14 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     library.filepath = state.filepath;
 
     const FlatMap<String, TextureMapping> texture_keys {
-        Pair<String, TextureMapping> { "map_kd", TextureMapping { .key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "map_bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "map_ka", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "map_ks", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "map_ns", TextureMapping { .key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
-        Pair<String, TextureMapping> { "map_height", TextureMapping { .key = Material::MATERIAL_TEXTURE_PARALLAX_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } }, /* custom */
-        Pair<String, TextureMapping> { "map_ao", TextureMapping { .key = Material::MATERIAL_TEXTURE_AO_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } }       /* custom */
+        Pair<String, TextureMapping> { "map_kd", TextureMapping { .key = MaterialTextureKey::ALBEDO_MAP, .srgb = true, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "map_bump", TextureMapping { .key = MaterialTextureKey::NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "bump", TextureMapping { .key = MaterialTextureKey::NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "map_ka", TextureMapping { .key = MaterialTextureKey::METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "map_ks", TextureMapping { .key = MaterialTextureKey::METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "map_ns", TextureMapping { .key = MaterialTextureKey::ROUGHNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } },
+        Pair<String, TextureMapping> { "map_height", TextureMapping { .key = MaterialTextureKey::PARALLAX_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } }, /* custom */
+        Pair<String, TextureMapping> { "map_ao", TextureMapping { .key = MaterialTextureKey::AO_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP } }       /* custom */
     };
 
     Tokens tokens;

@@ -203,7 +203,7 @@ bool UIListView::RemoveChildUIObject(UIObject *ui_object)
         bool removed = false;
 
         {
-            UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_SIZE);
+            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
             for (auto it = m_list_view_items.Begin(); it != m_list_view_items.End();) {
                 if (ui_object->IsOrHasParent(*it)) {
@@ -289,7 +289,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
     {
         HYP_NAMED_SCOPE("Remove element from data source from list view");
 
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_SIZE);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
         HYP_DEFER({
             SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
@@ -372,7 +372,7 @@ UIListViewItem *UIListView::FindListViewItem(const UIObject *parent_object, cons
 
 void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourceElement *element, UIDataSourceElement *parent)
 {
-    UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_SIZE);
+    UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
     HYP_DEFER({
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
@@ -405,7 +405,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
 
         OnSelectedItemChange(list_view_item.Get());
 
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     // create UIObject for the element and add it to the list view

@@ -516,7 +516,7 @@ void SampleStreamer::Init()
             },
             {
                 {
-                    Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
+                    MaterialTextureKey::ALBEDO_MAP,
                     std::move(dummy_light_texture)
                 }
             }
@@ -579,7 +579,7 @@ void SampleStreamer::Init()
                     }
                     // {
                     //     {
-                    //         Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP,
+                    //         MaterialTextureKey::ALBEDO_MAP,
                     //         AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")
                     //     }
                     // }

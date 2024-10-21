@@ -103,14 +103,14 @@ void World::UpdatePendingScenes()
     Mutex::Guard guard(m_scene_update_mutex);
 
     for (const WeakHandle<Scene> &scene_weak : m_scenes_pending_removal) {
-        m_render_list_container.RemoveScene(scene_weak.GetID());
+        m_render_collector_container.RemoveScene(scene_weak.GetID());
     }
 
     m_scenes_pending_removal.Clear();
 
     for (const WeakHandle<Scene> &scene_weak : m_scenes_pending_addition) {
         if (Handle<Scene> scene = scene_weak.Lock()) {
-            m_render_list_container.AddScene(scene.Get());
+            m_render_collector_container.AddScene(scene.Get());
         }
     }
 
@@ -144,7 +144,7 @@ void World::Update(GameCounter::TickUnit delta)
 
         update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
         {
-            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetClass()->GetName());
+            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
             subsystem->Update(delta);
         }));
@@ -215,9 +215,9 @@ void World::Update(GameCounter::TickUnit delta)
             // sanity check
             AssertThrow(scene->GetWorld() == this);
 
-            RenderList &render_list = m_render_list_container.GetRenderListForScene(scene->GetID());
+            RenderCollector &render_collector = m_render_collector_container.GetRenderCollectorForScene(scene->GetID());
 
-            scene->CollectEntities(render_list, scene->GetCamera());
+            scene->CollectEntities(render_collector, scene->GetCamera());
         }));
 #endif
     }
@@ -248,10 +248,10 @@ void World::Render(Frame *frame)
 
     AssertReady();
 
-    const uint32 num_render_lists = m_render_list_container.NumRenderLists();
+    const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
 
-    for (uint32 i = 0; i < num_render_lists; i++) {
-        if (RenderEnvironment *render_environment = m_render_list_container.GetRenderListAtIndex(i)->GetRenderEnvironment()) {
+    for (uint32 i = 0; i < num_render_collectors; i++) {
+        if (RenderEnvironment *render_environment = m_render_collector_container.GetRenderCollectorAtIndex(i)->GetRenderEnvironment()) {
             render_environment->RenderComponents(frame);
         }
     }

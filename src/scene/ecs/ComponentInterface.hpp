@@ -56,7 +56,7 @@ public:
     {
     }
 
-    ComponentInterface(TypeID type_id, ANSIStringView type_name, UniquePtr<ComponentFactoryBase> &&component_factory, ComponentContainerFactoryBase *component_container_factory, EnumFlags<ComponentInterfaceFlags> flags)
+    ComponentInterface(TypeID type_id, ANSIStringView type_name, UniquePtr<IComponentFactory> &&component_factory, ComponentContainerFactoryBase *component_container_factory, EnumFlags<ComponentInterfaceFlags> flags)
         : m_type_id(type_id),
           m_type_name(type_name),
           m_component_factory(std::move(component_factory)),
@@ -113,9 +113,6 @@ public:
     HYP_FORCE_INLINE const HypClass *GetClass() const
         { return ::hyperion::GetClass(m_type_id); }
 
-    HYP_FORCE_INLINE HypData CreateComponent() const
-        { return m_component_factory->CreateComponent(); }
-
     HYP_FORCE_INLINE ComponentContainerFactoryBase *GetComponentContainerFactory() const
         { return m_component_container_factory; }
 
@@ -125,7 +122,7 @@ public:
 private:
     TypeID                              m_type_id;
     ANSIStringView                      m_type_name;
-    UniquePtr<ComponentFactoryBase>     m_component_factory;
+    UniquePtr<IComponentFactory>        m_component_factory;
     ComponentContainerFactoryBase       *m_component_container_factory;
     EnumFlags<ComponentInterfaceFlags>  m_flags;
 };

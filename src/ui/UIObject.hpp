@@ -50,8 +50,6 @@ static inline Scene *GetScene(UIStageType *stage)
     return stage->GetScene().Get();
 }
 
-// Used for interop with the C# UIObject class.
-// Ensure that the enum values match the C# UIObjectType enum.
 enum class UIObjectType : uint32
 {
     UNKNOWN             = ~0u,
@@ -126,12 +124,16 @@ enum class UIObjectUpdateType : uint32
     UPDATE_MATERIAL                     = 0x4,
     UPDATE_MESH_DATA                    = 0x8,
     UPDATE_COMPUTED_VISIBILITY          = 0x10,
+    UPDATE_CLAMPED_SIZE                 = 0x20,
+    UPDATE_TEXT_RENDER_DATA             = 0x40,
 
     UPDATE_CHILDREN_SIZE                = UPDATE_SIZE << 16,
     UPDATE_CHILDREN_POSITION            = UPDATE_POSITION << 16,
     UPDATE_CHILDREN_MATERIAL            = UPDATE_MATERIAL << 16,
     UPDATE_CHILDREN_MESH_DATA           = UPDATE_MESH_DATA << 16,
     UPDATE_CHILDREN_COMPUTED_VISIBILITY = UPDATE_COMPUTED_VISIBILITY << 16,
+    UPDATE_CHILDREN_CLAMPED_SIZE        = UPDATE_CLAMPED_SIZE << 16,
+    UPDATE_CHILDREN_TEXT_RENDER_DATA    = UPDATE_TEXT_RENDER_DATA << 16
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)
@@ -243,19 +245,13 @@ struct UIObjectSize
     HYP_FORCE_INLINE uint32 GetAllFlags() const
         { return flags[0] | flags[1]; }
 
-    template <uint32 Mask>
-    HYP_FORCE_INLINE void ApplyDefaultFlagMask()
-    { 
-        for (int i = 0; i < 2; i++) {
-            if (!(flags[i] & Mask)) {
-                flags[i] |= (DEFAULT & Mask);
-            }
-        }
-    }
-
     HYP_FORCE_INLINE void ApplyDefaultFlags()
     {
-        ApplyDefaultFlagMask<PIXEL | PERCENT | FILL>();
+        for (int i = 0; i < 2; i++) {
+            if (!flags[i]) {
+                flags[i] = DEFAULT;
+            }
+        }
     }
 };
 
@@ -269,9 +265,7 @@ enum class UIObjectUpdateSizeFlags : uint32
     INNER_SIZE          = 0x2,
     OUTER_SIZE          = 0x4,
 
-    CLAMP_OUTER_SIZE    = 0x8,
-
-    DEFAULT             = MAX_SIZE | INNER_SIZE | OUTER_SIZE | CLAMP_OUTER_SIZE
+    DEFAULT             = MAX_SIZE | INNER_SIZE | OUTER_SIZE
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateSizeFlags)
@@ -396,6 +390,13 @@ public:
     HYP_FORCE_INLINE Vec2i GetActualSize() const
         { return m_actual_size; }
 
+    /*! \brief Get the computed size (in pixels) of the UIObject, clamped within the parent's boundary.
+     *  The actual size of the UI object is calculated based on the size of the parent object and the size of the object itself.
+     *  \return The computed size of the UI object, clamped within the parent's boundary. */
+    HYP_METHOD()
+    HYP_FORCE_INLINE Vec2i GetActualSizeClamped() const
+        { return m_actual_size_clamped; }
+
     /*! \brief Get the computed inner size (in pixels) of the UI object.
      *  \return The computed inner size of the UI object */
     HYP_METHOD()
@@ -444,6 +445,12 @@ public:
      *  \note If a class deriving \ref{UIObject} overrides \ref{AcceptsFocus}, this function has no effect. */
     HYP_METHOD()
     void SetAcceptsFocus(bool accepts_focus);
+
+    /*! \brief Check if the UI object receives update events.
+     *  \return True if the UI object receives update events, false otherwise */
+    HYP_METHOD()
+    virtual bool ReceivesUpdate() const
+        { return m_receives_update; }
 
     /*! \brief Set the focus to this UI object, if AcceptsFocus() returns true.
      * This function is called when the UI object is focused. */
@@ -496,12 +503,16 @@ public:
     void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
     UIObjectAlignment GetOriginAlignment() const;
-
     void SetOriginAlignment(UIObjectAlignment alignment);
 
     UIObjectAlignment GetParentAlignment() const;
-
     void SetParentAlignment(UIObjectAlignment alignment);
+
+    HYP_FORCE_INLINE bool IsPositionDependentOnSize() const
+        { return m_origin_alignment != UIObjectAlignment::TOP_LEFT; }
+
+    HYP_FORCE_INLINE bool IsPositionDependentOnParentSize() const
+        { return m_parent_alignment != UIObjectAlignment::TOP_LEFT; }
 
     HYP_FORCE_INLINE UIObjectAspectRatio GetAspectRatio() const
         { return m_aspect_ratio; }
@@ -590,11 +601,11 @@ public:
 
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
-    RC<UIObject> GetParentUIObject() const;
+    UIObject *GetParentUIObject() const;
 
     /*! \brief Get the closest parent UIObject with UIObjectType \ref{type} if one exists.
      *  \returns A pointer to the closest parent UIObject with UIObjectType \ref{type} or nullptr if none exists. */ 
-    RC<UIObject> GetClosestParentUIObject(UIObjectType type) const;
+    UIObject *GetClosestParentUIObject(UIObjectType type) const;
 
     template <class T>
     RC<T> GetClosestParentUIObject() const
@@ -677,6 +688,16 @@ public:
     virtual Scene *GetScene() const;
 
     const Handle<Material> &GetMaterial() const;
+
+    /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space) */
+    HYP_METHOD()
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
+        { return m_aabb; }
+
+    /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space), clamped within the parent's boundary. */
+    HYP_METHOD()
+    HYP_FORCE_INLINE const BoundingBox &GetAABBClamped() const
+        { return m_aabb_clamped; }
 
     BoundingBox GetWorldAABB() const;
     BoundingBox GetLocalAABB() const;
@@ -790,6 +811,9 @@ protected:
         return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
     }
 
+    HYP_FORCE_INLINE void SetReceivesUpdate(bool receives_update)
+        { m_receives_update = receives_update; }
+
     virtual void UpdateSize_Internal(bool update_children);
 
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source);
@@ -803,11 +827,12 @@ protected:
 
     /*! \brief Check if the object has been computed as visible or not. E.g scrolled out of view in a parent container */
     virtual void UpdateComputedVisibility(bool update_children = true);
-
     virtual void OnComputedVisibilityChange_Internal() { }
 
+    void UpdateComputedDepth(bool update_children = true);
+
     /*! \brief Sets the NodeProxy for this UIObject.
-     *  \note To be called internally from UIStage */
+     *  \internal To be called internally from UIStage */
     void SetNodeProxy(NodeProxy);
 
     /*! \brief Get the shared quad mesh used for rendering UI objects. Vertices are in range: 0..1, with the origin at the top-left corner.
@@ -832,8 +857,6 @@ protected:
     virtual MaterialAttributes GetMaterialAttributes() const;
     virtual Material::ParameterTable GetMaterialParameters() const;
     virtual Material::TextureSet GetMaterialTextures() const;
-
-    void SetAABB(const BoundingBox &aabb);
 
     Vec2i GetParentScrollOffset() const;
 
@@ -870,6 +893,7 @@ protected:
 
     UIObjectSize                    m_size;
     Vec2i                           m_actual_size;
+    Vec2i                           m_actual_size_clamped;
 
     UIObjectSize                    m_inner_size;
     Vec2i                           m_actual_inner_size;
@@ -878,6 +902,7 @@ protected:
     Vec2i                           m_actual_max_size;
 
     BoundingBox                     m_aabb;
+    BoundingBox                     m_aabb_clamped;
 
     BlendVar<Vec2f>                 m_scroll_offset;
 
@@ -908,6 +933,9 @@ protected:
 
     UUID                            m_data_source_element_uuid;
 
+    EnumFlags<UIObjectUpdateType>   m_deferred_updates;
+    EnumFlags<UIObjectUpdateType>   m_locked_updates;
+
 private:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
@@ -931,6 +959,8 @@ private:
 
     void SetEntityAABB(const BoundingBox &aabb);
 
+    void UpdateClampedSize(bool update_children = true);
+
     Handle<Material> CreateMaterial() const;
 
     const UIObjectID                        m_id;
@@ -942,15 +972,16 @@ private:
 
     bool                                    m_is_visible;
     bool                                    m_computed_visibility;
+
+    int                                     m_computed_depth;
     
     bool                                    m_accepts_focus;
+
+    bool                                    m_receives_update;
 
     bool                                    m_affects_parent_size;
 
     AtomicVar<bool>                         m_needs_repaint;
-
-    EnumFlags<UIObjectUpdateType>           m_deferred_updates;
-    EnumFlags<UIObjectUpdateType>           m_locked_updates;
 
     NodeProxy                               m_node_proxy;
 
@@ -965,11 +996,11 @@ private:
 
 struct UILockedUpdatesScope
 {
-    UILockedUpdatesScope(UIObject *ui_object, EnumFlags<UIObjectUpdateType> value)
+    UILockedUpdatesScope(UIObject &ui_object, EnumFlags<UIObjectUpdateType> value)
         : ui_object(ui_object),
-          value(value & ~ui_object->m_locked_updates)
+          value(value & ~ui_object.m_locked_updates)
     {
-        ui_object->m_locked_updates |= this->value;
+        ui_object.m_locked_updates |= this->value;
     }
 
     UILockedUpdatesScope(const UILockedUpdatesScope &other)                 = delete;
@@ -980,10 +1011,10 @@ struct UILockedUpdatesScope
 
     ~UILockedUpdatesScope()
     {
-        ui_object->m_locked_updates &= ~value;
+        ui_object.m_locked_updates &= ~value;
     }
 
-    UIObject                        *ui_object;
+    UIObject                        &ui_object;
     EnumFlags<UIObjectUpdateType>   value;
 };
 
