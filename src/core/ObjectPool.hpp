@@ -233,7 +233,7 @@ public:
     {
         // check is temporary for now
         if constexpr (IsHypObject<T>::value) {
-            return &m_data[index].Get().GetObjectInitializer();
+            return m_data[index].Get().GetObjectInitializer();
         }
 
         return nullptr;

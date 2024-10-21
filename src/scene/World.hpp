@@ -17,68 +17,68 @@
 
 namespace hyperion {
 
-class RenderListContainer
+class RenderCollectorContainer
 {
 public:
-    RenderListContainer()
-        : m_num_render_lists { 0u }
+    RenderCollectorContainer()
+        : m_num_render_collectors { 0u }
     {
     }
 
-    RenderListContainer(const RenderListContainer &other)                   = delete;
-    RenderListContainer &operator=(RenderListContainer &other)              = delete;
-    RenderListContainer(RenderListContainer &&other) noexcept               = delete;
-    RenderListContainer &operator=(RenderListContainer &&other) noexcept    = delete;
-    ~RenderListContainer()                                                  = default;
+    RenderCollectorContainer(const RenderCollectorContainer &other)                   = delete;
+    RenderCollectorContainer &operator=(RenderCollectorContainer &other)              = delete;
+    RenderCollectorContainer(RenderCollectorContainer &&other) noexcept               = delete;
+    RenderCollectorContainer &operator=(RenderCollectorContainer &&other) noexcept    = delete;
+    ~RenderCollectorContainer()                                                  = default;
 
-    uint NumRenderLists() const
-        { return m_num_render_lists.Get(MemoryOrder::ACQUIRE); }
+    uint NumRenderCollectors() const
+        { return m_num_render_collectors.Get(MemoryOrder::ACQUIRE); }
 
     void AddScene(const Scene *scene)
     {
         AssertThrow(scene != nullptr);
-        AssertThrowMsg(scene->GetCamera().IsValid(), "Cannot acquire RenderList for Scene with no Camera attached.");
+        AssertThrowMsg(scene->GetCamera().IsValid(), "Cannot acquire RenderCollector for Scene with no Camera attached.");
 
         const uint scene_index = scene->GetID().ToIndex();
 
-        RenderList &render_list = m_render_lists_by_id_index[scene_index];
-        render_list.SetCamera(scene->GetCamera());
+        RenderCollector &render_collector = m_render_collectors_by_id_index[scene_index];
+        render_collector.SetCamera(scene->GetCamera());
 
         if (scene->IsWorldScene()) {
-            render_list.SetRenderEnvironment(scene->GetEnvironment());
+            render_collector.SetRenderEnvironment(scene->GetEnvironment());
         } else {
-            render_list.SetRenderEnvironment(nullptr);
+            render_collector.SetRenderEnvironment(nullptr);
         }
 
-        const uint render_list_index = m_num_render_lists.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
-        m_render_lists[render_list_index] = &render_list;
+        const uint render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
+        m_render_collectors[render_collector_index] = &render_collector;
     }
 
     void RemoveScene(ID<Scene> id)
     {
         AssertThrow(id.IsValid());
         
-        m_num_render_lists.Decrement(1u, MemoryOrder::RELEASE);
+        m_num_render_collectors.Decrement(1u, MemoryOrder::RELEASE);
 
-        RenderList &render_list = m_render_lists_by_id_index[id.ToIndex()];
-        render_list.SetCamera(Handle<Camera>::empty);
-        render_list.SetRenderEnvironment(nullptr);
-        render_list.Reset();
+        RenderCollector &render_collector = m_render_collectors_by_id_index[id.ToIndex()];
+        render_collector.SetCamera(Handle<Camera>::empty);
+        render_collector.SetRenderEnvironment(nullptr);
+        render_collector.Reset();
     }
 
-    RenderList &GetRenderListForScene(ID<Scene> scene_id)
-        { return m_render_lists_by_id_index[scene_id.ToIndex()]; }
+    RenderCollector &GetRenderCollectorForScene(ID<Scene> scene_id)
+        { return m_render_collectors_by_id_index[scene_id.ToIndex()]; }
 
-    const RenderList &GetRenderListForScene(ID<Scene> scene_id) const
-        { return m_render_lists_by_id_index[scene_id.ToIndex()]; }
+    const RenderCollector &GetRenderCollectorForScene(ID<Scene> scene_id) const
+        { return m_render_collectors_by_id_index[scene_id.ToIndex()]; }
 
-    RenderList *GetRenderListAtIndex(uint index) const
-        { return m_render_lists[index]; }
+    RenderCollector *GetRenderCollectorAtIndex(uint index) const
+        { return m_render_collectors[index]; }
 
 private:
-    FixedArray<RenderList *, max_scenes>    m_render_lists;
-    FixedArray<RenderList, max_scenes>      m_render_lists_by_id_index;
-    AtomicVar<uint32>                       m_num_render_lists;
+    FixedArray<RenderCollector *, max_scenes>   m_render_collectors;
+    FixedArray<RenderCollector, max_scenes>     m_render_collectors_by_id_index;
+    AtomicVar<uint32>                           m_num_render_collectors;
 };
 
 struct DetachedScenesContainer
@@ -186,11 +186,11 @@ public:
     HYP_FORCE_INLINE const PhysicsWorld &GetPhysicsWorld() const
         { return m_physics_world; }
 
-    HYP_FORCE_INLINE RenderListContainer &GetRenderListContainer()
-        { return m_render_list_container; }
+    HYP_FORCE_INLINE RenderCollectorContainer &GetRenderCollectorContainer()
+        { return m_render_collector_container; }
 
-    HYP_FORCE_INLINE const RenderListContainer &GetRenderListContainer() const
-        { return m_render_list_container; }
+    HYP_FORCE_INLINE const RenderCollectorContainer &GetRenderCollectorContainer() const
+        { return m_render_collector_container; }
 
     template <class T>
     HYP_FORCE_INLINE T *AddSubsystem()
@@ -251,7 +251,7 @@ private:
     void UpdatePendingScenes();
 
     PhysicsWorld                            m_physics_world;
-    RenderListContainer                     m_render_list_container;
+    RenderCollectorContainer                     m_render_collector_container;
 
     DetachedScenesContainer                 m_detached_scenes;
 

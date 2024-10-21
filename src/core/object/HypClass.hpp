@@ -412,7 +412,7 @@ protected:
             return nullptr;
         }
 
-        return &static_cast<T *>(object_ptr)->GetObjectInitializer();
+        return static_cast<T *>(object_ptr)->GetObjectInitializer();
     }
     
     virtual void CreateInstance_Internal(HypData &out) const override
@@ -442,7 +442,12 @@ protected:
 
             void *address = out.ToRef().GetPointer();
 
-            SetHypObjectInitializerManagedObject(GetObjectInitializer(address), address, std::move(managed_object));
+            IHypObjectInitializer *initializer = GetObjectInitializer(address);
+            AssertThrow(initializer != nullptr);
+
+            initializer->SetManagedObject(managed_object.Release());
+
+            // SetHypObjectInitializerManagedObject(GetObjectInitializer(address), address, std::move(managed_object));
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

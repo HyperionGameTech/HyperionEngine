@@ -166,20 +166,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        bool removed = false;
+        auto &proxy_groups = collection->GetProxyGroups()[pass_type];
 
-        // for (auto &proxy_groups : collection->GetProxyGroups()) {
-            // for (auto &it : proxy_groups) {
-            //     removed |= it.second.RemoveRenderProxy(entity);
-            // }
+        auto it = proxy_groups.Find(attributes);
+        AssertThrow(it != proxy_groups.End());
 
-            auto &proxy_groups = collection->GetProxyGroups()[pass_type];
-
-            auto it = proxy_groups.Find(attributes);
-            AssertThrow(it != proxy_groups.End());
-
-            removed |= it->second.RemoveRenderProxy(entity);
-        // }
+        const bool removed = it->second.RemoveRenderProxy(entity);
 
         proxy_list.MarkToRemove(entity);
 
@@ -192,9 +184,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
+        // @TODO For changed proxies it would be more efficient
+        // to update the RenderResources rather than Destroy + Recreate.
+
         for (const auto &it : changed_proxies) {
             const ID<Entity> entity = it.first;
             const RenderProxy &proxy = it.second;
+
+            proxy.UnclaimRenderResources();
 
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
@@ -209,6 +206,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (const RenderProxy &proxy : added_proxies) {
+            proxy.ClaimRenderResources();
+
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
 
@@ -224,6 +223,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         for (ID<Entity> entity : removed_proxies) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
+
+            proxy->UnclaimRenderResources();
 
             const Handle<Mesh> &mesh = proxy->mesh;
             AssertThrow(mesh.IsValid());
@@ -418,25 +419,25 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 
 #pragma endregion EntityDrawCollection
 
-#pragma region RenderList
+#pragma region RenderCollector
 
-RenderList::RenderList()
+RenderCollector::RenderCollector()
     : m_render_environment(nullptr),
       m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>())
 {
 }
 
-RenderList::RenderList(const Handle<Camera> &camera)
+RenderCollector::RenderCollector(const Handle<Camera> &camera)
     : m_render_environment(nullptr),
       m_camera(camera)
 {
 }
 
-RenderList::~RenderList()
+RenderCollector::~RenderCollector()
 {
 }
 
-RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -445,7 +446,7 @@ RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const Framebuff
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
-    RenderListCollectionResult collection_result { };
+    CollectionResult collection_result { };
     collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
     collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
     collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
@@ -487,7 +488,7 @@ RenderListCollectionResult RenderList::PushUpdatesToRenderThread(const Framebuff
     return collection_result;
 }
 
-void RenderList::PushEntityToRender(
+void RenderCollector::PushEntityToRender(
     ID<Entity> entity,
     const RenderProxy &proxy
 )
@@ -501,7 +502,7 @@ void RenderList::PushEntityToRender(
     proxy_list.Add(entity, proxy);
 }
 
-void RenderList::CollectDrawCalls(
+void RenderCollector::CollectDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
     const CullData *cull_data
@@ -561,7 +562,7 @@ void RenderList::CollectDrawCalls(
     }
 }
 
-void RenderList::ExecuteDrawCalls(
+void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -574,7 +575,7 @@ void RenderList::ExecuteDrawCalls(
     ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
 }
 
-void RenderList::ExecuteDrawCalls(
+void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
@@ -587,7 +588,7 @@ void RenderList::ExecuteDrawCalls(
     ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
-void RenderList::ExecuteDrawCalls(
+void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
     const Handle<Camera> &camera,
     const Bitset &bucket_bits,
@@ -601,7 +602,7 @@ void RenderList::ExecuteDrawCalls(
     ExecuteDrawCalls(frame, camera, camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
 }
 
-void RenderList::ExecuteDrawCalls(
+void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
     const Handle<Camera> &camera,
     const FramebufferRef &framebuffer,
@@ -643,7 +644,7 @@ void RenderList::ExecuteDrawCalls(
             if (framebuffer.IsValid()) {
                 AssertThrowMsg(
                     attributes.GetFramebuffer() == framebuffer,
-                    "Given Framebuffer does not match RenderList item's framebuffer -- invalid data passed?"
+                    "Given Framebuffer does not match RenderCollector item's framebuffer -- invalid data passed?"
                 );
             }
 
@@ -666,9 +667,9 @@ void RenderList::ExecuteDrawCalls(
     }
 }
 
-void RenderList::Reset()
+void RenderCollector::Reset()
 {
-    HYP_NAMED_SCOPE("RenderList Reset");
+    HYP_NAMED_SCOPE("RenderCollector Reset");
 
     AssertThrow(m_draw_collection != nullptr);
     // Threads::AssertOnThread(ThreadName::THREAD_GAME);
@@ -677,6 +678,6 @@ void RenderList::Reset()
     *m_draw_collection = { };
 }
 
-#pragma endregion RenderList
+#pragma endregion RenderCollector
 
 } // namespace hyperion

@@ -1768,10 +1768,10 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
     HYP_SCOPE;
 
-    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_collectors = g_engine->GetWorld()->GetRenderCollectorContainer().NumRenderCollectors();
 
-    for (uint index = 0; index < num_render_lists; index++) {
-        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->CollectDrawCalls(
+    for (uint index = 0; index < num_render_collectors; index++) {
+        g_engine->GetWorld()->GetRenderCollectorContainer().GetRenderCollectorAtIndex(index)->CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
             &m_cull_data
@@ -1783,10 +1783,10 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
 {
     HYP_SCOPE;
 
-    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_collectors = g_engine->GetWorld()->GetRenderCollectorContainer().NumRenderCollectors();
 
-    for (uint index = 0; index < num_render_lists; index++) {
-        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
+    for (uint index = 0; index < num_render_collectors; index++) {
+        g_engine->GetWorld()->GetRenderCollectorContainer().GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
             nullptr,
             Bitset((1 << BUCKET_SKYBOX)),
@@ -1799,10 +1799,10 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
     HYP_SCOPE;
 
-    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_collectors = g_engine->GetWorld()->GetRenderCollectorContainer().NumRenderCollectors();
 
-    for (uint index = 0; index < num_render_lists; index++) {
-        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
+    for (uint index = 0; index < num_render_collectors; index++) {
+        g_engine->GetWorld()->GetRenderCollectorContainer().GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
             nullptr,
             Bitset((1 << BUCKET_OPAQUE)),
@@ -1815,10 +1815,10 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
     HYP_SCOPE;
 
-    const uint num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const uint num_render_collectors = g_engine->GetWorld()->GetRenderCollectorContainer().NumRenderCollectors();
 
-    for (uint index = 0; index < num_render_lists; index++) {
-        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
+    for (uint index = 0; index < num_render_collectors; index++) {
+        g_engine->GetWorld()->GetRenderCollectorContainer().GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
             nullptr,
             Bitset((1 << BUCKET_TRANSLUCENT)),

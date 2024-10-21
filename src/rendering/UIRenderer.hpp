@@ -22,28 +22,26 @@ class UIStage;
 class UIObject;
 struct UITextRenderData;
 
-class UIRenderList : public RenderList
+class UIRenderCollector : public RenderCollector
 {
 public:
-    UIRenderList();
-    UIRenderList(const Handle<Camera> &camera);
-    UIRenderList(const UIRenderList &other)                 = delete;
-    UIRenderList &operator=(const UIRenderList &other)      = delete;
-    UIRenderList(UIRenderList &&other) noexcept             = default;
-    UIRenderList &operator=(UIRenderList &&other) noexcept  = default;
-    ~UIRenderList();
-
-    HYP_FORCE_INLINE SizeType GetProxyCount() const
-        { return m_proxy_ordering.Size(); }
+    UIRenderCollector();
+    UIRenderCollector(const Handle<Camera> &camera);
+    UIRenderCollector(const UIRenderCollector &other)                 = delete;
+    UIRenderCollector &operator=(const UIRenderCollector &other)      = delete;
+    UIRenderCollector(UIRenderCollector &&other) noexcept             = default;
+    UIRenderCollector &operator=(UIRenderCollector &&other) noexcept  = default;
+    ~UIRenderCollector();
 
     void ResetOrdering();
 
     void PushEntityToRender(
         ID<Entity> entity,
-        const RenderProxy &proxy
+        const RenderProxy &proxy,
+        int computed_depth
     );
 
-    RenderListCollectionResult PushUpdatesToRenderThread(
+    RenderCollector::CollectionResult PushUpdatesToRenderThread(
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
@@ -52,7 +50,7 @@ public:
     void ExecuteDrawCalls(Frame *frame) const;
 
 private:
-    Array<ID<Entity>>   m_proxy_ordering;
+    Array<Pair<ID<Entity>, int>>    m_proxy_depths;
 };
 
 class HYP_API UIRenderer : public RenderComponent<UIRenderer>, public EnableRefCountedPtrFromThis<UIRenderer>
@@ -81,7 +79,7 @@ private:
     RC<UIStage>                                 m_ui_stage;
     FramebufferRef                              m_framebuffer;
     ShaderRef                                   m_shader;
-    UIRenderList                                m_render_list;
+    UIRenderCollector                           m_render_collector;
 
     // testing
     Array<Pair<RC<UITextRenderData>, Matrix4>>  m_text_render_data;

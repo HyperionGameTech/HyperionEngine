@@ -171,9 +171,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 {
     HYP_SCOPE;
 
-    const HypClass *memory_streamed_data_class = MemoryStreamedData::GetClass();
-    AssertThrow(memory_streamed_data_class->GetParent() == StreamedData::GetClass());
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     AssertThrow(!m_is_initialized);

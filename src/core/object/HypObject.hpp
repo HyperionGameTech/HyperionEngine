@@ -38,10 +38,8 @@ extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypCla
 extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
 
 // Ensure the current HypObjectInitializer being constructed is the same as the one passed
-extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, const void *address);
+extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address);
 extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr);
-
-extern HYP_API void SetHypObjectInitializerManagedObject(IHypObjectInitializer *initializer, void *native_address, UniquePtr<dotnet::Object> &&managed_object);
 
 class IHypObjectInitializer
 {
@@ -56,16 +54,20 @@ public:
 
     virtual void SetManagedObject(dotnet::Object *managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
+
+    virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) = 0;
 };
 
 template <class T>
 class HypObjectInitializer final : public IHypObjectInitializer
 {
+    // static const void (*s_fixup_fptr)(void *_this, IHypObjectInitializer *ptr);
+
 public:
-    HypObjectInitializer(void *native_address)
+    HypObjectInitializer(T *_this)
         : m_managed_object(nullptr)
     {
-        CheckHypObjectInitializer(this, native_address);
+        CheckHypObjectInitializer(this, GetTypeID_Static(), GetClass_Static(), _this);
     }
 
     virtual ~HypObjectInitializer() override
@@ -112,18 +114,23 @@ public:
         return m_managed_object;
     }
 
-    static TypeID GetTypeID_Static()
+    virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
+    {
+        static_cast<T *>(_this)->m_hyp_object_initializer_ptr = ptr;
+    }
+
+    HYP_FORCE_INLINE static TypeID GetTypeID_Static()
     {
         static constexpr TypeID type_id = TypeID::ForType<T>();
 
         return type_id;
     }
 
-    static const HypClass *GetClass_Static()
+    HYP_FORCE_INLINE static const HypClass *GetClass_Static()
     {
-        static constexpr TypeID type_id = TypeID::ForType<T>();
+        static const HypClass *hyp_class = ::hyperion::GetClass(TypeID::ForType<T>());
 
-        return ::hyperion::GetClass(type_id);
+        return hyp_class;
     }
 
 private:
@@ -133,6 +140,11 @@ private:
     DataRaceDetector    m_data_race_detector;
 #endif
 };
+
+// template <class T>
+// const void (*HypObjectInitializer<T>::s_fixup_fptr)(void *, IHypObjectInitializer *) = [](void *_this, IHypObjectInitializer *_ptr)
+// {
+// };
 
 // template <class T>
 // struct HypObjectInitializerRef
@@ -153,6 +165,7 @@ private:
         friend class HypObjectInitializer<T>; \
         \
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
+        IHypObjectInitializer   *m_hyp_object_initializer_ptr = &m_hyp_object_initializer; \
         \
     public: \
         struct HypObjectData \
@@ -162,19 +175,16 @@ private:
             static constexpr bool is_hyp_object = true; \
         }; \
         \
-        HYP_FORCE_INLINE HypObjectInitializer<T> &GetObjectInitializer() \
-            { return m_hyp_object_initializer; } \
-        \
-        HYP_FORCE_INLINE const HypObjectInitializer<T> &GetObjectInitializer() const \
-            { return m_hyp_object_initializer; } \
+        HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer() const \
+            { return m_hyp_object_initializer_ptr; } \
         \
         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
-            { return m_hyp_object_initializer.GetManagedObject(); } \
+            { return m_hyp_object_initializer_ptr->GetManagedObject(); } \
         \
-        HYP_FORCE_INLINE static TypeID GetTypeID() \
-            { return HypObjectInitializer<T>::GetTypeID_Static(); } \
+        HYP_FORCE_INLINE const HypClass *InstanceClass() \
+            { return m_hyp_object_initializer_ptr->GetClass(); } \
         \
-        HYP_FORCE_INLINE static const HypClass *GetClass() \
+        HYP_FORCE_INLINE static const HypClass *Class() \
             { return HypObjectInitializer<T>::GetClass_Static(); } \
         \
     private:

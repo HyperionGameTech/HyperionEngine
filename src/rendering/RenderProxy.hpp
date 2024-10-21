@@ -61,6 +61,9 @@ struct RenderProxy
             || user_data != other.user_data
             || num_instances != other.num_instances;
     }
+
+    void ClaimRenderResources() const;
+    void UnclaimRenderResources() const;
 };
 
 /*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */

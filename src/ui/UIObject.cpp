@@ -129,6 +129,7 @@ UIObject::UIObject(UIObjectType type)
       m_focus_state(UIObjectFocusState::NONE),
       m_is_visible(true),
       m_computed_visibility(true),
+      m_computed_depth(-1),
       m_accepts_focus(true),
       m_data_source_element_uuid(UUID::Invalid()),
       m_affects_parent_size(true),
@@ -273,6 +274,7 @@ void UIObject::OnAttached_Internal(UIObject *parent)
         UpdateSize();
         UpdatePosition();
         UpdateMeshData();
+        UpdateComputedDepth();
 
         SetNeedsRepaintFlag();
     }
@@ -292,6 +294,7 @@ void UIObject::OnRemoved_Internal()
         UpdateSize();
         UpdatePosition();
         UpdateMeshData();
+        UpdateComputedDepth();
 
         SetNeedsRepaintFlag();
     }
@@ -573,21 +576,35 @@ void UIObject::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 
 int UIObject::GetComputedDepth() const
 {
+    return m_computed_depth;
+}
+
+void UIObject::UpdateComputedDepth(bool update_children)
+{
     HYP_SCOPE;
 
-    int depth = m_depth;
+    int computed_depth = m_depth;
 
     if (const UIObject *parent = GetParentUIObject()) {
-        depth += parent->GetComputedDepth();
+        computed_depth += parent->GetComputedDepth();
     }
 
     if (m_depth == 0) {
         if (const NodeProxy &node = GetNode()) {
-            depth += MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
+            computed_depth += MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
         }
     }
 
-    return depth;
+    m_computed_depth = computed_depth;
+
+    if (update_children) {
+        ForEachChildUIObject([](UIObject *ui_object)
+        {
+            ui_object->UpdateComputedDepth(/* update_children */ true);
+
+            return UIObjectIterationResult::CONTINUE;
+        }, false);
+    }
 }
 
 int UIObject::GetDepth() const
@@ -1333,7 +1350,7 @@ Handle<Material> UIObject::CreateMaterial() const
     
     if (AllowMaterialUpdate()) {
         Handle<Material> material = CreateObject<Material>(
-            NAME("UIObjectMaterial"),
+            Name::Unique("UIObjectMaterial"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1345,15 +1362,8 @@ Handle<Material> UIObject::CreateMaterial() const
 
         return material;
     } else {
-        // Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial(
-        //     GetMaterialAttributes(),
-        //     GetMaterialParameters(),
-        //     material_textures
-        // );
-
-        // return material;
-        
         return MaterialCache::GetInstance()->GetOrCreate(
+            Name::Unique("UIObjectMaterial"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1800,12 +1810,10 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
-
-        // g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
         mesh_component->material = std::move(new_material);
         mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;

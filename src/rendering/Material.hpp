@@ -7,6 +7,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderResources.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
 
@@ -26,6 +27,27 @@
 
 namespace hyperion {
 
+class MaterialRenderResources final : public RenderResourcesBase
+{
+public:
+    MaterialRenderResources();
+    virtual ~MaterialRenderResources() override;
+
+    HYP_FORCE_INLINE void SetMaterial(const WeakHandle<Material> &material)
+        { m_material_weak = material; }
+
+    void SetNeedsTextureUpdate(uint64 texture_key);
+
+protected:
+    virtual void Initialize() override;
+    virtual void Destroy() override;
+    virtual void Update() override;
+
+private:
+    WeakHandle<Material>    m_material_weak;
+    AtomicVar<uint64>       m_texture_updates;
+};
+
 HYP_CLASS()
 class HYP_API Material : public BasicObject<Material>
 {
@@ -36,6 +58,8 @@ class HYP_API Material : public BasicObject<Material>
 public:
     static constexpr uint max_parameters = 32u;
     static constexpr uint max_textures = 32u;
+
+    friend class MaterialRenderResources;
 
     using TextureKeyType = uint64;
 
@@ -539,6 +563,12 @@ public:
     HYP_FORCE_INLINE bool IsStatic() const
         { return !m_is_dynamic; }
 
+    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources()
+        { return *m_render_resources; }
+
+    HYP_FORCE_INLINE const MaterialRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     /*! \brief If a Material is
      *  dynamic, it is expected to change frequently and may be modified. Otherwise,
      *  it is considered static and should not be modified as it may be shared across many
@@ -587,19 +617,21 @@ private:
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
 
-    Name                                                m_name;
+    Name                                m_name;
 
-    ShaderRef                                           m_shader;
+    ShaderRef                           m_shader;
 
-    ParameterTable                                      m_parameters;
-    TextureSet                                          m_textures;
+    ParameterTable                      m_parameters;
+    TextureSet                          m_textures;
 
-    MaterialAttributes                                  m_render_attributes;
+    MaterialAttributes                  m_render_attributes;
 
-    bool                                                m_is_dynamic;
+    bool                                m_is_dynamic;
 
-    MaterialShaderData                                  m_shader_data;
-    mutable DataMutationState                           m_mutation_state;
+    MaterialShaderData                  m_shader_data;
+    mutable DataMutationState           m_mutation_state;
+
+    OwningRC<MaterialRenderResources>   m_render_resources;
 };
 
 HYP_CLASS()
@@ -638,16 +670,36 @@ public:
     void Add(const Handle<Material> &material);
 
     Handle<Material> CreateMaterial(
+        Name name,
         MaterialAttributes attributes = { },
         const Material::ParameterTable &parameters = Material::DefaultParameters(),
         const Material::TextureSet &textures = { }
     );
 
+    HYP_FORCE_INLINE Handle<Material> CreateMaterial(
+        MaterialAttributes attributes = { },
+        const Material::ParameterTable &parameters = Material::DefaultParameters(),
+        const Material::TextureSet &textures = { }
+    )
+    {
+        return CreateMaterial(Name::Invalid(), attributes, parameters, textures);
+    }
+
     Handle<Material> GetOrCreate(
+        Name name,
         MaterialAttributes attributes = { },
         const Material::ParameterTable &parameters = Material::DefaultParameters(),
         const Material::TextureSet &textures = { }
     );
+
+    HYP_FORCE_INLINE Handle<Material> GetOrCreate(
+        MaterialAttributes attributes = { },
+        const Material::ParameterTable &parameters = Material::DefaultParameters(),
+        const Material::TextureSet &textures = { }
+    )
+    {
+        return GetOrCreate(Name::Invalid(), attributes, parameters, textures);
+    }
 
 private:
     HashMap<HashCode, WeakHandle<Material>> m_map;

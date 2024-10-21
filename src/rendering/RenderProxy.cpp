@@ -9,6 +9,42 @@ namespace hyperion {
 
 extern HYP_API SafeDeleter *g_safe_deleter;
 
+#pragma region RenderProxy
+
+void RenderProxy::ClaimRenderResources() const
+{
+    if (material.IsValid()) {
+        material->GetRenderResources().Claim();
+    }
+
+    // if (mesh.IsValid()) {
+    //     mesh->ClaimRenderResources();
+    // }
+
+    // if (skeleton.IsValid()) {
+    //     skeleton->ClaimRenderResources();
+    // }
+}
+
+void RenderProxy::UnclaimRenderResources() const
+{
+    if (material.IsValid()) {
+        material->GetRenderResources().Unclaim();
+    }
+
+    // if (mesh.IsValid()) {
+    //     mesh->UnclaimRenderResources();
+    // }
+
+    // if (skeleton.IsValid()) {
+    //     skeleton->UnclaimRenderResources();
+    // }
+}
+
+#pragma endregion RenderProxy
+
+#pragma region RenderProxyList
+
 void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
 {
     FlatMap<ID<Entity>, RenderProxy>::Iterator iter = m_proxies.End();
@@ -150,5 +186,7 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
         m_changed_proxies.Clear();
     }
 }
+
+#pragma endregion RenderProxyList
 
 } // namespace hyperion

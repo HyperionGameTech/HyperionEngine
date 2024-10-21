@@ -25,6 +25,13 @@ class Node;
 class IHypMember;
 struct HypProperty;
 
+struct NodeWatcher
+{
+    Weak<Node>                                  root_node;
+    FlatSet<const HypProperty *>                properties_to_watch;
+    Delegate<void, Node *, const HypProperty *> OnChange;
+};
+
 class HYP_API EditorDelegates
 {
 public:
@@ -37,18 +44,14 @@ public:
     EditorDelegates &operator=(EditorDelegates &&other)         = delete;
     ~EditorDelegates()                                          = default;
 
-    void AddNodeWatcher(Name watcher_key, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc);
-    void RemoveNodeWatcher(Name watcher_key);
+    /*! \brief Receive events and changes to any node that is a descendant of the given \ref{root_node}. */
+    void AddNodeWatcher(Name watcher_key, const Weak<Node> &root_node, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc);
+    void RemoveNodeWatcher(WeakName watcher_key);
+    NodeWatcher *GetNodeWatcher(WeakName watcher_key);
 
     void OnNodeUpdate(Node *node, const HypProperty *property);
 
 private:
-    struct NodeWatcher
-    {
-        FlatSet<const HypProperty *>                properties_to_watch;
-        Delegate<void, Node *, const HypProperty *> OnChange;
-    };
-
     HashMap<Name, NodeWatcher>  m_node_watchers;
 };
 

@@ -48,7 +48,7 @@ void UIGridRow::Init()
 
 void UIGridRow::AddChildUIObject(const RC<UIObject> &ui_object)
 {
-    if (ui_object->GetType() == UIObjectType::GRID_COLUMN) {
+    if (ui_object.Is<UIGridColumn>()) {
         UIObject::AddChildUIObject(ui_object);
 
         m_columns.PushBack(ui_object->RefCountedPtrFromThis().CastUnsafe<UIGridColumn>());
@@ -81,7 +81,7 @@ bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    if (ui_object->GetType() == UIObjectType::GRID_COLUMN) {
+    if (ui_object->InstanceClass() == UIGridColumn::Class()) {
         auto it = m_columns.FindAs(ui_object);
 
         if (it != m_columns.End()) {

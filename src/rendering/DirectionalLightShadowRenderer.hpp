@@ -41,17 +41,17 @@ public:
     HYP_FORCE_INLINE const Handle<Light> &GetLight() const
         { return m_light; }
 
-    HYP_FORCE_INLINE RenderList &GetRenderListStatics()
-        { return m_render_list_statics; }
+    HYP_FORCE_INLINE RenderCollector &GetRenderCollectorStatics()
+        { return m_render_collector_statics; }
 
-    HYP_FORCE_INLINE  const RenderList &GetRenderListStatics() const
-        { return m_render_list_statics; }
+    HYP_FORCE_INLINE  const RenderCollector &GetRenderCollectorStatics() const
+        { return m_render_collector_statics; }
 
-    HYP_FORCE_INLINE RenderList &GetRenderListDynamics()
-        { return m_render_list_dynamics; }
+    HYP_FORCE_INLINE RenderCollector &GetRenderCollectorDynamics()
+        { return m_render_collector_dynamics; }
 
-    HYP_FORCE_INLINE const RenderList &GetRenderListDynamics() const
-        { return m_render_list_dynamics; }
+    HYP_FORCE_INLINE const RenderCollector &GetRenderCollectorDynamics() const
+        { return m_render_collector_dynamics; }
 
     void SetLight(const Handle<Light> &light)
     {
@@ -107,8 +107,8 @@ private:
     Handle<Scene>                       m_parent_scene;
     Handle<Light>                       m_light;
     ShadowMode                          m_shadow_mode;
-    RenderList                          m_render_list_statics;
-    RenderList                          m_render_list_dynamics;
+    RenderCollector                          m_render_collector_statics;
+    RenderCollector                          m_render_collector_dynamics;
     Vec3f                               m_origin;
     uint32                              m_shadow_map_index;
     

@@ -66,7 +66,7 @@ public:
             return { FBOMResult::FBOM_ERR, "No TextureData or TextureDesc on Texture object" };
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Texture::GetClass(), AnyRef(*texture_handle))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Texture::Class(), AnyRef(*texture_handle))) {
             return err;
         }
         

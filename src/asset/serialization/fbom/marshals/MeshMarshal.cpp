@@ -74,7 +74,7 @@ public:
             vertex_attributes
         );
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Mesh::GetClass(), AnyRef(*mesh_handle))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Mesh::Class(), AnyRef(*mesh_handle))) {
             return err;
         }
 
