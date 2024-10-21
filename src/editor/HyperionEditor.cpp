@@ -1233,7 +1233,7 @@ void HyperionEditorImpl::CreateMainPanel()
 
         // overflowing inner sizes is messing up AABB calculation for higher up parents
 
-        InitSceneOutline();
+        // InitSceneOutline();
         InitDetailView();
     }
 
@@ -1300,7 +1300,7 @@ void HyperionEditorImpl::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), { Node::GetClass()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), GetScene()->GetRoot(), { Node::GetClass()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
         HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
@@ -1382,6 +1382,8 @@ void HyperionEditorImpl::InitDetailView()
 
     OnFocusedNodeChanged.Bind([this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
     {
+        EditorDelegates::GetInstance().RemoveNodeWatcher(NAME("DetailView"));
+
         RC<UIListView> list_view = list_view_weak.Lock();
 
         if (!list_view) {
@@ -1389,9 +1391,6 @@ void HyperionEditorImpl::InitDetailView()
         }
 
         list_view->SetDataSource(nullptr);
-
-        // stop watching using currently bound function
-        EditorDelegates::GetInstance().RemoveNodeWatcher(NAME("DetailView"));
 
         if (!node.IsValid()) {
             HYP_LOG(Editor, LogLevel::DEBUG, "Focused node is invalid!");
@@ -1446,12 +1445,8 @@ void HyperionEditorImpl::InitDetailView()
         list_view->SetBackgroundColor(Color(0xFF0000FFu));
         HYP_LOG(Editor, LogLevel::DEBUG, "UIListView has {} items", list_view->GetListViewItems().Size());
 
-        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, const HypProperty *property)
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, const HypProperty *property)
         {
-            if (node != m_focused_node.Get()) {
-                return;
-            }
-
             HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", property->GetName());
 
             // Update name in list view
@@ -1995,7 +1990,7 @@ void HyperionEditor::Init()
 
     batch->LoadAsync();
 
-#elif 0
+#elif 1
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data)) {

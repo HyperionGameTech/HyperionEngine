@@ -192,9 +192,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
+        // @TODO For changed proxies it would be more efficient
+        // to update the RenderResources rather than Destroy + Recreate.
+
         for (const auto &it : changed_proxies) {
             const ID<Entity> entity = it.first;
             const RenderProxy &proxy = it.second;
+
+            proxy.UnclaimRenderResources();
 
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
@@ -209,6 +214,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (const RenderProxy &proxy : added_proxies) {
+            proxy.ClaimRenderResources();
+
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
 
@@ -224,6 +231,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         for (ID<Entity> entity : removed_proxies) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
+
+            proxy->UnclaimRenderResources();
 
             const Handle<Mesh> &mesh = proxy->mesh;
             AssertThrow(mesh.IsValid());

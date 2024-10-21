@@ -18,6 +18,8 @@
 
 namespace hyperion {
 
+#define HYP_MATERIAL_USE_RENDER_RESOURCES
+
 using renderer::Result;
 
 #pragma region Render commands
@@ -160,6 +162,87 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+#pragma region MaterialRenderResources
+
+MaterialRenderResources::MaterialRenderResources()
+{
+}
+
+MaterialRenderResources::~MaterialRenderResources()
+{
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+    if (m_material_weak.IsValid()) {
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            // Use GetUnsafe() as this destructor will be called from within the Material's destructor
+            // and we cannot increment the reference count once it has hit zero
+
+            // @TODO: Remove EnqueueDescriptorSet* functions from Material and just call them directly
+            m_material_weak.GetUnsafe()->EnqueueDescriptorSetCreate();
+        }
+    }
+#endif
+}
+
+void MaterialRenderResources::SetNeedsTextureUpdate(uint64 texture_key)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_texture_updates.Insert(texture_key);
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::Initialize()
+{
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Initializing material render resources for material {}", material->GetName());
+
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            material->EnqueueDescriptorSetCreate();
+        }
+    }
+#endif
+}
+
+void MaterialRenderResources::Destroy()
+{
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Destroying material render resources for material {}", material->GetName());
+
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            material->EnqueueDescriptorSetDestroy();
+        }
+    }
+#endif
+}
+
+void MaterialRenderResources::Update()
+{
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+    AssertThrow(m_material_weak.IsValid());
+
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        HYP_LOG(Material, LogLevel::DEBUG, "Updating material render resources for material {}", material->GetName());
+
+        Mutex::Guard guard(m_mutex);
+
+        for (uint64 texture_key : m_texture_updates) {
+            material->EnqueueTextureUpdate(Material::TextureKey(texture_key));
+        }
+
+        m_texture_updates.Clear();
+    }
+#endif
+}
+
+#pragma endregion MaterialRenderResources
+
 #pragma region Material
 
 const Material::ParameterTable &Material::DefaultParameters()
@@ -244,9 +327,11 @@ Material::~Material()
     g_safe_deleter->SafeRelease(std::move(m_shader));
 
     if (IsInitCalled()) {
+#ifndef HYP_MATERIAL_USE_RENDER_RESOURCES
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             EnqueueDescriptorSetDestroy();
         }
+#endif
 
         //HYP_SYNC_RENDER();
     }
@@ -259,6 +344,8 @@ void Material::Init()
     }
 
     BasicObject::Init();
+
+    m_render_resources->SetMaterial(WeakHandleFromThis());
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {
@@ -276,9 +363,11 @@ void Material::Init()
         }
     }
     
+#ifndef HYP_MATERIAL_USE_RENDER_RESOURCES
     if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
         EnqueueDescriptorSetCreate();
     }
+#endif
 
     m_mutation_state |= DataMutationState::DIRTY;
 
@@ -479,7 +568,11 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
         InitObject(texture);
 
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+            m_render_resources->SetNeedsTextureUpdate(uint64(key));
+#else
             EnqueueTextureUpdate(key);
+#endif
         }
 
         m_mutation_state |= DataMutationState::DIRTY;
@@ -525,7 +618,11 @@ void Material::SetTextures(const TextureSet &textures)
                     continue;
                 }
 
+#ifdef HYP_MATERIAL_USE_RENDER_RESOURCES
+                m_render_resources->SetNeedsTextureUpdate(uint64(it.first));
+#else
                 EnqueueTextureUpdate(it.first);
+#endif
             }
         }
 
@@ -636,6 +733,7 @@ void MaterialCache::Add(const Handle<Material> &material)
 }
 
 Handle<Material> MaterialCache::CreateMaterial(
+    Name name,
     MaterialAttributes attributes,
     const Material::ParameterTable &parameters,
     const Material::TextureSet &textures
@@ -649,7 +747,7 @@ Handle<Material> MaterialCache::CreateMaterial(
     }
 
     Handle<Material> handle = CreateObject<Material>(
-        Name::Unique("material"),
+        name,
         attributes,
         parameters,
         textures
@@ -661,6 +759,7 @@ Handle<Material> MaterialCache::CreateMaterial(
 }
 
 Handle<Material> MaterialCache::GetOrCreate(
+    Name name,
     MaterialAttributes attributes,
     const Material::ParameterTable &parameters,
     const Material::TextureSet &textures
@@ -674,6 +773,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     }
 
     // @TODO: For textures hashcode, asset path should be used rather than texture ID
+    // textures may later be destroyed and their IDs reused which would cause a hash collision
 
     HashCode hc;
     hc.Add(attributes.GetHashCode());
@@ -691,9 +791,13 @@ Handle<Material> MaterialCache::GetOrCreate(
             return handle;
         }
     }
+    
+    if (!name.IsValid()) {
+        name = CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
+    }
 
     Handle<Material> handle = CreateObject<Material>(
-        CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value())),
+        name,
         attributes,
         parameters,
         textures

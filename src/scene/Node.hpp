@@ -285,8 +285,14 @@ public:
     ~Node();
 
     /*! \brief Get the UUID of the Node. */
+    HYP_METHOD(Property="UUID", Serialize=true, Editor=false, Label="UUID")
     HYP_FORCE_INLINE const UUID &GetUUID() const
         { return m_uuid; }
+
+    /*! \brief Set the UUID of the Node. For deserialization purposes only. */
+    HYP_METHOD(Property="UUID", Serialize=true, Editor=false)
+    HYP_FORCE_INLINE void SetUUID(const UUID &uuid)
+        { m_uuid = uuid; }
 
     /*! \returns The name that was given to the Node on creation. */
     HYP_METHOD(Property="Name", Serialize=true, Editor=true, Label="Name", Description="The name of the node.")

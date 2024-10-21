@@ -50,8 +50,6 @@ static inline Scene *GetScene(UIStageType *stage)
     return stage->GetScene().Get();
 }
 
-// Used for interop with the C# UIObject class.
-// Ensure that the enum values match the C# UIObjectType enum.
 enum class UIObjectType : uint32
 {
     UNKNOWN             = ~0u,

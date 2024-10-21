@@ -83,11 +83,8 @@ struct RefCountData
 #ifdef HYP_DEBUG_MODE
     HYP_FORCE_INLINE void EnsureUninitialized() const
     {
-        AssertThrow(this->value == nullptr);
-        AssertThrow(this->type_id == TypeID::Void());
         AssertThrow(this->strong_count == 0);
         AssertThrow(this->weak_count == 0);
-        AssertThrow(this->dtor == nullptr);
     }
 #endif
 
@@ -208,7 +205,7 @@ struct RefCountData
         void (*current_dtor)(void *) = dtor;
         dtor = nullptr;
 
-        type_id = TypeID::ForType<void>();
+        type_id = TypeID::Void();
 
         current_dtor(current_value);
     }
@@ -282,7 +279,6 @@ protected:
     }
 
 public:
-
     ~RefCountedPtrBase()
     {
         DecRefCount();
@@ -293,6 +289,14 @@ public:
     
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_ref->type_id; }
+
+    /*! \brief Returns true if no value has been assigned to the reference counted pointer. */
+    HYP_FORCE_INLINE bool Empty() const
+        { return m_ref->UseCount_Strong() == 0; }
+
+    /*! \brief Returns true if a value has been assigned to the reference counted pointer. */
+    HYP_FORCE_INLINE bool Any() const
+        { return m_ref->UseCount_Strong() != 0; }
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() const &
@@ -503,6 +507,14 @@ public:
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE void Reset()
         { DecRefCount(); }
+
+    /*! \brief Returns true if no value has been assigned to the weak reference counted pointer. */
+    HYP_FORCE_INLINE bool Empty() const
+        { return m_ref->UseCount_Weak() == 0; }
+
+    /*! \brief Returns true if a value has been assigned to the weak reference counted pointer. */
+    HYP_FORCE_INLINE bool Any() const
+        { return m_ref->UseCount_Weak() != 0; }
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> CastUnsafe() const
@@ -1043,6 +1055,11 @@ public:
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr &other) const
         { return Base::m_ref->value < other.m_ref->value; }
 
+    /*! \brief Gets a pointer to the value held by the reference counted pointer.
+     *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
+    HYP_FORCE_INLINE T *GetUnsafe() const
+        { return static_cast<T *>(Base::m_ref->value); }
+
     HYP_FORCE_INLINE RefCountedPtr<T, CountType> Lock() const
     {
         RefCountedPtr<T, CountType> rc;
@@ -1131,6 +1148,11 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr &other) const
         { return Base::m_ref->value < other.m_ref->value; }
+
+    /*! \brief Gets a pointer to the value held by the reference counted pointer.
+     *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
+    HYP_FORCE_INLINE void *GetUnsafe() const
+        { return Base::m_ref->value; }
 };
 
 template <class CountType>
@@ -1158,6 +1180,77 @@ protected:
 
 public:
     WeakRefCountedPtr<void, CountType>  weak;
+};
+
+/*! \brief A wrapper for T that allows an object to be created without dynamic allocation, but still be used as a Weak<T> in other places
+ *  without causing destruction once the last locked RC<T> is destroyed. This comes with a caveat, however -- all references to object will be invalidated
+ *  upon destruction of this object, meaning all RC<T> and Weak<T> will be invalid.
+ * 
+ *  T must be a subclass of EnableRefCountedPtrFromThis<T> to use this class.
+ * 
+ *  \note Reassigning the OwningRefCountedPtr will reassign the underlying T object, meaning all RC<T> will continue pointing to the same object they were pointing to before. */
+template <class T, class CountType = std::atomic<uint>, typename = std::enable_if_t<std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>>>
+class OwningRefCountedPtr
+{
+public:
+    template <class... Args>
+    OwningRefCountedPtr(Args &&... args)
+        : m_value(std::forward<Args>(args)...)
+    {
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+    }
+
+    OwningRefCountedPtr(const OwningRefCountedPtr &other)
+        : m_value(other.m_value)
+    {
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+    }
+
+    OwningRefCountedPtr &operator=(const OwningRefCountedPtr &other)
+    {
+        m_value = other.m_value;
+
+        return *this;
+    }
+
+    OwningRefCountedPtr(OwningRefCountedPtr &&other) noexcept
+        : m_value(std::move(other.m_value))
+    {
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+    }
+
+    OwningRefCountedPtr &operator=(OwningRefCountedPtr &&other) noexcept
+    {
+        m_value = std::move(other.m_value);
+
+        return *this;
+    }
+
+    ~OwningRefCountedPtr()
+    {
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+    }
+
+    HYP_FORCE_INLINE T &Get()
+        { return m_value; }
+
+    HYP_FORCE_INLINE const T &Get() const
+        { return m_value; }
+
+    HYP_FORCE_INLINE T *operator->()
+        { return &m_value; }
+
+    HYP_FORCE_INLINE const T *operator->() const
+        { return &m_value; }
+
+    HYP_FORCE_INLINE T &operator*()
+        { return m_value; }
+
+    HYP_FORCE_INLINE const T &operator*() const
+        { return m_value; }
+
+private:
+    T   m_value;
 };
 
 /*! \brief Helper struct to convert raw pointers to RefCountedPtrs.
@@ -1280,6 +1373,9 @@ using Weak = memory::WeakRefCountedPtr<T, CountType>;
 
 template <class T, class CountType = std::atomic<uint>>
 using RC = memory::RefCountedPtr<T, CountType>;
+
+template <class T, class CountType = std::atomic<uint>>
+using OwningRC = memory::OwningRefCountedPtr<T, CountType>;
 
 template <class T, class... Args>
 HYP_FORCE_INLINE RC<T> MakeRefCountedPtr(Args &&... args)

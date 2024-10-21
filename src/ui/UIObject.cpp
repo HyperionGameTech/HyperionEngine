@@ -1345,15 +1345,8 @@ Handle<Material> UIObject::CreateMaterial() const
 
         return material;
     } else {
-        // Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial(
-        //     GetMaterialAttributes(),
-        //     GetMaterialParameters(),
-        //     material_textures
-        // );
-
-        // return material;
-        
         return MaterialCache::GetInstance()->GetOrCreate(
+            NAME("UIObjectMaterial"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
