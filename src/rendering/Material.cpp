@@ -165,6 +165,7 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 #pragma region MaterialRenderResources
 
 MaterialRenderResources::MaterialRenderResources()
+    : m_texture_updates(0)
 {
 }
 
@@ -185,9 +186,7 @@ MaterialRenderResources::~MaterialRenderResources()
 
 void MaterialRenderResources::SetNeedsTextureUpdate(uint64 texture_key)
 {
-    Mutex::Guard guard(m_mutex);
-
-    m_texture_updates.Insert(texture_key);
+    m_texture_updates.BitOr(texture_key, MemoryOrder::RELEASE);
 
     SetNeedsUpdate();
 }
@@ -230,13 +229,11 @@ void MaterialRenderResources::Update()
     if (Handle<Material> material = m_material_weak.Lock()) {
         HYP_LOG(Material, LogLevel::DEBUG, "Updating material render resources for material {}", material->GetName());
 
-        Mutex::Guard guard(m_mutex);
-
-        for (uint64 texture_key : m_texture_updates) {
-            material->EnqueueTextureUpdate(Material::TextureKey(texture_key));
+        if (const uint64 texture_updates = m_texture_updates.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)) {
+            for (Bitset::BitIndex bit_index : Bitset(texture_updates)) {
+                material->EnqueueTextureUpdate(Material::TextureKey(1ull << bit_index));
+            }
         }
-
-        m_texture_updates.Clear();
     }
 #endif
 }
@@ -643,7 +640,7 @@ const Handle<Texture> &Material::GetTextureAtIndex(uint index) const
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = CreateObject<Material>(
-        Name::Unique(*m_name),
+        m_name,
         m_render_attributes,
         m_parameters,
         m_textures

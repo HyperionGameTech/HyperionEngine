@@ -45,8 +45,7 @@ protected:
 
 private:
     WeakHandle<Material>    m_material_weak;
-    FlatSet<uint64>         m_texture_updates;
-    Mutex                   m_mutex;
+    AtomicVar<uint64>       m_texture_updates;
 };
 
 HYP_CLASS()

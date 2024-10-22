@@ -30,7 +30,7 @@ class Mesh;
 class Material;
 class Skeleton;
 class Entity;
-class RenderList;
+class RenderCollector;
 
 enum class RenderGroupFlags : uint32
 {

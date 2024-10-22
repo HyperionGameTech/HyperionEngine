@@ -99,7 +99,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-            HYP_LOG(Object, LogLevel::DEBUG, "Create new managed {} for address {}", hyp_class->GetName(), address);
+            // HYP_LOG(Object, LogLevel::DEBUG, "Create new managed {} for address {}", hyp_class->GetName(), address);
 
             managed_object = managed_class->NewObject(hyp_class, address);
         }
@@ -131,20 +131,6 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 }
 
 #pragma endregion HypObjectInitializerGuardBase
-
-// static HypObjectInitializerContext *FindTopmostInitializerContext(const void *native_address)
-// {
-//     HypObjectInitializerContext *found_context = nullptr;
-
-//     for (int i = int(g_contexts.Size()) - 1; i >= 0; i--) {
-//         // Return at first that doesn't equal, since we will always be looking when we're at the top
-//         if (g_contexts[i].native_address != native_address) {
-//             break;
-//         }
-//     }
-
-//     return found_context;
-// }
 
 HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address)
 {

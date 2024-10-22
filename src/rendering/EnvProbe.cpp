@@ -219,7 +219,7 @@ void EnvProbe::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
-        m_render_list.Reset();
+        m_render_collector.Reset();
         m_camera.Reset();
         m_texture.Reset();
         m_shader.Reset();
@@ -283,7 +283,7 @@ void EnvProbe::Init()
 
             InitObject(m_camera);
 
-            m_render_list.SetCamera(m_camera);
+            m_render_collector.SetCamera(m_camera);
         }
     }
 
@@ -431,7 +431,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         if (OnlyCollectStaticEntities()) {
             m_parent_scene->CollectStaticEntities(
-                m_render_list,
+                m_render_collector,
                 m_camera,
                 RenderableAttributeSet(
                     MeshAttributes { },
@@ -448,7 +448,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
 
             m_parent_scene->CollectEntities(
-                m_render_list,
+                m_render_collector,
                 m_camera,
                 RenderableAttributeSet(
                     MeshAttributes { },
@@ -542,13 +542,13 @@ void EnvProbe::Render(Frame *frame)
         g_engine->GetRenderState().BindScene(m_parent_scene.Get());
         g_engine->GetRenderState().BindCamera(m_camera.Get());
 
-        m_render_list.CollectDrawCalls(
+        m_render_collector.CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             nullptr
         );
 
-        m_render_list.ExecuteDrawCalls(
+        m_render_collector.ExecuteDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );

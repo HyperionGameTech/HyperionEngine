@@ -183,7 +183,7 @@ void Scene::Init()
     }));
 
     InitObject(m_camera);
-    m_render_list.SetCamera(m_camera);
+    m_render_collector.SetCamera(m_camera);
 
     m_entity_manager->Initialize();
 
@@ -227,7 +227,7 @@ void Scene::SetCamera(const Handle<Camera> &camera)
     m_camera = camera;
     InitObject(m_camera);
 
-    m_render_list.SetCamera(m_camera);
+    m_render_collector.SetCamera(m_camera);
 }
 
 void Scene::SetWorld(World *world)
@@ -324,8 +324,8 @@ void Scene::EndUpdate()
     EnqueueRenderUpdates();
 }
 
-RenderListCollectionResult Scene::CollectEntities(
-    RenderList &render_list,
+RenderCollector::CollectionResult Scene::CollectEntities(
+    RenderCollector &render_collector,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
@@ -363,20 +363,20 @@ RenderListCollectionResult Scene::CollectEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_list.PushEntityToRender(
+        render_collector.PushEntityToRender(
             entity_id,
             *mesh_component.proxy
         );
     }
 
-    return render_list.PushUpdatesToRenderThread(
+    return render_collector.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
 }
 
-RenderListCollectionResult Scene::CollectDynamicEntities(
-    RenderList &render_list,
+RenderCollector::CollectionResult Scene::CollectDynamicEntities(
+    RenderCollector &render_collector,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
@@ -415,20 +415,20 @@ RenderListCollectionResult Scene::CollectDynamicEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_list.PushEntityToRender(
+        render_collector.PushEntityToRender(
             entity_id,
             *mesh_component.proxy
         );
     }
 
-    return render_list.PushUpdatesToRenderThread(
+    return render_collector.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );
 }
 
-RenderListCollectionResult Scene::CollectStaticEntities(
-    RenderList &render_list,
+RenderCollector::CollectionResult Scene::CollectStaticEntities(
+    RenderCollector &render_collector,
     const Handle<Camera> &camera,
     const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
@@ -440,7 +440,7 @@ RenderListCollectionResult Scene::CollectStaticEntities(
 
     if (!camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return render_list.PushUpdatesToRenderThread(
+        return render_collector.PushUpdatesToRenderThread(
             camera->GetFramebuffer(),
             override_attributes
         );
@@ -470,13 +470,13 @@ RenderListCollectionResult Scene::CollectStaticEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_list.PushEntityToRender(
+        render_collector.PushEntityToRender(
             entity_id,
             *mesh_component.proxy
         );
     }
 
-    return render_list.PushUpdatesToRenderThread(
+    return render_collector.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),
         override_attributes
     );

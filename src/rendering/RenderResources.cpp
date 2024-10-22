@@ -25,7 +25,7 @@ void RenderResourcesBase::Claim()
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 #endif
 
-    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Incrementing render resources {} use count to {}", (void *)this, m_ref_count + 1);
+    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Incrementing render resources {} use count to {}", (void *)this, m_ref_count + 1);
 
     if (m_ref_count++ == 0) {
         HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Initializing render resources {}", (void *)this);
@@ -42,7 +42,7 @@ void RenderResourcesBase::Unclaim()
 
     AssertThrow(m_ref_count != 0);
 
-    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Decrementing render resources {} use count to {}", (void *)this, m_ref_count - 1);
+    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Decrementing render resources {} use count to {}", (void *)this, m_ref_count - 1);
 
     if (--m_ref_count == 0) {
         HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Destroying render resources {}", (void *)this);
@@ -68,7 +68,7 @@ void RenderResourcesBase::SetNeedsUpdate()
         {
             if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
                 while (render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE) != 0) {
-                    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Updating render resources {}", (void *)this);
+                    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Updating render resources {}", (void *)this);
 
                     render_resources->Update();
 

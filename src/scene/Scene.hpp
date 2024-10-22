@@ -109,11 +109,11 @@ public:
     HYP_METHOD(Serialize, Property="Camera")
     void SetCamera(const Handle<Camera> &camera);
 
-    HYP_FORCE_INLINE RenderList &GetRenderList()
-        { return m_render_list; }
+    HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
+        { return m_render_collector; }
 
-    HYP_FORCE_INLINE const RenderList &GetRenderList() const
-        { return m_render_list; }
+    HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
+        { return m_render_collector; }
 
     HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity>) const;
 
@@ -200,22 +200,22 @@ public:
     void BeginUpdate(GameCounter::TickUnit delta);
     void EndUpdate();
 
-    RenderListCollectionResult CollectEntities(
-        RenderList &render_list, 
+    RenderCollector::CollectionResult CollectEntities(
+        RenderCollector &render_collector, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    RenderListCollectionResult CollectDynamicEntities(
-        RenderList &render_list, 
+    RenderCollector::CollectionResult CollectDynamicEntities(
+        RenderCollector &render_collector, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
-    RenderListCollectionResult CollectStaticEntities(
-        RenderList &render_list, 
+    RenderCollector::CollectionResult CollectStaticEntities(
+        RenderCollector &render_collector, 
         const Handle<Camera> &camera,
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
@@ -231,7 +231,7 @@ private:
     EnumFlags<SceneFlags>           m_flags;
 
     Handle<Camera>                  m_camera;
-    RenderList                      m_render_list;
+    RenderCollector                 m_render_collector;
 
     UniquePtr<RenderEnvironment>    m_environment;
     World                           *m_world;

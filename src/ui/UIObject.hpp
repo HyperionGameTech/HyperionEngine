@@ -801,11 +801,12 @@ protected:
 
     /*! \brief Check if the object has been computed as visible or not. E.g scrolled out of view in a parent container */
     virtual void UpdateComputedVisibility(bool update_children = true);
-
     virtual void OnComputedVisibilityChange_Internal() { }
 
+    void UpdateComputedDepth(bool update_children = true);
+
     /*! \brief Sets the NodeProxy for this UIObject.
-     *  \note To be called internally from UIStage */
+     *  \internal To be called internally from UIStage */
     void SetNodeProxy(NodeProxy);
 
     /*! \brief Get the shared quad mesh used for rendering UI objects. Vertices are in range: 0..1, with the origin at the top-left corner.
@@ -940,6 +941,8 @@ private:
 
     bool                                    m_is_visible;
     bool                                    m_computed_visibility;
+
+    int                                     m_computed_depth;
     
     bool                                    m_accepts_focus;
 
