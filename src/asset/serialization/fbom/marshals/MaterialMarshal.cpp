@@ -181,7 +181,7 @@ public:
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
         material_handle->SetShader(std::move(shader));
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Material::GetClass(), AnyRef(*material_handle))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, Material::Class(), AnyRef(*material_handle))) {
             return err;
         }
 

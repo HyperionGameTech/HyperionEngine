@@ -243,7 +243,7 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Name")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
 #endif
 }
 
@@ -286,7 +286,7 @@ void Node::SetScene(Scene *scene)
         m_scene = scene;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Scene")));
+        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
 #endif
 
         // Move entity from previous scene to new scene
@@ -300,7 +300,7 @@ void Node::SetScene(Scene *scene)
                 m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-                EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
+                EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
 #endif
             }
         }
@@ -638,7 +638,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_entity = entity;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
+        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
 #endif
 
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
@@ -679,7 +679,7 @@ void Node::SetEntity(ID<Entity> entity)
         m_entity = ID<Entity>::invalid;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("Entity")));
+        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
 #endif
 
         SetEntityAABB(BoundingBox::Empty());
@@ -697,9 +697,9 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     m_entity_aabb = aabb;
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("EntityAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("EntityAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("LocalAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("WorldAABB")));
 #endif
 }
 
@@ -816,10 +816,10 @@ void Node::UpdateWorldTransform()
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalTransform")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldTransform")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("LocalAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, GetClass()->GetProperty(NAME("WorldAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalTransform")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldTransform")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalAABB")));
+    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldAABB")));
 #endif
 }
 

@@ -742,6 +742,22 @@ public:
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr<T, CountType> &other) const
         { return Base::m_ref->value < other.m_ref->value; }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    HYP_FORCE_INLINE explicit operator RefCountedPtr<Ty, CountType> &()
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, "T must be convertible to Ty!");
+
+        return reinterpret_cast<RefCountedPtr<Ty, CountType> &>(*this);
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    HYP_FORCE_INLINE explicit operator const RefCountedPtr<Ty, CountType> &() const
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, "T must be convertible to Ty!");
+
+        return reinterpret_cast<const RefCountedPtr<Ty, CountType> &>(*this);
+    }
+
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any. Note, do not delete the ptr after passing it to Reset(), as it will be deleted
         automatically. */
@@ -1055,6 +1071,23 @@ public:
     HYP_FORCE_INLINE bool operator<(const WeakRefCountedPtr &other) const
         { return Base::m_ref->value < other.m_ref->value; }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    HYP_FORCE_INLINE explicit operator WeakRefCountedPtr<Ty, CountType> &()
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, "T must be convertible to Ty!");
+
+        return reinterpret_cast<WeakRefCountedPtr<Ty, CountType> &>(*this);
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    HYP_FORCE_INLINE explicit operator const WeakRefCountedPtr<Ty, CountType> &() const
+    {
+        static_assert(std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, "T must be convertible to Ty!");
+
+        return reinterpret_cast<const WeakRefCountedPtr<Ty, CountType> &>(*this);
+    }
+
+
     /*! \brief Gets a pointer to the value held by the reference counted pointer.
      *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
     HYP_FORCE_INLINE T *GetUnsafe() const
@@ -1334,13 +1367,16 @@ public:
         ref_count_data->template InitWeak<T>(static_cast<T *>(this));
     }
 
-    ~EnableRefCountedPtrFromThis() = default;
+    virtual ~EnableRefCountedPtrFromThis() override = default;
 
     RefCountedPtr<T, CountType> RefCountedPtrFromThis() const
         { return Base::weak.template CastUnsafe<T>().Lock(); }
 
     WeakRefCountedPtr<T, CountType> WeakRefCountedPtrFromThis() const
         { return Base::weak.template CastUnsafe<T>(); }
+
+    const WeakRefCountedPtr<T, CountType> &WeakThis() const
+        { return static_cast<const WeakRefCountedPtr<T, CountType> &>(Base::weak); }
 
 private:
     EnableRefCountedPtrFromThis(const EnableRefCountedPtrFromThis &)

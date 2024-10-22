@@ -1229,11 +1229,7 @@ void HyperionEditorImpl::CreateMainPanel()
             }).Detach();
         }
 
-        // return;
-
-        // overflowing inner sizes is messing up AABB calculation for higher up parents
-
-        // InitSceneOutline();
+        InitSceneOutline();
         InitDetailView();
     }
 
@@ -1300,7 +1296,7 @@ void HyperionEditorImpl::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), GetScene()->GetRoot(), { Node::GetClass()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), GetScene()->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
         HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
@@ -1445,7 +1441,7 @@ void HyperionEditorImpl::InitDetailView()
         list_view->SetBackgroundColor(Color(0xFF0000FFu));
         HYP_LOG(Editor, LogLevel::DEBUG, "UIListView has {} items", list_view->GetListViewItems().Size());
 
-        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::GetClass(), list_view_weak](Node *node, const HypProperty *property)
+        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {
             HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", property->GetName());
 
@@ -1545,19 +1541,6 @@ void HyperionEditorImpl::SetFocusedNode(const NodeProxy &node)
 
 void HyperionEditorImpl::Initialize()
 {
-    // const HypClass *mesh_hyp_class = Mesh::GetClass();
-    // AssertThrow(mesh_hyp_class != nullptr);
-
-    // for (auto &it : mesh_hyp_class->GetMembers(false)) {
-    //     HYP_LOG(Editor, LogLevel::DEBUG, "Member {} -> TypeID {}", it.GetName(), it.GetTypeID().Value());
-    // }
-
-    // for (auto &it : mesh_hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY)) {
-    //     HYP_LOG(Editor, LogLevel::DEBUG, "[PROPERTY] Member {} -> TypeID {}", it.GetName(), it.GetTypeID().Value());
-    // }
-
-    // HYP_BREAKPOINT;
-
     CreateHighlightNode();
 
     CreateMainPanel();

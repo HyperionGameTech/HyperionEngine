@@ -144,7 +144,7 @@ void World::Update(GameCounter::TickUnit delta)
 
         update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
         {
-            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->GetClass()->GetName());
+            HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
             subsystem->Update(delta);
         }));

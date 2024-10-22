@@ -166,20 +166,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        bool removed = false;
+        auto &proxy_groups = collection->GetProxyGroups()[pass_type];
 
-        // for (auto &proxy_groups : collection->GetProxyGroups()) {
-            // for (auto &it : proxy_groups) {
-            //     removed |= it.second.RemoveRenderProxy(entity);
-            // }
+        auto it = proxy_groups.Find(attributes);
+        AssertThrow(it != proxy_groups.End());
 
-            auto &proxy_groups = collection->GetProxyGroups()[pass_type];
-
-            auto it = proxy_groups.Find(attributes);
-            AssertThrow(it != proxy_groups.End());
-
-            removed |= it->second.RemoveRenderProxy(entity);
-        // }
+        const bool removed = it->second.RemoveRenderProxy(entity);
 
         proxy_list.MarkToRemove(entity);
 

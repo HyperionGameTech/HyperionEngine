@@ -160,9 +160,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 continue;
             }
 
-            const HashCode element_hash_code = attributes.GetHashCode()
-                .Combine(mesh.GetID().GetHashCode())
-                .Combine(material.GetID().GetHashCode());
+            const HashCode element_hash_code = attributes.GetHashCode();
+                //.Combine(mesh.GetID().GetHashCode())
+                //.Combine(material.GetID().GetHashCode());
 
             if (last_render_proxy_group.drawable_layer != ~0u && last_render_proxy_group.attributes_hash_code == element_hash_code) {
                 // Set drawable layer on the attributes so it is grouped properly.

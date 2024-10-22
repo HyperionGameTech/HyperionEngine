@@ -94,8 +94,8 @@ HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Class 
     // @FIXME: Don't use hyp_class->GetManagedClass(), instead, take Class* passed into the function
     // this will allow C# derived classes to be used
     UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(class_object_ptr, *object_reference, ObjectFlags::WEAK_REFERENCE);
-
-    SetHypObjectInitializerManagedObject(initializer, created_object_ptr, std::move(managed_object));
+    initializer->SetManagedObject(managed_object.Release());
+    // SetHypObjectInitializerManagedObject(initializer, created_object_ptr, std::move(managed_object));
 
     return created_object_ptr;
 }
