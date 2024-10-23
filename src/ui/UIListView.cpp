@@ -405,7 +405,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
 
         OnSelectedItemChange(list_view_item.Get());
 
-        return UIEventHandlerResult::OK;
+        return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
     // create UIObject for the element and add it to the list view

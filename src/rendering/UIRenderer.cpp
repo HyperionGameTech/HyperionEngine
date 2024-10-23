@@ -125,8 +125,12 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: BuildProxyGroupsInOrder");
 
         collection->ClearProxyGroups();
-
-        HashMap<int, FlatSet<HashCode>> depth_attribute_set_hash_codes;
+        
+        struct
+        {
+            HashCode    attributes_hash_code;
+            uint32      drawable_layer = ~0u;
+        } last_render_proxy_group;
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 

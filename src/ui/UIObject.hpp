@@ -124,12 +124,14 @@ enum class UIObjectUpdateType : uint32
     UPDATE_MATERIAL                     = 0x4,
     UPDATE_MESH_DATA                    = 0x8,
     UPDATE_COMPUTED_VISIBILITY          = 0x10,
+    UPDATE_TEXT_RENDER_DATA             = 0x20,
 
     UPDATE_CHILDREN_SIZE                = UPDATE_SIZE << 16,
     UPDATE_CHILDREN_POSITION            = UPDATE_POSITION << 16,
     UPDATE_CHILDREN_MATERIAL            = UPDATE_MATERIAL << 16,
     UPDATE_CHILDREN_MESH_DATA           = UPDATE_MESH_DATA << 16,
     UPDATE_CHILDREN_COMPUTED_VISIBILITY = UPDATE_COMPUTED_VISIBILITY << 16,
+    UPDATE_CHILDREN_TEXT_RENDER_DATA    = UPDATE_TEXT_RENDER_DATA << 16
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)
@@ -442,6 +444,12 @@ public:
      *  \note If a class deriving \ref{UIObject} overrides \ref{AcceptsFocus}, this function has no effect. */
     HYP_METHOD()
     void SetAcceptsFocus(bool accepts_focus);
+
+    /*! \brief Check if the UI object receives update events.
+     *  \return True if the UI object receives update events, false otherwise */
+    HYP_METHOD()
+    virtual bool ReceivesUpdate() const
+        { return m_receives_update; }
 
     /*! \brief Set the focus to this UI object, if AcceptsFocus() returns true.
      * This function is called when the UI object is focused. */
@@ -788,6 +796,9 @@ protected:
         return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
     }
 
+    HYP_FORCE_INLINE void SetReceivesUpdate(bool receives_update)
+        { m_receives_update = receives_update; }
+
     virtual void UpdateSize_Internal(bool update_children);
 
     virtual void SetDataSource_Internal(UIDataSourceBase *data_source);
@@ -907,6 +918,9 @@ protected:
 
     UUID                            m_data_source_element_uuid;
 
+    EnumFlags<UIObjectUpdateType>   m_deferred_updates;
+    EnumFlags<UIObjectUpdateType>   m_locked_updates;
+
 private:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
@@ -946,12 +960,11 @@ private:
     
     bool                                    m_accepts_focus;
 
+    bool                                    m_receives_update;
+
     bool                                    m_affects_parent_size;
 
     AtomicVar<bool>                         m_needs_repaint;
-
-    EnumFlags<UIObjectUpdateType>           m_deferred_updates;
-    EnumFlags<UIObjectUpdateType>           m_locked_updates;
 
     NodeProxy                               m_node_proxy;
 

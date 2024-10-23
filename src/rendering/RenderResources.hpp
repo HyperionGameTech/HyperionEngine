@@ -16,7 +16,7 @@ namespace hyperion {
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
 
-// This object is only meant to be used from the render thread, as the reference count is not atomic.
+// Claim/Unclaim are only meant to be used from the render thread, as the reference count is not atomic.
 
 class RenderResourcesBase : public EnableRefCountedPtrFromThis<RenderResourcesBase>
 {

@@ -393,11 +393,12 @@ void TerrainWorldGridPlugin::Initialize()
     if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         Handle<Texture> albedo_texture = albedo_texture_asset.Result();
         albedo_texture->GetImage()->SetIsSRGB(true);
-        m_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
+        
+        m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
     }
 
     if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png")) {
-        m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, ground_texture_asset.Result());
+        m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset.Result());
     }
 
     InitObject(m_material);

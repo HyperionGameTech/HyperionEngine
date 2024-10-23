@@ -54,7 +54,7 @@ Material::ParameterTable UIImage::GetMaterialParameters() const
 Material::TextureSet UIImage::GetMaterialTextures() const
 {
     return Material::TextureSet {
-        { Material::MATERIAL_TEXTURE_ALBEDO_MAP, m_texture }
+        { MaterialTextureKey::ALBEDO_MAP, m_texture }
     };
 }
 

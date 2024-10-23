@@ -11,6 +11,7 @@
 #include <Types.hpp>
 
 #include <initializer_list>
+#include <limits>
 
 namespace hyperion {
 
@@ -18,16 +19,20 @@ namespace containers {
 namespace detail {
 
 // convert from attachment (2^x) into ordinal (0-5) for use as an array index
-constexpr uint64 EnumToOrdinal(uint64 option)
-    { return MathUtil::FastLog2_Pow2(option); }
+template <class EnumType, class OrdinalType = std::underlying_type_t<EnumType>>
+constexpr OrdinalType EnumToOrdinal(EnumType option)
+    { return OrdinalType(MathUtil::FastLog2_Pow2(uint64(option))); }
 
 // convert from ordinal (0-5) into power-of-two for use as bit flags
-constexpr uint64 OrdinalToEnum(uint64 ordinal)
-    { return 1ull << ordinal; }
+template <class EnumType, class OrdinalType = std::underlying_type_t<EnumType>>
+constexpr EnumType OrdinalToEnum(OrdinalType ordinal)
+    { return EnumType(1ull << ordinal); }
 
 template <class ContainerType, typename EnumType, typename ValueType, SizeType Sz>
 struct EnumMapIterator
 {
+    using OrdinalType = std::underlying_type_t<EnumType>;
+
     ContainerType   &ref;
     SizeType        index;
 
@@ -39,7 +44,8 @@ struct EnumMapIterator
     }
 
     EnumMapIterator(const EnumMapIterator &other)
-        : ref(other.ref), index(other.index)
+        : ref(other.ref),
+          index(other.index)
     {
     }
 
@@ -66,16 +72,14 @@ struct EnumMapIterator
 
     ~EnumMapIterator() = default;
 
-    HYP_FORCE_INLINE
-    EnumMapIterator &operator++()
+    HYP_FORCE_INLINE EnumMapIterator &operator++()
     {
         ++index;
 
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    EnumMapIterator operator++(int)
+    HYP_FORCE_INLINE EnumMapIterator operator++(int)
     {
         EnumMapIterator temp { *this };
 
@@ -84,31 +88,22 @@ struct EnumMapIterator
         return temp;
     }
 
-    HYP_FORCE_INLINE
-    bool operator==(const EnumMapIterator &other) const
+    HYP_FORCE_INLINE bool operator==(const EnumMapIterator &other) const
     {
         return index == other.index
             && std::addressof(ref) == std::addressof(other.ref);
     }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const EnumMapIterator &other) const
+    HYP_FORCE_INLINE bool operator!=(const EnumMapIterator &other) const
         { return !(*this == other); }
 
-    HYP_FORCE_INLINE
-    Pair<EnumType, ValueType &> operator*()
-    {
-        return { EnumType(OrdinalToEnum(index)), ref[index] };
-    }
+    HYP_FORCE_INLINE Pair<EnumType, ValueType &> operator*()
+        { return { OrdinalToEnum<EnumType, OrdinalType>(OrdinalType(index)), ref[index] }; }
 
-    HYP_FORCE_INLINE
-    Pair<EnumType, const ValueType &> operator*() const
-    {
-        return { EnumType(OrdinalToEnum(index)), ref[index] };
-    }
+    HYP_FORCE_INLINE Pair<EnumType, const ValueType &> operator*() const
+        { return { OrdinalToEnum<EnumType, OrdinalType>(OrdinalType(index)), ref[index] }; }
 
-    HYP_FORCE_INLINE
-    ValueType *operator->() const
+    HYP_FORCE_INLINE ValueType *operator->() const
         { return &ref[index]; }
 };
 
@@ -119,26 +114,27 @@ template <typename EnumType, typename ValueType, SizeType Sz>
 class EnumOptions : public FixedArray<ValueType, Sz>
 {
 public:
-    using Base              = FixedArray<ValueType, Sz>;
+    using Base = FixedArray<ValueType, Sz>;
 
-    using EnumOption_t      = EnumType;
-    using Ordinal_t         = uint64;
+    using OrdinalType = std::underlying_type_t<EnumType>;
     using KeyValuePairType  = KeyValuePair<EnumType, ValueType>;
 
-    using Iterator          = containers::detail::EnumMapIterator<Base, EnumType, ValueType, Sz>;
-    using ConstIterator     = containers::detail::EnumMapIterator<const Base, EnumType, const ValueType, Sz>;
+    using Iterator = containers::detail::EnumMapIterator<Base, EnumType, ValueType, Sz>;
+    using ConstIterator = containers::detail::EnumMapIterator<const Base, EnumType, const ValueType, Sz>;
+
+    static constexpr OrdinalType max_value = MathUtil::MaxSafeValue<EnumType>();
 
     // convert from attachment (2^x) into ordinal (0-5) for use as an array index
-    static constexpr uint64 EnumToOrdinal(uint64 option)
-        { return containers::detail::EnumToOrdinal(option); }
+    static constexpr OrdinalType EnumToOrdinal(EnumType value)
+        { return containers::detail::EnumToOrdinal<EnumType, OrdinalType>(value); }
 
     // convert from ordinal (0-5) into power-of-two for use as bit flags
-    static constexpr uint64 OrdinalToEnum(uint64 ordinal)
-        { return containers::detail::OrdinalToEnum(ordinal); }
+    static constexpr EnumType OrdinalToEnum(OrdinalType ordinal)
+        { return containers::detail::OrdinalToEnum<EnumType, OrdinalType>(ordinal); }
 
     static_assert(Sz != 0, "EnumOptions cannot have size of zero");
     static_assert(
-        OrdinalToEnum(Sz - 1) < MathUtil::MaxSafeValue<EnumType>(),
+        OrdinalType(OrdinalToEnum(Sz - 1)) < max_value,
         "Size too large; enum conversion would cause overflow. "
         "Try changing the enum's underlying type to a larger sized data type?"
     );
@@ -180,10 +176,10 @@ public:
     ~EnumOptions() = default;
 
     constexpr KeyValuePairType KeyValueAt(SizeType index) const
-        { return KeyValuePairType { EnumOption_t(OrdinalToEnum(index)), Base::m_values[index] }; }
+        { return KeyValuePairType { EnumType(OrdinalToEnum(index)), Base::m_values[index] }; }
 
     constexpr EnumType KeyAt(SizeType index) const
-        { return EnumOption_t(OrdinalToEnum(index)); }
+        { return EnumType(OrdinalToEnum(index)); }
 
     constexpr ValueType &ValueAt(SizeType index)
         { return Base::operator[](index); }
@@ -191,21 +187,21 @@ public:
     constexpr const ValueType &ValueAt(SizeType index) const
         { return Base::operator[](index); }
 
-    constexpr ValueType &Get(EnumOption_t enum_key)
+    constexpr ValueType &Get(EnumType enum_key)
         { return Base::m_values[EnumToOrdinal(enum_key)]; }
 
-    constexpr const ValueType &Get(EnumOption_t enum_key) const
+    constexpr const ValueType &Get(EnumType enum_key) const
         { return Base::m_values[EnumToOrdinal(enum_key)]; }
 
-    constexpr ValueType &operator[](EnumOption_t enum_key)
+    constexpr ValueType &operator[](EnumType enum_key)
         { return Base::m_values[EnumToOrdinal(enum_key)]; }
 
-    constexpr const ValueType &operator[](EnumOption_t enum_key) const
+    constexpr const ValueType &operator[](EnumType enum_key) const
         { return Base::m_values[EnumToOrdinal(enum_key)]; }
 
-    EnumOptions &Set(EnumOption_t enum_key, ValueType &&value)
+    EnumOptions &Set(EnumType enum_key, ValueType &&value)
     {
-        Ordinal_t ord = EnumToOrdinal(enum_key);
+        OrdinalType ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < Sz);
 
         Base::m_values[ord] = std::move(value);
@@ -213,9 +209,9 @@ public:
         return *this;
     }
 
-    EnumOptions &Set(EnumOption_t enum_key, const ValueType &value)
+    EnumOptions &Set(EnumType enum_key, const ValueType &value)
     {
-        Ordinal_t ord = EnumToOrdinal(enum_key);
+        OrdinalType ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < Size());
 
         Base::m_values[ord] = value;
@@ -223,9 +219,9 @@ public:
         return *this;
     }
 
-    EnumOptions &Unset(EnumOption_t enum_key)
+    EnumOptions &Unset(EnumType enum_key)
     {
-        Ordinal_t ord = EnumToOrdinal(enum_key);
+        OrdinalType ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < Sz);
 
         Base::m_values[ord] = { };

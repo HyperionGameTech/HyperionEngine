@@ -129,8 +129,9 @@ UIObject::UIObject(UIObjectType type)
       m_focus_state(UIObjectFocusState::NONE),
       m_is_visible(true),
       m_computed_visibility(true),
-      m_computed_depth(-1),
+      m_computed_depth(0),
       m_accepts_focus(true),
+      m_receives_update(true),
       m_data_source_element_uuid(UUID::Invalid()),
       m_affects_parent_size(true),
       m_needs_repaint(true),
@@ -198,6 +199,7 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
+    UpdateComputedDepth();
 
     SetNeedsRepaintFlag(true);
 
@@ -210,15 +212,19 @@ void UIObject::Update(GameCounter::TickUnit delta)
 
     AssertThrow(m_is_init);
 
-    Update_Internal(delta);
+    if (ReceivesUpdate()) {
+        Update_Internal(delta);
+    }
 
     // update in breadth-first order
     ForEachChildUIObject([this, delta](UIObject *child)
     {
-        child->Update_Internal(delta);
+        if (child->ReceivesUpdate()) {
+            child->Update_Internal(delta);
+        }
 
         return UIObjectIterationResult::CONTINUE;
-    });
+    }, /* deep */ true);
 }
 
 void UIObject::Update_Internal(GameCounter::TickUnit delta)
@@ -274,9 +280,8 @@ void UIObject::OnAttached_Internal(UIObject *parent)
         UpdateSize();
         UpdatePosition();
         UpdateMeshData();
+        UpdateComputedVisibility();
         UpdateComputedDepth();
-
-        SetNeedsRepaintFlag();
     }
 
     OnAttached();
@@ -294,9 +299,8 @@ void UIObject::OnRemoved_Internal()
         UpdateSize();
         UpdatePosition();
         UpdateMeshData();
+        UpdateComputedVisibility();
         UpdateComputedDepth();
-
-        SetNeedsRepaintFlag();
     }
 
     OnRemoved();
@@ -306,9 +310,9 @@ void UIObject::SetStage(UIStage *stage)
 {
     HYP_SCOPE;
 
-    m_stage = stage;
-
-    SetAllChildUIObjectsStage(stage);
+    if (stage != m_stage) {
+        SetStage_Internal(stage);
+    }
 }
 
 Name UIObject::GetName() const
@@ -333,7 +337,6 @@ void UIObject::SetPosition(Vec2i position)
     m_position = position;
 
     UpdatePosition();
-    UpdateMeshData();
 }
 
 Vec2f UIObject::GetOffsetPosition() const
@@ -378,14 +381,10 @@ void UIObject::UpdatePosition(bool update_children)
 
     const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
 
-    float z_value = 1.0f;
+    float z_value = float(GetComputedDepth());
 
-    if (m_depth != 0) {
-        z_value = float(m_depth);
-
-        if (Node *parent_node = node->GetParent()) {
-            z_value -= parent_node->GetWorldTranslation().z;
-        }
+    if (Node *parent_node = node->GetParent()) {
+        z_value -= parent_node->GetWorldTranslation().z;
     }
 
     // node->UnlockTransform();
@@ -407,7 +406,8 @@ void UIObject::UpdatePosition(bool update_children)
 
     // node->LockTransform();
 
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
 UIObjectSize UIObject::GetSize() const
@@ -427,7 +427,6 @@ void UIObject::SetSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 UIObjectSize UIObject::GetInnerSize() const
@@ -447,7 +446,6 @@ void UIObject::SetInnerSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 UIObjectSize UIObject::GetMaxSize() const
@@ -467,7 +465,6 @@ void UIObject::SetMaxSize(UIObjectSize size)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 void UIObject::UpdateSize(bool update_children)
@@ -484,13 +481,15 @@ void UIObject::UpdateSize(bool update_children)
     
     UIObject *parent = nullptr;
 
-    if ((parent = GetParentUIObject()) && ((parent->GetSize().GetAllFlags() | parent->GetInnerSize().GetAllFlags() | parent->GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO)) {
+    if ((parent = GetParentUIObject()) && parent->UseAutoSizing()) {
         parent->UpdateSize(/* update_children */ true);
 
         return;
     }
 
     UpdateSize_Internal(update_children);
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
 void UIObject::UpdateSize_Internal(bool update_children)
@@ -582,17 +581,13 @@ int UIObject::GetComputedDepth() const
 void UIObject::UpdateComputedDepth(bool update_children)
 {
     HYP_SCOPE;
+    
+    const NodeProxy &node = GetNode();
 
-    int computed_depth = m_depth;
+    int computed_depth = int(node.IsValid() ? node->CalculateDepth() : 0) + m_depth;
 
     if (const UIObject *parent = GetParentUIObject()) {
-        computed_depth += parent->GetComputedDepth();
-    }
-
-    if (m_depth == 0) {
-        if (const NodeProxy &node = GetNode()) {
-            computed_depth += MathUtil::Clamp(int(node->CalculateDepth()), UIStage::min_depth, UIStage::max_depth + 1);
-        }
+        computed_depth += parent->GetDepth();
     }
 
     m_computed_depth = computed_depth;
@@ -619,6 +614,7 @@ void UIObject::SetDepth(int depth)
     m_depth = MathUtil::Clamp(depth, UIStage::min_depth, UIStage::max_depth + 1);
 
     UpdatePosition();
+    UpdateComputedDepth();
 }
 
 void UIObject::SetAcceptsFocus(bool accepts_focus)
@@ -693,7 +689,7 @@ void UIObject::SetBorderRadius(uint32 border_radius)
 
     m_border_radius = border_radius;
 
-    UpdateMeshData();
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
 void UIObject::SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags)
@@ -702,7 +698,7 @@ void UIObject::SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags)
 
     m_border_flags = border_flags;
 
-    UpdateMeshData();
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
 UIObjectAlignment UIObject::GetOriginAlignment() const
@@ -745,7 +741,6 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 void UIObject::SetPadding(Vec2i padding)
@@ -760,7 +755,6 @@ void UIObject::SetPadding(Vec2i padding)
 
     UpdateSize();
     UpdatePosition();
-    UpdateMeshData();
 }
 
 void UIObject::SetBackgroundColor(const Color &background_color)
@@ -879,7 +873,10 @@ void UIObject::UpdateComputedVisibility(bool update_children)
 
     bool computed_visibility = m_computed_visibility;
 
-    if (IsVisible()) {
+    // If the object is visible and has a stage (or if this is a UIStage), consider it
+    const bool has_stage = m_stage != nullptr || InstanceClass() == UIStage::Class();
+
+    if (IsVisible() && has_stage) {
         if (UIObject *parent_ui_object = GetParentUIObject()) {
             if (parent_ui_object->m_computed_visibility) {
                 const Vec2i parent_size = parent_ui_object->GetActualSize();
@@ -1002,7 +999,7 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    m_child_ui_objects.PushBack(ui_object->RefCountedPtrFromThis());
+    m_child_ui_objects.PushBack(ui_object);
     ui_object->OnAttached_Internal(this);
 }
 
@@ -1810,7 +1807,7 @@ void UIObject::UpdateMaterial(bool update_children)
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes) {// || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
         HYP_LOG(UI, LogLevel::DEBUG, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
@@ -2261,10 +2258,8 @@ void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
 void UIObject::SetStage_Internal(UIStage *stage)
 {
     HYP_SCOPE;
-    
-    m_stage = stage;
 
-    SetNeedsRepaintFlag();
+    m_stage = stage;
 
     OnFontAtlasUpdate_Internal();
     OnTextSizeUpdate_Internal();

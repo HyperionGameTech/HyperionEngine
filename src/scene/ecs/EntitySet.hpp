@@ -6,9 +6,12 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
+
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/ValueStorage.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <scene/Entity.hpp>
@@ -20,10 +23,10 @@
 
 namespace hyperion {
 
-template <class ... Components>
+template <class... Components>
 class EntitySet;
 
-template <class ... Components>
+template <class... Components>
 struct EntitySetIterator
 {
     EntitySet<Components...>    &set;
@@ -53,7 +56,7 @@ struct EntitySetIterator
     HYP_FORCE_INLINE bool operator!=(const EntitySetIterator &other) const
         { return !(*this == other); }
 
-    Tuple< ID<Entity>, Components &... > operator*()
+    Tuple<ID<Entity>, Components &...> operator*()
     {
         const typename EntitySet<Components...>::Element &element = set.m_elements[index];
 
@@ -89,7 +92,7 @@ struct EntitySetView;
  *
  *  \tparam Components The components that the entities in this set have.
  */
-template <class ... Components>
+template <class... Components>
 class EntitySet : public EntitySetBase
 {
 public:
@@ -215,22 +218,6 @@ public:
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.GetEntityData(entity).template HasComponents<Components...>();
-    }
-
-    /*! \brief Iterates over the entities in this EntitySet, in parallel.
-     *
-     *  \param task_system The task system to use for parallelization.
-     *  \param lambda The lambda to call for each entity.
-     */
-    template <class TaskSystem, class Lambda>
-    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
-    {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        task_system.ParallelForEach(m_elements.Size(), [this, &lambda](uint index, uint)
-        {
-            lambda(Iterator(*this, index));
-        });
     }
     
     /*! \brief Get a scoped view of this EntitySet. The view will have its access determined by \ref{data_access_flags}.

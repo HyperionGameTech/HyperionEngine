@@ -652,8 +652,6 @@ void UIText::Init()
     HYP_SCOPE;
 
     UIObject::Init();
-
-    UpdateRenderData();
 }
 
 void UIText::SetText(const String &text)
@@ -666,8 +664,15 @@ void UIText::SetText(const String &text)
         return;
     }
 
-    UpdateSize();
-    UpdateRenderData();
+    SetNeedsRepaintFlag(true);
+
+    {
+        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+
+        UpdateSize();
+    }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
 const RC<FontAtlas> &UIText::GetFontAtlasOrDefault() const
@@ -695,8 +700,15 @@ void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
         return;
     }
 
-    UpdateSize();
-    UpdateRenderData();
+    SetNeedsRepaintFlag(true);
+
+    {
+        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+
+        UpdateSize();
+    }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
 void UIText::UpdateTextAABB()
@@ -712,13 +724,17 @@ void UIText::UpdateTextAABB()
     } else {
         HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas for UIText {}", GetName());
     }
-
-    SetNeedsRepaintFlag();
 }
 
 void UIText::UpdateRenderData()
 {
     HYP_SCOPE;
+
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA) {
+        return;
+    }
+
+    m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA | UIObjectUpdateType::UPDATE_CHILDREN_TEXT_RENDER_DATA);
 
     // Only update render data if computed visibility is true (visibile)
     // When this changes to be true, UpdateRenderData will be called - no need to update it if we are not visible
@@ -726,27 +742,37 @@ void UIText::UpdateRenderData()
         return;
     }
 
+    HYP_LOG(UI, LogLevel::DEBUG, "Update render data for text '{}'", GetText());
+
     const NodeProxy &node = GetNode();
 
-    const Vec2u size = Vec2u(MathUtil::Max(GetActualSize(), Vec2i::One()));
+    const Vec2i size = GetActualSize();
 
-    if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size) {
-        m_texture = CreateObject<Texture>(TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RGBA8,
-            Vec3u { uint32(size.x * GetWindowDPIFactor()), uint32(size.y * GetWindowDPIFactor()), 1 },
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        });
-        
-        InitObject(m_texture);
+    if (size.x > 0 && size.y > 0) {
+        const Vec2u size_clamped = Vec2u(MathUtil::Max(size, Vec2i::One()));
 
-        UpdateMaterial(false);
-        UpdateMeshData(false);
+        if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size_clamped) {
+            m_texture = CreateObject<Texture>(TextureDesc {
+                ImageType::TEXTURE_TYPE_2D,
+                InternalFormat::RGBA8,
+                Vec3u { uint32(size_clamped.x * GetWindowDPIFactor()), uint32(size_clamped.y * GetWindowDPIFactor()), 1 },
+                FilterMode::TEXTURE_FILTER_NEAREST,
+                FilterMode::TEXTURE_FILTER_NEAREST,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            });
+            
+            InitObject(m_texture);
+
+            UpdateMaterial(false);
+            UpdateMeshData(false);
+        }
+
+        SetNeedsRepaintFlag(true);
+    } else {
+        m_texture.Reset();
+
+        SetNeedsRepaintFlag(false);
     }
-
-    SetNeedsRepaintFlag();
 }
 
 bool UIText::Repaint_Internal()
@@ -792,10 +818,8 @@ bool UIText::Repaint_Internal()
     if (font_atlas != nullptr && font_atlas_texture != nullptr) {
         PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, GetParentBounds(), GetTextSize(), m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
     }
-
-    UITextRenderer text_renderer { Vec2u { m_texture->GetExtent().x, m_texture->GetExtent().y } };
-
-    PUSH_RENDER_COMMAND(RepaintUIText, m_render_data, m_texture, std::move(text_renderer));
+    
+    PUSH_RENDER_COMMAND(RepaintUIText, m_render_data, m_texture, UITextRenderer(m_texture->GetExtent().GetXY()));
 
     return true;
 }
@@ -819,8 +843,21 @@ Material::TextureSet UIText::GetMaterialTextures() const
     }
 
     return {
-        { Material::MATERIAL_TEXTURE_ALBEDO_MAP, m_texture }
+        { MaterialTextureKey::ALBEDO_MAP, m_texture }
     };
+}
+
+void UIText::Update_Internal(GameCounter::TickUnit delta)
+{
+    HYP_SCOPE;
+
+    if (m_deferred_updates) {
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA) {
+            UpdateRenderData();
+        }
+    }
+
+    UIObject::Update_Internal(delta);
 }
 
 void UIText::UpdateSize_Internal(bool update_children)
@@ -849,7 +886,7 @@ void UIText::OnComputedVisibilityChange_Internal()
     UIObject::OnComputedVisibilityChange_Internal();
 
     if (GetComputedVisibility()) {
-        UpdateRenderData();
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
     } else {
         HYP_LOG(UI, LogLevel::DEBUG, "UIText: Disposing texture for non-visible text \"{}\"", m_text);
 
@@ -863,8 +900,13 @@ void UIText::OnFontAtlasUpdate_Internal()
 
     UIObject::OnFontAtlasUpdate_Internal();
 
-    UpdateSize();
-    UpdateRenderData();
+    {
+        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+
+        UpdateSize();
+    }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
 void UIText::OnTextSizeUpdate_Internal()
@@ -873,8 +915,13 @@ void UIText::OnTextSizeUpdate_Internal()
 
     UIObject::OnTextSizeUpdate_Internal();
 
-    UpdateSize();
-    UpdateRenderData();
+    {
+        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+
+        UpdateSize();
+    }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
 Vec2i UIText::GetParentBounds() const

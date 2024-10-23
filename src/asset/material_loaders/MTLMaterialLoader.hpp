@@ -20,9 +20,9 @@ public:
     {
         struct TextureMapping
         {
-            Material::TextureKey    key;
-            bool                    srgb = false;
-            FilterMode              filter_mode = FilterMode::TEXTURE_FILTER_LINEAR;
+            MaterialTextureKey  key;
+            bool                srgb = false;
+            FilterMode          filter_mode = FilterMode::TEXTURE_FILTER_LINEAR;
         };
         
         struct TextureDef

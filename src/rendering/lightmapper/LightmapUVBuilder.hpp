@@ -20,9 +20,9 @@
 
 namespace hyperion {
 
-struct LightmapEntity
+struct LightmapElement
 {
-    ID<Entity>          entity_id;
+    ID<Entity>          entity;
     Handle<Mesh>        mesh;
     Handle<Material>    material;
     Transform           transform;
@@ -31,7 +31,7 @@ struct LightmapEntity
 
 struct LightmapUVBuilderParams
 {
-    Span<const LightmapEntity>  elements;
+    Span<const LightmapElement> elements;
 };
 
 struct LightmapMeshData
