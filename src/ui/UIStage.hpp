@@ -239,7 +239,8 @@ private:
         RC<UIObject> ui_object = MakeRefCountedPtr<T>();
         AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
 
-        ui_object->SetStage(this);
+        ui_object->m_stage = this;
+        
         ui_object->SetNodeProxy(node_proxy);
 
         ui_object->SetName(name);
@@ -248,6 +249,7 @@ private:
 
         if (init) {
             ui_object->Init();
+            ui_object->SetStage_Internal(this);
         }
 
         return ui_object;

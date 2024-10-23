@@ -11,24 +11,17 @@
 
 namespace hyperion {
 
-class ComponentFactoryBase
+class IComponentFactory
 {
 public:
-    virtual ~ComponentFactoryBase() = default;
-
-    virtual HypData CreateComponent() = 0;
+    virtual ~IComponentFactory() = default;
 };
 
 template <class Component>
-class ComponentFactory : public ComponentFactoryBase
+class ComponentFactory : public IComponentFactory
 {
 public:
-    virtual ~ComponentFactory() = default;
-
-    virtual HypData CreateComponent() override
-    {
-        return HypData(Component { });
-    }
+    virtual ~ComponentFactory() override = default;
 };
 
 } // namespace hyperion

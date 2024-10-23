@@ -64,7 +64,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
     m_mesh_data.Resize(params.elements.Size());
 
     for (SizeType i = 0; i < params.elements.Size(); i++) {
-        const LightmapEntity &element = params.elements[i];
+        const LightmapElement &element = params.elements[i];
 
         LightmapMeshData &lightmap_mesh_data = m_mesh_data[i];
 
@@ -246,7 +246,7 @@ LightmapUVBuilder::Result LightmapUVBuilder::Build()
 
     for (SizeType mesh_index = 0; mesh_index < m_mesh_data.Size(); mesh_index++) {
         const LightmapMeshData &lightmap_mesh_data = m_mesh_data[mesh_index];
-        const LightmapEntity &element = m_params.elements[mesh_index];
+        const LightmapElement &element = m_params.elements[mesh_index];
 
         const Handle<Mesh> &mesh = element.mesh;
         AssertThrow(mesh.IsValid());

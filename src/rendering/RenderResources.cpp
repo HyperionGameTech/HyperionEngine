@@ -70,7 +70,10 @@ void RenderResourcesBase::SetNeedsUpdate()
                 while (render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE) != 0) {
                     // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Updating render resources {}", (void *)this);
 
-                    render_resources->Update();
+                    // Only update if m_ref_count is not zero (data would not be initialized otherwise)
+                    if (render_resources->m_ref_count != 0) {
+                        render_resources->Update();
+                    }
 
                     render_resources->m_update_counter.Set(0, MemoryOrder::RELEASE);
                 }

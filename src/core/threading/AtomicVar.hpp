@@ -23,8 +23,7 @@ enum class MemoryOrder
 namespace threading {
 namespace detail {
 
-HYP_FORCE_INLINE
-static constexpr std::memory_order ToCxxMemoryOrder(MemoryOrder order)
+HYP_FORCE_INLINE static constexpr std::memory_order ToCxxMemoryOrder(MemoryOrder order)
 {
     switch (order) {
     case MemoryOrder::RELAXED:

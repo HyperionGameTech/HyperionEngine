@@ -168,7 +168,7 @@ public:
                 if (texture_index < std::size(texture_keys)) {
                     if (Optional<Handle<Texture>> texture_opt = subobject.m_deserialized_object->TryGet<Handle<Texture>>()) {
                         textures.Set(
-                            Material::TextureKey(texture_keys[texture_index]), 
+                            MaterialTextureKey(texture_keys[texture_index]), 
                             *texture_opt
                         );
 

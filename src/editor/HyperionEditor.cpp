@@ -548,7 +548,6 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
 
-
 class EntityUIDataSourceElementFactory : public UIDataSourceElementFactory<ID<Entity>, EntityUIDataSourceElementFactory>
 {
 public:
