@@ -269,9 +269,7 @@ enum class UIObjectUpdateSizeFlags : uint32
     INNER_SIZE          = 0x2,
     OUTER_SIZE          = 0x4,
 
-    CLAMP_OUTER_SIZE    = 0x8,
-
-    DEFAULT             = MAX_SIZE | INNER_SIZE | OUTER_SIZE | CLAMP_OUTER_SIZE
+    DEFAULT             = MAX_SIZE | INNER_SIZE | OUTER_SIZE
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateSizeFlags)
@@ -395,6 +393,13 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE Vec2i GetActualSize() const
         { return m_actual_size; }
+
+    /*! \brief Get the computed size (in pixels) of the UIObject, clamped within the parent's boundary.
+     *  The actual size of the UI object is calculated based on the size of the parent object and the size of the object itself.
+     *  \return The computed size of the UI object, clamped within the parent's boundary. */
+    HYP_METHOD()
+    HYP_FORCE_INLINE Vec2i GetActualSizeClamped() const
+        { return m_actual_size_clamped; }
 
     /*! \brief Get the computed inner size (in pixels) of the UI object.
      *  \return The computed inner size of the UI object */
@@ -596,11 +601,11 @@ public:
 
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
-    RC<UIObject> GetParentUIObject() const;
+    UIObject *GetParentUIObject() const;
 
     /*! \brief Get the closest parent UIObject with UIObjectType \ref{type} if one exists.
      *  \returns A pointer to the closest parent UIObject with UIObjectType \ref{type} or nullptr if none exists. */ 
-    RC<UIObject> GetClosestParentUIObject(UIObjectType type) const;
+    UIObject *GetClosestParentUIObject(UIObjectType type) const;
 
     template <class T>
     RC<T> GetClosestParentUIObject() const
@@ -683,6 +688,16 @@ public:
     virtual Scene *GetScene() const;
 
     const Handle<Material> &GetMaterial() const;
+
+    /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space) */
+    HYP_METHOD()
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
+        { return m_aabb; }
+
+    /*! \brief Get the AABB of the UIObject (calculated with absolute positioning, or world space), clamped within the parent's boundary. */
+    HYP_METHOD()
+    HYP_FORCE_INLINE const BoundingBox &GetAABBClamped() const
+        { return m_aabb_clamped; }
 
     BoundingBox GetWorldAABB() const;
     BoundingBox GetLocalAABB() const;
@@ -843,8 +858,6 @@ protected:
     virtual Material::ParameterTable GetMaterialParameters() const;
     virtual Material::TextureSet GetMaterialTextures() const;
 
-    void SetAABB(const BoundingBox &aabb);
-
     Vec2i GetParentScrollOffset() const;
 
     /*! \brief Add a DelegateHandler to be removed when the object is destructed */
@@ -880,6 +893,7 @@ protected:
 
     UIObjectSize                    m_size;
     Vec2i                           m_actual_size;
+    Vec2i                           m_actual_size_clamped;
 
     UIObjectSize                    m_inner_size;
     Vec2i                           m_actual_inner_size;
@@ -888,6 +902,7 @@ protected:
     Vec2i                           m_actual_max_size;
 
     BoundingBox                     m_aabb;
+    BoundingBox                     m_aabb_clamped;
 
     BlendVar<Vec2f>                 m_scroll_offset;
 
@@ -943,6 +958,8 @@ private:
     void SetAllChildUIObjectsStage(UIStage *stage);
 
     void SetEntityAABB(const BoundingBox &aabb);
+
+    void UpdateClampedSize();
 
     Handle<Material> CreateMaterial() const;
 

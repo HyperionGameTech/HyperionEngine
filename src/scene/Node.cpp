@@ -713,7 +713,7 @@ BoundingBox Node::GetLocalAABBExcludingSelf() const
         }
 
         if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-            aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+            aabb = aabb.Union(child->GetLocalAABB() * child->GetLocalTransform());
         }
     }
 
@@ -730,7 +730,7 @@ BoundingBox Node::GetLocalAABB() const
         }
 
         if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-            aabb.Extend(child->GetLocalAABB() * child->GetLocalTransform());
+            aabb = aabb.Union(child->GetLocalAABB() * child->GetLocalTransform());
         }
     }
 
@@ -748,7 +748,7 @@ BoundingBox Node::GetWorldAABB() const
         }
 
         if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-            aabb.Extend(child->GetWorldAABB());
+            aabb = aabb.Union(child->GetWorldAABB());
         }
     }
 
