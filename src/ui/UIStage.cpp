@@ -228,10 +228,6 @@ void UIStage::Init()
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
 
-    m_scene->GetEntityManager()->AddComponent<UIComponent>(m_scene->GetRoot()->GetEntity(), UIComponent { this });
-
-    m_scene->GetRoot()->LockTransform();
-
     SetNodeProxy(m_scene->GetRoot());
 
     UIObject::Init();
@@ -344,7 +340,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
             continue;
         }
 
-        BoundingBox aabb(bounding_box_component.world_aabb);
+        BoundingBox aabb = ui_object->GetAABBClamped();
         aabb.min.z = -1.0f;
         aabb.max.z = 1.0f;
      
@@ -807,7 +803,11 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 break;
             }
 
-            ui_object = ui_object->GetParentUIObject();
+            if (UIObject *parent = ui_object->GetParentUIObject()) {
+                ui_object = parent->RefCountedPtrFromThis();
+            } else {
+                break;
+            }
         }
 
         break;

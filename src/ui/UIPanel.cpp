@@ -17,6 +17,8 @@ UIPanel::UIPanel(UIObjectType type)
 
     OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
     {
+        // @FIXME Make work with Cropped AABB
+
         if (GetActualInnerSize().x <= GetActualSize().x && GetActualInnerSize().y <= GetActualSize().y) {
             // allow parent to scroll
             return UIEventHandlerResult::OK;

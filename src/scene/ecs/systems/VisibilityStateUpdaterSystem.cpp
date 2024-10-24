@@ -91,7 +91,6 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         // if entity is not in the octree, try to insert it
         if (visibility_state_component.octant_id == OctantID::Invalid()) {
-
             if (!bounding_box_component.world_aabb.IsValid()) {
                 visibility_state_component.visibility_state = nullptr;
 

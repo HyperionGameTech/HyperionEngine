@@ -197,11 +197,20 @@ BoundingBox &BoundingBox::Extend(const Vec3f &vec)
     return *this;
 }
 
-BoundingBox &BoundingBox::Extend(const BoundingBox &bb)
+BoundingBox BoundingBox::Union(const BoundingBox &other) const
 {
-    min = Vec3f::Min(min, bb.min);
-    max = Vec3f::Max(max, bb.max);
-    return *this;
+    return BoundingBox {
+        Vec3f::Min(min, other.min),
+        Vec3f::Max(max, other.max)
+    };
+}
+
+BoundingBox BoundingBox::Intersection(const BoundingBox &other) const
+{
+    return BoundingBox {
+        Vec3f::Max(min, other.min),
+        Vec3f::Min(max, other.max)
+    };
 }
 
 bool BoundingBox::Overlaps(const BoundingBox &other) const

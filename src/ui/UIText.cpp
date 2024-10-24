@@ -496,7 +496,7 @@ static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &
             character_aabb.Extend(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + iter.cell_dimensions.y, 0.0f));
         }
 
-        aabb.Extend(character_aabb);
+        aabb = aabb.Union(character_aabb);
     });
 
     return aabb;

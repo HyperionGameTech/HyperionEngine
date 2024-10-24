@@ -56,9 +56,9 @@ HYP_MAKE_ENUM_FLAGS(UIObjectFlags)
 
 struct UIObjectMeshData
 {
-    uint32 focus_state = uint32(UIObjectFocusState::NONE);
     uint32 width = 0u;
     uint32 height = 0u;
+    uint32 clamped_width_height_diffs = 0u;
     uint32 additional_data = 0u;
 };
 
@@ -128,7 +128,7 @@ UIObject::UIObject(UIObjectType type)
       m_border_flags(UIObjectBorderFlags::NONE),
       m_focus_state(UIObjectFocusState::NONE),
       m_is_visible(true),
-      m_computed_visibility(true),
+      m_computed_visibility(false),
       m_computed_depth(0),
       m_accepts_focus(true),
       m_receives_update(true),
@@ -199,6 +199,7 @@ void UIObject::Init()
     UpdateSize();
     UpdatePosition();
     UpdateMeshData();
+    UpdateComputedVisibility();
     UpdateComputedDepth();
 
     SetNeedsRepaintFlag(true);
@@ -387,8 +388,6 @@ void UIObject::UpdatePosition(bool update_children)
         z_value -= parent_node->GetWorldTranslation().z;
     }
 
-    // node->UnlockTransform();
-
     node->SetLocalTranslation(Vec3f {
         float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
         float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
@@ -489,6 +488,7 @@ void UIObject::UpdateSize(bool update_children)
 
     UpdateSize_Internal(update_children);
 
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }
 
@@ -497,7 +497,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_SIZE | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_SIZE : UIObjectUpdateType::NONE));
 
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
-    SetAABB(CalculateAABB());
+    SetEntityAABB(CalculateAABB());
 
     Array<UIObject *> deferred_children;
 
@@ -521,8 +521,19 @@ void UIObject::UpdateSize_Internal(bool update_children)
 
     if (needs_update_after_children) {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
-        SetAABB(CalculateAABB());
+        SetEntityAABB(CalculateAABB());
     }
+
+    // const Vec2i size = GetActualSize();
+    // const Vec2f position = GetAbsolutePosition();
+
+    // m_cropped_aabb = { Vec3f { position.x, position.y, 0.0f }, Vec3f { position.x + float(size.x), position.y + float(size.y), 0.0f } };
+
+    // if (UIObject *parent = GetParentUIObject()) {
+    //     m_cropped_aabb = m_cropped_aabb.Intersection(parent->m_cropped_aabb);
+    // }
+
+    // SetEntityAABB(m_cropped_aabb);
 
     // FILL needs to update the size of the children
     // after the parent has updated its size
@@ -530,7 +541,54 @@ void UIObject::UpdateSize_Internal(bool update_children)
         child->UpdateSize_Internal(/* update_children */ true);
     }
 
+    // {
+    //     Vec2i parent_size = { 0, 0 };
+
+    //     if (UIObject *parent_ui_object = GetParentUIObject()) {
+    //         parent_size = parent_ui_object->GetActualSize();
+    //     }
+
+    //     const Vec2i position = GetPosition();
+
+    //     // clamp actual size to max size (if set for either x or y axis)
+    //     Vec2i max_size = Vec2i {
+    //         MathUtil::Min(m_actual_max_size.x != 0 ? m_actual_max_size.x : INT32_MAX, MathUtil::Max(parent_size.x - position.x, 0)),
+    //         MathUtil::Min(m_actual_max_size.y != 0 ? m_actual_max_size.y : INT32_MAX, MathUtil::Max(parent_size.y - position.y, 0))
+    //     };
+
+    //     max_size = MathUtil::Max(max_size, Vec2i::Zero());
+
+    //     const Vec3f min = Vec3f::Zero();
+    //     const Vec3f max = Vec3f {
+    //         float(max_size.x != 0 ? MathUtil::Min(m_actual_size.x, max_size.x) : m_actual_size.x),
+    //         float(max_size.y != 0 ? MathUtil::Min(m_actual_size.y, max_size.y) : m_actual_size.y),
+    //         0.0f
+    //     };
+
+    //     if (Scene *scene = GetScene()) {
+    //         BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
+    //         bounding_box_component.local_aabb = BoundingBox { min, max };
+    //     }
+
+    //     // SetEntityAABB(BoundingBox { min, max });
+    // }
+
+
     SetNeedsRepaintFlag();
+}
+
+void UIObject::UpdateClampedSize()
+{
+    const Vec2i size = GetActualSize();
+    const Vec2f position = GetAbsolutePosition();
+
+    m_aabb_clamped = { Vec3f { position.x, position.y, 0.0f }, Vec3f { position.x + float(size.x), position.y + float(size.y), 0.0f } };
+
+    if (UIObject *parent = GetParentUIObject()) {
+        m_aabb_clamped = m_aabb_clamped.Intersection(parent->m_aabb_clamped);
+    }
+
+    m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());
 }
 
 Vec2i UIObject::GetScrollOffset() const
@@ -860,8 +918,6 @@ void UIObject::SetIsVisible(bool is_visible)
     if (IsInit()) {
         // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
         UpdateSize();
-    } else {
-        SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
     }
 }
 
@@ -869,7 +925,26 @@ void UIObject::UpdateComputedVisibility(bool update_children)
 {
     HYP_SCOPE;
 
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY) {
+        return;
+    }
+
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY : UIObjectUpdateType::NONE));
+
+    UpdateClampedSize();
+
+    // if (UIObject *parent_ui_object = GetParentUIObject()) {
+    //     // clamp actual size to max size (if set for either x or y axis)
+    //     const Vec2i clamp_size = Vec2i {
+    //         MathUtil::Max(parent_ui_object->GetActualSize().x - GetPosition().x, 0),
+    //         MathUtil::Max(parent_ui_object->GetActualSize().y - GetPosition().y, 0)
+    //     };
+        
+    //     m_actual_size_clamped.x = MathUtil::Min(m_actual_size.x, clamp_size.x);
+    //     m_actual_size_clamped.y = MathUtil::Min(m_actual_size.y, clamp_size.y);
+    // } else {
+    //     m_actual_size_clamped = m_actual_size;
+    // }
 
     bool computed_visibility = m_computed_visibility;
 
@@ -877,27 +952,27 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     const bool has_stage = m_stage != nullptr || InstanceClass() == UIStage::Class();
 
     if (IsVisible() && has_stage) {
-        if (UIObject *parent_ui_object = GetParentUIObject()) {
-            if (parent_ui_object->m_computed_visibility) {
-                const Vec2i parent_size = parent_ui_object->GetActualSize();
-                const Vec2f parent_position = parent_ui_object->GetAbsolutePosition();
+        if (UIObject *parent_ui_object = GetParentUIObject(); parent_ui_object && parent_ui_object->GetComputedVisibility()) {
+            // const Vec2i parent_size = parent_ui_object->GetActualSize();
+            // const Vec2f parent_position = parent_ui_object->GetAbsolutePosition();
 
-                const Vec2i self_size = GetActualSize();
-                const Vec2f self_position = GetAbsolutePosition();
+            // const Vec2i self_size = m_actual_size_clamped;//GetActualSize();
+            // const Vec2f self_position = GetAbsolutePosition();
 
-                const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
-                const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
+            // const BoundingBox parent_aabb { Vec3f { parent_position.x, parent_position.y, 0.0f }, Vec3f { parent_position.x + float(parent_size.x), parent_position.y + float(parent_size.y), 0.0f } };
+            // const BoundingBox self_aabb { Vec3f { self_position.x, self_position.y, 0.0f }, Vec3f { self_position.x + float(self_size.x), self_position.y + float(self_size.y), 0.0f } };
 
-                computed_visibility = parent_aabb.Overlaps(self_aabb);
-            } else {
-                computed_visibility = false;
-            }
+            // computed_visibility = parent_aabb.Overlaps(self_aabb);
+
+            computed_visibility = m_aabb_clamped.IsValid() && parent_ui_object->m_aabb_clamped.Overlaps(m_aabb_clamped);
         } else {
             computed_visibility = true;
         }
     } else {
         computed_visibility = false;
     }
+
+    // SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 
     if (m_computed_visibility != computed_visibility) {
         m_computed_visibility = computed_visibility;
@@ -1220,43 +1295,28 @@ BoundingBox UIObject::GetLocalAABB() const
     return BoundingBox::Empty();
 }
 
-void UIObject::SetAABB(const BoundingBox &aabb)
-{
-    m_aabb = aabb;
-
-    SetEntityAABB(m_aabb);
-}
-
 void UIObject::SetEntityAABB(const BoundingBox &aabb)
 {
     HYP_SCOPE;
 
-    const Scene *scene = GetScene();
+    Transform transform;
 
-    if (!scene) {
-        return;
+    if (Scene *scene = GetScene()) {
+        BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
+        bounding_box_component.local_aabb = aabb;
+
+        if (const NodeProxy &node = GetNode()) {
+            node->SetEntityAABB(aabb);
+            node->UpdateWorldTransform();
+
+            transform = node->GetWorldTransform();
+        }
+
+        bounding_box_component.world_aabb = aabb * transform;
+        bounding_box_component.transform_hash_code = transform.GetHashCode();
     }
 
-    BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
-    bounding_box_component.local_aabb = aabb;
-
-    if (const NodeProxy &node = GetNode()) {
-        // const bool transform_locked = node->IsTransformLocked();
-
-        // if (transform_locked) {
-        //     node->UnlockTransform();
-        // }
-
-        node->SetEntityAABB(aabb);
-        node->UpdateWorldTransform();
-
-        // if (transform_locked) {
-        //     node->LockTransform();
-        // }
-
-        bounding_box_component.world_aabb = aabb * node->GetWorldTransform();
-        bounding_box_component.transform_hash_code = node->GetWorldTransform().GetHashCode();
-    }
+    m_aabb = aabb * transform;
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }
@@ -1402,7 +1462,7 @@ const Handle<Mesh> &UIObject::GetMesh() const
     return Handle<Mesh>::empty;
 }
 
-RC<UIObject> UIObject::GetParentUIObject() const
+UIObject *UIObject::GetParentUIObject() const
 {
     HYP_SCOPE;
     
@@ -1424,7 +1484,7 @@ RC<UIObject> UIObject::GetParentUIObject() const
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    return ui_component->ui_object->RefCountedPtrFromThis();
+                    return ui_component->ui_object;
                 }
             }
         }
@@ -1435,7 +1495,7 @@ RC<UIObject> UIObject::GetParentUIObject() const
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestParentUIObject(UIObjectType type) const
+UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
 {
     HYP_SCOPE;
     
@@ -1458,7 +1518,7 @@ RC<UIObject> UIObject::GetClosestParentUIObject(UIObjectType type) const
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
                     if (ui_component->ui_object->GetType() == type) {
-                        return ui_component->ui_object->RefCountedPtrFromThis();
+                        return ui_component->ui_object;
                     }
                 }
             }
@@ -1545,8 +1605,7 @@ void UIObject::UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdate
         ComputeActualSize(m_inner_size, m_actual_inner_size, phase, true);
     }
 
-    if (flags & UIObjectUpdateSizeFlags::CLAMP_OUTER_SIZE) {
-        // clamp actual size to max size (if set for either x or y axis)
+    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE) {
         m_actual_size.x = m_actual_max_size.x != 0 ? MathUtil::Min(m_actual_size.x, m_actual_max_size.x) : m_actual_size.x;
         m_actual_size.y = m_actual_max_size.y != 0 ? MathUtil::Min(m_actual_size.y, m_actual_max_size.y) : m_actual_size.y;
     }
@@ -1759,11 +1818,16 @@ void UIObject::UpdateMeshData(bool update_children)
     }
 
     UIObjectMeshData ui_object_mesh_data { };
-    ui_object_mesh_data.focus_state = m_focus_state;
-    ui_object_mesh_data.width = m_actual_size.x;
-    ui_object_mesh_data.height = m_actual_size.y;
+    ui_object_mesh_data.width = m_actual_size.x;//m_cropped_aabb.GetExtent().x;//
+    ui_object_mesh_data.height = m_actual_size.y;//m_cropped_aabb.GetExtent().y;//
+    
+    const Vec2i clamped_size_diff = m_actual_size_clamped - m_actual_size;
+    ui_object_mesh_data.clamped_width_height_diffs = (uint32(clamped_size_diff.x + 32768) & 0xFFFFu)
+        | ((uint32(clamped_size_diff.y + 32768) & 0xFFFFu) << 16u);
+
     ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
-        | ((uint32(m_border_flags) & 0xFu) << 8u);
+        | ((uint32(m_border_flags) & 0xFu) << 8u)
+        | ((uint32(m_focus_state) & 0xFFu) << 16u);
 
     mesh_component->user_data.Set(ui_object_mesh_data);
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
@@ -1984,9 +2048,25 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
 
 void UIObject::SetNodeProxy(NodeProxy node_proxy)
 {
+    if (m_node_proxy.IsValid() && m_node_proxy.GetEntity().IsValid() && m_node_proxy->GetScene() != nullptr) {
+        const RC<EntityManager> &entity_manager = m_node_proxy->GetScene()->GetEntityManager();
+
+        if (entity_manager->HasComponent<UIComponent>(m_node_proxy->GetEntity())) {
+            entity_manager->RemoveComponent<UIComponent>(m_node_proxy->GetEntity());
+        }
+    }
+
     m_node_proxy = std::move(node_proxy);
 
-    if (m_node_proxy) {
+    if (m_node_proxy.IsValid()) {
+        if (!m_node_proxy.GetEntity().IsValid()) {
+            AssertThrow(m_node_proxy->GetScene() != nullptr);
+
+            m_node_proxy->SetEntity(m_node_proxy->GetScene()->GetEntityManager()->AddEntity());
+        }
+
+        m_node_proxy->GetScene()->GetEntityManager()->AddComponent<UIComponent>(m_node_proxy->GetEntity(), UIComponent { this });
+
         if (!m_affects_parent_size) {
             m_node_proxy->SetFlags(m_node_proxy->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }

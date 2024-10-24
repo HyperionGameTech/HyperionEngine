@@ -232,20 +232,14 @@ private:
 
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
-        const ID<Entity> entity = node_proxy->GetScene()->GetEntityManager()->AddEntity();
-        node_proxy->SetEntity(entity);
-        // node_proxy->LockTransform(); // Lock the transform so it can't be modified by the user except through the UIObject
-
         RC<UIObject> ui_object = MakeRefCountedPtr<T>();
         AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
 
         ui_object->m_stage = this;
-        
+
         ui_object->SetNodeProxy(node_proxy);
 
         ui_object->SetName(name);
-
-        node_proxy->GetScene()->GetEntityManager()->AddComponent<UIComponent>(entity, UIComponent { ui_object.Get() });
 
         if (init) {
             ui_object->Init();
