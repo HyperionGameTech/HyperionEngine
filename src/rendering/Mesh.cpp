@@ -783,7 +783,7 @@ void Mesh::CalculateAABB()
     BoundingBox aabb = BoundingBox::Empty();
 
     for (const Vertex &vertex : mesh_data.vertices) {
-        aabb.Extend(vertex.GetPosition());
+        aabb = aabb.Union(vertex.GetPosition());
     }
 
     m_aabb = aabb;

@@ -16,7 +16,7 @@ void WorldAABBUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 
     if (bounding_box_component.local_aabb.IsValid()) {
         for (const Vec3f &corner : bounding_box_component.local_aabb.GetCorners()) {
-            bounding_box_component.world_aabb.Extend(transform_component.transform.GetMatrix() * corner);
+            bounding_box_component.world_aabb = bounding_box_component.world_aabb.Union(transform_component.transform.GetMatrix() * corner);
         }
     }
 
@@ -44,7 +44,7 @@ void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
 
             if (local_aabb.IsValid()) {
                 for (const Vec3f &corner : local_aabb.GetCorners()) {
-                    world_aabb.Extend(transform_component.transform.GetMatrix() * corner);
+                    world_aabb = world_aabb.Union(transform_component.transform.GetMatrix() * corner);
                 }
             }
 

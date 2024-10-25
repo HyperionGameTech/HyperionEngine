@@ -65,7 +65,7 @@ void UITextbox::Init()
 
     UIPanel::SetBackgroundColor(Vec4f::One());
 
-    SetInnerSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    // SetInnerSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
     m_text_element = GetStage()->CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     m_text_element->SetText(m_text);
@@ -129,16 +129,14 @@ void UITextbox::UpdateCursor()
 {
     if (GetFocusState() & UIObjectFocusState::FOCUSED) {
         if (m_cursor_element == nullptr) {
-            m_cursor_element = GetStage()->CreateUIObject<UIPanel>(NAME("TextboxCursor"), Vec2i { 0, 0 }, UIObjectSize({ 1, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
+            m_cursor_element = GetStage()->CreateUIObject<UIPanel>(NAME("TextboxCursor"), Vec2i { 0, 0 }, UIObjectSize({ 1, UIObjectSize::PIXEL }, { 90, UIObjectSize::PERCENT }));
             m_cursor_element->SetBackgroundColor(Vec4f { 0, 0, 0, 1 }); // black
 
-            AddChildUIObject(m_cursor_element);
-
-            // TODO: Implement cursor blinking animation
+            UIObject::AddChildUIObject(m_cursor_element);
         }
     } else {
         if (m_cursor_element != nullptr) {
-            RemoveChildUIObject(m_cursor_element);
+            UIObject::RemoveChildUIObject(m_cursor_element);
 
             m_cursor_element = nullptr;
         }
