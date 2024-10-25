@@ -489,11 +489,13 @@ static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &
         if (include_bearing) {
             const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
 
-            character_aabb.Extend(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f));
-            character_aabb.Extend(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
+            character_aabb = character_aabb
+                .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
+                .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
         } else {
-            character_aabb.Extend(Vec3f(iter.placement.x, iter.placement.y, 0.0f));
-            character_aabb.Extend(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + iter.cell_dimensions.y, 0.0f));
+            character_aabb = character_aabb
+                .Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f))
+                .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + iter.cell_dimensions.y, 0.0f));
         }
 
         aabb = aabb.Union(character_aabb);
@@ -667,7 +669,7 @@ void UIText::SetText(const String &text)
     SetNeedsRepaintFlag(true);
 
     {
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
 
         UpdateSize();
     }
@@ -703,7 +705,7 @@ void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
     SetNeedsRepaintFlag(true);
 
     {
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
 
         UpdateSize();
     }
@@ -901,7 +903,7 @@ void UIText::OnFontAtlasUpdate_Internal()
     UIObject::OnFontAtlasUpdate_Internal();
 
     {
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
 
         UpdateSize();
     }
@@ -916,7 +918,7 @@ void UIText::OnTextSizeUpdate_Internal()
     UIObject::OnTextSizeUpdate_Internal();
 
     {
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA);
 
         UpdateSize();
     }

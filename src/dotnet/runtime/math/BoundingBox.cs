@@ -129,11 +129,6 @@ namespace Hyperion
             }
         }
 
-        public bool Intersects(BoundingBox other)
-        {
-            return BoundingBox_Intersects(ref this, ref other);
-        }
-
         public bool Contains(BoundingBox other)
         {
             return BoundingBox_Contains(ref this, ref other);
@@ -181,9 +176,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "BoundingBox_GetRadius")]
         private static extern float BoundingBox_GetRadius([In] ref BoundingBox box);
-
-        [DllImport("hyperion", EntryPoint = "BoundingBox_Intersects")]
-        private static extern bool BoundingBox_Intersects([In] ref BoundingBox box, [In] ref BoundingBox other);
 
         [DllImport("hyperion", EntryPoint = "BoundingBox_Contains")]
         private static extern bool BoundingBox_Contains([In] ref BoundingBox box, [In] ref BoundingBox other);

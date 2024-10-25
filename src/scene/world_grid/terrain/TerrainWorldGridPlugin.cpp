@@ -71,7 +71,7 @@ public:
                 patch_bounding_box_component->world_aabb = BoundingBox::Empty();
 
                 for (const Vec3f &corner : patch_bounding_box_component->local_aabb.GetCorners()) {
-                    patch_bounding_box_component->world_aabb.Extend(patch_transform_component->transform.GetMatrix() * corner);
+                    patch_bounding_box_component->world_aabb = patch_bounding_box_component->world_aabb.Union(patch_transform_component->transform.GetMatrix() * corner);
                 }
             }
         }

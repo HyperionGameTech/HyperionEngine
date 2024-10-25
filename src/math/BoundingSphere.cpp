@@ -75,7 +75,7 @@ BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
         direction_vector *= -radius;
         direction_vector += center;
 
-        new_aabb.Extend(direction_vector);
+        new_aabb = new_aabb.Union(direction_vector);
     }
 
     center = new_aabb.GetCenter();

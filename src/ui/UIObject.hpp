@@ -124,13 +124,15 @@ enum class UIObjectUpdateType : uint32
     UPDATE_MATERIAL                     = 0x4,
     UPDATE_MESH_DATA                    = 0x8,
     UPDATE_COMPUTED_VISIBILITY          = 0x10,
-    UPDATE_TEXT_RENDER_DATA             = 0x20,
+    UPDATE_CLAMPED_SIZE                 = 0x20,
+    UPDATE_TEXT_RENDER_DATA             = 0x40,
 
     UPDATE_CHILDREN_SIZE                = UPDATE_SIZE << 16,
     UPDATE_CHILDREN_POSITION            = UPDATE_POSITION << 16,
     UPDATE_CHILDREN_MATERIAL            = UPDATE_MATERIAL << 16,
     UPDATE_CHILDREN_MESH_DATA           = UPDATE_MESH_DATA << 16,
     UPDATE_CHILDREN_COMPUTED_VISIBILITY = UPDATE_COMPUTED_VISIBILITY << 16,
+    UPDATE_CHILDREN_CLAMPED_SIZE        = UPDATE_CLAMPED_SIZE << 16,
     UPDATE_CHILDREN_TEXT_RENDER_DATA    = UPDATE_TEXT_RENDER_DATA << 16
 };
 
@@ -507,12 +509,16 @@ public:
     void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
     UIObjectAlignment GetOriginAlignment() const;
-
     void SetOriginAlignment(UIObjectAlignment alignment);
 
     UIObjectAlignment GetParentAlignment() const;
-
     void SetParentAlignment(UIObjectAlignment alignment);
+
+    HYP_FORCE_INLINE bool IsPositionDependentOnSize() const
+        { return m_origin_alignment != UIObjectAlignment::TOP_LEFT; }
+
+    HYP_FORCE_INLINE bool IsPositionDependentOnParentSize() const
+        { return m_parent_alignment != UIObjectAlignment::TOP_LEFT; }
 
     HYP_FORCE_INLINE UIObjectAspectRatio GetAspectRatio() const
         { return m_aspect_ratio; }
@@ -959,7 +965,7 @@ private:
 
     void SetEntityAABB(const BoundingBox &aabb);
 
-    void UpdateClampedSize();
+    void UpdateClampedSize(bool update_children = true);
 
     Handle<Material> CreateMaterial() const;
 
@@ -996,11 +1002,11 @@ private:
 
 struct UILockedUpdatesScope
 {
-    UILockedUpdatesScope(UIObject *ui_object, EnumFlags<UIObjectUpdateType> value)
+    UILockedUpdatesScope(UIObject &ui_object, EnumFlags<UIObjectUpdateType> value)
         : ui_object(ui_object),
-          value(value & ~ui_object->m_locked_updates)
+          value(value & ~ui_object.m_locked_updates)
     {
-        ui_object->m_locked_updates |= this->value;
+        ui_object.m_locked_updates |= this->value;
     }
 
     UILockedUpdatesScope(const UILockedUpdatesScope &other)                 = delete;
@@ -1011,10 +1017,10 @@ struct UILockedUpdatesScope
 
     ~UILockedUpdatesScope()
     {
-        ui_object->m_locked_updates &= ~value;
+        ui_object.m_locked_updates &= ~value;
     }
 
-    UIObject                        *ui_object;
+    UIObject                        &ui_object;
     EnumFlags<UIObjectUpdateType>   value;
 };
 

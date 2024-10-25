@@ -48,6 +48,8 @@ void UIGridRow::Init()
 
 void UIGridRow::AddChildUIObject(const RC<UIObject> &ui_object)
 {
+    HYP_SCOPE;
+    
     if (ui_object.Is<UIGridColumn>()) {
         UIObject::AddChildUIObject(ui_object);
 
@@ -97,6 +99,8 @@ bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
 
 RC<UIGridColumn> UIGridRow::FindEmptyColumn() const
 {
+    HYP_SCOPE;
+
     for (const RC<UIGridColumn> &column : m_columns) {
         if (!column) {
             continue;
@@ -117,6 +121,8 @@ int UIGridRow::GetNumColumns() const
 
 void UIGridRow::SetNumColumns(int num_columns)
 {
+    HYP_SCOPE;
+
     m_num_columns = num_columns;
 
     UpdateColumnSizes();
@@ -125,6 +131,8 @@ void UIGridRow::SetNumColumns(int num_columns)
 
 RC<UIGridColumn> UIGridRow::AddColumn()
 {
+    HYP_SCOPE;
+
     if (GetStage() == nullptr) {
         return nullptr;
     }
@@ -142,6 +150,8 @@ RC<UIGridColumn> UIGridRow::AddColumn()
 
 void UIGridRow::UpdateColumnSizes()
 {
+    HYP_SCOPE;
+
     const float column_size_percent = 1.0f / float(GetNumColumns());
 
     Vec2i offset { 0, 0 };
@@ -161,7 +171,7 @@ void UIGridRow::UpdateColumnSizes()
 
 void UIGridRow::UpdateColumnOffsets()
 {
-    const Vec2i actual_size = GetActualSize();
+    HYP_SCOPE;
 
     Vec2i offset { 0, 0 };
 
@@ -372,7 +382,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
     {
         HYP_NAMED_SCOPE("Add element from data source to grid view");
 
-        UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_SIZE);
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
         // add new row
         RC<UIGridRow> row = AddRow();
@@ -410,7 +420,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
         });
 
         if (it != m_rows.End()) {
-            UILockedUpdatesScope scope(this, UIObjectUpdateType::UPDATE_SIZE);
+            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
             SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
         }

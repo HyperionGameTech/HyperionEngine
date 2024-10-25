@@ -7,11 +7,6 @@
 using namespace hyperion;
 
 extern "C" {
-HYP_EXPORT float BoundingBox_Intersects(BoundingBox *left, BoundingBox *right)
-{
-    return left->Intersects(*right);
-}
-
 HYP_EXPORT float BoundingBox_GetRadius(BoundingBox *bounding_box)
 {
     return bounding_box->GetRadius();

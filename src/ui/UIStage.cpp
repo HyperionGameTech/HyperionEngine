@@ -553,20 +553,20 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Depth: {}, Computed Depth: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
-                        GetClass(ui_object.GetTypeID())->GetName(),
-                        ui_object->GetName(),
-                        ui_object->GetText(),
-                        ui_object->GetActualSize(),
-                        ui_object->GetActualInnerSize(),
-                        ui_object->GetDepth(),
-                        ui_object->GetComputedDepth(),
-                        ui_object->GetWorldAABB(),
-                        ui_object->GetNode()->GetEntityAABB(),
-                        bounding_box_component.local_aabb,
-                        bounding_box_component.world_aabb,
-                        ui_object->GetActualSize(),
-                        ui_object->TransformScreenCoordsToRelative(mouse_position));
+                    // HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Depth: {}, Computed Depth: {}, World AABB: {}, Entity AABB: {}, AABB component (local): {}, AABB component (world): {}, Actual Size: {}, Mouse Position: {}",
+                    //     GetClass(ui_object.GetTypeID())->GetName(),
+                    //     ui_object->GetName(),
+                    //     ui_object->GetText(),
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->GetActualInnerSize(),
+                    //     ui_object->GetDepth(),
+                    //     ui_object->GetComputedDepth(),
+                    //     ui_object->GetWorldAABB(),
+                    //     ui_object->GetNode()->GetEntityAABB(),
+                    //     bounding_box_component.local_aabb,
+                    //     bounding_box_component.world_aabb,
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->TransformScreenCoordsToRelative(mouse_position));
 
                     // MeshComponent *mesh_component = ui_object->GetNode()->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ui_object->GetEntity());
                     // AssertThrow(mesh_component != nullptr);
@@ -699,6 +699,14 @@ UIEventHandlerResult UIStage::OnInputEvent(
             HYP_LOG(UI, LogLevel::DEBUG, "Click UIObject {}", ui_object->GetName());
 
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
+
+                HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
+                    GetClass(ui_object.GetTypeID())->GetName(),
+                    ui_object->GetName(),
+                    ui_object->GetText(),
+                    ui_object->GetActualSize(),
+                    ui_object->GetActualInnerSize(),
+                    ui_object->GetActualSizeClamped());
 
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
                     .input_manager      = input_manager,

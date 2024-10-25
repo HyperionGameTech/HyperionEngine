@@ -130,10 +130,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
     }
 
     if (render_proxies.Any()) {
-        PUSH_RENDER_COMMAND(
-            UpdateEntityDrawData,
-            std::move(render_proxies)
-        );
+        PUSH_RENDER_COMMAND(UpdateEntityDrawData, std::move(render_proxies));
     }
 }
 
