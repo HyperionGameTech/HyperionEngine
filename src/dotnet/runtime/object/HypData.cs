@@ -733,6 +733,11 @@ namespace Hyperion
             return _data.GetValue();
         }
 
+        public void SetValue(object? value)
+        {
+            _data.SetValue(value);
+        }
+
         public override string ToString()
         {
             return GetValue()?.ToString() ?? "null";

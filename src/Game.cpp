@@ -15,7 +15,6 @@
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 #include <dotnet/runtime/ManagedHandle.hpp>
-#include <dotnet/core/RefCountedPtrBindings.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

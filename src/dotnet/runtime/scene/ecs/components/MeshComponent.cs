@@ -14,11 +14,11 @@ namespace Hyperion
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
-        private ManagedHandle meshHandle;
+        private Handle<Mesh> meshHandle;
         [FieldOffset(4)]
-        private ManagedHandle materialHandle;
+        private Handle<Material> materialHandle;
         [FieldOffset(8)]
-        private ManagedHandle skeletonHandle;
+        private Handle<Skeleton> skeletonHandle;
         [FieldOffset(12)]
         private uint numInstances;
         [FieldOffset(16)]

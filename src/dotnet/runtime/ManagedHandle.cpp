@@ -2,6 +2,8 @@
 
 #include <dotnet/runtime/ManagedHandle.hpp>
 
+#include <core/object/HypData.hpp>
+
 namespace hyperion {
 
 void ManagedHandle::IncRef(uint32 type_id)
@@ -56,24 +58,30 @@ using namespace hyperion;
 
 extern "C" {
 
-HYP_EXPORT void ManagedHandle_IncRef(uint32 type_id, ManagedHandle handle)
+HYP_EXPORT void ManagedHandle_Get(uint32 type_id_value, uint32 id_value, HypData *out_hyp_data)
 {
-    handle.IncRef(type_id);
+    AssertThrow(out_hyp_data != nullptr);
+
+    const TypeID type_id { type_id_value };
+
+    ObjectContainerBase *container = ObjectPool::TryGetContainer(type_id);
+    AssertThrow(container != nullptr);
+
+    void *ptr = container->GetObjectPointer(id_value - 1);
+
+    *out_hyp_data = HypData(AnyRef(type_id, ptr));
 }
 
-HYP_EXPORT void ManagedHandle_DecRef(uint32 type_id, ManagedHandle handle)
+HYP_EXPORT void ManagedHandle_Set(uint32 type_id_value, uint32 id_value, HypData *hyp_data)
 {
-    handle.DecRef(type_id);
-}
+    AssertThrow(hyp_data != nullptr);
 
-HYP_EXPORT uint32 ManagedHandle_GetRefCountStrong(uint32 type_id, ManagedHandle handle)
-{
-    return handle.GetRefCountStrong(type_id);
-}
+    // const TypeID type_id { type_id_value };
 
-HYP_EXPORT uint32 ManagedHandle_GetRefCountWeak(uint32 type_id, ManagedHandle handle)
-{
-    return handle.GetRefCountWeak(type_id);
+    // ObjectContainerBase *container = ObjectPool::TryGetContainer(type_id);
+    // AssertThrow(container != nullptr);
+
+    HYP_NOT_IMPLEMENTED_VOID();
 }
 
 } // extern "C"

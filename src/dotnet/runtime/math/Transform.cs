@@ -7,6 +7,8 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 112)]
     public struct Transform
     {
+        public static readonly Transform Identity = new Transform();
+
         private Vec3f translation;
         private Vec3f scale;
         private Quaternion rotation;

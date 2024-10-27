@@ -16,18 +16,62 @@ namespace Hyperion
     public struct ShadowMapComponent : IComponent
     {
         [FieldOffset(0)]
-        public ShadowMapFilter filter = ShadowMapFilter.PCF;
+        private ShadowMapFilter filter = ShadowMapFilter.PCF;
         [FieldOffset(4)]
-        public float radius = 20.0f;
+        private float radius = 20.0f;
         [FieldOffset(8)]
-        public Vec2u resolution = new Vec2u(512, 512);
+        private Vec2u resolution = new Vec2u(512, 512);
         [FieldOffset(16)]
-        public RefCountedPtr renderer = RefCountedPtr.Null;
+        private RefCountedPtr renderer;
         [FieldOffset(20)]
         private uint updateCounter = 0;
 
         public ShadowMapComponent()
         {
+        }
+
+        public ShadowMapFilter Filter
+        {
+            get
+            {
+                return filter;
+            }
+            set
+            {
+                filter = value;
+            }
+        }
+
+        public float Radius
+        {
+            get
+            {
+                return radius;
+            }
+            set
+            {
+                radius = value;
+            }
+        }
+
+        public Vec2u Resolution
+        {
+            get
+            {
+                return resolution;
+            }
+            set
+            {
+                resolution = value;
+            }
+        }
+
+        public uint UpdateCounter
+        {
+            get
+            {
+                return updateCounter;
+            }
         }
     }
 }
