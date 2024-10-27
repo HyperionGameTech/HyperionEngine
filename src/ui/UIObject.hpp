@@ -245,19 +245,13 @@ struct UIObjectSize
     HYP_FORCE_INLINE uint32 GetAllFlags() const
         { return flags[0] | flags[1]; }
 
-    template <uint32 Mask>
-    HYP_FORCE_INLINE void ApplyDefaultFlagMask()
-    { 
-        for (int i = 0; i < 2; i++) {
-            if (!(flags[i] & Mask)) {
-                flags[i] |= (DEFAULT & Mask);
-            }
-        }
-    }
-
     HYP_FORCE_INLINE void ApplyDefaultFlags()
     {
-        ApplyDefaultFlagMask<PIXEL | PERCENT | FILL>();
+        for (int i = 0; i < 2; i++) {
+            if (!flags[i]) {
+                flags[i] = DEFAULT;
+            }
+        }
     }
 };
 

@@ -198,22 +198,7 @@ void UIObject::Init()
     OnKeyDown.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyDown", /* allow_nested */ false }).Detach();
     OnKeyUp.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyUp", /* allow_nested */ false }).Detach();
 
-    // set `m_is_init` to true before calling `UpdatePosition` and `UpdateSize` to allow them to run
     m_is_init = true;
-
-    {
-        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-        UpdateSize();
-        UpdatePosition();
-    }
-
-    UpdateClampedSize();
-
-    UpdateMeshData();
-    UpdateComputedDepth();
-
-    SetNeedsRepaintFlag(true);
 
     OnInit();
 }
@@ -541,23 +526,35 @@ void UIObject::UpdateSize_Internal(bool update_children)
 
     Array<UIObject *> deferred_children;
 
-    ForEachChildUIObject([update_children, &deferred_children](UIObject *child)
     {
-        if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT)) {
-            // Even if update_children is false, these objects will need to be updated anyway
-            // as they are dependent on the size of this object
-            deferred_children.PushBack(child);
-        } else {
-            if (update_children) {
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+
+        ForEachChildUIObject([update_children, &deferred_children](UIObject *child)
+        {
+            if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT)) {
+                // Even if update_children is false, these objects will need to be updated anyway
+                // as they are dependent on the size of this object
+                child->SetAffectsParentSize(false);
+                deferred_children.PushBack(child);
+            } else if (update_children) {
                 child->UpdateSize_Internal(/* update_children */ true);
             }
-        }
 
-        return UIObjectIterationResult::CONTINUE;
-    }, false);
+            return UIObjectIterationResult::CONTINUE;
+        }, false);
+    }
 
     // auto needs recalculation
-    const bool needs_update_after_children = UseAutoSizing();
+    const bool needs_update_after_children = true;//UseAutoSizing();
+
+    // FILL needs to update the size of the children
+    // after the parent has updated its size
+    {
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+        for (UIObject *child : deferred_children) {
+            child->SetAffectsParentSize(true);
+        }
+    }
 
     if (needs_update_after_children) {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
@@ -1363,15 +1360,66 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
+    // BoundingBox aabb = m_aabb;
+
+    // ForEachChildUIObject([&aabb](UIObject *child)
+    // {
+    //     // aabb = aabb.Union(child->m_aabb);
+
+    //     const Vec2f absolute_position = child->GetAbsolutePosition();
+
+    //     // aabb = aabb.Union(BoundingBox {
+    //     //     Vec3f { float(absolute_position.x), float(absolute_position.x + child->GetActualSize().x), 0.0f },
+    //     //     Vec3f { float(absolute_position.y), float(absolute_position.y + child->GetActualSize().y), 0.0f }
+    //     // });
+
+    //     aabb = aabb.Union(child->m_aabb);
+
+    //     return UIObjectIterationResult::CONTINUE;
+    // }, /* deep */ false);
+
+    // return aabb;
+
     if (const NodeProxy &node = GetNode()) {
-        const BoundingBox &node_aabb = node->GetLocalAABB();
+        const BoundingBox node_aabb = node->GetLocalAABB();
 
         if (node_aabb.IsFinite() && node_aabb.IsValid()) {
             return node_aabb;
         }
     }
 
-    return BoundingBox::Zero();
+    // if (const NodeProxy &node = GetNode()) {
+    //     BoundingBox aabb = node->GetEntityAABB();
+
+    //     ForEachChildUIObject([&aabb](UIObject *child)
+    //     {
+    //         if (!child->AffectsParentSize()) {
+    //             return UIObjectIterationResult::CONTINUE;
+    //         }
+
+    //         if (const NodeProxy &node = child->GetNode()) {
+    //             if (!(node->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
+    //                 aabb = aabb.Union(node->GetEntityAABB() * node->GetLocalTransform());
+    //             }
+    //         }
+
+    //         return UIObjectIterationResult::CONTINUE;
+    //     }, /* deep */ false);
+
+    //     // for (const NodeProxy &child : node->GetChildren()) {
+    //     //     if (!child.IsValid()) {
+    //     //         continue;
+    //     //     }
+
+    //     //     if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
+    //     //         aabb = aabb.Union(child->GetEntityAABB() * child->GetLocalTransform());
+    //     //     }
+    //     // }
+
+    //     return aabb;
+    // }
+
+    return BoundingBox::Empty();
 }
 
 void UIObject::SetAffectsParentSize(bool affects_parent_size)
@@ -1642,10 +1690,12 @@ void UIObject::UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdate
 void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size, UpdateSizePhase phase, bool is_inner)
 {
     HYP_SCOPE;
+
+    actual_size = Vec2i { 0, 0 };
     
+    Vec2i self_padding = { 0, 0 };
     Vec2i parent_size = { 0, 0 };
     Vec2i parent_padding = { 0, 0 };
-    Vec2i self_padding = { 0, 0 };
 
     UIObject *parent_ui_object = GetParentUIObject();
 
@@ -1653,89 +1703,161 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         parent_size = GetActualSize();
         parent_padding = GetPadding();
     } else if (parent_ui_object != nullptr) {
+        self_padding = GetPadding();
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
-        self_padding = GetPadding();
     } else if (m_stage != nullptr) {
-        parent_size = m_stage->GetSurfaceSize();
         self_padding = GetPadding();
-    } else if (m_type == UIObjectType::STAGE) {
+        parent_size = m_stage->GetSurfaceSize();
+    } else if (InstanceClass() == UIStage::Class()) {
         actual_size = static_cast<UIStage *>(this)->GetSurfaceSize();
     } else {
         return;
     }
 
-    actual_size = in_size.GetValue();
-
-    // percentage based size of parent ui object / surface
-    if (in_size.GetFlagsX() & UIObjectSize::PERCENT) {
-        actual_size.x = MathUtil::Floor(float(actual_size.x) * 0.01f * float(parent_size.x));
-
-        // Reduce size due to parent object's padding
-        actual_size.x -= parent_padding.x * 2;
-    }
-
-    if (in_size.GetFlagsY() & UIObjectSize::PERCENT) {
-        actual_size.y = MathUtil::Floor(float(actual_size.y) * 0.01f * float(parent_size.y));
-
-        // Reduce size due to parent object's padding
-        actual_size.y -= parent_padding.y * 2;
-    }
-
-    if (in_size.GetFlagsX() & UIObjectSize::FILL) {
-        if (!is_inner) {
-            actual_size.x = MathUtil::Max(parent_size.x - m_position.x - parent_padding.x * 2, 0);
-        }
-    }
-
-    if (in_size.GetFlagsY() & UIObjectSize::FILL) {
-        if (!is_inner) {
-            actual_size.y = MathUtil::Max(parent_size.y - m_position.y - parent_padding.y * 2, 0);
-        }
-    }
+    Optional<Vec3f> inner_extent;
 
     if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
-        // Calculate "auto" sizing based on children. Must be executed after children have their sizes calculated.
         if (phase == UpdateSizePhase::AFTER_CHILDREN) {
-            Vec2f dynamic_size;
+            inner_extent = CalculateInnerAABB_Internal().GetExtent();
+        }
+    }
 
-            const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
+    const auto UpdateSizeComponent = [&](uint32 flags, int component_index)
+    {
+        // percentage based size of parent ui object / surface
+        switch (flags) {
+        case UIObjectSize::PIXEL:
+            actual_size[component_index] = in_size.GetValue()[component_index];
 
-            if ((in_size.GetFlagsX() & UIObjectSize::AUTO) && (in_size.GetFlagsY() & UIObjectSize::AUTO)) {
-                // If both X and Y are set to auto, use the AABB size (we can't calculate a ratio if both are auto)
-                dynamic_size = Vec2f { inner_extent.x, inner_extent.y };
-            } else {
-                const float inner_width = (in_size.GetFlagsX() & UIObjectSize::AUTO) ? inner_extent.x : float(actual_size.x);
-                const float inner_height = (in_size.GetFlagsY() & UIObjectSize::AUTO) ? inner_extent.y : float(actual_size.y);
+            break;
+        case UIObjectSize::PERCENT:
+            actual_size[component_index] = MathUtil::Floor(float(in_size.GetValue()[component_index]) * 0.01f * float(parent_size[component_index]));
 
-                dynamic_size = Vec2f {
-                    inner_width,
-                    inner_height
-                };
+            // Reduce size due to parent object's padding
+            actual_size[component_index] -= parent_padding[component_index] * 2;
+
+            break;
+        case UIObjectSize::FILL:
+            if (!is_inner) {
+                actual_size[component_index] = MathUtil::Max(parent_size[component_index] - m_position[component_index] - parent_padding[component_index] * 2, 0);
             }
 
-            if (in_size.GetFlagsX() & UIObjectSize::AUTO) {
-                actual_size.x = MathUtil::Floor(dynamic_size.x);
-                actual_size.x += self_padding.x * 2;
+            break;
+        case UIObjectSize::AUTO:
+            if (phase == UpdateSizePhase::AFTER_CHILDREN) {
+                actual_size[component_index] = MathUtil::Floor((*inner_extent)[component_index]);
+                actual_size[component_index] += self_padding[component_index] * 2;
             }
 
-            if (in_size.GetFlagsY() & UIObjectSize::AUTO) {
-                actual_size.y = MathUtil::Floor(dynamic_size.y);
-                actual_size.y += self_padding.y * 2;
-            }
-        } else {
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+    };
+
+    UpdateSizeComponent(in_size.GetFlagsX(), 0);
+    UpdateSizeComponent(in_size.GetFlagsY(), 1);
+
+    if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
+        if (phase != UpdateSizePhase::AFTER_CHILDREN) {
             // fix child object's offsets:
             // - when resizing, the node just sees objects offset by X where X is some number based on the previous size
             //   which is then included in the GetLocalAABB() calculation.
             // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
-            ForEachChildUIObject([this](UIObject *object)
+            ForEachChildUIObject([](UIObject *child)
             {
-                object->UpdatePosition(/* update_children */ false);
+                if (child->IsPositionDependentOnParentSize()) {
+                    child->UpdatePosition(/* update_children */ false);
+                }
 
                 return UIObjectIterationResult::CONTINUE;
             }, false);
         }
     }
+
+
+    // actual_size = Vec2i { 0, 0 };
+
+    // // percentage based size of parent ui object / surface
+    // if (in_size.GetFlagsX() & UIObjectSize::PIXEL) {
+    //     actual_size.x = in_size.GetValue().x;
+    // }
+
+    // if (in_size.GetFlagsY() & UIObjectSize::PIXEL) {
+    //     actual_size.y = in_size.GetValue().y;
+    // }
+
+    // // percentage based size of parent ui object / surface
+    // if (in_size.GetFlagsX() & UIObjectSize::PERCENT) {
+    //     actual_size.x = MathUtil::Floor(float(in_size.GetValue().x) * 0.01f * float(parent_size.x));
+
+    //     // Reduce size due to parent object's padding
+    //     actual_size.x -= parent_padding.x * 2;
+    // }
+
+    // if (in_size.GetFlagsY() & UIObjectSize::PERCENT) {
+    //     actual_size.y = MathUtil::Floor(float(in_size.GetValue().y) * 0.01f * float(parent_size.y));
+
+    //     // Reduce size due to parent object's padding
+    //     actual_size.y -= parent_padding.y * 2;
+    // }
+
+    // if (in_size.GetFlagsX() & UIObjectSize::FILL) {
+    //     if (!is_inner) {
+    //         actual_size.x = MathUtil::Max(parent_size.x - m_position.x - parent_padding.x * 2, 0);
+    //     }
+    // }
+
+    // if (in_size.GetFlagsY() & UIObjectSize::FILL) {
+    //     if (!is_inner) {
+    //         actual_size.y = MathUtil::Max(parent_size.y - m_position.y - parent_padding.y * 2, 0);
+    //     }
+    // }
+
+    // if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
+    //     // Calculate "auto" sizing based on children. Must be executed after children have their sizes calculated.
+    //     if (phase == UpdateSizePhase::AFTER_CHILDREN) {
+    //         Vec2f dynamic_size;
+
+    //         const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
+
+    //         if ((in_size.GetFlagsX() & UIObjectSize::AUTO) && (in_size.GetFlagsY() & UIObjectSize::AUTO)) {
+    //             // If both X and Y are set to auto, use the AABB size (we can't calculate a ratio if both are auto)
+    //             dynamic_size = Vec2f { inner_extent.x, inner_extent.y };
+    //         } else {
+    //             const float inner_width = (in_size.GetFlagsX() & UIObjectSize::AUTO) ? inner_extent.x : float(actual_size.x);
+    //             const float inner_height = (in_size.GetFlagsY() & UIObjectSize::AUTO) ? inner_extent.y : float(actual_size.y);
+
+    //             dynamic_size = Vec2f {
+    //                 inner_width,
+    //                 inner_height
+    //             };
+    //         }
+
+    //         if (in_size.GetFlagsX() & UIObjectSize::AUTO) {
+    //             actual_size.x = MathUtil::Floor(dynamic_size.x);
+    //             actual_size.x += self_padding.x * 2;
+    //         }
+
+    //         if (in_size.GetFlagsY() & UIObjectSize::AUTO) {
+    //             actual_size.y = MathUtil::Floor(dynamic_size.y);
+    //             actual_size.y += self_padding.y * 2;
+    //         }
+    //     } else {
+    //         // fix child object's offsets:
+    //         // - when resizing, the node just sees objects offset by X where X is some number based on the previous size
+    //         //   which is then included in the GetLocalAABB() calculation.
+    //         // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
+    //         ForEachChildUIObject([this](UIObject *object)
+    //         {
+    //             object->UpdatePosition(/* update_children */ false);
+
+    //             return UIObjectIterationResult::CONTINUE;
+    //         }, false);
+    //     }
+    // }
+
 
     // make sure the actual size is at least 0
     actual_size = MathUtil::Max(actual_size, Vec2i { 0, 0 });
@@ -1900,7 +2022,6 @@ void UIObject::UpdateMaterial(bool update_children)
     const Handle<Material> &current_material = mesh_component->material;
 
     MaterialAttributes material_attributes = GetMaterialAttributes();
-    
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
