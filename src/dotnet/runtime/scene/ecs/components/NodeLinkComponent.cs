@@ -8,7 +8,7 @@ namespace Hyperion
     public struct NodeLinkComponent : IComponent
     {
         [FieldOffset(0)]
-        private WeakRefCountedPtr node = WeakRefCountedPtr.Null;
+        private WeakRefCountedPtr<Node> node;
 
         public NodeLinkComponent()
         {
@@ -19,15 +19,6 @@ namespace Hyperion
             get
             {
                 throw new NotImplementedException();
-                // ManagedNode managedNode = new ManagedNode();
-                // NodeLinkComponent_LockReference(node.Address, out managedNode);
-
-                // if (!managedNode.IsValid)
-                // {
-                //     throw new Exception("NodeLinkComponent is not valid");
-                // }
-
-                // return new Node(managedNode);
             }
         }
     }

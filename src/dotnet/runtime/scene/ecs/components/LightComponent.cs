@@ -13,23 +13,28 @@ namespace Hyperion
     public struct LightComponent : IComponent
     {
         [FieldOffset(0)]
-        private ManagedHandle lightHandle;
+        private Handle<Light> lightHandle;
         [FieldOffset(8)]
         private HashCode transformHashCode;
         [FieldOffset(16)]
         private LightComponentFlags lightComponentFlags;
 
-        public Light Light
+        public Light? Light
         {
             get
             {
-                throw new NotImplementedException();
-                // return new Light(lightHandle);
+                return lightHandle.GetValue();
             }
             set
             {
-                throw new NotImplementedException();
-                // lightHandle = value.Handle;
+                if (value == null)
+                {
+                    lightHandle = Handle<Light>.Empty;
+                    
+                    return;
+                }
+
+                lightHandle = new Handle<Light>(value);
             }
         }
     }

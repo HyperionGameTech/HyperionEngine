@@ -66,7 +66,7 @@ namespace Hyperion
             return result;
         }
 
-        public ref T GetComponent<T>(Entity entity) where T : struct, IComponent
+        public ref T GetComponent<T>(IDBase entity) where T : struct, IComponent
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
 
@@ -97,7 +97,7 @@ namespace Hyperion
         private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID componentTypeId, Entity entity);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
-        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, Entity entity);
+        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IDBase entity);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
         [return: MarshalAs(UnmanagedType.U4)]

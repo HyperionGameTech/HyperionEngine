@@ -8,6 +8,22 @@ namespace Hyperion
     public struct TransformComponent : IComponent
     {
         [FieldOffset(0)]
-        public Transform transform;
+        private Transform transform = Transform.Identity;
+
+        public TransformComponent()
+        {
+        }
+
+        public Transform Transform
+        {
+            get
+            {
+                return transform;
+            }
+            set
+            {
+                transform = value;
+            }
+        }
     }
 }

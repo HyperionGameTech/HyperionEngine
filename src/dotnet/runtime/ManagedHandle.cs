@@ -3,11 +3,44 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Sequential, Size = 4)]
-    public struct ManagedHandle
+    public static class ManagedHandleNativeBindings
     {
+        [DllImport("hyperion", EntryPoint = "ManagedHandle_Get")]
+        internal static extern void ManagedHandle_Get(TypeID type_id, uint id, [Out] out HypDataBuffer outHypDataBuffer);
+
+        [DllImport("hyperion", EntryPoint = "ManagedHandle_Set")]
+        internal static extern void ManagedHandle_Set(TypeID type_id, uint id, [In] ref HypDataBuffer hypDataBuffer);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    public struct Handle<T> where T : HypObject
+    {
+        public static readonly Handle<T> Empty = new Handle<T>(0);
+
         [MarshalAs(UnmanagedType.U4)]
         public uint id;
+
+        public Handle(uint id)
+        {
+            this.id = id;
+        }
+
+        public Handle(T value)
+        {
+            HypClass? hypClass = HypClass.GetClass<T>();
+            
+            if (hypClass == null)
+            {
+                throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
+            }
+
+            HypDataBuffer hypDataBuffer = new HypDataBuffer();
+            hypDataBuffer.SetValue(value);
+
+            ManagedHandleNativeBindings.ManagedHandle_Set(((HypClass)hypClass).TypeID, id, ref hypDataBuffer);
+
+            HypDataBuffer.HypData_Destruct(ref hypDataBuffer);
+        }
 
         public bool IsValid
         {
@@ -17,38 +50,23 @@ namespace Hyperion
             }
         }
 
-        public void IncRef(TypeID typeId)
+        public T? GetValue()
         {
-            ManagedHandle_IncRef(typeId, this);
+            HypClass? hypClass = HypClass.GetClass<T>();
+            
+            if (hypClass == null)
+            {
+                throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
+            }
+
+            HypDataBuffer hypDataBuffer;
+            ManagedHandleNativeBindings.ManagedHandle_Get(((HypClass)hypClass).TypeID, id, out hypDataBuffer);
+
+            T? value = (T?)hypDataBuffer.GetValue();
+
+            HypDataBuffer.HypData_Destruct(ref hypDataBuffer);
+
+            return value;
         }
-
-        public void DecRef(TypeID typeId)
-        {
-            ManagedHandle_DecRef(typeId, this);
-
-            id = 0;
-        }
-
-        public uint GetRefCountStrong(TypeID typeId)
-        {
-            return ManagedHandle_GetRefCountStrong(typeId, this);
-        }
-
-        public uint GetRefCountWeak(TypeID typeId)
-        {
-            return ManagedHandle_GetRefCountWeak(typeId, this);
-        }
-
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_IncRef")]
-        private static extern void ManagedHandle_IncRef(TypeID type_id, ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_DecRef")]
-        private static extern void ManagedHandle_DecRef(TypeID type_id, ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_GetRefCountStrong")]
-        private static extern uint ManagedHandle_GetRefCountStrong(TypeID type_id, ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_GetRefCountWeak")]
-        private static extern uint ManagedHandle_GetRefCountWeak(TypeID type_id, ManagedHandle handle);
     }
 }

@@ -246,12 +246,6 @@ namespace Hyperion
                 // Material_SetTexture(material.Handle, key, value.Handle);
             }
         }
-
-        [DllImport("hyperion", EntryPoint = "Material_GetTexture")]
-        private static extern void Material_GetTexture(ManagedHandle material, TextureKey key, [Out] out ManagedHandle handle);
-
-        [DllImport("hyperion", EntryPoint = "Material_SetTexture")]
-        private static extern void Material_SetTexture(ManagedHandle material, TextureKey key, ManagedHandle texture);
     }
 
     [HypClassBinding(Name="Material")]
