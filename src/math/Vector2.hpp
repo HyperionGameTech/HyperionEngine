@@ -224,11 +224,11 @@ public:
     float GetY() const      { return y; }
     float &GetY()           { return y; }
     Vec2 &SetY(float y)     { this->y = y; return *this; }
-    
-    constexpr float operator[](SizeType index) const
-        { return values[index]; }
 
     constexpr float &operator[](SizeType index)
+        { return values[index]; }
+    
+    constexpr float operator[](SizeType index) const
         { return values[index]; }
 
     explicit operator bool() const
