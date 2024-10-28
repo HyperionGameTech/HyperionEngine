@@ -101,12 +101,12 @@ public:
         { m_name = name; }
 
     /*! \brief Get the camera that is used to render this Scene perform frustum culling. */
-    HYP_METHOD(Serialize, Property="Camera")
+    HYP_METHOD(Property="Camera", Serialize=true, Editor=true)
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
     /*! \brief Set the camera that is used to render this Scene. */
-    HYP_METHOD(Serialize, Property="Camera")
+    HYP_METHOD(Property="Camera", Serialize=true, Editor=true)
     void SetCamera(const Handle<Camera> &camera);
 
     HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
@@ -115,9 +115,11 @@ public:
     HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
         { return m_render_collector; }
 
-    HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity>) const;
+    HYP_METHOD()
+    HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity> entity) const;
 
-    HYP_NODISCARD NodeProxy FindNodeByName(const String &) const;
+    HYP_METHOD()
+    HYP_NODISCARD NodeProxy FindNodeByName(UTF8StringView name) const;
     
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
     HYP_FORCE_INLINE const TLASRef &GetTLAS() const
@@ -129,13 +131,13 @@ public:
      */
     bool CreateTLAS();
 
-    HYP_METHOD(Serialize, Property="Root")
+    HYP_METHOD(Property="Root", Serialize=true, Editor=true)
     HYP_FORCE_INLINE const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
     /*! \brief Set the root node of this Scene, discarding the current.
      *  \internal For internal use only. Should not be called from user code. */
-    HYP_METHOD(Serialize, Property="Root")
+    HYP_METHOD(Property="Root", Serialize=true, Editor=true)
     HYP_FORCE_INLINE void SetRoot(NodeProxy root)
     {
         if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
@@ -176,11 +178,11 @@ public:
     HYP_FORCE_INLINE bool IsWorldScene() const
         { return !m_is_non_world_scene; }
 
-    HYP_METHOD(Serialize, Property="IsAudioListener")
+    HYP_METHOD(Property="IsAudioListener", Serialize=true)
     HYP_FORCE_INLINE bool IsAudioListener() const
         { return m_is_audio_listener; }
 
-    HYP_METHOD(Serialize, Property="IsAudioListener")
+    HYP_METHOD(Property="IsAudioListener", Serialize=true)
     HYP_FORCE_INLINE void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
 

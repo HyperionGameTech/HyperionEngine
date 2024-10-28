@@ -47,7 +47,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
             bounding_box_component = &GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
         }
 
-        switch (light->GetType()) {
+        switch (light->GetLightType()) {
         case LightType::DIRECTIONAL:
             bounding_box_component->local_aabb = BoundingBox::Infinity();
             bounding_box_component->world_aabb = BoundingBox::Infinity();
@@ -67,7 +67,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 
         if (!visibility_state_component) {
             // Directional light sources are always visible
-            if (light->GetType() == LightType::DIRECTIONAL) {
+            if (light->GetLightType() == LightType::DIRECTIONAL) {
                 GetEntityManager().AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {
                     VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
                 });
@@ -104,7 +104,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
 
         // For area lights, update the material ID if the entity has a MeshComponent.
-        if (light_component.light->GetType() == LightType::AREA_RECT) {
+        if (light_component.light->GetLightType() == LightType::AREA_RECT) {
             /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {
                 light_component.light->SetMaterial(mesh_component->material);
             } else {
@@ -115,7 +115,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
         const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
         if (transform_hash_code != light_component.transform_hash_code) {
-            if (light_component.light->GetType() == LightType::DIRECTIONAL) {
+            if (light_component.light->GetLightType() == LightType::DIRECTIONAL) {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
 
                 VisibilityStateComponent *visibility_state_component = GetEntityManager().TryGetComponent<VisibilityStateComponent>(entity);
@@ -135,7 +135,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
         if (camera.IsValid()) {
             is_light_in_frustum = camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
 
-            switch (light_component.light->GetType()) {
+            switch (light_component.light->GetLightType()) {
             case LightType::DIRECTIONAL:
                 is_light_in_frustum = true;
                 break;

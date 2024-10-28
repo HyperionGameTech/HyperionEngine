@@ -13,21 +13,6 @@ namespace Hyperion
         {
         }
 
-        public Entity AddEntity()
-        {
-            return EntityManager_AddEntity(NativeAddress);
-        }
-
-        public void RemoveEntity(Entity entity)
-        {
-            EntityManager_RemoveEntity(NativeAddress, entity);
-        }
-
-        public bool HasEntity(Entity entity)
-        {
-            return EntityManager_HasEntity(NativeAddress, entity);
-        }
-
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
@@ -37,18 +22,6 @@ namespace Hyperion
 
         public ComponentID AddComponent<T>(Entity entity, T component) where T : struct, IComponent
         {
-            // ComponentDefinition componentDefinition = componentNativeTypeIDs[typeof(T)];
-
-            // // Have to pass address of component to native code
-            // IntPtr componentPtr = Marshal.AllocHGlobal(Marshal.SizeOf(component));
-            // Marshal.StructureToPtr(component, componentPtr, false);
-
-            // // call the native method
-            // ComponentID result = componentDefinition.addComponent(NativeAddress, entity, componentPtr);
-
-            // // Free the memory
-            // Marshal.FreeHGlobal(componentPtr);
-
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
 
             if (componentHypClass.Size != Marshal.SizeOf(component))
@@ -83,15 +56,6 @@ namespace Hyperion
                 return ref System.Runtime.CompilerServices.Unsafe.AsRef<T>(componentPtr.ToPointer());
             }
         }
-
-        [DllImport("hyperion", EntryPoint = "EntityManager_AddEntity")]
-        private static extern Entity EntityManager_AddEntity(IntPtr entityManagerPtr);
-
-        [DllImport("hyperion", EntryPoint = "EntityManager_RemoveEntity")]
-        private static extern void EntityManager_RemoveEntity(IntPtr entityManagerPtr, Entity entity);
-
-        [DllImport("hyperion", EntryPoint = "EntityManager_HasEntity")]
-        private static extern bool EntityManager_HasEntity(IntPtr entityManagerPtr, Entity entity);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_HasComponent")]
         private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID componentTypeId, Entity entity);
