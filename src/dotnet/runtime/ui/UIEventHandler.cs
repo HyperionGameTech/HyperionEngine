@@ -18,7 +18,12 @@ namespace Hyperion
         {
             base.Init(entity);
 
-            // uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(Entity).UIObject;
+            uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(Entity).UIObject;
+
+            if (uiObject == null)
+            {
+                throw new InvalidOperationException("UIObject is null");
+            }
         }
 
         protected UIStage UIStage

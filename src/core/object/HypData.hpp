@@ -148,8 +148,8 @@ struct HypData
 
     ~HypData()                                      = default;
 
-    HYP_FORCE_INLINE bool IsValid() const
-        { return value.IsValid(); }
+    HYP_FORCE_INLINE bool IsNull() const
+        { return !ToRef().HasValue(); }
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return ToRef().GetTypeID(); }
@@ -1130,6 +1130,30 @@ struct HypDataHelper<containers::detail::String<StringType>> : HypDataHelper<Any
     }
 };
 
+template <int StringType>
+struct HypDataHelperDecl<utilities::detail::StringView<StringType>> {};
+
+template <int StringType>
+struct HypDataHelper<utilities::detail::StringView<StringType>> : HypDataHelper<containers::detail::String<StringType>>
+{
+    using ConvertibleFrom = Tuple<containers::detail::String<StringType>>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return HypDataHelper<containers::detail::String<StringType>>::Is(value);
+    }
+
+    utilities::detail::StringView<StringType> Get(const Any &value) const
+    {
+        return HypDataHelper<containers::detail::String<StringType>>::Get(value);
+    }
+
+    void Set(HypData &hyp_data, const utilities::detail::StringView<StringType> &value) const
+    {
+        HypDataHelper<containers::detail::String<StringType>>::Set(hyp_data, value);
+    }
+};
+
 template <>
 struct HypDataHelperDecl<Name> {};
 
@@ -1143,19 +1167,9 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         return value.Is<ANSIString>();
     }
 
-    HYP_FORCE_INLINE bool Is(const ANSIString &value) const
-    {
-        return true;
-    }
-
     HYP_FORCE_INLINE Name Get(const Any &value) const
     {
         return CreateNameFromDynamicString(value.Get<ANSIString>());
-    }
-
-    HYP_FORCE_INLINE Name Get(const ANSIString &value) const
-    {
-        return CreateNameFromDynamicString(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, Name value) const
@@ -1401,24 +1415,9 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         return value.Is<FixedArray<T, Size>>();
     }
 
-    HYP_FORCE_INLINE bool Is(const FixedArray<T, Size> &value) const
-    {
-        return true;
-    }
-
     FixedArray<T, Size> &Get(const Any &value) const
     {
         return value.Get<FixedArray<T, Size>>();
-    }
-
-    FixedArray<T, Size> &Get(FixedArray<T, Size> &value) const
-    {
-        return value;
-    }
-
-    const FixedArray<T, Size> &Get(const FixedArray<T, Size> &value) const
-    {
-        return value;
     }
 
     void Set(HypData &hyp_data, const T (&value)[Size]) const
@@ -1777,7 +1776,7 @@ struct HypDataTypeChecker
     {
         constexpr bool should_skip_additional_is_check = std::is_same_v<T, typename HypDataHelper<T>::StorageType>;
 
-        static_assert(HypData::can_store_directly<typename HypDataHelper<T>::StorageType>);
+        static_assert(HypData::can_store_directly<typename HypDataHelper<T>::StorageType>, "StorageType must be a type that can be stored directly in the HypData variant without allocating memory dynamically");
 
         return value.Is<typename HypDataHelper<T>::StorageType>()
             && (should_skip_additional_is_check || HypDataHelper<T>{}.Is(value.Get<typename HypDataHelper<T>::StorageType>()));
@@ -1823,7 +1822,7 @@ struct HypDataTypeChecker_Tuple<T, Tuple<ConvertibleFrom...>>
 template <class VariantType, class ReturnType, class... Types, SizeType... Indices>
 HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType &&value, Optional<ReturnType> &out_value, std::index_sequence<Indices...>)
 {
-    const auto Get = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
+    const auto GetForTypeIndex = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType> &out_value, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
     {
         using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
         using StorageType = typename HypDataHelper<SelectedType>::StorageType;
@@ -1845,7 +1844,7 @@ HYP_FORCE_INLINE bool HypDataGetter_Tuple_Impl(VariantType &&value, Optional<Ret
         return true;
     };
 
-    return ((HypDataTypeChecker<Types>{}(value) && Get(out_value, std::integral_constant<SizeType, Indices>{})) || ...);
+    return ((HypDataTypeChecker<Types>{}(value) && GetForTypeIndex(out_value, std::integral_constant<SizeType, Indices>{})) || ...);
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>

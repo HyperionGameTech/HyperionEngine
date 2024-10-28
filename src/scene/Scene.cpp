@@ -262,7 +262,7 @@ NodeProxy Scene::FindNodeWithEntity(ID<Entity> entity) const
     return m_root_node_proxy->FindChildWithEntity(entity);
 }
 
-NodeProxy Scene::FindNodeByName(const String &name) const
+NodeProxy Scene::FindNodeByName(UTF8StringView name) const
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 

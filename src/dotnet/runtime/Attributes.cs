@@ -8,6 +8,8 @@ namespace Hyperion
     {
     }
 
+    /// @TODO: For HypClassBinding, if the target is a struct, we need to validate that all fields match the HypClass 
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
     public class HypClassBinding : Attribute
     {

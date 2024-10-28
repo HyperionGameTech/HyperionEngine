@@ -765,15 +765,17 @@ UIEventHandlerResult UIStage::OnInputEvent(
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 const RC<UIObject> &ui_object = *it;
 
-                if (first_hit) {
-                    // We don't want to check the current object if it's not a child of the first hit object,
-                    // since it would be behind the first hit object.
-                    if (!first_hit->IsOrHasParent(ui_object)) {
-                        continue;
-                    }
-                } else {
-                    first_hit = ui_object;
-                }
+                // if (first_hit) {
+                //     // We don't want to check the current object if it's not a child of the first hit object,
+                //     // since it would be behind the first hit object.
+                //     if (!first_hit->IsOrHasParent(ui_object)) {
+                //         continue;
+                //     }
+                // } else {
+                //     first_hit = ui_object;
+                // }
+
+                HYP_LOG(UI, LogLevel::DEBUG, "Scroll UIObject {}", ui_object->GetName());
 
                 event_handler_result |= ui_object->OnScroll(MouseEvent {
                     .input_manager      = input_manager,

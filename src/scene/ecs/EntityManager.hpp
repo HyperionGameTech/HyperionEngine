@@ -402,8 +402,8 @@ public:
     /*! \brief Adds a new entity to the EntityManager.
      *  \note Must be called from the owner thread.
      *
-     *  \return The Entity that was added.
-     */
+     *  \return The Entity that was added. */
+    HYP_METHOD()
     HYP_NODISCARD ID<Entity> AddEntity();
 
     /*! \brief Removes an entity from the EntityManager.
@@ -412,6 +412,7 @@ public:
      *
      *  \return True if the entity was removed, false otherwise.
      */
+    HYP_METHOD()
     bool RemoveEntity(ID<Entity> id);
 
     /*! \brief Moves an entity from one EntityManager to another.

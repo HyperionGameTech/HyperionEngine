@@ -32,7 +32,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(ID<Entity> entity)
         return;
     }
 
-    switch (light_component.light->GetType()) {
+    switch (light_component.light->GetLightType()) {
     case LightType::DIRECTIONAL:
         shadow_map_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
@@ -53,7 +53,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(ID<Entity> entity)
         DebugLog(
             LogType::Warn,
             "Light type %u not supported for shadow mapping\n",
-            uint32(light_component.light->GetType())
+            uint32(light_component.light->GetLightType())
         );
 
         break;
@@ -68,7 +68,7 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
     if (shadow_map_component.render_component) {
-        switch (light_component.light->GetType()) {
+        switch (light_component.light->GetLightType()) {
         case LightType::DIRECTIONAL:
             GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<DirectionalLightShadowRenderer>(shadow_map_component.render_component->GetName());
 
@@ -101,7 +101,7 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        switch (light_component.light->GetType()) {
+        switch (light_component.light->GetLightType()) {
         case LightType::DIRECTIONAL: {
             DirectionalLightShadowRenderer *shadow_renderer = static_cast<DirectionalLightShadowRenderer *>(shadow_map_component.render_component.Get());
 

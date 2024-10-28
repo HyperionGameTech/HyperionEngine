@@ -170,6 +170,13 @@ public:
         const HypClass *hyp_class = GetClass(value.GetTypeID());
         AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
 
+        if (value.IsNull()) {
+            RC<UIText> empty_value_text = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            empty_value_text->SetText("Object is null");
+
+            return empty_value_text;
+        }
+
         RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         HashMap<String, HypProperty *> properties_by_name;
@@ -204,7 +211,6 @@ public:
             panel->SetPadding({ 1, 1 });
 
             HypData getter_result = it.second->Get(value);
-            AssertThrow(getter_result.IsValid());
             
             IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(getter_result.GetTypeID());
             
@@ -839,7 +845,6 @@ public:
 
         // Create panel
         RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        // panel->SetBackgroundColor(Vec4f(0.2f, 0.2f, 0.2f, 1.0f));
 
         {
             RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -1432,13 +1437,6 @@ void HyperionEditorImpl::InitDetailView()
 
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
-
-        // temp
-        AssertThrow(list_view->HasChildUIObjects());
-        AssertThrow(list_view->GetDataSource()->Size() != 0);
-        list_view->UpdateSize();
-        list_view->SetBackgroundColor(Color(0xFF0000FFu));
-        HYP_LOG(Editor, LogLevel::DEBUG, "UIListView has {} items", list_view->GetListViewItems().Size());
 
         EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {
