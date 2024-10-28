@@ -48,7 +48,7 @@ class DotNetImplBase
 public:
     virtual ~DotNetImplBase() = default;
 
-    virtual void Initialize(const RC<AppContext> &app_context) = 0;
+    virtual void Initialize(const FilePath &base_path) = 0;
     virtual UniquePtr<Assembly> LoadAssembly(const char *path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
@@ -63,16 +63,16 @@ public:
 using InitializeAssemblyDelegate = int(*)(ManagedGuid *, ClassHolder *, const char *, int32);
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
 
-static Optional<FilePath> FindAssemblyFilePath(AppContext *app_context, const char *path)
+static Optional<FilePath> FindAssemblyFilePath(const FilePath &base_path, const char *path)
 {
     HYP_NAMED_SCOPE("Find .NET Assembly File Path");
 
     FilePath filepath = FilePath::Current() / path;
 
-    if (!filepath.Exists() && app_context != nullptr) {
+    if (!filepath.Exists()) {
         HYP_LOG(DotNET, LogLevel::WARNING, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
 
-        filepath = FilePath(app_context->GetArguments().GetCommand()).BasePath() / path;
+        filepath = base_path / path;
     }
     
     if (!filepath.Exists()) {
@@ -121,11 +121,9 @@ public:
     FilePath GetRuntimeConfigPath() const
         { return GetDotNetPath() / "runtimeconfig.json"; }
 
-    virtual void Initialize(const RC<AppContext> &app_context) override
+    virtual void Initialize(const FilePath &base_path) override
     {
-        AssertThrow(app_context != nullptr);
-
-        m_app_context = app_context;
+        m_base_path = base_path;
 
         // ensure the mono directories exists
         FileSystem::MkDir(GetDotNetPath().Data());
@@ -142,7 +140,7 @@ public:
             HYP_THROW("Could not initialize .NET runtime: Failed to initialize runtime");
         }
 
-        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath(m_app_context.Get(), "HyperionInterop.dll");
+        const Optional<FilePath> interop_assembly_path = FindAssemblyFilePath(m_base_path, "HyperionInterop.dll");
 
         if (!interop_assembly_path.HasValue()) {
             HYP_THROW("Could not initialize .NET runtime: Could not locate HyperionInterop.dll!");
@@ -182,8 +180,8 @@ public:
 
         static const FixedArray<Pair<String, FilePath>, 3> core_assemblies = {
             Pair<String, FilePath> { "interop", *interop_assembly_path },
-            Pair<String, FilePath> { "core", FindAssemblyFilePath(app_context.Get(), "HyperionCore.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionCore.dll"); return { }; }) },
-            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(app_context.Get(), "HyperionRuntime.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionRuntime.dll"); return { }; }) }
+            Pair<String, FilePath> { "core", FindAssemblyFilePath(m_base_path, "HyperionCore.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionCore.dll"); return { }; }) },
+            Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_base_path, "HyperionRuntime.dll").GetOr([]() -> FilePath { HYP_FAIL("Failed to get HyperionRuntime.dll"); return { }; }) }
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
@@ -213,7 +211,7 @@ public:
     {
         UniquePtr<Assembly> assembly = MakeUnique<Assembly>();
 
-        Optional<FilePath> filepath = FindAssemblyFilePath(m_app_context.Get(), path);
+        Optional<FilePath> filepath = FindAssemblyFilePath(m_base_path, path);
 
         if (!filepath.HasValue()) {
             return nullptr;
@@ -300,10 +298,7 @@ private:
         Array<json::JSONValue> probing_paths;
 
         probing_paths.PushBack(FilePath::Relative(GetLibraryPath(), current_path));
-
-        if (m_app_context != nullptr) {
-            probing_paths.PushBack(FilePath::Relative(FilePath(m_app_context->GetArguments().GetCommand()).BasePath(), current_path));
-        }
+        probing_paths.PushBack(FilePath::Relative(m_base_path, current_path));
 
         const json::JSONValue runtime_config_json(json::JSONObject {
             { "runtimeOptions", json::JSONObject({
@@ -393,7 +388,7 @@ private:
         return true;
     }
 
-    RC<AppContext>                              m_app_context;
+    FilePath                                    m_base_path;
 
     UniquePtr<DynamicLibrary>                   m_dll;
 
@@ -416,7 +411,7 @@ public:
     DotNetImpl()                    = default;
     virtual ~DotNetImpl() override  = default;
 
-    virtual void Initialize(const RC<AppContext> &app_context) override
+    virtual void Initialize(const FilePath &base_path) override
     {
     }
 
@@ -515,7 +510,7 @@ bool DotNetSystem::IsInitialized() const
     return m_is_initialized;
 }
 
-void DotNetSystem::Initialize(const RC<AppContext> &app_context)
+void DotNetSystem::Initialize(const FilePath &base_path)
 {
     if (!IsEnabled()) {
         return;
@@ -530,7 +525,7 @@ void DotNetSystem::Initialize(const RC<AppContext> &app_context)
     AssertThrow(m_impl == nullptr);
 
     m_impl = MakeRefCountedPtr<detail::DotNetImpl>();
-    m_impl->Initialize(app_context);
+    m_impl->Initialize(base_path);
 
     m_is_initialized = true;
 }

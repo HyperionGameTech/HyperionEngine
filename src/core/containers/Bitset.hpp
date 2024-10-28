@@ -28,13 +28,13 @@ public:
 
     static constexpr BitIndex not_found = BitIndex(-1);
 
-private:
     HYP_FORCE_INLINE static constexpr uint64 GetBlockIndex(BitIndex bit)
         { return bit / CHAR_BIT / sizeof(BlockType); }
     
     HYP_FORCE_INLINE static constexpr uint64 GetBitMask(BitIndex bit)
         { return 1ull << (bit & (num_bits_per_block - 1)); }
 
+private:
     template <bool IsConst>
     struct IteratorBase
     {

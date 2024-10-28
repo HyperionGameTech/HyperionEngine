@@ -53,24 +53,25 @@ static inline Scene *GetScene(UIStageType *stage)
 enum class UIObjectType : uint32
 {
     UNKNOWN             = ~0u,
-    STAGE               = 0,
-    BUTTON              = 1,
-    TEXT                = 2,
-    PANEL               = 3,
-    IMAGE               = 4,
-    TAB_VIEW            = 5,
-    TAB                 = 6,
-    GRID                = 7,
-    GRID_ROW            = 8,
-    GRID_COLUMN         = 9,
-    MENU_BAR            = 10,
-    MENU_ITEM           = 11,
-    DOCKABLE_CONTAINER  = 12,
-    DOCKABLE_ITEM       = 13,
-    LIST_VIEW           = 14,
-    LIST_VIEW_ITEM      = 15,
-    TEXTBOX             = 16,
-    WINDOW              = 17,
+    OBJECT              = 0,
+    STAGE               = 1,
+    BUTTON              = 2,
+    TEXT                = 3,
+    PANEL               = 4,
+    IMAGE               = 5,
+    TAB_VIEW            = 6,
+    TAB                 = 7,
+    GRID                = 8,
+    GRID_ROW            = 9,
+    GRID_COLUMN         = 10,
+    MENU_BAR            = 11,
+    MENU_ITEM           = 12,
+    DOCKABLE_CONTAINER  = 13,
+    DOCKABLE_ITEM       = 14,
+    LIST_VIEW           = 15,
+    LIST_VIEW_ITEM      = 16,
+    TEXTBOX             = 17,
+    WINDOW              = 18,
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
@@ -137,6 +138,16 @@ enum class UIObjectUpdateType : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)
+
+enum class UIObjectScrollbarOrientation : uint8
+{
+    NONE        = 0x0,
+    HORIZONTAL  = 0x1,
+    VERTICAL    = 0x2,
+    ALL         = HORIZONTAL | VERTICAL
+};
+
+HYP_MAKE_ENUM_FLAGS(UIObjectScrollbarOrientation)
 
 struct UIObjectAspectRatio
 {
@@ -316,6 +327,7 @@ public:
     friend class UIStage;
     friend struct UILockedUpdatesScope;
 
+    UIObject();
     UIObject(const UIObject &other)                 = delete;
     UIObject &operator=(const UIObject &other)      = delete;
     UIObject(UIObject &&other) noexcept             = delete;
@@ -414,6 +426,10 @@ public:
     HYP_METHOD()
     void SetScrollOffset(Vec2i scroll_offset, bool smooth);
 
+    HYP_METHOD()
+    virtual bool IsScrollable() const
+        { return false; }
+
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
      *  \see{Node::CalculateDepth}
      *  \return The depth of the UI object */
@@ -472,6 +488,7 @@ public:
     /*! \brief Check if the UI object affects the size of its parent.
      *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
      *  \return True if the UI object affects the size of its parent, false otherwise */
+    HYP_METHOD()
     HYP_FORCE_INLINE bool AffectsParentSize() const
         { return m_affects_parent_size; }
 
@@ -479,18 +496,21 @@ public:
      *  Container types can have objects that sit outside and move independently of this object itself,
      *  and is useful for things like tab views, panels that scroll, etc. However, it comes with the added cost
      *  of more bookkeeping and more RenderGroup creation for rendering. See \ref{CollectObjects} and \ref{UIRenderer::OnUpdate} for example. */
+    HYP_METHOD()
     virtual bool IsContainer() const
         { return false; }
 
     /*! \brief Get the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \return The border radius of the UI object */
+    HYP_METHOD()
     HYP_FORCE_INLINE uint32 GetBorderRadius() const
         { return m_border_radius; }
 
     /*! \brief Set the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \param border_radius The border radius of the UI object */
+    HYP_METHOD()
     void SetBorderRadius(uint32 border_radius);
 
     /*! \brief Get the border flags of the UI object
@@ -612,7 +632,7 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return GetClosestParentUIObjectWithPredicate([](const RC<UIObject> &parent) -> bool
+        return GetClosestParentUIObject_Proc([](const RC<UIObject> &parent) -> bool
         {
             return parent.Is<T>();
         }).template CastUnsafe<T>();
@@ -804,7 +824,7 @@ public:
     Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
 
 protected:
-    RC<UIObject> GetClosestParentUIObjectWithPredicate(const ProcRef<bool, UIObject *> &predicate) const;
+    RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
 
     HYP_FORCE_INLINE bool UseAutoSizing() const
     {
@@ -878,6 +898,9 @@ protected:
     void OnTextSizeUpdate();
     virtual void OnTextSizeUpdate_Internal() { }
 
+    void OnScrollOffsetUpdate();
+    virtual void OnScrollOffsetUpdate_Internal() { }
+
     bool NeedsRepaint() const;
     void SetNeedsRepaintFlag(bool needs_repaint = true);
 
@@ -905,6 +928,9 @@ protected:
     BoundingBox                     m_aabb_clamped;
 
     BlendVar<Vec2f>                 m_scroll_offset;
+
+    RC<UIObject>                    m_vertical_scrollbar;
+    RC<UIObject>                    m_horizontal_scrollbar;
 
     Vec2i                           m_padding;
 

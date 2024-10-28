@@ -14,7 +14,7 @@ namespace Hyperion
         private UIStage? uiStage;
         private UIObject? uiObject;
 
-        public override void Init(Entity entity)
+        public override void Init(IDBase entity)
         {
             base.Init(entity);
 

@@ -137,6 +137,38 @@ public:
         other.Clear();
     }
 
+    template <class OtherContainerType>
+    FlatSet Union(const OtherContainerType &other) const
+    {
+        FlatSet result(*this);
+        result.Merge(other);
+
+        return result;
+    }
+
+    template <class OtherContainerType>
+    FlatSet Union(OtherContainerType &&other) const
+    {
+        FlatSet result(*this);
+        result.Merge(std::move(other));
+
+        return result;
+    }
+
+    template <class OtherContainerType>
+    FlatSet Intersection(const OtherContainerType &other) const
+    {
+        FlatSet result;
+
+        for (auto it = Begin(); it != End(); ++it) {
+            if (other.Contains(*it)) {
+                result.Insert(*it);
+            }
+        }
+
+        return result;
+    }
+
     HYP_NODISCARD HYP_FORCE_INLINE Array<T> ToArray() const
         { return Array<T>(Begin(), End()); }
 

@@ -14,18 +14,20 @@
 
 namespace hyperion {
 
-HYP_API void InitializeAppContext(RC<AppContext> app_context)
+HYP_API void InitializeAppContext(const RC<AppContext> &app_context)
 {
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
-    AssertThrowMsg(
-        !g_engine.IsValid(),
-        "Hyperion already initialized!"
-    );
+    AssertThrowMsg(g_engine.IsValid(), "Engine is null!");
 
+    g_engine->Initialize(app_context);
+}
+
+HYP_API void InitializeEngine(const FilePath &base_path)
+{
     HypClassRegistry::GetInstance().Initialize();
 
-    dotnet::DotNetSystem::GetInstance().Initialize(app_context);
+    dotnet::DotNetSystem::GetInstance().Initialize(base_path);
 
     g_engine = CreateObject<Engine>();
     g_asset_manager = CreateObject<AssetManager>();
@@ -34,11 +36,9 @@ HYP_API void InitializeAppContext(RC<AppContext> app_context)
     g_safe_deleter = new SafeDeleter;
 
     ComponentInterfaceRegistry::GetInstance().Initialize();
-
-    g_engine->Initialize(app_context);
 }
 
-HYP_API void ShutdownApplication()
+HYP_API void DestroyEngine()
 {
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 

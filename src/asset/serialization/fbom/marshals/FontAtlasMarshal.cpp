@@ -141,7 +141,7 @@ public:
         }
 
         out.SetProperty("SymbolList", FBOMData::FromArray(std::move(symbol_list_array)));
-        out.SetProperty("CellDimensions", FBOMData::FromVec2u(font_atlas.GetCellDimensions()));
+        out.SetProperty("CellDimensions", FBOMData::FromVec2u(Vec2u(font_atlas.GetCellDimensions())));
         
         FBOMType glyph_metrics_struct_type = FBOMStruct::Create<Glyph::Metrics>();
         FBOMArray glyph_metrics_array { glyph_metrics_struct_type };
@@ -210,7 +210,7 @@ public:
             return err;
         }
 
-        RC<FontAtlas> result = MakeRefCountedPtr<FontAtlas>(atlas_textures, cell_dimensions, std::move(glyph_metrics), std::move(symbol_list));
+        RC<FontAtlas> result = MakeRefCountedPtr<FontAtlas>(atlas_textures, Vec2i(cell_dimensions), std::move(glyph_metrics), std::move(symbol_list));
 
         out = HypData(std::move(result));
 

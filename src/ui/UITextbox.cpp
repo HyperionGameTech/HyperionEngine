@@ -20,16 +20,9 @@ UITextbox::UITextbox()
 {
     SetBorderRadius(2);
     SetPadding({ 5, 2 });
-
-    OnScroll.RemoveAll();
-    // OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
-    // {
-    //     HYP_LOG(UI, LogLevel::INFO, "Scrolling textbox: {}", event_data.wheel);
-
-    //     SetScrollOffset(GetScrollOffset() - event_data.wheel * 5, /* smooth */ false);
-
-    //     return UIEventHandlerResult::STOP_BUBBLING;
-    // }).Detach();
+    
+    // For now
+    SetIsScrollEnabled(UIObjectScrollbarOrientation::ALL, false);
 
     OnKeyDown.Bind([this](const KeyboardEvent &event_data) -> UIEventHandlerResult
     {

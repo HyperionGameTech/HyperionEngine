@@ -3,6 +3,7 @@
 #include <editor/EditorDelegates.hpp>
 
 #include <scene/Node.hpp>
+#include <scene/Scene.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -21,6 +22,8 @@ EditorDelegates &EditorDelegates::GetInstance()
 void EditorDelegates::AddNodeWatcher(Name watcher_key, const Weak<Node> &root_node, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    RC<Node> root_node_rc = root_node.Lock();
 
     auto it = m_node_watchers.Find(watcher_key);
 
@@ -67,6 +70,14 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertThrow(property != nullptr);
+
+    auto suppressed_nodes_it = m_suppressed_nodes.Find(node);
+
+    if (suppressed_nodes_it != m_suppressed_nodes.End()) {
+        if (suppressed_nodes_it->second.suppress_all_counter > 0 || suppressed_nodes_it->second.properties_to_suppress.Contains(property)) {
+            return;
+        }
+    }
 
     for (Pair<Name, NodeWatcher> &it : m_node_watchers) {
         NodeWatcher &node_watcher = it.second;
