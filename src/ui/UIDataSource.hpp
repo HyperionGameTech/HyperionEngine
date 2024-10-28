@@ -253,7 +253,7 @@ public:
     
     virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid) override
     {
-        if (!value.IsValid()) {
+        if (value.IsNull()) {
             return;
         }
 

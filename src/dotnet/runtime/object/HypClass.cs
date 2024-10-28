@@ -239,6 +239,23 @@ namespace Hyperion
                 throw new InvalidOperationException($"Type {type.Name} is not a HypObject");
             }
 
+            return ((HypClassBinding)hypClassBindingAttribute).HypClass;
+        }
+
+        public static HypClass? TryGetClass<T>()
+        {
+            return TryGetClass(typeof(T));
+        }
+
+        public static HypClass? TryGetClass(Type type)
+        {
+            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(type);
+
+            if (hypClassBindingAttribute == null)
+            {
+                return null;
+            }
+
             return hypClassBindingAttribute.HypClass;
         }
         

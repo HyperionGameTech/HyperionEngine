@@ -45,13 +45,11 @@ HYP_EXPORT void HypData_GetTypeID(const HypData *hyp_data, TypeID *out_type_id)
     *out_type_id = hyp_data->GetTypeID();
 }
 
-HYP_EXPORT int8 HypData_IsValid(const HypData *hyp_data)
+HYP_EXPORT int8 HypData_IsNull(const HypData *hyp_data)
 {
-    if (!hyp_data) {
-        return false;
-    }
+    AssertThrow(hyp_data != nullptr);
 
-    return hyp_data->IsValid();
+    return hyp_data->IsNull();
 }
 
 #define HYP_DEFINE_HYPDATA_GET(type, name) \
@@ -158,7 +156,7 @@ HYP_EXPORT int8 HypData_GetArray(HypData *hyp_data, HypData **out_array, uint32 
     return false;
 }
 
-HYP_EXPORT int8 HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 size)
+HYP_EXPORT int8 HypData_SetArray(HypData *hyp_data, HypData **elements, uint32 size)
 {
     if (!hyp_data || !elements) {
         return false;
@@ -168,7 +166,7 @@ HYP_EXPORT int8 HypData_SetArray(HypData *hyp_data, HypData *elements, uint32 si
     hyp_data_array.Reserve(size);
 
     for (uint32 i = 0; i < size; i++) {
-        hyp_data_array.PushBack(std::move(*(elements + i)));
+        hyp_data_array.PushBack(std::move(*(elements[i])));
     }
 
     *hyp_data = HypData(std::move(hyp_data_array));
@@ -300,8 +298,8 @@ HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, void **out_object)
 
     *out_object = nullptr;
 
-    if (!hyp_data->IsValid()) {
-        HYP_LOG(Object, LogLevel::ERR, "Cannot get HypObject from invalid HypData");
+    if (hyp_data->IsNull()) {
+        HYP_LOG(Object, LogLevel::ERR, "Cannot get HypObject from null HypData");
 
         return false;
     }

@@ -138,6 +138,21 @@ UIObject::UIObject(UIObjectType type)
       m_deferred_updates(UIObjectUpdateType::NONE),
       m_locked_updates(UIObjectUpdateType::NONE)
 {
+    OnInit.Bind(UIScriptDelegate< > { this, "OnInit", /* allow_nested */ false }).Detach();
+    OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", /* allow_nested */ false }).Detach();
+    OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", /* allow_nested */ false }).Detach();
+    OnMouseDown.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDown", /* allow_nested */ false }).Detach();
+    OnMouseUp.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseUp", /* allow_nested */ false }).Detach();
+    OnMouseDrag.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDrag", /* allow_nested */ false }).Detach();
+    OnMouseHover.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseHover", /* allow_nested */ false }).Detach();
+    OnMouseLeave.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseLeave", /* allow_nested */ false }).Detach();
+    OnMouseMove.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseMove", /* allow_nested */ false }).Detach();
+    OnGainFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnGainFocus", /* allow_nested */ false }).Detach();
+    OnLoseFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnLoseFocus", /* allow_nested */ false }).Detach();
+    OnScroll.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnScroll", /* allow_nested */ false }).Detach();
+    OnClick.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnClick", /* allow_nested */ false }).Detach();
+    OnKeyDown.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyDown", /* allow_nested */ false }).Detach();
+    OnKeyUp.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyUp", /* allow_nested */ false }).Detach();
 }
 
 UIObject::~UIObject()
@@ -182,22 +197,6 @@ void UIObject::Init()
     scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(mesh_component));
     scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent { });
     
-    OnInit.Bind(UIScriptDelegate< > { this, "OnInit", /* allow_nested */ false }).Detach();
-    OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", /* allow_nested */ false }).Detach();
-    OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", /* allow_nested */ false }).Detach();
-    OnMouseDown.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDown", /* allow_nested */ false }).Detach();
-    OnMouseUp.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseUp", /* allow_nested */ false }).Detach();
-    OnMouseDrag.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDrag", /* allow_nested */ false }).Detach();
-    OnMouseHover.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseHover", /* allow_nested */ false }).Detach();
-    OnMouseLeave.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseLeave", /* allow_nested */ false }).Detach();
-    OnMouseMove.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseMove", /* allow_nested */ false }).Detach();
-    OnGainFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnGainFocus", /* allow_nested */ false }).Detach();
-    OnLoseFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnLoseFocus", /* allow_nested */ false }).Detach();
-    OnScroll.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnScroll", /* allow_nested */ false }).Detach();
-    OnClick.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnClick", /* allow_nested */ false }).Detach();
-    OnKeyDown.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyDown", /* allow_nested */ false }).Detach();
-    OnKeyUp.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyUp", /* allow_nested */ false }).Detach();
-
     m_is_init = true;
 
     OnInit();
@@ -427,8 +426,7 @@ void UIObject::UpdatePosition(bool update_children)
         });
     }
 
-    // node->LockTransform();
-
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 }

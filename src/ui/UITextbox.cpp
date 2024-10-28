@@ -21,7 +21,7 @@ UITextbox::UITextbox()
     SetBorderRadius(2);
     SetPadding({ 5, 2 });
 
-    // OnScroll.RemoveAll();
+    OnScroll.RemoveAll();
     // OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
     // {
     //     HYP_LOG(UI, LogLevel::INFO, "Scrolling textbox: {}", event_data.wheel);

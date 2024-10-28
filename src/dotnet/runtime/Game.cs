@@ -64,8 +64,8 @@ namespace Hyperion
             Console.WriteLine("uiStage.Position = {0}", uiStage.GetPosition());
             Console.WriteLine("uiStage.ActualSize = {0}", uiStage.GetActualSize());
 
-            Entity newEntity = this.scene.GetEntityManager().AddEntity();
-            Console.WriteLine("New Entity = {0}", newEntity.ID);
+            IDBase newEntity = this.scene.GetEntityManager().AddEntity();
+            Console.WriteLine("New Entity = {0}", newEntity);
 
             // Console.WriteLine("this.scene.ID = {0}", this.scene.ID);
             Console.WriteLine("this.scene.World = {0}", this.scene.GetWorld());
