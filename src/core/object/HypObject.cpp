@@ -132,6 +132,26 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
 #pragma endregion HypObjectInitializerGuardBase
 
+#pragma region HypObjectPtr
+
+HYP_API const HypClass *HypObjectPtr::GetHypClass(TypeID type_id) const
+{
+    const HypClass *hyp_class = ::hyperion::GetClass(type_id);
+    AssertThrow(hyp_class != nullptr);
+
+    if (m_ptr != nullptr) {
+        const IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(m_ptr);
+        AssertThrow(initializer != nullptr);
+
+        hyp_class = initializer->GetClass();
+        AssertThrow(hyp_class != nullptr);
+    }
+
+    return hyp_class;
+}
+
+#pragma endregion HypObjectPtr
+
 HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address)
 {
 #ifdef HYP_DEBUG_MODE

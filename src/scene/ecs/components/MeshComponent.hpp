@@ -27,7 +27,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<sizeof(Vec4u)>;
 
-HYP_STRUCT(Component, Label="Mesh Component", Description="Controls the rendering of an object with a mesh, including the mesh, material, and skeleton.", Editor=true)
+HYP_STRUCT(Component, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
 struct MeshComponent
 {
     HYP_FIELD(Property="Mesh", Serialize=true, Editor=true)

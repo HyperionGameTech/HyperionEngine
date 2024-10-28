@@ -23,6 +23,54 @@ struct EnumFlags
     using EnumType = NormalizedType<Enum>;
     using UnderlyingType = NormalizedType<std::underlying_type_t<EnumType>>;
 
+    struct SubscriptWrapper
+    {
+        EnumFlags   &enum_flags;
+        EnumType    flag;
+
+        constexpr SubscriptWrapper(EnumFlags &enum_flags, EnumType flag)
+            : enum_flags(enum_flags),
+              flag(flag)
+        {
+        }
+
+        SubscriptWrapper(const SubscriptWrapper &other)                 = delete;
+        SubscriptWrapper &operator=(const SubscriptWrapper &other)      = delete;
+        SubscriptWrapper(SubscriptWrapper &&other) noexcept             = delete;
+        SubscriptWrapper &operator=(SubscriptWrapper &&other) noexcept  = delete;
+
+        constexpr HYP_FORCE_INLINE bool operator!() const
+        {
+            return !bool(*this);
+        }
+
+        constexpr HYP_FORCE_INLINE operator bool() const
+        {
+            return bool(UnderlyingType(enum_flags.value & static_cast<UnderlyingType>(flag)));
+        }
+
+        constexpr HYP_FORCE_INLINE bool operator==(bool value) const
+        {
+            return bool(UnderlyingType(enum_flags.value & static_cast<UnderlyingType>(flag))) == value;
+        }
+
+        constexpr HYP_FORCE_INLINE bool operator!=(bool value) const
+        {
+            return bool(UnderlyingType(enum_flags.value & static_cast<UnderlyingType>(flag))) != value;
+        }
+
+        constexpr HYP_FORCE_INLINE SubscriptWrapper &operator=(bool value)
+        {
+            if (value) {
+                enum_flags.value |= static_cast<UnderlyingType>(flag);
+            } else {
+                enum_flags.value &= ~static_cast<UnderlyingType>(flag);
+            }
+
+            return *this;
+        }
+    };
+
     UnderlyingType  value { };
 
     constexpr EnumFlags()                               = default;
@@ -147,8 +195,11 @@ struct EnumFlags
         return *this;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator[](EnumType flag) const
-        { return (value & static_cast<UnderlyingType>(flag)) != 0; }
+    HYP_FORCE_INLINE constexpr SubscriptWrapper operator[](EnumType flag)
+        { return SubscriptWrapper { *this, flag }; }
+
+    HYP_FORCE_INLINE constexpr const SubscriptWrapper operator[](EnumType flag) const
+        { return SubscriptWrapper { const_cast<EnumFlags &>(*this), flag }; }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
         { return HashCode::GetHashCode(value); }

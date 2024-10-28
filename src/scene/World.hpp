@@ -192,12 +192,12 @@ public:
     HYP_FORCE_INLINE const RenderCollectorContainer &GetRenderCollectorContainer() const
         { return m_render_collector_container; }
 
-    template <class T>
-    HYP_FORCE_INLINE T *AddSubsystem()
+    template <class T, class... Args>
+    HYP_FORCE_INLINE T *AddSubsystem(Args &&... args)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), RC<T>::Construct()));
+        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), MakeRefCountedPtr<T>(std::forward<Args>(args)...)));
     }
 
     Subsystem *AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem);

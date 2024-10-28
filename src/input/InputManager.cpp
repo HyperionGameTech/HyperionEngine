@@ -95,8 +95,7 @@ void InputManager::UpdateWindowSize(Vec2i new_size)
 
     m_window->HandleResize(new_size);
 
-    m_window_size.x.store(new_size.x, std::memory_order_relaxed);
-    m_window_size.y.store(new_size.y, std::memory_order_relaxed);
+    m_window_size = new_size;
 }
 
 void InputManager::SetKey(KeyCode key, bool pressed)

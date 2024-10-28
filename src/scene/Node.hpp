@@ -461,7 +461,7 @@ public:
     /*! \brief Set the local-space translation of this Node (not influenced by the parent Node) */
     HYP_METHOD()
     HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f &translation)
-        { SetLocalTransform({translation, m_local_transform.GetScale(), m_local_transform.GetRotation()}); }
+        { SetLocalTransform(Transform { translation, m_local_transform.GetScale(), m_local_transform.GetRotation() }); }
 
     /*! \brief Move the Node in local-space by adding the given vector to the current local-space translation.
      * \param translation The vector to translate this Node by
@@ -478,7 +478,7 @@ public:
     /*! \brief Set the local-space scale of this Node (not influenced by the parent Node) */
     HYP_METHOD()
     HYP_FORCE_INLINE void SetLocalScale(const Vec3f &scale)
-        { SetLocalTransform({m_local_transform.GetTranslation(), scale, m_local_transform.GetRotation()}); }
+        { SetLocalTransform(Transform { m_local_transform.GetTranslation(), scale, m_local_transform.GetRotation() }); }
 
     /*! \brief Scale the Node in local-space by multiplying the current local-space scale by the given scale vector.
      * \param scale The vector to scale this Node by */
@@ -494,7 +494,7 @@ public:
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD()
     HYP_FORCE_INLINE void SetLocalRotation(const Quaternion &rotation)
-        { SetLocalTransform(Transform(m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation)); }
+        { SetLocalTransform(Transform { m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation }); }
 
     /*! \brief Rotate the Node by multiplying the current local-space rotation by the given quaternion.
      * \param rotation The quaternion to rotate this Node by */
@@ -622,7 +622,7 @@ public:
     /*! \brief Update the world transform of the Node to reflect changes in the local transform and parent transform.
      *  This will update the TransformComponent of the entity if it exists. */
     HYP_METHOD()
-    void UpdateWorldTransform();
+    void UpdateWorldTransform(bool update_child_transforms = true);
 
     /*! \brief Calculate the depth of the Node relative to the root Node.
      * \returns The depth of the Node relative to the root Node. If the Node has no parent, 0 is returned. */
@@ -725,6 +725,9 @@ protected:
     Scene                       *m_scene;
 
     bool                        m_transform_locked;
+
+    // has the transform been updated since the entity has been set or transform has been unlocked?
+    bool                        m_transform_changed;
 
     UniquePtr<Delegates>        m_delegates;
 

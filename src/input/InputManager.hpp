@@ -13,63 +13,20 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Bitset.hpp>
 
-#include <core/system/AppContext.hpp>
-
 #include <math/Vector2.hpp>
 
 #include <input/Keyboard.hpp>
-
-#include <atomic>
+#include <input/Mouse.hpp>
 
 namespace hyperion {
 
-template <bool IsAtomic>
-struct Scalar2D { };
+namespace sys {
+    class ApplicationWindow;
+    class SystemEvent;
+} // namespace sys
 
-template<>
-struct Scalar2D<true>
-{
-    std::atomic<int> x { 0 };
-    std::atomic<int> y { 0 };
-
-    int GetX() const
-        { return x.load(std::memory_order_relaxed); }
-
-    int GetY() const
-        { return y.load(std::memory_order_relaxed); }
-
-    explicit operator Vector2() const
-        { return Vector2(float(GetX()), float(GetY())); }
-};
-
-template<>
-struct Scalar2D<false>
-{
-    int x { 0 };
-    int y { 0 };
-
-    Scalar2D() = default;
-
-    Scalar2D(int x, int y)
-    {
-        Scalar2D::x = x;
-        Scalar2D::y = y;
-    }
-
-    Scalar2D(const Scalar2D &other) = default;
-    Scalar2D &operator=(const Scalar2D &other) = default;
-    Scalar2D(Scalar2D &&other) noexcept = default;
-    Scalar2D &operator=(Scalar2D &other) noexcept = default;
-
-    HYP_FORCE_INLINE int GetX() const
-        { return x; }
-
-    HYP_FORCE_INLINE int GetY() const
-        { return y; }
-
-    HYP_FORCE_INLINE explicit operator Vector2() const
-        { return Vector2(float(GetX()), float(GetY())); }
-};
+using sys::ApplicationWindow;
+using sys::SystemEvent;
 
 struct InputState
 {
@@ -111,10 +68,8 @@ public:
     const Vec2i &GetPreviousMousePosition() const
         { return m_previous_mouse_position; }
 
-    Scalar2D<true> &GetWindowSize()
-        { return m_window_size; }
-
-    const Scalar2D<true> &GetWindowSize() const
+    HYP_METHOD()
+    const Vec2i &GetWindowSize() const
         { return m_window_size; }
 
     void KeyDown(KeyCode key)
@@ -176,7 +131,7 @@ private:
     InputState          m_input_state;
     Vec2i               m_mouse_position;
     Vec2i               m_previous_mouse_position;
-    Scalar2D<true>      m_window_size;
+    Vec2i               m_window_size;
 
     ApplicationWindow   *m_window;
 };

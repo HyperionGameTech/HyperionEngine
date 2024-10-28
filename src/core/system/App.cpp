@@ -24,6 +24,8 @@ App::~App()
 
 void App::Launch(Game *game, const CommandLineArguments &arguments)
 {
+    hyperion::InitializeEngine(FilePath(arguments.GetCommand()).BasePath());
+
     m_app_context = InitAppContext(arguments);
 
     game->SetAppContext(m_app_context);
@@ -32,7 +34,7 @@ void App::Launch(Game *game, const CommandLineArguments &arguments)
 
     RunMainLoop(game);
 
-    hyperion::ShutdownApplication();
+    hyperion::DestroyEngine();
 }
 
 void App::RunMainLoop(Game *game)

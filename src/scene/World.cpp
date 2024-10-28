@@ -35,10 +35,6 @@ World::World()
       m_detached_scenes(this),
       m_has_scene_updates(false)
 {
-#ifdef HYP_EDITOR
-    AddSubsystem<EditorSubsystem>();
-#endif
-
     AddSubsystem<WorldGridSubsystem>();
 }
 

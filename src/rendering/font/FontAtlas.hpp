@@ -37,8 +37,8 @@ struct HYP_API FontAtlasTextureSet
 class FontAtlas
 {
 public:
-    static constexpr uint symbol_columns = 20;
-    static constexpr uint symbol_rows = 5;
+    static constexpr uint32 s_symbol_columns = 20;
+    static constexpr uint32 s_symbol_rows = 5;
 
     using SymbolList = Array<FontFace::WChar>;
     using GlyphMetricsBuffer = Array<Glyph::Metrics>;
@@ -47,7 +47,7 @@ public:
 
     FontAtlas() = default;
 
-    HYP_API FontAtlas(const FontAtlasTextureSet &atlas_textures, Vec2u cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
+    HYP_API FontAtlas(const FontAtlasTextureSet &atlas_textures, Vec2i cell_dimensions, GlyphMetricsBuffer glyph_metrics, SymbolList symbol_list = GetDefaultSymbolList());
     HYP_API FontAtlas(RC<FontFace> face);
 
     FontAtlas(const FontAtlas &other)                   = delete;
@@ -64,7 +64,7 @@ public:
     HYP_FORCE_INLINE const FontAtlasTextureSet &GetAtlasTextures() const
         { return m_atlas_textures; }
 
-    HYP_FORCE_INLINE const Vec2u &GetCellDimensions() const
+    HYP_FORCE_INLINE const Vec2i &GetCellDimensions() const
         { return m_cell_dimensions; }
 
     HYP_FORCE_INLINE const SymbolList &GetSymbolList() const
@@ -77,13 +77,13 @@ public:
     HYP_API json::JSONValue GenerateMetadataJSON(const String &output_directory) const;
 
 private:
-    Vec2u FindMaxDimensions(const RC<FontFace> &face) const;
-    void RenderCharacter(const Handle<Texture> &atlas, const Handle<Texture> &glyph_texture, Vec2i location, Vec2u dimensions) const;
+    Vec2i FindMaxDimensions(const RC<FontFace> &face) const;
+    void RenderCharacter(const Handle<Texture> &atlas, const Handle<Texture> &glyph_texture, Vec2i location, Vec2i dimensions) const;
 
     RC<FontFace>            m_face;
 
     FontAtlasTextureSet     m_atlas_textures;
-    Vec2u                   m_cell_dimensions;
+    Vec2i                   m_cell_dimensions;
     GlyphMetricsBuffer      m_glyph_metrics;
     SymbolList              m_symbol_list;
 };

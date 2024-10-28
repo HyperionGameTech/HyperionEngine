@@ -5,11 +5,11 @@ namespace Hyperion
 {
     public static class ManagedHandleNativeBindings
     {
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_Get")]
-        internal static extern void ManagedHandle_Get(TypeID type_id, uint id, [Out] out HypDataBuffer outHypDataBuffer);
+        [DllImport("hyperion", EntryPoint = "Handle_Get")]
+        internal static extern void Handle_Get(TypeID type_id, uint id, [Out] out HypDataBuffer outHypDataBuffer);
 
-        [DllImport("hyperion", EntryPoint = "ManagedHandle_Set")]
-        internal static extern void ManagedHandle_Set(TypeID type_id, uint id, [In] ref HypDataBuffer hypDataBuffer);
+        [DllImport("hyperion", EntryPoint = "Handle_Set")]
+        internal static extern void Handle_Set(TypeID type_id, uint id, [In] ref HypDataBuffer hypDataBuffer);
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 4)]
@@ -36,7 +36,7 @@ namespace Hyperion
 
             using (HypData hypData = new HypData(value))
             {
-                ManagedHandleNativeBindings.ManagedHandle_Set(((HypClass)hypClass).TypeID, id, ref hypData.Buffer);
+                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, id, ref hypData.Buffer);
             }
         }
 
@@ -58,7 +58,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            ManagedHandleNativeBindings.ManagedHandle_Get(((HypClass)hypClass).TypeID, id, out hypDataBuffer);
+            ManagedHandleNativeBindings.Handle_Get(((HypClass)hypClass).TypeID, id, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

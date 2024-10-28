@@ -16,7 +16,7 @@ const HypClass *GetClass(WeakName type_name)
     return HypClassRegistry::GetInstance().GetClass(type_name);
 }
 
-bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id)
+bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id)
 {
     if (!hyp_class) {
         return false;
@@ -28,7 +28,14 @@ bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id)
     
     const HypClass *other_hyp_class = GetClass(type_id);
 
-    while (other_hyp_class) {
+    if (other_hyp_class != nullptr) {
+        // Try to get the initializer. If we can get it, use the instance class rather than just the class for the type ID.
+        if (const IHypObjectInitializer *initializer = other_hyp_class->GetObjectInitializer(ptr)) {
+            other_hyp_class = initializer->GetClass();
+        }
+    }
+
+    while (other_hyp_class != nullptr) {
         if (other_hyp_class == hyp_class) {
             return true;
         }

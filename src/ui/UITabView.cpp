@@ -110,7 +110,6 @@ void UITabView::Init()
     UIPanel::Init();
 
     m_container = GetStage()->CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
-    m_container->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     m_container->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
     m_container->SetBorderRadius(5);
     m_container->SetPadding({ 5, 5 });
