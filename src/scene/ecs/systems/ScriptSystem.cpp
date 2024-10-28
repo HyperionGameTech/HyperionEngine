@@ -11,7 +11,6 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
-#include <dotnet/runtime/ManagedHandle.hpp>
 
 #include <scripting/ScriptingService.hpp>
 

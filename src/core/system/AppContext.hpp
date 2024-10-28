@@ -7,6 +7,7 @@
 #include <SDL2/SDL.h>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -18,9 +19,13 @@
 
 #include <core/config/Config.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
 
 #include <input/Mouse.hpp>
+#include <input/InputManager.hpp>
 
 #include <rendering/backend/Platform.hpp>
 
@@ -64,8 +69,11 @@ struct WindowOptions
     WindowFlags flags = WindowFlags::NONE;
 };
 
-class HYP_API ApplicationWindow
+HYP_CLASS(Abstract)
+class HYP_API ApplicationWindow : public EnableRefCountedPtrFromThis<ApplicationWindow>
 {
+    HYP_OBJECT_BODY(ApplicationWindow);
+
 public:
     ApplicationWindow(ANSIString title, Vec2i size);
     ApplicationWindow(const ApplicationWindow &other)               = delete;
@@ -95,8 +103,11 @@ protected:
     Vec2i                   m_size;
 };
 
+HYP_CLASS()
 class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
+    HYP_OBJECT_BODY(SDLApplicationWindow);
+
 public:
     SDLApplicationWindow(ANSIString title, Vec2i size);
     virtual ~SDLApplicationWindow() override;
@@ -126,8 +137,12 @@ public:
 private:
     SDL_Window  *window = nullptr;
 };
-class HYP_API AppContext
+
+HYP_CLASS()
+class HYP_API AppContext : public EnableRefCountedPtrFromThis<AppContext>
 {
+    HYP_OBJECT_BODY(AppContext);
+
 public:
     AppContext(ANSIString name, const CommandLineArguments &arguments);
     virtual ~AppContext();
@@ -146,9 +161,12 @@ public:
     HYP_FORCE_INLINE ApplicationWindow *GetMainWindow() const
         { return m_main_window.Get(); }
 
-    void SetMainWindow(UniquePtr<ApplicationWindow> &&window);
+    void SetMainWindow(const RC<ApplicationWindow> &window);
 
-    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
+    HYP_FORCE_INLINE const Handle<InputManager> &GetInputManager() const
+        { return m_input_manager; }
+
+    virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent &event) = 0;
 
     virtual void UpdateConfigurationOverrides();
@@ -162,19 +180,23 @@ public:
     Delegate<void, ApplicationWindow *> OnCurrentWindowChanged;
     
 protected:
-    UniquePtr<ApplicationWindow>    m_main_window;
+    RC<ApplicationWindow>           m_main_window;
+    Handle<InputManager>            m_input_manager;
     ANSIString                      m_name;
     UniquePtr<CommandLineArguments> m_arguments;
     ConfigurationTable              m_configuration;
 };
 
+HYP_CLASS()
 class HYP_API SDLAppContext : public AppContext
 {
+    HYP_OBJECT_BODY(SDLAppContext);
+
 public:
     SDLAppContext(ANSIString name, const CommandLineArguments &arguments);
     virtual ~SDLAppContext() override;
 
-    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+    virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
 
     virtual int PollEvent(SystemEvent &event) override;
 

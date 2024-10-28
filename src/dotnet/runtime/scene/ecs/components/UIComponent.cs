@@ -8,7 +8,7 @@ namespace Hyperion
     public struct UIComponent : IComponent
     {
         [FieldOffset(0)]
-        private IntPtr uiObjectPtr = IntPtr.Zero;
+        private Ptr<UIObject> uiObject;
 
         public UIComponent()
         {
@@ -18,13 +18,7 @@ namespace Hyperion
         {
             get
             {
-                throw new NotImplementedException();
-                // if (!uiObjectPtr.IsValid)
-                // {
-                //     throw new Exception("UIComponent is not valid");
-                // }
-
-                // return UIObjectHelpers.MarshalUIObject(uiObjectPtr);
+                return (UIObject)uiObject.GetValue();
             }
         }
     }

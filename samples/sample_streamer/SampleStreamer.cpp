@@ -213,7 +213,7 @@ void SampleStreamer::Init()
     }
 
 
-    const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
+    const Extent2D window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
 
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
@@ -1037,7 +1037,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
 
-    const Extent2D window_size = GetInputManager()->GetWindow()->GetDimensions();
+    const Extent2D window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
 
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
         if (event.GetKeyCode() == KeyCode::ARROW_LEFT) {
@@ -1282,28 +1282,30 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
 // not overloading; just creating a method to handle camera movement
 void SampleStreamer::HandleCameraMovement(GameCounter::TickUnit delta)
 {
-    if (m_input_manager->IsKeyDown(KeyCode::KEY_W)) {
+    InputManager *input_manager = GetAppContext()->GetInputManager().Get();
+
+    if (input_manager->IsKeyDown(KeyCode::KEY_W)) {
         GetScene()->GetCamera()->GetCameraController()->PushCommand({
             CameraCommand::CAMERA_COMMAND_MOVEMENT,
             { .movement_data = { CameraCommand::CAMERA_MOVEMENT_FORWARD } }
         });
     }
 
-    if (m_input_manager->IsKeyDown(KeyCode::KEY_S)) {
+    if (input_manager->IsKeyDown(KeyCode::KEY_S)) {
         GetScene()->GetCamera()->GetCameraController()->PushCommand({
             CameraCommand::CAMERA_COMMAND_MOVEMENT,
             { .movement_data = { CameraCommand::CAMERA_MOVEMENT_BACKWARD } }
         });
     }
 
-    if (m_input_manager->IsKeyDown(KeyCode::KEY_A)) {
+    if (input_manager->IsKeyDown(KeyCode::KEY_A)) {
         GetScene()->GetCamera()->GetCameraController()->PushCommand({
             CameraCommand::CAMERA_COMMAND_MOVEMENT,
             { .movement_data = { CameraCommand::CAMERA_MOVEMENT_LEFT } }
         });
     }
 
-    if (m_input_manager->IsKeyDown(KeyCode::KEY_D)) {
+    if (input_manager->IsKeyDown(KeyCode::KEY_D)) {
         GetScene()->GetCamera()->GetCameraController()->PushCommand({
             CameraCommand::CAMERA_COMMAND_MOVEMENT,
             { .movement_data = { CameraCommand::CAMERA_MOVEMENT_RIGHT } }

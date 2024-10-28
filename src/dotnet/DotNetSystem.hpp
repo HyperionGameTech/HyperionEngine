@@ -5,17 +5,13 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/filesystem/FilePath.hpp>
+
 #include <Types.hpp>
 
 #include <dotnet/Assembly.hpp>
 
 namespace hyperion {
-
-namespace sys {
-class AppContext;
-} // namespace sys
-
-using sys::AppContext;
 
 namespace dotnet {
 
@@ -57,7 +53,7 @@ public:
 
     bool IsInitialized() const;
 
-    void Initialize(const RC<AppContext> &app_context);
+    void Initialize(const FilePath &base_path);
     void Shutdown();
 
 private:

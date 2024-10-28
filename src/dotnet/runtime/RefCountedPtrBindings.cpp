@@ -11,7 +11,7 @@ using namespace hyperion;
 
 extern "C" {
 
-HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, HypData *out_hyp_data)
+HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, ValueStorage<HypData> *out_hyp_data)
 {
     AssertThrow(out_hyp_data != nullptr);
 
@@ -21,7 +21,7 @@ HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, HypData *out_hyp_data)
     RC<void> rc;
     rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
 
-    *out_hyp_data = HypData(std::move(rc));
+    *out_hyp_data->Construct(std::move(rc));
 }
 
 HYP_EXPORT uint32 RefCountedPtr_IncRef(uintptr_t ctrl_block)

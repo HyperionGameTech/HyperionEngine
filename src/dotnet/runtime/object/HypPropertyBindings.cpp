@@ -12,8 +12,6 @@
 
 #include <dotnet/Object.hpp>
 
-#include <dotnet/runtime/ManagedHandle.hpp>
-
 #include <asset/serialization/fbom/FBOM.hpp>
 
 #include <Types.hpp>
