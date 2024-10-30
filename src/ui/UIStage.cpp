@@ -700,9 +700,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
 
-                HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
+                HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}   {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
                     GetClass(ui_object.GetTypeID())->GetName(),
                     ui_object->GetName(),
+                    ui_object->GetNodeTag(NAME("TempTestKey")).ToString(),
                     ui_object->GetText(),
                     ui_object->GetActualSize(),
                     ui_object->GetActualInnerSize(),

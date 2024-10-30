@@ -27,7 +27,7 @@ namespace hyperion {
 class HypClass;
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
-extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
 
 namespace memory {
 
@@ -805,7 +805,7 @@ public:
 
             return Base::GetTypeID() == type_id
                 || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
-                || IsInstanceOfHypClass(GetClass(type_id), Base::GetTypeID())
+                || IsInstanceOfHypClass(GetClass(type_id), Base::m_ref->value, Base::GetTypeID())
                 || (std::is_polymorphic_v<Ty> && dynamic_cast<Ty *>(static_cast<T *>(Base::m_ref->value)) != nullptr);
         }
     }
@@ -966,7 +966,7 @@ public:
 
         return std::is_same_v<Ty, void>
             || Base::GetTypeID() == type_id
-            || IsInstanceOfHypClass(GetClass(type_id), Base::GetTypeID());
+            || IsInstanceOfHypClass(GetClass(type_id), Base::m_ref->value, Base::GetTypeID());
     }
 
     /*! \brief Attempts to cast the pointer directly to the given type.

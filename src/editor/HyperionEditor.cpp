@@ -1,13 +1,10 @@
 #include <editor/HyperionEditor.hpp>
-#include <editor/EditorCamera.hpp>
 #include <editor/EditorObjectProperties.hpp>
 #include <editor/EditorDelegates.hpp>
 #include <editor/EditorSubsystem.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/UIRenderer.hpp>
-#include <rendering/render_components/ScreenCapture.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -156,18 +153,6 @@ void HyperionEditor::Init()
     HYP_BREAKPOINT;
 #endif
 
-
-    GetScene()->GetCamera()->SetCameraController(MakeRefCountedPtr<EditorCameraController>());
-
-    GetScene()->GetEnvironment()->AddRenderComponent<UIRenderer>(NAME("EditorUIRenderer"), GetUIStage());
-    
-    Extent2D window_size;
-
-    if (ApplicationWindow *current_window = GetAppContext()->GetMainWindow()) {
-        window_size = current_window->GetDimensions();
-    } else {
-        window_size = Extent2D { 1280, 720 };
-    }
 
     g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
         GetAppContext(),

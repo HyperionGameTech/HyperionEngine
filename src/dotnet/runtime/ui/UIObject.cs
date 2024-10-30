@@ -6,24 +6,25 @@ namespace Hyperion
     public enum UIObjectType : uint
     {
         Unknown = ~0u,
-        Stage = 0,
-        Button = 1,
-        Text = 2,
-        Panel = 3,
-        Image = 4,
-        TabView = 5,
-        Tab = 6,
-        Grid = 7,
-        GridRow = 8,
-        GridColumn = 9,
-        MenuBar = 10,
-        MenuItem = 11,
-        DockableContainer = 12,
-        DockableItem = 13,
-        ListView = 14,
-        ListViewItem = 15,
-        Textbox = 16,
-        Window = 17
+        Object = 0,
+        Stage = 1,
+        Button = 2,
+        Text = 3,
+        Panel = 4,
+        Image = 5,
+        TabView = 6,
+        Tab = 7,
+        Grid = 8,
+        GridRow = 9,
+        GridColumn = 10,
+        MenuBar = 11,
+        MenuItem = 12,
+        DockableContainer = 13,
+        DockableItem = 14,
+        ListView = 15,
+        ListViewItem = 16,
+        Textbox = 17,
+        Window = 18
     }
 
     [StructLayout(LayoutKind.Explicit, Size=16, Pack=8)]

@@ -34,7 +34,54 @@ struct NodeWatcher
 
 class HYP_API EditorDelegates
 {
+    struct SuppressedNode
+    {
+        FlatSet<const HypProperty *>    properties_to_suppress;
+        int                             suppress_all_counter = 0;
+    };
+
 public:
+    struct SuppressUpdatesScope
+    {
+        SuppressUpdatesScope(Node *node, const FlatSet<const HypProperty *> &properties_to_suppress = { })
+            : node(node)
+        {
+            SuppressedNode &suppressed_node = EditorDelegates::GetInstance().m_suppressed_nodes[node];
+
+            if (properties_to_suppress.Empty()) {
+                ++suppressed_node.suppress_all_counter;
+                suppress_all = true;
+            } else {
+                for (const HypProperty *property : properties_to_suppress) {
+                    if (!suppressed_node.properties_to_suppress.Contains(property)) {
+                        this->properties_to_suppress.Insert(property);
+                    }
+                }
+            }
+        }
+
+        ~SuppressUpdatesScope()
+        {
+            SuppressedNode &suppressed_node = EditorDelegates::GetInstance().m_suppressed_nodes[node];
+
+            if (suppress_all) {
+                --suppressed_node.suppress_all_counter;
+            }
+
+            for (const HypProperty *property : properties_to_suppress) {
+                suppressed_node.properties_to_suppress.Erase(property);
+            }
+
+            if (suppressed_node.properties_to_suppress.Empty() && suppress_all == 0) {
+                EditorDelegates::GetInstance().m_suppressed_nodes.Erase(node);
+            }
+        }
+
+        Node                            *node = nullptr;
+        FlatSet<const HypProperty *>    properties_to_suppress;
+        bool                            suppress_all = false;
+    };
+
     static EditorDelegates &GetInstance();
 
     EditorDelegates()                                           = default;
@@ -52,7 +99,9 @@ public:
     void OnNodeUpdate(Node *node, const HypProperty *property);
 
 private:
-    HashMap<Name, NodeWatcher>  m_node_watchers;
+    HashMap<Name, NodeWatcher>      m_node_watchers;
+
+    HashMap<Node *, SuppressedNode> m_suppressed_nodes;
 };
 
 } // namespace hyperion

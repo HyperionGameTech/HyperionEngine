@@ -2,6 +2,7 @@
 
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorDelegates.hpp>
+#include <editor/EditorCamera.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -32,6 +33,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/render_components/ScreenCapture.hpp>
 
@@ -74,6 +76,9 @@ void EditorSubsystem::Initialize()
 {
     HYP_SCOPE;
 
+    m_camera->SetCameraController(MakeRefCountedPtr<EditorCameraController>());
+    m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
+
     const Vec2i window_size = m_app_context->GetMainWindow()->GetDimensions();
 
     RC<ScreenCaptureRenderComponent> screen_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), window_size);
@@ -88,6 +93,7 @@ void EditorSubsystem::Shutdown()
     HYP_SCOPE;
 
     m_scene->GetEnvironment()->RemoveRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"));
+    m_scene->GetEnvironment()->RemoveRenderComponent<UIRenderer>(NAME("EditorUIRenderer"));
 }
 
 void EditorSubsystem::Update(GameCounter::TickUnit delta)
@@ -115,16 +121,11 @@ void EditorSubsystem::CreateEditorUI()
     m_ui_stage->SetDefaultFontAtlas(font_atlas);
 
     if (auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml"); loaded_ui_asset.IsOK()) {
-        auto loaded_ui = loaded_ui_asset.Result();
+        RC<UIStage> loaded_ui = loaded_ui_asset.Result().Cast<UIStage>();
+        AssertThrowMsg(loaded_ui != nullptr, "Failed to load editor UI");
 
-        AssertThrow(loaded_ui.Is<UIStage>());
-        AssertThrow(loaded_ui.Cast<UIStage>() != nullptr);
-
-        if (loaded_ui.Cast<UIStage>()) {
-            loaded_ui.Cast<UIStage>()->SetOwnerThreadID(ThreadID::Current());
-        }
-
-        loaded_ui.Cast<UIStage>()->SetDefaultFontAtlas(font_atlas);
+        loaded_ui->SetOwnerThreadID(ThreadID::Current());
+        loaded_ui->SetDefaultFontAtlas(font_atlas);
 
         if (RC<UIObject> scene_image_object = loaded_ui->FindChildUIObject(NAME("Scene_Image"))) {
             RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();

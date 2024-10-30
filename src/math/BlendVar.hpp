@@ -39,23 +39,19 @@ public:
     BlendVar &operator=(BlendVar &&other) noexcept  = default;
     ~BlendVar()                                     = default;
 
-    HYP_FORCE_INLINE
-    T GetValue() const
+    HYP_FORCE_INLINE T GetValue() const
         { return m_value; }
 
-    HYP_FORCE_INLINE
-    void SetValue(T value)
+    HYP_FORCE_INLINE void SetValue(T value)
     {
         m_value = value;
         m_fract = 0.0;
     }
 
-    HYP_FORCE_INLINE
-    T GetTarget() const
+    HYP_FORCE_INLINE T GetTarget() const
         { return m_target; }
 
-    HYP_FORCE_INLINE
-    void SetTarget(T target)
+    HYP_FORCE_INLINE void SetTarget(T target)
     {
         m_target = target;
         m_fract = 0.0;
@@ -63,16 +59,15 @@ public:
 
     /*! \brief Advances the blend variable towards the target value.
      *  \param delta The amount to advance the blend variable.
-     *  \return True if the blend variable has changed. False if the blend variable has reached the target value.
+     *  \return True if the blend variable has changed since the last advancement. False if the blend variable has reached the target value.
      */
-    HYP_FORCE_INLINE
     bool Advance(double delta)
     {
-        m_fract = MathUtil::Min(m_fract + delta, 1.0);
+        m_fract = MathUtil::Clamp(m_fract + delta, 0.0, 1.0);
 
         T next_value = MathUtil::Lerp(m_value, m_target, m_fract);
         // T next_value = m_value + (m_target - m_value) * T(std::log(1.0 + 25.0 * m_fract) / std::log(1.0 + 25.0));
-        const bool changed = m_value != next_value;
+        const bool changed = m_value != next_value; //!MathUtil::ApproxEqual(m_value, m_target);
 
         m_value = next_value;
 

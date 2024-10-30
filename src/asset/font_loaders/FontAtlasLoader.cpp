@@ -92,11 +92,11 @@ LoadedAsset FontAtlasLoader::LoadAsset(LoaderState &state) const
         return { { LoaderResult::Status::ERR, "Failed to read 'atlases' object" } };
     }
 
-    Vec2u cell_dimensions;
+    Vec2i cell_dimensions;
 
     if (auto cell_dimensions_value = json_value["cell_dimensions"]) {
-        cell_dimensions.x = uint32(cell_dimensions_value["width"].ToNumber());
-        cell_dimensions.y = uint32(cell_dimensions_value["height"].ToNumber());
+        cell_dimensions.x = int(cell_dimensions_value["width"].ToNumber());
+        cell_dimensions.y = int(cell_dimensions_value["height"].ToNumber());
     } else {
         return { { LoaderResult::Status::ERR, "Failed to load cell dimensions" } };
     }

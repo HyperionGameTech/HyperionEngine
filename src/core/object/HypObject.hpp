@@ -203,6 +203,32 @@ private:
 //     return true;
 // }
 
+class HypObjectPtr
+{
+public:
+    template <class T, typename = std::enable_if_t< IsHypObject<T>::value > >
+    HypObjectPtr(T *ptr)
+        : m_ptr(ptr),
+          m_hyp_class(GetHypClass(TypeID::ForType<T>()))
+    {
+    }
+
+    HypObjectPtr(const HypObjectPtr &other)                 = default;
+    HypObjectPtr &operator=(const HypObjectPtr &other)      = default;
+    HypObjectPtr(HypObjectPtr &&other) noexcept             = default;
+    HypObjectPtr &operator=(HypObjectPtr &&other) noexcept  = default;
+    ~HypObjectPtr()                                         = default;
+
+    HYP_FORCE_INLINE const HypClass *GetClass() const
+        { return m_hyp_class; }
+
+private:
+    HYP_API const HypClass *GetHypClass(TypeID type_id) const;
+
+    void            *m_ptr;
+    const HypClass  *m_hyp_class;
+};
+
 } // namespace hyperion
 
 #endif
