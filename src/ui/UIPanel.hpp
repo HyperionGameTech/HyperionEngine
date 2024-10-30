@@ -5,6 +5,8 @@
 
 #include <ui/UIObject.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
 namespace hyperion {
 
 class UIStage;
@@ -28,15 +30,19 @@ public:
     virtual ~UIPanel() override                     = default;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsScrollEnabled() const
-        { return m_is_scroll_enabled; }
+    HYP_FORCE_INLINE bool IsHorizontalScrollEnabled() const
+        { return m_is_scroll_enabled & UIObjectScrollbarOrientation::HORIZONTAL; }
 
     HYP_METHOD()
-    void SetIsScrollEnabled(bool is_scroll_enabled);
+    HYP_FORCE_INLINE bool IsVerticalScrollEnabled() const
+        { return m_is_scroll_enabled & UIObjectScrollbarOrientation::VERTICAL; }
+
+    HYP_METHOD()
+    void SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool is_scroll_enabled);
 
     virtual bool IsScrollable() const override
     {
-        return m_is_scroll_enabled
+        return m_is_scroll_enabled != UIObjectScrollbarOrientation::NONE
             && (GetActualInnerSize().x > GetActualSize().x || GetActualInnerSize().y > GetActualSize().y);
     }
 
@@ -44,9 +50,6 @@ public:
         { return true; }
 
     virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
-    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
 protected:
     virtual void UpdateSize_Internal(bool update_children) override;
@@ -58,16 +61,13 @@ protected:
     virtual Material::TextureSet GetMaterialTextures() const override;
 
 private:
-    void UpdateScrollbarSize();
-    void UpdateScrollbarThumbPosition();
+    void UpdateScrollbarSize(UIObjectScrollbarOrientation orientation);
+    void UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientation);
 
     UIEventHandlerResult HandleScroll(const MouseEvent &event_data);
 
-    bool            m_is_scroll_enabled;
-    DelegateHandler m_on_scroll_handler;
-
-    RC<UIObject>    m_inner_content;
-    RC<UIObject>    m_scrollbar;
+    EnumFlags<UIObjectScrollbarOrientation> m_is_scroll_enabled;
+    DelegateHandler                         m_on_scroll_handler;
 };
 
 #pragma endregion UIPanel

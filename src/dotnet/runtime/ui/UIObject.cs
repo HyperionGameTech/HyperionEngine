@@ -27,6 +27,14 @@ namespace Hyperion
         Window = 18
     }
 
+    [Flags]
+    public enum UIObjectScrollbarOrientation : byte
+    {
+        None = 0x0,
+        Horizontal = 0x1,
+        Vertical = 0x2
+    }
+
     [StructLayout(LayoutKind.Explicit, Size=16, Pack=8)]
     public struct UIEventHandlerResult
     {

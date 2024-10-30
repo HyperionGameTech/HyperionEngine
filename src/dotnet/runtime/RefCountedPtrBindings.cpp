@@ -21,7 +21,7 @@ HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, ValueStorage<HypData> *o
     RC<void> rc;
     rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
 
-    *out_hyp_data->Construct(std::move(rc));
+    out_hyp_data->Construct(std::move(rc));
 }
 
 HYP_EXPORT uint32 RefCountedPtr_IncRef(uintptr_t ctrl_block)

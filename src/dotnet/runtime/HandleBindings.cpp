@@ -17,7 +17,7 @@ HYP_EXPORT void Handle_Get(uint32 type_id_value, uint32 id_value, ValueStorage<H
 
     void *ptr = container->GetObjectPointer(id_value - 1);
 
-    *out_hyp_data->Construct(AnyRef(type_id, ptr));
+    out_hyp_data->Construct(AnyRef(type_id, ptr));
 }
 
 HYP_EXPORT void Handle_Set(uint32 type_id_value, uint32 id_value, HypData *hyp_data)

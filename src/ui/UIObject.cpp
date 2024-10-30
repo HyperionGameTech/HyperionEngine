@@ -1711,19 +1711,28 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
 
     actual_size = Vec2i { 0, 0 };
     
-    Vec2i self_padding = { 0, 0 };
-    Vec2i parent_size = { 0, 0 };
-    Vec2i parent_padding = { 0, 0 };
+    Vec2i self_padding { 0, 0 };
+    Vec2i parent_size { 0, 0 };
+    Vec2i parent_padding { 0, 0 };
+
+    Vec2i horizontal_scrollbar_size { 0, 0 };
+    Vec2i vertical_scrollbar_size { 0, 0 };
 
     UIObject *parent_ui_object = GetParentUIObject();
 
     if (is_inner) {
         parent_size = GetActualSize();
         parent_padding = GetPadding();
+
+        horizontal_scrollbar_size[1] = m_horizontal_scrollbar != nullptr ? 25 : 0;
+        vertical_scrollbar_size[0] = m_vertical_scrollbar != nullptr ? 25 : 0;
     } else if (parent_ui_object != nullptr) {
         self_padding = GetPadding();
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
+
+        horizontal_scrollbar_size[1] = parent_ui_object->m_horizontal_scrollbar != nullptr ? 25 : 0;
+        vertical_scrollbar_size[0] = parent_ui_object->m_vertical_scrollbar != nullptr ? 25 : 0;
     } else if (m_stage != nullptr) {
         self_padding = GetPadding();
         parent_size = m_stage->GetSurfaceSize();
@@ -1733,13 +1742,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         return;
     }
 
-    Optional<Vec3f> inner_extent;
-
-    if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
-        if (phase == UpdateSizePhase::AFTER_CHILDREN) {
-            inner_extent = CalculateInnerAABB_Internal().GetExtent();
-        }
-    }
+    const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
 
     const auto UpdateSizeComponent = [&](uint32 flags, int component_index)
     {
@@ -1755,17 +1758,22 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
             // Reduce size due to parent object's padding
             actual_size[component_index] -= parent_padding[component_index] * 2;
 
+            actual_size[component_index] -= horizontal_scrollbar_size[component_index];
+            actual_size[component_index] -= vertical_scrollbar_size[component_index];
+
             break;
         case UIObjectSize::FILL:
             if (!is_inner) {
-                actual_size[component_index] = MathUtil::Max(parent_size[component_index] - m_position[component_index] - parent_padding[component_index] * 2, 0);
+                actual_size[component_index] = MathUtil::Max(parent_size[component_index] - m_position[component_index] - parent_padding[component_index] * 2 - horizontal_scrollbar_size[component_index] - vertical_scrollbar_size[component_index], 0);
             }
 
             break;
         case UIObjectSize::AUTO:
             if (phase == UpdateSizePhase::AFTER_CHILDREN) {
-                actual_size[component_index] = MathUtil::Floor((*inner_extent)[component_index]);
+                actual_size[component_index] = MathUtil::Floor(inner_extent[component_index]);
                 actual_size[component_index] += self_padding[component_index] * 2;
+                actual_size[component_index] += horizontal_scrollbar_size[component_index];
+                actual_size[component_index] += vertical_scrollbar_size[component_index];
             }
 
             break;

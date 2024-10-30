@@ -14,7 +14,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIPanel::UIPanel(UIObjectType type)
     : UIObject(type),
-      m_is_scroll_enabled(true)
+      m_is_scroll_enabled(UIObjectScrollbarOrientation::ALL)
 {
     SetBorderRadius(0);
     SetBackgroundColor(Color(0x101012FFu));
@@ -31,19 +31,34 @@ UIPanel::UIPanel()
 {
 }
 
-void UIPanel::SetIsScrollEnabled(bool is_scroll_enabled)
+void UIPanel::SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool is_scroll_enabled)
 {
     HYP_SCOPE;
 
-    if ((m_scrollbar != nullptr) == is_scroll_enabled) {
+    RC<UIObject> *scrollbar = nullptr;
+
+    switch (orientation) {
+    case UIObjectScrollbarOrientation::VERTICAL:
+        scrollbar = &m_vertical_scrollbar;
+
+        break;
+    case UIObjectScrollbarOrientation::HORIZONTAL:
+        scrollbar = &m_horizontal_scrollbar;
+
+        break;
+    default:
         return;
     }
 
-    m_is_scroll_enabled = is_scroll_enabled;
+    if ((*scrollbar != nullptr) == is_scroll_enabled) {
+        return;
+    }
 
-    if (m_scrollbar != nullptr) {
-        UIObject::RemoveChildUIObject(m_scrollbar);
-        m_scrollbar.Reset();
+    m_is_scroll_enabled[orientation] = is_scroll_enabled;
+
+    if (*scrollbar != nullptr) {
+        UIObject::RemoveChildUIObject(scrollbar->Get());
+        scrollbar->Reset();
     }
 
     m_on_scroll_handler.Reset();
@@ -54,22 +69,23 @@ void UIPanel::SetIsScrollEnabled(bool is_scroll_enabled)
             return HandleScroll(event_data);
         });
 
-        RC<UIPanel> scrollbar = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 20, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
-        scrollbar->SetAffectsParentSize(false);
-        scrollbar->SetIsScrollEnabled(false);
-        scrollbar->SetAcceptsFocus(false);
-        scrollbar->SetParentAlignment(UIObjectAlignment::TOP_RIGHT);
-        scrollbar->SetOriginAlignment(UIObjectAlignment::TOP_RIGHT);
+        RC<UIPanel> new_scrollbar = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 20, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+        new_scrollbar->SetAffectsParentSize(false);
+        new_scrollbar->SetIsScrollEnabled(UIObjectScrollbarOrientation::HORIZONTAL, false);
+        new_scrollbar->SetIsScrollEnabled(UIObjectScrollbarOrientation::VERTICAL, false);
+        new_scrollbar->SetAcceptsFocus(false);
+        new_scrollbar->SetParentAlignment(UIObjectAlignment::TOP_RIGHT);
+        new_scrollbar->SetOriginAlignment(UIObjectAlignment::TOP_RIGHT);
 
         // testing
-        scrollbar->SetBackgroundColor(Color(0xFF0000FFu));
+        new_scrollbar->SetBackgroundColor(Color(0xFF0000FFu));
 
-        m_scrollbar = std::move(scrollbar);
+        *scrollbar = std::move(new_scrollbar);
 
-        UpdateScrollbarSize();
-        UpdateScrollbarThumbPosition();
+        UpdateScrollbarSize(orientation);
+        UpdateScrollbarThumbPosition(orientation);
 
-        UIObject::AddChildUIObject(m_scrollbar);
+        UIObject::AddChildUIObject(*scrollbar);
     }
 }
 
@@ -78,23 +94,6 @@ void UIPanel::Init()
     HYP_SCOPE;
 
     UIObject::Init();
-
-    m_inner_content = GetStage()->CreateUIObject<UIObject>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::FILL }));
-    UIObject::AddChildUIObject(m_inner_content);
-}
-
-void UIPanel::AddChildUIObject(const RC<UIObject> &ui_object)
-{
-    HYP_SCOPE;
-
-    m_inner_content->AddChildUIObject(ui_object);
-}
-
-bool UIPanel::RemoveChildUIObject(UIObject *ui_object)
-{
-    HYP_SCOPE;
-    
-    return m_inner_content->RemoveChildUIObject(ui_object);
 }
 
 void UIPanel::UpdateSize_Internal(bool update_children)
@@ -103,20 +102,34 @@ void UIPanel::UpdateSize_Internal(bool update_children)
 
     UIObject::UpdateSize_Internal(update_children);
 
-    const bool inner_size_greater = GetActualInnerSize().x > GetActualSize().x || GetActualInnerSize().y > GetActualSize().y;
+    const bool is_width_greater = GetActualInnerSize().x > GetActualSize().x;
+    const bool is_height_greater = GetActualInnerSize().y > GetActualSize().y;
 
-    if (inner_size_greater) {
-        if (m_is_scroll_enabled) {
-            if (m_scrollbar == nullptr) {
-                SetIsScrollEnabled(true);
-            } else {
-                UpdateScrollbarSize();
-                UpdateScrollbarThumbPosition();
+    if (is_width_greater || is_height_greater) {
+        if (m_is_scroll_enabled & UIObjectScrollbarOrientation::HORIZONTAL) {
+            if (m_horizontal_scrollbar == nullptr) {
+                SetIsScrollEnabled(UIObjectScrollbarOrientation::HORIZONTAL, true);
+            } else if (is_width_greater) {
+                UpdateScrollbarSize(UIObjectScrollbarOrientation::HORIZONTAL);
+                UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::HORIZONTAL);
+            }
+        }
+
+        if (m_is_scroll_enabled & UIObjectScrollbarOrientation::VERTICAL) {       
+            if (m_vertical_scrollbar == nullptr) {
+                SetIsScrollEnabled(UIObjectScrollbarOrientation::VERTICAL, true);
+            } else if (is_height_greater) {
+                UpdateScrollbarSize(UIObjectScrollbarOrientation::VERTICAL);
+                UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::VERTICAL);
             }
         }
     } else {
-        if (!m_is_scroll_enabled || m_scrollbar != nullptr) {
-            SetIsScrollEnabled(false);
+        if (!(m_is_scroll_enabled & UIObjectScrollbarOrientation::HORIZONTAL) || m_horizontal_scrollbar != nullptr) {
+            SetIsScrollEnabled(UIObjectScrollbarOrientation::HORIZONTAL, false);
+        }
+
+        if (!(m_is_scroll_enabled & UIObjectScrollbarOrientation::VERTICAL) || m_vertical_scrollbar != nullptr) {
+            SetIsScrollEnabled(UIObjectScrollbarOrientation::VERTICAL, false);
         }
     }
 }
@@ -125,7 +138,15 @@ void UIPanel::OnScrollOffsetUpdate_Internal()
 {
     HYP_SCOPE;
 
-    UpdateScrollbarThumbPosition();
+    const Vec2i scroll_offset = GetScrollOffset();
+
+    if (scroll_offset.x != 0) {
+        UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::HORIZONTAL);
+    }
+
+    if (scroll_offset.y != 0) {
+        UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::VERTICAL);
+    }
 }
 
 MaterialAttributes UIPanel::GetMaterialAttributes() const
@@ -159,11 +180,28 @@ UIEventHandlerResult UIPanel::HandleScroll(const MouseEvent &event_data)
     return UIEventHandlerResult::STOP_BUBBLING;
 }
 
-void UIPanel::UpdateScrollbarSize()
+void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
 {
     HYP_SCOPE;
 
-    RC<UIObject> scrollbar_inner = m_scrollbar->FindChildUIObject("ScrollbarInner", /* deep */ false);
+    UIObject *scrollbar = nullptr;
+
+    switch (orientation) {
+    case UIObjectScrollbarOrientation::VERTICAL:
+        scrollbar = m_vertical_scrollbar.Get();
+
+        break;
+    case UIObjectScrollbarOrientation::HORIZONTAL:
+        scrollbar = m_horizontal_scrollbar.Get();
+
+        break;
+    default:
+        return;
+    }
+
+    AssertThrow(scrollbar != nullptr);
+
+    RC<UIObject> scrollbar_inner = scrollbar->FindChildUIObject("ScrollbarInner", /* deep */ false);
 
     // @TODO Make size dependent on amount of content
     // @TODO Make work for horizontal scroll
@@ -191,31 +229,48 @@ void UIPanel::UpdateScrollbarSize()
             return UIEventHandlerResult::STOP_BUBBLING;
         }).Detach();
 
-        m_scrollbar->AddChildUIObject(scrollbar_inner);
+        scrollbar->AddChildUIObject(scrollbar_inner);
     }
 }
 
-void UIPanel::UpdateScrollbarThumbPosition()
+void UIPanel::UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientation)
 {
     HYP_SCOPE;
 
-    if (!m_is_scroll_enabled || !m_scrollbar) {
+    UIObject *scrollbar = nullptr;
+
+    switch (orientation) {
+    case UIObjectScrollbarOrientation::VERTICAL:
+        scrollbar = m_vertical_scrollbar.Get();
+
+        break;
+    case UIObjectScrollbarOrientation::HORIZONTAL:
+        scrollbar = m_horizontal_scrollbar.Get();
+
+        break;
+    default:
         return;
     }
 
-    RC<UIObject> scrollbar_inner = m_scrollbar->FindChildUIObject("ScrollbarInner", /* deep */ false);
+    if (!m_is_scroll_enabled[orientation] || !scrollbar) {
+        return;
+    }
+
+    RC<UIObject> scrollbar_inner = scrollbar->FindChildUIObject("ScrollbarInner", /* deep */ false);
 
     if (!scrollbar_inner) {
         return;
     }
 
+    // @TODO Make work for horizontal scroll
+
     const Vec2i visible_content_size_offset = GetScrollOffset();
     const Vec2i inner_content_size = GetActualInnerSize() - GetActualSize();
     const Vec2f ratios = Vec2f(visible_content_size_offset) / Vec2f(inner_content_size);
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Scroll view offset for {} : {} / {} = {}", GetName(), visible_content_size_offset, inner_content_size, ratios * Vec2f(m_scrollbar->GetActualSize()));
+    HYP_LOG(UI, LogLevel::DEBUG, "Scroll view offset for {} : {} / {} = {}", GetName(), visible_content_size_offset, inner_content_size, ratios * Vec2f(scrollbar->GetActualSize()));
     
-    scrollbar_inner->SetPosition(Vec2i { 0, int(ratios.y * float(m_scrollbar->GetActualSize().y)) });
+    scrollbar_inner->SetPosition(Vec2i { 0, int(ratios.y * float(scrollbar->GetActualSize().y)) });
 
     HYP_LOG(UI, LogLevel::DEBUG, "Scrollbar thumb position for {} : {} {}", GetName(), scrollbar_inner->GetNodeTag(NAME("TempTestKey")).ToString(), scrollbar_inner->GetPosition());
 }

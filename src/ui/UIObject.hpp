@@ -139,6 +139,16 @@ enum class UIObjectUpdateType : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectUpdateType)
 
+enum class UIObjectScrollbarOrientation : uint8
+{
+    NONE        = 0x0,
+    HORIZONTAL  = 0x1,
+    VERTICAL    = 0x2,
+    ALL         = HORIZONTAL | VERTICAL
+};
+
+HYP_MAKE_ENUM_FLAGS(UIObjectScrollbarOrientation)
+
 struct UIObjectAspectRatio
 {
     float x = 1.0f;
@@ -918,6 +928,9 @@ protected:
     BoundingBox                     m_aabb_clamped;
 
     BlendVar<Vec2f>                 m_scroll_offset;
+
+    RC<UIObject>                    m_vertical_scrollbar;
+    RC<UIObject>                    m_horizontal_scrollbar;
 
     Vec2i                           m_padding;
 
