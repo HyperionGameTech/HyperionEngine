@@ -90,9 +90,10 @@ public:
     using FreeObjectFunction = void(*)(ObjectReference);
     using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
 
-    Class(ClassHolder *class_holder, String name, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
+    Class(ClassHolder *class_holder, String name, uint32 size, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
         : m_class_holder(class_holder),
           m_name(std::move(name)),
+          m_size(size),
           m_parent_class(parent_class),
           m_flags(flags),
           m_new_object_fptr(nullptr),
@@ -109,6 +110,9 @@ public:
 
     HYP_FORCE_INLINE const String &GetName() const
         { return m_name; }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+        { return m_size; }
 
     HYP_FORCE_INLINE Class *GetParentClass() const
         { return m_parent_class; }
@@ -323,6 +327,7 @@ private:
     void *InvokeStaticMethod(const Method *method_ptr, void **args_vptr, void *return_value_vptr);
 
     String                          m_name;
+    uint32                          m_size;
     Class                           *m_parent_class;
     EnumFlags<ManagedClassFlags>    m_flags;
     HashMap<String, Method>         m_methods;

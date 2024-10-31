@@ -28,7 +28,7 @@ struct DefaultTransformArgument
 };
 
 template <class T> struct TransformArgument<T, std::enable_if_t< std::is_arithmetic_v<T> > > : DefaultTransformArgument<T> { };
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v<T> && std::is_standard_layout_v<T> && std::is_trivial_v<T> > > : DefaultTransformArgument<T> { };
+template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v<T> && IsPODType<T> > > : DefaultTransformArgument<T> { };
 
 template <> struct TransformArgument<void *> : DefaultTransformArgument<void *> { };
 template <> struct TransformArgument<char *> : DefaultTransformArgument<char *> { };

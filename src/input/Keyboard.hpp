@@ -86,9 +86,13 @@ enum class KeyCode : uint16
 
 HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char &out_char);
 
+HYP_STRUCT(Size=16)
 struct KeyboardEvent
 {
+    HYP_FIELD()
     InputManager    *input_manager = nullptr;
+
+    HYP_FIELD()
     KeyCode         key_code = KeyCode::UNKNOWN;
 };
 

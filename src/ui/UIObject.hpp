@@ -841,8 +841,6 @@ public:
 protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
 
-    void InvalidateClampedSize();
-
     HYP_FORCE_INLINE bool UseAutoSizing() const
     {
         return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
