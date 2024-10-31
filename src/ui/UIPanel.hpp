@@ -40,10 +40,18 @@ public:
     HYP_METHOD()
     void SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool is_scroll_enabled);
 
-    virtual bool IsScrollable() const override
+    virtual bool CanScroll(UIObjectScrollbarOrientation orientation) const override
     {
-        return m_is_scroll_enabled != UIObjectScrollbarOrientation::NONE
-            && (GetActualInnerSize().x > GetActualSize().x || GetActualInnerSize().y > GetActualSize().y);
+        const int orientation_index = (orientation == UIObjectScrollbarOrientation::HORIZONTAL)
+            ? 0
+            : (orientation == UIObjectScrollbarOrientation::VERTICAL)
+                ? 1
+                : -1;
+
+        AssertThrow(orientation_index != -1);
+        
+        return (m_is_scroll_enabled & orientation)
+            && GetActualInnerSize()[orientation_index] > GetActualSize()[orientation_index];
     }
 
     virtual bool IsContainer() const override
@@ -54,7 +62,7 @@ public:
 protected:
     virtual void UpdateSize_Internal(bool update_children) override;
 
-    virtual void OnScrollOffsetUpdate_Internal() override;
+    virtual void OnScrollOffsetUpdate_Internal(Vec2f delta) override;
 
     virtual MaterialAttributes GetMaterialAttributes() const override;
     virtual Material::ParameterTable GetMaterialParameters() const override;

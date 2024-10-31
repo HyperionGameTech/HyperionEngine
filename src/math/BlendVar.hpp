@@ -59,19 +59,34 @@ public:
 
     /*! \brief Advances the blend variable towards the target value.
      *  \param delta The amount to advance the blend variable.
+     *  \param out_delta The delta between the previous value and current value
      *  \return True if the blend variable has changed since the last advancement. False if the blend variable has reached the target value.
      */
-    bool Advance(double delta)
+    bool Advance(double delta, T &out_delta)
     {
         m_fract = MathUtil::Clamp(m_fract + delta, 0.0, 1.0);
 
         T next_value = MathUtil::Lerp(m_value, m_target, m_fract);
+
+        out_delta = next_value - m_value;
+
         // T next_value = m_value + (m_target - m_value) * T(std::log(1.0 + 25.0 * m_fract) / std::log(1.0 + 25.0));
         const bool changed = m_value != next_value; //!MathUtil::ApproxEqual(m_value, m_target);
 
         m_value = next_value;
 
         return changed;
+    }
+
+    /*! \brief Advances the blend variable towards the target value.
+     *  \param delta The amount to advance the blend variable.
+     *  \return True if the blend variable has changed since the last advancement. False if the blend variable has reached the target value.
+     */
+    bool Advance(double delta)
+    {
+        T tmp_delta;
+        
+        return Advance(delta, tmp_delta);
     }
 
 private:

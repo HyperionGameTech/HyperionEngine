@@ -378,6 +378,13 @@ public:
     Vec2f GetAbsolutePosition() const;
 
     HYP_METHOD()
+    HYP_FORCE_INLINE bool IsPositionAbsolute() const
+        { return m_is_position_absolute; }
+
+    HYP_METHOD()
+    void SetIsPositionAbsolute(bool is_position_absolute);
+
+    HYP_METHOD()
     UIObjectSize GetSize() const;
 
     HYP_METHOD()
@@ -427,7 +434,15 @@ public:
     void SetScrollOffset(Vec2i scroll_offset, bool smooth);
 
     HYP_METHOD()
-    virtual bool IsScrollable() const
+    virtual int GetVerticalScrollbarSize() const
+        { return 20; }
+
+    HYP_METHOD()
+    virtual int GetHorizontalScrollbarSize() const
+        { return 20; }
+
+    HYP_METHOD()
+    virtual bool CanScroll(UIObjectScrollbarOrientation orientation) const
         { return false; }
 
     /*! \brief Get the depth of the UI object, or the computed depth from the Node  if none has been explicitly set.
@@ -898,8 +913,8 @@ protected:
     void OnTextSizeUpdate();
     virtual void OnTextSizeUpdate_Internal() { }
 
-    void OnScrollOffsetUpdate();
-    virtual void OnScrollOffsetUpdate_Internal() { }
+    void OnScrollOffsetUpdate(Vec2f delta);
+    virtual void OnScrollOffsetUpdate_Internal(Vec2f delta) { }
 
     bool NeedsRepaint() const;
     void SetNeedsRepaintFlag(bool needs_repaint = true);
@@ -913,6 +928,7 @@ protected:
 
     Vec2i                           m_position;
     Vec2f                           m_offset_position;
+    bool                            m_is_position_absolute;
 
     UIObjectSize                    m_size;
     Vec2i                           m_actual_size;
