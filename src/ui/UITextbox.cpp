@@ -25,7 +25,7 @@ UITextbox::UITextbox()
     SetIsScrollEnabled(UIObjectScrollbarOrientation::ALL, false);
 
     OnKeyDown.Bind([this](const KeyboardEvent &event_data) -> UIEventHandlerResult
-    {
+{
         char key_char;
 
         const bool shift = event_data.input_manager->IsShiftDown();

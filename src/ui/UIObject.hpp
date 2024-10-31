@@ -149,6 +149,15 @@ enum class UIObjectScrollbarOrientation : uint8
 
 HYP_MAKE_ENUM_FLAGS(UIObjectScrollbarOrientation)
 
+static constexpr inline int UIObjectScrollbarOrientationToIndex(UIObjectScrollbarOrientation orientation)
+{
+    return (orientation == UIObjectScrollbarOrientation::HORIZONTAL)
+        ? 0
+        : (orientation == UIObjectScrollbarOrientation::VERTICAL)
+            ? 1
+            : -1;
+}
+
 struct UIObjectAspectRatio
 {
     float x = 1.0f;

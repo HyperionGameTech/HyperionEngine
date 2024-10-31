@@ -28,12 +28,6 @@ enum class MouseButtonState : uint32
 
 HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 
-struct MouseState
-{
-    EnumFlags<MouseButtonState> mask;
-    Vec2i                       position;
-};
-
 HYP_STRUCT(Size=56)
 struct MouseEvent
 {
