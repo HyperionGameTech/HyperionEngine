@@ -608,11 +608,6 @@ void UIObject::UpdateClampedSize(bool update_children)
         m_aabb_clamped = m_aabb_clamped.Intersection(parent->m_aabb_clamped);
     }
 
-    // temp. debugging
-    if (InstanceClass()->GetName() == NAME("UIText")) {
-        HYP_LOG(UI, LogLevel::DEBUG, "AABB Clamped for text {} = {}\tparent: {}", GetText(), m_aabb_clamped, parent_aabb_clamped);
-    }
-
     UpdateNodeTransform();
 
     m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());

@@ -42,12 +42,7 @@ public:
 
     virtual bool CanScroll(UIObjectScrollbarOrientation orientation) const override
     {
-        const int orientation_index = (orientation == UIObjectScrollbarOrientation::HORIZONTAL)
-            ? 0
-            : (orientation == UIObjectScrollbarOrientation::VERTICAL)
-                ? 1
-                : -1;
-
+        const int orientation_index = UIObjectScrollbarOrientationToIndex(orientation);
         AssertThrow(orientation_index != -1);
         
         return (m_is_scroll_enabled & orientation)
@@ -69,6 +64,8 @@ protected:
     virtual Material::TextureSet GetMaterialTextures() const override;
 
 private:
+    void SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool visible);
+
     void UpdateScrollbarSize(UIObjectScrollbarOrientation orientation);
     void UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientation);
 
@@ -76,6 +73,8 @@ private:
 
     EnumFlags<UIObjectScrollbarOrientation> m_is_scroll_enabled;
     DelegateHandler                         m_on_scroll_handler;
+
+    FixedArray<Vec2i, 2>                    m_initial_drag_position;
 };
 
 #pragma endregion UIPanel
