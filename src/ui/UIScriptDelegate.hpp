@@ -99,7 +99,7 @@ public:
                     return UIEventHandlerResult::OK;
                 }
 
-                return script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr);
+                return script_component->object->InvokeMethod<UIEventHandlerResult, Args...>(method_ptr, args...);
             }
 
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));

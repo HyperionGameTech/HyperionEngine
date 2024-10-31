@@ -28,21 +28,29 @@ enum class MouseButtonState : uint32
 
 HYP_MAKE_ENUM_FLAGS(MouseButtonState)
 
-struct MouseState
-{
-    EnumFlags<MouseButtonState> mask;
-    Vec2i                       position;
-};
-
+HYP_STRUCT(Size=56)
 struct MouseEvent
 {
+    HYP_FIELD()
     InputManager                *input_manager = nullptr;
+
+    HYP_FIELD()
     Vec2f                       position;
+
+    HYP_FIELD()
     Vec2f                       previous_position;
+
+    HYP_FIELD()
     Vec2i                       absolute_position;
+
+    HYP_FIELD()
     EnumFlags<MouseButtonState> mouse_buttons = MouseButtonState::NONE;
-    bool                        is_down = false;
+
+    HYP_FIELD()
     Vec2i                       wheel;
+
+    HYP_FIELD()
+    bool                        is_down = false;
 };
 
 } // namespace hyperion

@@ -26,15 +26,15 @@ class Entity;
 struct RenderProxy
 {
     // uses Handle<Entity> instead of ID<Entity> to keep the entity alive while it is in the RenderProxyList
-    Handle<Entity>                          entity;
-    Handle<Mesh>                            mesh;
-    Handle<Material>                        material;
-    Handle<Skeleton>                        skeleton;
-    Matrix4                                 model_matrix;
-    Matrix4                                 previous_model_matrix;
-    BoundingBox                             aabb;
-    UserData<sizeof(Vec4u), alignof(Vec4u)> user_data;
-    uint32                                  num_instances;
+    Handle<Entity>      entity;
+    Handle<Mesh>        mesh;
+    Handle<Material>    material;
+    Handle<Skeleton>    skeleton;
+    Matrix4             model_matrix;
+    Matrix4             previous_model_matrix;
+    BoundingBox         aabb;
+    UserData<32, 16>    user_data;
+    uint32              num_instances;
     
     HYP_FORCE_INLINE bool operator==(const RenderProxy &other) const
     {

@@ -53,21 +53,12 @@ public:
 
     ~HypClassAttributeValue()                                                   = default;
 
+    HYP_FORCE_INLINE bool IsValid() const
+        { return m_value.HasValue(); }
+
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        if (!m_value.HasValue()) {
-            return false;
-        }
-
-        if (const String *string_ptr = m_value.TryGet<String>()) {
-            return !string_ptr->Empty();
-        }
-
-        if (const bool *bool_ptr = m_value.TryGet<bool>()) {
-            return *bool_ptr;
-        }
-
-        return true;
+        return GetBool();
     }
 
     HYP_FORCE_INLINE bool operator!() const
@@ -83,19 +74,12 @@ public:
         return m_value != other.m_value;
     }
 
-    HYP_FORCE_INLINE bool IsString() const
-    {
-        return m_value.Is<String>();
-    }
-
-    HYP_FORCE_INLINE const String &GetString() const
-    {
-        if (!IsString()) {
-            return String::empty;
-        }
-
-        return m_value.Get<String>();
-    }
+    HYP_API bool IsString() const;
+    HYP_API const String &GetString() const;
+    HYP_API bool IsBool() const;
+    HYP_API bool GetBool() const;
+    HYP_API bool IsInt() const;
+    HYP_API int GetInt() const;
 
     HYP_API String ToString() const;
 
@@ -239,6 +223,15 @@ public:
     HypClassAttributeSet &operator=(HypClassAttributeSet &&other) noexcept    = default;
     ~HypClassAttributeSet()                                                    = default;
 
+    HYP_FORCE_INLINE bool Any() const
+        { return m_attributes.Any(); }
+
+    HYP_FORCE_INLINE bool Empty() const
+        { return m_attributes.Empty(); }
+
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_attributes.Size(); }
+
     HYP_FORCE_INLINE const HypClassAttributeValue &operator[](ANSIStringView name) const
         { return Get(name); }
 
@@ -269,6 +262,12 @@ public:
     {
         m_attributes.Merge(std::move(other.m_attributes));
     }
+
+    HYP_FORCE_INLINE Iterator Find(ANSIStringView name)
+        { return m_attributes.FindAs(name); }
+
+    HYP_FORCE_INLINE ConstIterator Find(ANSIStringView name) const
+        { return m_attributes.FindAs(name); }
 
     HYP_DEF_STL_BEGIN_END(m_attributes.Begin(), m_attributes.End())
 

@@ -90,7 +90,7 @@ struct ValueStorage<void>
 template <class T, SizeType Count, SizeType Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
 struct ValueStorageArray
 {
-    ValueStorage<T, Alignment>  data[Count];
+    alignas(Alignment) ValueStorage<T>  data[Count];
     
     HYP_FORCE_INLINE ValueStorage<T, Alignment> &operator[](SizeType index)
         { return data[index]; }

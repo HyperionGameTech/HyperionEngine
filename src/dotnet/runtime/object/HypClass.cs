@@ -1,5 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Hyperion
 {
@@ -92,6 +94,33 @@ namespace Hyperion
             {
                 return (Flags & HypClassFlags.StructType) != 0;
             }
+        }
+
+        public IEnumerable<HypClassAttribute> Attributes
+        {
+            get
+            {
+                IntPtr attributesPtr;
+                uint count = HypClass_GetAttributes(ptr, out attributesPtr);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IntPtr attributePtr = Marshal.ReadIntPtr(attributesPtr, i * IntPtr.Size);
+                    yield return new HypClassAttribute(attributePtr);
+                }
+            }
+        }
+
+        public HypClassAttribute? GetAttribute(string name)
+        {
+            IntPtr attributePtr = HypClass_GetAttribute(ptr, name);
+
+            if (attributePtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new HypClassAttribute(attributePtr);
         }
 
         public IEnumerable<HypProperty> Properties
@@ -203,6 +232,61 @@ namespace Hyperion
             return instancePtr;
         }
 
+        public void ValidateType(Type type)
+        {
+            if (!IsValid)
+            {
+                throw new Exception("Invalid HypClass");
+            }
+
+            if (IsStructType)
+            {
+                if (!type.IsValueType)
+                {
+                    throw new Exception("Expected a struct type");
+                }
+            }
+            else if (IsClassType)
+            {
+                if (!type.IsClass)
+                {
+                    throw new Exception("Expected a class type");
+                }
+            }
+            else
+            {
+                throw new Exception("Invalid HypClass type");
+            }
+
+            HypClassAttribute? sizeAttribute = this.GetAttribute("size");
+
+            if (sizeAttribute != null)
+            {
+                int size = sizeAttribute.Value.GetInt();
+
+                if (size != Marshal.SizeOf(type))
+                {
+                    throw new Exception($"Struct size mismatch: HypClass struct size ({size}) does not match C# struct size ({Marshal.SizeOf(type)})");
+                }
+            }
+
+            // Validate that all fields from the struct are present in the HypClass
+            foreach (FieldInfo field in type.GetFields())
+            {
+                HypField? hypField = this.GetField(new Name(field.Name));
+
+                if (hypField == null)
+                {
+                    throw new Exception($"Field {field.Name} not found in HypClass");
+                }
+
+                if ((int)hypField.Value.Offset != Marshal.OffsetOf(type, field.Name).ToInt32())
+                {
+                    throw new Exception($"Field {field.Name} offset mismatch: HypClass offset ({hypField.Value.Offset}) does not match C# offset ({Marshal.OffsetOf(type, field.Name).ToInt32()})");
+                }
+            }
+        }
+
         public static bool operator==(HypClass a, HypClass b)
         {
             return a.ptr == b.ptr;
@@ -279,6 +363,12 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetFlags")]
         private static extern uint HypClass_GetFlags([In] IntPtr hypClassPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetAttributes")]
+        private static extern uint HypClass_GetAttributes([In] IntPtr hypClassPtr, [Out] out IntPtr outAttributesPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetAttribute")]
+        private static extern IntPtr HypClass_GetAttribute([In] IntPtr hypClassPtr, [MarshalAs(UnmanagedType.LPStr)] string name);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetProperties")]
         private static extern uint HypClass_GetProperties([In] IntPtr hypClassPtr, [Out] out IntPtr outPropertiesPtr);

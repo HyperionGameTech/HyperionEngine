@@ -66,84 +66,84 @@ namespace Hyperion
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseDown()
+        public virtual UIEventHandlerResult OnMouseDown(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseUp()
+        public virtual UIEventHandlerResult OnMouseUp(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseHover()
+        public virtual UIEventHandlerResult OnMouseHover(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseLeave()
+        public virtual UIEventHandlerResult OnMouseLeave(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseDrag()
+        public virtual UIEventHandlerResult OnMouseDrag(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnMouseMove()
+        public virtual UIEventHandlerResult OnMouseMove(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnGainFocus()
+        public virtual UIEventHandlerResult OnGainFocus(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnLoseFocus()
+        public virtual UIEventHandlerResult OnLoseFocus(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnScroll()
+        public virtual UIEventHandlerResult OnScroll(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnClick()
+        public virtual UIEventHandlerResult OnClick(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnKeyDown()
+        public virtual UIEventHandlerResult OnKeyDown(KeyboardEvent keyboardEvent)
         {
             return UIEventHandlerResult.Ok;
         }
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
-        public virtual UIEventHandlerResult OnKeyUp()
+        public virtual UIEventHandlerResult OnKeyUp(KeyboardEvent keyboardEvent)
         {
             return UIEventHandlerResult.Ok;
         }

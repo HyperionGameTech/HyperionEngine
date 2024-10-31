@@ -37,7 +37,7 @@ public:
     /*! \brief Sets the texture of the image.
      * 
      * \param texture A handle to the texture to set. */
-    void SetTexture(Handle<Texture> texture);
+    void SetTexture(const Handle<Texture> &texture);
 
 protected:
     virtual MaterialAttributes GetMaterialAttributes() const override;

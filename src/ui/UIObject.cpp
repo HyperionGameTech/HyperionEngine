@@ -54,12 +54,12 @@ enum class UIObjectFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectFlags)
 
-struct UIObjectMeshData
+struct alignas(16) UIObjectMeshData
 {
-    uint32 width = 0u;
-    uint32 height = 0u;
-    uint32 clamped_size_diff = 0u;
-    uint32 additional_data = 0u;
+    uint32  flags = 0u;
+    uint32  _pad0;
+    Vec2u   size;
+    Vec4f   clamped_aabb;
 };
 
 static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
@@ -120,6 +120,7 @@ UIObject::UIObject(UIObjectType type)
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
+      m_is_position_absolute(false),
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
@@ -141,18 +142,18 @@ UIObject::UIObject(UIObjectType type)
     OnInit.Bind(UIScriptDelegate< > { this, "OnInit", /* allow_nested */ false }).Detach();
     OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", /* allow_nested */ false }).Detach();
     OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", /* allow_nested */ false }).Detach();
-    OnMouseDown.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDown", /* allow_nested */ false }).Detach();
-    OnMouseUp.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseUp", /* allow_nested */ false }).Detach();
-    OnMouseDrag.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseDrag", /* allow_nested */ false }).Detach();
-    OnMouseHover.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseHover", /* allow_nested */ false }).Detach();
-    OnMouseLeave.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseLeave", /* allow_nested */ false }).Detach();
-    OnMouseMove.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnMouseMove", /* allow_nested */ false }).Detach();
-    OnGainFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnGainFocus", /* allow_nested */ false }).Detach();
-    OnLoseFocus.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnLoseFocus", /* allow_nested */ false }).Detach();
-    OnScroll.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnScroll", /* allow_nested */ false }).Detach();
-    OnClick.Bind(UIScriptDelegate< const MouseEvent & > { this, "OnClick", /* allow_nested */ false }).Detach();
-    OnKeyDown.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyDown", /* allow_nested */ false }).Detach();
-    OnKeyUp.Bind(UIScriptDelegate< const KeyboardEvent & > { this, "OnKeyUp", /* allow_nested */ false }).Detach();
+    OnMouseDown.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDown", /* allow_nested */ false }).Detach();
+    OnMouseUp.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseUp", /* allow_nested */ false }).Detach();
+    OnMouseDrag.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDrag", /* allow_nested */ false }).Detach();
+    OnMouseHover.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseHover", /* allow_nested */ false }).Detach();
+    OnMouseLeave.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseLeave", /* allow_nested */ false }).Detach();
+    OnMouseMove.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseMove", /* allow_nested */ false }).Detach();
+    OnGainFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnGainFocus", /* allow_nested */ false }).Detach();
+    OnLoseFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnLoseFocus", /* allow_nested */ false }).Detach();
+    OnScroll.Bind(UIScriptDelegate<MouseEvent> { this, "OnScroll", /* allow_nested */ false }).Detach();
+    OnClick.Bind(UIScriptDelegate<MouseEvent> { this, "OnClick", /* allow_nested */ false }).Detach();
+    OnKeyDown.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyDown", /* allow_nested */ false }).Detach();
+    OnKeyUp.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyUp", /* allow_nested */ false }).Detach();
 }
 
 UIObject::UIObject()
@@ -233,8 +234,9 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     // If the scroll offset has changed, recalculate the position
-    if (m_scroll_offset.Advance(delta)) {
-        OnScrollOffsetUpdate();
+    Vec2f scroll_offset_delta;
+    if (m_scroll_offset.Advance(delta, scroll_offset_delta)) {
+        OnScrollOffsetUpdate(scroll_offset_delta);
     }
 
     if (m_deferred_updates) {
@@ -287,14 +289,11 @@ void UIObject::OnAttached_Internal(UIObject *parent)
     SetAllChildUIObjectsStage(m_stage);
 
     if (IsInit()) {
-        {
-            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-            
-            UpdateSize();
-            UpdatePosition();
-        }
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
+        
+        UpdateSize();
+        UpdatePosition();
 
-        UpdateClampedSize();
         UpdateComputedDepth();
 
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, true);
@@ -313,14 +312,8 @@ void UIObject::OnRemoved_Internal()
     SetAllChildUIObjectsStage(nullptr);
 
     if (IsInit()) {
-        {
-            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-            UpdateSize();
-            UpdatePosition();
-        }
-
-        UpdateClampedSize();
+        UpdateSize();
+        UpdatePosition();
 
         UpdateMeshData();
         UpdateComputedVisibility();
@@ -361,7 +354,6 @@ void UIObject::SetPosition(Vec2i position)
     m_position = position;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
 }
 
 Vec2f UIObject::GetOffsetPosition() const
@@ -380,6 +372,19 @@ Vec2f UIObject::GetAbsolutePosition() const
     }
 
     return Vec2f::Zero();
+}
+
+void UIObject::SetIsPositionAbsolute(bool is_position_absolute)
+{
+    HYP_SCOPE;
+
+    if (m_is_position_absolute == is_position_absolute) {
+        return;
+    }
+
+    m_is_position_absolute = is_position_absolute;
+
+    UpdatePosition(/* update_children */ false);
 }
 
 void UIObject::UpdatePosition(bool update_children)
@@ -404,19 +409,7 @@ void UIObject::UpdatePosition(bool update_children)
 
     ComputeOffsetPosition();
 
-    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
-
-    float z_value = float(GetComputedDepth());
-
-    if (Node *parent_node = node->GetParent()) {
-        z_value -= parent_node->GetWorldTranslation().z;
-    }
-
-    node->SetLocalTranslation(Vec3f {
-        float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
-        float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
-        z_value
-    });
+    UpdateNodeTransform();
 
     if (update_children) {
         ForEachChildUIObject([](UIObject *child)
@@ -592,9 +585,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
         return UIObjectIterationResult::CONTINUE;
     }, /* deep */ false);
 
-    // @NOTE Don't set update_children to true here, as all children have already been updated
-    // and thus have UPDATE_CLAMPED_SIZE deferred update set
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, false);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 }
 
 void UIObject::UpdateClampedSize(bool update_children)
@@ -608,11 +599,16 @@ void UIObject::UpdateClampedSize(bool update_children)
     const Vec2i size = GetActualSize();
     const Vec2f position = GetAbsolutePosition();
 
+    BoundingBox parent_aabb_clamped;
+
     m_aabb_clamped = { Vec3f { float(position.x), float(position.y), 0.0f }, Vec3f { float(position.x) + float(size.x), float(position.y) + float(size.y), 0.0f } };
 
     if (UIObject *parent = GetParentUIObject()) {
+        parent_aabb_clamped = parent->m_aabb_clamped;
         m_aabb_clamped = m_aabb_clamped.Intersection(parent->m_aabb_clamped);
     }
+
+    UpdateNodeTransform();
 
     m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());
 
@@ -626,6 +622,42 @@ void UIObject::UpdateClampedSize(bool update_children)
 
             return UIObjectIterationResult::CONTINUE;
         }, /* deep */ false);
+    }
+}
+
+void UIObject::UpdateNodeTransform()
+{
+    if (!m_node_proxy.IsValid()) {
+        return;
+    }
+
+    const Vec3f aabb_extent = m_aabb.GetExtent();
+    const Vec3f aabb_clamped_extent = m_aabb_clamped.GetExtent();
+    
+    float z_value = float(GetComputedDepth());
+
+    if (Node *parent_node = m_node_proxy->GetParent()) {
+        z_value -= parent_node->GetWorldTranslation().z;
+    }
+
+    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
+
+    Node *parent_node = m_node_proxy->GetParent();
+
+    Transform world_transform = m_node_proxy->GetWorldTransform();
+
+    if (m_is_position_absolute) {
+        m_node_proxy->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x,
+            float(m_position.y) + m_offset_position.y,
+            z_value
+        });
+    } else {
+        m_node_proxy->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
+            float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
+            z_value
+        });
     }
 }
 
@@ -652,7 +684,7 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
         m_scroll_offset.SetValue(Vec2f(scroll_offset));
     }
 
-    OnScrollOffsetUpdate();
+    OnScrollOffsetUpdate(m_scroll_offset.GetValue());
 }
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
@@ -806,7 +838,6 @@ void UIObject::SetOriginAlignment(UIObjectAlignment alignment)
     m_origin_alignment = alignment;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
 }
 
 UIObjectAlignment UIObject::GetParentAlignment() const
@@ -821,7 +852,6 @@ void UIObject::SetParentAlignment(UIObjectAlignment alignment)
     m_parent_alignment = alignment;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
 }
 
 void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
@@ -834,15 +864,8 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
         return;
     }
 
-    {
-        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-        UpdateSize();
-
-        UpdatePosition(/* update_children */ false);
-    }
-
-    UpdateClampedSize(/* update_children */ true);
+    UpdateSize();
+    UpdatePosition(/* update_children */ false);
 }
 
 void UIObject::SetPadding(Vec2i padding)
@@ -855,15 +878,8 @@ void UIObject::SetPadding(Vec2i padding)
         return;
     }
 
-    {
-        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-        UpdateSize();
-
-        UpdatePosition(/* update_children */ false);
-    }
-
-    UpdateClampedSize(/* update_children */ true);
+    UpdateSize();
+    UpdatePosition(/* update_children */ false);
 }
 
 void UIObject::SetBackgroundColor(const Color &background_color)
@@ -935,16 +951,8 @@ void UIObject::SetTextSize(float text_size)
         return;
     }
 
-
-    {
-        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-        UpdateSize();
-
-        UpdatePosition(/* update_children */ false);
-    }
-
-    UpdateClampedSize(/* update_children */ true);
+    UpdateSize();
+    UpdatePosition(/* update_children */ false);
 
     OnTextSizeUpdate();
 }
@@ -977,15 +985,8 @@ void UIObject::SetIsVisible(bool is_visible)
     if (IsInit()) {
         // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
 
-        {
-            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-
-            UpdateSize();
-
-            UpdatePosition(/* update_children */ false);
-        }
-
-        UpdateClampedSize(/* update_children */ true);
+        UpdateSize();
+        UpdatePosition(/* update_children */ false);
     }
 }
 
@@ -1376,64 +1377,13 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
-    // BoundingBox aabb = m_aabb;
-
-    // ForEachChildUIObject([&aabb](UIObject *child)
-    // {
-    //     // aabb = aabb.Union(child->m_aabb);
-
-    //     const Vec2f absolute_position = child->GetAbsolutePosition();
-
-    //     // aabb = aabb.Union(BoundingBox {
-    //     //     Vec3f { float(absolute_position.x), float(absolute_position.x + child->GetActualSize().x), 0.0f },
-    //     //     Vec3f { float(absolute_position.y), float(absolute_position.y + child->GetActualSize().y), 0.0f }
-    //     // });
-
-    //     aabb = aabb.Union(child->m_aabb);
-
-    //     return UIObjectIterationResult::CONTINUE;
-    // }, /* deep */ false);
-
-    // return aabb;
-
     if (const NodeProxy &node = GetNode()) {
-        const BoundingBox node_aabb = node->GetLocalAABB();
+        const BoundingBox aabb = node->GetLocalAABB();
 
-        if (node_aabb.IsFinite() && node_aabb.IsValid()) {
-            return node_aabb;
+        if (aabb.IsFinite() && aabb.IsValid()) {
+            return aabb;
         }
     }
-
-    // if (const NodeProxy &node = GetNode()) {
-    //     BoundingBox aabb = node->GetEntityAABB();
-
-    //     ForEachChildUIObject([&aabb](UIObject *child)
-    //     {
-    //         if (!child->AffectsParentSize()) {
-    //             return UIObjectIterationResult::CONTINUE;
-    //         }
-
-    //         if (const NodeProxy &node = child->GetNode()) {
-    //             if (!(node->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-    //                 aabb = aabb.Union(node->GetEntityAABB() * node->GetLocalTransform());
-    //             }
-    //         }
-
-    //         return UIObjectIterationResult::CONTINUE;
-    //     }, /* deep */ false);
-
-    //     // for (const NodeProxy &child : node->GetChildren()) {
-    //     //     if (!child.IsValid()) {
-    //     //         continue;
-    //     //     }
-
-    //     //     if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-    //     //         aabb = aabb.Union(child->GetEntityAABB() * child->GetLocalTransform());
-    //     //     }
-    //     // }
-
-    //     return aabb;
-    // }
 
     return BoundingBox::Empty();
 }
@@ -1452,11 +1402,11 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
         return;
     }
 
-    if (const NodeProxy &node = GetNode()) {
-        if (affects_parent_size) {
-            node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+    if (m_node_proxy.IsValid()) {
+        if (m_affects_parent_size) {
+            m_node_proxy->SetFlags(m_node_proxy->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         } else {
-            node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node_proxy->SetFlags(m_node_proxy->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -1994,19 +1944,16 @@ void UIObject::UpdateMeshData(bool update_children)
     }
 
     UIObjectMeshData ui_object_mesh_data { };
-    ui_object_mesh_data.width = m_actual_size.x;
-    ui_object_mesh_data.height = m_actual_size.y;
-    
-    Vec2i clamped_size_diff = m_actual_size - m_actual_size_clamped;
+    ui_object_mesh_data.size = Vec2u(m_actual_size);
 
-    if (clamped_size_diff.x < 0 || clamped_size_diff.y < 0) {
-        HYP_LOG(UI, LogLevel::WARNING, "Clamped size diff is negative for UI object: {}, Size: {}, Clamped Size: {}, Clamped Size Diff: {}, valid: {}, World Transform: {}", GetName(), m_actual_size, m_actual_size_clamped, clamped_size_diff, m_aabb_clamped.IsValid(), GetNode().GetWorldTransform().GetScale());
-    }
+    ui_object_mesh_data.clamped_aabb = Vec4f(
+        m_aabb_clamped.min.x,
+        m_aabb_clamped.min.y,
+        m_aabb_clamped.max.x,
+        m_aabb_clamped.max.y
+    );
 
-    clamped_size_diff = MathUtil::Max(clamped_size_diff, Vec2i::Zero());
-    ui_object_mesh_data.clamped_size_diff = (uint32(clamped_size_diff.x) & 0xFFFFu) | ((uint32(clamped_size_diff.y) & 0xFFFFu) << 16u);
-
-    ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
+    ui_object_mesh_data.flags = (m_border_radius & 0xFFu)
         | ((uint32(m_border_flags) & 0xFu) << 8u)
         | ((uint32(m_focus_state) & 0xFFu) << 16u);
 
@@ -2544,7 +2491,7 @@ void UIObject::OnTextSizeUpdate()
     }, /* deep */ true);
 }
 
-void UIObject::OnScrollOffsetUpdate()
+void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 {
     HYP_SCOPE;
     
@@ -2557,9 +2504,9 @@ void UIObject::OnScrollOffsetUpdate()
     }, /* deep */ false);
 
 
-    UpdateClampedSize(/* update_children */ true);
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 
-    OnScrollOffsetUpdate_Internal();
+    OnScrollOffsetUpdate_Internal(delta);
 }
 
 void UIObject::SetDataSource(const RC<UIDataSourceBase> &data_source)

@@ -147,6 +147,36 @@ HYP_EXPORT uint32 HypClass_GetFlags(const HypClass *hyp_class)
     return uint32(hyp_class->GetFlags());
 }
 
+HYP_EXPORT uint32 HypClass_GetAttributes(const HypClass *hyp_class, const void **out_attributes)
+{
+    if (!hyp_class || !out_attributes) {
+        return 0;
+    }
+
+    if (hyp_class->GetAttributes().Empty()) {
+        return 0;
+    }
+
+    *out_attributes = hyp_class->GetAttributes().Begin();
+
+    return (uint32)hyp_class->GetAttributes().Size();
+}
+
+HYP_EXPORT const HypClassAttribute *HypClass_GetAttribute(const HypClass *hyp_class, const char *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    auto it = hyp_class->GetAttributes().Find(name);
+
+    if (it == hyp_class->GetAttributes().End()) {
+        return nullptr;
+    }
+
+    return it;
+}
+
 HYP_EXPORT uint32 HypClass_GetProperties(const HypClass *hyp_class, const void **out_properties)
 {
     if (!hyp_class || !out_properties) {

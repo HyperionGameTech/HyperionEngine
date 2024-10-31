@@ -5,6 +5,8 @@
 ${"#include <scene/ecs/ComponentInterface.hpp>"}
 % endif
 
+<% has_struct_size = hyp_class.class_type == HypClassType.STRUCT and hyp_class.has_attribute("size") %> \
+
 namespace hyperion {
 
 <% start_macro_names = { HypClassType.CLASS: 'HYP_BEGIN_CLASS', HypClassType.STRUCT: 'HYP_BEGIN_STRUCT' } %> \
@@ -33,6 +35,10 @@ ${end_macro_names[hyp_class.class_type]}
 
 % if is_component:
     ${f"HYP_REGISTER_COMPONENT({hyp_class.name});"}
+% endif
+
+% if has_struct_size:
+    ${f"static_assert(sizeof({hyp_class.name}) == {hyp_class.get_attribute('size')}, \"Expected sizeof({hyp_class.name}) to be {hyp_class.get_attribute('size')} bytes\");"}
 % endif
 
 } // namespace hyperion

@@ -263,6 +263,9 @@ public:
     HYP_FORCE_INLINE bool IsAbstract() const
         { return bool(m_attributes["abstract"]); }
 
+    HYP_FORCE_INLINE const HypClassAttributeSet &GetAttributes() const
+        { return m_attributes; }
+
     HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(ANSIStringView key) const
         { return m_attributes[key]; }
 

@@ -12,9 +12,6 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-// For LogStackTrace (temp)
-#include <core/system/StackDump.hpp>
-
 #include <Engine.hpp>
 
 #include <vulkan/vulkan.h>
@@ -702,7 +699,7 @@ Result DescriptorSetManager<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
 {
     static const Array<VkDescriptorPoolSize> pool_sizes = {
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 },
-        { VK_DESCRIPTOR_TYPE_SAMPLER,                    128 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER,                    256 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     8 },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,              32000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,              32000 },

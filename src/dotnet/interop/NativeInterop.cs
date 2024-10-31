@@ -87,13 +87,18 @@ namespace Hyperion
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
 
-                Type[] types = assembly.GetTypes();
+                Type[] types = assembly.GetExportedTypes();
 
                 foreach (Type type in types)
                 {
-                    if (type.IsClass || (type.IsValueType && !type.IsEnum))
+                    if (type.IsGenericType)
                     {
-                        // Register classes and structs
+                        // skip generic types
+                        continue;
+                    }
+
+                    if (type.IsClass || type.IsValueType || type.IsEnum)
+                    {
                         InitManagedClass(type);
                     }
                 }
@@ -249,6 +254,12 @@ namespace Hyperion
 
         private static unsafe IntPtr InitManagedClass(Type type)
         {
+            // Skip classes with the NoManagedClass attribute
+            if (type.GetCustomAttribute(typeof(NoManagedClass)) != null)
+            {
+                return IntPtr.Zero;
+            }
+
             AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
 
             if (assemblyInstance == null)
@@ -281,21 +292,6 @@ namespace Hyperion
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
-            ManagedClassFlags managedClassFlags = ManagedClassFlags.None;
-
-            if (type.IsClass)
-            {
-                managedClassFlags |= ManagedClassFlags.ClassType;
-            }
-            else if (type.IsValueType)
-            {
-                managedClassFlags |= ManagedClassFlags.StructType;
-            }
-            else if (type.IsEnum)
-            {
-                managedClassFlags |= ManagedClassFlags.EnumType;
-            }
-
             IntPtr hypClassPtr = IntPtr.Zero;
 
             foreach (var attr in type.GetCustomAttributes(false))
@@ -322,7 +318,30 @@ namespace Hyperion
                 }
             }
 
-            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
+            uint typeSize = 0;
+
+            ManagedClassFlags managedClassFlags = ManagedClassFlags.None;
+
+            if (type.IsClass)
+            {
+                managedClassFlags |= ManagedClassFlags.ClassType;
+            }
+            else if (type.IsValueType && !type.IsEnum)
+            {
+                managedClassFlags |= ManagedClassFlags.StructType;
+
+                if (!type.IsGenericType)
+                {
+                    typeSize = (uint)Marshal.SizeOf(type);
+                }
+            }
+            else if (type.IsEnum)
+            {
+                managedClassFlags |= ManagedClassFlags.EnumType;
+                typeSize = (uint)Marshal.SizeOf(Enum.GetUnderlyingType(type));
+            }
+
+            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -593,7 +612,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         private static extern bool ManagedClass_FindByTypeHash(IntPtr classHolderPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);
