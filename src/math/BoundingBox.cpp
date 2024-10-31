@@ -209,6 +209,10 @@ BoundingBox BoundingBox::Union(const BoundingBox &other) const
 
 BoundingBox BoundingBox::Intersection(const BoundingBox &other) const
 {
+    if (!Overlaps(other)) {
+        return Empty();
+    }
+
     return BoundingBox {
         Vec3f::Max(min, other.min),
         Vec3f::Min(max, other.max)

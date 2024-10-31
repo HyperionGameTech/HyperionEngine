@@ -841,6 +841,8 @@ public:
 protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
 
+    void InvalidateClampedSize();
+
     HYP_FORCE_INLINE bool UseAutoSizing() const
     {
         return (GetSize().GetAllFlags() | GetInnerSize().GetAllFlags() | GetMaxSize().GetAllFlags()) & UIObjectSize::AUTO;
@@ -1002,6 +1004,8 @@ private:
     void SetEntityAABB(const BoundingBox &aabb);
 
     void UpdateClampedSize(bool update_children = true);
+
+    void UpdateNodeTransform();
 
     Handle<Material> CreateMaterial() const;
 

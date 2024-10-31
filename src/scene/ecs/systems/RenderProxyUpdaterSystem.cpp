@@ -48,7 +48,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
                 .skeleton_index         = proxy.skeleton.GetID().ToIndex(),
                 .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
                 .flags                  = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
-                .user_data              = proxy.user_data.ReinterpretAs<Vec4u>()
+                .user_data              = proxy.user_data.ReinterpretAs<EntityUserData>()
             });
         }
 
