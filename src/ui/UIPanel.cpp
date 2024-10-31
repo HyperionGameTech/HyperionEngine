@@ -4,6 +4,8 @@
 #include <ui/UIStage.hpp>
 #include <ui/UIButton.hpp>
 
+#include <core/containers/Bitset.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
@@ -35,6 +37,14 @@ void UIPanel::SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool 
 {
     HYP_SCOPE;
 
+    if (Bitset bitset { uint64(uint8(orientation)) }; bitset.Count() != 1) {
+        for (Bitset::BitIndex bit_index : bitset) {
+            SetIsScrollEnabled(UIObjectScrollbarOrientation(Bitset::GetBitMask(bit_index)), is_scroll_enabled);
+            
+            return;
+        }
+    }
+
     RC<UIObject> *scrollbar = nullptr;
 
     switch (orientation) {
@@ -50,20 +60,14 @@ void UIPanel::SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool 
         return;
     }
 
-    if ((*scrollbar != nullptr) == is_scroll_enabled) {
-        return;
-    }
-
     m_is_scroll_enabled[orientation] = is_scroll_enabled;
 
-    if (*scrollbar != nullptr) {
-        UIObject::RemoveChildUIObject(scrollbar->Get());
-        scrollbar->Reset();
-    }
-
-    m_on_scroll_handler.Reset();
-
     if (is_scroll_enabled) {
+        // If scrollbar UIObject already exists and we are enabling scroll then return early
+        if (*scrollbar != nullptr) {
+            return;
+        }
+
         m_on_scroll_handler = OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
         {
             return HandleScroll(event_data);
@@ -86,6 +90,13 @@ void UIPanel::SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool 
         UpdateScrollbarThumbPosition(orientation);
 
         UIObject::AddChildUIObject(*scrollbar);
+    } else {
+        m_on_scroll_handler.Reset();
+
+        if (*scrollbar != nullptr) {
+            UIObject::RemoveChildUIObject(scrollbar->Get());
+            scrollbar->Reset();
+        }
     }
 }
 
