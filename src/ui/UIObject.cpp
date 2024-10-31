@@ -120,6 +120,7 @@ UIObject::UIObject(UIObjectType type)
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
+      m_is_position_absolute(false),
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
@@ -233,8 +234,9 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     // If the scroll offset has changed, recalculate the position
-    if (m_scroll_offset.Advance(delta)) {
-        OnScrollOffsetUpdate();
+    Vec2f scroll_offset_delta;
+    if (m_scroll_offset.Advance(delta, scroll_offset_delta)) {
+        OnScrollOffsetUpdate(scroll_offset_delta);
     }
 
     if (m_deferred_updates) {
@@ -382,6 +384,20 @@ Vec2f UIObject::GetAbsolutePosition() const
     return Vec2f::Zero();
 }
 
+void UIObject::SetIsPositionAbsolute(bool is_position_absolute)
+{
+    HYP_SCOPE;
+
+    if (m_is_position_absolute == is_position_absolute) {
+        return;
+    }
+
+    m_is_position_absolute = is_position_absolute;
+
+    UpdatePosition(/* update_children */ false);
+    UpdateClampedSize(/* update_children */ true);
+}
+
 void UIObject::UpdatePosition(bool update_children)
 {
     HYP_SCOPE;
@@ -404,19 +420,27 @@ void UIObject::UpdatePosition(bool update_children)
 
     ComputeOffsetPosition();
 
-    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
-
     float z_value = float(GetComputedDepth());
+
+    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
 
     if (Node *parent_node = node->GetParent()) {
         z_value -= parent_node->GetWorldTranslation().z;
     }
 
-    node->SetLocalTranslation(Vec3f {
-        float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
-        float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
-        z_value
-    });
+    if (m_is_position_absolute) {
+        node->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x,
+            float(m_position.y) + m_offset_position.y,
+            z_value
+        });
+    } else {
+        node->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
+            float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
+            z_value
+        });
+    }
 
     if (update_children) {
         ForEachChildUIObject([](UIObject *child)
@@ -652,7 +676,7 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
         m_scroll_offset.SetValue(Vec2f(scroll_offset));
     }
 
-    OnScrollOffsetUpdate();
+    OnScrollOffsetUpdate(m_scroll_offset.GetValue());
 }
 
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
@@ -1376,64 +1400,13 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
-    // BoundingBox aabb = m_aabb;
-
-    // ForEachChildUIObject([&aabb](UIObject *child)
-    // {
-    //     // aabb = aabb.Union(child->m_aabb);
-
-    //     const Vec2f absolute_position = child->GetAbsolutePosition();
-
-    //     // aabb = aabb.Union(BoundingBox {
-    //     //     Vec3f { float(absolute_position.x), float(absolute_position.x + child->GetActualSize().x), 0.0f },
-    //     //     Vec3f { float(absolute_position.y), float(absolute_position.y + child->GetActualSize().y), 0.0f }
-    //     // });
-
-    //     aabb = aabb.Union(child->m_aabb);
-
-    //     return UIObjectIterationResult::CONTINUE;
-    // }, /* deep */ false);
-
-    // return aabb;
-
     if (const NodeProxy &node = GetNode()) {
-        const BoundingBox node_aabb = node->GetLocalAABB();
+        const BoundingBox aabb = node->GetLocalAABB();
 
-        if (node_aabb.IsFinite() && node_aabb.IsValid()) {
-            return node_aabb;
+        if (aabb.IsFinite() && aabb.IsValid()) {
+            return aabb;
         }
     }
-
-    // if (const NodeProxy &node = GetNode()) {
-    //     BoundingBox aabb = node->GetEntityAABB();
-
-    //     ForEachChildUIObject([&aabb](UIObject *child)
-    //     {
-    //         if (!child->AffectsParentSize()) {
-    //             return UIObjectIterationResult::CONTINUE;
-    //         }
-
-    //         if (const NodeProxy &node = child->GetNode()) {
-    //             if (!(node->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-    //                 aabb = aabb.Union(node->GetEntityAABB() * node->GetLocalTransform());
-    //             }
-    //         }
-
-    //         return UIObjectIterationResult::CONTINUE;
-    //     }, /* deep */ false);
-
-    //     // for (const NodeProxy &child : node->GetChildren()) {
-    //     //     if (!child.IsValid()) {
-    //     //         continue;
-    //     //     }
-
-    //     //     if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-    //     //         aabb = aabb.Union(child->GetEntityAABB() * child->GetLocalTransform());
-    //     //     }
-    //     // }
-
-    //     return aabb;
-    // }
 
     return BoundingBox::Empty();
 }
@@ -1452,11 +1425,11 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
         return;
     }
 
-    if (const NodeProxy &node = GetNode()) {
-        if (affects_parent_size) {
-            node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+    if (m_node_proxy.IsValid()) {
+        if (m_affects_parent_size) {
+            m_node_proxy->SetFlags(m_node_proxy->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         } else {
-            node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node_proxy->SetFlags(m_node_proxy->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -2544,7 +2517,7 @@ void UIObject::OnTextSizeUpdate()
     }, /* deep */ true);
 }
 
-void UIObject::OnScrollOffsetUpdate()
+void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 {
     HYP_SCOPE;
     
@@ -2559,7 +2532,7 @@ void UIObject::OnScrollOffsetUpdate()
 
     UpdateClampedSize(/* update_children */ true);
 
-    OnScrollOffsetUpdate_Internal();
+    OnScrollOffsetUpdate_Internal(delta);
 }
 
 void UIObject::SetDataSource(const RC<UIDataSourceBase> &data_source)
