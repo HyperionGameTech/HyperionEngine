@@ -399,6 +399,7 @@ public:
 
         RC<UIText> text = stage->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("Node_") + node_uuid.ToString()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         text->SetText(node_name);
+        
         return text;
     }
 

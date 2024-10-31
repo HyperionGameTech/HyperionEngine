@@ -10,7 +10,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 112)]
+    [StructLayout(LayoutKind.Explicit, Size = 128)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -29,7 +29,7 @@ namespace Hyperion
         private Matrix4 previousModelMatrix;
         // 16 bytes of user data
         [FieldOffset(96)]
-        private fixed byte userData[16];
+        private fixed byte userData[32];
 
         public Mesh Mesh
         {

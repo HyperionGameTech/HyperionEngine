@@ -25,11 +25,7 @@ void RenderResourcesBase::Claim()
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 #endif
 
-    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Incrementing render resources {} use count to {}", (void *)this, m_ref_count + 1);
-
     if (m_ref_count++ == 0) {
-        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Initializing render resources {}", (void *)this);
-
         Initialize();
     }
 }
@@ -42,11 +38,7 @@ void RenderResourcesBase::Unclaim()
 
     AssertThrow(m_ref_count != 0);
 
-    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Decrementing render resources {} use count to {}", (void *)this, m_ref_count - 1);
-
     if (--m_ref_count == 0) {
-        HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Destroying render resources {}", (void *)this);
-
         Destroy();
     }
 }

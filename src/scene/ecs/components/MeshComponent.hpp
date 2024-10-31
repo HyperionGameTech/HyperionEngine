@@ -25,7 +25,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
     MESH_COMPONENT_FLAG_DIRTY   = 0x1
 };
 
-using MeshComponentUserData = UserData<sizeof(Vec4u)>;
+using MeshComponentUserData = UserData<sizeof(EntityUserData), alignof(EntityUserData)>;
 
 HYP_STRUCT(Component, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
 struct MeshComponent
@@ -67,7 +67,7 @@ struct MeshComponent
     }
 };
 
-static_assert(sizeof(MeshComponent) == 112, "MeshComponent size must match C# struct size");
+static_assert(sizeof(MeshComponent) == 128, "MeshComponent size must match C# struct size");
 
 } // namespace hyperion
 

@@ -54,12 +54,12 @@ enum class UIObjectFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectFlags)
 
-struct UIObjectMeshData
+struct alignas(16) UIObjectMeshData
 {
-    uint32 width = 0u;
-    uint32 height = 0u;
-    uint32 clamped_size_diff = 0u;
-    uint32 additional_data = 0u;
+    uint32  flags = 0u;
+    uint32  _pad0;
+    Vec2u   size;
+    Vec4f   clamped_aabb;
 };
 
 static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
@@ -296,7 +296,9 @@ void UIObject::OnAttached_Internal(UIObject *parent)
             UpdatePosition();
         }
 
-        UpdateClampedSize();
+        // UpdateClampedSize();
+
+        InvalidateClampedSize();
         UpdateComputedDepth();
 
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, true);
@@ -322,7 +324,8 @@ void UIObject::OnRemoved_Internal()
             UpdatePosition();
         }
 
-        UpdateClampedSize();
+        // UpdateClampedSize();
+        InvalidateClampedSize();
 
         UpdateMeshData();
         UpdateComputedVisibility();
@@ -363,7 +366,9 @@ void UIObject::SetPosition(Vec2i position)
     m_position = position;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 Vec2f UIObject::GetOffsetPosition() const
@@ -395,7 +400,9 @@ void UIObject::SetIsPositionAbsolute(bool is_position_absolute)
     m_is_position_absolute = is_position_absolute;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 void UIObject::UpdatePosition(bool update_children)
@@ -420,27 +427,7 @@ void UIObject::UpdatePosition(bool update_children)
 
     ComputeOffsetPosition();
 
-    float z_value = float(GetComputedDepth());
-
-    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
-
-    if (Node *parent_node = node->GetParent()) {
-        z_value -= parent_node->GetWorldTranslation().z;
-    }
-
-    if (m_is_position_absolute) {
-        node->SetLocalTranslation(Vec3f {
-            float(m_position.x) + m_offset_position.x,
-            float(m_position.y) + m_offset_position.y,
-            z_value
-        });
-    } else {
-        node->SetLocalTranslation(Vec3f {
-            float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
-            float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
-            z_value
-        });
-    }
+    UpdateNodeTransform();
 
     if (update_children) {
         ForEachChildUIObject([](UIObject *child)
@@ -638,6 +625,8 @@ void UIObject::UpdateClampedSize(bool update_children)
         m_aabb_clamped = m_aabb_clamped.Intersection(parent->m_aabb_clamped);
     }
 
+    UpdateNodeTransform();
+
     m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
@@ -650,6 +639,42 @@ void UIObject::UpdateClampedSize(bool update_children)
 
             return UIObjectIterationResult::CONTINUE;
         }, /* deep */ false);
+    }
+}
+
+void UIObject::UpdateNodeTransform()
+{
+    if (!m_node_proxy.IsValid()) {
+        return;
+    }
+
+    const Vec3f aabb_extent = m_aabb.GetExtent();
+    const Vec3f aabb_clamped_extent = m_aabb_clamped.GetExtent();
+    
+    float z_value = float(GetComputedDepth());
+
+    if (Node *parent_node = m_node_proxy->GetParent()) {
+        z_value -= parent_node->GetWorldTranslation().z;
+    }
+
+    const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
+
+    Node *parent_node = m_node_proxy->GetParent();
+
+    Transform world_transform = m_node_proxy->GetWorldTransform();
+
+    if (m_is_position_absolute) {
+        m_node_proxy->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x,
+            float(m_position.y) + m_offset_position.y,
+            z_value
+        });
+    } else {
+        m_node_proxy->SetLocalTranslation(Vec3f {
+            float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
+            float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
+            z_value
+        });
     }
 }
 
@@ -830,7 +855,9 @@ void UIObject::SetOriginAlignment(UIObjectAlignment alignment)
     m_origin_alignment = alignment;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 UIObjectAlignment UIObject::GetParentAlignment() const
@@ -845,7 +872,9 @@ void UIObject::SetParentAlignment(UIObjectAlignment alignment)
     m_parent_alignment = alignment;
 
     UpdatePosition(/* update_children */ false);
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
@@ -866,7 +895,9 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
         UpdatePosition(/* update_children */ false);
     }
 
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 void UIObject::SetPadding(Vec2i padding)
@@ -887,7 +918,9 @@ void UIObject::SetPadding(Vec2i padding)
         UpdatePosition(/* update_children */ false);
     }
 
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 }
 
 void UIObject::SetBackgroundColor(const Color &background_color)
@@ -968,7 +1001,9 @@ void UIObject::SetTextSize(float text_size)
         UpdatePosition(/* update_children */ false);
     }
 
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+
+    InvalidateClampedSize();
 
     OnTextSizeUpdate();
 }
@@ -1009,7 +1044,9 @@ void UIObject::SetIsVisible(bool is_visible)
             UpdatePosition(/* update_children */ false);
         }
 
-        UpdateClampedSize(/* update_children */ true);
+        // UpdateClampedSize(/* update_children */ true);
+
+        InvalidateClampedSize();
     }
 }
 
@@ -1632,6 +1669,18 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool, UIObjec
     return nullptr;
 }
 
+void UIObject::InvalidateClampedSize()
+{
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
+
+    ForEachParentUIObject([](UIObject *ui_object)
+    {
+        ui_object->SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
+
+        return UIObjectIterationResult::CONTINUE;
+    });
+}
+
 Vec2i UIObject::GetParentScrollOffset() const
 {
     HYP_SCOPE;
@@ -1967,19 +2016,16 @@ void UIObject::UpdateMeshData(bool update_children)
     }
 
     UIObjectMeshData ui_object_mesh_data { };
-    ui_object_mesh_data.width = m_actual_size.x;
-    ui_object_mesh_data.height = m_actual_size.y;
-    
-    Vec2i clamped_size_diff = m_actual_size - m_actual_size_clamped;
+    ui_object_mesh_data.size = Vec2u(m_actual_size);
 
-    if (clamped_size_diff.x < 0 || clamped_size_diff.y < 0) {
-        HYP_LOG(UI, LogLevel::WARNING, "Clamped size diff is negative for UI object: {}, Size: {}, Clamped Size: {}, Clamped Size Diff: {}, valid: {}, World Transform: {}", GetName(), m_actual_size, m_actual_size_clamped, clamped_size_diff, m_aabb_clamped.IsValid(), GetNode().GetWorldTransform().GetScale());
-    }
+    ui_object_mesh_data.clamped_aabb = Vec4f(
+        m_aabb_clamped.min.x,
+        m_aabb_clamped.min.y,
+        m_aabb_clamped.max.x,
+        m_aabb_clamped.max.y
+    );
 
-    clamped_size_diff = MathUtil::Max(clamped_size_diff, Vec2i::Zero());
-    ui_object_mesh_data.clamped_size_diff = (uint32(clamped_size_diff.x) & 0xFFFFu) | ((uint32(clamped_size_diff.y) & 0xFFFFu) << 16u);
-
-    ui_object_mesh_data.additional_data = (m_border_radius & 0xFFu)
+    ui_object_mesh_data.flags = (m_border_radius & 0xFFu)
         | ((uint32(m_border_flags) & 0xFu) << 8u)
         | ((uint32(m_focus_state) & 0xFFu) << 16u);
 
@@ -2530,7 +2576,8 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
     }, /* deep */ false);
 
 
-    UpdateClampedSize(/* update_children */ true);
+    // UpdateClampedSize(/* update_children */ true);
+    InvalidateClampedSize();
 
     OnScrollOffsetUpdate_Internal(delta);
 }
