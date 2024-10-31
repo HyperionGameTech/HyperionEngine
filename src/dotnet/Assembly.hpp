@@ -38,8 +38,7 @@ public:
     HYP_FORCE_INLINE Assembly *GetOwnerAssembly() const
         { return m_owner_assembly; }
 
-    Class *NewClass(int32 type_hash, const char *type_name, Class *parent_class, uint32 flags);
-    Class *NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, Class *parent_class, uint32 flags);
+    Class *NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, Class *parent_class, uint32 flags);
     Class *FindClassByName(const char *type_name);
     Class *FindClassByTypeHash(int32 type_hash);
 

@@ -2,11 +2,85 @@
 
 #include <core/object/HypClassAttribute.hpp>
 
+#include <util/StringUtil.hpp>
+
 #include <util/json/JSON.hpp>
 
 namespace hyperion {
 
 #pragma region HypClassAttributeValue
+
+bool HypClassAttributeValue::IsString() const
+{
+    return m_value.Is<String>();
+}
+
+const String &HypClassAttributeValue::GetString() const
+{
+    if (!IsString()) {
+        return String::empty;
+    }
+
+    return m_value.Get<String>();
+}
+
+bool HypClassAttributeValue::IsBool() const
+{
+    return m_value.Is<bool>();
+}
+
+bool HypClassAttributeValue::GetBool() const
+{
+    if (!m_value.HasValue()) {
+        return false;
+    }
+
+    if (const bool *bool_ptr = m_value.TryGet<bool>()) {
+        return *bool_ptr;
+    }
+
+    if (const String *string_ptr = m_value.TryGet<String>()) {
+        return !string_ptr->Empty();
+    }
+
+    if (const int *int_ptr = m_value.TryGet<int>()) {
+        return *int_ptr != 0;
+    }
+
+    return true;
+}
+
+bool HypClassAttributeValue::IsInt() const
+{
+    return m_value.Is<int>();
+}
+
+int HypClassAttributeValue::GetInt() const
+{
+    if (!m_value.HasValue()) {
+        return 0;
+    }
+
+    if (const int *int_ptr = m_value.TryGet<int>()) {
+        return *int_ptr;
+    }
+
+    if (const String *string_ptr = m_value.TryGet<String>()) {
+        int int_value;
+
+        if (StringUtil::Parse(*string_ptr, &int_value)) {
+            return int_value;
+        }
+
+        return 0;
+    }
+
+    if (const bool *bool_ptr = m_value.TryGet<bool>()) {
+        return *bool_ptr != false;
+    }
+
+    return 0;
+}
 
 String HypClassAttributeValue::ToString() const
 {

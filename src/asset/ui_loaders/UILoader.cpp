@@ -514,7 +514,7 @@ public:
                     if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End()) {
                         Delegate<UIEventHandlerResult, const MouseEvent &> *delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< const MouseEvent & > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                        delegate->Bind(UIScriptDelegate<MouseEvent> { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
 
                         found = true;
                     }
@@ -528,7 +528,7 @@ public:
                     if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End()) {
                         Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< const KeyboardEvent & > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                        delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
                     }
 
                     if (found) {
