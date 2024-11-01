@@ -107,7 +107,7 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
     pipeline_info.basePipelineIndex = -1;
     
     HYPERION_VK_PASS_ERRORS(
-        device->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(
+        Features::s_dynamic_functions.vkCreateRayTracingPipelinesKHR(
             device->GetDevice(),
             VK_NULL_HANDLE,
             VK_NULL_HANDLE,
@@ -185,7 +185,7 @@ void RaytracingPipeline<Platform::VULKAN>::TraceRays(
     Extent3D extent
 ) const
 {
-    device->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
+    Features::s_dynamic_functions.vkCmdTraceRaysKHR(
         command_buffer->GetPlatformImpl().command_buffer,
         &m_shader_binding_table_entries.ray_gen,
         &m_shader_binding_table_entries.ray_miss,
@@ -208,7 +208,7 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
 
     ByteBuffer shader_handle_storage(table_size);
 
-    HYPERION_VK_CHECK(features.dyn_functions.vkGetRayTracingShaderGroupHandlesKHR(
+    HYPERION_VK_CHECK(Features::s_dynamic_functions.vkGetRayTracingShaderGroupHandlesKHR(
         device->GetDevice(),
         m_platform_impl.handle,
         0,

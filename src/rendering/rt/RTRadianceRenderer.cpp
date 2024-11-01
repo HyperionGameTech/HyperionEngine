@@ -152,7 +152,7 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
         AssertThrow(descriptor_set.IsValid());
 
-        HYPERION_ASSERT_RESULT(descriptor_set->Update(g_engine->GetGPUDevice()));
+        descriptor_set->Update(g_engine->GetGPUDevice());
 
         m_updates[frame->GetFrameIndex()] = RT_RADIANCE_UPDATES_NONE;
     }

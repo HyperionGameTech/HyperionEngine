@@ -5,7 +5,7 @@
 namespace hyperion {
 namespace renderer {
 
-Features::DynamicFunctions Features::dyn_functions = {};
+DynamicFunctions Features::s_dynamic_functions = {};
 
 Features::Features()
     : m_physical_device(nullptr),
@@ -134,7 +134,7 @@ void Features::LoadDynamicFunctions(Device *device)
         if (proc_addr == nullptr) { \
             DebugLog(LogType::Error, "Failed to load dynamic function " #name "\n"); \
         } \
-        dyn_functions.name = reinterpret_cast<PFN_##name>(proc_addr); \
+        s_dynamic_functions.name = reinterpret_cast<PFN_##name>(proc_addr); \
     } while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
@@ -155,6 +155,8 @@ void Features::LoadDynamicFunctions(Device *device)
     }
 #endif
 
+    HYP_LOAD_FN(vkCmdPushDescriptorSetKHR);
+
     //HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
     //HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
     //HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
@@ -173,7 +175,7 @@ void Features::SetDeviceFeatures(Device *device)
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
     MVKConfiguration *mvk_config = nullptr;
     size_t sz = 1;
-    dyn_functions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
+    s_dynamic_functions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
 
     mvk_config = new MVKConfiguration[sz];
 
@@ -183,7 +185,7 @@ void Features::SetDeviceFeatures(Device *device)
 #endif
     }
 
-    dyn_functions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
+    s_dynamic_functions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
 
     delete[] mvk_config;
 #endif

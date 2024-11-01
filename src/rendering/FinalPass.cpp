@@ -357,10 +357,8 @@ void FinalPass::Render(Frame *frame)
     if (m_ui_texture.IsValid()) {
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index)) {
-            HYPERION_ASSERT_RESULT(
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
-                    ->Update(g_engine->GetGPUDevice(), frame_index)
-            );
+            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
+                ->Update(g_engine->GetGPUDevice(), frame_index);
 
             m_dirty_frame_indices &= ~(1u << frame_index);
         }

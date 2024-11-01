@@ -27,7 +27,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<sizeof(EntityUserData), alignof(EntityUserData)>;
 
-HYP_STRUCT(Component, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
+HYP_STRUCT(Component, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true, Size=128)
 struct MeshComponent
 {
     HYP_FIELD(Property="Mesh", Serialize=true, Editor=true)
@@ -39,7 +39,7 @@ struct MeshComponent
     HYP_FIELD(Property="Skeleton", Serialize=true, Editor=true)
     Handle<Skeleton>        skeleton;
 
-    HYP_FIELD(Property="NumInstances", Serialize=true, Editor=true)
+    HYP_FIELD(Property="NumInstances", Serialize=true, Editor=true, Label="Instance count", Description="The number of individual instances that will be rendered for this object.")
     uint32                  num_instances = 1;
 
     HYP_FIELD()
@@ -66,8 +66,6 @@ struct MeshComponent
         return hash_code;
     }
 };
-
-static_assert(sizeof(MeshComponent) == 128, "MeshComponent size must match C# struct size");
 
 } // namespace hyperion
 

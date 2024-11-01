@@ -567,6 +567,12 @@ public:
 
         return ConstByteView(reinterpret_cast<const ubyte *>(Data()) + offset, size);
     }
+
+    HYP_FORCE_INLINE detail::ArrayStorage<T, NumInlineBytes> &GetArrayStorage()
+        { return m_storage; }
+
+    HYP_FORCE_INLINE const detail::ArrayStorage<T, NumInlineBytes> &GetArrayStorage() const
+        { return m_storage; }
     
     HYP_DEF_STL_BEGIN_END(
         GetBuffer() + m_start_offset,
@@ -1000,16 +1006,16 @@ void Array<T, NumInlineBytes>::Resize(SizeType new_size)
 
         auto *buffer = GetStorage();
 
-        if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>) {
-            Memory::MemSet(&buffer[m_size].data_buffer, 0, sizeof(T) * diff);
+        // if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>) {
+        //     Memory::MemSet(&buffer[m_size].data_buffer, 0, sizeof(T) * diff);
 
-            m_size += diff;
-        } else {
+        //     m_size += diff;
+        // } else {
             while (Size() < new_size) {
                 // construct item at index
                 Memory::Construct<T>(&buffer[m_size++].data_buffer);
             }
-        }
+        // }
     } else {
         const SizeType diff = current_size - new_size;
 

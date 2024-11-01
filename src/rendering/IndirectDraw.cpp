@@ -381,8 +381,12 @@ void IndirectRenderer::Create()
 
         descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
         descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_draw_state.GetIndirectBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
+        // descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EntityInstanceBatchBuffer"), g_engine->GetPlaceholderData()->GetOrCreateBuffer(g_engine->GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(EntityInstanceBatch), true));
     }
+
+    // @TODO:: Refactor me so that ObjectInstances are grouped by EntityInstanceBatch index.
+    // then, use push descriptors to dynamically update the buffer that we are using for each invocation
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
 
@@ -413,7 +417,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);
 
     const uint num_instances = m_indirect_draw_state.GetInstances().Size();
-    const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
+    // const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
 
     if (num_instances == 0) {
         return;
@@ -483,8 +487,53 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
 
     m_object_visibility->Bind(command_buffer);
-    
-    m_object_visibility->Dispatch(command_buffer, Extent3D { num_batches, 1, 1 });
+
+    // Execute the compute shader in batches:
+    // - we'll need to make sure we only execute a batch where the Entity Instance Batch buffer is shared across the entire batch.
+    // - The object instances will be emplaced such that all instances sharing an Entity Instance Batch buffer will be contiguous.
+
+    uint32 previous_entity_instance_batch_index = ~0u;
+    uint32 batch_instance_count = 0;
+
+    for (SizeType i = 0; i < m_indirect_draw_state.GetInstances().Size(); i++) {
+        const ObjectInstance &object_instance = m_indirect_draw_state.GetInstances()[i];
+
+        if (object_instance.batch_index != previous_entity_instance_batch_index) {
+            // Dispatch for the last batch
+            if (batch_instance_count != 0) {
+                m_object_visibility->Dispatch(command_buffer, Extent3D { batch_instance_count, 1, 1 });
+            }
+
+            const GPUBufferRef &entity_instance_batch_buffer = g_engine->GetRenderData()->entity_instance_batch_manager.GetGPUBuffer(object_instance.batch_index, frame_index);
+            AssertThrow(entity_instance_batch_buffer.IsValid());
+
+            // Update descriptor set
+            const DescriptorTableRef &descriptor_table = m_object_visibility->GetDescriptorTable();
+
+            const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frame_index);
+            AssertThrow(descriptor_set != nullptr);
+
+            descriptor_set->SetElement(NAME("EntityInstanceBatchBuffer"), entity_instance_batch_buffer);
+            descriptor_set->PushUpdates(
+                frame->GetCommandBuffer(),
+                m_object_visibility,
+                Span<Name> { { NAME("EntityInstanceBatchBuffer") } }
+            );
+
+            previous_entity_instance_batch_index = object_instance.batch_index;
+
+            batch_instance_count = 1;
+        } else {
+            batch_instance_count++;
+        }
+    }
+
+    // Dispatch for the last batch
+    if (batch_instance_count != 0) {
+        m_object_visibility->Dispatch(command_buffer, Extent3D { batch_instance_count, 1, 1 });
+    }
+
+    // @TODO : Clear EntityInstanceBatchBuffer?
     
     m_indirect_draw_state.GetIndirectBuffer(frame_index)->InsertBarrier(
         frame->GetCommandBuffer(),

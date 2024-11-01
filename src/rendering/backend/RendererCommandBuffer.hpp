@@ -39,6 +39,9 @@ template <PlatformType PLATFORM>
 class RaytracingPipeline;
 
 template <PlatformType PLATFORM>
+class DescriptorSet;
+
+template <PlatformType PLATFORM>
 struct CommandBufferPlatformImpl;
 
 template <PlatformType PLATFORM>

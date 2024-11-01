@@ -262,8 +262,8 @@ public:
                         NAME("Object"),
                         {
                             { NAME("MaterialsBuffer"), 0 },
-                            { NAME("SkeletonsBuffer"), 0 },
-                            { NAME("EntityInstanceBatchesBuffer"), 0 }
+                            { NAME("SkeletonsBuffer"), 0 }
+                            // { NAME("EntityInstanceBatchesBuffer"), 0 }
                         }
                     }
                 }
@@ -287,8 +287,8 @@ public:
                     {
                         NAME("Object"),
                         {
-                            { NAME("SkeletonsBuffer"), 0 },
-                            { NAME("EntityInstanceBatchesBuffer"), 0 }
+                            { NAME("SkeletonsBuffer"), 0 }
+                            // { NAME("EntityInstanceBatchesBuffer"), 0 }
                         }
                     }
                 }

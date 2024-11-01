@@ -123,7 +123,7 @@ void ShaderGlobals::Create()
     shadow_map_data.Create(device);
     env_probes.Create(device);
     env_grids.Create(device);
-    entity_instance_batches.Create(device);
+    // entity_instance_batches.Create(device);
 
     textures.Create();
 
@@ -143,7 +143,7 @@ void ShaderGlobals::Destroy()
     skeletons.Destroy(device);
     lights.Destroy(device);
     shadow_map_data.Destroy(device);
-    entity_instance_batches.Destroy(device);
+    // entity_instance_batches.Destroy(device);
 
     spherical_harmonics_grid.Destroy();
 }

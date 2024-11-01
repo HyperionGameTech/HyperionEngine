@@ -51,11 +51,11 @@ enum EnvGridType : uint32
 
 struct alignas(256) EntityInstanceBatch
 {
-    uint32 num_entities;
-    uint32 _pad0;
-    uint32 _pad1;
-    uint32 _pad2;
-    uint32 indices[max_entities_per_instance_batch];
+    uint32  num_entities;
+    uint32  use_transforms_buffer;
+    uint32  _pad0;
+    uint32  _pad1;
+    uint32  entity_indices[max_entities_per_instance_batch];
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 256);
@@ -454,8 +454,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE
-    void UpdateBuffer(Device *device, uint buffer_index)
+    HYP_FORCE_INLINE void UpdateBuffer(Device *device, uint buffer_index)
     {
         m_staging_objects_pool.m_cpu_buffer.PerformUpdate(
             device,
@@ -466,8 +465,7 @@ public:
         m_dirty_ranges[buffer_index].Reset();
     }
 
-    HYP_FORCE_INLINE
-    void Set(uint index, const StructType &value)
+    HYP_FORCE_INLINE void Set(uint index, const StructType &value)
     {
         m_staging_objects_pool.Set(index, value);
 
@@ -478,14 +476,12 @@ public:
      * use when it is preferable to fetch the object, update the struct, and then
      * call Set. This is usually when the object would have a large stack size
      */
-    HYP_FORCE_INLINE
-    StructType &Get(uint index)
+    HYP_FORCE_INLINE StructType &Get(uint index)
     {
         return m_staging_objects_pool.m_cpu_buffer.objects[index];
     }
     
-    HYP_FORCE_INLINE
-    void MarkDirty(uint index)
+    HYP_FORCE_INLINE void MarkDirty(uint index)
     {
         for (auto &dirty_range : m_dirty_ranges) {
             dirty_range |= Range<uint32> { index, index + 1 };

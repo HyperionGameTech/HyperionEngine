@@ -192,7 +192,7 @@ void DepthPyramidRenderer::Create()
                 SetDescriptorSetElements();
 
                 for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                    HYPERION_ASSERT_RESULT(descriptor_table->Update(g_engine->GetGPUDevice(), frame_index));
+                    descriptor_table->Update(g_engine->GetGPUDevice(), frame_index);
                 }
             }
         }

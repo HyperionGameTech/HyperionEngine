@@ -533,7 +533,7 @@ uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULK
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_platform_impl.handle;
 
-	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
+	return Features::s_dynamic_functions.vkGetBufferDeviceAddressKHR(
         device->GetDevice(),
         &info
     );

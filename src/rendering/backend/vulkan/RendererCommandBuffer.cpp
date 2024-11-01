@@ -3,6 +3,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -132,9 +133,9 @@ Result CommandBuffer<Platform::VULKAN>::SubmitPrimary(
     VkSubmitInfo submit_info { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
     if (semaphore_chain != nullptr) {
-        submit_info.waitSemaphoreCount = static_cast<uint32>(semaphore_chain->m_wait_semaphores_view.size());
+        submit_info.waitSemaphoreCount = uint32(semaphore_chain->m_wait_semaphores_view.size());
         submit_info.pWaitSemaphores = semaphore_chain->m_wait_semaphores_view.data();
-        submit_info.signalSemaphoreCount = static_cast<uint32>(semaphore_chain->m_signal_semaphores_view.size());
+        submit_info.signalSemaphoreCount = uint32(semaphore_chain->m_signal_semaphores_view.size());
         submit_info.pSignalSemaphores = semaphore_chain->m_signal_semaphores_view.data();
         submit_info.pWaitDstStageMask = semaphore_chain->m_wait_semaphores_stage_view.data();
     } else {
@@ -222,29 +223,29 @@ void CommandBuffer<Platform::VULKAN>::DrawIndexedIndirect(
         buffer->GetPlatformImpl().handle,
         buffer_offset,
         1,
-        static_cast<uint32>(sizeof(IndirectDrawCommand))
+        uint32(sizeof(IndirectDrawCommand))
     );
 }
 
 template <>
 void CommandBuffer<Platform::VULKAN>::DebugMarkerBegin(const char *marker_name) const
 {
-    if (Features::dyn_functions.vkCmdDebugMarkerBeginEXT) {
+    if (Features::s_dynamic_functions.vkCmdDebugMarkerBeginEXT) {
         const VkDebugMarkerMarkerInfoEXT marker {
             .sType       = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT,
             .pNext       = nullptr,
             .pMarkerName = marker_name
         };
 
-        Features::dyn_functions.vkCmdDebugMarkerBeginEXT(m_platform_impl.command_buffer, &marker);
+        Features::s_dynamic_functions.vkCmdDebugMarkerBeginEXT(m_platform_impl.command_buffer, &marker);
     }
 }
 
 template <>
 void CommandBuffer<Platform::VULKAN>::DebugMarkerEnd() const
 {
-    if (Features::dyn_functions.vkCmdDebugMarkerEndEXT) {
-        Features::dyn_functions.vkCmdDebugMarkerEndEXT(m_platform_impl.command_buffer);
+    if (Features::s_dynamic_functions.vkCmdDebugMarkerEndEXT) {
+        Features::s_dynamic_functions.vkCmdDebugMarkerEndEXT(m_platform_impl.command_buffer);
     }
 }
 

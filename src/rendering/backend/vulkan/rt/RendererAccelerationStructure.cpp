@@ -311,7 +311,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
     AssertThrow(primitive_counts.size() == geometries.size());
     
     VkAccelerationStructureBuildSizesInfoKHR build_sizes_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-    device->GetFeatures().dyn_functions.vkGetAccelerationStructureBuildSizesKHR(
+    Features::s_dynamic_functions.vkGetAccelerationStructureBuildSizesKHR(
         device->GetDevice(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &geometry_info,
@@ -342,7 +342,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
             HYPERION_BUBBLE_ERRORS(device->Wait()); // To prevent deletion while in use 
 
             // delete the current acceleration structure
-            device->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
+            Features::s_dynamic_functions.vkDestroyAccelerationStructureKHR(
                 device->GetDevice(),
                 m_acceleration_structure,
                 nullptr
@@ -354,7 +354,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
             // update was true but we need to rebuild from scratch, have to unset the UPDATE flag. 
             geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
-            device->GetFeatures().dyn_functions.vkGetAccelerationStructureBuildSizesKHR(
+            Features::s_dynamic_functions.vkGetAccelerationStructureBuildSizesKHR(
                 device->GetDevice(),
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 &geometry_info,
@@ -378,7 +378,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
         create_info.type = ToVkAccelerationStructureType(type);
 
         HYPERION_VK_PASS_ERRORS(
-            device->GetFeatures().dyn_functions.vkCreateAccelerationStructureKHR(
+            Features::s_dynamic_functions.vkCreateAccelerationStructureKHR(
                 device->GetDevice(),
                 &create_info,
                 VK_NULL_HANDLE,
@@ -399,7 +399,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
     VkAccelerationStructureDeviceAddressInfoKHR address_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR };
     address_info.accelerationStructure = m_acceleration_structure;
 
-    m_device_address = device->GetFeatures().dyn_functions.vkGetAccelerationStructureDeviceAddressKHR(
+    m_device_address = Features::s_dynamic_functions.vkGetAccelerationStructureDeviceAddressKHR(
         device->GetDevice(),
         &address_info
     );
@@ -448,7 +448,7 @@ Result AccelerationStructure<Platform::VULKAN>::CreateAccelerationStructure(
 
     commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer)
     {
-        device->GetFeatures().dyn_functions.vkCmdBuildAccelerationStructuresKHR(
+        Features::s_dynamic_functions.vkCmdBuildAccelerationStructuresKHR(
             command_buffer->GetPlatformImpl().command_buffer,
             uint32(range_info_ptrs.size()),
             &geometry_info,
@@ -479,7 +479,7 @@ Result AccelerationStructure<Platform::VULKAN>::Destroy(Device<Platform::VULKAN>
     SafeRelease(std::move(m_scratch_buffer));
 
     if (m_acceleration_structure != VK_NULL_HANDLE) {
-        device->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
+        Features::s_dynamic_functions.vkDestroyAccelerationStructureKHR(
             device->GetDevice(),
             m_acceleration_structure,
             VK_NULL_HANDLE

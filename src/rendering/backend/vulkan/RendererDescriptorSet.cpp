@@ -5,6 +5,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 
 #include <math/MathUtil.hpp>
@@ -146,6 +147,151 @@ VkDescriptorSetLayout DescriptorSetPlatformImpl<Platform::VULKAN>::GetVkDescript
     }
 
     return vk_layout_wrapper->vk_layout;
+}
+
+void DescriptorSetPlatformImpl<Platform::VULKAN>::BuildVkWriteDescriptorSets(
+    Span<HashMap<Name, DescriptorSetElement<Platform::VULKAN>>::Iterator> iterators,
+    ProcRef<void, Span<VkWriteDescriptorSet>> callback
+) const
+{
+    Array<VulkanDescriptorElementInfo> descriptor_element_infos;
+
+    for (auto &it : iterators) {
+        const Name name = it->first;
+        const DescriptorSetElement<Platform::VULKAN> &element = it->second;
+
+        const DescriptorSetLayoutElement *layout_element = self->m_layout.GetElement(name);
+        AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
+
+        for (uint32 i = element.dirty_range.GetStart(); i < element.dirty_range.GetEnd(); i++) {
+            VulkanDescriptorElementInfo descriptor_element_info;
+            Memory::MemSet(&descriptor_element_info, 0, sizeof(VulkanDescriptorElementInfo));
+
+            descriptor_element_info.binding = layout_element->binding;
+            descriptor_element_info.index = i;
+            descriptor_element_info.descriptor_type = ToVkDescriptorType(layout_element->type);
+
+            const auto value_it = element.values.Find(i);
+
+            if (value_it == element.values.End()) {
+                HYP_LOG(RenderingBackend, LogLevel::WARNING, "Element at index {} not found for descriptor set element \"{}\"", i, name);
+
+                continue;
+            }
+
+            switch (layout_element->type) {
+            case DescriptorSetElementType::UNIFORM_BUFFER: // fallthrough
+            case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
+            case DescriptorSetElementType::STORAGE_BUFFER:
+            case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+                AssertThrow(value_it->second.Is<GPUBufferRef<Platform::VULKAN>>());
+            
+                break;
+            case DescriptorSetElementType::IMAGE:
+            case DescriptorSetElementType::IMAGE_STORAGE: // fallthrough
+                AssertThrow(value_it->second.Is<ImageViewRef<Platform::VULKAN>>());
+
+                break;
+            case DescriptorSetElementType::SAMPLER:
+                AssertThrow(value_it->second.Is<SamplerRef<Platform::VULKAN>>());
+
+                break;
+            case DescriptorSetElementType::TLAS:
+                AssertThrow(value_it->second.Is<TLASRef<Platform::VULKAN>>());
+                
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
+
+            if (value_it->second.Is<GPUBufferRef<Platform::VULKAN>>()) {
+                const bool layout_has_size = layout_element->size != 0 && layout_element->size != ~0u;
+
+                const bool is_dynamic = layout_element->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
+                    || layout_element->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
+
+                const GPUBufferRef<Platform::VULKAN> &ref = value_it->second.Get<GPUBufferRef<Platform::VULKAN>>();
+                AssertThrowMsg(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                if (is_dynamic) {
+                    AssertThrowMsg(layout_element->size != 0, "Buffer size not set for dynamic buffer element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+                }
+
+                AssertThrowMsg(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+                
+                descriptor_element_info.buffer_info = VkDescriptorBufferInfo {
+                    .buffer = ref->GetPlatformImpl().handle,
+                    .offset = 0,
+                    .range  = layout_has_size ? layout_element->size : ref->Size()
+                };
+            } else if (value_it->second.Is<ImageViewRef<Platform::VULKAN>>()) {
+                const bool is_storage_image = layout_element->type == DescriptorSetElementType::IMAGE_STORAGE;
+
+                const ImageViewRef<Platform::VULKAN> &ref = value_it->second.Get<ImageViewRef<Platform::VULKAN>>();
+                AssertThrowMsg(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                descriptor_element_info.image_info = VkDescriptorImageInfo {
+                    .sampler        = VK_NULL_HANDLE,
+                    .imageView      = ref->GetPlatformImpl().handle,
+                    .imageLayout    = is_storage_image ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                };
+            } else if (value_it->second.Is<SamplerRef<Platform::VULKAN>>()) {
+                const SamplerRef<Platform::VULKAN> &ref = value_it->second.Get<SamplerRef<Platform::VULKAN>>();
+                AssertThrowMsg(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                descriptor_element_info.image_info = VkDescriptorImageInfo {
+                    .sampler        = ref->GetPlatformImpl().handle,
+                    .imageView      = VK_NULL_HANDLE,
+                    .imageLayout    = VK_IMAGE_LAYOUT_UNDEFINED
+                };
+            } else if (value_it->second.Is<TLASRef<Platform::VULKAN>>()) {
+                const TLASRef<Platform::VULKAN> &ref = value_it->second.Get<TLASRef<Platform::VULKAN>>();
+                AssertThrowMsg(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                AssertThrowMsg(ref->GetAccelerationStructure() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", self->m_layout.GetName().LookupString(), name.LookupString(), i);
+
+                descriptor_element_info.acceleration_structure_info = VkWriteDescriptorSetAccelerationStructureKHR {
+                    .sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
+                    .pNext                      = nullptr,
+                    .accelerationStructureCount = 1,
+                    .pAccelerationStructures    = &ref->GetAccelerationStructure()
+                };
+            } else {
+                AssertThrowMsg(false, "Unhandled descriptor set element type: %d", int(layout_element->type));
+            }
+
+            descriptor_element_infos.PushBack(descriptor_element_info);
+        }
+    }
+
+    Array<VkWriteDescriptorSet> vk_write_descriptor_sets;
+    vk_write_descriptor_sets.Resize(descriptor_element_infos.Size());
+
+    for (SizeType i = 0; i < vk_write_descriptor_sets.Size(); i++) {
+        const VulkanDescriptorElementInfo &descriptor_element_info = descriptor_element_infos[i];
+
+        VkWriteDescriptorSet &write = vk_write_descriptor_sets[i];
+        
+        write = VkWriteDescriptorSet { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+        write.dstSet = handle;
+        write.dstBinding = descriptor_element_info.binding;
+        write.dstArrayElement = descriptor_element_info.index;
+        write.descriptorCount = 1;
+        write.descriptorType = descriptor_element_info.descriptor_type;
+
+        if (descriptor_element_info.descriptor_type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
+            write.pNext = &descriptor_element_info.acceleration_structure_info;
+        }
+        
+        write.pImageInfo = &descriptor_element_info.image_info;
+        write.pBufferInfo = &descriptor_element_info.buffer_info;
+    }
+
+    callback(vk_write_descriptor_sets.ToSpan());
 }
 
 #pragma endregion DescriptorSetPlatformImpl
@@ -304,137 +450,114 @@ DescriptorSet<Platform::VULKAN>::~DescriptorSet()
 }
 
 template <>
-Result DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
+void DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
 {
-    AssertThrow(m_platform_impl.handle != VK_NULL_HANDLE);
+    Array<HashMap<Name, DescriptorSetElement<Platform::VULKAN>>::Iterator> iterators;
 
-    Array<VulkanDescriptorElementInfo> descriptor_element_infos;
-
-    for (auto &it : m_elements) {
-        const Name name = it.first;
-        const DescriptorSetElement<Platform::VULKAN> &element = it.second;
+    for (auto it = m_elements.Begin(); it != m_elements.End(); ++it) {
+        DescriptorSetElement<Platform::VULKAN> &element = it->second;
 
         if (!element.IsDirty()) {
             continue;
         }
 
-        const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
-        AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
-
-        for (uint32 i = element.dirty_range.GetStart(); i < element.dirty_range.GetEnd(); i++) {
-            VulkanDescriptorElementInfo descriptor_element_info { };
-            descriptor_element_info.binding = layout_element->binding;
-            descriptor_element_info.index = i;
-            descriptor_element_info.descriptor_type = ToVkDescriptorType(layout_element->type);
-
-            const auto value_it = element.values.Find(i);
-
-            if (value_it == element.values.End()) {
-                continue;
-            }
-
-            if (value_it->second.Is<GPUBufferRef<Platform::VULKAN>>()) {
-                const bool layout_has_size = layout_element->size != 0 && layout_element->size != ~0u;
-
-                const bool is_dynamic = layout_element->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
-                    || layout_element->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
-
-                const GPUBufferRef<Platform::VULKAN> &ref = value_it->second.Get<GPUBufferRef<Platform::VULKAN>>();
-                AssertThrowMsg(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                if (is_dynamic) {
-                    AssertThrowMsg(layout_element->size != 0, "Buffer size not set for dynamic buffer element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-                }
-
-                AssertThrowMsg(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-                
-                descriptor_element_info.buffer_info = VkDescriptorBufferInfo {
-                    .buffer = ref->GetPlatformImpl().handle,
-                    .offset = 0,
-                    .range  = layout_has_size ? layout_element->size : ref->Size()
-                };
-            } else if (value_it->second.Is<ImageViewRef<Platform::VULKAN>>()) {
-                const bool is_storage_image = layout_element->type == DescriptorSetElementType::IMAGE_STORAGE;
-
-                const ImageViewRef<Platform::VULKAN> &ref = value_it->second.Get<ImageViewRef<Platform::VULKAN>>();
-                AssertThrowMsg(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                descriptor_element_info.image_info = VkDescriptorImageInfo {
-                    .sampler        = VK_NULL_HANDLE,
-                    .imageView      = ref->GetPlatformImpl().handle,
-                    .imageLayout    = is_storage_image ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                };
-            } else if (value_it->second.Is<SamplerRef<Platform::VULKAN>>()) {
-                const SamplerRef<Platform::VULKAN> &ref = value_it->second.Get<SamplerRef<Platform::VULKAN>>();
-                AssertThrowMsg(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                AssertThrowMsg(ref->GetPlatformImpl().handle != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                descriptor_element_info.image_info = VkDescriptorImageInfo {
-                    .sampler        = ref->GetPlatformImpl().handle,
-                    .imageView      = VK_NULL_HANDLE,
-                    .imageLayout    = VK_IMAGE_LAYOUT_UNDEFINED
-                };
-            } else if (value_it->second.Is<TLASRef<Platform::VULKAN>>()) {
-                const TLASRef<Platform::VULKAN> &ref = value_it->second.Get<TLASRef<Platform::VULKAN>>();
-                AssertThrowMsg(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                AssertThrowMsg(ref->GetAccelerationStructure() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), i);
-
-                descriptor_element_info.acceleration_structure_info = VkWriteDescriptorSetAccelerationStructureKHR {
-                    .sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
-                    .pNext                      = nullptr,
-                    .accelerationStructureCount = 1,
-                    .pAccelerationStructures    = &ref->GetAccelerationStructure()
-                };
-            } else {
-                AssertThrowMsg(false, "Unhandled descriptor set element type: %d", int(layout_element->type));
-            }
-
-            descriptor_element_infos.PushBack(descriptor_element_info);
-        }
+        iterators.PushBack(it);
     }
 
-    Array<VkWriteDescriptorSet> vk_write_descriptor_sets;
-    vk_write_descriptor_sets.Resize(descriptor_element_infos.Size());
+    m_platform_impl.BuildVkWriteDescriptorSets(iterators.ToSpan(), [device](Span<VkWriteDescriptorSet> vk_write_descriptor_sets)
+    {
+        vkUpdateDescriptorSets(
+            device->GetDevice(),
+            uint32(vk_write_descriptor_sets.Size()),
+            vk_write_descriptor_sets.Data(),
+            0,
+            nullptr
+        );
+    });
 
-    for (SizeType i = 0; i < vk_write_descriptor_sets.Size(); i++) {
-        const VulkanDescriptorElementInfo &descriptor_element_info = descriptor_element_infos[i];
-
-        VkWriteDescriptorSet &write = vk_write_descriptor_sets[i];
-        
-        write = VkWriteDescriptorSet { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-        write.dstSet = m_platform_impl.handle;
-        write.dstBinding = descriptor_element_info.binding;
-        write.dstArrayElement = descriptor_element_info.index;
-        write.descriptorCount = 1;
-        write.descriptorType = descriptor_element_info.descriptor_type;
-
-        if (descriptor_element_info.descriptor_type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
-            write.pNext = &descriptor_element_info.acceleration_structure_info;
-        }
-        
-        write.pImageInfo = &descriptor_element_info.image_info;
-        write.pBufferInfo = &descriptor_element_info.buffer_info;
-    }
-
-    vkUpdateDescriptorSets(
-        device->GetDevice(),
-        uint32(vk_write_descriptor_sets.Size()),
-        vk_write_descriptor_sets.Data(),
-        0,
-        nullptr
-    );
-
-    for (auto &it : m_elements) {
-        DescriptorSetElement<Platform::VULKAN> &element = it.second;
+    for (auto &it : iterators) {
+        DescriptorSetElement<Platform::VULKAN> &element = it->second;
 
         element.dirty_range = { };
     }
-    
-    return Result { };
+}
+
+template <>
+void DescriptorSet<Platform::VULKAN>::PushUpdates(
+    const CommandBuffer<Platform::VULKAN> *command_buffer,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
+    Span<Name> descriptors_to_update
+)
+{
+    Array<HashMap<Name, DescriptorSetElement<Platform::VULKAN>>::Iterator> iterators;
+    iterators.Reserve(descriptors_to_update.Size());
+
+    for (Name name : descriptors_to_update) {
+        auto it = m_elements.Find(name);
+        AssertThrowMsg(it != m_elements.End(), "No descriptor with name %s in descriptor set %s", name.LookupString(), m_layout.GetName().LookupString());
+
+        iterators.PushBack(it);
+    }
+
+    const uint32 descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(m_layout.GetName());
+    AssertThrow(descriptor_set_index != ~0u);
+
+    m_platform_impl.BuildVkWriteDescriptorSets(iterators.ToSpan(), [command_buffer, pipeline, descriptor_set_index](Span<VkWriteDescriptorSet> vk_write_descriptor_sets)
+    {
+        Features::s_dynamic_functions.vkCmdPushDescriptorSetKHR(
+            command_buffer->GetPlatformImpl().command_buffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
+            descriptor_set_index,
+            uint32(vk_write_descriptor_sets.Size()),
+            vk_write_descriptor_sets.Data()
+        );
+    });
+
+    for (auto &it : iterators) {
+        DescriptorSetElement<Platform::VULKAN> &element = it->second;
+
+        element.dirty_range = { };
+    }
+}
+
+template <>
+void DescriptorSet<Platform::VULKAN>::PushUpdates(
+    const CommandBuffer<Platform::VULKAN> *command_buffer,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
+    Span<Name> descriptors_to_update
+)
+{
+    Array<HashMap<Name, DescriptorSetElement<Platform::VULKAN>>::Iterator> iterators;
+    iterators.Reserve(descriptors_to_update.Size());
+
+    for (Name name : descriptors_to_update) {
+        auto it = m_elements.Find(name);
+        AssertThrowMsg(it != m_elements.End(), "No descriptor with name %s in descriptor set %s", name.LookupString(), m_layout.GetName().LookupString());
+
+        iterators.PushBack(it);
+    }
+
+    const uint32 descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(m_layout.GetName());
+    AssertThrow(descriptor_set_index != ~0u);
+
+    m_platform_impl.BuildVkWriteDescriptorSets(iterators.ToSpan(), [command_buffer, pipeline, descriptor_set_index](Span<VkWriteDescriptorSet> vk_write_descriptor_sets)
+    {
+        Features::s_dynamic_functions.vkCmdPushDescriptorSetKHR(
+            command_buffer->GetPlatformImpl().command_buffer,
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            pipeline->Pipeline<Platform::VULKAN>::GetPlatformImpl().layout,
+            descriptor_set_index,
+            uint32(vk_write_descriptor_sets.Size()),
+            vk_write_descriptor_sets.Data()
+        );
+    });
+
+    for (auto &it : iterators) {
+        DescriptorSetElement<Platform::VULKAN> &element = it->second;
+
+        element.dirty_range = { };
+    }
 }
 
 template <>
@@ -455,10 +578,7 @@ Result DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         return result;
     }
 
-    HYPERION_PASS_ERRORS(
-        Update(device),
-        result
-    );
+    Update(device);
 
     return result;
 }

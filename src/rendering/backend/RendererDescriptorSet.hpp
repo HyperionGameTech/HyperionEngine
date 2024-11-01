@@ -10,6 +10,7 @@
 #include <core/containers/ArrayMap.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/utilities/Range.hpp>
+#include <core/utilities/Span.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/backend/Platform.hpp>
@@ -495,6 +496,8 @@ template <PlatformType PLATFORM>
 class DescriptorSet
 {
 public:
+    friend struct DescriptorSetPlatformImpl<PLATFORM>;
+
     static constexpr PlatformType platform = PLATFORM;
 
     DescriptorSet(const DescriptorSetLayout<PLATFORM> &layout);
@@ -520,7 +523,19 @@ public:
 
     HYP_API Result Create(Device<PLATFORM> *device);
     HYP_API Result Destroy(Device<PLATFORM> *device);
-    HYP_API Result Update(Device<PLATFORM> *device);
+    HYP_API void Update(Device<PLATFORM> *device);
+
+    HYP_API void PushUpdates(
+        const CommandBuffer<PLATFORM> *command_buffer,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
+        Span<Name> descriptors_to_update
+    );
+
+    HYP_API void PushUpdates(
+        const CommandBuffer<PLATFORM> *command_buffer,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
+        Span<Name> descriptors_to_update
+    );
 
     bool HasElement(Name name) const;
 
@@ -792,7 +807,7 @@ public:
         \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
         \return The result of the operation */
-    Result Update(Device<PLATFORM> *device, uint32 frame_index)
+    void Update(Device<PLATFORM> *device, uint32 frame_index)
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
@@ -805,14 +820,8 @@ public:
                 continue;
             }
 
-            const Result set_result = set->Update(device);
-
-            if (!set_result) {
-                return set_result;
-            }
+            set->Update(device);
         }
-
-        return Result { };
     }
 
     HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const GraphicsPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets)

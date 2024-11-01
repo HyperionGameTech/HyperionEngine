@@ -286,8 +286,8 @@ void DebugDrawer::Render(Frame *frame)
                     NAME("Object"),
                     {
                         { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, 0) },
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
-                        { NAME("EntityInstanceBatchesBuffer"), 0 }
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) }
+                        // { NAME("EntityInstanceBatchesBuffer"), 0 }
                     }
                 }
             }
@@ -317,8 +317,8 @@ void DebugDrawer::Render(Frame *frame)
                 {
                     NAME("Object"),
                     {
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) },
-                        { NAME("EntityInstanceBatchesBuffer"), 0 }
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, 0) }
+                        // { NAME("EntityInstanceBatchesBuffer"), 0 }
                     }
                 }
             }

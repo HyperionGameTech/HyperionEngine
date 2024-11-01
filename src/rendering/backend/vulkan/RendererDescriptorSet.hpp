@@ -4,10 +4,17 @@
 #define HYPERION_BACKEND_RENDERER_VULKAN_DESCRIPTOR_SET_HPP
 
 #include <core/Name.hpp>
+
 #include <core/utilities/Optional.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/ArrayMap.hpp>
+
 #include <core/threading/Mutex.hpp>
+
+#include <core/functional/Proc.hpp>
+
 #include <core/Defines.hpp>
 
 #include <rendering/backend/Platform.hpp>
@@ -87,6 +94,10 @@ struct DescriptorSetPlatformImpl<Platform::VULKAN>
     RC<VulkanDescriptorSetLayoutWrapper>    vk_layout_wrapper;
 
     VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
+    void BuildVkWriteDescriptorSets(
+        Span<HashMap<Name, DescriptorSetElement<Platform::VULKAN>>::Iterator> iterators,
+        ProcRef<void, Span<VkWriteDescriptorSet>> callback
+    ) const;
 };
 
 template <>
