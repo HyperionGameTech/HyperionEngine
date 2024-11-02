@@ -13,72 +13,135 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
+#include <Engine.hpp>
+
 namespace hyperion {
 
-EntityInstanceBatchManager::EntityInstanceBatchManager()
-    : m_index_counter(0)
+#pragma region EntityInstanceBatchList
+
+static bool IsBlockEmpty(EntityInstanceBatchList::Block &block)
 {
+    return block.count.Get(MemoryOrder::ACQUIRE) != 0;
 }
 
-EntityInstanceBatchManager::~EntityInstanceBatchManager()
+static bool IsBlockFull(EntityInstanceBatchList::Block &block)
 {
-    for (auto &it : m_gpu_buffers) {
-        SafeRelease(std::move(it));
+    return block.count.Get(MemoryOrder::ACQUIRE) == EntityInstanceBatchList::elements_per_block;
+}
+
+EntityInstanceBatchList::EntityInstanceBatchList()
+{
+    // Make sure one is always there
+    m_blocks.EmplaceBack();
+
+    for (GPUBufferRef &buffer : m_gpu_buffers) {
+        buffer = MakeRenderObject<renderer::GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+        DeferCreate(buffer, g_engine->GetGPUDevice(), sizeof(EntityInstanceBatch) * elements_per_block);
     }
 }
 
-uint32 EntityInstanceBatchManager::AcquireIndex()
+EntityInstanceBatchList::~EntityInstanceBatchList()
+{
+    for (GPUBufferRef &buffer : m_gpu_buffers) {
+        SafeRelease(std::move(buffer));
+    }
+}
+
+EntityInstanceBatch &EntityInstanceBatchList::GetEntityInstanceBatch(uint32 index)
+{
+    AssertThrow(index != 0);
+
+    const uint32 block_index = (index - 1) / elements_per_block;
+
+    if (block_index == 0) {
+        return m_blocks.Front().entity_instance_batches[(index - 1) % elements_per_block];
+    }
+
+    Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_READ(m_data_race_detector);
+
+    AssertThrow(block_index < m_blocks.Size());
+
+    uint32 i = 0;
+
+    for (Block &block : m_blocks) {
+        if (i == block_index) {
+            return block.entity_instance_batches[(index - 1) % elements_per_block];
+        }
+
+        ++i;
+    }
+
+    HYP_FAIL("Element out of bounds: %u", index);
+}
+
+uint32 EntityInstanceBatchList::AcquireIndex()
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
 
+    uint32 index = 0;
+    uint32 block_index = 0;
+
+    Block *block_ptr = &m_blocks.Front();
+
+    // temp
     Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_READ(m_data_race_detector);
 
-    if (m_free_indices.Any()) {
-        uint32 index = m_free_indices.PopBack();
+    if (IsBlockFull(*block_ptr)) {
+        // Mutex::Guard guard(m_mutex);
+        // HYP_MT_CHECK_READ(m_data_race_detector);
 
-#ifdef HYP_DEBUG_MODE // sanity check
-        AssertThrow(index - 1 < AllocatedSize());
-#endif
+        block_ptr = nullptr;
 
-        m_entity_instance_batches[index - 1] = EntityInstanceBatch { };
+        for (Block &block : m_blocks) {
+            if (!IsBlockFull(block)) {
+                block_ptr = &block;
 
-        for (GPUBufferRef &gpu_buffer : m_gpu_buffers[index - 1]) {
-            gpu_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+                break;
+            }
+
+            ++block_index;
         }
 
-        m_dirty_states[index - 1] = uint8(-1);
-
-        return index;
+        if (!block_ptr) {
+            // Add new block at end
+            block_ptr = &m_blocks.EmplaceBack();
+        }
     }
 
-    HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Adding new entity instance batch from thread {}, size changing from {} to {}\tCurrently dynamic? {}",
-        Threads::CurrentThreadID().name,
-        m_entity_instance_batches.Size(),
-        m_entity_instance_batches.Size() + 1,
-        m_entity_instance_batches.GetArrayStorage().IsDynamic());
+    // @fixme What if another thread grabs the last slot from a block from while we're here?
+    const uint32 id = block_ptr->id_generator.NextID();
+    AssertThrow(id != 0);
 
-    if (m_entity_instance_batches.GetArrayStorage().IsDynamic()) {
-        AssertThrow(m_entity_instance_batches.GetArrayStorage().m_buffer != nullptr);
-    }
+    index = ((id - 1) + (block_index * elements_per_block)) + 1;
+    block_ptr->count.Increment(1, MemoryOrder::RELEASE);
 
-    m_entity_instance_batches.EmplaceBack();
+    // const uint32 relative_index = (index - 1) % elements_per_block;
 
-    if (m_entity_instance_batches.GetArrayStorage().IsDynamic()) {
-        AssertThrow(m_entity_instance_batches.GetArrayStorage().m_buffer != nullptr);
-    }
-    
-    for (GPUBufferRef &gpu_buffer : m_gpu_buffers.EmplaceBack()) {
-        gpu_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    }
+// #ifdef HYP_DEBUG_MODE
+//     AssertThrow(block_ptr->gpu_buffers[relative_index].Every([](const GPUBufferRef &ref) { return ref == nullptr; }));
+// #endif
 
-    m_dirty_states.EmplaceBack(0);
+    // for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    //     GPUBufferRef &buffer = block_ptr->gpu_buffers[relative_index][frame_index];
+    //     AssertThrow(buffer == nullptr);
 
-    return ++m_index_counter;
+    //     // @TODO Change to uniform buffer
+    //     buffer = MakeRenderObject<renderer::GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+
+    //     HYPERION_ASSERT_RESULT(buffer->Create(
+    //         g_engine->GetGPUDevice(),
+    //         sizeof(EntityInstanceBatch)
+    //     ));
+    // }
+
+    return index;
 }
 
-void EntityInstanceBatchManager::ReleaseIndex(uint32 &index)
+void EntityInstanceBatchList::ReleaseIndex(uint32 &index)
 {
     HYP_SCOPE;
 
@@ -88,40 +151,65 @@ void EntityInstanceBatchManager::ReleaseIndex(uint32 &index)
         index = 0;
     });
 
+    const uint32 block_index = (index - 1) / elements_per_block;
+
+    // temp
     Mutex::Guard guard(m_mutex);
+    HYP_MT_CHECK_READ(m_data_race_detector);
 
-    AssertThrow(index - 1 < AllocatedSize());
+    Block *block_ptr = nullptr;
 
-    m_dirty_states[index - 1] = 0; // prevent update after release
-    SafeRelease(std::move(m_gpu_buffers[index - 1]));
+    if (block_index == 0) {
+        block_ptr = &m_blocks.Front();
+    } else {
+        // Have to lock m_mutex for element
 
-    if (index == m_gpu_buffers.Size()) {
-        // number of elements to pop off end
-        uint32 resize_count = 0;
+        // Mutex::Guard guard(m_mutex);
+        // HYP_MT_CHECK_READ(m_data_race_detector);
 
-        while (m_gpu_buffers[--m_index_counter].Every([](const GPUBufferRef &ref) -> bool { return ref == nullptr; })) {
-            m_free_indices.Erase(m_index_counter);
-            ++resize_count;
+        uint32 i = 0;
+
+        for (Block &block : m_blocks) {
+            if (i == block_index) {
+                block_ptr = &block;
+
+                break;
+            }
+
+            ++i;
         }
-
-        if (resize_count != 0) {
-            HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Resize m_entity_instance_batches from {} to {}\tCurrently dynamic? {}",
-                m_entity_instance_batches.Size(),
-                m_entity_instance_batches.Size() - resize_count,
-                m_entity_instance_batches.GetArrayStorage().IsDynamic());
-
-            m_gpu_buffers.Resize(m_gpu_buffers.Size() - resize_count);
-            m_entity_instance_batches.Resize(m_entity_instance_batches.Size() - resize_count);
-            m_dirty_states.Resize(m_dirty_states.Size() - resize_count);
-        }
-
-        return;
     }
 
-    m_free_indices.PushBack(index);
+    AssertThrow(block_ptr != nullptr);
+
+    const uint32 relative_index = (index - 1) % elements_per_block;
+
+    // SafeRelease(std::move(block_ptr->gpu_buffers[relative_index]));
+    block_ptr->dirty_states[relative_index] = 0;
+    Memory::MemSet(&block_ptr->entity_instance_batches[relative_index], 0, sizeof(EntityInstanceBatch));
+
+    block_ptr->id_generator.FreeID(relative_index + 1);
+
+    block_ptr->count.Decrement(1, MemoryOrder::RELEASE);
+
+    // // See if we can remove this block from the end.
+    // // Can't remove if the block is in the middle (IDs will refer to the wrong m_blocks) or if it is the first.
+    // if (block_ptr == &m_blocks.Front()) {
+    //     return;
+    // }
+
+    // Mutex::Guard guard(m_mutex);
+    // HYP_MT_CHECK_RW(m_data_race_detector);
+
+    // while (block_ptr == &m_blocks.Back() && block_ptr != &m_blocks.Front() && IsBlockEmpty(*block_ptr)) {
+    //     // Remove the empty block from the end.
+    //     m_blocks.PopBack();
+
+    //     block_ptr = &m_blocks.Back();
+    // }
 }
 
-void EntityInstanceBatchManager::MarkDirty(uint32 index)
+void EntityInstanceBatchList::MarkDirty(uint32 index)
 {
     HYP_SCOPE;
 
@@ -131,45 +219,162 @@ void EntityInstanceBatchManager::MarkDirty(uint32 index)
         return;
     }
 
-    // TEMP: @TODO: use lock-free linked list with blocks for these.
-    // use atomic var for allocated size.
+    const uint32 block_index = (index - 1) / elements_per_block;
+
+    if (block_index == 0) {
+        m_blocks.Front().dirty_states[(index - 1) % elements_per_block] = 0xFF;
+
+        return;
+    }
+
     Mutex::Guard guard(m_mutex);
 
-    AssertThrow(index - 1 < AllocatedSize());
+    HYP_MT_CHECK_RW(m_data_race_detector);
 
-    m_dirty_states[index - 1] = uint8(-1);
+    uint32 i = 0;
+
+    for (Block &block : m_blocks) {
+        if (i == block_index) {
+            block.dirty_states[(index - 1) % elements_per_block] = 0xFF;
+
+            return;
+        }
+
+        ++i;
+    }
+
+    HYP_FAIL("Element out of bounds: %u", index);
 }
 
-void EntityInstanceBatchManager::UpdateBuffers(renderer::Device *device, uint32 frame_index)
+void EntityInstanceBatchList::UpdateBuffers(renderer::Device *device, uint32 frame_index)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const SizeType allocated_size = AllocatedSize();
+    HYP_MT_CHECK_RW(m_data_race_detector);
 
-    for (SizeType i = 0; i < allocated_size; i++) {
-        if (m_dirty_states[i] & (1u << frame_index)) {
-            const GPUBufferRef &buffer = m_gpu_buffers[i][frame_index];
-            AssertThrow(buffer.IsValid());
+    uint32 num_empty_blocks_at_end = 0;
+    uint32 block_index = 0;
 
-            if (!buffer->IsCreated()) {
-                HYPERION_ASSERT_RESULT(buffer->Create(
-                    device,
-                    sizeof(EntityInstanceBatch)
-                ));
+    Array<Pair<uint32, Span<EntityInstanceBatch>>> spans;
+
+    for (Block &block : m_blocks) {
+        if (block.count.Get(MemoryOrder::ACQUIRE) == 0) {
+            ++num_empty_blocks_at_end;
+            ++block_index;
+
+            continue;
+        } else {
+            num_empty_blocks_at_end = 0;
+        }
+
+        Span<EntityInstanceBatch> current_span;
+
+        for (uint32 i = 0; i < elements_per_block; i++) {
+            if (!(block.dirty_states[i] & (1u << frame_index))) {
+                continue;
             }
+
+            if (!current_span.first) {
+                current_span.first = &block.entity_instance_batches[i];
+            }
+
+            current_span.last = &block.entity_instance_batches[i] + 1;
+
+            block.dirty_states[i] &= ~(1u << frame_index);
+        }
+
+        if (current_span) {
+            spans.EmplaceBack(((current_span.first - &block.entity_instance_batches[0]) + block_index) * elements_per_block, current_span);
+        }
+
+        ++block_index;
+    }
+
+    // remove empty m_blocks found while iterating
+    while (num_empty_blocks_at_end != 0) {
+        if (m_blocks.Size() == 1) {
+            // Don't remove the first block
+            break;
+        }
+
+        m_blocks.PopBack();
+
+        --num_empty_blocks_at_end;
+    }
+
+    const SizeType new_buffer_size = m_blocks.Size() * elements_per_block;
+
+    const GPUBufferRef &buffer = m_gpu_buffers[frame_index];
+    AssertThrow(buffer.IsValid());
+
+    bool size_changed = false;
+
+    HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(
+        g_engine->GetGPUDevice(),
+        new_buffer_size,
+        &size_changed
+    ));
+
+    if (size_changed) {
+        // Copy all EntityInstanceBatch data if size has changed
+        uint32 block_index = 0;
+
+        for (Block &block : m_blocks) {
+            buffer->Copy(
+                device,
+                block_index * elements_per_block * sizeof(EntityInstanceBatch),
+                elements_per_block * sizeof(EntityInstanceBatch),
+                block.entity_instance_batches.Data()
+            );
+
+            ++block_index;
+        }
+    } else if (spans.Any()) {
+        AssertThrow(buffer->IsCreated());
+
+        for (const Pair<uint32, Span<EntityInstanceBatch>> &it : spans) {
+            const uint32 offset = it.first;
+            const Span<EntityInstanceBatch> &span = it.second;
+
+            const SizeType size = span.Size();
 
             buffer->Copy(
                 device,
-                0,
-                sizeof(EntityInstanceBatch),
-                &m_entity_instance_batches[i]
+                offset * sizeof(EntityInstanceBatch),
+                size * sizeof(EntityInstanceBatch),
+                span.Data()
             );
-
-            m_dirty_states[i] &= ~(1u << frame_index);
         }
     }
+
+    // const SizeType allocated_size = AllocatedSize();
+
+    // for (SizeType i = 0; i < allocated_size; i++) {
+    //     if (m_dirty_states[i] & (1u << frame_index)) {
+    //         const GPUBufferRef &buffer = m_gpu_buffers[i][frame_index];
+    //         AssertThrow(buffer.IsValid());
+
+    //         if (!buffer->IsCreated()) {
+    //             HYPERION_ASSERT_RESULT(buffer->Create(
+    //                 device,
+    //                 sizeof(EntityInstanceBatch)
+    //             ));
+    //         }
+
+    //         buffer->Copy(
+    //             device,
+    //             0,
+    //             sizeof(EntityInstanceBatch),
+    //             &m_entity_instance_batches[i]
+    //         );
+
+    //         m_dirty_states[i] &= ~(1u << frame_index);
+    //     }
+    // }
 }
+
+#pragma endregion EntityInstanceBatchList
 
 } // namespace hyperion

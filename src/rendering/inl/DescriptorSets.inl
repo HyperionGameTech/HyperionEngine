@@ -71,7 +71,7 @@ HYP_DESCRIPTOR_SET(2, Object);
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
 HYP_DESCRIPTOR_SSBO(Object, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
-HYP_DESCRIPTOR_SSBO(Object, EntityInstanceBatchBuffer, 1, sizeof(EntityInstanceBatch), false);
+HYP_DESCRIPTOR_SSBO(Object, EntityInstanceBatchesBuffer, 1, sizeof(EntityInstanceBatch), true);
 
 HYP_DESCRIPTOR_SET(3, Material);
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, renderer::RenderConfig::IsBindlessSupported());

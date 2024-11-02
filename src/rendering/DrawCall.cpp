@@ -17,7 +17,7 @@ static uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 c
     AssertThrow(draw_call.batch_index < max_entity_instance_batches);
 
     // EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
-    EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batch_manager.GetEntityInstanceBatch(draw_call.batch_index);
+    EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.GetEntityInstanceBatch(draw_call.batch_index);
 
     // if count is greater than one, use an instance transforms buffer
     batch.use_transforms_buffer |= count > 1;
@@ -32,7 +32,7 @@ static uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 c
         }
 
         // g_engine->GetRenderData()->entity_instance_batches.MarkDirty(draw_call.batch_index);
-        g_engine->GetRenderData()->entity_instance_batch_manager.MarkDirty(draw_call.batch_index);
+        g_engine->GetRenderData()->entity_instance_batches.MarkDirty(draw_call.batch_index);
     }
 
     return count;
@@ -78,7 +78,7 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
             // check if we need to allocate new batch (if it has not been provided as first argument)
             if (batch_index == 0) {
                 // batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireTicket();
-                batch_index = g_engine->GetRenderData()->entity_instance_batch_manager.AcquireIndex();
+                batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireIndex();
             }
 
             draw_call = &draw_calls.EmplaceBack();
@@ -101,7 +101,7 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
     if (batch_index != 0) {
         // ticket has not been used at this point (always gets set to 0 after used) - need to release it
         // g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(batch_index);
-        g_engine->GetRenderData()->entity_instance_batch_manager.ReleaseIndex(batch_index);
+        g_engine->GetRenderData()->entity_instance_batches.ReleaseIndex(batch_index);
     }
 }
 
@@ -139,7 +139,7 @@ void DrawCallCollection::ResetDrawCalls()
             // Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
 
             // g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(draw_call.batch_index);
-            g_engine->GetRenderData()->entity_instance_batch_manager.ReleaseIndex(draw_call.batch_index);
+            g_engine->GetRenderData()->entity_instance_batches.ReleaseIndex(draw_call.batch_index);
         }
     }
 

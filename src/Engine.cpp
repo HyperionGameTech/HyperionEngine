@@ -317,8 +317,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         // Object
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials.GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), m_render_data->skeletons.GetBuffer(frame_index));
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchesBuffer"), m_render_data->entity_instance_batches.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(EntityInstanceBatch), true));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchesBuffer"), m_render_data->entity_instance_batches.GetGPUBuffer(frame_index));
+        // m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchesBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(EntityInstanceBatch), true));
 
         // Material
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
@@ -571,7 +571,7 @@ void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
     m_render_data->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     m_render_data->env_grids.UpdateBuffer(m_instance->GetDevice(), frame_index);
     // m_render_data->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    m_render_data->entity_instance_batch_manager.UpdateBuffers(m_instance->GetDevice(), frame_index);
+    m_render_data->entity_instance_batches.UpdateBuffers(m_instance->GetDevice(), frame_index);
 }
 
 void Engine::RenderDeferred(Frame *frame)

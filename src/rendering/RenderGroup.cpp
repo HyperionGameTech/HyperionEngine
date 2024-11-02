@@ -400,7 +400,7 @@ void RenderGroup::CollectDrawCalls(const FlatMap<ID<Entity>, RenderProxy> &rende
 
                 // g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
 
-                g_engine->GetRenderData()->entity_instance_batch_manager.ReleaseIndex(batch_index);
+                g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
             }
 
             draw_call->batch_index = 0;
@@ -511,7 +511,7 @@ static HYP_FORCE_INLINE void RenderAll(
     
     for (const DrawCall &draw_call : draw_state.draw_calls) {
         // const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
-        const EntityInstanceBatch &entity_instance_batch = g_engine->GetRenderData()->entity_instance_batch_manager.GetEntityInstanceBatch(draw_call.batch_index);
+        const EntityInstanceBatch &entity_instance_batch = g_engine->GetRenderData()->entity_instance_batches.GetEntityInstanceBatch(draw_call.batch_index);
 
         // @TODO: for num_instances on meshcomponent / renderproxy: Possibly we could have a flag on `EntityInstanceBatch` that determines whether or not we should
         // bind an additional buffer of transforms similar to the material descriptor set...
@@ -545,15 +545,15 @@ static HYP_FORCE_INLINE void RenderAll(
         }
 
         if (entity_descriptor_set.IsValid()) {
-            const GPUBufferRef &entity_instance_batch_buffer = g_engine->GetRenderData()->entity_instance_batch_manager.GetGPUBuffer(draw_call.batch_index, frame_index);
-            AssertThrow(entity_instance_batch_buffer.IsValid());
+            // const GPUBufferRef &entity_instance_batch_buffer = g_engine->GetRenderData()->entity_instance_batches.GetGPUBuffer(draw_call.batch_index, frame_index);
+            // AssertThrow(entity_instance_batch_buffer.IsValid());
 
-            entity_descriptor_set->SetElement(NAME("EntityInstanceBatchBuffer"), entity_instance_batch_buffer);
-            entity_descriptor_set->PushUpdates(
-                frame->GetCommandBuffer(),
-                pipeline,
-                Span<Name> { { NAME("EntityInstanceBatchBuffer") } }
-            );
+            // entity_descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), entity_instance_batch_buffer);
+            // entity_descriptor_set->PushUpdates(
+            //     frame->GetCommandBuffer(),
+            //     pipeline,
+            //     Span<Name> { { NAME("EntityInstanceBatchesBuffer") } }
+            // );
 
             // @TODO:: use push descriptors to dynamically update the buffer that we are using for each invocation
             if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
@@ -562,8 +562,8 @@ static HYP_FORCE_INLINE void RenderAll(
                     pipeline,
                     {
                         { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
-                        // { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
                     },
                     entity_descriptor_set_index
                 );
@@ -572,8 +572,8 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
-                        // { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
                     },
                     entity_descriptor_set_index
                 );
@@ -709,17 +709,17 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
                     for (const DrawCall &draw_call : draw_calls) {
                         // const EntityInstanceBatch &entity_batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
-                        const EntityInstanceBatch &entity_instance_batch = g_engine->GetRenderData()->entity_instance_batch_manager.GetEntityInstanceBatch(draw_call.batch_index);
+                        const EntityInstanceBatch &entity_instance_batch = g_engine->GetRenderData()->entity_instance_batches.GetEntityInstanceBatch(draw_call.batch_index);
 
-                        const GPUBufferRef &entity_instance_batch_buffer = g_engine->GetRenderData()->entity_instance_batch_manager.GetGPUBuffer(draw_call.batch_index, frame_index);
-                        AssertThrow(entity_instance_batch_buffer.IsValid());
+                        // const GPUBufferRef &entity_instance_batch_buffer = g_engine->GetRenderData()->entity_instance_batches.GetGPUBuffer(draw_call.batch_index, frame_index);
+                        // AssertThrow(entity_instance_batch_buffer.IsValid());
 
-                        entity_descriptor_set->SetElement(NAME("EntityInstanceBatchBuffer"), entity_instance_batch_buffer);
-                        entity_descriptor_set->PushUpdates(
-                            command_buffer,
-                            pipeline,
-                            Span<Name> { { NAME("EntityInstanceBatchBuffer") } }
-                        );
+                        // entity_descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), entity_instance_batch_buffer);
+                        // entity_descriptor_set->PushUpdates(
+                        //     command_buffer,
+                        //     pipeline,
+                        //     Span<Name> { { NAME("EntityInstanceBatchesBuffer") } }
+                        // );
                         
                         if (entity_descriptor_set.IsValid()) {
                             if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
@@ -728,8 +728,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     pipeline,
                                     {
                                         { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
-                                        // { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
                                     },
                                     entity_descriptor_set_index
                                 );
@@ -738,8 +738,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     command_buffer,
                                     pipeline,
                                     {
-                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
-                                        // { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
+                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) },
+                                        { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * sizeof(EntityInstanceBatch)) }
                                     },
                                     entity_descriptor_set_index
                                 );

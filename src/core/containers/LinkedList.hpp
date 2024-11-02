@@ -200,11 +200,11 @@ public:
     /*! \brief Push an item to the front of the container. */
     void PushFront(ValueType &&value);
 
-    /*! \brief Pop an item from the back of the linked list. The popped item is returned. */
-    ValueType PopBack();
+    /*! \brief Pop an item from the back of the linked list. */
+    void PopBack();
 
-    /*! \brief Pop an item from the front of the linked list. The popped item is returned. */
-    ValueType PopFront();
+    /*! \brief Pop an item from the front of the linked list. */
+    void PopFront();
 
     /*! \brief Erase an element by iterator.
      *  \returns An iterator to the next element after the erased element. */
@@ -421,13 +421,11 @@ void LinkedList<T>::PushFront(ValueType &&value)
 }
 
 template <class T>
-auto LinkedList<T>::PopBack() -> ValueType
+void LinkedList<T>::PopBack()
 {
     AssertThrow(m_size != 0);
 
     Node *prev = m_tail->previous;
-
-    ValueType value = std::move(m_tail->value.Get());
 
     m_tail->value.Destruct();
     delete m_tail;
@@ -441,18 +439,14 @@ auto LinkedList<T>::PopBack() -> ValueType
     if (!--m_size) {
         m_head = nullptr;
     }
-
-    return value;
 }
 
 template <class T>
-auto LinkedList<T>::PopFront() -> ValueType
+void LinkedList<T>::PopFront()
 {
     AssertThrow(m_size != 0);
 
     Node *next = m_head->next;
-
-    ValueType value = std::move(m_head->value.Get());
 
     m_head->value.Destruct();
     delete m_head;
@@ -466,8 +460,6 @@ auto LinkedList<T>::PopFront() -> ValueType
     if (!--m_size) {
         m_tail = nullptr;
     }
-
-    return value;
 }
 
 template <class T>

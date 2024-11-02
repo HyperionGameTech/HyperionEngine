@@ -866,8 +866,8 @@ public:
     }
 
 private:
-    DescriptorTableDeclaration                                              m_decl;
-    FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight>    m_sets;
+    DescriptorTableDeclaration                                          m_decl;
+    FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight> m_sets;
 };
 
 } // namespace platform
