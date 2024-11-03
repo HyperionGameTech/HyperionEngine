@@ -16,6 +16,8 @@ namespace Hyperion
     public struct HypClass
     {
         public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
+        private static readonly Dictionary<string, HypClass> hypClassCache = new Dictionary<string, HypClass>();
+        private static readonly object hypClassCacheLock = new object();
 
         private IntPtr ptr;
 
@@ -299,14 +301,27 @@ namespace Hyperion
 
         public static HypClass? GetClass(string name)
         {
-            IntPtr ptr = HypClass_GetClassByName(name);
+            HypClass? hypClass = null;
 
-            if (ptr == IntPtr.Zero)
+            lock (hypClassCacheLock)
             {
-                return null;
+                if (hypClassCache.TryGetValue(name, out HypClass foundHypClass))
+                {
+                    hypClass = foundHypClass;
+                }
+                else
+                {
+                    IntPtr ptr = HypClass_GetClassByName(name);
+
+                    if (ptr != IntPtr.Zero)
+                    {
+                        hypClass = new HypClass(ptr);
+                        hypClassCache[name] = hypClass.Value;
+                    }
+                }
             }
 
-            return new HypClass(ptr);
+            return hypClass;
         }
 
         public static HypClass GetClass<T>()

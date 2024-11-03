@@ -180,14 +180,19 @@ namespace Hyperion
 
             if (methodPtr == IntPtr.Zero)
             {
-                string methodsString = "";
+                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + HypClass.Name + "\"");
+            }
 
-                foreach (HypMethod method in HypClass.Methods)
-                {
-                    methodsString += method.Name + ", ";
-                }
+            return new HypMethod(methodPtr);
+        }
 
-                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + HypClass.Name + "\". Available methods: " + methodsString);
+        public static HypMethod GetMethod(HypClass hypClass, Name name)
+        {
+            IntPtr methodPtr = HypObject_GetMethod(hypClass.Address, ref name);
+
+            if (methodPtr == IntPtr.Zero)
+            {
+                throw new Exception("Failed to get method \"" + name + "\" from HypClass \"" + hypClass.Name + "\"");
             }
 
             return new HypMethod(methodPtr);

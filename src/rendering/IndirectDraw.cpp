@@ -412,8 +412,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);
 
-    const uint num_instances = m_indirect_draw_state.GetInstances().Size();
-    const uint num_batches = (num_instances / IndirectDrawState::batch_size) + 1;
+    const SizeType num_instances = m_indirect_draw_state.GetInstances().Size();
+    const uint32 num_batches = (uint32(num_instances) / IndirectDrawState::batch_size) + 1;
 
     if (num_instances == 0) {
         return;

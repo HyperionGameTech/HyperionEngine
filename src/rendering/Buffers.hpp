@@ -49,16 +49,17 @@ enum EnvGridType : uint32
     ENV_GRID_TYPE_MAX
 };
 
-struct alignas(256) EntityInstanceBatch
+struct alignas(16) EntityInstanceBatch
 {
-    uint32 num_entities;
-    uint32 _pad0;
-    uint32 _pad1;
-    uint32 _pad2;
-    uint32 indices[max_entities_per_instance_batch];
+    uint32  num_entities;
+    uint32  _pad0;
+    uint32  _pad1;
+    uint32  _pad2;
+    uint32  indices[max_entities_per_instance_batch];
+    Matrix4 transforms[max_entities_per_instance_batch];
 };
 
-static_assert(sizeof(EntityInstanceBatch) == 256);
+static_assert(sizeof(EntityInstanceBatch) == 4096);
 
 struct alignas(16) ParticleShaderData
 {

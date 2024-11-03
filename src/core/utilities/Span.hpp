@@ -244,7 +244,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
     HYP_FORCE_INLINE constexpr const Type *Data() const
         { return first; }
 
-    HYP_FORCE_INLINE Span Slice(SizeType offset, SizeType count) const
+    HYP_FORCE_INLINE Span Slice(SizeType offset, SizeType count = SizeType(-1)) const
     {
         if (offset >= Size()) {
             return Span();

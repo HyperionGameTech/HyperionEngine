@@ -30,6 +30,26 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
+HYP_STRUCT(Size=32)
+struct MeshInstanceData
+{
+    HYP_FIELD(Property="Transforms", Serialize=true, Editor=true)
+    Array<Matrix4, 0>   transforms;
+
+    HYP_FORCE_INLINE bool operator==(const MeshInstanceData &other) const
+        { return transforms == other.transforms; }
+
+    HYP_FORCE_INLINE bool operator!=(const MeshInstanceData &other) const
+        { return transforms != other.transforms; }
+
+    HYP_METHOD(Property="NumInstances", Editor=true)
+    uint32 NumInstances() const
+        { return transforms.Size(); }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+        { return transforms.GetHashCode(); }
+};
+
 HYP_CLASS()
 class HYP_API Mesh final : public BasicObject<Mesh>
 {
