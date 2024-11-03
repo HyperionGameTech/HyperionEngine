@@ -34,7 +34,10 @@ struct RenderProxy
     Matrix4             previous_model_matrix;
     BoundingBox         aabb;
     UserData<32, 16>    user_data;
-    uint32              num_instances;
+    MeshInstanceData    instance_data;
+
+    HYP_FORCE_INLINE uint32 NumInstances() const
+        { return MathUtil::Max(instance_data.NumInstances(), 1); }
     
     HYP_FORCE_INLINE bool operator==(const RenderProxy &other) const
     {
@@ -46,7 +49,7 @@ struct RenderProxy
             && previous_model_matrix == other.previous_model_matrix
             && aabb == other.aabb
             && user_data == other.user_data
-            && num_instances == other.num_instances;
+            && instance_data == other.instance_data;
     }
     
     HYP_FORCE_INLINE bool operator!=(const RenderProxy &other) const
@@ -59,7 +62,7 @@ struct RenderProxy
             || previous_model_matrix != other.previous_model_matrix
             || aabb != other.aabb
             || user_data != other.user_data
-            || num_instances != other.num_instances;
+            || instance_data != other.instance_data;
     }
 
     void ClaimRenderResources() const;

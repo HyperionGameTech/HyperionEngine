@@ -9,27 +9,35 @@
 
 namespace hyperion {
 
-/*! \brief Push \ref{count} instances of the given entity into an entity instance batch.
+/*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
  *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
  *  Otherwise, zero will be returned. */
-static uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 count)
+static uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 num_instances, Span<const Matrix4> instance_transform_data)
 {
+    AssertThrow(instance_transform_data.Size() <= num_instances);
+
     AssertThrow(draw_call.batch_index < max_entity_instance_batches);
 
     EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
 
     if (batch.num_entities < max_entities_per_instance_batch) {
-        while (batch.num_entities + count < max_entities_per_instance_batch && count != 0) {
-            batch.indices[batch.num_entities++] = uint32(entity.ToIndex());
+        uint32 instance_index = 0;
+
+        while (batch.num_entities + num_instances < max_entities_per_instance_batch && num_instances != 0) {
+            const uint32 entity_index = batch.num_entities++;
+
+            batch.indices[entity_index] = uint32(entity.ToIndex());
+            batch.transforms[entity_index] = instance_transform_data[instance_index++];
+
             draw_call.entity_ids[draw_call.entity_id_count++] = entity;
 
-            --count;
+            --num_instances;
         }
 
         g_engine->GetRenderData()->entity_instance_batches.MarkDirty(draw_call.batch_index);
     }
 
-    return count;
+    return num_instances;
 }
 
 DrawCallCollection::DrawCallCollection(DrawCallCollection &&other) noexcept
@@ -56,8 +64,10 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
     const uint32 initial_index_map_size = index_map_it->second.Size();
     
     uint32 index_map_index = 0;
+    uint32 instance_transforms_offset = 0;
+    uint32 num_instances = render_proxy.NumInstances();
 
-    for (uint32 num_instances = render_proxy.num_instances; num_instances != 0;) {
+    while (num_instances != 0) {
         DrawCall *draw_call;
 
         if (index_map_index < initial_index_map_size) {
@@ -88,7 +98,18 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
             batch_index = 0;
         }
 
-        num_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), num_instances);
+        Span<const Matrix4> instance_transforms;
+
+        if (render_proxy.instance_data.transforms.Any()) {
+            instance_transforms = render_proxy.instance_data.transforms.ToSpan().Slice(instance_transforms_offset);
+        } else {
+            instance_transforms = { &Matrix4::identity, 1 };
+        }
+
+        const uint32 remaining_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), num_instances, instance_transforms);
+
+        instance_transforms_offset += num_instances - remaining_instances;
+        num_instances = remaining_instances;
     }
 
     if (batch_index != 0) {
