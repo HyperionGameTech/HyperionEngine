@@ -54,9 +54,11 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
     }
 
     if (iter != m_proxies.End()) {
-        if (proxy != iter->second) {
-            // Sanity check - must not contain duplicates or it will mess up
-            // RemoveRenderProxy() call
+        // if (proxy != iter->second) {
+
+        // Advance if version has changed
+        if (proxy.version != iter->second.version) {
+            // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
             AssertThrow(!m_changed_proxies.Contains(entity));
 
             // Mark as changed if it is found in the previous iteration

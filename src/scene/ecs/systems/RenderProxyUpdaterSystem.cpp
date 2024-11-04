@@ -78,7 +78,8 @@ void RenderProxyUpdaterSystem::OnEntityAdded(ID<Entity> entity)
             Matrix4::Identity(),
             BoundingBox::Empty(),
             mesh_component.user_data,
-            mesh_component.instance_data
+            mesh_component.instance_data,
+            /* version */ 0
         });
     }
 
@@ -107,6 +108,10 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
         const ID<Material> material_id = mesh_component.material.GetID();
         const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
 
+        const uint32 render_proxy_version = mesh_component.proxy != nullptr
+            ? mesh_component.proxy->version + 1
+            : 0;
+
         // Update MeshComponent's proxy
         *mesh_component.proxy = RenderProxy {
             Handle<Entity>(entity),
@@ -117,7 +122,8 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
             mesh_component.previous_model_matrix,
             bounding_box_component.world_aabb,
             mesh_component.user_data,
-            mesh_component.instance_data
+            mesh_component.instance_data,
+            render_proxy_version
         };
 
         render_proxies.PushBack(mesh_component.proxy);

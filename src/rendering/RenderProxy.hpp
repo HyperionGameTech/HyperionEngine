@@ -35,35 +35,10 @@ struct RenderProxy
     BoundingBox         aabb;
     UserData<32, 16>    user_data;
     MeshInstanceData    instance_data;
+    uint32              version = 0;
 
     HYP_FORCE_INLINE uint32 NumInstances() const
         { return MathUtil::Max(instance_data.NumInstances(), 1); }
-    
-    HYP_FORCE_INLINE bool operator==(const RenderProxy &other) const
-    {
-        return entity == other.entity
-            && mesh == other.mesh
-            && material == other.material
-            && skeleton == other.skeleton
-            && model_matrix == other.model_matrix
-            && previous_model_matrix == other.previous_model_matrix
-            && aabb == other.aabb
-            && user_data == other.user_data
-            && instance_data == other.instance_data;
-    }
-    
-    HYP_FORCE_INLINE bool operator!=(const RenderProxy &other) const
-    {
-        return entity != other.entity
-            || mesh != other.mesh
-            || material != other.material
-            || skeleton != other.skeleton
-            || model_matrix != other.model_matrix
-            || previous_model_matrix != other.previous_model_matrix
-            || aabb != other.aabb
-            || user_data != other.user_data
-            || instance_data != other.instance_data;
-    }
 
     void ClaimRenderResources() const;
     void UnclaimRenderResources() const;
