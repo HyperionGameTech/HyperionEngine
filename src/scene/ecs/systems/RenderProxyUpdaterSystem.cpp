@@ -58,7 +58,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-void RenderProxyUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -70,7 +70,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(ID<Entity> entity)
 
     if (!mesh_component.proxy) {
         mesh_component.proxy.Emplace(RenderProxy {
-            Handle<Entity>(entity),
+            entity,
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,

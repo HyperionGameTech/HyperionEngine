@@ -181,7 +181,7 @@ struct HypMethod : public IHypMember
     Proc<fbom::FBOMData, Span<HypData>>                 serialize_proc;
     Proc<void, Span<HypData>, const fbom::FBOMData &>   deserialize_proc;
 
-    HypMethod(Span<HypClassAttribute> attributes = {})
+    HypMethod(Span<const HypClassAttribute> attributes = {})
         : name(Name::Invalid()),
           return_type_id(TypeID::Void()),
           target_type_id(TypeID::Void()),
@@ -191,7 +191,7 @@ struct HypMethod : public IHypMember
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
-    HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...), Span<HypClassAttribute> attributes = {})
+    HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
         : name(name),
           flags(HypMethodFlags::MEMBER),
           attributes(attributes),
@@ -270,7 +270,7 @@ struct HypMethod : public IHypMember
     }
     
     template <class ReturnType, class TargetType, class... ArgTypes>
-    HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...) const, Span<HypClassAttribute> attributes = {})
+    HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...) const, Span<const HypClassAttribute> attributes = {})
         : name(name),
           flags(HypMethodFlags::MEMBER),
           attributes(attributes),

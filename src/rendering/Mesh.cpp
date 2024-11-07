@@ -11,6 +11,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 #include <unordered_map>
@@ -298,11 +300,14 @@ void Mesh::Init()
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    if (!m_streamed_mesh_data) {
-        m_streamed_mesh_data.Emplace();
-    }
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-    { // upload mesh data
+        if (!m_streamed_mesh_data) {
+            m_streamed_mesh_data.Emplace();
+        }
+
+        // upload mesh data
         auto ref = m_streamed_mesh_data->AcquireRef();
         const MeshData &mesh_data = ref->GetMeshData();
 
@@ -315,9 +320,9 @@ void Mesh::Init()
             m_vbo,
             m_ibo
         );
+        
+        m_streamed_mesh_data->Unpage();
     }
-    
-    m_streamed_mesh_data->Unpage();
 
     SetReady(true);
 }
@@ -342,9 +347,18 @@ void Mesh::SetVertices(Array<Vertex> vertices, Array<uint32> indices)
     }));
 }
 
+const RC<StreamedMeshData> &Mesh::GetStreamedMeshData() const
+{
+    HYP_SCOPE;
+    HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
+
+    return m_streamed_mesh_data;
+}
+
 void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
 {
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
     m_streamed_mesh_data = std::move(streamed_mesh_data);
 
@@ -381,11 +395,15 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
     }
 }
 
-void Mesh::SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data)
+void Mesh::SetStreamedMeshData_ThreadSafe(RC<StreamedMeshData> streamed_mesh_data)
 {
+    HYP_SCOPE;
+
+    AssertIsInitCalled();
+
     PUSH_RENDER_COMMAND(
         SetStreamedMeshData,
-        std::move(mesh),
+        HandleFromThis(),
         std::move(streamed_mesh_data)
     );
 }
@@ -491,6 +509,9 @@ void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 
 Array<PackedVertex> Mesh::BuildPackedVertices() const
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
+
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
 
@@ -517,6 +538,9 @@ Array<PackedVertex> Mesh::BuildPackedVertices() const
 
 Array<uint32> Mesh::BuildPackedIndices() const
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
+
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
 
@@ -527,6 +551,9 @@ Array<uint32> Mesh::BuildPackedIndices() const
 
 void Mesh::CalculateNormals(bool weighted)
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
+
     if (!m_streamed_mesh_data) {
         HYP_LOG(Mesh, LogLevel::WARNING, "Cannot calculate normals before mesh data is set!");
 
@@ -672,6 +699,9 @@ void Mesh::CalculateNormals(bool weighted)
 
 void Mesh::CalculateTangents()
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
+
     if (!m_streamed_mesh_data) {
         HYP_LOG(Mesh, LogLevel::WARNING, "Cannot calculate normals before mesh data is set!");
 
@@ -753,6 +783,9 @@ void Mesh::CalculateTangents()
 
 void Mesh::InvertNormals()
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
+
     if (!m_streamed_mesh_data) {
         HYP_LOG(Mesh, LogLevel::WARNING, "Cannot invert normals before mesh data is set!");
 
@@ -771,6 +804,9 @@ void Mesh::InvertNormals()
 
 void Mesh::CalculateAABB()
 {
+    HYP_SCOPE;
+    HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
+
     if (!m_streamed_mesh_data) {
         HYP_LOG(Mesh, LogLevel::WARNING, "Cannot calculate Mesh bounds before mesh data is set!");
 

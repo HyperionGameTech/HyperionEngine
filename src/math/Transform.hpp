@@ -16,16 +16,16 @@ struct HYP_API Transform
 {
     static const Transform identity;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Translation", Serialize=true)
     Vec3f       translation;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Scale", Serialize=true)
     Vec3f       scale;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Rotation", Serialize=true)
     Quaternion  rotation;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Matrix", Serialize=true)
     Matrix4     matrix;
 
     Transform();

@@ -114,7 +114,7 @@ Scene::Scene(
     m_owner_thread_id(owner_thread_id),
     m_flags(flags),
     m_camera(std::move(camera)),
-    m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", ID<Entity>::invalid, Transform::identity, this)),
+    m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
     m_environment(MakeUnique<RenderEnvironment>(this)),
     m_world(nullptr),
     m_is_non_world_scene(flags & SceneFlags::NON_WORLD),
@@ -577,6 +577,44 @@ bool Scene::CreateTLAS()
     }
 
     m_flags |= SceneFlags::HAS_TLAS;
+
+    return true;
+}
+
+bool Scene::AddToWorld(World *world)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    AssertReady();
+
+    if (world == m_world) {
+        // World is same, just return true
+        return true;
+    }
+
+    if (m_world != nullptr) {
+        // Can't add to world, world already set
+        return false;
+    }
+
+    world->AddScene(HandleFromThis());
+
+    return true;
+}
+
+bool Scene::RemoveFromWorld()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    AssertReady();
+
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    m_world->RemoveScene(WeakHandleFromThis());
 
     return true;
 }

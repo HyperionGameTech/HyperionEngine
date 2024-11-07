@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class FBOMObject
+    public class FBOMObject : IDisposable
     {
 
         internal IntPtr ptr;
@@ -20,7 +20,21 @@ namespace Hyperion
 
         ~FBOMObject()
         {
-            FBOMObject_Destroy(this.ptr);
+            if (ptr != IntPtr.Zero)
+            {
+                FBOMObject_Destroy(ptr);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                FBOMObject_Destroy(ptr);
+                ptr = IntPtr.Zero;
+            }
+
+            GC.SuppressFinalize(this);
         }
 
         public FBOMData? this[string key]

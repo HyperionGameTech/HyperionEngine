@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    public class HypObject
+    public class HypObject : IDisposable
     {
         public IntPtr _hypClassPtr;
         public IntPtr _nativeAddress;
@@ -45,11 +45,7 @@ namespace Hyperion
                 GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
 
                 ObjectWrapper objectWrapper = new ObjectWrapper { obj = this };
-                ObjectReference objectReference = new ObjectReference
-                {
-                    guid = Guid.Empty,
-                    ptr = IntPtr.Zero
-                };
+                ObjectReference objectReference = new ObjectReference();
 
                 unsafe
                 {
@@ -61,7 +57,7 @@ namespace Hyperion
                     NativeInterop_AddObjectToCache(objectWrapperPtr, out classObjectPtr, objectReferencePtr);
 
 #if DEBUG
-                    if (objectReference.guid == Guid.Empty)
+                    if (!objectReference.IsValid)
                     {
                         throw new Exception("Failed to add object to cache");
                     }
@@ -109,6 +105,19 @@ namespace Hyperion
 
                 _hypClassPtr = IntPtr.Zero;
                 _nativeAddress = IntPtr.Zero;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (IsValid)
+            {
+                HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+
+                _hypClassPtr = IntPtr.Zero;
+                _nativeAddress = IntPtr.Zero;
+
+                GC.SuppressFinalize(this);
             }
         }
 

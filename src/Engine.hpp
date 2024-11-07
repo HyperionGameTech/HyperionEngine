@@ -168,6 +168,10 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World> &GetWorld() const
         { return m_world; }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<World> &GetDefaultWorld() const
+        { return m_world; }
     
     HYP_FORCE_INLINE HYP_DEPRECATED Configuration &GetConfig()
         { return m_configuration; }

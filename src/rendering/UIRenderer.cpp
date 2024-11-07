@@ -561,7 +561,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
         const NodeProxy &node = ui_object->GetNode();
         AssertThrow(node.IsValid());
 
-        const ID<Entity> entity = node->GetEntity();
+        const Handle<Entity> &entity = node->GetEntity();
 
         MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
         AssertThrow(mesh_component != nullptr);

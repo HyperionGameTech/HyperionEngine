@@ -51,7 +51,7 @@ UIStage::UIStage(ThreadID owner_thread_id)
 UIStage::~UIStage()
 {
     if (m_scene.IsValid()) {
-        g_engine->GetWorld()->RemoveScene(m_scene);
+        m_scene->RemoveFromWorld();
     }
 }
 
@@ -137,7 +137,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
     InitObject(new_scene);
 
     if (m_scene.IsValid()) {
-        g_engine->GetWorld()->RemoveScene(m_scene);
+        m_scene->RemoveFromWorld();
     }
     
     m_scene = std::move(new_scene);
@@ -223,8 +223,7 @@ void UIStage::Init()
         float(min_depth), float(max_depth)
     ));
 
-    g_engine->GetWorld()->AddScene(m_scene);
-    InitObject(m_scene);
+    g_engine->GetDefaultWorld()->AddScene(m_scene);
 
     m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
 

@@ -17,10 +17,10 @@ namespace hyperion {
 HYP_STRUCT()
 struct HYP_API Frustum
 {
-    HYP_FIELD()
+    HYP_FIELD(Property="Planes", Serialize=true)
     FixedArray<Vec4f, 6>    planes;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Corners", Serialize=true)
     FixedArray<Vec3f, 8>    corners;
 
     Frustum();

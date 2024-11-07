@@ -17,7 +17,6 @@ class Entity;
 
 struct EntityData
 {
-    Handle<Entity>          handle;
     TypeMap<ComponentID>    components;
 
     template <class Component>
@@ -52,60 +51,81 @@ struct EntityData
 class EntityContainer
 {
 public:
-    using Iterator          = FlatMap<ID<Entity>, EntityData>::Iterator;
-    using ConstIterator     = FlatMap<ID<Entity>, EntityData>::ConstIterator;
+    using Iterator = FlatMap<WeakHandle<Entity>, EntityData>::Iterator;
+    using ConstIterator = FlatMap<WeakHandle<Entity>, EntityData>::ConstIterator;
 
-    using KeyValuePairType  = FlatMap<ID<Entity>, EntityData>::KeyValuePairType;
+    using KeyValuePairType = FlatMap<WeakHandle<Entity>, EntityData>::KeyValuePairType;
 
-    HYP_FORCE_INLINE ID<Entity> AddEntity(Handle<Entity> handle)
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
-
-        const ID<Entity> id = handle.GetID();
 
         EntityData data;
-        data.handle = std::move(handle);
 
-        const auto insert_result = m_entities.Insert(id, std::move(data));
-
-        return insert_result.first->first;
-    }
-
-    HYP_FORCE_INLINE ID<Entity> AddEntity(ID<Entity> id, EntityData data)
-    {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        const auto insert_result = m_entities.Insert(id, std::move(data));
-
-        return insert_result.first->first;
+        auto it = m_entities.Insert(handle, {});
+        AssertThrow(it.second);
     }
 
     HYP_FORCE_INLINE EntityData &GetEntityData(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        return m_entities.At(id);
+        auto it = m_entities.FindAs(id);
+        AssertThrow(it != m_entities.End());
+
+        return it->second;
     }
 
     HYP_FORCE_INLINE const EntityData &GetEntityData(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        return m_entities.At(id);
+        auto it = m_entities.FindAs(id);
+        AssertThrow(it != m_entities.End());
+
+        return it->second;
+    }
+
+    HYP_FORCE_INLINE Iterator Find(const Handle<Entity> &entity)
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_entities.FindAs(entity);
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(const Handle<Entity> &entity) const
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_entities.FindAs(entity);
+    }
+
+    HYP_FORCE_INLINE Iterator Find(const WeakHandle<Entity> &entity)
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_entities.Find(entity);
+    }
+
+    HYP_FORCE_INLINE ConstIterator Find(const WeakHandle<Entity> &entity) const
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        return m_entities.Find(entity);
     }
 
     HYP_FORCE_INLINE Iterator Find(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        return m_entities.Find(id);
+        return m_entities.FindAs(id);
     }
 
     HYP_FORCE_INLINE ConstIterator Find(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        return m_entities.Find(id);
+        return m_entities.FindAs(id);
     }
 
     HYP_FORCE_INLINE void Erase(Iterator it)
@@ -128,8 +148,8 @@ public:
     )
 
 private:
-    FlatMap<ID<Entity>, EntityData> m_entities;
-    DataRaceDetector                m_data_race_detector;
+    FlatMap<WeakHandle<Entity>, EntityData> m_entities;
+    DataRaceDetector                        m_data_race_detector;
 };
 
 } // namespace hyperion

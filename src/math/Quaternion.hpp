@@ -15,11 +15,6 @@ class Matrix4;
 HYP_STRUCT()
 struct alignas(16) HYP_API Quaternion
 {
-    HYP_PROPERTY(X, &Quaternion::x)
-    HYP_PROPERTY(Y, &Quaternion::y)
-    HYP_PROPERTY(Z, &Quaternion::z)
-    HYP_PROPERTY(W, &Quaternion::w)
-
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
 
     HYP_FIELD()

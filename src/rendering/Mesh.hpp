@@ -9,6 +9,8 @@
 
 #include <core/containers/Array.hpp>
 
+#include <core/threading/DataRaceDetector.hpp>
+
 #include <math/BoundingBox.hpp>
 #include <math/Vertex.hpp>
 
@@ -55,7 +57,7 @@ class HYP_API Mesh final : public BasicObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
 
-    HYP_PROPERTY(ID, &Mesh::GetID)
+    HYP_PROPERTY(ID, &Mesh::GetID, { { "serialize", false } });
     
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
@@ -119,22 +121,19 @@ public:
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_indices_count; }
 
-    HYP_METHOD(Property="StreamedMeshData", Serialize=true)
-    HYP_FORCE_INLINE const RC<StreamedMeshData> &GetStreamedMeshData() const
-        { return m_streamed_mesh_data; }
+    HYP_METHOD(Property="StreamedMeshData")
+    const RC<StreamedMeshData> &GetStreamedMeshData() const;
 
-    /*! \brief Set the mesh data for the Mesh. Only usable on the Render thread. If needed
-        from another thread, use the static version of this function. */
-    HYP_METHOD(Property="StreamedMeshData", Serialize=true)
+    HYP_METHOD(Property="StreamedMeshData")
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
 
-    static void SetStreamedMeshData_ThreadSafe(Handle<Mesh> mesh, RC<StreamedMeshData> streamed_mesh_data);
+    void SetStreamedMeshData_ThreadSafe(RC<StreamedMeshData> streamed_mesh_data);
 
-    HYP_METHOD(Property="VertexAttributes", Serialize=true)
+    HYP_METHOD(Property="VertexAttributes")
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
-    HYP_METHOD(Property="VertexAttributes", Serialize=true)
+    HYP_METHOD(Property="VertexAttributes")
     HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet &attributes)
         { m_mesh_attributes.vertex_attributes = attributes; }
 
@@ -199,6 +198,8 @@ private:
     RC<StreamedMeshData>    m_streamed_mesh_data;
 
     mutable BoundingBox     m_aabb;
+
+    DataRaceDetector        m_data_race_detector;
 };
 
 } // namespace hyperion

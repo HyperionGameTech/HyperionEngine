@@ -18,7 +18,7 @@ ${start_macro_names[hyp_class.class_type]}(${hyp_class.name}${(f", NAME(\"{hyp_c
     <% s = "" %> \
     % for i in range(0, len(hyp_class.members)):
         <% member = hyp_class.members[i] %> \
-        <% attributes = ("Span<HypClassAttribute> { { " + ', '.join([f"HypClassAttribute(\"{name.lower()}\", {format_attribute_value(value, attr_type)})" for name, value, attr_type in member.attributes]) + " } }") if len(member.attributes) > 0 else '' %> \
+        <% attributes = ("Span<const HypClassAttribute> { { " + ', '.join([f"HypClassAttribute(\"{name.lower()}\", {format_attribute_value(value, attr_type)})" for name, value, attr_type in member.attributes]) + " } }") if len(member.attributes) > 0 else '' %> \
         % if member.member_type == HypMemberType.FIELD:
             <% s += f"HypField(NAME(HYP_STR({member.name})), &Type::{member.name}, offsetof(Type, {member.name}){', ' + attributes if len(member.attributes) > 0 else ''})" %> \
         % elif member.member_type == HypMemberType.METHOD:

@@ -17,6 +17,8 @@
 
 namespace hyperion {
 
+class EditorDelegates;
+
 class RenderCollectorContainer
 {
 public:
@@ -154,7 +156,7 @@ class HYP_API World : public BasicObject<World>
 {
     HYP_OBJECT_BODY(World);
 
-    HYP_PROPERTY(ID, &World::GetID)
+    HYP_PROPERTY(ID, &World::GetID, { { "serialize", false } });
 
 public:
     World();
@@ -251,7 +253,7 @@ private:
     void UpdatePendingScenes();
 
     PhysicsWorld                            m_physics_world;
-    RenderCollectorContainer                     m_render_collector_container;
+    RenderCollectorContainer                m_render_collector_container;
 
     DetachedScenesContainer                 m_detached_scenes;
 

@@ -25,7 +25,6 @@ class Entity;
 
 struct RenderProxy
 {
-    // uses Handle<Entity> instead of ID<Entity> to keep the entity alive while it is in the RenderProxyList
     Handle<Entity>      entity;
     Handle<Mesh>        mesh;
     Handle<Material>    material;

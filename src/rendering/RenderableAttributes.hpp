@@ -35,14 +35,28 @@ enum class MaterialAttributeFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
 
+HYP_STRUCT()
 struct MaterialAttributes
 {
+    HYP_FIELD()
     ShaderDefinition                    shader_definition;
+
+    HYP_FIELD()
     Bucket                              bucket = Bucket::BUCKET_OPAQUE;
+
+    HYP_FIELD()
     FillMode                            fill_mode = FillMode::FILL;
+
+    HYP_FIELD()
     BlendFunction                       blend_function = BlendFunction::None();
+
+    HYP_FIELD()
     FaceCullMode                        cull_faces = FaceCullMode::BACK;
+
+    HYP_FIELD()
     EnumFlags<MaterialAttributeFlags>   flags = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST;
+
+    HYP_FIELD()
     StencilFunction                     stencil_function;
     
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes &other) const
@@ -82,22 +96,22 @@ struct MaterialAttributes
     }
 };
 
+HYP_STRUCT()
 struct MeshAttributes
 {
-    VertexAttributeSet vertex_attributes { static_mesh_vertex_attributes };
-    Topology topology { Topology::TRIANGLES };
+    HYP_FIELD(Property="VertexAttributes", Serialize=true)
+    VertexAttributeSet  vertex_attributes = static_mesh_vertex_attributes;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool operator==(const MeshAttributes &other) const
+    HYP_FIELD(Property="Topology", Serialize=true)
+    Topology            topology = Topology::TRIANGLES;
+
+    HYP_FORCE_INLINE bool operator==(const MeshAttributes &other) const
     {
         return vertex_attributes == other.vertex_attributes
             && topology == other.topology;
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(vertex_attributes);

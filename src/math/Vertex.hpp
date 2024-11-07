@@ -66,7 +66,7 @@ struct VertexAttribute
 HYP_STRUCT()
 struct VertexAttributeSet
 {
-    HYP_FIELD()
+    HYP_FIELD(Property="FlagMask", Serialize=true)
     uint64 flag_mask;
 
     constexpr VertexAttributeSet()
@@ -180,7 +180,7 @@ constexpr VertexAttributeSet skeleton_vertex_attributes(
     | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES
 );
 
-HYP_STRUCT()
+HYP_STRUCT(Size=128)
 struct alignas(16) Vertex
 {
     friend Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
@@ -394,41 +394,40 @@ struct alignas(16) Vertex
         return hc;
     }
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Position", Serialize=true)
     Vec3f                               position;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Normal", Serialize=true)
     Vec3f                               normal;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Tangent", Serialize=true)
     Vec3f                               tangent;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="Bitangent", Serialize=true)
     Vec3f                               bitangent;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="TexCoord0", Serialize=true)
     Vec2f                               texcoord0;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="TexCoord1", Serialize=true)
     Vec2f                               texcoord1;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="BoneWeights", Serialize=true)
     FixedArray<float, MAX_BONE_WEIGHTS> bone_weights;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="BoneIndices", Serialize=true)
     FixedArray<uint, MAX_BONE_INDICES>  bone_indices;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="NumIndices", Serialize=true)
     uint8                               num_indices;
 
-    HYP_FIELD()
+    HYP_FIELD(Property="NumWeights", Serialize=true)
     uint8                               num_weights;
 };
 
 Vertex operator*(const Matrix4 &mat, const Vertex &vertex);
 Vertex operator*(const Transform &transform, const Vertex &vertex);
 
-static_assert(sizeof(Vertex) == 128, "Vertex size is not 128 bytes, ensure size matches C# Vertex struct size");
 static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");
 
 } // namespace hyperion

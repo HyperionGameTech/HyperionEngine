@@ -20,8 +20,11 @@ class Entity : public BasicObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);
 
+    HYP_PROPERTY(ID, &Entity::GetID, { { "serialize", false } });
+
 public:
-    Entity() = default;
+    HYP_API Entity();
+    HYP_API ~Entity();
 };
 
 } // namespace hyperion

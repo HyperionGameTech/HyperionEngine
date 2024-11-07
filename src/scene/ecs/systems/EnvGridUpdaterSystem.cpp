@@ -19,7 +19,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvGrid);
 
-void EnvGridUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -44,7 +44,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(ID<Entity> entity)
     }
 
     if (!world_aabb.IsValid()) {
-        HYP_LOG(EnvGrid, LogLevel::WARNING, "EnvGridUpdaterSystem::OnEntityAdded: Entity #{} has invalid bounding box", entity.Value());
+        HYP_LOG(EnvGrid, LogLevel::WARNING, "EnvGridUpdaterSystem::OnEntityAdded: Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
     env_grid_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<EnvGrid>(

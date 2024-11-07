@@ -21,10 +21,10 @@ namespace hyperion {
 HYP_STRUCT()
 class alignas(uint32) HYP_API Color
 {
-    HYP_PROPERTY(Red, &Color::GetRed, &Color::SetRed)
-    HYP_PROPERTY(Green, &Color::GetGreen, &Color::SetGreen)
-    HYP_PROPERTY(Blue, &Color::GetBlue, &Color::SetBlue)
-    HYP_PROPERTY(Alpha, &Color::GetAlpha, &Color::SetAlpha)
+    HYP_PROPERTY(Red, &Color::GetRed, &Color::SetRed, { { "serialize", true } });
+    HYP_PROPERTY(Green, &Color::GetGreen, &Color::SetGreen, { { "serialize", true } });
+    HYP_PROPERTY(Blue, &Color::GetBlue, &Color::SetBlue, { { "serialize", true } });
+    HYP_PROPERTY(Alpha, &Color::GetAlpha, &Color::SetAlpha, { { "serialize", true } });
 
 public:
     static constexpr uint32 size = 4;

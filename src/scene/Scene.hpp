@@ -67,7 +67,7 @@ class HYP_API Scene : public BasicObject<Scene>
 
     HYP_OBJECT_BODY(Scene);
 
-    HYP_PROPERTY(ID, &Scene::GetID)
+    HYP_PROPERTY(ID, &Scene::GetID, { { "serialize", false } });
 
 public:
     Scene();
@@ -165,6 +165,10 @@ public:
         { return m_environment.Get(); }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE bool IsAttachedToWorld() const
+        { return m_world != nullptr; }
+
+    HYP_METHOD()
     HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
 
@@ -222,6 +226,10 @@ public:
         const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
+
+    bool AddToWorld(World *world);
+    bool RemoveFromWorld();
+    
 
 private:
     void EnqueueRenderUpdates();

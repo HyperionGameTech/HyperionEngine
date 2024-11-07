@@ -15,6 +15,8 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Mutex.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <math/Vector2.hpp>
 
 #include <GameCounter.hpp>
@@ -107,7 +109,7 @@ struct WorldGridPatchDesc
 {
     WorldGridPatchInfo  patch_info;
 
-    ID<Entity>          entity;
+    Handle<Entity>      entity;
     
     // May be null if the patch is not yet created
     RC<WorldGridPatch>  patch;

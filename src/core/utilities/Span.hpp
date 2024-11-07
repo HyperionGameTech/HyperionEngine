@@ -36,8 +36,8 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
     {
     }
 
-    constexpr Span(const Span &other) = default;
-    Span &operator=(const Span &other) = default;
+    constexpr Span(const Span &other)   = default;
+    Span &operator=(const Span &other)  = default;
 
     constexpr Span(Span &&other) noexcept
         : first(other.first),
@@ -215,6 +215,11 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
     constexpr Span(const Type (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
+    {
+    }
+    
+    constexpr Span(std::initializer_list<T> initializer_list)
+        : Span(initializer_list.begin(), initializer_list.end())
     {
     }
 

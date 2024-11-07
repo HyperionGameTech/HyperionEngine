@@ -167,7 +167,7 @@ class HYP_API Camera : public BasicObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);
 
-    HYP_PROPERTY(ID, &Camera::GetID)
+    HYP_PROPERTY(ID, &Camera::GetID, { { "serialize", false } });
 
 public:
     friend class CameraController;

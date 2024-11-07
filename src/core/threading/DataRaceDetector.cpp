@@ -47,7 +47,7 @@ DataRaceDetector::~DataRaceDetector()
 {
 }
 
-EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const ANSIStringView &current_function)
+EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState &state)
 {
     Threads::AssertOnThread(thread_id);
 
@@ -61,27 +61,27 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
         access_flags &= ~m_preallocated_states[index].access;
 
         m_preallocated_states[index].access |= access_flags;
-        m_preallocated_states[index].current_function = current_function;
+        m_preallocated_states[index].state = state;
     } else {
         Mutex::Guard guard(m_dynamic_states_mutex);
 
-        auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState &state)
+        auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState &thread_access_state)
         {
-            return state.thread_id == thread_id;
+            return thread_access_state.thread_id == thread_id;
         });
 
         if (it == m_dynamic_states.End()) {
-            ThreadAccessState &state = m_dynamic_states.EmplaceBack();
-            state.thread_id = thread_id;
+            ThreadAccessState &thread_access_state = m_dynamic_states.EmplaceBack();
+            thread_access_state.thread_id = thread_id;
 
-            it = &state;
+            it = &thread_access_state;
         }
 
         // disable bits that are already enabled
         access_flags &= ~it->access;
 
         it->access |= access_flags;
-        it->current_function = current_function;
+        it->state = state;
 
         index = (it - m_dynamic_states.Begin()) + num_preallocated_states;
     }
@@ -140,9 +140,9 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
     } else {
         Mutex::Guard guard(m_dynamic_states_mutex);
 
-        auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState &state)
+        auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState &thread_access_state)
         {
-            return state.thread_id == thread_id;
+            return thread_access_state.thread_id == thread_id;
         });
 
         if (it == m_dynamic_states.End()) {
@@ -175,8 +175,8 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
 
 void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) const
 {
-    Array<Pair<ThreadID, ANSIStringView>> reader_thread_ids;
-    Array<Pair<ThreadID, ANSIStringView>> writer_thread_ids;
+    Array<Pair<ThreadID, DataAccessState>> reader_thread_ids;
+    Array<Pair<ThreadID, DataAccessState>> writer_thread_ids;
     GetThreadIDs(readers_mask, writers_mask, reader_thread_ids, writer_thread_ids);
 
     String reader_threads_string = "<None>";
@@ -186,9 +186,9 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
 
         for (SizeType i = 0; i < reader_thread_ids.Size(); i++) {
             if (i == 0) {
-                reader_threads_string = HYP_FORMAT("{} (at: {})", reader_thread_ids[i].first.name, reader_thread_ids[i].second);
+                reader_threads_string = HYP_FORMAT("{} (at: {}, message: {})", reader_thread_ids[i].first.name, reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
             } else {
-                reader_threads_string = HYP_FORMAT("{}, {} (at: {})", reader_threads_string, reader_thread_ids[i].first.name, reader_thread_ids[i].second);
+                reader_threads_string = HYP_FORMAT("{}, {} (at: {}, message: {})", reader_threads_string, reader_thread_ids[i].first.name, reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
             }
         }
     }
@@ -200,9 +200,9 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
 
         for (SizeType i = 0; i < writer_thread_ids.Size(); i++) {
             if (i == 0) {
-                writer_threads_string = HYP_FORMAT("{} (at: {})", writer_thread_ids[i].first.name, writer_thread_ids[i].second);
+                writer_threads_string = HYP_FORMAT("{} (at: {}, message: {})", writer_thread_ids[i].first.name, writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
             } else {
-                writer_threads_string = HYP_FORMAT("{}, {} (at: {})", writer_threads_string, writer_thread_ids[i].first.name, writer_thread_ids[i].second);
+                writer_threads_string = HYP_FORMAT("{}, {} (at: {}, message: {})", writer_threads_string, writer_thread_ids[i].first.name, writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
             }
         }
     }
@@ -213,7 +213,7 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
         reader_threads_string);
 }
 
-void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, ANSIStringView>> &out_reader_thread_ids, Array<Pair<ThreadID, ANSIStringView>> &out_writer_thread_ids) const
+void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>> &out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>> &out_writer_thread_ids) const
 {
     Mutex::Guard guard(m_dynamic_states_mutex);
 
@@ -222,11 +222,11 @@ void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Ar
             const uint32 dynamic_state_index = bit_index - num_preallocated_states;
             AssertThrowMsg(dynamic_state_index < m_dynamic_states.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamic_state_index, m_dynamic_states.Size());
 
-            out_reader_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].current_function);
+            out_reader_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].state);
         } else {
             AssertThrow(bit_index < m_preallocated_states.Size());
 
-            out_reader_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].current_function);
+            out_reader_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].state);
         }
     }
 
@@ -235,11 +235,11 @@ void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Ar
             const uint32 dynamic_state_index = bit_index - num_preallocated_states;
             AssertThrowMsg(dynamic_state_index < m_dynamic_states.Size(), "Invalid dynamic state index: %u; Out of range of elements: %u", dynamic_state_index, m_dynamic_states.Size());
 
-            out_writer_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].current_function);
+            out_writer_thread_ids.EmplaceBack(m_dynamic_states[dynamic_state_index].thread_id, m_dynamic_states[dynamic_state_index].state);
         } else {
             AssertThrow(bit_index < m_preallocated_states.Size());
 
-            out_writer_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].current_function);
+            out_writer_thread_ids.EmplaceBack(m_preallocated_states[bit_index].thread_id, m_preallocated_states[bit_index].state);
         }
     }
 }

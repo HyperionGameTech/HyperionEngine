@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-void AudioSystem::OnEntityAdded(ID<Entity> entity)
+void AudioSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

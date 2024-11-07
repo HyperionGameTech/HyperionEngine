@@ -28,7 +28,7 @@ namespace hyperion {
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), Span<HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT } } };
 
@@ -41,7 +41,7 @@ namespace hyperion {
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), parent_class, Span<HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_CLASS } } };
 

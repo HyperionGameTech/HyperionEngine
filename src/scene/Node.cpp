@@ -20,7 +20,10 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
+#include <editor/EditorSubsystem.hpp>
+#endif
 
 #include <Engine.hpp>
 
@@ -83,7 +86,7 @@ Node::Node(
     const Transform &local_transform
 ) : Node(
         name,
-        ID<Entity>::invalid,
+        Handle<Entity>::empty,
         local_transform
     )
 {
@@ -91,7 +94,7 @@ Node::Node(
 
 Node::Node(
     const String &name,
-    ID<Entity> entity,
+    const Handle<Entity> &entity,
     const Transform &local_transform
 ) : Node(
         Type::NODE,
@@ -105,7 +108,7 @@ Node::Node(
 
 Node::Node(
     const String &name,
-    ID<Entity> entity,
+    const Handle<Entity> &entity,
     const Transform &local_transform,
     Scene *scene
 ) : Node(
@@ -121,7 +124,7 @@ Node::Node(
 Node::Node(
     Type type,
     const String &name,
-    ID<Entity> entity,
+    const Handle<Entity> &entity,
     const Transform &local_transform,
     Scene *scene
 ) : m_type(type),
@@ -156,12 +159,12 @@ Node::Node(Node &&other) noexcept
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
     other.m_entity_aabb = BoundingBox::Empty();
-    other.m_scene = GetDefaultScene();
+    other.m_scene = other.GetDefaultScene();
     other.m_transform_locked = false;
     other.m_transform_changed = false;
 
-    const ID<Entity> entity = other.m_entity;
-    other.m_entity = ID<Entity>::invalid;
+    Handle<Entity> entity = other.m_entity;
+    other.m_entity = Handle<Entity>::empty;
     SetEntity(entity);
 
     m_child_nodes = std::move(other.m_child_nodes);
@@ -181,7 +184,7 @@ Node &Node::operator=(Node &&other) noexcept
 {
     RemoveAllChildren();
 
-    SetEntity(ID<Entity>::invalid);
+    SetEntity(Handle<Entity>::empty);
     SetScene(nullptr);
 
     m_delegates = std::move(other.m_delegates);
@@ -211,10 +214,10 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_entity_aabb = BoundingBox::Empty();
 
     m_scene = other.m_scene;
-    other.m_scene = GetDefaultScene();
+    other.m_scene = other.GetDefaultScene();
 
-    const ID<Entity> entity = other.m_entity;
-    other.m_entity = ID<Entity>::invalid;
+    Handle<Entity> entity = other.m_entity;
+    other.m_entity = Handle<Entity>::empty;
     SetEntity(entity);
 
     m_name = std::move(other.m_name);
@@ -237,7 +240,7 @@ Node &Node::operator=(Node &&other) noexcept
 Node::~Node()
 {
     RemoveAllChildren();
-    SetEntity(ID<Entity>::invalid);
+    SetEntity(Handle<Entity>::empty);
 }
 
 void Node::SetName(const String &name)
@@ -249,7 +252,9 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
+    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
+    }
 #endif
 }
 
@@ -273,7 +278,7 @@ bool Node::IsOrHasParent(const Node *node) const
 void Node::SetScene(Scene *scene)
 {
     if (!scene) {
-        scene = g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
+        scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
     }
 
     AssertThrow(scene != nullptr);
@@ -292,7 +297,9 @@ void Node::SetScene(Scene *scene)
         m_scene = scene;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
+        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+            editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
+        }
 #endif
 
         // Move entity from previous scene to new scene
@@ -303,10 +310,12 @@ void Node::SetScene(Scene *scene)
                 previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
             } else {
                 // Entity manager null - exiting engine is likely cause here
-                m_entity = ID<Entity>::invalid;
+                m_entity = Handle<Entity>::empty;
 
 #ifdef HYP_EDITOR
-                EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+                if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+                    editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+                }
 #endif
             }
         }
@@ -319,6 +328,13 @@ void Node::SetScene(Scene *scene)
 
         child->SetScene(m_scene);
     }
+}
+
+World *Node::GetWorld() const
+{
+    return m_scene != nullptr
+        ? m_scene->GetWorld()
+        : g_engine->GetDefaultWorld().Get();
 }
 
 void Node::OnNestedNodeAdded(const NodeProxy &node, bool direct)
@@ -635,25 +651,28 @@ Transform Node::GetRelativeTransform(const Transform &parent_transform) const
     return parent_transform.GetInverse() * m_world_transform;
 }
 
-void Node::SetEntity(ID<Entity> entity)
+void Node::SetEntity(const Handle<Entity> &entity)
 {
     if (m_entity == entity) {
         return;
     }
 
     // Remove the NodeLinkComponent from the old entity
-    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
+    if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
     }
 
-    if (entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
+    if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         m_entity = entity;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+            editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+        }
 #endif
 
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
+        AssertThrow(previous_entity_manager != nullptr);
 
         // need to move the entity between EntityManagers
         if (previous_entity_manager != nullptr && previous_entity_manager != m_scene->GetEntityManager().Get()) {
@@ -691,12 +710,14 @@ void Node::SetEntity(ID<Entity> entity)
             m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, { });
         }
     } else {
-        m_entity = ID<Entity>::invalid;
+        m_entity = { };
 
         m_transform_changed = false;
 
 #ifdef HYP_EDITOR
-        EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+            editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+        }
 #endif
 
         SetEntityAABB(BoundingBox::Empty());
@@ -714,9 +735,11 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     m_entity_aabb = aabb;
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("EntityAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("LocalAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Class()->GetProperty(NAME("WorldAABB")));
+    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("EntityAABB")));
+        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("LocalAABB")));
+        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("WorldAABB")));
+    }
 #endif
 }
 
@@ -842,10 +865,12 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     }
 
 #ifdef HYP_EDITOR
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalTransform")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldTransform")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalAABB")));
-    EditorDelegates::GetInstance().OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldAABB")));
+    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalTransform")));
+        editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldTransform")));
+        editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalAABB")));
+        editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldAABB")));
+    }
 #endif
 }
 
@@ -911,7 +936,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
         if (m_entity.IsValid()) {
             has_entity_hit = ray.TestAABB(
                 world_aabb,
-                m_entity.Value(),
+                m_entity.GetID().Value(),
                 nullptr,
                 out_results
             );
@@ -931,7 +956,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     return has_entity_hit;
 }
 
-NodeProxy Node::FindChildWithEntity(ID<Entity> entity) const
+NodeProxy Node::FindChildWithEntity(ID<Entity> entity_id) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -945,7 +970,7 @@ NodeProxy Node::FindChildWithEntity(ID<Entity> entity) const
                 continue;
             }
 
-            if (child.GetEntity() == entity) {
+            if (child.GetEntity().GetID() == entity_id) {
                 return child;
             }
 
@@ -1036,8 +1061,21 @@ bool Node::HasTag(Name key) const
 
 Scene *Node::GetDefaultScene()
 {
-    return g_engine->GetWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
+    return g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
 }
+
+#ifdef HYP_EDITOR
+
+EditorDelegates *Node::GetEditorDelegates()
+{
+    if (EditorSubsystem *editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>()) {
+        return editor_subsystem->GetEditorDelegates();
+    }
+
+    return nullptr;
+}
+
+#endif
 
 #pragma endregion Node
 

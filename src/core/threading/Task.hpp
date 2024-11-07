@@ -505,6 +505,10 @@ protected:
     SchedulerBase   *m_assigned_scheduler;
 };
 
+// @TODO: Refactor so we can use a custom deleter for the task executor.
+// use pre-allocated memory for manually fulfilled instances, so that Fulfill() and Await()
+// on a task from the same thread doesn't cost much more than a typical function call.
+
 template <class ReturnType, class... Args>
 class Task final : public TaskBase
 {
@@ -580,13 +584,14 @@ public:
         return static_cast<ManuallyFulfilledTaskExecutorInstance<ReturnType, Args...> *>(m_executor);
     }
 
-    /*! \brief Emplace a value of type \ref{ReturnType} to resolve the task with. Constructs it in place. */
-    void Fulfill(Args... args)
+    template <class... ArgTypes>
+    void Fulfill(ArgTypes &&... args)
     {
-        AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot manually Fulfill() scheduled tasks!");
+        AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot call Fulfill() on a task that has already been initialized");
 
-        m_executor->Execute(std::forward<Args>(args)...);
-        m_executor->GetSemaphore().Release(1);
+        ManuallyFulfilledTaskExecutorInstance<ReturnType, Args...> *executor = Initialize();
+
+        executor->Fulfill(ReturnType(std::forward<ArgTypes>(args)...));
     }
 
     /*! \brief Wait for the task to complete.

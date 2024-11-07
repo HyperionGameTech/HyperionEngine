@@ -294,7 +294,44 @@ public:
     }
 
     Array(const Array &other);
+
+
+    template <SizeType OtherNumInlineBytes>
+    Array(const Array<T, OtherNumInlineBytes> &other)
+    {
+        const SizeType size = other.Size();
+
+        SetCapacity(size);
+        Storage *storage = GetStorage();
+
+        T *other_buffer = other.GetBuffer();
+
+        for (SizeType i = 0; i < size; i++) {
+            ValueStorage<T> &storage_element = storage[m_size++];
+            storage_element.Construct(other_buffer[i + other.m_start_offset]);
+        }
+    }
+
     Array(Array &&other) noexcept;
+
+    template <SizeType OtherNumInlineBytes>
+    Array(Array<T, OtherNumInlineBytes> &&other)
+    {
+        const SizeType size = other.Size();
+
+        SetCapacity(size);
+        Storage *storage = GetStorage();
+
+        T *other_buffer = other.GetBuffer();
+
+        for (SizeType i = 0; i < size; i++) {
+            ValueStorage<T> &storage_element = storage[m_size++];
+            storage_element.Construct(std::move(other_buffer[i + other.m_start_offset]));
+        }
+
+        other.Clear();
+    }
+
     ~Array();
 
     Array &operator=(const Array &other);

@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-void LightVisibilityUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void LightVisibilityUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

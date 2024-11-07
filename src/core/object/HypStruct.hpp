@@ -18,11 +18,8 @@ struct HypData;
 
 class HypStruct : public HypClass
 {
-protected:
-    // using InitializeCallback = Proc<void, void *, uint32>;
-
 public:
-    HypStruct(TypeID type_id, Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    HypStruct(TypeID type_id, Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
         : HypClass(type_id, name, parent_name, attributes, flags, members)
     {
     }
@@ -64,14 +61,14 @@ template <class T>
 class HypStructInstance : public HypStruct
 {
 public:
-    static HypStructInstance &GetInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypStructInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
         static HypStructInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypStructInstance(Name name, Name parent_name, Span<HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    HypStructInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
         : HypStruct(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }

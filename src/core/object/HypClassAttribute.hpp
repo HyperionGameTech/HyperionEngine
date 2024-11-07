@@ -196,7 +196,7 @@ public:
 
     HypClassAttributeSet()                                                     = default;
 
-    HypClassAttributeSet(Span<HypClassAttribute> attributes)
+    HypClassAttributeSet(Span<const HypClassAttribute> attributes)
     {
         if (!attributes) {
             return;

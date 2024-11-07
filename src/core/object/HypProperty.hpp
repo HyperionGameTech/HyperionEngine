@@ -326,23 +326,24 @@ struct HypProperty : public IHypMember
 
     HypProperty() = default;
 
-    HypProperty(Name name)
-        : name(name)
+    HypProperty(Name name, Span<const HypClassAttribute> attributes = {})
+        : name(name),
+          attributes(attributes)
     {
     }
 
-    HypProperty(Name name, HypPropertyGetter &&getter)
+    HypProperty(Name name, HypPropertyGetter &&getter, Span<const HypClassAttribute> attributes = {})
         : name(name),
           type_id(getter.type_info.value_type_id),
-          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
+          attributes(attributes),
           getter(std::move(getter))
     {
     }
 
-    HypProperty(Name name, HypPropertyGetter &&getter, HypPropertySetter &&setter)
+    HypProperty(Name name, HypPropertyGetter &&getter, HypPropertySetter &&setter, Span<const HypClassAttribute> attributes = {})
         : name(name),
           type_id(getter.type_info.value_type_id),
-          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
+          attributes(attributes),
           getter(std::move(getter)),
           setter(std::move(setter))
     {
@@ -352,9 +353,9 @@ struct HypProperty : public IHypMember
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t< !std::is_member_function_pointer_v<ValueType TargetType::*> > >
-    HypProperty(Name name, ValueType TargetType::*member)
+    HypProperty(Name name, ValueType TargetType::*member, Span<const HypClassAttribute> attributes = {})
         : name(name),
-          attributes { FlatSet<HypClassAttribute> { { "serialize", true } } },
+          attributes(attributes),
           getter(HypPropertyGetter(member)),
           setter(HypPropertySetter(member))
     {

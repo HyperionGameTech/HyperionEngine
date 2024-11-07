@@ -93,6 +93,54 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 
 #pragma endregion EntityManagerCommandQueue
 
+#pragma region EntityToEntityManagerMap
+
+Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id))
+{
+    Task<bool> task;
+
+    m_mutex.Lock();
+
+    const auto it = m_map.FindAs(id);
+
+    if (it == m_map.End()) {
+        m_mutex.Unlock();
+
+        task.Fulfill(false);
+
+        return task;
+    }
+
+    EntityManager *entity_manager = it->second;
+
+    auto Impl = [id, callback, task_executor = task.Initialize()](EntityManager &entity_manager, GameCounter::TickUnit delta)
+    {
+        AssertThrow(entity_manager.HasEntity(id));
+
+        callback(&entity_manager, id);
+
+        task_executor->Fulfill(true);
+    };
+    
+    if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID()) {
+        // Mutex must not be locked when callback() is called - the callback could perform
+        // actions that directly or undirectly require re-locking the mutex.
+        // Instead, unlock the mutex once we are sure the EntityManager will not be deleted before using it
+        // (either by ensuring we're on the same thread that owns the EntityManager, or by enqueuing the command)
+        m_mutex.Unlock();
+
+        Impl(*entity_manager, 0.0f);
+    } else {
+        entity_manager->PushCommand(Impl);
+
+        m_mutex.Unlock();
+    }
+
+    return task;
+}
+
+#pragma endregion EntityToEntityManagerMap
+
 #pragma region EntityManager
 
 EntityToEntityManagerMap EntityManager::s_entity_to_entity_manager_map { };
@@ -145,10 +193,15 @@ void EntityManager::Initialize()
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
             for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it) {
-                const ID<Entity> entity = entities_it->first;
+                const Handle<Entity> entity = entities_it->first.Lock();
+
+                if (!entity.IsValid()) {
+                    continue;
+                }
+
                 const TypeMap<ComponentID> &component_ids = entities_it->second.components;
 
-                if (system_it.second->IsEntityInitialized(entity)) {
+                if (system_it.second->IsEntityInitialized(entity.GetID())) {
                     continue;
                 }
 
@@ -162,7 +215,7 @@ void EntityManager::Initialize()
     m_is_initialized = true;
 }
 
-ID<Entity> EntityManager::AddEntity()
+Handle<Entity> EntityManager::AddEntity()
 {
     HYP_SCOPE;
 
@@ -172,32 +225,35 @@ ID<Entity> EntityManager::AddEntity()
     const uint32 index = Handle<Entity>::GetContainer().NextIndex();
     Handle<Entity>::GetContainer().ConstructAtIndex(index);
     
-    const ID<Entity> entity = ID<Entity>::FromIndex(index);
+    Handle<Entity> entity { ID<Entity>::FromIndex(index) };
 
-    GetEntityToEntityManagerMap().Add(entity, this);
+    HYP_LOG(ECS, LogLevel::DEBUG, "Add entity #{} to entity manager {}", entity.GetID().Value(), (void *)this);
+    GetEntityToEntityManagerMap().Add(entity.GetID(), this);
 
-    return m_entities.AddEntity(Handle<Entity> { entity });
+    m_entities.AddEntity(entity);
+
+    return entity;
 }
 
-bool EntityManager::RemoveEntity(ID<Entity> entity)
+bool EntityManager::RemoveEntity(ID<Entity> id)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(m_owner_thread_mask);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    if (!entity.IsValid()) {
+    if (!id.IsValid()) {
         return false;
     }
 
-    auto it = m_entities.Find(entity);
+    auto it = m_entities.Find(id);
 
     if (it == m_entities.End()) {
         return false;
     }
 
     // Notify systems of the entity being removed from this EntityManager
-    NotifySystemsOfEntityRemoved(entity, it->second.components);
+    NotifySystemsOfEntityRemoved(id, it->second.components);
 
     // Lock the entity sets mutex
     Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
@@ -223,19 +279,20 @@ bool EntityManager::RemoveEntity(ID<Entity> entity)
                 auto entity_set_it = m_entity_sets.Find(entity_set_id);
                 AssertThrowMsg(entity_set_it != m_entity_sets.End(), "Entity set does not exist");
 
-                entity_set_it->second->OnEntityUpdated(entity);
+                entity_set_it->second->OnEntityUpdated(id);
             }
         }
     }
     
-    GetEntityToEntityManagerMap().Remove(entity);
+    HYP_LOG(ECS, LogLevel::DEBUG, "Remove entity #{} from entity manager {}", id.Value(), (void *)this);
+    GetEntityToEntityManagerMap().Remove(id);
 
     m_entities.Erase(it);
 
     return true;
 }
 
-void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
+void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &other)
 {
     HYP_SCOPE;
 
@@ -260,9 +317,7 @@ void EntityManager::MoveEntity(ID<Entity> entity, EntityManager &other)
     // Notify systems of the entity being removed from this EntityManager
     NotifySystemsOfEntityRemoved(entity, entity_it->second.components);
 
-    const EntityData &entity_data = entity_it->second;
-
-    other.m_entities.AddEntity(entity_it->first, EntityData { entity_data.handle });
+    other.m_entities.AddEntity(entity);
 
     GetEntityToEntityManagerMap().Remap(entity, &other);
 
@@ -349,6 +404,8 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
         return;
     }
 
+    Handle<Entity> entity_handle { entity };
+
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
             if (system_it.second->IsEntityInitialized(entity)) {
@@ -356,7 +413,7 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
             }
 
             if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
-                system_it.second->OnEntityAdded(entity);
+                system_it.second->OnEntityAdded(entity_handle);
             }
         }
     }

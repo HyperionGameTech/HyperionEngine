@@ -13,6 +13,9 @@ template <class T>
 class ObjectContainer;
 
 template <class T>
+struct WeakHandle;
+
+template <class T>
 static inline ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> *allotted_container)
 {
     return ObjectPool::template GetContainer<T>(allotted_container);
@@ -149,6 +152,9 @@ struct Handle : HandleBase
     
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
+
+    HYP_FORCE_INLINE operator IDType() const
+        { return IDType(index); }
     
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return !IsValid(); }
@@ -213,6 +219,11 @@ struct Handle : HandleBase
         }
 
         index = 0;
+    }
+
+    HYP_FORCE_INLINE WeakHandle<T> ToWeak() const
+    {
+        return WeakHandle<T>(*this);
     }
     
     static Name GetTypeName()
@@ -375,6 +386,9 @@ struct WeakHandle
     
     HYP_FORCE_INLINE explicit operator bool() const
         { return IsValid(); }
+
+    HYP_FORCE_INLINE operator IDType() const
+        { return IDType(index); }
     
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return !IsValid(); }

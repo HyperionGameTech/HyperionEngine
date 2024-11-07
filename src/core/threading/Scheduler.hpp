@@ -187,8 +187,8 @@ public:
         }
     };
     
-    Scheduler()
-        : SchedulerBase(Threads::CurrentThreadID())
+    Scheduler(ThreadID owner_thread_id = Threads::CurrentThreadID())
+        : SchedulerBase(owner_thread_id)
     {
     }
 

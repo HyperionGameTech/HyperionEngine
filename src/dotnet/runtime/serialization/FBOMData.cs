@@ -20,20 +20,23 @@ namespace Hyperion
             this.type = new FBOMType(FBOMData_GetType(this.ptr));
         }
 
-        public void Dispose()
-        {
-            if (this.ptr == IntPtr.Zero)
-            {
-                return;
-            }
-
-            FBOMData_Destroy(this.ptr);
-            this.ptr = IntPtr.Zero;
-        }
-
         ~FBOMData()
         {
-            Dispose();
+            if (this.ptr != IntPtr.Zero)
+            {
+                FBOMData_Destroy(this.ptr);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (this.ptr != IntPtr.Zero)
+            {
+                FBOMData_Destroy(this.ptr);
+                this.ptr = IntPtr.Zero;
+            }
+
+            GC.SuppressFinalize(this);
         }
 
         public FBOMType Type

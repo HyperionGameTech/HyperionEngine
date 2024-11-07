@@ -193,11 +193,11 @@ void HyperionEditor::Init()
     // sun_node.SetEntity(sun_entity);
     // sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
-    // m_scene->GetEntityManager()->AddComponent(sun_entity, LightComponent {
+    // m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
     //     sun
     // });
 
-    // m_scene->GetEntityManager()->AddComponent(sun_entity, ShadowMapComponent {
+    // m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
     //     .mode       = ShadowMode::PCF,
     //     .radius     = 35.0f,
     //     .resolution = { 2048, 2048 }
@@ -352,10 +352,10 @@ void HyperionEditor::Init()
 
     HYP_LOG(Editor, LogLevel::DEBUG, "Loading assets, scene ID = {}", GetScene()->GetID().Value());
 
-    ID<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
+    Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
 
-    GetScene()->GetEntityManager()->AddComponent(root_entity, ScriptComponent {
+    GetScene()->GetEntityManager()->AddComponent<ScriptComponent>(root_entity, ScriptComponent {
         {
             .assembly_path  = "GameName.dll",
             .class_name     = "FizzBuzzTest"
@@ -372,19 +372,19 @@ void HyperionEditor::Init()
         node.LockTransform();
 
         if (true) {
-            ID<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
+            Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
-            m_scene->GetEntityManager()->AddComponent(env_grid_entity, TransformComponent {
+            m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {
                 node.GetWorldTransform()
             });
 
-            m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
+            m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent {
                 node.GetLocalAABB() * 1.05f,
                 node.GetWorldAABB() * 1.05f
             });
 
             // Add env grid component
-            m_scene->GetEntityManager()->AddComponent(env_grid_entity, EnvGridComponent {
+            m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
                 EnvGridType::ENV_GRID_TYPE_SH
             });
 
@@ -399,7 +399,7 @@ void HyperionEditor::Init()
             if (auto child_entity = node.GetEntity()) {
                 // Add BLASComponent
 
-                m_scene->GetEntityManager()->AddComponent(child_entity, BLASComponent { });
+                m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, BLASComponent { });
             }
         }
 #endif
@@ -449,7 +449,7 @@ void HyperionEditor::Init()
 
     batch->LoadAsync();
 
-#elif 1
+#else
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data)) {
@@ -481,7 +481,7 @@ void HyperionEditor::Init()
         json::JSONValue entity_json = json::JSONUndefined();
         if (auto entity = node.GetEntity()) {
             json::JSONObject entity_json_object;
-            entity_json_object["id"] = entity.Value();
+            entity_json_object["id"] = entity.GetID().Value();
 
             EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
             AssertThrow(entity_manager != nullptr);

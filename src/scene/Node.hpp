@@ -18,6 +18,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/Name.hpp>
+#include <core/Handle.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/NodeProxy.hpp>
@@ -38,6 +39,7 @@ namespace hyperion {
 
 class Engine;
 class Scene;
+class EditorDelegates;
 
 enum NodeFlags : uint32
 {
@@ -267,13 +269,13 @@ public:
 
     Node(
         const String &name,
-        ID<Entity> entity,
+        const Handle<Entity> &entity,
         const Transform &local_transform = Transform()
     );
 
     Node(
         const String &name,
-        ID<Entity> entity,
+        const Handle<Entity> &entity,
         const Transform &local_transform,
         Scene *scene
     );
@@ -342,6 +344,10 @@ public:
     HYP_METHOD(Property="Scene")
     void SetScene(Scene *scene);
 
+    /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
+    HYP_METHOD(Property="World")
+    World *GetWorld() const;
+
     /*! \brief \returns The underlying entity AABB for this node. */
     HYP_METHOD(Property="EntityAABB", Serialize=true, Editor=true, Label="Bounding Box", Description="The underlying axis-aligned bounding box for this node, not considering child nodes or transform")
     HYP_FORCE_INLINE const BoundingBox &GetEntityAABB() const
@@ -354,11 +360,11 @@ public:
     void SetEntityAABB(const BoundingBox &aabb);
 
     HYP_METHOD(Property="Entity", Serialize=true, Editor=true, Label="Entity", Description="The entity that this node is linked with.")
-    HYP_FORCE_INLINE ID<Entity> GetEntity() const
+    HYP_FORCE_INLINE const Handle<Entity> &GetEntity() const
         { return m_entity; }
 
     HYP_METHOD(Property="Entity", Serialize=true, Editor=true)
-    void SetEntity(ID<Entity> entity);
+    void SetEntity(const Handle<Entity> &entity);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
      *  \param node The Node to be added as achild of this Node
@@ -695,12 +701,12 @@ protected:
     Node(
         Type type,
         const String &name,
-        ID<Entity> entity,
+        const Handle<Entity> &entity,
         const Transform &local_transform = Transform(),
         Scene *scene = nullptr
     );
 
-    static Scene *GetDefaultScene();
+    Scene *GetDefaultScene();
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
@@ -708,6 +714,10 @@ protected:
 
     void OnNestedNodeAdded(const NodeProxy &node, bool direct);
     void OnNestedNodeRemoved(const NodeProxy &node, bool direct);
+
+#ifdef HYP_EDITOR
+    EditorDelegates *GetEditorDelegates();
+#endif
 
     Type                        m_type = Type::NODE;
     EnumFlags<NodeFlags>        m_flags = NodeFlags::NONE;
@@ -718,7 +728,7 @@ protected:
     Transform                   m_world_transform;
     BoundingBox                 m_entity_aabb;
 
-    ID<Entity>                  m_entity;
+    Handle<Entity>              m_entity;
 
     Array<NodeProxy>            m_descendents;
 
