@@ -165,10 +165,8 @@ UIObject::~UIObject()
 {
     HYP_LOG(UI, LogLevel::DEBUG, "Destroying UIObject with name: {}", GetName());
 
-    m_node_proxy.Reset();
-
     // Remove the entity from the entity manager
-    if (ID<Entity> entity = GetEntity()) {
+    if (const Handle<Entity> &entity = GetEntity()) {
         Scene *scene = GetScene();
 
         AssertThrow(scene != nullptr);
@@ -177,9 +175,9 @@ UIObject::~UIObject()
         if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
             ui_component->ui_object = nullptr;
         }
-
-        scene->GetEntityManager()->RemoveEntity(entity);
     }
+
+    m_node_proxy.Reset();
 }
 
 void UIObject::Init()
@@ -1475,7 +1473,7 @@ const Handle<Material> &UIObject::GetMaterial() const
     HYP_SCOPE;
 
     const Scene *scene = GetScene();
-    const ID<Entity> entity = GetEntity();
+    const Handle<Entity> &entity = GetEntity();
 
     if (!entity.IsValid() || !scene) {
         return Handle<Material>::empty;
@@ -1493,7 +1491,7 @@ const Handle<Mesh> &UIObject::GetMesh() const
     HYP_SCOPE;
     
     const Scene *scene = GetScene();
-    const ID<Entity> entity = GetEntity();
+    const Handle<Entity> &entity = GetEntity();
 
     if (!entity.IsValid() || !scene) {
         return Handle<Mesh>::empty;
@@ -2067,8 +2065,11 @@ ScriptComponent *UIObject::GetScriptComponent(bool deep) const
     Node *node = m_node_proxy.Get();
 
     while (node != nullptr) {
-        if (node->GetEntity().IsValid() && node->GetScene() != nullptr) {
-            if (ScriptComponent *script_component = node->GetScene()->GetEntityManager()->TryGetComponent<ScriptComponent>(node->GetEntity())) {
+        Scene *scene = node->GetScene();
+        const Handle<Entity> &entity = node->GetEntity();
+
+        if (entity.IsValid() && scene != nullptr) {
+            if (ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity)) {
                 return script_component;
             }
         }
@@ -2093,17 +2094,17 @@ void UIObject::SetScriptComponent(ScriptComponent &&script_component)
         return;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Entity> &entity = GetEntity();
 
-    if (!node) {
+    if (!entity.IsValid()) {
         return;
     }
 
-    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(GetEntity())) {
-        scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
+    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(entity)) {
+        scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
     }
     
-    scene->GetEntityManager()->AddComponent<ScriptComponent>(GetEntity(), std::move(script_component));
+    scene->GetEntityManager()->AddComponent<ScriptComponent>(entity, std::move(script_component));
 }
 
 void UIObject::RemoveScriptComponent()
@@ -2116,11 +2117,17 @@ void UIObject::RemoveScriptComponent()
         return;
     }
 
-    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(GetEntity())) {
+    const Handle<Entity> &entity = GetEntity();
+
+    if (!entity.IsValid()) {
         return;
     }
 
-    scene->GetEntityManager()->RemoveComponent<ScriptComponent>(GetEntity());
+    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(entity)) {
+        return;
+    }
+
+    scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
 }
 
 RC<UIObject> UIObject::GetChildUIObject(int index) const
@@ -2150,10 +2157,11 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
 void UIObject::SetNodeProxy(NodeProxy node_proxy)
 {
     if (m_node_proxy.IsValid() && m_node_proxy.GetEntity().IsValid() && m_node_proxy->GetScene() != nullptr) {
+        const Handle<Entity> &entity = m_node_proxy->GetEntity();
         const RC<EntityManager> &entity_manager = m_node_proxy->GetScene()->GetEntityManager();
 
-        if (entity_manager->HasComponent<UIComponent>(m_node_proxy->GetEntity())) {
-            entity_manager->RemoveComponent<UIComponent>(m_node_proxy->GetEntity());
+        if (entity_manager->HasComponent<UIComponent>(entity)) {
+            entity_manager->RemoveComponent<UIComponent>(entity);
         }
     }
 
@@ -2371,7 +2379,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child->GetEntity()) {
+            if (!child || !child->GetEntity().IsValid()) {
                 continue;
             }
 

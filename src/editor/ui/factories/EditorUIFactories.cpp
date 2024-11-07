@@ -419,10 +419,10 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
 
-class EntityUIDataSourceElementFactory : public UIDataSourceElementFactory<ID<Entity>, EntityUIDataSourceElementFactory>
+class EntityUIDataSourceElementFactory : public UIDataSourceElementFactory<Handle<Entity>, EntityUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const ID<Entity> &entity) const
+    RC<UIObject> Create(UIStage *stage, const Handle<Entity> &entity) const
     {
         const EditorNodePropertyRef *context = GetContext<EditorNodePropertyRef>();
         AssertThrow(context != nullptr);
@@ -448,7 +448,7 @@ public:
                         return UIEventHandlerResult::ERR;
                     }
 
-                    const ID<Entity> entity = scene->GetEntityManager()->AddEntity();
+                    const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
                     node_rc->SetEntity(entity);
 
                     return UIEventHandlerResult::STOP_BUBBLING;
@@ -467,7 +467,7 @@ public:
         EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
 
         if (!entity_manager) {
-            HYP_LOG(Editor, LogLevel::ERR, "No EntityManager found for entity {}", entity.Value());
+            HYP_LOG(Editor, LogLevel::ERR, "No EntityManager found for entity #{}", entity.GetID().Value());
             
             return nullptr;
         }
@@ -477,7 +477,7 @@ public:
             Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
 
             if (!all_components.HasValue()) {
-                HYP_LOG(Editor, LogLevel::ERR, "No component map found for Entity #{}", entity.Value());
+                HYP_LOG(Editor, LogLevel::ERR, "No component map found for Entity #{}", entity.GetID().Value());
 
                 return nullptr;
             }
@@ -514,7 +514,7 @@ public:
                 HypData component_hyp_data;
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data)) {
-                    HYP_LOG(Editor, LogLevel::ERR, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity.Value());
+                    HYP_LOG(Editor, LogLevel::ERR, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity.GetID().Value());
 
                     continue;
                 }
@@ -677,7 +677,7 @@ public:
         return components_grid_container;
     }
 
-    void Update(UIObject *ui_object, const ID<Entity> &entity) const
+    void Update(UIObject *ui_object, const Handle<Entity> &entity) const
     {
         // @TODO
 
@@ -685,7 +685,7 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(ID<Entity>, EntityUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIDataSourceElementFactory);
 
 class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
 {

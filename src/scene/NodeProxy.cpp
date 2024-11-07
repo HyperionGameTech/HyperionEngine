@@ -112,14 +112,14 @@ void NodeProxy::SetName(const String &name)
     }
 }
 
-ID<Entity> NodeProxy::GetEntity() const
+const Handle<Entity> &NodeProxy::GetEntity() const
 {
     return Get()
         ? Get()->GetEntity()
-        : ID<Entity>::invalid;
+        : Handle<Entity>::empty;
 }
 
-void NodeProxy::SetEntity(ID<Entity> entity)
+void NodeProxy::SetEntity(const Handle<Entity> &entity)
 {
     if (Node *node = Get()) {
         node->SetEntity(entity);

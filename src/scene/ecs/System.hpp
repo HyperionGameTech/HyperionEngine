@@ -116,14 +116,18 @@ public:
         return m_component_infos[index];
     }
 
-    virtual void OnEntityAdded(ID<Entity> entity_id)
+    virtual void OnEntityAdded(const Handle<Entity> &entity)
     {
-        m_initialized_entities.Insert(entity_id);
+        m_initialized_entities.Insert(entity.ToWeak());
     }
 
-    virtual void OnEntityRemoved(ID<Entity> entity_id)
+    virtual void OnEntityRemoved(ID<Entity> entity)
     {
-        m_initialized_entities.Erase(entity_id);
+        auto it = m_initialized_entities.FindAs(entity);
+        
+        if (it != m_initialized_entities.End()) {
+            m_initialized_entities.Erase(it);
+        }
     }
 
     virtual void Process(GameCounter::TickUnit delta) = 0;
@@ -140,13 +144,13 @@ protected:
     HYP_FORCE_INLINE EntityManager &GetEntityManager()
         { return m_entity_manager; }
 
-    EntityManager           &m_entity_manager;
+    EntityManager               &m_entity_manager;
 
-    Array<TypeID>           m_component_type_ids;
-    Array<ComponentInfo>    m_component_infos;
+    Array<TypeID>               m_component_type_ids;
+    Array<ComponentInfo>        m_component_infos;
 
 private:
-    FlatSet<ID<Entity>>     m_initialized_entities;
+    FlatSet<WeakHandle<Entity>> m_initialized_entities;
 };
 
 /*! \brief A System is a class that operates on a set of components.

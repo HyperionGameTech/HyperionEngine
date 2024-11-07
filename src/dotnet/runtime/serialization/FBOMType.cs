@@ -3,9 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public class FBOMType
+    public class FBOMType : IDisposable
     {
-
         public static readonly FBOMType Unset;
         public static readonly FBOMType UInt8;
         public static readonly FBOMType UInt16;
@@ -58,7 +57,21 @@ namespace Hyperion
 
         ~FBOMType()
         {
-            FBOMType_Destroy(this.ptr);
+            if (this.ptr != IntPtr.Zero)
+            {
+                FBOMType_Destroy(this.ptr);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (this.ptr != IntPtr.Zero)
+            {
+                FBOMType_Destroy(this.ptr);
+                this.ptr = IntPtr.Zero;
+            }
+
+            GC.SuppressFinalize(this);
         }
 
         public string TypeName

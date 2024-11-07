@@ -257,6 +257,10 @@ Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
 {
     HYP_SCOPE;
 
+    if (!subsystem) {
+        return nullptr;
+    }
+
     // If World is already initialized, ensure that the call is made on the correct thread
     // otherwise, it is safe to call this function from the World constructor (main thread)
     if (IsInitCalled()) {
@@ -264,6 +268,8 @@ Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
     } else {
         Threads::AssertOnThread(ThreadName::THREAD_MAIN);
     }
+
+    subsystem->SetWorld(this);
 
     const auto it = m_subsystems.Find(type_id);
     AssertThrowMsg(it == m_subsystems.End(), "Subsystem already exists in World");
@@ -364,9 +370,13 @@ void World::AddScene(const Handle<Scene> &scene)
         return;
     }
 
-    if (IsInitCalled()) {
-        scene->SetWorld(this);
+    if (m_scenes.Contains(scene)) {
+        return;
+    }
 
+    scene->SetWorld(this);
+
+    if (IsInitCalled()) {
         InitObject(scene);
 
         for (auto &it : m_subsystems) {
@@ -407,10 +417,10 @@ void World::RemoveScene(const WeakHandle<Scene> &scene_weak)
             it.second->OnSceneDetached(scene);
         }
 
-        scene->SetWorld(nullptr);
-
         m_scenes.Erase(it);
     }
+
+    scene->SetWorld(nullptr);
 
     Mutex::Guard guard(m_scene_update_mutex);
 

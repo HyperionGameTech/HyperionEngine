@@ -5,7 +5,7 @@
 
 namespace hyperion {
 
-void WorldAABBUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

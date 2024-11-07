@@ -8,5 +8,18 @@ namespace Hyperion
     {
         public Guid guid;
         public IntPtr ptr;
+
+        public bool IsValid
+        {
+            get
+            {
+                return guid != Guid.Empty && ptr != IntPtr.Zero;
+            }
+        }
+
+        public object? LoadObject()
+        {
+            return ptr == IntPtr.Zero ? null : GCHandle.FromIntPtr(ptr).Target;
+        }
     }
 }

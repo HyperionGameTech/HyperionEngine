@@ -94,7 +94,7 @@ class HYP_API Material : public BasicObject<Material>
 {
     HYP_OBJECT_BODY(Material);
 
-    HYP_PROPERTY(ID, &Material::GetID);
+    HYP_PROPERTY(ID, &Material::GetID, { { "serialize", false } });
 
 public:
     static constexpr uint max_parameters = 32u;

@@ -58,6 +58,8 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 #pragma region EditorSubsystem
 
+#ifdef HYP_EDITOR
+
 EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const Handle<Scene> &scene, const Handle<Camera> &camera, const RC<UIStage> &ui_stage)
     : m_app_context(app_context),
       m_scene(scene),
@@ -66,10 +68,12 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const Handle
       m_editor_camera_enabled(false),
       m_should_cancel_next_click(false)
 {
+    m_editor_delegates = new EditorDelegates();
 }
 
 EditorSubsystem::~EditorSubsystem()
 {
+    delete m_editor_delegates;
 }
 
 void EditorSubsystem::Initialize()
@@ -101,6 +105,8 @@ void EditorSubsystem::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+
+    m_editor_delegates->Update();
 
     UpdateCamera(delta);
 }
@@ -249,10 +255,10 @@ void EditorSubsystem::CreateEditorUI()
             {
                 HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
 
-                LightmapperSubsystem *lightmapper_subsystem = g_engine->GetWorld()->GetSubsystem<LightmapperSubsystem>();
+                LightmapperSubsystem *lightmapper_subsystem = GetWorld()->GetSubsystem<LightmapperSubsystem>();
 
                 if (!lightmapper_subsystem) {
-                    lightmapper_subsystem = g_engine->GetWorld()->AddSubsystem<LightmapperSubsystem>();
+                    lightmapper_subsystem = GetWorld()->AddSubsystem<LightmapperSubsystem>();
                 }
 
                 lightmapper_subsystem->GenerateLightmaps(m_scene);
@@ -275,7 +281,7 @@ void EditorSubsystem::CreateHighlightNode()
 {
     m_highlight_node = NodeProxy(MakeRefCountedPtr<Node>("Editor_Highlight"));
 
-    const ID<Entity> entity = m_scene->GetEntityManager()->AddEntity();
+    const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
     Handle<Mesh> mesh = MeshBuilder::Cube();
     InitObject(mesh);
@@ -386,7 +392,7 @@ void EditorSubsystem::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    EditorDelegates::GetInstance().AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
         HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
@@ -468,7 +474,7 @@ void EditorSubsystem::InitDetailView()
 
     OnFocusedNodeChanged.Bind([this, hyp_class = Node::Class(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
     {
-        EditorDelegates::GetInstance().RemoveNodeWatcher(NAME("DetailView"));
+        m_editor_delegates->RemoveNodeWatcher(NAME("DetailView"));
 
         RC<UIListView> list_view = list_view_weak.Lock();
 
@@ -524,7 +530,7 @@ void EditorSubsystem::InitDetailView()
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
 
-        EditorDelegates::GetInstance().AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
+        m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {
             HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", property->GetName());
 
@@ -655,6 +661,8 @@ void EditorSubsystem::UpdateCamera(GameCounter::TickUnit delta)
 
     m_camera->SetNextTranslation(translation);
 }
+
+#endif
 
 #pragma endregion EditorSubsystem
 

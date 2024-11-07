@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    [StructLayout(LayoutKind.Explicit)]
     internal unsafe struct InternalHypDataValue
     {
         [FieldOffset(0)]
@@ -60,7 +60,7 @@ namespace Hyperion
         public Name valueName;
         
         [FieldOffset(0)]
-        public IntPtr valuePtr;
+        public ObjectReference objectReference;
     }
 
     /// <summary>
@@ -428,24 +428,14 @@ namespace Hyperion
                 return buffer;
             }
 
-            if (HypData_GetHypStruct(ref this, out value.valuePtr))
+            if (HypData_GetHypStruct(ref this, out value.objectReference))
             {
-                if (value.valuePtr == IntPtr.Zero)
-                {
-                    return null;
-                }
-
-                return *((object*)value.valuePtr.ToPointer());
+                return value.objectReference.LoadObject();
             }
 
-            if (HypData_GetHypObject(ref this, out value.valuePtr))
+            if (HypData_GetHypObject(ref this, out value.objectReference))
             {
-                if (value.valuePtr == IntPtr.Zero)
-                {
-                    return null;
-                }
-
-                return *((object*)value.valuePtr.ToPointer());
+                return value.objectReference.LoadObject();
             }
 
             throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeID: " + TypeID.Value);
@@ -526,11 +516,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_GetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetHypObject([In] ref HypDataBuffer hypData, [Out] out IntPtr outObjectPtr);
+        internal static extern bool HypData_GetHypObject([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetHypStruct")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetHypStruct([In] ref HypDataBuffer hypData, [Out] out IntPtr outObjectPtr);
+        internal static extern bool HypData_GetHypStruct([In] ref HypDataBuffer hypData, [Out] out ObjectReference outObjectReference);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetByteBuffer")]
         [return: MarshalAs(UnmanagedType.I1)]

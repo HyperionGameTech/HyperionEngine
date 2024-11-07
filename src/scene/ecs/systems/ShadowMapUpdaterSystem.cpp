@@ -17,7 +17,7 @@
 
 namespace hyperion {
 
-void ShadowMapUpdaterSystem::OnEntityAdded(ID<Entity> entity)
+void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

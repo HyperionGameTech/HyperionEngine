@@ -200,7 +200,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 continue;
             }
 
-            const ID<Entity> patch_entity = it->second.entity;
+            const Handle<Entity> patch_entity = it->second.entity;
 
             // @TODO: what should happen if this is hit before the entity is created?
 
@@ -275,11 +275,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it == m_state.patches.End()) {
-                    patches_it = m_state.patches.Insert(update.coord, WorldGridPatchDesc {
-                        .patch_info = initial_patch_info,
-                        .entity     = ID<Entity>(),
-                        .patch      = nullptr
-                    }).first;
+                    patches_it = m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
                 }
             }
 
@@ -288,7 +284,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             {
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-                const ID<Entity> patch_entity = mgr.AddEntity();
+                Handle<Entity> patch_entity = mgr.AddEntity();
 
                 // Add WorldGridPatchComponent
                 mgr.AddComponent<WorldGridPatchComponent>(patch_entity, WorldGridPatchComponent {
@@ -371,26 +367,26 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             { // remove the patch
                 Mutex::Guard guard(m_state.patches_mutex);
 
-                ID<Entity> patch_entity;
+                // Handle<Entity> patch_entity;
 
                 const auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it != m_state.patches.End()) {
-                    patch_entity = patches_it->second.entity;
+                    // patch_entity = patches_it->second.entity;
                     m_state.patches.Erase(patches_it);
                 }
 
-                if (patch_entity.IsValid()) {
-                    // Push command to remove the entity
-                    entity_manager->PushCommand([&state = m_state, update, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta)
-                    {
-                        if (mgr.HasEntity(patch_entity)) {
-                            mgr.RemoveEntity(patch_entity);
-                        }
+                // if (patch_entity.IsValid()) {
+                //     // Push command to remove the entity
+                //     entity_manager->PushCommand([&state = m_state, update, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta)
+                //     {
+                //         if (mgr.HasEntity(patch_entity)) {
+                //             mgr.RemoveEntity(patch_entity);
+                //         }
 
-                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} removed", update.coord);
-                    });
-                }
+                //         HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} removed", update.coord);
+                //     });
+                // }
             }
 
             m_state.PushUpdate({

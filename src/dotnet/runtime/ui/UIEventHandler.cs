@@ -14,11 +14,11 @@ namespace Hyperion
         private UIStage? uiStage;
         private UIObject? uiObject;
 
-        public override void Init(IDBase entity)
+        public override void Init(Entity entity)
         {
             base.Init(entity);
 
-            uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(Entity).UIObject;
+            uiObject = Scene.GetEntityManager().GetComponent<UIComponent>(entity).UIObject;
 
             if (uiObject == null)
             {

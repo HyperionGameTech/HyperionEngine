@@ -26,10 +26,10 @@ using RayHitID = uint;
 HYP_STRUCT()
 struct HYP_API Ray
 {
-    HYP_FIELD(Serialize, Property="Position")
+    HYP_FIELD(Property="Position", Serialize=true)
     Vec3f   position;
 
-    HYP_FIELD(Serialize, Property="Direction")
+    HYP_FIELD(Property="Direction", Serialize=true)
     Vec3f   direction;
 
     HYP_FORCE_INLINE bool operator==(const Ray &other) const

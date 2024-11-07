@@ -25,20 +25,20 @@
 namespace hyperion::fbom {
 
 template <>
-class FBOMMarshaler<ID<Entity>> : public FBOMObjectMarshalerBase<ID<Entity>>
+class FBOMMarshaler<Entity> : public FBOMObjectMarshalerBase<Entity>
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const ID<Entity> &entity, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const Entity &entity, FBOMObject &out) const override
     {
-        out.SetProperty("IsValid", entity.IsValid());
+        // out.SetProperty("IsValid", entity.IsValid());
 
-        if (!entity.IsValid()) {
-            return { FBOMResult::FBOM_OK };
-        }
+        // if (!entity.IsValid()) {
+        //     return { FBOMResult::FBOM_OK };
+        // }
         
-        EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+        EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity.GetID());
 
         if (!entity_manager) {
             return { FBOMResult::FBOM_ERR, "Entity not attached to an EntityManager" };
@@ -48,7 +48,7 @@ public:
 
         auto SerializeEntityAndComponents = [&]()
         {
-            Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
+            Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity.GetID());
 
             if (!all_components.HasValue()) {
                 result = { FBOMResult::FBOM_ERR, "No component map found for entity" };
@@ -91,7 +91,7 @@ public:
                     continue;
                 }
 
-                ConstAnyRef component = entity_manager->TryGetComponent(component_type_id, entity);
+                ConstAnyRef component = entity_manager->TryGetComponent(component_type_id, entity.GetID());
                 AssertThrow(component.HasValue());
 
                 FBOMObject component_serialized;
@@ -126,22 +126,22 @@ public:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
     {
-        bool is_valid = false;
+        // bool is_valid = false;
 
-        if (FBOMResult err = in.GetProperty("IsValid").ReadBool(&is_valid)) {
-            return err;
-        }
+        // if (FBOMResult err = in.GetProperty("IsValid").ReadBool(&is_valid)) {
+        //     return err;
+        // }
 
-        if (!is_valid) {
-            out = HypData(ID<Entity>::invalid);
+        // if (!is_valid) {
+        //     out = HypData(Handle<Entity>::empty);
 
-            return FBOMResult::FBOM_OK;
-        }
+        //     return FBOMResult::FBOM_OK;
+        // }
 
-        const Handle<Scene> &detached_scene = g_engine->GetWorld()->GetDetachedScene(ThreadID::Current());
+        const Handle<Scene> &detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(ThreadID::Current());
         const RC<EntityManager> &entity_manager = detached_scene->GetEntityManager();
 
-        const ID<Entity> entity = entity_manager->AddEntity();
+        Handle<Entity> entity = entity_manager->AddEntity();
 
         for (FBOMObject &subobject : *in.nodes) {
             const TypeID subobject_type_id = subobject.GetType().GetNativeTypeID();
@@ -187,6 +187,25 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(ID<Entity>, FBOMMarshaler<ID<Entity>>);
+HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
+
+// template <>
+// class FBOMMarshaler<ID<Entity>> : public FBOMObjectMarshalerBase<ID<Entity>>
+// {
+// public:
+//     virtual ~FBOMMarshaler() override = default;
+
+//     virtual FBOMResult Serialize(const ID<Entity> &entity_id, FBOMObject &out) const override
+//     {
+//         return FBOMMarshaler<Handle<Entity>>{}.Serialize(Handle<Entity>(entity_id), out);
+//     }
+
+//     virtual FBOMResult Deserialize(const FBOMObject &in, HypData &out) const override
+//     {
+//         return FBOMMarshaler<Handle<Entity>>{}.Deserialize(in, out);
+//     }
+// };
+
+// HYP_DEFINE_MARSHAL(ID<Entity>, FBOMMarshaler<ID<Entity>>);
 
 } // namespace hyperion::fbom

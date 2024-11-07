@@ -9,6 +9,8 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/system/StackDump.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -64,7 +66,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize(const FBOMObject &in, HypData &o
     const HypClass *hyp_class = in.GetHypClass();
 
     if (!hyp_class) {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized type '{}' has no associated HypClass", in.GetType().name) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeID: {}) has no associated HypClass (Trace: {})", in.GetType().name, in.GetType().GetNativeTypeID().Value(), StackDump(5).ToString()) };
     }
 
     hyp_class->CreateInstance(out);
@@ -99,7 +101,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
                     continue;
                 }
 
-                HYP_LOG(Serialization, LogLevel::DEBUG, "Deserializing property '{}' on object, calling setter for HypClass '{}'", it.first, hyp_class->GetName());
+                HYP_LOG(Serialization, LogLevel::DEBUG, "Deserializing property '{}' on object (type: {}), calling setter for HypClass '{}'", it.first, it.second.GetType().name, hyp_class->GetName());
 
                 property->Deserialize(target_data, it.second);
             }

@@ -354,8 +354,8 @@ public:
         { return m_type; }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE ID<Entity> GetEntity() const
-        { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : ID<Entity>::invalid; }
+    HYP_FORCE_INLINE const Handle<Entity> &GetEntity() const
+        { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : Handle<Entity>::empty; }
 
     HYP_METHOD()
     HYP_FORCE_INLINE UIStage *GetStage() const

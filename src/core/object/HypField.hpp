@@ -45,7 +45,7 @@ struct HypField : public IHypMember
     Proc<fbom::FBOMData, const HypData &>           serialize_proc;
     Proc<void, HypData &, const fbom::FBOMData &>   deserialize_proc;
 
-    HypField(Span<HypClassAttribute> attributes = { })
+    HypField(Span<const HypClassAttribute> attributes = { })
         : name(Name::Invalid()),
           type_id(TypeID::Void()),
           target_type_id(TypeID::Void()),
@@ -56,7 +56,7 @@ struct HypField : public IHypMember
     }
 
     template <class ThisType, class FieldType>
-    HypField(Name name, FieldType ThisType::*member, uint32 offset, Span<HypClassAttribute> attributes = { })
+    HypField(Name name, FieldType ThisType::*member, uint32 offset, Span<const HypClassAttribute> attributes = { })
         : name(name),
           type_id(TypeID::ForType<FieldType>()),
           target_type_id(TypeID::ForType<ThisType>()),

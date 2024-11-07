@@ -18,6 +18,7 @@
 namespace hyperion {
 
 class Scene;
+class World;
 
 HYP_CLASS(Abstract)
 class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
@@ -25,6 +26,8 @@ class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
     HYP_OBJECT_BODY(Subsystem);
 
 public:
+    friend class World;
+
     Subsystem();
     Subsystem(const Subsystem &other)               = delete;
     Subsystem &operator=(const Subsystem &other)    = delete;
@@ -41,6 +44,16 @@ public:
 
     virtual void OnSceneAttached(const Handle<Scene> &scene) { };
     virtual void OnSceneDetached(const Handle<Scene> &scene) { };
+
+protected:
+    HYP_FORCE_INLINE World *GetWorld() const
+        { return m_world; }
+
+private:
+    HYP_FORCE_INLINE void SetWorld(World *world)
+        { m_world = world; }
+
+    World   *m_world;
 };
 
 } // namespace hyperion

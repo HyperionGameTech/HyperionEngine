@@ -5,7 +5,7 @@
 
 namespace hyperion {
 
-void UISystem::OnEntityAdded(ID<Entity> entity)
+void UISystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

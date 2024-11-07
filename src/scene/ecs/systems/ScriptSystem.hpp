@@ -24,7 +24,7 @@ public:
     virtual bool AllowParallelExecution() const override
         { return false; }
 
-    virtual void OnEntityAdded(ID<Entity> entity) override;
+    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

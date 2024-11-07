@@ -13,8 +13,8 @@ namespace hyperion {
 
 struct HYP_API BoundingSphere
 {
-    HYP_PROPERTY(Center, &BoundingSphere::center)
-    HYP_PROPERTY(Radius, &BoundingSphere::radius)
+    HYP_PROPERTY(Center, &BoundingSphere::center, { { "serialize", true } });
+    HYP_PROPERTY(Radius, &BoundingSphere::radius, { { "serialize", true } });
 
 public:
     static const BoundingSphere empty;

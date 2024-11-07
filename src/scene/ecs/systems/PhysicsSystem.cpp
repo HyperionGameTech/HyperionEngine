@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-void PhysicsSystem::OnEntityAdded(ID<Entity> entity)
+void PhysicsSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

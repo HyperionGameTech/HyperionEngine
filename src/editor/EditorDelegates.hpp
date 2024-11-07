@@ -10,6 +10,7 @@
 #include <core/functional/Delegate.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/Scheduler.hpp>
 
 #include <core/memory/AnyRef.hpp>
 
@@ -43,10 +44,11 @@ class HYP_API EditorDelegates
 public:
     struct SuppressUpdatesScope
     {
-        SuppressUpdatesScope(Node *node, const FlatSet<const HypProperty *> &properties_to_suppress = { })
-            : node(node)
+        SuppressUpdatesScope(EditorDelegates &editor_delegates, Node *node, const FlatSet<const HypProperty *> &properties_to_suppress = { })
+            : editor_delegates(editor_delegates),
+              node(node)
         {
-            SuppressedNode &suppressed_node = EditorDelegates::GetInstance().m_suppressed_nodes[node];
+            SuppressedNode &suppressed_node = editor_delegates.m_suppressed_nodes[node];
 
             if (properties_to_suppress.Empty()) {
                 ++suppressed_node.suppress_all_counter;
@@ -62,7 +64,7 @@ public:
 
         ~SuppressUpdatesScope()
         {
-            SuppressedNode &suppressed_node = EditorDelegates::GetInstance().m_suppressed_nodes[node];
+            SuppressedNode &suppressed_node = editor_delegates.m_suppressed_nodes[node];
 
             if (suppress_all) {
                 --suppressed_node.suppress_all_counter;
@@ -73,18 +75,17 @@ public:
             }
 
             if (suppressed_node.properties_to_suppress.Empty() && suppress_all == 0) {
-                EditorDelegates::GetInstance().m_suppressed_nodes.Erase(node);
+                editor_delegates.m_suppressed_nodes.Erase(node);
             }
         }
 
+        EditorDelegates                 &editor_delegates;
         Node                            *node = nullptr;
         FlatSet<const HypProperty *>    properties_to_suppress;
         bool                            suppress_all = false;
     };
 
-    static EditorDelegates &GetInstance();
-
-    EditorDelegates()                                           = default;
+    EditorDelegates();
     EditorDelegates(const EditorDelegates &other)               = delete;
     EditorDelegates &operator=(const EditorDelegates &other)    = delete;
     EditorDelegates(EditorDelegates &&other)                    = delete;
@@ -98,10 +99,13 @@ public:
 
     void OnNodeUpdate(Node *node, const HypProperty *property);
 
+    void Update();
+
 private:
     HashMap<Name, NodeWatcher>      m_node_watchers;
-
     HashMap<Node *, SuppressedNode> m_suppressed_nodes;
+
+    Scheduler<>                     m_scheduler;
 };
 
 } // namespace hyperion

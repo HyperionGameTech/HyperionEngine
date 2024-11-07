@@ -3,22 +3,20 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    // Corresponds to ID<Entity>
-    [StructLayout(LayoutKind.Sequential, Size = 4)]
-    public struct Entity
+    [HypClassBinding(Name="Entity")]
+    public class Entity : HypObject
     {
-        private IDBase id;
-
-        public Entity(IDBase id)
+        public Entity()
         {
-            this.id = id;
         }
 
         public IDBase ID
         {
             get
             {
-                return id;
+                return (IDBase)GetProperty(new Name("ID", weak: true))
+                    .Get(this)
+                    .GetValue();
             }
         }
     }

@@ -11,7 +11,7 @@
 
 namespace hyperion {
 
-void SkySystem::OnEntityAdded(ID<Entity> entity)
+void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

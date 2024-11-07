@@ -6,7 +6,7 @@ namespace Hyperion
     public abstract class Script
     {
         private Scene? scene;
-        private IDBase entity;
+        private Entity entity;
 
         protected Scene Scene
         {
@@ -16,7 +16,7 @@ namespace Hyperion
             }
         }
 
-        protected IDBase Entity
+        protected Entity Entity
         {
             get
             {
@@ -36,7 +36,7 @@ namespace Hyperion
             Logger.Log(LogType.Info, "{0} BeforeInit: this.scene = {1}", GetType().Name, this.scene);
         }
 
-        public virtual void Init(IDBase entity)
+        public virtual void Init(Entity entity)
         {
             this.entity = entity;
         }

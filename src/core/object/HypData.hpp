@@ -492,26 +492,31 @@ struct HypDataHelper<IDBase>
 };
 
 template <class T>
-struct HypDataHelperDecl<ID<T>, std::enable_if_t<!std::is_same_v<T, Entity>>> {};
+struct HypDataHelperDecl<ID<T>> {};
 
 template <class T>
-struct HypDataHelper<ID<T>, std::enable_if_t<!std::is_same_v<T, Entity>>> : HypDataHelper<IDBase>
+struct HypDataHelper<ID<T>> : HypDataHelper<IDBase>
 {
-    using ConvertibleFrom = Tuple<>;
+    using ConvertibleFrom = Tuple<AnyHandle>;
 
     HYP_FORCE_INLINE bool Is(const IDBase &value) const
     {
         return true; // can't do anything more to check as IDBase doesn't hold type info.
     }
 
-    ID<T> &Get(IDBase &value) const
+    HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
-        return static_cast<ID<T> &>(value);
+        return value.GetTypeID() == TypeID::ForType<T>();
     }
 
-    const ID<T> &Get(const IDBase &value) const
+    ID<T> Get(IDBase value) const
     {
-        return static_cast<const ID<T> &>(value);
+        return ID<T>(value);
+    }
+
+    ID<T> Get(const AnyHandle &value) const
+    {
+        return ID<T>(value.GetID());
     }
 
     void Set(HypData &hyp_data, const ID<T> &value) const
@@ -520,46 +525,46 @@ struct HypDataHelper<ID<T>, std::enable_if_t<!std::is_same_v<T, Entity>>> : HypD
     }
 };
 
-template <>
-struct HypDataHelperDecl<ID<Entity>> {};
+// template <>
+// struct HypDataHelperDecl<ID<Entity>> {};
 
-template <>
-struct HypDataHelper<ID<Entity>> : HypDataHelper<IDBase>
-{
-    using ConvertibleFrom = Tuple<>;
+// template <>
+// struct HypDataHelper<ID<Entity>> : HypDataHelper<IDBase>
+// {
+//     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const IDBase &value) const
-    {
-        return true; // can't do anything more to check as IDBase doesn't hold type info.
-    }
+//     HYP_FORCE_INLINE bool Is(const IDBase &value) const
+//     {
+//         return true; // can't do anything more to check as IDBase doesn't hold type info.
+//     }
 
-    ID<Entity> &Get(IDBase &value) const
-    {
-        return static_cast<ID<Entity> &>(value);
-    }
+//     ID<Entity> &Get(IDBase &value) const
+//     {
+//         return static_cast<ID<Entity> &>(value);
+//     }
 
-    const ID<Entity> &Get(const IDBase &value) const
-    {
-        return static_cast<const ID<Entity> &>(value);
-    }
+//     const ID<Entity> &Get(const IDBase &value) const
+//     {
+//         return static_cast<const ID<Entity> &>(value);
+//     }
 
-    void Set(HypData &hyp_data, const ID<Entity> &value) const
-    {
-        HypDataHelper<IDBase>::Set(hyp_data, static_cast<const IDBase &>(value));
-    }
+//     void Set(HypData &hyp_data, const ID<Entity> &value) const
+//     {
+//         HypDataHelper<IDBase>::Set(hyp_data, static_cast<const IDBase &>(value));
+//     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
-    {
-        ID<Entity> entity = static_cast<ID<Entity>>(hyp_data.Get<IDBase>());
+//     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+//     {
+//         ID<Entity> entity = static_cast<ID<Entity>>(hyp_data.Get<IDBase>());
         
-        return HypDataMarshalHelper::Serialize<ID<Entity>>(entity, out_data);
-    }
+//         return HypDataMarshalHelper::Serialize<ID<Entity>>(entity, out_data);
+//     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
-    {
-        return HypDataMarshalHelper::Deserialize<ID<Entity>>(data, out);
-    }
-};
+//     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+//     {
+//         return HypDataMarshalHelper::Deserialize<ID<Entity>>(data, out);
+//     }
+// };
 
 template <>
 struct HypDataHelperDecl<AnyHandle> {};
@@ -1217,41 +1222,41 @@ struct HypDataHelper<WeakName> : HypDataHelper<Name>
 };
 
 
-template <class T>
-struct HypDataHelperDecl<Array<T>> {};
+template <class T, SizeType NumInlineBytes>
+struct HypDataHelperDecl<Array<T, NumInlineBytes>> {};
 
-template <class T>
-struct HypDataHelper<Array<T>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
+template <class T, SizeType NumInlineBytes>
+struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any &value) const
     {
-        return value.Is<Array<T>>();
+        return value.Is<Array<T, NumInlineBytes>>();
     }
 
-    Array<T> &Get(const Any &value) const
+    Array<T, NumInlineBytes> &Get(const Any &value) const
     {
-        return value.Get<Array<T>>();
+        return value.Get<Array<T, NumInlineBytes>>();
     }
 
-    void Set(HypData &hyp_data, const Array<T> &value) const
+    void Set(HypData &hyp_data, const Array<T, NumInlineBytes> &value) const
     {
-        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T>>(value));
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(value));
     }
 
-    void Set(HypData &hyp_data, Array<T> &&value) const
+    void Set(HypData &hyp_data, Array<T, NumInlineBytes> &&value) const
     {
-        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T>>(std::move(value)));
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(std::move(value)));
     }
 
     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
-        Any &value = hyp_data.Get<Any>();
+        Any &any_value = hyp_data.Get<Any>();
         
-        Array<T> *array_ptr = value.TryGet<Array<T>>();
+        Array<T, NumInlineBytes> *array_ptr = any_value.TryGet<Array<T, NumInlineBytes>>();
 
         if (!array_ptr) {
             return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize array - HypData is not expected array type" };
@@ -1260,7 +1265,14 @@ struct HypDataHelper<Array<T>, std::enable_if_t<!std::is_const_v<T>>> : HypDataH
         const SizeType size = array_ptr->Size();
 
         if (size == 0) {
-            out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(fbom::FBOMUnset()));
+            // If size is empty, serialize a placeholder value to get the element type
+            fbom::FBOMData placeholder_data;
+
+            if (fbom::FBOMResult err = HypDataHelper<T>::Serialize(HypData(T { }), placeholder_data)) {
+                return err;
+            }
+
+            out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(placeholder_data.GetType()));
 
             return fbom::FBOMResult::FBOM_OK;
         }
@@ -1291,7 +1303,7 @@ struct HypDataHelper<Array<T>, std::enable_if_t<!std::is_const_v<T>>> : HypDataH
 
         const SizeType size = array.Size();
 
-        Array<T> result;
+        Array<T, NumInlineBytes> result;
         result.Reserve(size);
 
         for (SizeType i = 0; i < size; i++) {
@@ -1304,7 +1316,7 @@ struct HypDataHelper<Array<T>, std::enable_if_t<!std::is_const_v<T>>> : HypDataH
             result.PushBack(element.Get<T>());
         }
 
-        HypDataHelper<Array<T>>{}.Set(out, std::move(result));
+        HypDataHelper<Array<T, NumInlineBytes>>{}.Set(out, std::move(result));
 
         return { fbom::FBOMResult::FBOM_OK };
     }

@@ -17,6 +17,7 @@
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Threads.hpp>
+#include <core/threading/Task.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/utilities/Tuple.hpp>
@@ -191,7 +192,7 @@ struct EntityListener
 
     EntityListener()                                        = default;
 
-    EntityListener(Proc<void, ID<Entity>> &&on_entity_added, Proc<void, ID<Entity>> &&on_entity_removed)
+    EntityListener(Proc<void, const Handle<Entity> &> &&on_entity_added, Proc<void, ID<Entity>> &&on_entity_removed)
         : on_entity_added(std::move(on_entity_added)),
           on_entity_removed(std::move(on_entity_removed))
     {
@@ -203,20 +204,20 @@ struct EntityListener
     EntityListener &operator=(EntityListener &&) noexcept   = default;
     ~EntityListener()                                       = default;
 
-    Proc<void, ID<Entity>> on_entity_added;
-    Proc<void, ID<Entity>> on_entity_removed;
+    Proc<void, const Handle<Entity> &>  on_entity_added;
+    Proc<void, ID<Entity>>              on_entity_removed;
 
-    void OnEntityAdded(ID<Entity> id)
+    void OnEntityAdded(const Handle<Entity> &entity)
     {
         if (on_entity_added) {
-            on_entity_added(id);
+            on_entity_added(entity);
         }
     }
 
-    void OnEntityRemoved(ID<Entity> id)
+    void OnEntityRemoved(ID<Entity> entity_id)
     {
         if (on_entity_removed) {
-            on_entity_removed(id);
+            on_entity_removed(entity_id);
         }
     }
 };
@@ -280,21 +281,21 @@ public:
         m_map.Set(entity, entity_manager);
     }
 
-    HYP_FORCE_INLINE void Remove(ID<Entity> entity)
+    HYP_FORCE_INLINE void Remove(ID<Entity> id)
     {
         Mutex::Guard guard(m_mutex);
 
-        const auto it = m_map.Find(entity);
+        const auto it = m_map.FindAs(id);
         AssertThrowMsg(it != m_map.End(), "Entity -> EntityManager mapping does not exist!");
 
         m_map.Erase(it);
     }
 
-    HYP_FORCE_INLINE EntityManager *GetEntityManager(ID<Entity> entity) const
+    HYP_FORCE_INLINE EntityManager *GetEntityManager(ID<Entity> id) const
     {
         Mutex::Guard guard(m_mutex);
 
-        const auto it = m_map.Find(entity);
+        const auto it = m_map.FindAs(id);
 
         if (it == m_map.End()) {
             return nullptr;
@@ -315,27 +316,27 @@ public:
             }
         }
 
-        for (ID<Entity> entity : keys_to_remove) {
+        for (const ID<Entity> &entity : keys_to_remove) {
             m_map.Erase(entity);
         }
     }
 
-    HYP_FORCE_INLINE void Remap(ID<Entity> entity, EntityManager *new_entity_manager)
+    HYP_FORCE_INLINE void Remap(ID<Entity> id, EntityManager *new_entity_manager)
     {
         Mutex::Guard guard(m_mutex);
 
-        const auto it = m_map.Find(entity);
+        const auto it = m_map.FindAs(id);
         AssertThrowMsg(it != m_map.End(), "Entity -> EntityManager mapping does not exist!");
 
         it->second = new_entity_manager;
     }
 
+    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id));
+
 private:
     HashMap<ID<Entity>, EntityManager *>    m_map;
     mutable Mutex                           m_mutex;
 };
-
-// @TODO Refactor to use Handle<Entity> instead of ID<Entity> so the entities are ref counted
 
 HYP_CLASS()
 class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
@@ -343,6 +344,11 @@ class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
 
     HYP_OBJECT_BODY(EntityManager);
+
+    friend class EntityToEntityManagerMap;
+
+    // Allow Entity destructor to call RemoveEntity().
+    friend class Entity;
 
 public:
     static constexpr ComponentID invalid_component_id = 0;
@@ -404,16 +410,7 @@ public:
      *
      *  \return The Entity that was added. */
     HYP_METHOD()
-    HYP_NODISCARD ID<Entity> AddEntity();
-
-    /*! \brief Removes an entity from the EntityManager.
-     *
-     *  \param[in] id The Entity to remove.
-     *
-     *  \return True if the entity was removed, false otherwise.
-     */
-    HYP_METHOD()
-    bool RemoveEntity(ID<Entity> id);
+    HYP_NODISCARD Handle<Entity> AddEntity();
 
     /*! \brief Moves an entity from one EntityManager to another.
      *  This is useful for moving entities between scenes.
@@ -422,7 +419,7 @@ public:
      *  \param[in] entity The Entity to move.
      *  \param[in] other The EntityManager to move the entity to.
      */
-    void MoveEntity(ID<Entity> entity, EntityManager &other);
+    void MoveEntity(const Handle<Entity> &entity, EntityManager &other);
     
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
@@ -933,8 +930,16 @@ private:
         return ptr;
     }
 
-    void NotifySystemsOfEntityAdded(ID<Entity> id, const TypeMap<ComponentID> &component_ids);
-    void NotifySystemsOfEntityRemoved(ID<Entity> id, const TypeMap<ComponentID> &component_ids);
+    void NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<ComponentID> &component_ids);
+    void NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMap<ComponentID> &component_ids);
+
+    /*! \brief Removes an entity from the EntityManager.
+     *
+     *  \param[in] id The Entity to remove.
+     *
+     *  \return True if the entity was removed, false otherwise.
+     */
+    bool RemoveEntity(ID<Entity> id);
 
     ThreadMask                                                              m_owner_thread_mask;
     Scene                                                                   *m_scene;

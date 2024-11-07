@@ -7,7 +7,7 @@
 
 namespace hyperion {
 
-void EntityMeshDirtyStateSystem::OnEntityAdded(ID<Entity> entity)
+void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
 

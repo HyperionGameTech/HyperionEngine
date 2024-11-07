@@ -17,6 +17,7 @@
 
 namespace hyperion {
 
+class World;
 class Scene;
 class Camera;
 class Texture;
@@ -24,6 +25,7 @@ class InputManager;
 class UIStage;
 class UIObject;
 class FontAtlas;
+class EditorDelegates;
 
 namespace sys {
 class AppContext;
@@ -61,6 +63,9 @@ public:
     HYP_FORCE_INLINE const NodeProxy &GetFocusedNode() const
         { return m_focused_node; }
 
+    HYP_FORCE_INLINE EditorDelegates *GetEditorDelegates()
+        { return m_editor_delegates; }
+
     Delegate<void, const NodeProxy &, const NodeProxy &>    OnFocusedNodeChanged;
 
 private:
@@ -88,6 +93,8 @@ private:
 
     bool                    m_editor_camera_enabled;
     bool                    m_should_cancel_next_click;
+
+    EditorDelegates         *m_editor_delegates;
 };
 
 } // namespace hyperion
