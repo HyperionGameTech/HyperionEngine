@@ -38,7 +38,7 @@ float Vec2<float>::Max() const
 
 float Vec2<float>::Distance(const Vec2<float> &other) const
 {
-    return sqrt(DistanceSquared(other));
+    return MathUtil::Sqrt(DistanceSquared(other));
 }
 
 float Vec2<float>::DistanceSquared(const Vec2<float> &other) const

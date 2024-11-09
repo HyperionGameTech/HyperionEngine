@@ -143,7 +143,7 @@ public:
     HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &attributes)
         { m_mesh_attributes = attributes; }
 
-    HYP_METHOD(Property="Topology", Serialize=true)
+    HYP_METHOD(Property="Topology")
     HYP_FORCE_INLINE Topology GetTopology() const
         { return m_mesh_attributes.topology; }
 

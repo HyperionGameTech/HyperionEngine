@@ -172,39 +172,6 @@ void HyperionEditor::Init()
 
     // return;
 
-
-
-    // // add sun
-    
-    // auto sun = CreateObject<Light>(
-    //     LightType::DIRECTIONAL,
-    //     Vec3f(-0.4f, 0.65f, 0.1f).Normalize(),
-    //     Color(Vec4f(1.0f)),
-    //     4.0f,
-    //     0.0f
-    // );
-
-    // InitObject(sun);
-
-    // NodeProxy sun_node = m_scene->GetRoot()->AddChild();
-    // sun_node.SetName("Sun");
-
-    // auto sun_entity = m_scene->GetEntityManager()->AddEntity();
-    // sun_node.SetEntity(sun_entity);
-    // sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
-
-    // m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
-    //     sun
-    // });
-
-    // m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
-    //     .mode       = ShadowMode::PCF,
-    //     .radius     = 35.0f,
-    //     .resolution = { 2048, 2048 }
-    // });
-
-
-
     // if (false) {
         
 
@@ -344,6 +311,35 @@ void HyperionEditor::Init()
     // }
 
 #if 0
+    // add sun
+    
+    auto sun = CreateObject<Light>(
+        LightType::DIRECTIONAL,
+        Vec3f(-0.4f, 0.65f, 0.1f).Normalize(),
+        Color(Vec4f(1.0f)),
+        4.0f,
+        0.0f
+    );
+
+    InitObject(sun);
+
+    NodeProxy sun_node = m_scene->GetRoot()->AddChild();
+    sun_node.SetName("Sun");
+
+    auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+    sun_node.SetEntity(sun_entity);
+    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
+
+    m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
+        sun
+    });
+
+    m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
+        .mode       = ShadowMode::PCF,
+        .radius     = 35.0f,
+        .resolution = { 2048, 2048 }
+    });
+
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");

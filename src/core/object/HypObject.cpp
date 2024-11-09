@@ -197,7 +197,7 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
 HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object)
 {
     AssertThrow(initializer != nullptr);
-    AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class! Is HYP_DEFINE_CLASS missing for the type?");
+    AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class! Is HYP_CLASS() missing for the type?");
 
     AssertThrowMsg(!hyp_class->IsAbstract(), "Cannot directly create an instance of object with HypClass \"%s\" which is marked abstract!", hyp_class->GetName().LookupString());
 

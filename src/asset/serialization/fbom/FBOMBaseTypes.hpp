@@ -42,8 +42,7 @@ struct FBOMStruct : FBOMType
         && !std::is_reference_v<T>
         && !std::is_const_v<T>
         && !std::is_volatile_v<T>
-        && std::is_standard_layout_v<T>
-        && std::is_trivially_copyable_v<T>;
+        && IsPODType<T>;
 
     FBOMStruct()
         : FBOMType("struct", -1, /* no valid native TypeID */ TypeID::Void())
@@ -55,23 +54,17 @@ struct FBOMStruct : FBOMType
     {
     }
 
-    template <class T>
-    FBOMStruct(TypeWrapper<T>)
+    template <class T, bool CompileTimeChecked = true>
+    FBOMStruct(TypeWrapper<T>, std::bool_constant<CompileTimeChecked> = { })
         : FBOMType(TypeNameWithoutNamespace<T>(), sizeof(T), TypeID::ForType<T>(), FBOMType("struct", sizeof(T), TypeID::ForType<T>()))
     {
-        static_assert(!std::is_pointer_v<T>, "Cannot create struct of pointer type");
-        static_assert(!std::is_reference_v<T>, "Cannot create struct of reference type");
-        static_assert(!std::is_const_v<T>, "Cannot create struct of const type");
-        static_assert(!std::is_volatile_v<T>, "Cannot create struct of volatile type");
-
-        static_assert(std::is_standard_layout_v<T>, "Cannot create struct of non-standard layout type");
-        static_assert(std::is_trivially_copyable_v<T>, "Cannot create struct of non-trivially copyable type");
+        AssertStaticMsgCond(CompileTimeChecked, is_valid_struct_type<T>, "T is not a valid type to use with FBOMStruct");
     }
 
-    template <class T>
+    template <class T, bool CompileTimeChecked = true>
     static FBOMStruct Create()
     {
-        return FBOMStruct(TypeWrapper<T> { });
+        return FBOMStruct(TypeWrapper<T> { }, std::bool_constant<CompileTimeChecked> { });
     }
 };
 

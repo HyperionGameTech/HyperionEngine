@@ -3,6 +3,7 @@
 #include <asset/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <core/object/HypClass.hpp>
+#include <core/object/HypStruct.hpp>
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypMethod.hpp>
@@ -30,7 +31,31 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeID {} has no associated HypClass", in.GetTypeID().Value()) };
     }
 
+    if (!hyp_class->CanSerialize()) {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeID {} has no associated HypClass", in.GetTypeID().Value()) };
+    }
+
+    const HypClassAttributeValue &serialize_attribute = hyp_class->GetAttribute("serialize");
+
+    if (serialize_attribute == false) {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=false", hyp_class->GetName()) };
+    }
+
     HYP_NAMED_SCOPE_FMT("Serializing object with HypClass '{}'", hyp_class->GetName());
+
+    if (hyp_class->GetSerializationMode() & HypClassSerializationMode::BITWISE) {
+        if (!hyp_class->IsStructType()) {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=\"bitwise\" but is not a struct type", hyp_class->GetName()) };
+        }
+
+        const HypStruct *hyp_struct = static_cast<const HypStruct *>(hyp_class);
+
+        if (FBOMResult err = hyp_struct->SerializeStruct(in, out)) {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}': {}", hyp_class->GetName(), err.message) };
+        }
+
+        return { FBOMResult::FBOM_OK };
+    }
 
     HypData target_data { AnyRef { in.GetTypeID(), const_cast<void *>(in.GetPointer()) } };
 
@@ -70,6 +95,16 @@ FBOMResult HypClassInstanceMarshal::Deserialize(const FBOMObject &in, HypData &o
     }
 
     hyp_class->CreateInstance(out);
+
+    if (hyp_class->GetSerializationMode() & HypClassSerializationMode::BITWISE) {
+        if (!hyp_class->IsStructType()) {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object with HypClass '{}', HypClass has attribute \"serialize\"=\"bitwise\" but is not a struct type", hyp_class->GetName()) };
+        }
+
+        const HypStruct *hyp_struct = static_cast<const HypStruct *>(hyp_class);
+
+        return hyp_struct->DeserializeStruct(in, out);
+    }
 
     AnyRef ref = out.ToRef();
     AssertThrowMsg(ref.HasValue(), "Failed to create HypClass instance");

@@ -40,6 +40,20 @@ struct HypField;
 
 class IHypObjectInitializer;
 
+enum class HypClassSerializationMode : uint8
+{
+    NONE                        = 0x0,
+
+    MEMBERWISE                  = 0x1,  // Use HypClassInstanceMarshal - Serialize members
+    BITWISE                     = 0x2,  // Use HypClassInstanceMarshal - Serialize as FBOMStruct (binary)
+
+    USE_MARSHAL_CLASS           = 0x80, // Use Marshal class as override
+
+    DEFAULT = MEMBERWISE | USE_MARSHAL_CLASS
+};
+
+HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
+
 class HypClassMemberIterator
 {
     enum class Phase
@@ -260,8 +274,16 @@ public:
     HYP_FORCE_INLINE bool IsStructType() const
         { return m_flags & HypClassFlags::STRUCT_TYPE; }
 
+    HYP_FORCE_INLINE bool IsPOD() const
+        { return m_flags & HypClassFlags::POD_TYPE; }
+
     HYP_FORCE_INLINE bool IsAbstract() const
-        { return bool(m_attributes["abstract"]); }
+        { return m_flags & HypClassFlags::ABSTRACT; }
+
+    bool CanSerialize() const;
+
+    HYP_FORCE_INLINE EnumFlags<HypClassSerializationMode> GetSerializationMode() const
+        { return m_serialization_mode; }
 
     HYP_FORCE_INLINE const HypClassAttributeSet &GetAttributes() const
         { return m_attributes; }
@@ -341,18 +363,19 @@ protected:
 
     static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference);
 
-    TypeID                          m_type_id;
-    Name                            m_name;
-    Name                            m_parent_name;
-    const HypClass                  *m_parent;
-    HypClassAttributeSet            m_attributes;
-    EnumFlags<HypClassFlags>        m_flags;
-    Array<HypProperty *>            m_properties;
-    HashMap<Name, HypProperty *>    m_properties_by_name;
-    Array<HypMethod *>              m_methods;
-    HashMap<Name, HypMethod *>      m_methods_by_name;
-    Array<HypField *>               m_fields;
-    HashMap<Name, HypField *>       m_fields_by_name;
+    TypeID                                  m_type_id;
+    Name                                    m_name;
+    Name                                    m_parent_name;
+    const HypClass                          *m_parent;
+    HypClassAttributeSet                    m_attributes;
+    EnumFlags<HypClassFlags>                m_flags;
+    Array<HypProperty *>                    m_properties;
+    HashMap<Name, HypProperty *>            m_properties_by_name;
+    Array<HypMethod *>                      m_methods;
+    HashMap<Name, HypMethod *>              m_methods_by_name;
+    Array<HypField *>                       m_fields;
+    HashMap<Name, HypField *>               m_fields_by_name;
+    EnumFlags<HypClassSerializationMode>    m_serialization_mode;
 };
 
 template <class T>

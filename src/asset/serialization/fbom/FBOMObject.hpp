@@ -253,7 +253,7 @@ public:
         { return GetMarshal(TypeID::ForType<T>()); }
 
     /*! \brief Returns the associated HypClass for this object type, if applicable.
-     *  The type must be registered using the HYP_DEFINE_CLASS() macro.
+     *  The type must be registered using the "HYP_CLASS" macro.
      *  
      *  If this object's FBOMType has no native TypeID (e.g it is a FBOM-only type like `seq`), or if
      *  no HypClass has been registered for the type, nullptr will be returned. */

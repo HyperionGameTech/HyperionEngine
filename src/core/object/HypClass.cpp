@@ -97,8 +97,13 @@ HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<const HypCl
       m_parent_name(parent_name),
       m_parent(nullptr),
       m_attributes(attributes),
-      m_flags(flags)
+      m_flags(flags),
+      m_serialization_mode(HypClassSerializationMode::DEFAULT)
 {
+    if (bool(m_attributes["abstract"])) {
+        m_flags |= HypClassFlags::ABSTRACT;
+    }
+
     // initialize properties containers
     for (HypMember &member : members) {
         if (HypProperty *property = member.value.TryGet<HypProperty>()) {
@@ -144,6 +149,37 @@ HypClass::~HypClass()
 
 void HypClass::Initialize()
 {
+    m_serialization_mode = HypClassSerializationMode::DEFAULT;
+
+    if (const HypClassAttributeValue &serialize_attribute = GetAttribute("serialize")) {
+        if (serialize_attribute.IsString()) {
+            m_serialization_mode = HypClassSerializationMode::NONE;
+
+            const String string_value = serialize_attribute.GetString().ToLower();
+
+            if (string_value == "bitwise") {
+                if (!IsPOD()) {
+                    HYP_FAIL("Cannot use \"bitwise\" serialization mode for non-POD type: %s", m_name.LookupString());
+                }
+
+                m_serialization_mode = HypClassSerializationMode::BITWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
+            } else {
+                m_serialization_mode = HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
+            }
+        } else if (!serialize_attribute.GetBool()) {
+            m_serialization_mode = HypClassSerializationMode::NONE;
+        }
+    }
+
+    // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this HypClass is initialized
+    if (m_serialization_mode & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+        fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(GetTypeID(), /* allow_fallback */ false);
+
+        if (!marshal) {
+            m_serialization_mode &= ~HypClassSerializationMode::USE_MARSHAL_CLASS;
+        }
+    }
+
     if (m_parent_name.IsValid()) {
         m_parent = GetClass(m_parent_name);
         AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
@@ -220,6 +256,29 @@ void HypClass::Initialize()
 
         HYP_FAIL("Invalid property definition for \"%s\": Must be HYP_FIELD() or getter/setter pair of HYP_METHOD()", it.first.Data());
     }
+}
+
+bool HypClass::CanSerialize() const
+{
+    if (m_serialization_mode == HypClassSerializationMode::NONE) {
+        return false;
+    }
+
+    if (m_serialization_mode & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+        return true;
+    }
+
+    if (m_serialization_mode & HypClassSerializationMode::MEMBERWISE) {
+        return true;
+    }
+
+    if (m_serialization_mode & HypClassSerializationMode::BITWISE) {
+        if (IsStructType()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 IHypMember *HypClass::GetMember(WeakName name) const

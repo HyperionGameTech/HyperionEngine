@@ -34,8 +34,6 @@
     do { \
         static const char *_message = (message); \
         \
-        AssertDebugMsg((cond), "FBOM error: %s", _message); \
-        \
         if (!(cond)) { \
             return FBOMResult { FBOMResult::FBOM_ERR, _message }; \
         } \
@@ -270,20 +268,18 @@ public:
         FBOM_RETURN_OK;
     }
 
-    template <class T>
+    template <class T, bool CompileTimeChecked = true>
     HYP_FORCE_INLINE FBOMResult ReadStruct(T *out) const
     {
-        static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
+        AssertStaticMsgCond(CompileTimeChecked, IsPODType<T>, "T must be POD to use ReadStruct()");
 
         return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeID::ForType<NormalizedType<T>>(), out);
     }
 
-    template <class T>
+    template <class T, bool CompileTimeChecked = true>
     HYP_FORCE_INLINE T ReadStruct() const
     {
-        static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable to use ReadStruct()");
+        AssertStaticMsgCond(CompileTimeChecked, IsPODType<T>, "T must be POD to use ReadStruct()");
 
         ValueStorage<NormalizedType<T>> result_storage;
 
@@ -297,7 +293,13 @@ public:
     template <class T>
     HYP_FORCE_INLINE static FBOMData FromStruct(const T &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        return FBOMData(FBOMStruct::Create<T>(), ByteBuffer(sizeof(T), &value), flags);
+        return FBOMData(FBOMStruct::Create<T, true>(), ByteBuffer(sizeof(T), &value), flags);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE static FBOMData FromStructUnchecked(const T &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        return FBOMData(FBOMStruct::Create<T, false>(), ByteBuffer(sizeof(T), &value), flags);
     }
 
     //template <class T, typename = std::enable_if_t< FBOMStruct::is_valid_struct_type< NormalizedType<T> > && std::is_class_v< NormalizedType<T> > > >
