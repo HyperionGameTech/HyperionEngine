@@ -46,6 +46,11 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 {
     const HypClass *hyp_class = GetClass(type_id);
 
+    // Check if HypClass disallows serialization
+    if (hyp_class && !hyp_class->CanSerialize()) {
+        return nullptr;
+    }
+
     auto FindMarshalForTypeID = [this](TypeID type_id) -> FBOMMarshalerBase *
     {
         const auto it = m_marshals.Find(type_id);
@@ -57,8 +62,10 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
         return nullptr;
     };
 
-    if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(type_id)) {
-        return marshal;
+    if (hyp_class == nullptr || hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+        if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(type_id)) {
+            return marshal;
+        }
     }
 
     if (!hyp_class) {
@@ -70,8 +77,11 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
         const HypClass *parent_hyp_class = hyp_class->GetParent();
         
         while (parent_hyp_class) {
-            if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
-                return marshal;
+
+            if (parent_hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+                if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
+                    return marshal;
+                }
             }
 
             parent_hyp_class = parent_hyp_class->GetParent();
@@ -80,7 +90,7 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 
     // No custom marshal found
 
-    if (allow_fallback) {
+    if (allow_fallback && (hyp_class->GetSerializationMode() & (HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::BITWISE))) {
         // If the type has a HypClass defined, then use the default HypClass instance marshal
         AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
@@ -92,6 +102,11 @@ FBOMMarshalerBase *FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 FBOMMarshalerBase *FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallback) const
 {
     const HypClass *hyp_class = HypClassRegistry::GetInstance().GetClass(type_name);
+
+    // Check if HypClass disallows serialization
+    if (hyp_class && !hyp_class->CanSerialize()) {
+        return nullptr;
+    }
 
     auto FindMarshalForTypeName = [this](ANSIStringView type_name) -> FBOMMarshalerBase *
     {
@@ -118,8 +133,10 @@ FBOMMarshalerBase *FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallbac
         return nullptr;
     };
 
-    if (FBOMMarshalerBase *marshal = FindMarshalForTypeName(type_name)) {
-        return marshal;
+    if (hyp_class == nullptr || hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+        if (FBOMMarshalerBase *marshal = FindMarshalForTypeName(type_name)) {
+            return marshal;
+        }
     }
 
     if (!hyp_class) {
@@ -131,15 +148,17 @@ FBOMMarshalerBase *FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallbac
         const HypClass *parent_hyp_class = hyp_class->GetParent();
 
         while (parent_hyp_class) {
-            if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
-                return marshal;
+            if (parent_hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS) {
+                if (FBOMMarshalerBase *marshal = FindMarshalForTypeID(parent_hyp_class->GetTypeID())) {
+                    return marshal;
+                }
             }
 
             parent_hyp_class = parent_hyp_class->GetParent();
         }
     }
 
-    if (allow_fallback) {
+    if (allow_fallback && (hyp_class->GetSerializationMode() & (HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::BITWISE))) {
         AssertThrow(m_hyp_class_instance_marshal != nullptr);
         return m_hyp_class_instance_marshal.Get();
     }

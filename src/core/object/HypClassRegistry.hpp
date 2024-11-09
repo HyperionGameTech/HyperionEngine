@@ -39,7 +39,8 @@ enum class HypClassFlags : uint32
     NONE        = 0x0,
     CLASS_TYPE  = 0x1,
     STRUCT_TYPE = 0x2,
-    ABSTRACT    = 0x4
+    ABSTRACT    = 0x4,
+    POD_TYPE    = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)

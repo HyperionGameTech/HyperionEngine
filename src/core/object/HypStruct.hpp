@@ -4,7 +4,9 @@
 #define HYPERION_CORE_HYP_STRUCT_HPP
 
 #include <core/object/HypClass.hpp>
+#include <core/object/HypData.hpp>
 
+#include <asset/serialization/fbom/FBOMObject.hpp>
 #include <asset/serialization/fbom/FBOMData.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
 
@@ -13,8 +15,6 @@ namespace hyperion {
 namespace dotnet {
 class Class;
 } // namespace dotnet
-
-struct HypData;
 
 class HypStruct : public HypClass
 {
@@ -43,6 +43,9 @@ public:
     virtual bool CanCreateInstance() const override = 0;
     
     virtual void ConstructFromBytes(ConstByteView view, HypData &out) const = 0;
+
+    virtual fbom::FBOMResult SerializeStruct(ConstAnyRef value, fbom::FBOMObject &out) const = 0;
+    virtual fbom::FBOMResult DeserializeStruct(const fbom::FBOMObject &in, HypData &out) const = 0;
 
 protected:
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
@@ -109,6 +112,75 @@ public:
         Memory::MemCpy(result_storage.GetPointer(), view.Data(), sizeof(T));
 
         out = HypData(std::move(result_storage.Get()));
+    }
+
+    virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override
+    {
+        AssertThrow(in.Is<T>());
+        HYP_SCOPE;
+        
+        const fbom::FBOMMarshalerBase *marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
+            ? fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            : nullptr;
+
+        if (marshal) {
+            if (fbom::FBOMResult err = marshal->Serialize(in, out)) {
+                return err;
+            }
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        if (GetSerializationMode() & HypClassSerializationMode::BITWISE) {
+            fbom::FBOMData struct_data = fbom::FBOMData::FromStructUnchecked(in.Get<T>());
+            
+            fbom::FBOMObject struct_wrapper_object(fbom::FBOMObjectType(this));
+            struct_wrapper_object.SetProperty("StructData", std::move(struct_data));
+
+            out = std::move(struct_wrapper_object);
+
+            return { fbom::FBOMResult::FBOM_OK };
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
+
+        // return HypDataHelper<T>::Serialize(HypData(AnyRef(value.GetTypeID(), const_cast<void *>(value.GetPointer()))), out);
+    }
+
+    virtual fbom::FBOMResult DeserializeStruct(const fbom::FBOMObject &in, HypData &out) const override
+    {
+        HYP_SCOPE;
+
+        if (!in.GetType().Is(fbom::FBOMObjectType(this))) {
+            return { fbom::FBOMResult::FBOM_ERR, "Cannot deserialize object into struct - type mismatch" };
+        }
+        
+        const fbom::FBOMMarshalerBase *marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
+            ? fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            : nullptr;
+
+        if (marshal) {
+            if (fbom::FBOMResult err = marshal->Deserialize(in, out)) {
+                return err;
+            }
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        if (GetSerializationMode() & HypClassSerializationMode::BITWISE) {
+            // Read StructData property
+            T result;
+            
+            if (fbom::FBOMResult err = in.GetProperty("StructData").ReadStruct<T, /* CompileTimeChecked */ false>(&result)) {
+                return err;
+            }
+
+            out = HypData(std::move(result));
+
+            return { fbom::FBOMResult::FBOM_OK };
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
     }
 
 protected:

@@ -16,7 +16,7 @@ enum class UUIDVersion
     UUIDv4  = 4
 };
 
-HYP_STRUCT()
+HYP_STRUCT(Serialize="bitwise")
 struct alignas(16) UUID
 {
     HYP_FIELD(Serialize, Property="Data0")

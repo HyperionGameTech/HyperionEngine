@@ -793,7 +793,7 @@ struct HypDataHelper<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDataHel
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
-            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
+            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for type" };
         }
 
         if (!data) {
@@ -955,7 +955,7 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
-            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
+            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for type" };
         }
 
         if (!data) {
@@ -1165,7 +1165,7 @@ struct HypDataHelperDecl<Name> {};
 template <>
 struct HypDataHelper<Name> : HypDataHelper<Any>
 {
-    using ConvertibleFrom = Tuple<ANSIString>;
+    using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any &value) const
     {
@@ -1220,7 +1220,6 @@ template <>
 struct HypDataHelper<WeakName> : HypDataHelper<Name>
 {
 };
-
 
 template <class T, SizeType NumInlineBytes>
 struct HypDataHelperDecl<Array<T, NumInlineBytes>> {};
@@ -1363,7 +1362,14 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         }
 
         if (Size == 0) {
-            out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(fbom::FBOMUnset()));
+            // If size is empty, serialize a placeholder value to get the element type
+            fbom::FBOMData placeholder_data;
+
+            if (fbom::FBOMResult err = HypDataHelper<T>::Serialize(HypData(T { }), placeholder_data)) {
+                return err;
+            }
+
+            out_data = fbom::FBOMData::FromArray(fbom::FBOMArray(placeholder_data.GetType()));
 
             return fbom::FBOMResult::FBOM_OK;
         }
@@ -1754,7 +1760,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
-            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
+            return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for type" };
         }
 
         if (!data) {

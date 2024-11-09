@@ -18,7 +18,7 @@ namespace hyperion {
 
 class Matrix3;
 
-HYP_STRUCT()
+HYP_STRUCT(Size=64)
 class alignas(16) HYP_API Matrix4
 {
     friend std::ostream &operator<<(std::ostream &os, const Matrix4 &mat);
@@ -102,8 +102,6 @@ public:
         return hc;
     }
 };
-
-static_assert(sizeof(Matrix4) == sizeof(float) * 16, "sizeof(Matrix4) must be equal to sizeof(float) * 16");
 
 } // namespace hyperion
 
