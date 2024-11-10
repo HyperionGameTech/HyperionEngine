@@ -20,11 +20,6 @@ Matrix3::Matrix3(const float *v)
     Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
 }
 
-Matrix3::Matrix3(const Matrix3 &other)
-{
-    operator=(other);
-}
-
 float Matrix3::Determinant() const
 {
      float a = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1]);
@@ -46,7 +41,7 @@ Matrix3 Matrix3::Transposed() const
 
 Matrix3 &Matrix3::Transpose()
 {
-    return operator=(Transposed());
+    return *this = Transposed();
 }
 
 Matrix3 Matrix3::Inverted() const
@@ -70,14 +65,7 @@ Matrix3 Matrix3::Inverted() const
 
 Matrix3 &Matrix3::Invert()
 {
-    return operator=(Inverted());
-}
-
-Matrix3 &Matrix3::operator=(const Matrix3 &other)
-{
-    Memory::MemCpy(values, other.values, sizeof(values));
-
-    return *this;
+    return *this = Inverted();
 }
 
 Matrix3 Matrix3::operator+(const Matrix3 &other) const

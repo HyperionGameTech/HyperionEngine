@@ -62,44 +62,14 @@ public:
         { return m_gaussian_splatting; }
 
     template <class T>
-    RC<T> AddRenderComponent(RC<T> component)
+    RC<T> AddRenderComponent(const RC<T> &component)
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
 
         AssertThrow(component != nullptr);
 
-        const Name name = component->GetName();
-
-        component->SetParent(this);
-        component->SetComponentIndex(0);
-
-        if (IsInitCalled()) {
-            component->ComponentInit();
-        }
-
-        std::lock_guard guard(m_render_component_mutex);
-
-        const auto it = m_render_components_pending_addition.Find<T>();
-
-        if (it != m_render_components_pending_addition.End()) {
-            const auto name_it = it->second.Find(name);
-
-            AssertThrowMsg(
-                name_it == it->second.End(),
-                "Render component with name %s already exists! Name must be unique.\n",
-                name.LookupString()
-            );
-
-            it->second.Insert(name, component);
-        } else {
-            FlatMap<Name, RC<RenderComponentBase>> component_map;
-            component_map.Set(name, component);
-
-            m_render_components_pending_addition.Set<T>(std::move(component_map));
-        }
-        
-        m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
+        AddRenderComponent(TypeID::ForType<T>(), component);
 
         return component;
     }
@@ -107,14 +77,13 @@ public:
     template <class T, class ...Args>
     RC<T> AddRenderComponent(Name name, Args &&... args)
     {
-        return AddRenderComponent(RC<T>::Construct(name, std::forward<Args>(args)...));
+        return AddRenderComponent(MakeRefCountedPtr<T>(name, std::forward<Args>(args)...));
     }
 
-    /*! \note CALL FROM RENDER THREAD ONLY */
     template <class T>
     T *GetRenderComponent(Name name = Name::Invalid())
     {
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+        Mutex::Guard guard(m_render_components_mutex);
 
         if (!m_render_components.Contains<T>()) {
             return nullptr;
@@ -135,14 +104,13 @@ public:
         }
     }
 
-    /*! \note CALL FROM RENDER THREAD ONLY */
     template <class T>
     bool HasRenderComponent() const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
 
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+        Mutex::Guard guard(m_render_components_mutex);
 
         if (!m_render_components.Contains<T>()) {
             return false;
@@ -153,14 +121,13 @@ public:
         return items.Any();
     }
 
-    /*! \note CALL FROM RENDER THREAD ONLY */
     template <class T>
     bool HasRenderComponent(Name name) const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
 
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+        Mutex::Guard guard(m_render_components_mutex);
 
         if (!m_render_components.Contains<T>()) {
             return false;
@@ -180,14 +147,9 @@ public:
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
 
-        std::lock_guard guard(m_render_component_mutex);
+        RemoveRenderComponent(TypeID::ForType<T>(), name);
 
-        m_render_components_pending_removal.Insert(RenderComponentPendingRemovalEntry {
-            TypeID::ForType<T>(),
-            name
-        });
-
-        m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
+        DebugLog(LogType::Debug, "Remove render component of type %s with name %s\n", TypeName<T>().Data(), name.LookupString());
     }
 
     // only touch from render thread!
@@ -206,17 +168,18 @@ public:
     void RenderComponents(Frame *frame);
 
 private:
+    void AddRenderComponent(TypeID type_id, const RC<RenderComponentBase> &render_component);
+    void RemoveRenderComponent(TypeID type_id, Name name);
+
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
     Scene                                           *m_scene;
 
     AtomicVar<RenderEnvironmentUpdates>             m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
-    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread
-    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_init;
-    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_addition;
-    FlatSet<RenderComponentPendingRemovalEntry>     m_render_components_pending_removal;
-    std::mutex                                      m_render_component_mutex;
+    mutable Mutex                                   m_render_components_mutex;
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread!
+    Array<RC<RenderComponentBase>>                  m_enabled_render_components;
     uint32                                          m_current_enabled_render_components_mask;
     uint32                                          m_next_enabled_render_components_mask;
 

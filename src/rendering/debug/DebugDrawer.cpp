@@ -149,8 +149,11 @@ void DebugDrawer::Create()
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
     AssertThrow(descriptor_table != nullptr);
 
+    const uint debug_drawer_descriptor_set_index = descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
+    AssertThrow(debug_drawer_descriptor_set_index != ~0u);
+
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &debug_drawer_descriptor_set = descriptor_table->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index);
+        const DescriptorSetRef &debug_drawer_descriptor_set = descriptor_table->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
         AssertThrow(debug_drawer_descriptor_set != nullptr);
 
         debug_drawer_descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), m_instance_buffers[frame_index]);
@@ -253,11 +256,16 @@ void DebugDrawer::Render(Frame *frame)
     proxy.Bind(frame);
 
     const uint debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
+    AssertThrow(debug_drawer_descriptor_set_index != ~0u);
 
     // Update descriptor set if instance buffer was rebuilt
     if (was_instance_buffer_rebuilt) {
-        proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index)
-            ->SetElement(NAME("ImmediateDrawsBuffer"), instance_buffer);
+        const DescriptorSetRef &descriptor_set = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), instance_buffer);
+
+        descriptor_set->Update(g_engine->GetGPUDevice());
     }
 
     if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {

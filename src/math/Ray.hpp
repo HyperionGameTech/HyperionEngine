@@ -23,13 +23,13 @@ struct RayHit;
 
 using RayHitID = uint;
 
-HYP_STRUCT()
+HYP_STRUCT(Size=32, Serialize="bitwise")
 struct HYP_API Ray
 {
-    HYP_FIELD(Property="Position", Serialize=true)
+    HYP_FIELD(Property="Position")
     Vec3f   position;
 
-    HYP_FIELD(Property="Direction", Serialize=true)
+    HYP_FIELD(Property="Direction")
     Vec3f   direction;
 
     HYP_FORCE_INLINE bool operator==(const Ray &other) const
@@ -119,8 +119,6 @@ struct HYP_API Ray
         return hc;
     }
 };
-
-static_assert(sizeof(Ray) == 32, "sizeof(Ray) must be 32 bytes to match C# struct size");
 
 struct RayHit
 {

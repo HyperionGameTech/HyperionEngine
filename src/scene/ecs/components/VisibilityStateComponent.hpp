@@ -21,7 +21,7 @@ enum VisibilityStateFlagBits : VisibilityStateFlags
     VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
 };
 
-HYP_STRUCT(Component, Serialize=false, Editor=false)
+HYP_STRUCT(Component, Size=40, Serialize=false, Editor=false)
 struct VisibilityStateComponent
 {
     HYP_FIELD()
@@ -41,7 +41,6 @@ struct VisibilityStateComponent
         return HashCode();
     }
 };
-static_assert(sizeof(VisibilityStateComponent) == 40, "VisibilityStateComponent must match C# struct size");
 
 } // namespace hyperion
 

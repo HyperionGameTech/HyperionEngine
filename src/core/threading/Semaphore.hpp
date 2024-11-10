@@ -18,9 +18,15 @@
 namespace hyperion {
 namespace threading {
 
+enum class SemaphoreDirection : uint8
+{
+    WAIT_FOR_ZERO_OR_NEGATIVE   = 0,
+    WAIT_FOR_POSITIVE           = 1
+};
+
 namespace detail {
 
-template <class T>
+template <class T, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 struct AtomicSemaphoreImpl
 {
     using CounterType = T;
@@ -48,25 +54,43 @@ struct AtomicSemaphoreImpl
 
     void Acquire()
     {
-        while (value.Get(MemoryOrder::SEQUENTIAL) > 0) {
-            HYP_WAIT_IDLE();
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            while (value.Get(MemoryOrder::SEQUENTIAL) > 0) {
+                HYP_WAIT_IDLE();
+            }
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            while (value.Get(MemoryOrder::SEQUENTIAL) <= 0) {
+                HYP_WAIT_IDLE();
+            }
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
         }
     }
 
     CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
-        CounterType value = value.Decrement(delta, MemoryOrder::SEQUENTIAL) - delta;
+        CounterType current_value = value.Decrement(delta, MemoryOrder::SEQUENTIAL) - delta;
+        
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            if (current_value <= 0 && if_signalled_proc.IsValid()) {
+                if_signalled_proc();
+            }
 
-        if (value <= 0 && if_signalled_proc.IsValid()) {
-            if_signalled_proc();
+            return current_value;
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            if (current_value > 0 && if_signalled_proc.IsValid()) {
+                if_signalled_proc();
+            }
+
+            return current_value;
+        } else {
+            HYP_NOT_IMPLEMENTED();
         }
-
-        return value;
     }
 
-    void Produce(CounterType increment = 1)
+    void Produce(CounterType delta = 1)
     {
-        value.Increment(increment, MemoryOrder::SEQUENTIAL);
+        value.Increment(delta, MemoryOrder::SEQUENTIAL);
     }
 
     CounterType GetValue() const
@@ -78,9 +102,20 @@ struct AtomicSemaphoreImpl
     {
         value.Set(new_value, MemoryOrder::SEQUENTIAL);
     }
+
+    bool IsInSignalState() const
+    {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            return GetValue() <= 0;
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            return GetValue() > 0;
+        } else {
+            HYP_NOT_IMPLEMENTED();
+        }
+    }
 };
 
-template <class T>
+template <class T, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 struct ConditionVarSemaphoreImpl
 {
     using CounterType = T;
@@ -112,20 +147,36 @@ struct ConditionVarSemaphoreImpl
     {
         std::unique_lock<std::mutex> lock(mutex);
 
-        while (value > 0) {
-            cv.wait(lock);
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            while (value > 0) {
+                cv.wait(lock);
+            }
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            while (value <= 0) {
+                cv.wait(lock);
+            }
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
         }
     }
 
     CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
-        
+
         const CounterType previous_value = value;
         value -= delta;
 
-        if (value <= 0 && if_signalled_proc.IsValid()) {
-            if_signalled_proc();
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            if (value <= 0 && if_signalled_proc.IsValid()) {
+                if_signalled_proc();
+            }
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            if (value > 0 && if_signalled_proc.IsValid()) {
+                if_signalled_proc();
+            }
+        } else {
+            HYP_NOT_IMPLEMENTED();
         }
 
         cv.notify_all();
@@ -133,10 +184,12 @@ struct ConditionVarSemaphoreImpl
         return previous_value - delta;
     }
 
-    void Produce(CounterType increment = 1)
+    void Produce(CounterType delta = 1)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        value += increment;
+
+        value += delta;
+
         cv.notify_all();
     }
 
@@ -152,6 +205,17 @@ struct ConditionVarSemaphoreImpl
         value = new_value;
         cv.notify_all();
     }
+
+    bool IsInSignalState() const
+    {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            return GetValue() <= 0;
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            return GetValue() > 0;
+        } else {
+            HYP_NOT_IMPLEMENTED();
+        }
+    }
 };
 
 } // namespace detail
@@ -161,7 +225,7 @@ class SemaphoreBase
 public:
 };
 
-template <class CounterType, class Impl = detail::ConditionVarSemaphoreImpl<CounterType>>
+template <class CounterType, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_POSITIVE, class Impl = detail::ConditionVarSemaphoreImpl<CounterType, Direction>>
 class Semaphore : public SemaphoreBase
 {
 public:
@@ -197,7 +261,7 @@ public:
         { m_impl.SetValue(value); }
 
     HYP_FORCE_INLINE bool IsInSignalState() const
-        { return m_impl.GetValue() <= 0; }
+        { return m_impl.IsInSignalState(); }
 
 private:
     Impl    m_impl;
@@ -206,6 +270,7 @@ private:
 } // namespace threading
 
 using threading::Semaphore;
+using threading::SemaphoreDirection;
 
 } // namespace hyperion
 

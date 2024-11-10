@@ -19,11 +19,6 @@ Triangle::Triangle(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2)
 {
 }
 
-Triangle::Triangle(const Triangle &other)
-    : points(other.points)
-{
-}
-
 Vertex &Triangle::Closest(const Vec3f &vec)
 {
     float distances[3];

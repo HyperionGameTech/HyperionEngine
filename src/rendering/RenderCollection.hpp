@@ -10,6 +10,8 @@
 
 #include <math/Transform.hpp>
 
+#include <scene/camera/Camera.hpp>
+
 #include <rendering/DrawProxy.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderableAttributes.hpp>
@@ -117,7 +119,7 @@ public:
 
 private:
     FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
-    FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
+    FixedArray<RenderProxyList, 2>                                                  m_proxy_lists;
 };
 
 class RenderCollector

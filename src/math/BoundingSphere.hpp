@@ -11,6 +11,7 @@
 
 namespace hyperion {
 
+HYP_STRUCT()
 struct HYP_API BoundingSphere
 {
     HYP_PROPERTY(Center, &BoundingSphere::center, { { "serialize", true } });

@@ -14,6 +14,9 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
 
 using renderer::Result;
@@ -88,20 +91,8 @@ RenderEnvironment::~RenderEnvironment()
         m_has_ddgi_probes = false;
     }
 
-    const auto update_marker_value = m_update_marker.Get(MemoryOrder::ACQUIRE);
-
+    m_enabled_render_components.Clear();
     PUSH_RENDER_COMMAND(RemoveAllRenderComponents, std::move(m_render_components));
-
-    // @TODO Call ComponentRemoved() for all components pending addition as well
-
-    if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-        std::lock_guard guard(m_render_component_mutex);
-
-        m_render_components_pending_addition.Clear();
-        m_render_components_pending_removal.Clear();
-    }
-
-    m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_CONTAINERS, MemoryOrder::RELEASE);
 
     SafeRelease(std::move(m_tlas));
 
@@ -147,18 +138,6 @@ void RenderEnvironment::Init()
         m_has_ddgi_probes = true;
     }
 
-    {
-        std::lock_guard guard(m_render_component_mutex);
-        
-        for (auto &it : m_render_components_pending_addition) {
-            for (auto &component_tag_pair : it.second) {
-                AssertThrow(component_tag_pair.second != nullptr);
-
-                component_tag_pair.second->ComponentInit();
-            }
-        }
-    }
-
     SetReady(true);
 }
 
@@ -168,11 +147,19 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
 
     AssertReady();
 
-    std::lock_guard guard(m_render_component_mutex);
+    // @TODO: Use double buffering, or have another atomic flag for game thread and update an internal array to match m_render_components
+    Mutex::Guard guard(m_render_components_mutex);
 
     for (const auto &it : m_render_components) {
-        for (const auto &component_tag_pair : it.second) {
-            component_tag_pair.second->ComponentUpdate(delta);
+        for (const auto &pair : it.second) {
+            const RC<RenderComponentBase> &render_component = pair.second;
+            AssertThrow(render_component != nullptr);
+
+            if (!render_component->IsInitialized()) {
+                continue;
+            }
+
+            render_component->ComponentUpdate(delta);
         }
     }
 }
@@ -231,83 +218,39 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
     m_current_enabled_render_components_mask = m_next_enabled_render_components_mask;
 
-    const RenderEnvironmentUpdates update_marker_value = m_update_marker.Get(MemoryOrder::ACQUIRE);
-    RenderEnvironmentUpdates inverse_mask = 0;
-
-    for (const auto &it : m_render_components) {
-        for (const auto &component_tag_pair : it.second) {
-            // m_next_enabled_render_components_mask |= 1u << uint32(component_tag_pair.second->GetName());
-
-            component_tag_pair.second->ComponentRender(frame);
-        }
+    for (const RC<RenderComponentBase> &render_component : m_enabled_render_components) {
+        render_component->ComponentRender(frame);
     }
 
-    // add RenderComponents AFTER rendering, so that the render scheduler can complete
-    // initialization tasks before we call ComponentRender() on the newly added RenderComponents
+    if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
+        m_enabled_render_components.Clear();
 
-    if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-        inverse_mask |= RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS;
+        Mutex::Guard guard(m_render_components_mutex);
 
-        std::lock_guard guard(m_render_component_mutex);
+        for (auto &render_components_it : m_render_components) {
+            for (SizeType index = 0; index < render_components_it.second.Size(); index++) {
+                const auto &pair = render_components_it.second.AtIndex(index);
 
-        for (auto &it : m_render_components_pending_addition) {
-            auto &items_map = it.second;
-            const auto components_it = m_render_components.Find(it.first);
+                const Name name = pair.first;
+                const RC<RenderComponentBase> &render_component = pair.second;
+                
+                AssertThrow(render_component != nullptr);
 
-            if (components_it != m_render_components.End()) {
-                for (auto &items_pending_addition_it : items_map) {
-                    const Name name = items_pending_addition_it.first;
+                render_component->SetComponentIndex(index);
 
-                    const auto name_it = components_it->second.Find(name);
-
-                    AssertThrowMsg(
-                        name_it == components_it->second.End(),
-                        "Render component with name %s already exists! Name must be unique.\n",
-                        name.LookupString()
-                    );
-
-                    components_it->second.Set(name, std::move(items_pending_addition_it.second));
+                if (!render_component->IsInitialized()) {
+                    render_component->ComponentInit();
                 }
-            } else {
-                m_render_components.Set(it.first, std::move(it.second));
+
+                m_enabled_render_components.PushBack(render_component);
             }
         }
 
-        m_render_components_pending_addition.Clear();
-
-        for (const auto &it : m_render_components_pending_removal) {
-            const Name name = it.second;
-
-            const auto components_it = m_render_components.Find(it.first);
-
-            if (components_it != m_render_components.End()) {
-                auto &items_map = components_it->second;
-
-                const auto item_it = items_map.Find(name);
-
-                if (item_it != items_map.End()) {
-                    const RC<RenderComponentBase> &item = item_it->second;
-
-                    if (item != nullptr) {
-                        item->ComponentRemoved();
-                    }
-
-                    items_map.Erase(item_it);
-                }
-
-                if (items_map.Empty()) {
-                    m_render_components.Erase(components_it);
-                }
-            }
-        }
-
-        m_render_components_pending_removal.Clear();
+        m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
     }
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
-            inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
-
+    if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {
+        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
             if (m_tlas) {
                 if (m_has_rt_radiance) {
                     m_rt_radiance->Destroy();
@@ -358,13 +301,126 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 ApplyTLASUpdates(frame, update_state_flags);
             }
         }
-    }
 
-    if (update_marker_value) {
-        m_update_marker.BitAnd(~inverse_mask, MemoryOrder::RELEASE);
+        m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_TLAS, MemoryOrder::RELEASE);
     }
 
     ++m_frame_counter;
+}
+
+void RenderEnvironment::AddRenderComponent(TypeID type_id, const RC<RenderComponentBase> &render_component)
+{
+    struct RENDER_COMMAND(AddRenderComponent) : renderer::RenderCommand
+    {
+        RenderEnvironment       &render_environment;
+        TypeID                  type_id;
+        RC<RenderComponentBase> render_component;
+
+        RENDER_COMMAND(AddRenderComponent)(RenderEnvironment &render_environment, TypeID type_id, const RC<RenderComponentBase> &render_component)
+            : render_environment(render_environment),
+              type_id(type_id),
+              render_component(render_component)
+        {
+            AssertThrow(render_component != nullptr);
+        }
+        
+        virtual ~RENDER_COMMAND(AddRenderComponent)() override = default;
+
+        virtual renderer::Result operator()() override
+        {
+            const Name name = render_component->GetName();
+
+            Mutex::Guard guard(render_environment.m_render_components_mutex);
+
+            const auto components_it = render_environment.m_render_components.Find(type_id);
+
+            if (components_it != render_environment.m_render_components.End()) {
+                const auto name_it = components_it->second.Find(name);
+
+                AssertThrowMsg(
+                    name_it == components_it->second.End(),
+                    "Render component with name %s already exists! Name must be unique.\n",
+                    name.LookupString()
+                );
+
+                components_it->second.Set(name, std::move(render_component));
+            } else {
+                render_environment.m_render_components.Set(type_id, { { name, std::move(render_component) } });
+            }
+
+            render_environment.m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    AssertThrow(render_component != nullptr);
+
+    render_component->SetParent(this);
+
+    PUSH_RENDER_COMMAND(AddRenderComponent, *this, type_id, render_component);
+}
+
+void RenderEnvironment::RemoveRenderComponent(TypeID type_id, Name name)
+{
+    struct RENDER_COMMAND(RemoveRenderComponent) : renderer::RenderCommand
+    {
+        RenderEnvironment       &render_environment;
+        TypeID                  type_id;
+        Name                    name;
+
+        RENDER_COMMAND(RemoveRenderComponent)(RenderEnvironment &render_environment, TypeID type_id, Name name)
+            : render_environment(render_environment),
+              type_id(type_id),
+              name(name)
+        {
+        }
+        
+        virtual ~RENDER_COMMAND(RemoveRenderComponent)() override = default;
+
+        virtual renderer::Result operator()() override
+        {
+            Mutex::Guard guard(render_environment.m_render_components_mutex);
+
+            const auto components_it = render_environment.m_render_components.Find(type_id);
+
+            if (components_it != render_environment.m_render_components.End()) {
+                if (name.IsValid()) {
+                    const auto name_it = components_it->second.Find(name);
+
+                    if (name_it != components_it->second.End()) {
+                        const RC<RenderComponentBase> &render_component = name_it->second;
+
+                        if (render_component && render_component->IsInitialized()) {
+                            render_component->ComponentRemoved();
+                        }
+
+                        components_it->second.Erase(name_it);
+                    }
+                } else {
+                    for (const auto &it : components_it->second) {
+                        const RC<RenderComponentBase> &render_component = it.second;
+
+                        if (render_component && render_component->IsInitialized()) {
+                            render_component->ComponentRemoved();
+                        }
+                    }
+
+                    components_it->second.Clear();
+                }
+
+                if (components_it->second.Empty()) {
+                    render_environment.m_render_components.Erase(components_it);
+                }
+            }
+
+            render_environment.m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    PUSH_RENDER_COMMAND(RemoveRenderComponent, *this, type_id, name);
 }
 
 } // namespace hyperion

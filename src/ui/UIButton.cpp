@@ -16,7 +16,7 @@ UIButton::UIButton()
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);
     SetPadding({ 10, 5 });
-    SetBackgroundColor(Vec4f { 0.1f, 0.1f, 0.1f, 1.0f });
+    SetBackgroundColor(Vec4f { 0.25f, 0.25f, 0.25f, 1.0f });
     SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
     SetTextSize(12.0f);
 }
@@ -64,9 +64,9 @@ Material::ParameterTable UIButton::GetMaterialParameters() const
     Color color;
 
     if (GetFocusState() & UIObjectFocusState::PRESSED) {
-        color = Vec4f(0.15f, 0.15f, 0.15f, 1.0f);
+        color = Vec4f(0.35f, 0.35f, 0.35f, 1.0f);
     } else if (GetFocusState() & UIObjectFocusState::HOVER) {
-        color = Vec4f(0.2f, 0.2f, 0.2f, 1.0f);
+        color = Vec4f(0.5f, 0.5f, 0.5f, 1.0f);
     } else {
         color = m_background_color;
     }

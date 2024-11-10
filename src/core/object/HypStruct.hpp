@@ -116,8 +116,8 @@ public:
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override
     {
-        AssertThrow(in.Is<T>());
         HYP_SCOPE;
+        AssertThrow(in.Is<T>());
         
         const fbom::FBOMMarshalerBase *marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
             ? fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))

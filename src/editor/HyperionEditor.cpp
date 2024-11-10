@@ -367,7 +367,7 @@ void HyperionEditor::Init()
         node.SetName("test_model");
         node.LockTransform();
 
-        if (true) {
+        if (node.IsValid()) {
             Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
             m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {
@@ -547,35 +547,10 @@ void HyperionEditor::Init()
 
 
     NodeProxy root = loaded_scene->GetRoot();
+
     loaded_scene->SetRoot(NodeProxy::empty);
 
     m_scene->GetRoot()->AddChild(root);
-
-
-    // Test - add EnvGrid
-
-    // if (root.IsValid()) {
-    //     ID<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
-
-    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, TransformComponent {
-    //         root->GetWorldTransform()
-    //     });
-
-    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, BoundingBoxComponent {
-    //         root->GetLocalAABB() * 1.05f,
-    //         root->GetWorldAABB() * 1.05f
-    //     });
-
-    //     // Add env grid component
-    //     m_scene->GetEntityManager()->AddComponent(env_grid_entity, EnvGridComponent {
-    //         EnvGridType::ENV_GRID_TYPE_SH
-    //     });
-
-    //     NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();
-    //     env_grid_node->SetEntity(env_grid_entity);
-    //     env_grid_node->SetName("EnvGrid");
-    // }
-
 #endif
 }
 

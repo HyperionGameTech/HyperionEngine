@@ -177,7 +177,7 @@ ThreadID Threads::CurrentThreadID()
     return g_current_thread_id;
 }
 
-ThreadType Threads::GetThreadType()
+ThreadType Threads::CurrentThreadType()
 {
     const uint thread_id = Threads::CurrentThreadID().value;
 

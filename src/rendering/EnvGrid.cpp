@@ -16,6 +16,8 @@
 
 #include <scene/Scene.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -162,17 +164,20 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 #pragma endregion Render commands
 
 EnvGrid::EnvGrid(Name name, EnvGridOptions options)
-    : RenderComponent(name),
+    : RenderComponentBase(name),
       m_options(options),
       m_aabb(options.aabb),
       m_voxel_grid_aabb(options.aabb),
       m_offset(options.aabb.GetCenter()),
       m_current_probe_index(0)
 {
+    HYP_LOG(EnvGrid, LogLevel::INFO, "Constructor for EnvGrid {}", (void *)this);
+    LogStackTrace(25);
 }
 
 EnvGrid::~EnvGrid()
-{
+{   HYP_LOG(EnvGrid, LogLevel::INFO, "Destructor for EnvGrid {}", (void *)this);
+
     SafeRelease(std::move(m_ambient_shader));
 
     SafeRelease(std::move(m_framebuffer));
@@ -196,6 +201,8 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     m_aabb = aabb;
@@ -294,7 +301,11 @@ void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 
 void EnvGrid::Init()
 {
-    Handle<Scene> scene(GetParent()->GetScene()->GetID());
+    HYP_SCOPE;
+
+    HYP_LOG(EnvGrid, LogLevel::DEBUG, "Init EnvGrid {}", (void *)this);
+
+    Handle<Scene> scene = GetParent()->GetScene()->HandleFromThis();
     AssertThrow(scene.IsValid());
 
     const SizeType num_ambient_probes = m_options.density.Size();
@@ -347,7 +358,6 @@ void EnvGrid::Init()
 
     CreateShader();
     CreateFramebuffer();
-
     CreateVoxelGridData();
 
     if (GetEnvGridType() == ENV_GRID_TYPE_SH) {
@@ -383,8 +393,6 @@ void EnvGrid::Init()
 
         m_render_collector.SetCamera(m_camera);
     }
-
-    HYP_LOG(EnvGrid, LogLevel::INFO, "Created {} total ambient EnvProbes in grid", num_ambient_probes);
 }
 
 // called from game thread
@@ -395,6 +403,8 @@ void EnvGrid::InitGame()
 
 void EnvGrid::OnRemoved()
 {
+    HYP_SCOPE;
+
     m_camera.Reset();
     m_render_collector.Reset();
     m_ambient_shader.Reset();
@@ -421,6 +431,8 @@ void EnvGrid::OnRemoved()
 
 void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertThrow(m_camera.IsValid());
@@ -451,8 +463,9 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
 void EnvGrid::OnRender(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-    const uint num_ambient_probes = m_env_probe_collection.num_probes;
 
     const BoundingBox grid_aabb = m_aabb;
 
@@ -492,7 +505,7 @@ void EnvGrid::OnRender(Frame *frame)
         RenderEnvProbe(frame, m_next_render_indices.Pop());
     }
 
-    if (num_ambient_probes != 0) {
+    if (m_env_probe_collection.num_probes != 0) {
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_env_probe_collection.num_probes);
 
@@ -505,7 +518,7 @@ void EnvGrid::OnRender(Frame *frame)
             const uint index = (m_current_probe_index + i) % m_env_probe_collection.num_probes;
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
 
-            if (probe.IsValid() && probe->NeedsRender()) {
+            if (probe.IsValid()) {// && probe->NeedsRender()) {
                 indices_distances.PushBack({
                     index,
                     probe->GetProxy().world_position.Distance(camera_position)
@@ -568,6 +581,8 @@ void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, Rend
 
 void EnvGrid::CreateVoxelGridData()
 {
+    HYP_SCOPE;
+
     if (!(m_options.flags & EnvGridFlags::USE_VOXEL_GRID)) {
         return;
     }
@@ -584,11 +599,9 @@ void EnvGrid::CreateVoxelGridData()
         }
     );
 
-    AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
-
     m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);
+
     InitObject(m_voxel_grid_texture);
-    AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
 
     // Set our voxel grid texture in the global descriptor set so we can use it in shaders
     PUSH_RENDER_COMMAND(
@@ -709,6 +722,8 @@ void EnvGrid::CreateVoxelGridData()
 
 void EnvGrid::CreateSHData()
 {
+    HYP_SCOPE;
+
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
     m_sh_tiles_buffers.Resize(sh_num_levels);
@@ -754,10 +769,7 @@ void EnvGrid::CreateSHData()
             }
         }
 
-        DeferCreate(
-            m_compute_sh_descriptor_tables[i],
-            g_engine->GetGPUDevice()
-        );
+        DeferCreate(m_compute_sh_descriptor_tables[i], g_engine->GetGPUDevice());
     }
 
     m_clear_sh = MakeRenderObject<ComputePipeline>(
@@ -791,6 +803,8 @@ void EnvGrid::CreateSHData()
 
 void EnvGrid::CreateShader()
 {
+    HYP_SCOPE;
+
     ShaderProperties shader_properties(static_mesh_vertex_attributes, {
         "MODE_AMBIENT",
         "WRITE_NORMALS",
@@ -807,6 +821,8 @@ void EnvGrid::CreateShader()
 
 void EnvGrid::CreateFramebuffer()
 {
+    HYP_SCOPE;
+
     m_framebuffer = MakeRenderObject<Framebuffer>(
         framebuffer_dimensions,
         renderer::RenderPassStage::SHADER,
@@ -860,6 +876,8 @@ void EnvGrid::RenderEnvProbe(
     uint32 probe_index
 )
 {
+    HYP_SCOPE;
+
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
 
@@ -897,6 +915,8 @@ void EnvGrid::RenderEnvProbe(
         ComputeSH(frame, framebuffer_image, framebuffer_image_view, probe_index);
 
         break;
+    default:
+        HYP_UNREACHABLE();
     }
 
     if (m_options.flags & EnvGridFlags::USE_VOXEL_GRID) {
@@ -913,6 +933,8 @@ void EnvGrid::ComputeSH(
     uint32 probe_index
 )
 {
+    HYP_SCOPE;
+
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);//GetEnvProbeOnRenderThread(probe_index);
@@ -1104,6 +1126,8 @@ void EnvGrid::OffsetVoxelGrid(
     Vec3i offset
 )
 {
+    HYP_SCOPE;
+
     AssertThrow(m_voxel_grid_texture.IsValid());
 
     struct alignas(128)

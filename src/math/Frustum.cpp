@@ -19,12 +19,6 @@ Frustum::Frustum()
 {
 }
 
-Frustum::Frustum(const Frustum &other)
-    : planes(other.planes),
-      corners(other.corners)
-{
-}
-
 Frustum::Frustum(const Matrix4 &view_proj)
 {
     SetFromViewProjectionMatrix(view_proj);

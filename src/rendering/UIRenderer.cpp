@@ -482,7 +482,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame) const
 #pragma region UIRenderer
 
 UIRenderer::UIRenderer(Name name, RC<UIStage> ui_stage)
-    : RenderComponent(name),
+    : RenderComponentBase(name),
       m_ui_stage(std::move(ui_stage))
 {
 }
@@ -507,7 +507,7 @@ void UIRenderer::Init()
         CreateFramebuffer();
     });
 
-    PUSH_RENDER_COMMAND(CreateUIRendererFramebuffer, RefCountedPtrFromThis());
+    PUSH_RENDER_COMMAND(CreateUIRendererFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderer>());
 
     AssertThrow(m_ui_stage != nullptr);
 

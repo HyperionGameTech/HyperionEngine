@@ -135,25 +135,25 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
 
 struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 {
-    uint                    shadow_map_index;
+    uint32                  shadow_map_index;
+    Vec2u                   resolution;
     Matrix4                 view_matrix;
     Matrix4                 projection_matrix;
     BoundingBox             aabb;
-    Extent2D                dimensions;
     EnumFlags<ShadowFlags>  flags;
 
     RENDER_COMMAND(UpdateShadowMapRenderData)(
-        uint shadow_map_index,
+        uint32 shadow_map_index,
+        const Vec2u &resolution,
         const Matrix4 &view_matrix,
         const Matrix4 &projection_matrix,
         const BoundingBox &aabb,
-        Extent2D dimensions,
         EnumFlags<ShadowFlags> flags
     ) : shadow_map_index(shadow_map_index),
+        resolution(resolution),
         view_matrix(view_matrix),
         projection_matrix(projection_matrix),
         aabb(aabb),
-        dimensions(dimensions),
         flags(flags)
     {
     }
@@ -169,7 +169,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
                 .view       = view_matrix,
                 .aabb_max   = Vec4f(aabb.max, 1.0f),
                 .aabb_min   = Vec4f(aabb.min, 1.0f),
-                .dimensions = dimensions,
+                .dimensions = resolution,
                 .flags      = uint32(flags)
             }
         );
@@ -182,18 +182,31 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
 #pragma region ShadowPass
 
-ShadowPass::ShadowPass(const Handle<Scene> &parent_scene, Extent2D extent, ShadowMode shadow_mode)
-    : FullScreenPass(shadow_map_formats[uint(shadow_mode)], extent),
-      m_parent_scene(parent_scene),
-      m_shadow_mode(shadow_mode),
-      m_shadow_map_index(~0u)
+ShadowPass::ShadowPass(
+    const Handle<Scene> &parent_scene,
+    const ShaderRef &shader,
+    ShadowMode shadow_mode,
+    Vec2u extent, 
+    RenderCollector *render_collector_statics,
+    RenderCollector *render_collector_dynamics,
+    RerenderShadowsSemaphore *rerender_semaphore
+) : FullScreenPass(shadow_map_formats[uint(shadow_mode)], extent),
+    m_parent_scene(parent_scene),
+    m_shadow_mode(shadow_mode),
+    m_shadow_map_index(~0u),
+    m_render_collector_statics(render_collector_statics),
+    m_render_collector_dynamics(render_collector_dynamics),
+    m_rerender_semaphore(rerender_semaphore)
 {
+    AssertThrow(m_render_collector_statics != nullptr);
+    AssertThrow(m_render_collector_dynamics != nullptr);
+    AssertThrow(m_rerender_semaphore != nullptr);
+
+    SetShader(shader);
 }
 
 ShadowPass::~ShadowPass()
 {
-    m_render_collector_statics.Reset();
-    m_render_collector_dynamics.Reset();
     m_parent_scene.Reset();
     m_shadow_map_all.Reset();
     m_shadow_map_statics.Reset();
@@ -207,33 +220,6 @@ ShadowPass::~ShadowPass()
             m_shadow_map_index
         );
     }
-}
-
-void ShadowPass::CreateShader()
-{
-    ShaderProperties properties;
-    properties.SetRequiredVertexAttributes(static_mesh_vertex_attributes);
-
-    switch (m_shadow_mode) {
-    case ShadowMode::VSM:
-        properties.Set("MODE_VSM");
-        break;
-    case ShadowMode::CONTACT_HARDENED:
-        properties.Set("MODE_CONTACT_HARDENED");
-        break;
-    case ShadowMode::PCF:
-        properties.Set("MODE_PCF");
-        break;
-    case ShadowMode::STANDARD: // fallthrough
-    default:
-        properties.Set("MODE_STANDARD");
-        break;
-    }
-
-    m_shader = g_shader_manager->GetOrCreate(
-        NAME("Shadows"),
-        properties
-    );
 }
 
 void ShadowPass::CreateFramebuffer()
@@ -363,7 +349,6 @@ void ShadowPass::CreateComputePipelines()
 void ShadowPass::Create()
 {
     CreateShadowMap();
-    CreateShader();
     CreateFramebuffer();
     CreateDescriptors();
     CreateCombineShadowMapsPass();
@@ -388,16 +373,16 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
-        if (GetShouldRerenderStaticObjectsSignal().Consume()) {
+        if (m_rerender_semaphore->IsInSignalState()) {
             HYP_LOG(Shadows, LogLevel::DEBUG, "Rerendering static objects for shadow map");
 
-            m_render_collector_statics.CollectDrawCalls(
+            m_render_collector_statics->CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_collector_statics.ExecuteDrawCalls(
+            m_render_collector_statics->ExecuteDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -411,16 +396,18 @@ void ShadowPass::Render(Frame *frame)
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
             m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+
+            m_rerender_semaphore->Release(1);
         }
 
         { // Render dynamics
-            m_render_collector_dynamics.CollectDrawCalls(
+            m_render_collector_dynamics->CollectDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_collector_dynamics.ExecuteDrawCalls(
+            m_render_collector_dynamics->ExecuteDrawCalls(
                 frame,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -496,18 +483,25 @@ void ShadowPass::Render(Frame *frame)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Extent2D resolution, ShadowMode shadow_mode)
-    : RenderComponent(name),
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Vec2u resolution, ShadowMode shadow_mode)
+    : RenderComponentBase(name),
       m_resolution(resolution),
       m_shadow_mode(shadow_mode)
 {
+    m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
+    m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
+
+    CreateShader();
 }
 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
-    if (m_shadow_pass) {
-        m_shadow_pass.Reset();
-    }
+    // Prevent render components from using shadow pass pointer after deletion
+    HYP_SYNC_RENDER();
+    m_shadow_pass.Reset();
+
+    m_render_collector_statics.Reset();
+    m_render_collector_dynamics.Reset();
 }
 
 // called from render thread
@@ -515,17 +509,26 @@ void DirectionalLightShadowRenderer::Init()
 {
     AssertThrow(IsValidComponent());
 
-    m_shadow_pass = MakeUnique<ShadowPass>(GetParent()->GetScene()->HandleFromThis(), m_resolution, m_shadow_mode);
+    m_shadow_pass = MakeUnique<ShadowPass>(
+        GetParent()->GetScene()->HandleFromThis(),
+        m_shader,
+        m_shadow_mode,
+        m_resolution,
+        &m_render_collector_statics,
+        &m_render_collector_dynamics,
+        &m_rerender_semaphore
+    );
     m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
     m_shadow_pass->Create();
 
-    m_camera = CreateObject<Camera>(m_resolution.width, m_resolution.height);
-    m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
+    // m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
+    // m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
+
     m_camera->SetFramebuffer(m_shadow_pass->GetFramebuffer());
     InitObject(m_camera);
 
-    m_shadow_pass->GetRenderCollectorStatics().SetCamera(m_camera);
-    m_shadow_pass->GetRenderCollectorDynamics().SetCamera(m_camera);
+    m_render_collector_statics.SetCamera(m_camera);
+    m_render_collector_dynamics.SetCamera(m_camera);
 }
 
 // called from game thread
@@ -540,8 +543,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    AssertThrow(m_shadow_pass != nullptr);
-    AssertThrow(m_shadow_pass->GetShader().IsValid());
+    AssertThrow(m_shader.IsValid());
 
     m_camera->Update(delta);
 
@@ -551,15 +553,15 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     RenderableAttributeSet renderable_attribute_set(
         MeshAttributes { },
         MaterialAttributes {
-            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = m_shadow_pass->GetShadowMode() == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = m_shadow_mode == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );
 
     // Render data update
     EnumFlags<ShadowFlags> flags = ShadowFlags::NONE;
 
-    switch (m_shadow_pass->GetShadowMode()) {
+    switch (m_shadow_mode) {
     case ShadowMode::VSM:
         flags |= ShadowFlags::VSM;
         break;
@@ -577,7 +579,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
         return GetParent()->GetScene()->CollectStaticEntities(
-            m_shadow_pass->GetRenderCollectorStatics(),
+            m_render_collector_statics,
             m_camera,
             renderable_attribute_set
         );
@@ -586,20 +588,20 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
         GetParent()->GetScene()->CollectDynamicEntities(
-            m_shadow_pass->GetRenderCollectorDynamics(),
+            m_render_collector_dynamics,
             m_camera,
             renderable_attribute_set
         );
     });
 #else
     RenderCollector::CollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
-        m_shadow_pass->GetRenderCollectorStatics(),
+        m_render_collector_statics,
         m_camera,
         renderable_attribute_set
     );
 
     GetParent()->GetScene()->CollectDynamicEntities(
-        m_shadow_pass->GetRenderCollectorDynamics(),
+        m_render_collector_dynamics,
         m_camera,
         renderable_attribute_set
     );
@@ -624,13 +626,16 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
     needs_statics_rerender |= statics_collection_result.NeedsUpdate();
 
+    // temp
+    needs_statics_rerender = true;
+
     if (needs_statics_rerender) {
         HYP_LOG(Shadows, LogLevel::DEBUG, "statics collection result: {}, {}, {}", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
         
         m_cached_view_matrix = m_camera->GetViewMatrix();
 
         // Force static objects to re-render for a few frames
-        m_shadow_pass->GetShouldRerenderStaticObjectsSignal().Notify(10);
+        m_rerender_semaphore.Produce(1);
 
         m_cached_view_matrix = m_camera->GetViewMatrix();
         m_cached_octant_hash_code_statics = octant_hash_statics;
@@ -642,11 +647,11 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     PUSH_RENDER_COMMAND(
         UpdateShadowMapRenderData,
-        m_shadow_pass->GetShadowMapIndex(),
+        GetComponentIndex(),
+        m_resolution,
         m_camera->GetViewMatrix(),
         m_camera->GetProjectionMatrix(),
         m_aabb,
-        m_shadow_pass->GetExtent(),
         flags
     );
 }
@@ -665,6 +670,33 @@ void DirectionalLightShadowRenderer::OnRender(Frame *frame)
 void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
 {
     AssertThrowMsg(false, "Not implemented");
+}
+
+void DirectionalLightShadowRenderer::CreateShader()
+{
+    ShaderProperties properties;
+    properties.SetRequiredVertexAttributes(static_mesh_vertex_attributes);
+
+    switch (m_shadow_mode) {
+    case ShadowMode::VSM:
+        properties.Set("MODE_VSM");
+        break;
+    case ShadowMode::CONTACT_HARDENED:
+        properties.Set("MODE_CONTACT_HARDENED");
+        break;
+    case ShadowMode::PCF:
+        properties.Set("MODE_PCF");
+        break;
+    case ShadowMode::STANDARD: // fallthrough
+    default:
+        properties.Set("MODE_STANDARD");
+        break;
+    }
+
+    m_shader = g_shader_manager->GetOrCreate(
+        NAME("Shadows"),
+        properties
+    );
 }
 
 #pragma endregion DirectionalLightShadowRenderer

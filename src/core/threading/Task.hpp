@@ -32,7 +32,7 @@ class TaskThread;
 class SchedulerBase;
 struct TaskBatch;
 
-using TaskSemaphore = Semaphore<int32, detail::ConditionVarSemaphoreImpl<int32>>;
+using TaskSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>;
 
 using OnTaskCompletedCallback = Proc<void>;
 

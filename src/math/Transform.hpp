@@ -11,28 +11,30 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
-struct HYP_API Transform
+HYP_STRUCT(Size=112, Serialize="bitwise")
+struct alignas(16) HYP_API Transform
 {
     static const Transform identity;
 
-    HYP_FIELD(Property="Translation", Serialize=true)
+    HYP_FIELD()
     Vec3f       translation;
 
-    HYP_FIELD(Property="Scale", Serialize=true)
+    HYP_FIELD()
     Vec3f       scale;
 
-    HYP_FIELD(Property="Rotation", Serialize=true)
+    HYP_FIELD()
     Quaternion  rotation;
 
-    HYP_FIELD(Property="Matrix", Serialize=true)
+    HYP_FIELD()
     Matrix4     matrix;
 
     Transform();
     explicit Transform(const Vec3f &translation);
     Transform(const Vec3f &translation, const Vec3f &scale);
     Transform(const Vec3f &translation, const Vec3f &scale, const Quaternion &rotation);
-    Transform(const Transform &other);
+    
+    Transform(const Transform &other) = default;
+    Transform &operator=(const Transform &other) = default;
 
     HYP_FORCE_INLINE const Vec3f &GetTranslation() const
         { return translation; }
@@ -89,8 +91,6 @@ struct HYP_API Transform
         return hc;
     }
 };
-
-static_assert(sizeof(Transform) == 112, "Expected sizeof(Transform) to equal 112 bytes to match C# size");
 
 } // namespace hyperion
 

@@ -829,6 +829,10 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
         m_world_transform = m_local_transform;
     }
 
+    if (m_world_transform == transform_before) {
+        return;
+    }
+
     if (m_entity.IsValid()) {
         const RC<EntityManager> &entity_manager = m_scene->GetEntityManager();
 
@@ -851,10 +855,6 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
                 });
             }
         }
-    }
-
-    if (m_world_transform == transform_before) {
-        return;
     }
 
     if (update_child_transforms) {

@@ -21,36 +21,31 @@ enum Bucket : uint32
     BUCKET_MAX
 };
 
-HYP_FORCE_INLINE
-static bool BucketRayTestsEnabled(Bucket bucket)
+HYP_FORCE_INLINE static bool BucketRayTestsEnabled(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
         || bucket == BUCKET_TRANSLUCENT;
 }
 
-HYP_FORCE_INLINE
-static bool BucketRendersShadows(Bucket bucket)
+HYP_FORCE_INLINE static bool BucketRendersShadows(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
         || bucket == BUCKET_TRANSLUCENT;
 }
 
-HYP_FORCE_INLINE
-static bool BucketHasGlobalIllumination(Bucket bucket)
+HYP_FORCE_INLINE static bool BucketHasGlobalIllumination(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
         || bucket == BUCKET_TRANSLUCENT;
 }
 
-HYP_FORCE_INLINE
-static bool BucketFrustumCullingEnabled(Bucket bucket)
+HYP_FORCE_INLINE static bool BucketFrustumCullingEnabled(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
         || bucket == BUCKET_TRANSLUCENT;
 }
 
-HYP_FORCE_INLINE
-static bool BucketIsRenderable(Bucket bucket)
+HYP_FORCE_INLINE static bool BucketIsRenderable(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
         || bucket == BUCKET_TRANSLUCENT

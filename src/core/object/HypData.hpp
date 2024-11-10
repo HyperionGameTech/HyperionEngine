@@ -1473,7 +1473,12 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec2<T>>();
     }
 
-    math::detail::Vec2<T> &Get(const Any &value) const
+    math::detail::Vec2<T> &Get(Any &value) const
+    {
+        return value.Get<math::detail::Vec2<T>>();
+    }
+
+    const math::detail::Vec2<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec2<T>>();
     }
@@ -1489,8 +1494,8 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
         
         Any &value = hyp_data.Get<Any>();
 
-        if (math::detail::Vec2<T> *vec_ptr = value.TryGet<math::detail::Vec2<T>>()) {
-            out_data = fbom::FBOMData(*vec_ptr);
+        if (math::detail::Vec2<T> *ptr = value.TryGet<math::detail::Vec2<T>>()) {
+            out_data = fbom::FBOMData(*ptr);
 
             return fbom::FBOMResult::FBOM_OK;
         }
@@ -1525,7 +1530,12 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec3<T>>();
     }
 
-    math::detail::Vec3<T> &Get(const Any &value) const
+    math::detail::Vec3<T> &Get(Any &value) const
+    {
+        return value.Get<math::detail::Vec3<T>>();
+    }
+
+    const math::detail::Vec3<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec3<T>>();
     }
@@ -1541,8 +1551,8 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
         
         Any &value = hyp_data.Get<Any>();
 
-        if (math::detail::Vec3<T> *vec_ptr = value.TryGet<math::detail::Vec3<T>>()) {
-            out_data = fbom::FBOMData(*vec_ptr);
+        if (math::detail::Vec3<T> *ptr = value.TryGet<math::detail::Vec3<T>>()) {
+            out_data = fbom::FBOMData(*ptr);
 
             return fbom::FBOMResult::FBOM_OK;
         }
@@ -1579,7 +1589,12 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec4<T>>();
     }
 
-    math::detail::Vec4<T> &Get(const Any &value) const
+    math::detail::Vec4<T> &Get(Any &value) const
+    {
+        return value.Get<math::detail::Vec4<T>>();
+    }
+
+    const math::detail::Vec4<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec4<T>>();
     }
@@ -1595,8 +1610,8 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         
         Any &value = hyp_data.Get<Any>();
 
-        if (math::detail::Vec4<T> *vec_ptr = value.TryGet<math::detail::Vec4<T>>()) {
-            out_data = fbom::FBOMData(*vec_ptr);
+        if (math::detail::Vec4<T> *ptr = value.TryGet<math::detail::Vec4<T>>()) {
+            out_data = fbom::FBOMData(*ptr);
 
             return fbom::FBOMResult::FBOM_OK;
         }
@@ -1609,6 +1624,183 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         HYP_SCOPE;
         
         math::detail::Vec4<T> result;
+
+        if (fbom::FBOMResult err = data.Read(&result)) {
+            return err;
+        }
+
+        out = HypData(std::move(result));
+
+        return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <>
+struct HypDataHelperDecl<Matrix3> {};
+
+template <>
+struct HypDataHelper<Matrix3> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<Matrix3>();
+    }
+
+    Matrix3 &Get(Any &value) const
+    {
+        return value.Get<Matrix3>();
+    }
+
+    const Matrix3 &Get(const Any &value) const
+    {
+        return value.Get<Matrix3>();
+    }
+
+    void Set(HypData &hyp_data, const Matrix3 &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Matrix3>(value));
+    }
+
+    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+        
+        Any &value = hyp_data.Get<Any>();
+
+        if (Matrix3 *ptr = value.TryGet<Matrix3>()) {
+            out_data = fbom::FBOMData(*ptr);
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Matrix3 - HypData is not expected type" };
+    }
+
+    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    {
+        HYP_SCOPE;
+        
+        Matrix3 result;
+
+        if (fbom::FBOMResult err = data.Read(&result)) {
+            return err;
+        }
+
+        out = HypData(std::move(result));
+
+        return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <>
+struct HypDataHelperDecl<Matrix4> {};
+
+template <>
+struct HypDataHelper<Matrix4> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<Matrix4>();
+    }
+
+    Matrix4 &Get(Any &value) const
+    {
+        return value.Get<Matrix4>();
+    }
+
+    const Matrix4 &Get(const Any &value) const
+    {
+        return value.Get<Matrix4>();
+    }
+
+    void Set(HypData &hyp_data, const Matrix4 &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Matrix4>(value));
+    }
+
+    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+        
+        Any &value = hyp_data.Get<Any>();
+
+        if (Matrix4 *ptr = value.TryGet<Matrix4>()) {
+            out_data = fbom::FBOMData(*ptr);
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Matrix4 - HypData is not expected type" };
+    }
+
+    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    {
+        HYP_SCOPE;
+        
+        Matrix4 result;
+
+        if (fbom::FBOMResult err = data.Read(&result)) {
+            return err;
+        }
+
+        out = HypData(std::move(result));
+
+        return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <>
+struct HypDataHelperDecl<Quaternion> {};
+
+template <>
+struct HypDataHelper<Quaternion> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<Quaternion>();
+    }
+
+    Quaternion &Get(Any &value) const
+    {
+        return value.Get<Quaternion>();
+    }
+
+    const Quaternion &Get(const Any &value) const
+    {
+        return value.Get<Quaternion>();
+    }
+
+    void Set(HypData &hyp_data, const Quaternion &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Quaternion>(value));
+    }
+
+    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+        
+        Any &value = hyp_data.Get<Any>();
+
+        if (Quaternion *ptr = value.TryGet<Quaternion>()) {
+            out_data = fbom::FBOMData(*ptr);
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Quaternion - HypData is not expected type" };
+    }
+
+    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    {
+        HYP_SCOPE;
+        
+        Quaternion result;
 
         if (fbom::FBOMResult err = data.Read(&result)) {
             return err;

@@ -71,7 +71,7 @@ struct Name
     {
     }
 
-    constexpr Name(NameID id)
+    constexpr explicit Name(NameID id)
         : hash_code(id)
     {
     }
@@ -144,7 +144,7 @@ struct WeakName
     {
     }
 
-    constexpr WeakName(NameID id)
+    constexpr explicit WeakName(NameID id)
         : hash_code(id)
     {
     }

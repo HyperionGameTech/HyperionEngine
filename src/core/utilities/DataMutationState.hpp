@@ -3,6 +3,8 @@
 #ifndef HYPERION_DATA_MUTATION_STATE_HPP
 #define HYPERION_DATA_MUTATION_STATE_HPP
 
+#include <core/threading/AtomicVar.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {

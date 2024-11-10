@@ -14,17 +14,20 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Size=224)
+HYP_STRUCT(Size=224, Serialize="bitwise")
 struct HYP_API Frustum
 {
-    HYP_FIELD(Property="Planes", Serialize=true)
+    HYP_FIELD()
     FixedArray<Vec4f, 6>    planes;
 
-    HYP_FIELD(Property="Corners", Serialize=true)
+    HYP_FIELD()
     FixedArray<Vec3f, 8>    corners;
 
     Frustum();
-    Frustum(const Frustum &other);
+    
+    Frustum(const Frustum &other) = default;
+    Frustum &operator=(const Frustum &other) = default;
+
     Frustum(const Matrix4 &view_proj);
 
     HYP_FORCE_INLINE FixedArray<Vec4f, 6> &GetPlanes()

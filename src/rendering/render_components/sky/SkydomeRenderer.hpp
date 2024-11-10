@@ -4,6 +4,9 @@
 #define HYPERION_SKYDOME_RENDERER_HPP
 
 #include <core/Base.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
@@ -15,8 +18,11 @@
 
 namespace hyperion {
 
-class HYP_API SkydomeRenderer : public RenderComponent<SkydomeRenderer>
+HYP_CLASS()
+class HYP_API SkydomeRenderer : public RenderComponentBase
 {
+    HYP_OBJECT_BODY(SkydomeRenderer);
+
 public:
     SkydomeRenderer(Name name, Extent2D dimensions = { 1024, 1024 });
     virtual ~SkydomeRenderer() override = default;
@@ -24,23 +30,22 @@ public:
     HYP_FORCE_INLINE const Handle<Texture> &GetCubemap() const
         { return m_cubemap; }
 
-    void Init();
-    void InitGame();
-
-    void OnRemoved();
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
 private:
+    virtual void Init() override;
+    virtual void InitGame() override;
+    virtual void OnRemoved() override;
+    virtual void OnUpdate(GameCounter::TickUnit delta) override;
+    virtual void OnRender(Frame *frame) override;
+
+    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
+        { }
+
     Extent2D            m_dimensions;
     Handle<Texture>     m_cubemap;
     Handle<Camera>      m_camera;
 
     Handle<Scene>       m_virtual_scene;
     Handle<EnvProbe>    m_env_probe;
-
-    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
-        { }
 };
 
 } // namespace hyperion

@@ -69,7 +69,7 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
         return nullptr;
     }
 
-    if (!scene->IsWorldScene()) {
+    if (scene->IsNonWorldScene()) {
         return nullptr;
     }
 

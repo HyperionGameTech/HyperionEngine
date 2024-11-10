@@ -12,7 +12,7 @@
 namespace hyperion {
 
 SkydomeRenderer::SkydomeRenderer(Name name, Extent2D dimensions)
-    : RenderComponent(name, 60),
+    : RenderComponentBase(name, 60),
       m_dimensions(dimensions)
 {
 }

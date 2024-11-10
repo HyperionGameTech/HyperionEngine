@@ -12,7 +12,7 @@ namespace hyperion {
 
 class Matrix4;
 
-HYP_STRUCT()
+HYP_STRUCT(Size=16)
 struct alignas(16) HYP_API Quaternion
 {
     friend std::ostream &operator<<(std::ostream &out, const Quaternion &rot);
@@ -34,7 +34,9 @@ struct alignas(16) HYP_API Quaternion
     explicit Quaternion(const Matrix4 &mat);
     explicit Quaternion(const Vec3f &euler);
     Quaternion(const Vec3f &axis, float radians);
-    Quaternion(const Quaternion &other);
+    
+    Quaternion(const Quaternion &other) = default;
+    Quaternion &operator=(const Quaternion &other) = default;
 
     HYP_FORCE_INLINE float GetX() const
         { return x; }
@@ -60,7 +62,6 @@ struct alignas(16) HYP_API Quaternion
     HYP_FORCE_INLINE void SetW(float w)
         { this->w = w; }
 
-    Quaternion &operator=(const Quaternion &other);
     Quaternion operator*(const Quaternion &other) const;
     Quaternion &operator*=(const Quaternion &other);
     Quaternion &operator+=(const Vec3f &vec);
