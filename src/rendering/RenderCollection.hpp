@@ -10,6 +10,8 @@
 
 #include <math/Transform.hpp>
 
+#include <scene/camera/Camera.hpp>
+
 #include <rendering/DrawProxy.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderableAttributes.hpp>

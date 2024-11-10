@@ -31,7 +31,8 @@ public:
 
     Matrix3();
     explicit Matrix3(const float *v);
-    Matrix3(const Matrix3 &other);
+    Matrix3(const Matrix3 &other) = default;
+    Matrix3 &operator=(const Matrix3 &other) = default;
 
     float Determinant() const;
     Matrix3 &Transpose();
@@ -39,7 +40,6 @@ public:
     Matrix3 &Invert();
     Matrix3 Inverted() const;
 
-    Matrix3 &operator=(const Matrix3 &other);
     Matrix3 operator+(const Matrix3 &other) const;
     Matrix3 &operator+=(const Matrix3 &other);
     Matrix3 operator*(const Matrix3 &other) const;

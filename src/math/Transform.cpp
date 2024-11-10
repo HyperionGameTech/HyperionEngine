@@ -35,14 +35,6 @@ Transform::Transform(const Vec3f &translation)
 {
 }
 
-Transform::Transform(const Transform &other)
-    : translation(other.translation),
-      scale(other.scale),
-      rotation(other.rotation),
-      matrix(other.matrix)
-{
-}
-
 void Transform::UpdateMatrix()
 {
     const Matrix4 t = Matrix4::Translation(translation);

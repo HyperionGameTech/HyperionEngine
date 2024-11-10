@@ -162,7 +162,7 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 #pragma endregion Render commands
 
 EnvGrid::EnvGrid(Name name, EnvGridOptions options)
-    : RenderComponent(name),
+    : RenderComponentBase(name),
       m_options(options),
       m_aabb(options.aabb),
       m_voxel_grid_aabb(options.aabb),
@@ -294,7 +294,7 @@ void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 
 void EnvGrid::Init()
 {
-    Handle<Scene> scene(GetParent()->GetScene()->GetID());
+    Handle<Scene> scene = GetParent()->GetScene()->HandleFromThis();
     AssertThrow(scene.IsValid());
 
     const SizeType num_ambient_probes = m_options.density.Size();
@@ -754,10 +754,7 @@ void EnvGrid::CreateSHData()
             }
         }
 
-        DeferCreate(
-            m_compute_sh_descriptor_tables[i],
-            g_engine->GetGPUDevice()
-        );
+        DeferCreate(m_compute_sh_descriptor_tables[i], g_engine->GetGPUDevice());
     }
 
     m_clear_sh = MakeRenderObject<ComputePipeline>(

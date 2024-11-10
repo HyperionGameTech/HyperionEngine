@@ -11,7 +11,7 @@ namespace hyperion {
 
 class Node;
 
-HYP_STRUCT(Component, Serialize=false, Editor=false)
+HYP_STRUCT(Component, Size=8, Serialize=false, Editor=false)
 struct NodeLinkComponent
 {
     HYP_FIELD()
@@ -22,8 +22,6 @@ struct NodeLinkComponent
         return HashCode();
     }
 };
-
-static_assert(sizeof(NodeLinkComponent) == 8, "NodeLinkComponent must be 8 bytes");
 
 } // namespace hyperion
 

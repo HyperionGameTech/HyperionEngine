@@ -29,9 +29,9 @@ HYP_EXPORT void Name_FromString(const char *str, bool weak, Name *out_name)
     }
 
     if (weak) {
-        *out_name = CreateWeakNameFromDynamicString(str).hash_code;
+        *out_name = Name(CreateWeakNameFromDynamicString(str).hash_code);
     } else {
-        *out_name = CreateNameFromDynamicString(str).hash_code;
+        *out_name = Name(CreateNameFromDynamicString(str).hash_code);
     }
 }
 

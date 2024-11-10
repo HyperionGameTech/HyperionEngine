@@ -164,7 +164,7 @@ void HypClass::Initialize()
 
                 m_serialization_mode = HypClassSerializationMode::BITWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
             } else {
-                m_serialization_mode = HypClassSerializationMode::MEMBERWISE | HypClassSerializationMode::USE_MARSHAL_CLASS;
+                HYP_FAIL("Unknown serialization mode: %s", string_value.Data());
             }
         } else if (!serialize_attribute.GetBool()) {
             m_serialization_mode = HypClassSerializationMode::NONE;

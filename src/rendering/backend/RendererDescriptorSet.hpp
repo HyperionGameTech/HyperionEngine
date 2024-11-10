@@ -735,6 +735,17 @@ public:
 
         return DescriptorSetRef<PLATFORM>::unset;
     }
+    
+    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(uint32 descriptor_set_index, uint32 frame_index) const
+    {
+        for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+            if (set->GetLayout().GetDeclaration().set_index == descriptor_set_index) {
+                return set;
+            }
+        }
+
+        return DescriptorSetRef<PLATFORM>::unset;
+    }
 
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set

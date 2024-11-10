@@ -5,6 +5,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <rendering/RenderComponent.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -16,22 +18,24 @@ namespace hyperion {
 
 class Light;
 
-class HYP_API PointLightShadowRenderer : public RenderComponent<PointLightShadowRenderer>
+HYP_CLASS()
+class HYP_API PointLightShadowRenderer : public RenderComponentBase
 {
+    HYP_OBJECT_BODY(PointLightShadowRenderer);
+
 public:
     PointLightShadowRenderer(Name name, Handle<Light> light, const Extent2D &extent);
     PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
     PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
     virtual ~PointLightShadowRenderer() override;
 
-    void Init();
-    void InitGame(); // init on game thread
-    void OnRemoved();
-
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
 private:
+    virtual void Init() override;
+    virtual void InitGame() override; // init on game thread
+    virtual void OnRemoved() override;
+    virtual void OnUpdate(GameCounter::TickUnit delta) override;
+    virtual void OnRender(Frame *frame) override;
+
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     Handle<Light>       m_light;

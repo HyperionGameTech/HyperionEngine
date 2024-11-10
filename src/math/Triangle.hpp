@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Serialize="bitwise")
 struct HYP_API Triangle
 {
     HYP_FIELD()
@@ -21,7 +21,8 @@ struct HYP_API Triangle
     Triangle();
     Triangle(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2);
     Triangle(const Vertex &v0, const Vertex &v1, const Vertex &v2);
-    Triangle(const Triangle &other);
+    Triangle(const Triangle &other) = default;
+    Triangle &operator=(const Triangle &other) = default;
     ~Triangle() = default;
 
     HYP_FORCE_INLINE Vertex &operator[](SizeType index)

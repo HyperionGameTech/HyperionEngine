@@ -338,8 +338,6 @@ void EditorSubsystem::InitSceneOutline()
     RC<UIListView> list_view = GetUIStage()->FindChildUIObject(NAME("Scene_Outline_ListView")).Cast<UIListView>();
     AssertThrow(list_view != nullptr);
 
-    list_view->SetBackgroundColor(Color(0xFF0000FFu)); // temp
-
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     
     list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<Weak<Node>> { }));

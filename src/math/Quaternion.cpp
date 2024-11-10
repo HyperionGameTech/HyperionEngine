@@ -19,9 +19,9 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 
 Quaternion::Quaternion(const Matrix4 &m)
 {
-    Vector3 m0 = m[0].GetXYZ(),
-            m1 = m[1].GetXYZ(),
-            m2 = m[2].GetXYZ();
+    Vec3f m0 = m[0].GetXYZ(),
+        m1 = m[1].GetXYZ(),
+        m2 = m[2].GetXYZ();
 
     float length_sqr = m0[0] * m0[0] + m1[0] * m1[0] + m2[0] * m2[0];
 
@@ -110,7 +110,7 @@ Quaternion::Quaternion(const Vec3f &axis, float radians)
         tmp.Normalize();
     }
 
-    if (tmp != Vector3::Zero()) {
+    if (tmp != Vec3f::Zero()) {
         float half_angle = radians * 0.5f;
         float sin_half_angle = sin(half_angle);
 
@@ -121,20 +121,6 @@ Quaternion::Quaternion(const Vec3f &axis, float radians)
     } else {
         (*this) = Quaternion::Identity();
     }
-}
-
-Quaternion::Quaternion(const Quaternion &other)
-    : x(other.x), y(other.y), z(other.z), w(other.w)
-{
-}
-
-Quaternion &Quaternion::operator=(const Quaternion &other)
-{
-    x = other.x;
-    y = other.y;
-    z = other.z;
-    w = other.w;
-    return *this;
 }
 
 Quaternion Quaternion::operator*(const Quaternion &other) const

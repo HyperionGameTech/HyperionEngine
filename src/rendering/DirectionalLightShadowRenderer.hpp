@@ -4,7 +4,10 @@
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/utilities/EnumFlags.hpp>
+
 #include <core/threading/ThreadSignal.hpp>
+
+#include <core/object/HypObject.hpp>
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Light.hpp>
@@ -122,8 +125,11 @@ private:
     ThreadSignal                        m_should_rerender_static_objects_signal;
 };
 
-class DirectionalLightShadowRenderer : public RenderComponent<DirectionalLightShadowRenderer>
+HYP_CLASS()
+class DirectionalLightShadowRenderer : public RenderComponentBase
 {
+    HYP_OBJECT_BODY(DirectionalLightShadowRenderer);
+
 public:
     DirectionalLightShadowRenderer(Name name, Extent2D resolution, ShadowMode shadow_mode);
     DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
@@ -142,13 +148,11 @@ public:
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 
-    void Init();     // init on render thread
-    void InitGame(); // init on game thread
-
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
 private:
+    virtual void Init() override;     // init on render thread
+    virtual void InitGame() override; // init on game thread
+    virtual void OnUpdate(GameCounter::TickUnit delta) override;
+    virtual void OnRender(Frame *frame) override;
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     UniquePtr<ShadowPass>   m_shadow_pass;

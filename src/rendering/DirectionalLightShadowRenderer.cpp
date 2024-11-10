@@ -497,7 +497,7 @@ void ShadowPass::Render(Frame *frame)
 #pragma region DirectionalLightShadowRenderer
 
 DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Extent2D resolution, ShadowMode shadow_mode)
-    : RenderComponent(name),
+    : RenderComponentBase(name),
       m_resolution(resolution),
       m_shadow_mode(shadow_mode)
 {

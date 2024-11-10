@@ -7,7 +7,7 @@
 namespace hyperion {
 
 ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Extent2D window_size, ScreenCaptureMode screen_capture_mode)
-    : RenderComponent(name),
+    : RenderComponentBase(name),
       m_window_size(window_size),
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,

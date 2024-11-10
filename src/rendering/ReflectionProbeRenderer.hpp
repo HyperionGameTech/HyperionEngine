@@ -3,6 +3,9 @@
 #define HYPERION_REFLECTION_PROBE_HPP
 
 #include <core/Base.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <rendering/PostFX.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
@@ -14,8 +17,11 @@
 
 namespace hyperion {
 
-class HYP_API ReflectionProbeRenderer : public RenderComponent<ReflectionProbeRenderer>
+HYP_CLASS()
+class HYP_API ReflectionProbeRenderer : public RenderComponentBase
 {
+    HYP_OBJECT_BODY(ReflectionProbeRenderer);
+    
 public:
     ReflectionProbeRenderer(
         Name name,
@@ -34,14 +40,13 @@ public:
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
         { return m_env_probe; }
 
-    void Init();
-    void InitGame(); // init on game thread
-    void OnRemoved();
-
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
 private:
+    virtual void Init() override;
+    virtual void InitGame() override; // init on game thread
+    virtual void OnRemoved() override;
+    virtual void OnUpdate(GameCounter::TickUnit delta) override;
+    virtual void OnRender(Frame *frame) override;
+
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     BoundingBox         m_aabb;
