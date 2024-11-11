@@ -64,7 +64,9 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     EnvGridComponent &env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
-    if (env_grid_component.render_component) {
+    HYP_LOG(EnvGrid, LogLevel::INFO, "REmove entity #{} with EnvGrid {}", entity.Value(), (void *)env_grid_component.render_component.Get());
+
+    if (env_grid_component.render_component != nullptr) {
         GetEntityManager().GetScene()->GetEnvironment()->RemoveRenderComponent<EnvGrid>(env_grid_component.render_component->GetName());
         env_grid_component.render_component = nullptr;
     }

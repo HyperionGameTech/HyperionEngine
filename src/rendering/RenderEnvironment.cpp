@@ -14,6 +14,9 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
 
 using renderer::Result;
@@ -231,9 +234,6 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
     m_current_enabled_render_components_mask = m_next_enabled_render_components_mask;
 
-    const RenderEnvironmentUpdates update_marker_value = m_update_marker.Get(MemoryOrder::ACQUIRE);
-    RenderEnvironmentUpdates inverse_mask = 0;
-
     for (const auto &it : m_render_components) {
         for (const auto &component_tag_pair : it.second) {
             // m_next_enabled_render_components_mask |= 1u << uint32(component_tag_pair.second->GetName());
@@ -245,10 +245,10 @@ void RenderEnvironment::RenderComponents(Frame *frame)
     // add RenderComponents AFTER rendering, so that the render scheduler can complete
     // initialization tasks before we call ComponentRender() on the newly added RenderComponents
 
-    if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-        inverse_mask |= RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS;
-
+    if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
         std::lock_guard guard(m_render_component_mutex);
+
+        HYP_LOG(Core, LogLevel::DEBUG, "Updating render components: mask = {}\tPending addition: {}\tPending removal: {}", m_update_marker.Get(MemoryOrder::ACQUIRE), m_render_components_pending_addition.Size(), m_render_components_pending_removal.Size());
 
         for (auto &it : m_render_components_pending_addition) {
             auto &items_map = it.second;
@@ -283,16 +283,33 @@ void RenderEnvironment::RenderComponents(Frame *frame)
             if (components_it != m_render_components.End()) {
                 auto &items_map = components_it->second;
 
-                const auto item_it = items_map.Find(name);
+                if (name.IsValid()) {
+                    const auto item_it = items_map.Find(name);
 
-                if (item_it != items_map.End()) {
-                    const RC<RenderComponentBase> &item = item_it->second;
+                    if (item_it != items_map.End()) {
+                        const RC<RenderComponentBase> &item = item_it->second;
 
-                    if (item != nullptr) {
+                        if (item != nullptr) {
+                            HYP_LOG(Core, LogLevel::DEBUG, "Remove RenderComponent {} {}", item->InstanceClass()->GetName(), (void *)item.Get());
+                            item->ComponentRemoved();
+                        }
+
+                        items_map.Erase(item_it);
+                    }
+                } else {
+                    // Name not specified; remove all elements of the specified type
+                    for (const auto &it : items_map) {
+                        const RC<RenderComponentBase> &item = it.second;
+
+                        if (!item) {
+                            continue;
+                        }
+
+                        HYP_LOG(Core, LogLevel::DEBUG, "Remove RenderComponent {} {}", item->InstanceClass()->GetName(), (void *)item.Get());
                         item->ComponentRemoved();
                     }
 
-                    items_map.Erase(item_it);
+                    items_map.Clear();
                 }
 
                 if (items_map.Empty()) {
@@ -302,12 +319,12 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         }
 
         m_render_components_pending_removal.Clear();
+
+        m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
     }
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
-            inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
-
+    if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {
+        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
             if (m_tlas) {
                 if (m_has_rt_radiance) {
                     m_rt_radiance->Destroy();
@@ -358,10 +375,8 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 ApplyTLASUpdates(frame, update_state_flags);
             }
         }
-    }
 
-    if (update_marker_value) {
-        m_update_marker.BitAnd(~inverse_mask, MemoryOrder::RELEASE);
+        m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_TLAS, MemoryOrder::RELEASE);
     }
 
     ++m_frame_counter;

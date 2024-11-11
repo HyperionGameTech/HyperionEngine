@@ -434,6 +434,10 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
+            if (!system_it.second->IsEntityInitialized(entity)) {
+                continue;
+            }
+
             if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
                 system_it.second->OnEntityRemoved(entity);
             }

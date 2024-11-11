@@ -182,12 +182,14 @@ public:
 
         std::lock_guard guard(m_render_component_mutex);
 
-        m_render_components_pending_removal.Insert(RenderComponentPendingRemovalEntry {
+        m_render_components_pending_removal.PushBack(RenderComponentPendingRemovalEntry {
             TypeID::ForType<T>(),
             name
         });
 
         m_update_marker.BitOr(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
+
+        DebugLog(LogType::Debug, "Remove render component of type %s with name %s\n", TypeName<T>().Data(), name.LookupString());
     }
 
     // only touch from render thread!
@@ -215,7 +217,7 @@ private:
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_init;
     TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components_pending_addition;
-    FlatSet<RenderComponentPendingRemovalEntry>     m_render_components_pending_removal;
+    Array<RenderComponentPendingRemovalEntry>       m_render_components_pending_removal;
     std::mutex                                      m_render_component_mutex;
     uint32                                          m_current_enabled_render_components_mask;
     uint32                                          m_next_enabled_render_components_mask;

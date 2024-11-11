@@ -169,10 +169,14 @@ EnvGrid::EnvGrid(Name name, EnvGridOptions options)
       m_offset(options.aabb.GetCenter()),
       m_current_probe_index(0)
 {
+    HYP_LOG(EnvGrid, LogLevel::INFO, "Constructor for EnvGrid {}", (void *)this);
+    LogStackTrace(25);
 }
 
 EnvGrid::~EnvGrid()
-{
+{   HYP_LOG(EnvGrid, LogLevel::INFO, "Destructor for EnvGrid {}", (void *)this);
+
+
     SafeRelease(std::move(m_ambient_shader));
 
     SafeRelease(std::move(m_framebuffer));
@@ -384,7 +388,7 @@ void EnvGrid::Init()
         m_render_collector.SetCamera(m_camera);
     }
 
-    HYP_LOG(EnvGrid, LogLevel::INFO, "Created {} total ambient EnvProbes in grid", num_ambient_probes);
+    HYP_LOG(EnvGrid, LogLevel::INFO, "EnvGrid {} : Created {} total ambient EnvProbes in grid", (void *)this, num_ambient_probes);
 }
 
 // called from game thread

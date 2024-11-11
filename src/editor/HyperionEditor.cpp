@@ -310,7 +310,7 @@ void HyperionEditor::Init()
     //     }
     // }
 
-#if 1
+#if 0
     // add sun
     
     auto sun = CreateObject<Light>(
