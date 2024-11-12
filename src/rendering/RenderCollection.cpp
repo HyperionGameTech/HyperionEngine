@@ -41,7 +41,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     RC<EntityDrawCollection>            collection;
     Array<RenderProxy>                  added_proxies;
     Array<ID<Entity>>                   removed_proxies;
-    FlatMap<ID<Entity>, RenderProxy>    changed_proxies;
+    RenderProxyEntityMap                changed_proxies;
 
     FramebufferRef                      framebuffer;
     Optional<RenderableAttributeSet>    override_attributes;
@@ -50,7 +50,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         const RC<EntityDrawCollection> &collection,
         Array<RenderProxy> &&added_proxies,
         Array<ID<Entity>> &&removed_proxies,
-        FlatMap<ID<Entity>, RenderProxy> &&changed_proxies,
+        RenderProxyEntityMap &&changed_proxies,
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
@@ -81,10 +81,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             mesh->GetMeshAttributes(),
             material->GetRenderAttributes()
         };
-
-        if (framebuffer != nullptr) {
-            attributes.SetFramebuffer(framebuffer);
-        }
 
         if (override_attributes.HasValue()) {
             if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
@@ -133,7 +129,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 "\tVertex Attributes: {}\n"
                 "\tBucket: {}\n"
                 "\tShader Definition: {}  {}\n"
-                "\tFramebuffer: {}\n"
                 "\tCull Mode: {}\n"
                 "\tFlags: {}\n"
                 "\tDrawable layer: {}",
@@ -141,7 +136,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 uint32(attributes.GetMaterialAttributes().bucket),
                 attributes.GetShaderDefinition().GetName(),
                 attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
-                attributes.GetFramebuffer().index,
                 uint32(attributes.GetMaterialAttributes().cull_faces),
                 uint32(attributes.GetMaterialAttributes().flags),
                 attributes.GetDrawableLayer());
@@ -151,6 +145,15 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                 attributes
             );
+
+            if (framebuffer != nullptr) {
+                render_group->AddFramebuffer(framebuffer);
+            } else {
+                FramebufferRef bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+                AssertThrow(bucket_framebuffer != nullptr);
+
+                render_group->AddFramebuffer(bucket_framebuffer);
+            }
 
             InitObject(render_group);
 
@@ -169,7 +172,21 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         auto &proxy_groups = collection->GetProxyGroups()[pass_type];
 
         auto it = proxy_groups.Find(attributes);
-        AssertThrow(it != proxy_groups.End());
+        // AssertThrow(it != proxy_groups.End());
+
+        // temp
+        if (it == proxy_groups.End()) {
+            HYP_LOG(RenderCollection, LogLevel::DEBUG, "Found elements:");
+
+            RenderableAttributeSet **existing_attributes = new RenderableAttributeSet*[proxy_groups.Size()];
+
+            for (int i = 0; i < proxy_groups.Size(); i++) {
+                auto &pair = proxy_groups.AtIndex(i);
+                existing_attributes[i] = &pair.first;
+            }
+
+            HYP_BREAKPOINT;
+        }
 
         const bool removed = it->second.RemoveRenderProxy(entity);
 
@@ -315,7 +332,7 @@ bool RenderProxyGroup::RemoveRenderProxy(ID<Entity> entity)
     return true;
 }
 
-typename FlatMap<ID<Entity>, RenderProxy>::Iterator RenderProxyGroup::RemoveRenderProxy(typename FlatMap<ID<Entity>, RenderProxy>::ConstIterator iterator)
+typename RenderProxyEntityMap::Iterator RenderProxyGroup::RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator)
 {
     return m_render_proxies.Erase(iterator);
 }
@@ -458,7 +475,7 @@ RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(con
         Array<RenderProxy *> added_proxies_ptrs;
         proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
 
-        FlatMap<ID<Entity>, RenderProxy> changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
+        RenderProxyEntityMap changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
 
         if (added_proxies_ptrs.Any() || removed_proxies.Any() || changed_proxies.Any()) {
             Array<RenderProxy> added_proxies;
@@ -640,13 +657,6 @@ void RenderCollector::ExecuteDrawCalls(
             }
 
             AssertThrow(proxy_group.GetRenderGroup().IsValid());
-
-            if (framebuffer.IsValid()) {
-                AssertThrowMsg(
-                    attributes.GetFramebuffer() == framebuffer,
-                    "Given Framebuffer does not match RenderCollector item's framebuffer -- invalid data passed?"
-                );
-            }
 
             if (push_constant) {
                 proxy_group.GetRenderGroup()->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());

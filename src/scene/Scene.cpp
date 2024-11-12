@@ -15,6 +15,7 @@
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/systems/ShadowMapUpdaterSystem.hpp>
 #include <scene/ecs/systems/EnvGridUpdaterSystem.hpp>
+#include <scene/ecs/systems/ReflectionProbeUpdaterSystem.hpp>
 #include <scene/ecs/systems/AnimationSystem.hpp>
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
@@ -135,6 +136,7 @@ Scene::Scene(
     m_entity_manager->AddSystem<ShadowMapUpdaterSystem>();
     m_entity_manager->AddSystem<VisibilityStateUpdaterSystem>();
     m_entity_manager->AddSystem<EnvGridUpdaterSystem>();
+    m_entity_manager->AddSystem<ReflectionProbeUpdaterSystem>();
     m_entity_manager->AddSystem<AnimationSystem>();
     m_entity_manager->AddSystem<SkySystem>();
     m_entity_manager->AddSystem<AudioSystem>();

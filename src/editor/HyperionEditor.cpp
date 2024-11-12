@@ -18,6 +18,7 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/TerrainComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
+#include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/RigidBodyComponent.hpp>
 #include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
@@ -551,6 +552,23 @@ void HyperionEditor::Init()
     loaded_scene->SetRoot(NodeProxy::empty);
 
     m_scene->GetRoot()->AddChild(root);
+
+
+    // testing reflection capture
+    Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
+
+    m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
+
+    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
+        BoundingBox(Vec3f(-50.0f, 0.0f, -50.0f), Vec3f(50.0f, 50.0f, 50.0f)),
+        BoundingBox(Vec3f(-50.0f, 0.0f, -50.0f), Vec3f(50.0f, 50.0f, 50.0f))
+    });
+
+    m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
+
+    NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
+    reflection_probe_node.SetEntity(reflection_probe_entity);
+    reflection_probe_node.SetName("ReflectionProbeTest");
 #endif
 }
 

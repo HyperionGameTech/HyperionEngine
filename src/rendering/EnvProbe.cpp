@@ -146,7 +146,7 @@ void EnvProbe::UpdateRenderData(
 EnvProbe::EnvProbe() : EnvProbe(
     Handle<Scene> { },
     BoundingBox::Empty(),
-    Extent2D { 1, 1 },
+    Vec2u { 1, 1 },
     EnvProbeType::ENV_PROBE_TYPE_INVALID,
     nullptr
 )
@@ -156,7 +156,7 @@ EnvProbe::EnvProbe() : EnvProbe(
 EnvProbe::EnvProbe(
     const Handle<Scene> &parent_scene,
     const BoundingBox &aabb,
-    const Extent2D &dimensions,
+    const Vec2u &dimensions,
     EnvProbeType env_probe_type
 ) : EnvProbe(
         parent_scene,
@@ -171,7 +171,7 @@ EnvProbe::EnvProbe(
 EnvProbe::EnvProbe(
     const Handle<Scene> &parent_scene,
     const BoundingBox &aabb,
-    const Extent2D &dimensions,
+    const Vec2u &dimensions,
     EnvProbeType env_probe_type,
     const ShaderRef &custom_shader
 ) : BasicObject(),
@@ -247,7 +247,7 @@ void EnvProbe::Init()
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     reflection_probe_format,
-                    Vec3u { m_dimensions.width, m_dimensions.height, 1 },
+                    Vec3u { m_dimensions.x, m_dimensions.y, 1 },
                     FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
                     FilterMode::TEXTURE_FILTER_LINEAR
                 }
@@ -257,7 +257,7 @@ void EnvProbe::Init()
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
                     shadow_probe_format,
-                    Vec3u { m_dimensions.width, m_dimensions.height, 1 },
+                    Vec3u { m_dimensions.x, m_dimensions.y, 1 },
                     FilterMode::TEXTURE_FILTER_NEAREST,
                     FilterMode::TEXTURE_FILTER_NEAREST
                 }
@@ -274,7 +274,7 @@ void EnvProbe::Init()
         {
             m_camera = CreateObject<Camera>(
                 90.0f,
-                -int(m_dimensions.width), int(m_dimensions.height),
+                -int(m_dimensions.x), int(m_dimensions.y),
                 m_camera_near, m_camera_far
             );
 
@@ -382,8 +382,6 @@ void EnvProbe::EnqueueBind() const
 
 void EnvProbe::EnqueueUnbind() const
 {
-    Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
-
     AssertReady();
 
     if (!IsControlledByEnvGrid()) {

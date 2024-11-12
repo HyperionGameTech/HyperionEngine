@@ -25,7 +25,7 @@ class HYP_API ReflectionProbeRenderer : public RenderComponentBase
 public:
     ReflectionProbeRenderer(
         Name name,
-        const Vector3 &origin
+        const Vec3f &origin
     );
 
     ReflectionProbeRenderer(
@@ -36,6 +36,9 @@ public:
     ReflectionProbeRenderer(const ReflectionProbeRenderer &other)               = delete;
     ReflectionProbeRenderer &operator=(const ReflectionProbeRenderer &other)    = delete;
     virtual ~ReflectionProbeRenderer();
+
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
+        { return m_aabb; }
 
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
         { return m_env_probe; }

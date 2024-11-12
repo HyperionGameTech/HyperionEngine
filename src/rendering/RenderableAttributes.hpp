@@ -123,7 +123,6 @@ struct MeshAttributes
 
 class RenderableAttributeSet
 {
-    FramebufferRef      m_framebuffer;
     MeshAttributes      m_mesh_attributes;
     MaterialAttributes  m_material_attributes;
     uint32              m_override_flags;
@@ -164,15 +163,6 @@ public:
     HYP_FORCE_INLINE void SetShaderDefinition(const ShaderDefinition &shader_definition)
     {
         m_material_attributes.shader_definition = shader_definition;
-        m_needs_hash_code_recalculation = true;
-    }
-
-    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
-        { return m_framebuffer; }
-
-    HYP_FORCE_INLINE void SetFramebuffer(const FramebufferRef &framebuffer)
-    {
-        m_framebuffer = framebuffer;
         m_needs_hash_code_recalculation = true;
     }
 
@@ -227,7 +217,6 @@ private:
     void RecalculateHashCode() const
     {
         HashCode hc;
-        hc.Add(m_framebuffer.GetHashCode());
         hc.Add(m_mesh_attributes.GetHashCode());
         hc.Add(m_material_attributes.GetHashCode());
         hc.Add(m_override_flags);

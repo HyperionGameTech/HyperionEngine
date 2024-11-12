@@ -38,9 +38,9 @@ ReflectionProbeRenderer::~ReflectionProbeRenderer()
 void ReflectionProbeRenderer::Init()
 {
     m_env_probe = CreateObject<EnvProbe>(
-        Handle<Scene>(GetParent()->GetScene()->GetID()),
+        GetParent()->GetScene()->HandleFromThis(),
         m_aabb,
-        Extent2D { 256, 256 },
+        Vec2u { 256, 256 },
         ENV_PROBE_TYPE_REFLECTION
     );
 
