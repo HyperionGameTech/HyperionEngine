@@ -117,7 +117,6 @@ Scene::Scene(
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
     m_environment(MakeUnique<RenderEnvironment>(this)),
     m_world(nullptr),
-    m_is_non_world_scene(flags & SceneFlags::NON_WORLD),
     m_is_audio_listener(false),
     m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id.GetMask(), this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
@@ -187,7 +186,7 @@ void Scene::Init()
 
     m_entity_manager->Initialize();
 
-    if (IsWorldScene()) {
+    if (!IsNonWorldScene()) {
         if (!m_tlas) {
             if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool() && (m_flags & SceneFlags::HAS_TLAS)) {
                 CreateTLAS();
@@ -554,7 +553,7 @@ bool Scene::CreateTLAS()
 {
     HYP_SCOPE;
 
-    AssertThrowMsg(IsWorldScene(), "Can only create TLAS for world scenes");
+    AssertThrowMsg(!IsNonWorldScene(), "Can only create TLAS for world scenes");
     AssertIsInitCalled();
 
     if (m_tlas) {

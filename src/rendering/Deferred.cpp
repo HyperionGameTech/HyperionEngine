@@ -648,7 +648,7 @@ void EnvGridPass::CreateTemporalBlending()
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_framebuffer->GetExtent(),
         InternalFormat::RGBA8,
-        TemporalBlendTechnique::TECHNIQUE_1,
+        TemporalBlendTechnique::TECHNIQUE_2,
         TemporalBlendFeedback::LOW,
         m_framebuffer
     );

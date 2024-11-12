@@ -163,7 +163,7 @@ void World::Update(GameCounter::TickUnit delta)
             continue;
         }
 
-        if (!m_scenes[index]->IsWorldScene()) {
+        if (m_scenes[index]->IsNonWorldScene()) {
             continue;
         }
 

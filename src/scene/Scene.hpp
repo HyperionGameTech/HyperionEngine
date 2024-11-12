@@ -49,7 +49,8 @@ enum class SceneFlags : uint32
 {
     NONE        = 0x0,
     HAS_TLAS    = 0x1,
-    NON_WORLD   = 0x2
+    NON_WORLD   = 0x2,
+    DETACHED    = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
@@ -91,6 +92,9 @@ public:
      *  This is used to assert that the Scene is being accessed from the correct thread.
      *  \note Only call this if you know what you are doing. */
     void SetOwnerThreadID(ThreadID owner_thread_id);
+
+    HYP_FORCE_INLINE EnumFlags<SceneFlags> GetFlags() const
+        { return m_flags; }
 
     HYP_METHOD(Property="Name", Serialize=true, Editor=true)
     HYP_FORCE_INLINE Name GetName() const
@@ -179,8 +183,8 @@ public:
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsWorldScene() const
-        { return !m_is_non_world_scene; }
+    HYP_FORCE_INLINE bool IsNonWorldScene() const
+        { return m_flags & SceneFlags::NON_WORLD; }
 
     HYP_METHOD(Property="IsAudioListener", Serialize=true)
     HYP_FORCE_INLINE bool IsAudioListener() const
@@ -256,8 +260,6 @@ private:
     TLASRef                         m_tlas;
 
     Matrix4                         m_last_view_projection_matrix;
-    
-    const bool                      m_is_non_world_scene;
 
     bool                            m_is_audio_listener;
 

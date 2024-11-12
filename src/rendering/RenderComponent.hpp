@@ -48,8 +48,7 @@ public:
           m_render_frame_slicing_counter(0),
           m_index(~0u),
           m_parent(nullptr),
-          m_component_is_render_init(false),
-          m_component_is_game_init(false)
+          m_is_initialized(0)
     {
     }
 
@@ -71,6 +70,8 @@ public:
 
     void SetComponentIndex(Index index)
     {
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
         if (index == m_index) {
             return;
         }
@@ -79,50 +80,53 @@ public:
 
         m_index = index;
 
-        if (m_component_is_render_init) {
+        if (m_is_initialized.Get(MemoryOrder::ACQUIRE) & ThreadName::THREAD_RENDER) {
             OnComponentIndexChanged(index, prev_index);
         }
     }
 
-    HYP_FORCE_INLINE bool IsComponentRenderInit() const
-        { return m_component_is_render_init; }
-
-    HYP_FORCE_INLINE bool IsComponentGameInit() const
-        { return m_component_is_game_init; }
+    HYP_FORCE_INLINE bool IsInitialized(ThreadName thread_name = ThreadName::THREAD_RENDER) const
+        { return m_is_initialized.Get(MemoryOrder::ACQUIRE) & thread_name; }
     
-    /*! \brief Init the component. Called on any thread when the RenderComponent is added to the RenderEnvironment */
+    /*! \brief Init the component. Called on the RENDER thread when the RenderComponent is added to the RenderEnvironment */
     void ComponentInit()
     {
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+        AssertThrow(!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & ThreadName::THREAD_RENDER));
+
         Init();
 
-        m_component_is_render_init = true;
+        m_is_initialized.BitOr(ThreadName::THREAD_RENDER, MemoryOrder::RELEASE);
     }
 
-    /*! \brief Update data for the component. Runs on GAME thread. */
+    /*! \brief Update data for the component. Called from GAME thread. */
     void ComponentUpdate(GameCounter::TickUnit delta)
     {
         Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-        if (!m_component_is_game_init) {
+        if (!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & ThreadName::THREAD_GAME)) {
             InitGame();
 
-            m_component_is_game_init = true;
+            m_is_initialized.BitOr(ThreadName::THREAD_GAME, MemoryOrder::RELEASE);
         }
 
         OnUpdate(delta);
     }
 
-    /*! \brief Perform rendering. Runs in RENDER thread. */
+    /*! \brief Perform rendering. Called from RENDER thread. */
     void ComponentRender(Frame *frame)
     {
         Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+        AssertThrow(m_is_initialized.Get(MemoryOrder::ACQUIRE) & ThreadName::THREAD_RENDER);
 
         if (m_render_frame_slicing == 0 || m_render_frame_slicing_counter++ % m_render_frame_slicing == 0) {
             OnRender(frame);
         }
     }
 
-    /*! \brief Called when the component is removed. */
+    /*! \brief Called on the RENDER thread when the component is removed. */
     void ComponentRemoved() { OnRemoved(); }
 
 protected:
@@ -133,19 +137,17 @@ protected:
     virtual void OnRemoved() { }
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
 
-    Name                m_name;
-    const uint          m_render_frame_slicing; // amount of frames to wait between render calls
-    uint                m_render_frame_slicing_counter;
-    Index               m_index;
-    RenderEnvironment   *m_parent;
-
-
-    bool                m_component_is_render_init;
-    bool                m_component_is_game_init;
+    Name                    m_name;
+    const uint              m_render_frame_slicing; // amount of frames to wait between render calls
+    uint                    m_render_frame_slicing_counter;
+    Index                   m_index;
+    RenderEnvironment       *m_parent;
 
 private:
     HYP_FORCE_INLINE void SetParent(RenderEnvironment *parent)
         { m_parent = parent; }
+
+    AtomicVar<ThreadMask>   m_is_initialized;
 };
 
 } // namespace hyperion

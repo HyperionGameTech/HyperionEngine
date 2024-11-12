@@ -547,11 +547,10 @@ void HyperionEditor::Init()
 
 
     NodeProxy root = loaded_scene->GetRoot();
+
     loaded_scene->SetRoot(NodeProxy::empty);
 
     m_scene->GetRoot()->AddChild(root);
-
-
 #endif
 }
 

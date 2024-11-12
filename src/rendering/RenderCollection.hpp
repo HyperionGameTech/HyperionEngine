@@ -119,7 +119,7 @@ public:
 
 private:
     FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
-    FixedArray<RenderProxyList, ThreadType::THREAD_TYPE_MAX>                        m_proxy_lists;
+    FixedArray<RenderProxyList, 2>                                                  m_proxy_lists;
 };
 
 class RenderCollector

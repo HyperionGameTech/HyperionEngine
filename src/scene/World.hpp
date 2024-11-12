@@ -46,10 +46,10 @@ public:
         RenderCollector &render_collector = m_render_collectors_by_id_index[scene_index];
         render_collector.SetCamera(scene->GetCamera());
 
-        if (scene->IsWorldScene()) {
-            render_collector.SetRenderEnvironment(scene->GetEnvironment());
-        } else {
+        if (scene->IsNonWorldScene()) {
             render_collector.SetRenderEnvironment(nullptr);
+        } else {
+            render_collector.SetRenderEnvironment(scene->GetEnvironment());
         }
 
         const uint render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
@@ -140,7 +140,8 @@ private:
     {
         Handle<Scene> scene = CreateObject<Scene>(
             Handle<Camera>::empty,
-            thread_id
+            thread_id,
+            SceneFlags::DETACHED
         );
 
         scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.name));

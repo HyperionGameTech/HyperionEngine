@@ -39,14 +39,13 @@ enum ThreadName : ThreadMask
     THREAD_DYNAMIC      = 0xFFFFu << 16u
 };
 
-// Used for having 1 value of something per thread,
-// e.g `uint counter[THREAD_TYPE_MAX]` and selecting the value
-// based on the current thread.
 enum ThreadType : uint32
 {
     THREAD_TYPE_INVALID = uint32(-1),
     THREAD_TYPE_GAME    = 0,
     THREAD_TYPE_RENDER  = 1,
+    THREAD_TYPE_TASK    = 2,
+    THREAD_TYPE_DYNAMIC = 3,
     THREAD_TYPE_MAX
 };
 
@@ -72,7 +71,7 @@ public:
     HYP_API static void SetCurrentThreadID(ThreadID id);
     HYP_API static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-    HYP_API static ThreadType GetThreadType();
+    HYP_API static ThreadType CurrentThreadType();
 
     HYP_API static SizeType NumCores();
 
