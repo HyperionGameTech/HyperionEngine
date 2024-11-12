@@ -299,17 +299,17 @@ void RenderGroup::CreateGraphicsPipeline()
 {
     HYP_SCOPE;
     
-    if (m_fbos.Empty()) {
-        FramebufferRef framebuffer = m_renderable_attributes.GetFramebuffer();
+    // if (m_fbos.Empty()) {
+    //     FramebufferRef framebuffer = m_renderable_attributes.GetFramebuffer();
 
-        if (!framebuffer.IsValid()) {
-            framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(m_renderable_attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-        }
+    //     if (!framebuffer.IsValid()) {
+    //         framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(m_renderable_attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+    //     }
 
-        AddFramebuffer(framebuffer);
-    }
+    //     AddFramebuffer(framebuffer);
+    // }
 
-    AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to render group");
+    AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to RenderGroup");
 
     for (const FramebufferRef &framebuffer : m_fbos) {
         AssertThrow(framebuffer.IsValid());
@@ -354,7 +354,7 @@ void RenderGroup::CreateGraphicsPipeline()
     );
 }
 
-void RenderGroup::CollectDrawCalls(const FlatMap<ID<Entity>, RenderProxy> &render_proxies)
+void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
 {
     HYP_SCOPE;
 

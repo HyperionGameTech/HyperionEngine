@@ -295,8 +295,7 @@ struct BlendFunction
     HYP_FORCE_INLINE BlendModeFactor GetDstColor() const
         { return BlendModeFactor((value >> 4) & 0xF); }
 
-    HYP_FORCE_INLINE
-    void SetDstColor(BlendModeFactor dst)
+    HYP_FORCE_INLINE void SetDstColor(BlendModeFactor dst)
         { value |= uint32(dst) << 4; }
 
     HYP_FORCE_INLINE BlendModeFactor GetSrcAlpha() const

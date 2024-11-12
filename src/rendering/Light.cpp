@@ -211,7 +211,6 @@ void Light::EnqueueBind() const
 
 void Light::EnqueueUnbind() const
 {
-    Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
     AssertReady();
 
     PUSH_RENDER_COMMAND(UnbindLight, GetID());

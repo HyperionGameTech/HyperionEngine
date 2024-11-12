@@ -146,14 +146,14 @@ public:
     EnvProbe(
         const Handle<Scene> &parent_scene,
         const BoundingBox &aabb,
-        const Extent2D &dimensions,
+        const Vec2u &dimensions,
         EnvProbeType env_probe_type
     );
     
     EnvProbe(
         const Handle<Scene> &parent_scene,
         const BoundingBox &aabb,
-        const Extent2D &dimensions,
+        const Vec2u &dimensions,
         EnvProbeType env_probe_type,
         const ShaderRef &custom_shader
     );
@@ -274,7 +274,7 @@ private:
 
     Handle<Scene>           m_parent_scene;
     BoundingBox             m_aabb;
-    Extent2D                m_dimensions;
+    Vec2u                   m_dimensions;
     EnvProbeType            m_env_probe_type;
 
     float                   m_camera_near;

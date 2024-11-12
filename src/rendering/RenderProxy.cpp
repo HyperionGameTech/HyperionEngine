@@ -47,18 +47,25 @@ void RenderProxy::UnclaimRenderResources() const
 
 void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
 {
-    FlatMap<ID<Entity>, RenderProxy>::Iterator iter = m_proxies.End();
+    RenderProxyEntityMap::Iterator iter = m_proxies.End();
+
+    AssertThrowMsg(!m_next_entities.Test(entity.ToIndex()), "Entity #%u already marked to be added for this iteration!", entity.Value());
 
     if (HasProxyForEntity(entity)) {
-        iter = m_proxies.Find(entity);
+        iter = m_proxies.FindAs(entity);
     }
 
+    // issue : getting added here, then added again with different attributes,
+    // causes it to be marked as changed for the same frame - 
+    // try having list of m_previous_proxies and m_proxies for next iteration?
+
     if (iter != m_proxies.End()) {
-        // if (proxy != iter->second) {
+        if (proxy != iter->second) {
 
         // Advance if version has changed
-        if (proxy.version != iter->second.version) {
+        // if (proxy.version != iter->second.version) {
             // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
+            AssertThrow(!m_changed_entities.Test(entity.ToIndex()));
             AssertThrow(!m_changed_proxies.Contains(entity));
 
             // Mark as changed if it is found in the previous iteration
@@ -68,6 +75,10 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
             iter->second = proxy;
         }
     } else {
+        // sanity check - if not in previous iteration, it must not be in the changed list
+        AssertThrow(!m_changed_entities.Test(entity.ToIndex()));
+        AssertThrow(!m_changed_proxies.Contains(entity));
+
         iter = m_proxies.Insert(entity, proxy).first;
     }
 
