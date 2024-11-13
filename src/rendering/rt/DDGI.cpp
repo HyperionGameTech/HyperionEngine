@@ -450,19 +450,20 @@ void DDGI::UpdateUniforms(Frame *frame)
 {
     const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
+    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState().NumBoundLights(), ArraySize(m_uniforms.light_indices));
     uint32 num_bound_lights = 0;
 
-    for (const auto &it : g_engine->GetRenderState().lights) {
-        if (num_bound_lights == std::size(m_uniforms.light_indices)) {
+    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
+        if (num_bound_lights >= max_bound_lights) {
             break;
         }
 
-        const ID<Light> light_id = it.first;
-        const LightDrawProxy &light = it.second;
+        for (const auto &it : g_engine->GetRenderState().bound_lights[light_type]) {
+            if (num_bound_lights >= max_bound_lights) {
+                break;
+            }
 
-        if (light.visibility_bits & (1ull << SizeType(camera_index))) {
-            m_uniforms.light_indices[num_bound_lights] = light_id.ToIndex();
-            num_bound_lights++;
+            m_uniforms.light_indices[num_bound_lights++] = it.first.ToIndex();
         }
     }
 

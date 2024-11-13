@@ -29,10 +29,11 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_NONE               = 0x0,
     RENDER_STATE_SCENE              = 0x1,
     RENDER_STATE_LIGHTS             = 0x2,
-    RENDER_STATE_ENV_PROBES         = 0x4,
-    RENDER_STATE_ACTIVE_ENV_PROBE   = 0x8,
-    RENDER_STATE_CAMERA             = 0x10,
-    RENDER_STATE_FRAME_COUNTER      = 0x20,
+    RENDER_STATE_ACTIVE_LIGHT       = 0x4,
+    RENDER_STATE_ENV_PROBES         = 0x8,
+    RENDER_STATE_ACTIVE_ENV_PROBE   = 0x10,
+    RENDER_STATE_CAMERA             = 0x20,
+    RENDER_STATE_FRAME_COUNTER      = 0x40,
 
     RENDER_STATE_ALL                = 0xFFFFFFFFu
 };
@@ -94,7 +95,8 @@ struct RenderState
 {
     Stack<RenderBinding<Scene>>                                             scene_bindings;
     Stack<RenderBinding<Camera>>                                            camera_bindings;
-    FlatMap<ID<Light>, LightDrawProxy>                                      lights;
+    FixedArray<FlatMap<ID<Light>, LightDrawProxy>, uint32(LightType::MAX)>  bound_lights;
+    Stack<ID<Light>>                                                        light_bindings;
     FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>  bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                     env_probe_bindings;
@@ -126,15 +128,32 @@ struct RenderState
         bound_env_grid = ID<EnvGrid>();
     }
 
-    HYP_FORCE_INLINE void BindLight(ID<Light> id, const LightDrawProxy &light)
+    HYP_FORCE_INLINE uint32 NumBoundLights() const
     {
-        lights.Insert(id, light);
+        uint32 count = 0;
+
+        for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
+            count += uint32(bound_lights[i].Size());
+        }
+
+        return count;
     }
 
-    HYP_FORCE_INLINE void UnbindLight(ID<Light> id)
+    void BindLight(LightType light_type, ID<Light> id, const LightDrawProxy &light_proxy);
+    void UnbindLight(LightType light_type, ID<Light> id);
+
+    HYP_FORCE_INLINE void SetActiveLight(ID<Light> id)
+        { light_bindings.Push(id); }
+
+    HYP_FORCE_INLINE void UnsetActiveLight()
     {
-        lights.Erase(id);
+        if (light_bindings.Any()) {
+            light_bindings.Pop();
+        }
     }
+
+    HYP_FORCE_INLINE ID<Light> GetActiveLight() const
+        { return light_bindings.Any() ? light_bindings.Top() : ID<Light>(); }
 
     HYP_FORCE_INLINE void BindScene(const Scene *scene)
     {
@@ -198,7 +217,13 @@ struct RenderState
         }
 
         if (mask & RENDER_STATE_LIGHTS) {
-            lights.Clear();
+            for (auto &lights : bound_lights) {
+                lights.Clear();
+            }
+        }
+
+        if (mask & RENDER_STATE_ACTIVE_LIGHT) {
+            light_bindings = { };
         }
 
         if (mask & RENDER_STATE_ACTIVE_ENV_PROBE) {

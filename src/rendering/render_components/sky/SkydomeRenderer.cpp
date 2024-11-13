@@ -11,17 +11,26 @@
 
 namespace hyperion {
 
-SkydomeRenderer::SkydomeRenderer(Name name, Extent2D dimensions)
+SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
     : RenderComponentBase(name, 60),
       m_dimensions(dimensions)
 {
+    m_cubemap = CreateObject<Texture>(
+        TextureDesc {
+            ImageType::TEXTURE_TYPE_CUBEMAP,
+            InternalFormat::RGBA8,
+            Vec3u { m_dimensions.x, m_dimensions.y, 1 },
+            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+            FilterMode::TEXTURE_FILTER_LINEAR
+        }
+    );
 }
 
 void SkydomeRenderer::Init()
 {
     m_camera = CreateObject<Camera>(
         90.0f,
-        -int(m_dimensions.width), int(m_dimensions.height),
+        -int(m_dimensions.x), int(m_dimensions.y),
         0.1f, 10000.0f
     );
 
@@ -30,8 +39,6 @@ void SkydomeRenderer::Init()
 
     m_virtual_scene = CreateObject<Scene>(m_camera);
     m_virtual_scene->SetName(Name::Unique("SkydomeRendererScene"));
-    g_engine->GetWorld()->AddScene(m_virtual_scene);
-    InitObject(m_virtual_scene);
 
     m_env_probe = CreateObject<EnvProbe>(
         m_virtual_scene,
@@ -39,16 +46,19 @@ void SkydomeRenderer::Init()
         m_dimensions,
         ENV_PROBE_TYPE_SKY
     );
-    
-    InitObject(m_env_probe);
-    m_env_probe->EnqueueBind();
-
-    m_cubemap = m_env_probe->GetTexture();
 }
 
 void SkydomeRenderer::InitGame()
 {
-    auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
+    g_engine->GetWorld()->AddScene(m_virtual_scene);
+    InitObject(m_virtual_scene);
+
+    InitObject(m_env_probe);
+    m_env_probe->EnqueueBind();
+
+    InitObject(m_cubemap);
+
+    Asset<Node> dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
     if (dome_node_asset.IsOK()) {
         NodeProxy &dome_node = dome_node_asset.Result();
@@ -88,7 +98,26 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
 void SkydomeRenderer::OnRender(Frame *frame)
 {
     AssertThrow(m_env_probe.IsValid());
+
+    if (!m_env_probe->IsReady()) {
+        return;
+    }
+
     m_env_probe->Render(frame);
+
+    // Copy cubemap from env probe to cubemap texture
+    const ImageRef &src_image = m_env_probe->GetTexture()->GetImage();
+    const ImageRef &dst_image = m_cubemap->GetImage();
+
+    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
+    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+
+    dst_image->Blit(frame->GetCommandBuffer(), src_image);
+
+    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    
+    dst_image->GenerateMipmaps(g_engine->GetGPUDevice(), frame->GetCommandBuffer());
 }
 
 } // namespace hyperion

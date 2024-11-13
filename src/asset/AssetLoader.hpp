@@ -32,7 +32,7 @@ template <class T>
 struct AssetLoaderWrapper;
 
 template <class T>
-struct LoadedAssetInstance;
+struct Asset;
 
 struct LoadedAsset
 {
@@ -76,7 +76,7 @@ struct LoadedAsset
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE typename SerializationWrapper<T>::Type ExtractAs()
     {
-        return static_cast<LoadedAssetInstance<T> *>(this)->Result();
+        return static_cast<Asset<T> *>(this)->Result();
     }
 
     HYP_FORCE_INLINE void OnPostLoad()
@@ -90,49 +90,49 @@ struct LoadedAsset
 };
 
 template <class T>
-struct LoadedAssetInstance : LoadedAsset
+struct Asset : LoadedAsset
 {
     using Type = typename SerializationWrapper<T>::Type;
 
-    LoadedAssetInstance()
+    Asset()
     {
         InitCallbacks();
     }
 
-    LoadedAssetInstance(LoaderResult result)
+    Asset(LoaderResult result)
         : LoadedAsset(std::move(result))
     {
         InitCallbacks();
     }
 
-    LoadedAssetInstance(LoaderResult result, AssetValue &&value)
+    Asset(LoaderResult result, AssetValue &&value)
         : LoadedAsset(std::move(result), std::move(value))
     {
         InitCallbacks();
     }
 
-    LoadedAssetInstance(const LoadedAssetInstance &other)                   = delete;
-    LoadedAssetInstance &operator=(const LoadedAssetInstance &other)        = delete;
+    Asset(const Asset &other)                   = delete;
+    Asset &operator=(const Asset &other)        = delete;
 
-    LoadedAssetInstance(LoadedAssetInstance &&other) noexcept
+    Asset(Asset &&other) noexcept
         : LoadedAsset(static_cast<LoadedAsset &&>(other))
     {
     }
 
-    LoadedAssetInstance &operator=(LoadedAssetInstance &&other) noexcept
+    Asset &operator=(Asset &&other) noexcept
     {
         static_cast<LoadedAsset &>(*this) = static_cast<LoadedAsset &&>(other);
 
         return *this;
     }
 
-    LoadedAssetInstance(LoadedAsset &&other) noexcept
+    Asset(LoadedAsset &&other) noexcept
         : LoadedAsset(std::move(other))
     {
         InitCallbacks();
     }
     
-    LoadedAssetInstance &operator=(LoadedAsset &&other) noexcept
+    Asset &operator=(LoadedAsset &&other) noexcept
     {
         static_cast<LoadedAsset &>(*this) = std::move(other);
 
@@ -153,12 +153,12 @@ private:
     {
         OnPostLoadProc = [](LoadedAsset *asset)
         {
-            SerializationWrapper<T>::OnPostLoad(static_cast<LoadedAssetInstance *>(asset)->Result());
+            SerializationWrapper<T>::OnPostLoad(static_cast<Asset *>(asset)->Result());
         };
     }
 };
 
-// static_assert(sizeof(LoadedAssetInstance) == sizeof(LoadedAsset), "sizeof(LoadedAssetInstance<T>) must match the size of its parent class, to enable type punning");
+// static_assert(sizeof(Asset) == sizeof(LoadedAsset), "sizeof(Asset<T>) must match the size of its parent class, to enable type punning");
 
 class AssetLoaderBase
 {

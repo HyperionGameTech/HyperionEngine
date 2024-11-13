@@ -136,7 +136,7 @@ public:
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    HYP_NODISCARD LoadedAssetInstance<NormalizedType<T>> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD Asset<NormalizedType<T>> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
         using Normalized = NormalizedType<T>;
 
@@ -151,7 +151,7 @@ public:
         const AssetLoaderDefinition *loader_definition = GetLoader(path, TypeID::ForType<Normalized>());
 
         if (!loader_definition) {
-            return LoadedAssetInstance<NormalizedType<T>> {
+            return Asset<NormalizedType<T>> {
                 { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" }
             };
         }
@@ -159,7 +159,7 @@ public:
         AssetLoaderBase *loader = loader_definition->loader.Get();
         AssertThrow(loader != nullptr);
 
-        return LoadedAssetInstance<NormalizedType<T>>(loader->Load(*this, path));
+        return Asset<NormalizedType<T>>(loader->Load(*this, path));
     }
 
     HYP_API RC<AssetBatch> CreateBatch();

@@ -548,7 +548,7 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     g_safe_deleter->PerformEnqueuedDeletions();
 
-    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_SCENE | RENDER_STATE_CAMERA);
+    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_ACTIVE_LIGHT | RENDER_STATE_SCENE | RENDER_STATE_CAMERA);
 }
 
 void Engine::ResetRenderState(RenderStateMask mask)

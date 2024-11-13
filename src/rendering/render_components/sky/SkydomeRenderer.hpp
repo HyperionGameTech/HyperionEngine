@@ -24,7 +24,7 @@ class HYP_API SkydomeRenderer : public RenderComponentBase
     HYP_OBJECT_BODY(SkydomeRenderer);
 
 public:
-    SkydomeRenderer(Name name, Extent2D dimensions = { 1024, 1024 });
+    SkydomeRenderer(Name name, Vec2u dimensions = { 1024, 1024 });
     virtual ~SkydomeRenderer() override = default;
 
     HYP_FORCE_INLINE const Handle<Texture> &GetCubemap() const
@@ -40,7 +40,7 @@ private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { }
 
-    Extent2D            m_dimensions;
+    Vec2u               m_dimensions;
     Handle<Texture>     m_cubemap;
     Handle<Camera>      m_camera;
 

@@ -651,7 +651,7 @@ public:
     }
 
     template <class Component, class U = Component>
-    ComponentID AddComponent(ID<Entity> entity, U &&component)
+    Component &AddComponent(ID<Entity> entity, U &&component)
     {
         EnsureValidComponentType<Component>();
 
@@ -668,10 +668,9 @@ public:
         AssertThrowMsg(component_it == it->second.components.End(), "Entity already has component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
         const TypeID component_type_id = TypeID::ForType<Component>();
-        const ComponentID component_id = GetContainer<Component>().AddComponent(std::move(component));
+        const Pair<ComponentID, Component &> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
 
-        auto components_insert_result = it->second.components.Set<Component>(component_id);
-        component_it = components_insert_result.first;
+        it->second.components.Set<Component>(component_insert_result.first);
 
         { // Lock the entity sets mutex
             Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
@@ -690,11 +689,11 @@ public:
 
         // Notify systems that entity is being added to them
         NotifySystemsOfEntityAdded(entity, it->second.components);
-
-        return component_id;
+        
+        return component_insert_result.second;
     }
 
-    ComponentID AddComponent(ID<Entity> entity, AnyRef component)
+    void AddComponent(ID<Entity> entity, AnyRef component)
     {
         const TypeID component_type_id = component.GetTypeID();
 
@@ -717,8 +716,7 @@ public:
 
         const ComponentID component_id = container->AddComponent(component);
 
-        auto components_insert_result = it->second.components.Set(component.GetTypeID(), component_id);
-        component_it = components_insert_result.first;
+        it->second.components.Set(component.GetTypeID(), component_id);
 
         { // Lock the entity sets mutex
             Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
@@ -737,8 +735,6 @@ public:
 
         // Notify systems that entity is being added to them
         NotifySystemsOfEntityAdded(entity, it->second.components);
-
-        return component_id;
     }
 
     template <class Component>

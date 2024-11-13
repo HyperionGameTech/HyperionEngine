@@ -53,29 +53,6 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(BindLights) : renderer::RenderCommand
-{
-    SizeType num_lights;
-    Pair<ID<Light>, LightDrawProxy> *lights;
-
-    RENDER_COMMAND(BindLights)(SizeType num_lights, Pair<ID<Light>, LightDrawProxy> *lights)
-        : num_lights(num_lights),
-          lights(lights)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        for (SizeType i = 0; i < num_lights; i++) {
-            g_engine->GetRenderState().BindLight(lights[i].first, lights[i].second);
-        }
-
-        delete[] lights;
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 {
     Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
@@ -102,8 +79,8 @@ Scene::Scene()
 {
 }
 
-Scene::Scene(Handle<Camera> camera)
-    : Scene(std::move(camera), Threads::GetThreadID(ThreadName::THREAD_GAME), { })
+Scene::Scene(Handle<Camera> camera, EnumFlags<SceneFlags> flags)
+    : Scene(std::move(camera), Threads::GetThreadID(ThreadName::THREAD_GAME), flags)
 {
 }
 

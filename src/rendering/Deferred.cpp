@@ -377,24 +377,13 @@ void DeferredPass::Record(uint frame_index)
     }
 
     // no lights bound, do not render direct shading at all
-    if (g_engine->GetRenderState().lights.Empty()) {
+    if (g_engine->GetRenderState().NumBoundLights() == 0) {
         return;
     }
 
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
     const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
-
-    FixedArray<Array<decltype(g_engine->GetRenderState().lights)::Iterator>, uint(LightType::MAX)> light_iterators;
-
-    // Set up light iterators
-    for (auto &it : g_engine->GetRenderState().lights) {
-        const LightDrawProxy &light = it.second;
-
-        if (light.visibility_bits & (1ull << uint64(camera_index))) {
-            light_iterators[uint(light.type)].PushBack(&it);
-        }
-    }
     
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -450,19 +439,19 @@ void DeferredPass::Record(uint frame_index)
                         );
                 }
 
-                const auto &light_it = light_iterators[light_type_index];
+                const auto &lights = g_engine->GetRenderState().bound_lights[uint32(light_type)]; 
 
-                for (const auto &it : light_it) {
-                    const ID<Light> light_id = it->first;
-                    const LightDrawProxy &light = it->second;
+                for (const auto &it : lights) {
+                    const ID<Light> light_id = it.first;
+                    const LightDrawProxy &light_proxy = it.second;
 
                     // We'll use the EnvProbe slot to bind whatever EnvProbe
                     // is used for the light's shadow map (if applicable)
 
                     uint shadow_probe_index = 0;
 
-                    if (light.shadow_map_index != ~0u && light_type == LightType::POINT) {
-                        shadow_probe_index = light.shadow_map_index;
+                    if (light_proxy.shadow_map_index != ~0u && light_type == LightType::POINT) {
+                        shadow_probe_index = light_proxy.shadow_map_index;
                     }
 
                     render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
@@ -481,7 +470,7 @@ void DeferredPass::Record(uint frame_index)
                     
                     // Bind material descriptor set (for area lights)
                     if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                        g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light.material_id, frame_index)
+                        g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_proxy.material_id, frame_index)
                             ->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
@@ -1024,10 +1013,10 @@ void ReflectionProbePass::Render(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const uint frame_index = frame->GetFrameIndex();
+    const uint32 frame_index = frame->GetFrameIndex();
 
-    const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
-    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+    const uint32 scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
+    const uint32 camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
     // Sky renders first
     static const FixedArray<EnvProbeType, ApplyReflectionProbeMode::MAX> reflection_probe_types {
@@ -1117,7 +1106,7 @@ void ReflectionProbePass::Render(Frame *frame)
         const Result record_result = command_buffer->Record(
             g_engine->GetGPUInstance()->GetDevice(),
             render_group->GetPipeline()->GetRenderPass(),
-            [this, frame_index, scene_index, camera_index, &render_group, &env_probes, &num_rendered_env_probes](CommandBuffer *cmd)
+            [&](CommandBuffer *cmd)
             {
                 render_group->GetPipeline()->SetPushConstants(
                     m_push_constant_data.Data(),
@@ -1158,6 +1147,8 @@ void ReflectionProbePass::Render(Frame *frame)
                             },
                             scene_descriptor_set_index
                         );
+
+                    HYP_LOG(Rendering, LogLevel::DEBUG, "ReflectionProbePass: Render reflection probe #{}, type: {}", env_probe_id.Value(), uint32(env_probe_type));
 
                     m_full_screen_quad->Render(cmd);
 
@@ -1586,7 +1577,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         m_indirect_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
-        if (g_engine->GetRenderState().lights.Any()) {
+        if (g_engine->GetRenderState().NumBoundLights() != 0) {
             m_direct_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
         }
 

@@ -18,10 +18,10 @@ namespace hyperion {
 
 struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 {
-    ID<Light>   id;
+    WeakHandle<Light>   light_weak;
 
-    RENDER_COMMAND(UnbindLight)(ID<Light> id)
-        : id(id)
+    RENDER_COMMAND(UnbindLight)(const WeakHandle<Light> &light_weak)
+        : light_weak(light_weak)
     {
     }
 
@@ -29,7 +29,9 @@ struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        g_engine->GetRenderState().UnbindLight(id);
+        if (Handle<Light> light = light_weak.Lock()) {
+            g_engine->GetRenderState().UnbindLight(light->GetLightType(), light->GetID());
+        }
 
         HYPERION_RETURN_OK;
     }
@@ -37,11 +39,11 @@ struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 
 struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
 {
-    Light           &light;
-    LightDrawProxy  proxy;
+    WeakHandle<Light>   light_weak;
+    LightDrawProxy      proxy;
 
-    RENDER_COMMAND(UpdateLightShaderData)(Light &light, const LightDrawProxy &proxy)
-        : light(light),
+    RENDER_COMMAND(UpdateLightShaderData)(const WeakHandle<Light> &light_weak, const LightDrawProxy &proxy)
+        : light_weak(light_weak),
           proxy(proxy)
     {
     }
@@ -50,34 +52,36 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        light.m_proxy = proxy;
-        
-        if (proxy.visibility_bits == 0) {
-            g_engine->GetRenderState().UnbindLight(proxy.id);
+        if (Handle<Light> light = light_weak.Lock()) {
+            light->m_proxy = proxy;
+            
+            if (proxy.visibility_bits == 0) {
+                g_engine->GetRenderState().UnbindLight(light->GetLightType(), light->GetID());
 
-            HYP_LOG(Light, LogLevel::DEBUG, "Unbound Light: {}", proxy.id.Value());
-        } else {
-            g_engine->GetRenderState().BindLight(proxy.id, proxy);
+                HYP_LOG(Light, LogLevel::DEBUG, "Unbound Light: {}", light->GetID().Value());
+            } else {
+                g_engine->GetRenderState().BindLight(light->GetLightType(), light->GetID(), proxy);
 
-            HYP_LOG(Light, LogLevel::DEBUG, "Bound Light: {}", proxy.id.Value());
-        }
-
-        g_engine->GetRenderData()->lights.Set(
-            light.GetID().ToIndex(),
-            LightShaderData {
-                .light_id           = proxy.id.Value(),
-                .light_type         = uint32(proxy.type),
-                .color_packed       = uint32(proxy.color),
-                .radius             = proxy.radius,
-                .falloff            = proxy.falloff,
-                .shadow_map_index   = proxy.shadow_map_index,
-                .area_size          = proxy.area_size,
-                .position_intensity = proxy.position_intensity,
-                .normal             = proxy.normal,
-                .spot_angles        = proxy.spot_angles,
-                .material_id        = proxy.material_id.Value()
+                HYP_LOG(Light, LogLevel::DEBUG, "Bound Light: {}", light->GetID().Value());
             }
-        );
+
+            g_engine->GetRenderData()->lights.Set(
+                light->GetID().ToIndex(),
+                LightShaderData {
+                    .light_id           = proxy.id.Value(),
+                    .light_type         = uint32(proxy.type),
+                    .color_packed       = uint32(proxy.color),
+                    .radius             = proxy.radius,
+                    .falloff            = proxy.falloff,
+                    .shadow_map_index   = proxy.shadow_map_index,
+                    .area_size          = proxy.area_size,
+                    .position_intensity = proxy.position_intensity,
+                    .normal             = proxy.normal,
+                    .spot_angles        = proxy.spot_angles,
+                    .material_id        = proxy.material_id.Value()
+                }
+            );
+        }
 
         HYPERION_RETURN_OK;
     }
@@ -163,7 +167,7 @@ Light::~Light()
         g_safe_deleter->SafeRelease(std::move(m_material));
     }
 
-    PUSH_RENDER_COMMAND(UnbindLight, GetID());
+    PUSH_RENDER_COMMAND(UnbindLight, WeakHandleFromThis());
 }
 
 void Light::Init()
@@ -213,7 +217,7 @@ void Light::EnqueueUnbind() const
 {
     AssertReady();
 
-    PUSH_RENDER_COMMAND(UnbindLight, GetID());
+    PUSH_RENDER_COMMAND(UnbindLight, WeakHandleFromThis());
 }
 
 void Light::EnqueueRenderUpdates()
@@ -230,7 +234,7 @@ void Light::EnqueueRenderUpdates()
 
     PUSH_RENDER_COMMAND(
         UpdateLightShaderData,
-        *this,
+        WeakHandleFromThis(),
         LightDrawProxy {
             .id                 = GetID(),
             .type               = m_type,
