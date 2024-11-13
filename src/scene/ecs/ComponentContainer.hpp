@@ -84,6 +84,12 @@ public:
     HYP_FORCE_INLINE const DataRaceDetector &GetDataRaceDetector() const
         { return m_data_race_detector; }
 
+    /*! \brief Gets the type ID of the component type that this component container holds.
+     *
+     *  \return The type ID of the component type.
+     */
+    virtual TypeID GetComponentTypeID() const = 0;
+
     /*! \brief Tries to get the component with the given ID from the component container.
      *
      *  \param id The ID of the component to get.
@@ -159,7 +165,7 @@ public:
 };
 
 template <class Component>
-class ComponentContainer : public ComponentContainerBase
+class ComponentContainer final : public ComponentContainerBase
 {
     static class Factory : public ComponentContainerFactoryBase
     {
@@ -192,6 +198,13 @@ public:
     ComponentContainer(ComponentContainer &&) noexcept              = delete;
     ComponentContainer &operator=(ComponentContainer &&) noexcept   = delete;
     virtual ~ComponentContainer() override                          = default;
+
+    virtual TypeID GetComponentTypeID() const override
+    {
+        static const TypeID type_id = TypeID::ForType<Component>();
+
+        return type_id;
+    }
 
     virtual bool HasComponent(ComponentID id) const override
     {
@@ -259,22 +272,22 @@ public:
         return m_components.At(id);
     }
 
-    HYP_FORCE_INLINE ComponentID AddComponent(Component &&component)
+    HYP_FORCE_INLINE Pair<ComponentID, Component &> AddComponent(Component &&component)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
         ComponentID id = ++m_component_id_counter;
 
-        m_components.Set(id, std::move(component));
+        auto insert_result = m_components.Set(id, std::move(component));
 
-        return id;
+        return Pair<ComponentID, Component &> { id, insert_result.first->second };
     }
 
     virtual ComponentID AddComponent(AnyRef ref) override
     {
         AssertThrowMsg(ref.Is<Component>(), "Component is not of the correct type");
 
-        return AddComponent(std::move(ref.Get<Component>()));
+        return AddComponent(std::move(ref.Get<Component>())).first;
     }
 
     virtual bool RemoveComponent(ComponentID id) override
@@ -294,14 +307,14 @@ public:
 
     virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) override
     {
-        AssertThrowMsg(dynamic_cast<ComponentContainer<Component> *>(&other), "Component container is not of the same type");
+        AssertThrowMsg(other.GetComponentTypeID() == GetComponentTypeID(), "Component container is not of the same type");
 
         HYP_MT_CHECK_RW(m_data_race_detector);
 
         auto it = m_components.Find(id);
 
         if (it != m_components.End()) {
-            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(it->second));
+            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(it->second)).first;
 
             m_components.Erase(it);
 

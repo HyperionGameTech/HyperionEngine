@@ -16,23 +16,26 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
     SystemBase::OnEntityAdded(entity);
 
     SkyComponent &sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
-    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     if (!sky_component.render_component) {
-        sky_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<SkydomeRenderer>(
-            Name::Unique("sky_renderer")
-        );
+        sky_component.render_component = GetEntityManager().GetScene()->GetEnvironment()->AddRenderComponent<SkydomeRenderer>(Name::Unique("sky_renderer"));
+    }
+    
+    MeshComponent *mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity);
+
+    if (!mesh_component) {
+        mesh_component = &GetEntityManager().AddComponent<MeshComponent>(entity, MeshComponent { });
     }
 
-    if (!mesh_component.mesh) {
-        mesh_component.mesh = MeshBuilder::Cube();
+    if (!mesh_component->mesh) {
+        mesh_component->mesh = MeshBuilder::Cube();
         // mesh_component.mesh->InvertNormals();
-        InitObject(mesh_component.mesh);
+        InitObject(mesh_component->mesh);
 
-        mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
     }
 
-    if (!mesh_component.material) {
+    if (!mesh_component->material) {
         Handle<Material> material = CreateObject<Material>();
         material->SetBucket(Bucket::BUCKET_SKYBOX);
         material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.render_component->GetCubemap());
@@ -41,14 +44,14 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
         material->SetIsDepthWriteEnabled(false);
         material->SetShader(ShaderManagerSystem::GetInstance()->GetOrCreate(
             NAME("Skybox"),
-            ShaderProperties(mesh_component.mesh->GetVertexAttributes())
+            ShaderProperties(mesh_component->mesh->GetVertexAttributes())
         ));
 
         InitObject(material);
 
-        mesh_component.material = std::move(material);
+        mesh_component->material = std::move(material);
 
-        mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
     }
 }
 

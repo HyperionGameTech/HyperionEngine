@@ -298,16 +298,6 @@ void RenderGroup::CreateCommandBuffers()
 void RenderGroup::CreateGraphicsPipeline()
 {
     HYP_SCOPE;
-    
-    // if (m_fbos.Empty()) {
-    //     FramebufferRef framebuffer = m_renderable_attributes.GetFramebuffer();
-
-    //     if (!framebuffer.IsValid()) {
-    //         framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(m_renderable_attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-    //     }
-
-    //     AddFramebuffer(framebuffer);
-    // }
 
     AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to RenderGroup");
 
@@ -525,7 +515,7 @@ static HYP_FORCE_INLINE void RenderAll(
             {
                 { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
                 { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
                 { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                 { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
             },
@@ -677,7 +667,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         {
                             { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
                             { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
+                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
                             { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                             { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                         },

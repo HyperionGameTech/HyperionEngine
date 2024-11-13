@@ -108,6 +108,9 @@ public:
     HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
         { return GetTextureDesc().filter_mode_mag; }
 
+    HYP_FORCE_INLINE bool HasMipmaps() const
+        { return m_image->HasMipmaps(); }
+
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return GetTextureDesc().wrap_mode; }
     

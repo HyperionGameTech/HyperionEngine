@@ -12,7 +12,7 @@ namespace hyperion {
 class SkySystem : public System<
     SkySystem,
     ComponentDescriptor<SkyComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

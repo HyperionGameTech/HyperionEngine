@@ -242,7 +242,7 @@ void EnvProbe::Init()
     m_view_matrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     if (!IsControlledByEnvGrid()) {
-        if (IsReflectionProbe() || IsSkyProbe()) {
+        if (IsReflectionProbe()) {
             m_texture = CreateObject<Texture>(
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
@@ -487,7 +487,7 @@ void EnvProbe::Render(Frame *frame)
 
         return;
     }
-
+    
     // @FIXME!
 
     //if (!NeedsRender()) {
@@ -534,9 +534,31 @@ void EnvProbe::Render(Frame *frame)
     }
 
     BindToIndex(probe_index);
+    
+    ID<Light> light_id;
+
+    if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY) {
+        // Find a directional light to use for the sky
+        // @TODO Support selecting a specific light for the EnvProbe
+
+        auto &directional_lights = g_engine->GetRenderState().bound_lights[uint32(LightType::DIRECTIONAL)];
+
+        if (directional_lights.Any()) {
+            light_id = directional_lights.AtIndex(0).first;
+        }
+
+        if (!light_id.IsValid()) {
+            HYP_LOG(EnvProbe, LogLevel::WARNING, "No directional light found for Sky EnvProbe #{}", GetID().Value());
+        }
+    }
 
     {
         g_engine->GetRenderState().SetActiveEnvProbe(GetID());
+
+        if (light_id.IsValid()) {
+            g_engine->GetRenderState().SetActiveLight(light_id);
+        }
+
         g_engine->GetRenderState().BindScene(m_parent_scene.Get());
         g_engine->GetRenderState().BindCamera(m_camera.Get());
 
@@ -553,6 +575,12 @@ void EnvProbe::Render(Frame *frame)
 
         g_engine->GetRenderState().UnbindCamera();
         g_engine->GetRenderState().UnbindScene();
+
+
+        if (light_id.IsValid()) {
+            g_engine->GetRenderState().UnsetActiveLight();
+        }
+
         g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
 
@@ -563,7 +591,7 @@ void EnvProbe::Render(Frame *frame)
 
     m_texture->GetImage()->Blit(command_buffer, framebuffer_image);
 
-    if (IsReflectionProbe() || IsSkyProbe()) {
+    if (m_texture->HasMipmaps()) {
         HYPERION_PASS_ERRORS(
             m_texture->GetImage()->GenerateMipmaps(g_engine->GetGPUDevice(), command_buffer),
             result

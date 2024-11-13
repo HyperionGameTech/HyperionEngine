@@ -72,7 +72,10 @@ class HYP_API Scene : public BasicObject<Scene>
 
 public:
     Scene();
-    Scene(Handle<Camera> camera);
+    Scene(
+        Handle<Camera> camera,
+        EnumFlags<SceneFlags> flags = SceneFlags::NONE
+    );
 
     Scene(
         Handle<Camera> camera,

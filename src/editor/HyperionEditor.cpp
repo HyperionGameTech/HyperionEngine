@@ -554,21 +554,48 @@ void HyperionEditor::Init()
     m_scene->GetRoot()->AddChild(root);
 
 
-    // testing reflection capture
-    Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
+    if (false) {
+        // testing reflection capture
+        Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
 
-    m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
 
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
-        BoundingBox(Vec3f(-50.0f, 0.0f, -50.0f), Vec3f(50.0f, 50.0f, 50.0f)),
-        BoundingBox(Vec3f(-50.0f, 0.0f, -50.0f), Vec3f(50.0f, 50.0f, 50.0f))
-    });
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
+            m_scene->GetRoot()->GetWorldAABB(),
+            m_scene->GetRoot()->GetWorldAABB()
+        });
 
-    m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
+        m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
 
-    NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
-    reflection_probe_node.SetEntity(reflection_probe_entity);
-    reflection_probe_node.SetName("ReflectionProbeTest");
+        NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
+        reflection_probe_node.SetEntity(reflection_probe_entity);
+        reflection_probe_node.SetName("ReflectionProbeTest");
+    }
+
+    // Add Skybox
+    if (true) {
+        Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
+
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
+            Transform(
+                Vec3f::Zero(),
+                Vec3f(1000.0f),
+                Quaternion::Identity()
+            )
+        });
+
+        m_scene->GetEntityManager()->AddComponent<SkyComponent>(skybox_entity, SkyComponent { });
+        m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skybox_entity, VisibilityStateComponent {
+            VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+        });
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skybox_entity, BoundingBoxComponent {
+            BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f))
+        });
+
+        NodeProxy skydome_node = m_scene->GetRoot()->AddChild();
+        skydome_node.SetEntity(skybox_entity);
+        skydome_node.SetName("Sky");
+    }
 #endif
 }
 

@@ -33,10 +33,18 @@ void RenderState::UnbindCamera()
     }
 }
 
+void RenderState::BindLight(LightType light_type, ID<Light> id, const LightDrawProxy &light_proxy)
+{
+    bound_lights[uint32(light_type)].Set(id, light_proxy);
+}
+
+void RenderState::UnbindLight(LightType light_type, ID<Light> id)
+{
+    bound_lights[uint32(light_type)].Erase(id);
+}
+
 void RenderState::BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
 {
-    AssertThrow(type < ENV_PROBE_TYPE_MAX);
-
     constexpr EnvProbeBindingSlot binding_slots[ENV_PROBE_TYPE_MAX] = {
         ENV_PROBE_BINDING_SLOT_CUBEMAP,         // reflection
         ENV_PROBE_BINDING_SLOT_CUBEMAP,         // sky
