@@ -1956,6 +1956,20 @@ void UIObject::UpdateMeshData(bool update_children)
         | ((uint32(m_focus_state) & 0xFFu) << 16u);
 
     mesh_component->user_data.Set(ui_object_mesh_data);
+
+    Matrix4 instance_transform;
+    instance_transform[0][0] = m_aabb_clamped.max.x - m_aabb_clamped.min.x;
+    instance_transform[1][1] = m_aabb_clamped.max.y - m_aabb_clamped.min.y;
+    instance_transform[2][2] = 1.0f;
+
+    instance_transform[0][3] = m_aabb_clamped.min.x;
+    instance_transform[1][3] = m_aabb_clamped.min.y;
+    // instance_transform[2][3] = 1.0f;
+    instance_transform[3][3] = 1.0f;
+    
+    mesh_component->instance_data.transforms.Resize(1);
+    mesh_component->instance_data.transforms[0] = instance_transform;
+
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 

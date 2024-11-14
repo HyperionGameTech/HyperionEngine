@@ -408,7 +408,7 @@ static const SizeType max_env_probes_bytes = max_env_probes * sizeof(EnvProbeSha
 static const SizeType max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvGridShaderData);
 static const SizeType max_env_grids_bytes = max_env_grids * sizeof(EnvGridShaderData);
 /* max number of instance batches, based on size in mb */
-static const SizeType max_entity_instance_batches = (8ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
+static const SizeType max_entity_instance_batches = (128ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
 static const SizeType max_entity_instance_batches_bytes = max_entity_instance_batches * sizeof(EntityInstanceBatch);
 
 template <class T>

@@ -817,11 +817,28 @@ bool UIText::Repaint_Internal()
         return false;
     }
 
-    if (font_atlas != nullptr && font_atlas_texture != nullptr) {
-        PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, GetParentBounds(), GetTextSize(), m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
-    }
+    MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
+    mesh_component.instance_data.transforms.Clear();
+
+    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), GetTextSize(), [&](const FontAtlasCharacterIterator &iter)
+    {
+        Transform character_transform;
+        character_transform.SetScale(Vec3f(iter.glyph_dimensions.x, iter.glyph_dimensions.y, 1.0f));
+        character_transform.GetTranslation().y += iter.cell_dimensions.y - iter.glyph_dimensions.y;
+        character_transform.GetTranslation().y += iter.bearing_y;
+        character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f);
+        character_transform.UpdateMatrix();
+
+        mesh_component.instance_data.transforms.PushBack(character_transform.GetMatrix());
+    });
+
+    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+
+    // if (font_atlas != nullptr && font_atlas_texture != nullptr) {
+    //     PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, GetParentBounds(), GetTextSize(), m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
+    // }
     
-    PUSH_RENDER_COMMAND(RepaintUIText, m_render_data, m_texture, UITextRenderer(m_texture->GetExtent().GetXY()));
+    // PUSH_RENDER_COMMAND(RepaintUIText, m_render_data, m_texture, UITextRenderer(m_texture->GetExtent().GetXY()));
 
     return true;
 }
@@ -840,13 +857,13 @@ Material::ParameterTable UIText::GetMaterialParameters() const
 
 Material::TextureSet UIText::GetMaterialTextures() const
 {
-    if (!m_texture.IsValid()) {
+    // if (!m_texture.IsValid()) {
         return UIObject::GetMaterialTextures();
-    }
+    // }
 
-    return {
-        { MaterialTextureKey::ALBEDO_MAP, m_texture }
-    };
+    // return {
+    //     { MaterialTextureKey::ALBEDO_MAP, m_texture }
+    // };
 }
 
 void UIText::Update_Internal(GameCounter::TickUnit delta)
