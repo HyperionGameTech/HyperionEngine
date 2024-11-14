@@ -382,16 +382,12 @@ void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
 
         BufferTicket<EntityInstanceBatch> batch_index = 0;
 
-        if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
-            // take the batch for reuse
-            if ((batch_index = draw_call->batch_index) != 0) {
-                EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(batch_index);
-                batch.num_entities = 0;
+        // take a batch for reuse if a draw call was using one
+        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id))) {
+            EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(batch_index);
+            batch.num_entities = 0;
 
-                g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
-            }
-
-            draw_call->batch_index = 0;
+            g_engine->GetRenderData()->entity_instance_batches.MarkDirty(batch_index);
         }
 
         m_draw_state.PushDrawCallToBatch(batch_index, draw_call_id, render_proxy);

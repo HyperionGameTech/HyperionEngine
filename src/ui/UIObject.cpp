@@ -1928,7 +1928,14 @@ void UIObject::UpdateMeshData(bool update_children)
             return UIObjectIterationResult::CONTINUE;
         }, /* deep */ false);
     }
-    
+
+    UpdateMeshData_Internal();
+}
+
+void UIObject::UpdateMeshData_Internal()
+{
+    HYP_SCOPE;
+
     const Scene *scene = GetScene();
 
     if (!scene) {
@@ -1964,9 +1971,8 @@ void UIObject::UpdateMeshData(bool update_children)
 
     instance_transform[0][3] = m_aabb_clamped.min.x;
     instance_transform[1][3] = m_aabb_clamped.min.y;
-    // instance_transform[2][3] = 1.0f;
     instance_transform[3][3] = 1.0f;
-    
+
     mesh_component->instance_data.transforms.Resize(1);
     mesh_component->instance_data.transforms[0] = instance_transform;
 
