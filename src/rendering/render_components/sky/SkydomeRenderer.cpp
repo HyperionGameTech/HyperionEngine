@@ -113,11 +113,11 @@ void SkydomeRenderer::OnRender(Frame *frame)
     dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
     dst_image->Blit(frame->GetCommandBuffer(), src_image);
+    
+    dst_image->GenerateMipmaps(g_engine->GetGPUDevice(), frame->GetCommandBuffer());
 
     src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    
-    dst_image->GenerateMipmaps(g_engine->GetGPUDevice(), frame->GetCommandBuffer());
 }
 
 } // namespace hyperion

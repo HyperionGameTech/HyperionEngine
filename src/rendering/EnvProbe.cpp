@@ -242,17 +242,7 @@ void EnvProbe::Init()
     m_view_matrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     if (!IsControlledByEnvGrid()) {
-        if (IsReflectionProbe()) {
-            m_texture = CreateObject<Texture>(
-                TextureDesc {
-                    ImageType::TEXTURE_TYPE_CUBEMAP,
-                    reflection_probe_format,
-                    Vec3u { m_dimensions.x, m_dimensions.y, 1 },
-                    FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-                    FilterMode::TEXTURE_FILTER_LINEAR
-                }
-            );
-        } else if (IsShadowProbe()) {
+        if (IsShadowProbe()) {
             m_texture = CreateObject<Texture>(
                 TextureDesc {
                     ImageType::TEXTURE_TYPE_CUBEMAP,
@@ -260,6 +250,16 @@ void EnvProbe::Init()
                     Vec3u { m_dimensions.x, m_dimensions.y, 1 },
                     FilterMode::TEXTURE_FILTER_NEAREST,
                     FilterMode::TEXTURE_FILTER_NEAREST
+                }
+            );
+        } else {
+            m_texture = CreateObject<Texture>(
+                TextureDesc {
+                    ImageType::TEXTURE_TYPE_CUBEMAP,
+                    reflection_probe_format,
+                    Vec3u { m_dimensions.x, m_dimensions.y, 1 },
+                    IsReflectionProbe() ? FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP : FilterMode::TEXTURE_FILTER_LINEAR,
+                    FilterMode::TEXTURE_FILTER_LINEAR
                 }
             );
         }
@@ -371,8 +371,6 @@ void EnvProbe::CreateFramebuffer()
 
 void EnvProbe::EnqueueBind() const
 {
-    Threads::AssertOnThread(~ThreadName::THREAD_RENDER);
-
     AssertReady();
 
     if (!IsControlledByEnvGrid()) {
