@@ -30,12 +30,10 @@ struct DrawCallID
 {
     static_assert(sizeof(ID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
 
-    using ValueType = uint64;
-
     static constexpr uint64 mesh_mask = uint64(0xFFFFFFFF);
     static constexpr uint64 material_mask = uint64(0xFFFFFFFF) << 32;
 
-    ValueType value;
+    uint64  value;
 
     DrawCallID()
         : value(0)
@@ -52,6 +50,9 @@ struct DrawCallID
     {
     }
 
+    HYP_FORCE_INLINE constexpr operator uint64() const
+        { return value; }
+
     HYP_FORCE_INLINE bool operator==(const DrawCallID &other) const
         { return value == other.value; }
 
@@ -61,7 +62,7 @@ struct DrawCallID
     HYP_FORCE_INLINE bool HasMaterial() const
         { return bool(value & (uint64(~0u) << 32)); }
 
-    HYP_FORCE_INLINE ValueType Value() const
+    HYP_FORCE_INLINE constexpr uint64 Value() const
         { return value; }
 };
 
@@ -81,10 +82,10 @@ struct DrawCall
 
 struct DrawCallCollection
 {
-    Array<DrawCall>                                 draw_calls;
+    Array<DrawCall>                     draw_calls;
 
     // Map from draw call ID to index in draw_calls
-    HashMap<DrawCallID::ValueType, Array<SizeType>> index_map;
+    HashMap<uint64, Array<SizeType>>    index_map;
 
     DrawCallCollection() = default;
     DrawCallCollection(const DrawCallCollection &other)                 = delete;
@@ -96,7 +97,7 @@ struct DrawCallCollection
     ~DrawCallCollection();
 
     void PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy);
-    DrawCall *TakeDrawCall(DrawCallID id);
+    BufferTicket<EntityInstanceBatch> TakeDrawCallBatchIndex(DrawCallID id);
     void ResetDrawCalls();
 };
 

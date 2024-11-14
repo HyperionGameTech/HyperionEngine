@@ -746,41 +746,113 @@ void UIText::UpdateRenderData()
 
     HYP_LOG(UI, LogLevel::DEBUG, "Update render data for text '{}'", GetText());
 
+    if (const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault()) {
+        const float text_size = GetTextSize();
+
+        m_current_font_atlas_texture = font_atlas->GetAtlasTextures().GetAtlasForPixelSize(text_size);
+
+        if (!m_current_font_atlas_texture.IsValid()) {
+            HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas texture for text size {}", text_size);
+        }
+
+        UpdateMaterial(false);
+        UpdateMeshData(false);
+
+        SetNeedsRepaintFlag(true);
+    }
+
     const NodeProxy &node = GetNode();
 
     const Vec2i size = GetActualSize();
 
-    if (size.x > 0 && size.y > 0) {
-        const Vec2u size_clamped = Vec2u(MathUtil::Max(size, Vec2i::One()));
+    // if (size.x > 0 && size.y > 0) {
+    //     const Vec2u size_clamped = Vec2u(MathUtil::Max(size, Vec2i::One()));
 
-        if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size_clamped) {
-            m_texture = CreateObject<Texture>(TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA8,
-                Vec3u { uint32(size_clamped.x * GetWindowDPIFactor()), uint32(size_clamped.y * GetWindowDPIFactor()), 1 },
-                FilterMode::TEXTURE_FILTER_NEAREST,
-                FilterMode::TEXTURE_FILTER_NEAREST,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-            });
+    //     if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size_clamped) {
+    //         m_texture = CreateObject<Texture>(TextureDesc {
+    //             ImageType::TEXTURE_TYPE_2D,
+    //             InternalFormat::RGBA8,
+    //             Vec3u { uint32(size_clamped.x * GetWindowDPIFactor()), uint32(size_clamped.y * GetWindowDPIFactor()), 1 },
+    //             FilterMode::TEXTURE_FILTER_NEAREST,
+    //             FilterMode::TEXTURE_FILTER_NEAREST,
+    //             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    //         });
             
-            InitObject(m_texture);
+    //         InitObject(m_texture);
 
-            UpdateMaterial(false);
-            UpdateMeshData(false);
-        }
+    //         UpdateMaterial(false);
+    //         UpdateMeshData(false);
+    //     }
 
-        SetNeedsRepaintFlag(true);
-    } else {
-        m_texture.Reset();
+    //     SetNeedsRepaintFlag(true);
+    // } else {
+    //     m_texture.Reset();
 
-        SetNeedsRepaintFlag(false);
+    //     SetNeedsRepaintFlag(false);
+    // }
+}
+
+void UIText::UpdateMeshData_Internal()
+{
+    HYP_SCOPE;
+
+    UIObject::UpdateMeshData_Internal();
+
+    const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault();
+
+    if (!font_atlas) {
+        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas, cannot update text mesh data");
+
+        return;
     }
+
+    MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
+    mesh_component.instance_data.transforms.Clear();
+
+    const Vec2i size = GetActualSize();
+    const Vec2f position = GetAbsolutePosition();
+
+    const float text_size = GetTextSize();
+
+    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, [&](const FontAtlasCharacterIterator &iter)
+    {
+        BoundingBox character_aabb;
+
+        const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
+
+        character_aabb = character_aabb
+            .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
+            .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
+
+        BoundingBox character_aabb_clamped = {
+            Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x, iter.placement.y + offset_y, 0.0f } * text_size),
+            Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f } * text_size)
+        };
+
+        character_aabb_clamped = character_aabb_clamped.Intersection(m_aabb_clamped);
+
+            character.texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
+            character.texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
+
+        Matrix4 instance_transform;
+        instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;
+        instance_transform[1][1] = character_aabb_clamped.max.y - character_aabb_clamped.min.y;
+        instance_transform[2][2] = 1.0f;
+
+        instance_transform[0][3] = character_aabb_clamped.min.x;
+        instance_transform[1][3] = character_aabb_clamped.min.y;
+        instance_transform[3][3] = 1.0f;
+
+        mesh_component.instance_data.transforms.PushBack(instance_transform);
+    });
+
+    HYP_LOG(UI, LogLevel::DEBUG, "Text \"{}\" has {} characters", m_text, mesh_component.instance_data.transforms.Size());
+
+    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 
 bool UIText::Repaint_Internal()
 {
-    HYP_SCOPE;
-
     if (!m_texture.IsValid()) {
         HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text for element: {}, no texture set", GetName());
 
@@ -799,40 +871,7 @@ bool UIText::Repaint_Internal()
 
     HYP_LOG(UI, LogLevel::DEBUG, "Repaint text '{}', {}, {}", GetText(), m_text_aabb_without_bearing, m_texture->GetExtent());
 
-    const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault();
-
-    if (!font_atlas) {
-        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas, cannot update text render data");
-
-        return false;
-    }
-
-    const float text_size = GetTextSize();
-
-    Handle<Texture> font_atlas_texture = font_atlas->GetAtlasTextures().GetAtlasForPixelSize(text_size);
-
-    if (!font_atlas_texture) {
-        HYP_LOG_ONCE(UI, LogLevel::WARNING, "No font atlas texture for text size {}, cannot update text render data", text_size);
-
-        return false;
-    }
-
-    MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
-    mesh_component.instance_data.transforms.Clear();
-
-    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), GetTextSize(), [&](const FontAtlasCharacterIterator &iter)
-    {
-        Transform character_transform;
-        character_transform.SetScale(Vec3f(iter.glyph_dimensions.x, iter.glyph_dimensions.y, 1.0f));
-        character_transform.GetTranslation().y += iter.cell_dimensions.y - iter.glyph_dimensions.y;
-        character_transform.GetTranslation().y += iter.bearing_y;
-        character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f);
-        character_transform.UpdateMatrix();
-
-        mesh_component.instance_data.transforms.PushBack(character_transform.GetMatrix());
-    });
-
-    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+    
 
     // if (font_atlas != nullptr && font_atlas_texture != nullptr) {
     //     PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, GetParentBounds(), GetTextSize(), m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
@@ -857,13 +896,13 @@ Material::ParameterTable UIText::GetMaterialParameters() const
 
 Material::TextureSet UIText::GetMaterialTextures() const
 {
-    // if (!m_texture.IsValid()) {
+    if (!m_current_font_atlas_texture.IsValid()) {
         return UIObject::GetMaterialTextures();
-    // }
+    }
 
-    // return {
-    //     { MaterialTextureKey::ALBEDO_MAP, m_texture }
-    // };
+    return {
+        { MaterialTextureKey::ALBEDO_MAP, m_current_font_atlas_texture }
+    };
 }
 
 void UIText::Update_Internal(GameCounter::TickUnit delta)

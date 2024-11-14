@@ -259,8 +259,10 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
             return Span();
         }
 
-        if (offset + count > Size()) {
-            count = Size() - offset;
+        const SizeType max_size = Size() - offset;
+
+        if (count > max_size) {
+            count = max_size;
         }
 
         return Span(first + offset, first + offset + count);

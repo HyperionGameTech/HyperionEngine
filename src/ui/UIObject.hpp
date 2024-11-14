@@ -909,6 +909,8 @@ protected:
         { m_delegate_handlers.PushBack(std::move(delegate_handler)); }
 
     void UpdateMeshData(bool update_children = true);
+    virtual void UpdateMeshData_Internal();
+
     void UpdateMaterial(bool update_children = true);
 
     Array<UIObject *> GetChildUIObjects(bool deep) const;

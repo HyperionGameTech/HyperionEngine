@@ -128,6 +128,8 @@ protected:
 
     virtual void OnComputedVisibilityChange_Internal() override;
 
+    virtual void UpdateMeshData_Internal() override;
+
     virtual bool Repaint_Internal() override;
 
     void UpdateTextAABB();
@@ -152,6 +154,7 @@ private:
     RC<UITextRenderData>    m_render_data;
 
     Handle<Texture>         m_texture;
+    Handle<Texture>         m_current_font_atlas_texture;
 };
 
 } // namespace hyperion
