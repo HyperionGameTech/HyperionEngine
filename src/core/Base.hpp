@@ -107,11 +107,13 @@ public:
 
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
     {
+        AssertThrowMsg(m_id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
         return Handle<T>(m_id);
     }
 
     HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
     {
+        AssertThrowMsg(m_id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
         return WeakHandle<T>(m_id);
     }
 

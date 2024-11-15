@@ -60,6 +60,13 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         framebuffer(framebuffer),
         override_attributes(override_attributes)
     {
+        // sanity checking
+        for (auto &it : this->added_proxies) {
+            if (!it.material) {
+                continue;
+            }
+            AssertThrow(it.material->GetRenderAttributes().bucket != BUCKET_UI);
+        }
     }
 
     virtual ~RENDER_COMMAND(RebuildProxyGroups)() override

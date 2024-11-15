@@ -262,7 +262,12 @@ public:
                         NAME("Object"),
                         {
                             { NAME("MaterialsBuffer"), 0 },
-                            { NAME("SkeletonsBuffer"), 0 },
+                            { NAME("SkeletonsBuffer"), 0 }
+                        }
+                    },
+                    {
+                        NAME("Instancing"),
+                        {
                             { NAME("EntityInstanceBatchesBuffer"), 0 }
                         }
                     }
@@ -287,7 +292,12 @@ public:
                     {
                         NAME("Object"),
                         {
-                            { NAME("SkeletonsBuffer"), 0 },
+                            { NAME("SkeletonsBuffer"), 0 }
+                        }
+                    },
+                    {
+                        NAME("Instancing"),
+                        {
                             { NAME("EntityInstanceBatchesBuffer"), 0 }
                         }
                     }
@@ -831,8 +841,8 @@ void UIText::UpdateMeshData_Internal()
 
         character_aabb_clamped = character_aabb_clamped.Intersection(m_aabb_clamped);
 
-            character.texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
-            character.texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
+            // character.texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
+            // character.texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
 
         Matrix4 instance_transform;
         instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;

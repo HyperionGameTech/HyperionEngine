@@ -532,11 +532,128 @@ enum DescriptorUsageFlagBits : DescriptorUsageFlags
     DESCRIPTOR_USAGE_FLAG_DYNAMIC = 0x1
 };
 
+struct DescriptorUsageType
+{
+    Name                            name; 
+    uint32                          size = ~0u;
+    Array<Name>                     field_names;
+    Array<DescriptorUsageType, 0>   field_types;
+
+    DescriptorUsageType()                                                   = default;
+
+    DescriptorUsageType(Name name, uint32 size = ~0u)
+        : name(name),
+          size(size)
+    {
+    }
+
+    DescriptorUsageType(const DescriptorUsageType &other)                   = default;
+    DescriptorUsageType &operator=(const DescriptorUsageType &other)        = default;
+    DescriptorUsageType(DescriptorUsageType &&other) noexcept               = default;
+    DescriptorUsageType &operator=(DescriptorUsageType &&other) noexcept    = default;
+
+    HYP_FORCE_INLINE bool IsValid() const
+        { return name.IsValid(); }
+
+    HYP_FORCE_INLINE bool HasExplicitSize() const
+        { return size != ~0u; }
+
+    HYP_FORCE_INLINE Name GetName() const
+        { return name; }
+    
+    HYP_FORCE_INLINE uint32 GetSize() const
+        { return size; }
+
+    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType &> AddField(Name field_name, const DescriptorUsageType &type)
+    {
+        return Pair<Name, DescriptorUsageType &> { field_names.PushBack(field_name), field_types.PushBack(type) };
+    }
+
+    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType &> GetField(SizeType index)
+    {
+        return { field_names[index], field_types[index] };
+    }
+
+    HYP_FORCE_INLINE const Pair<Name, const DescriptorUsageType &> GetField(SizeType index) const
+    {
+        return { field_names[index], field_types[index] };
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType &>> FindField(WeakName field_name)
+    {
+        for (SizeType i = 0; i < field_names.Size(); i++) {
+            if (field_names[i] == field_name) {
+                return Pair<Name, DescriptorUsageType &> { field_names[i], field_types[i] };
+            }
+        }
+
+        return { };
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType &>> FindField(WeakName field_name) const
+    {
+        for (SizeType i = 0; i < field_names.Size(); i++) {
+            if (field_names[i] == field_name) {
+                return Pair<Name, const DescriptorUsageType &> { field_names[i], field_types[i] };
+            }
+        }
+
+        return { };
+    }
+
+    HYP_FORCE_INLINE bool operator<(const DescriptorUsageType &other) const
+    {
+        if (size != other.size) {
+            return size < other.size;
+        }
+
+        if (field_types.Size() != other.field_types.Size()) {
+            return field_types.Size() < other.field_types.Size();
+        }
+
+        for (SizeType i = 0; i < field_types.Size(); i++) {
+            if (field_types[i] != other.field_types[i]) {
+                return field_types[i] < other.field_types[i];
+            }
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const DescriptorUsageType &other) const
+    {
+        return name == other.name
+            && size == other.size
+            && field_names == other.field_names
+            && field_types == other.field_types;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageType &other) const
+    {
+        return name != other.name
+            || size != other.size
+            || field_names != other.field_names
+            || field_types != other.field_types;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(size);
+        hc.Add(field_names);
+        hc.Add(field_types);
+
+        return hc;
+    }
+};
+
 struct DescriptorUsage
 {
     renderer::DescriptorSlot    slot;
     Name                        set_name;
     Name                        descriptor_name;
+    DescriptorUsageType         type;
     DescriptorUsageFlags        flags;
     HashMap<String, String>     params;
 
@@ -560,6 +677,7 @@ struct DescriptorUsage
         : slot(other.slot),
           set_name(other.set_name),
           descriptor_name(other.descriptor_name),
+          type(other.type),
           flags(other.flags),
           params(other.params)
     {
@@ -574,6 +692,7 @@ struct DescriptorUsage
         slot = other.slot;
         set_name = other.set_name;
         descriptor_name = other.descriptor_name;
+        type = other.type;
         flags = other.flags;
         params = other.params;
 
@@ -584,6 +703,7 @@ struct DescriptorUsage
         : slot(other.slot),
           set_name(std::move(other.set_name)),
           descriptor_name(std::move(other.descriptor_name)),
+          type(std::move(other.type)),
           flags(other.flags),
           params(std::move(other.params))
     {
@@ -598,6 +718,7 @@ struct DescriptorUsage
         slot = other.slot;
         set_name = std::move(other.set_name);
         descriptor_name = std::move(other.descriptor_name);
+        type = std::move(other.type);
         flags = other.flags;
         params = std::move(other.params);
 
@@ -611,6 +732,7 @@ struct DescriptorUsage
         return slot == other.slot
             && set_name == other.set_name
             && descriptor_name == other.descriptor_name
+            && type == other.type
             && flags == other.flags
             && params == other.params;
     }
@@ -620,6 +742,7 @@ struct DescriptorUsage
         return slot != other.slot
             || set_name != other.set_name
             || descriptor_name != other.descriptor_name
+            || type != other.type
             || flags != other.flags
             || params != other.params;
     }
@@ -638,6 +761,10 @@ struct DescriptorUsage
             return descriptor_name < other.descriptor_name;
         }
 
+        if (type != other.type) {
+            return type < other.type;
+        }
+
         if (flags != other.flags) {
             return flags < other.flags;
         }
@@ -645,9 +772,9 @@ struct DescriptorUsage
         return false;
     }
 
-    HYP_FORCE_INLINE uint GetCount() const
+    HYP_FORCE_INLINE uint32 GetCount() const
     {
-        uint value = 1;
+        uint32 value = 1;
 
         auto it = params.Find("count");
 
@@ -662,9 +789,13 @@ struct DescriptorUsage
         return 1;
     }
 
-    HYP_FORCE_INLINE uint GetSize() const
+    HYP_FORCE_INLINE uint32 GetSize() const
     {
-        uint value = uint(-1);
+        if (type.size != ~0u) {
+            return type.size;
+        }
+
+        uint32 value = ~0u;
 
         auto it = params.Find("size");
 
@@ -676,7 +807,7 @@ struct DescriptorUsage
             return value;
         }
 
-        return uint(-1);
+        return uint32(-1);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -685,6 +816,7 @@ struct DescriptorUsage
         hc.Add(slot);
         hc.Add(set_name.GetHashCode());
         hc.Add(descriptor_name.GetHashCode());
+        hc.Add(type);
         hc.Add(flags);
         hc.Add(params.GetHashCode());
 
@@ -695,39 +827,59 @@ struct DescriptorUsage
 
 struct DescriptorUsageSet
 {
-    FlatSet<DescriptorUsage>    descriptor_usages;
+    FlatSet<DescriptorUsage>    elements;
 
     HYP_FORCE_INLINE DescriptorUsage &operator[](SizeType index)
-        { return descriptor_usages[index]; }
+        { return elements[index]; }
 
     HYP_FORCE_INLINE const DescriptorUsage &operator[](SizeType index) const
-        { return descriptor_usages[index]; }
+        { return elements[index]; }
 
     HYP_FORCE_INLINE bool operator==(const DescriptorUsageSet &other) const
-        { return descriptor_usages == other.descriptor_usages; }
+        { return elements == other.elements; }
+
+    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageSet &other) const
+        { return elements != other.elements; }
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return descriptor_usages.Size(); }
+        { return elements.Size(); }
 
-    HYP_FORCE_INLINE void Add(DescriptorUsage descriptor_usage)
-        { descriptor_usages.Insert(descriptor_usage); }
+    HYP_FORCE_INLINE void Add(const DescriptorUsage &descriptor_usage)
+        { elements.Insert(descriptor_usage); }
+
+    HYP_FORCE_INLINE DescriptorUsage *Find(WeakName descriptor_name)
+    {
+        auto it = elements.FindIf([descriptor_name](const DescriptorUsage &descriptor_usage)
+        {
+            return descriptor_usage.descriptor_name == descriptor_name;
+        });
+
+        if (it == elements.End()) {
+            return nullptr;
+        }
+
+        return it;
+    }
+
+    HYP_FORCE_INLINE const DescriptorUsage *Find(WeakName descriptor_name) const
+        { return const_cast<const DescriptorUsageSet *>(this)->Find(descriptor_name); }
 
     HYP_FORCE_INLINE void Merge(const Array<DescriptorUsage> &other)
-        { descriptor_usages.Merge(other); }
+        { elements.Merge(other); }
 
     HYP_FORCE_INLINE void Merge(Array<DescriptorUsage> &&other)
-        { descriptor_usages.Merge(std::move(other)); }
+        { elements.Merge(std::move(other)); }
 
     HYP_FORCE_INLINE void Merge(const DescriptorUsageSet &other)
-        { descriptor_usages.Merge(other.descriptor_usages); }
+        { elements.Merge(other.elements); }
 
     HYP_FORCE_INLINE void Merge(DescriptorUsageSet &&other)
-        { descriptor_usages.Merge(std::move(other.descriptor_usages)); }
+        { elements.Merge(std::move(other.elements)); }
 
     HYP_NODISCARD DescriptorTableDeclaration BuildDescriptorTable() const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return descriptor_usages.GetHashCode(); }
+        { return elements.GetHashCode(); }
 };
 
 struct ShaderDefinition

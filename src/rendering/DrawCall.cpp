@@ -13,44 +13,33 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
-/*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
- *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
- *  Otherwise, zero will be returned. */
-static uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 num_instances, Span<const Matrix4> instance_transform_data)
+HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap()
 {
-    AssertThrow(instance_transform_data.Size() <= num_instances);
-
-    AssertThrow(draw_call.batch_index < max_entity_instance_batches);
-
-    EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
-
-    uint32 instance_index = 0;
-    bool dirty = false;
-
-    while (batch.num_entities < max_entities_per_instance_batch && num_instances != 0) {
-        const uint32 entity_index = batch.num_entities++;
-
-        batch.indices[entity_index] = uint32(entity.ToIndex());
-        batch.transforms[entity_index] = instance_transform_data[instance_index++];
-
-        draw_call.entity_ids[draw_call.entity_id_count++] = entity;
-
-        --num_instances;
-
-        dirty = true;
-    }
-
-    if (dirty) {
-        g_engine->GetRenderData()->entity_instance_batches.MarkDirty(draw_call.batch_index);
-    }
-
-    return num_instances;
+    return g_engine->GetEntityInstanceBatchHolderMap();
 }
 
+#pragma region DrawCallCollection
+
 DrawCallCollection::DrawCallCollection(DrawCallCollection &&other) noexcept
-    : draw_calls(std::move(other.draw_calls)),
-      index_map(std::move(other.index_map))
+    : m_impl(other.m_impl),
+      m_draw_calls(std::move(other.m_draw_calls)),
+      m_index_map(std::move(other.m_index_map))
 {
+}
+
+DrawCallCollection &DrawCallCollection::operator=(DrawCallCollection &&other) noexcept
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    ResetDrawCalls();
+
+    m_impl = other.m_impl;
+    m_draw_calls = std::move(other.m_draw_calls);
+    m_index_map = std::move(other.m_index_map);
+
+    return *this;
 }
 
 DrawCallCollection::~DrawCallCollection()
@@ -58,14 +47,14 @@ DrawCallCollection::~DrawCallCollection()
     ResetDrawCalls();
 }
 
-void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> batch_index, DrawCallID id, const RenderProxy &render_proxy)
+void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, const RenderProxy &render_proxy)
 {
     AssertThrow(render_proxy.mesh.IsValid());
 
-    auto index_map_it = index_map.Find(uint64(id));
+    auto index_map_it = m_index_map.Find(uint64(id));
 
-    if (index_map_it == index_map.End()) {
-        index_map_it = index_map.Insert(uint64(id), { }).first;
+    if (index_map_it == m_index_map.End()) {
+        index_map_it = m_index_map.Insert(uint64(id), { }).first;
     }
 
     const uint32 initial_index_map_size = index_map_it->second.Size();
@@ -76,12 +65,15 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
     const uint32 initial_num_instances = render_proxy.NumInstances();
     uint32 num_instances = initial_num_instances;
 
+    GPUBufferHolderBase *entity_instance_batches = m_impl->GetEntityInstanceBatchHolder();
+    AssertThrow(entity_instance_batches != nullptr);
+
     while (num_instances != 0) {
         DrawCall *draw_call;
 
         if (index_map_index < initial_index_map_size) {
             // we have elements for the specific DrawCallID -- try to reuse them as much as possible
-            draw_call = &draw_calls[index_map_it->second[index_map_index++]];
+            draw_call = &m_draw_calls[index_map_it->second[index_map_index++]];
 
 #ifdef HYP_DEBUG_MODE
             AssertThrow(draw_call->id == id);
@@ -90,10 +82,10 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
         } else {
             // check if we need to allocate new batch (if it has not been provided as first argument)
             if (batch_index == 0) {
-                batch_index = g_engine->GetRenderData()->entity_instance_batches.AcquireTicket();
+                batch_index = m_impl->AcquireBatchIndex();
             }
 
-            draw_call = &draw_calls.EmplaceBack();
+            draw_call = &m_draw_calls.EmplaceBack();
             draw_call->id = id;
             draw_call->draw_command_index = ~0u;
             draw_call->mesh_id = render_proxy.mesh.GetID();
@@ -102,7 +94,7 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
             draw_call->entity_id_count = 0;
             draw_call->batch_index = batch_index;
 
-            index_map_it->second.PushBack(draw_calls.Size() - 1);
+            index_map_it->second.PushBack(m_draw_calls.Size() - 1);
         
             batch_index = 0;
         }
@@ -125,17 +117,17 @@ void DrawCallCollection::PushDrawCallToBatch(BufferTicket<EntityInstanceBatch> b
 
     if (batch_index != 0) {
         // ticket has not been used at this point (always gets set to 0 after used) - need to release it
-        g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(batch_index);
+        m_impl->ReleaseBatchIndex(batch_index);
     }
 }
 
 BufferTicket<EntityInstanceBatch> DrawCallCollection::TakeDrawCallBatchIndex(DrawCallID id)
 {
-    const auto it = index_map.Find(id.Value());
+    const auto it = m_index_map.Find(id.Value());
 
-    if (it != index_map.End()) {
+    if (it != m_index_map.End()) {
         for (SizeType draw_call_index : it->second) {
-            DrawCall &draw_call = draw_calls[draw_call_index];
+            DrawCall &draw_call = m_draw_calls[draw_call_index];
 
             if (draw_call.batch_index == 0) {
                 continue;
@@ -155,18 +147,79 @@ BufferTicket<EntityInstanceBatch> DrawCallCollection::TakeDrawCallBatchIndex(Dra
 
 void DrawCallCollection::ResetDrawCalls()
 {
-    for (const DrawCall &draw_call : draw_calls) {
-        if (draw_call.batch_index != 0) {
-            EntityInstanceBatch &batch = g_engine->GetRenderData()->entity_instance_batches.Get(draw_call.batch_index);
-            batch.num_entities = 0;
-            // Memory::MemSet(&batch, 0, sizeof(EntityInstanceBatch));
+    GPUBufferHolderBase *entity_instance_batches = m_impl->GetEntityInstanceBatchHolder();
+    AssertThrow(entity_instance_batches != nullptr);
 
-            g_engine->GetRenderData()->entity_instance_batches.ReleaseTicket(draw_call.batch_index);
+    for (const DrawCall &draw_call : m_draw_calls) {
+        if (draw_call.batch_index != 0) {
+            entity_instance_batches->ResetElement(draw_call.batch_index);
+
+            m_impl->ReleaseBatchIndex(draw_call.batch_index);
         }
     }
 
-    draw_calls.Clear();
-    index_map.Clear();
+    m_draw_calls.Clear();
+    m_index_map.Clear();
 }
+
+uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 num_instances, Span<const Matrix4> instance_transform_data)
+{
+    AssertThrow(instance_transform_data.Size() <= num_instances);
+
+    AssertThrow(draw_call.batch_index < max_entity_instance_batches);
+
+    EntityInstanceBatch &batch = m_impl->GetElement(draw_call.batch_index);
+
+    uint32 instance_index = 0;
+    bool dirty = false;
+
+    while (batch.num_entities < max_entities_per_instance_batch && num_instances != 0) {
+        const uint32 entity_index = batch.num_entities++;
+
+        batch.indices[entity_index] = uint32(entity.ToIndex());
+        batch.transforms[entity_index] = instance_transform_data[instance_index++];
+
+        draw_call.entity_ids[draw_call.entity_id_count++] = entity;
+
+        --num_instances;
+
+        dirty = true;
+    }
+
+    if (dirty) {
+        m_impl->GetEntityInstanceBatchHolder()->MarkDirty(draw_call.batch_index);
+    }
+
+    return num_instances;
+}
+
+#pragma endregion DrawCallCollection
+
+#pragma region DrawCallCollectionImpl
+
+static TypeMap<UniquePtr<IDrawCallCollectionImpl>> g_draw_call_collection_impl_map = { };
+static Mutex g_draw_call_collection_impl_map_mutex = { };
+
+HYP_API IDrawCallCollectionImpl *GetDrawCallCollectionImpl(TypeID type_id)
+{
+    Mutex::Guard guard(g_draw_call_collection_impl_map_mutex);
+
+    auto it = g_draw_call_collection_impl_map.Find(type_id);
+
+    return it != g_draw_call_collection_impl_map.End() ? it->second.Get() : nullptr;
+}
+
+HYP_API IDrawCallCollectionImpl *SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl> &&impl)
+{
+    Mutex::Guard guard(g_draw_call_collection_impl_map_mutex);
+
+    auto it = g_draw_call_collection_impl_map.Set(type_id, std::move(impl)).first;
+
+    DebugLog(LogType::Debug, "Create IDrawCallCollectionImpl with element size %llu\n", it->second->GetElementSize());
+    
+    return it->second.Get();
+}
+
+#pragma endregion DrawCallCollectionImpl
 
 } // namespace hyperion

@@ -28,6 +28,7 @@ struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
 
 struct DrawCall;
+class DrawCallCollection;
 
 struct DrawCommandData
 {
@@ -79,7 +80,7 @@ public:
     friend struct RenderCommand_CreateIndirectRenderer;
     friend struct RenderCommand_DestroyIndirectRenderer;
 
-    IndirectRenderer();
+    IndirectRenderer(DrawCallCollection *draw_call_collection);
     IndirectRenderer(const IndirectRenderer &)                  = delete;
     IndirectRenderer &operator=(const IndirectRenderer &)       = delete;
     IndirectRenderer(IndirectRenderer &&) noexcept              = delete;
@@ -95,11 +96,15 @@ public:
     void Create();
     void Destroy();
 
+    /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
+    void PushDrawCallsToIndirectState();
+
     void ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data);
 
 private:
     void RebuildDescriptors(Frame *frame);
 
+    DrawCallCollection                                  *m_draw_call_collection;
     IndirectDrawState                                   m_indirect_draw_state;
     ComputePipelineRef                                  m_object_visibility;
     CullData                                            m_cached_cull_data;

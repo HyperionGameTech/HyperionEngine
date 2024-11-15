@@ -258,6 +258,7 @@ if (${NATIVE})
     # if glslang folder exists, link with it.
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
         add_definitions(-DHYP_GLSLANG=1)
+        add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
         include_directories(BEFORE submodules/glslang)
         add_subdirectory(submodules/glslang)

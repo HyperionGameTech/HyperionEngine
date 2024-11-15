@@ -38,9 +38,7 @@ struct ArrayStorage<T, 0>
     static constexpr SizeType num_inline_bytes = 0;
     static constexpr SizeType num_inline_elements = 0;
 
-    using Storage = ValueStorage<T>;
-
-    Storage *m_buffer = nullptr;
+    void *m_buffer = nullptr;
     
     HYP_FORCE_INLINE T *GetBuffer()
     {
@@ -52,16 +50,6 @@ struct ArrayStorage<T, 0>
         return reinterpret_cast<const T *>(m_buffer);
     }
 
-    HYP_FORCE_INLINE Storage *GetStorage()
-    {
-        return m_buffer;
-    }
-
-    HYP_FORCE_INLINE const Storage *GetStorage() const
-    {
-        return m_buffer;
-    }
-
     HYP_FORCE_INLINE bool IsDynamic() const
     {
         return m_buffer != nullptr;
@@ -70,7 +58,7 @@ struct ArrayStorage<T, 0>
     HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
     {
         AssertThrow(m_buffer == nullptr);
-        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * size));
+        m_buffer = Memory::Allocate(sizeof(T) * size);
     }
 
     HYP_FORCE_INLINE void FreeDynamic()
@@ -88,11 +76,9 @@ struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< (sizeof(T) <= NumInline
     static constexpr bool use_inline_storage = true;
     static constexpr SizeType num_inline_bytes = NumInlineBytes;
     static constexpr SizeType num_inline_elements = (num_inline_bytes / sizeof(T));
-
-    using Storage = ValueStorage<T>;
     
     union {
-        Storage                                     *m_buffer;
+        void                                        *m_buffer;
         ValueStorageArray<T, num_inline_elements>   m_inline_storage;
     };
 
@@ -108,16 +94,6 @@ struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< (sizeof(T) <= NumInline
         return reinterpret_cast<const T *>(m_is_dynamic ? m_buffer : &m_inline_storage[0]);
     }
 
-    HYP_FORCE_INLINE Storage *GetStorage()
-    {
-        return m_is_dynamic ? m_buffer : &m_inline_storage[0];
-    }
-
-    HYP_FORCE_INLINE const Storage *GetStorage() const
-    {
-        return m_is_dynamic ? m_buffer : &m_inline_storage[0];
-    }
-
     HYP_FORCE_INLINE bool IsDynamic() const
     {
         return m_is_dynamic;
@@ -126,7 +102,7 @@ struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< (sizeof(T) <= NumInline
     HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
     {
         AssertThrow(!m_is_dynamic);
-        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * size));
+        m_buffer = static_cast<T *>(Memory::Allocate(sizeof(T) * size));
         m_is_dynamic = true;
     }
 
@@ -164,15 +140,16 @@ public:
     using Base = ContainerBase<Array<T, NumInlineBytes>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
-    using Storage = typename detail::ArrayStorage<T, NumInlineBytes>::Storage;
+
+    using ArrayStorageType = detail::ArrayStorage<T, NumInlineBytes>;
 
     static constexpr bool is_contiguous = true;
     
     static constexpr bool is_pod_type = IsPODType<T>;
     
-    static constexpr bool use_inline_storage = detail::ArrayStorage<T, NumInlineBytes>::use_inline_storage;
-    static constexpr SizeType num_inline_bytes = detail::ArrayStorage<T, NumInlineBytes>::num_inline_bytes;
-    static constexpr SizeType num_inline_elements = detail::ArrayStorage<T, NumInlineBytes>::num_inline_elements;
+    static constexpr bool use_inline_storage = ArrayStorageType::use_inline_storage;
+    static constexpr SizeType num_inline_bytes = ArrayStorageType::num_inline_bytes;
+    static constexpr SizeType num_inline_elements = ArrayStorageType::num_inline_elements;
 
 protected:
     // on PushFront() we can pad the start with this number,
@@ -302,13 +279,12 @@ public:
         const SizeType size = other.Size();
 
         SetCapacity(size);
-        Storage *storage = GetStorage();
 
+        T *buffer = GetBuffer();
         T *other_buffer = other.GetBuffer();
 
         for (SizeType i = 0; i < size; i++) {
-            ValueStorage<T> &storage_element = storage[m_size++];
-            storage_element.Construct(other_buffer[i + other.m_start_offset]);
+            Memory::Construct<T>(&buffer[m_size++], other_buffer[i + other.m_start_offset]);
         }
     }
 
@@ -320,13 +296,12 @@ public:
         const SizeType size = other.Size();
 
         SetCapacity(size);
-        Storage *storage = GetStorage();
 
+        T *storage = GetBuffer();
         T *other_buffer = other.GetBuffer();
 
         for (SizeType i = 0; i < size; i++) {
-            ValueStorage<T> &storage_element = storage[m_size++];
-            storage_element.Construct(std::move(other_buffer[i + other.m_start_offset]));
+            Memory::Construct<T>(&storage[m_size++], std::move(other_buffer[i + other.m_start_offset]));
         }
 
         other.Clear();
@@ -440,9 +415,12 @@ public:
         }
 
         // set item at index
-        ValueStorage<T> &storage_element = GetStorage()[m_size++];
-        storage_element.Construct(std::forward<Args>(args)...);
-        return storage_element.Get();
+        T *buffer = GetBuffer();
+        T *element = &buffer[m_size++];
+
+        Memory::Construct<T>(element, std::forward<Args>(args)...);
+
+        return *element;
     }
 
     /*! \brief Construct an item in place at the front of the array.
@@ -460,7 +438,7 @@ public:
                     push_front_padding // copy_offset is 1 so we have a space for 1 at the start
                 );
             } else {
-                auto *buffer = GetStorage();
+                T *buffer = GetBuffer();
 
                 // shift over without realloc
                 for (SizeType index = Size(); index > 0;) {
@@ -468,10 +446,10 @@ public:
 
                     const auto move_index = index + push_front_padding;
 
-                    Memory::Construct<T>(&buffer[move_index].data_buffer, std::forward<Args>(args)...);
+                    Memory::Construct<T>(&buffer[move_index], std::forward<Args>(args)...);
 
                     // manual destructor call
-                    Memory::Destruct(buffer[index].Get());
+                    Memory::Destruct(buffer[index]);
                 }
 
                 m_start_offset = push_front_padding;
@@ -481,9 +459,12 @@ public:
 
         --m_start_offset;
 
-        ValueStorage<T> &storage_element = GetStorage()[m_start_offset];
-        storage_element.Construct(std::forward<Args>(args)...);
-        return storage_element.Get();
+        T *buffer = GetBuffer();
+        T *element = &buffer[m_start_offset];
+
+        Memory::Construct<T>(element, std::forward<Args>(args)...);
+
+        return *element;
     }
 
     /*! \brief Shift the array to the left by {count} times */
@@ -621,22 +602,12 @@ protected:
         return m_storage.GetBuffer();
     }
 
-    HYP_FORCE_INLINE Storage *GetStorage()
-    {
-        return m_storage.GetStorage();
-    }
-
-    HYP_FORCE_INLINE const Storage *GetStorage() const
-    {
-        return m_storage.GetStorage();
-    }
-
     void ResizeUninitialized(SizeType new_size);
 
     void ResetOffsets();
 
-    auto RealBegin() const { return ToValueTypePtr(GetStorage()[0]); }
-    auto RealEnd() const { return ToValueTypePtr(GetStorage()[m_size]); }
+    auto RealBegin() const { return GetBuffer(); }
+    auto RealEnd() const { return GetBuffer() + m_size; }
 
     static SizeType GetCapacity(SizeType size)
     {
@@ -646,33 +617,13 @@ protected:
     SizeType m_size;
     SizeType m_capacity;
 
-    static_assert(sizeof(Storage) == sizeof(Storage::data_buffer), "Storage struct should not be padded");
+    // static_assert(sizeof(Storage) == sizeof(Storage::data_buffer), "Storage struct should not be padded");
     // static_assert(alignof(Storage) == alignof(Storage::data_buffer), "Storage struct should not be padded");
 
-    HYP_FORCE_INLINE static ValueType &ToValueType(Storage &storage)
-    {
-        return *reinterpret_cast<ValueType *>(&storage);
-    }
-
-    HYP_FORCE_INLINE static const ValueType &ToValueType(const Storage &storage)
-    {
-        return *reinterpret_cast<const ValueType *>(&storage);
-    }
-
-    HYP_FORCE_INLINE static ValueType *ToValueTypePtr(Storage &storage)
-    {
-        return reinterpret_cast<ValueType *>(&storage);
-    }
-
-    HYP_FORCE_INLINE static const ValueType *ToValueTypePtr(const Storage &storage)
-    {
-        return reinterpret_cast<const ValueType *>(&storage);
-    }
-
 protected:
-    SizeType                                                m_start_offset;
+    SizeType            m_start_offset;
 
-    detail::ArrayStorage<T, NumInlineBytes>                 m_storage;
+    ArrayStorageType    m_storage;
 };
 
 template <class T, SizeType NumInlineBytes>
@@ -683,7 +634,7 @@ Array<T, NumInlineBytes>::Array()
 {
 #ifdef HYP_DEBUG_MODE
     if constexpr (use_inline_storage) {
-        Memory::Garble(&m_storage.m_inline_storage[0], num_inline_elements * sizeof(Storage));
+        Memory::Garble(&m_storage.m_inline_storage[0], num_inline_elements * sizeof(T));
     }
 #endif
 }
@@ -698,11 +649,11 @@ Array<T, NumInlineBytes>::Array(const Array &other)
         m_storage.AllocateDynamic(m_capacity);
     }
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     // copy all members
     for (SizeType i = m_start_offset; i < m_size; ++i) {
-        Memory::Construct<T>(&buffer[i].data_buffer, other.GetStorage()[i].Get());
+        Memory::Construct<T>(&buffer[i], other.GetBuffer()[i]);
     }
 }
 
@@ -721,11 +672,11 @@ Array<T, NumInlineBytes>::Array(Array &&other) noexcept
             other.m_storage.m_is_dynamic = false;
         }
     } else {
-        auto *buffer = GetStorage();
+        T *buffer = GetBuffer();
 
         // move all members
         for (SizeType i = m_start_offset; i < m_size; ++i) {
-            Memory::Construct<T>(&buffer[i].data_buffer, std::move(other.GetStorage()[i].Get()));
+            Memory::Construct<T>(&buffer[i], std::move(other.GetBuffer()[i]));
         }
     }
 
@@ -735,7 +686,7 @@ Array<T, NumInlineBytes>::Array(Array &&other) noexcept
 
 #ifdef HYP_DEBUG_MODE
     if constexpr (use_inline_storage) {
-        Memory::Garble(&other.m_storage.m_inline_storage[0], num_inline_elements * sizeof(Storage));
+        Memory::Garble(&other.m_storage.m_inline_storage[0], num_inline_elements * sizeof(T));
     }
 #endif
 }
@@ -743,10 +694,10 @@ Array<T, NumInlineBytes>::Array(Array &&other) noexcept
 template <class T, SizeType NumInlineBytes>
 Array<T, NumInlineBytes>::~Array()
 {
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (SizeType i = m_size; i > m_start_offset;) {
-        Memory::Destruct(buffer[--i].Get());
+        Memory::Destruct(buffer[--i]);
     }
     
     if (m_storage.IsDynamic()) {
@@ -761,12 +712,12 @@ auto Array<T, NumInlineBytes>::operator=(const Array &other) -> Array&
         return *this;
     }
 
-    auto *buffer = GetStorage();
-    auto *other_buffer = other.GetStorage();
+    T *buffer = GetBuffer();
+    const T *other_buffer = other.GetBuffer();
 
     if (m_capacity < other.m_capacity) {
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(buffer[--i].Get());
+            Memory::Destruct(buffer[--i]);
         }
 
         if (m_storage.IsDynamic()) {
@@ -784,22 +735,22 @@ auto Array<T, NumInlineBytes>::operator=(const Array &other) -> Array&
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
 
-        buffer = GetStorage();
+        buffer = GetBuffer();
 
         // copy all objects
         for (SizeType i = m_start_offset; i < m_size; ++i) {
-            Memory::Construct<T>(&buffer[i].data_buffer, other_buffer[i].Get());
+            Memory::Construct<T>(&buffer[i], other_buffer[i]);
         }
     } else {
         const SizeType current_size = Size();
         const SizeType other_size = other.Size();
 
         for (SizeType i = m_start_offset; i < m_size; i++) {
-            Memory::Destruct<T>(&buffer[i].data_buffer);
+            Memory::Destruct(buffer[i]);
         }
 
         for (SizeType i = 0; i < other_size; i++) {
-            Memory::Construct<T>(&buffer[i].data_buffer, other_buffer[other.m_start_offset + i].Get());
+            Memory::Construct<T>(&buffer[i], other_buffer[other.m_start_offset + i]);
         }
 
         m_start_offset = 0;
@@ -813,10 +764,10 @@ template <class T, SizeType NumInlineBytes>
 auto Array<T, NumInlineBytes>::operator=(Array &&other) noexcept -> Array&
 {
     {
-        auto *buffer = GetStorage();
+        T *buffer = GetBuffer();
 
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(buffer[--i].Get());
+            Memory::Destruct(buffer[--i]);
         }
     }
 
@@ -877,20 +828,20 @@ void Array<T, NumInlineBytes>::ResetOffsets()
         return;
     }
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     // shift all items to left
     for (SizeType index = m_start_offset; index < m_size; ++index) {
         const auto move_index = index - m_start_offset;
 
         if constexpr (std::is_move_constructible_v<T>) {
-            Memory::Construct<T>(&buffer[move_index].data_buffer, std::move(buffer[index].Get()));
+            Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
         } else {
-            Memory::Construct<T>(&buffer[move_index].data_buffer, buffer[index].Get());
+            Memory::Construct<T>(&buffer[move_index], buffer[index]);
         }
 
         // manual destructor call
-        Memory::Destruct(buffer[index].Get());
+        Memory::Destruct(buffer[index]);
     }
 
     m_size -= m_start_offset;
@@ -900,25 +851,25 @@ void Array<T, NumInlineBytes>::ResetOffsets()
 template <class T, SizeType NumInlineBytes>
 void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offset)
 {
-    auto *old_buffer = GetStorage();
+    T *old_buffer = GetBuffer();
 
     if (capacity > num_inline_elements) {
         // delete and copy all over again
-        auto *new_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * capacity));
+        T *new_buffer = static_cast<T *>(Memory::Allocate(sizeof(T) * capacity));
 
         // AssertThrow(Size() <= m_capacity);
         
         for (SizeType i = copy_offset, j = m_start_offset; j < m_size; ++i, ++j) {
             if constexpr (std::is_move_constructible_v<T>) {
-                Memory::Construct<T>(&new_buffer[i].data_buffer, std::move(old_buffer[j].Get()));
+                Memory::Construct<T>(&new_buffer[i], std::move(old_buffer[j]));
             } else {
-                Memory::Construct<T>(&new_buffer[i].data_buffer, old_buffer[j].Get());
+                Memory::Construct<T>(&new_buffer[i], old_buffer[j]);
             }
         }
 
         // manually call destructors of old buffer
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(old_buffer[--i].Get());
+            Memory::Destruct(old_buffer[--i]);
         }
 
         if (m_storage.IsDynamic()) {
@@ -940,13 +891,13 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
         if (m_storage.IsDynamic()) { // switch from dynamic to non-dynamic
             if constexpr (use_inline_storage) {
                 for (SizeType i = copy_offset, j = m_start_offset; j < m_size; ++i, ++j) {
-                    m_storage.m_inline_storage[i].Get() = std::move(old_buffer[j].Get());
+                    m_storage.m_inline_storage[i].Get() = std::move(old_buffer[j]);
                 }
             }
 
             // call destructors on old buffer
             for (SizeType i = m_size; i > m_start_offset;) {
-                Memory::Destruct(old_buffer[--i].Get());
+                Memory::Destruct(old_buffer[--i]);
             }
 
             Memory::Free(old_buffer);
@@ -1035,23 +986,23 @@ void Array<T, NumInlineBytes>::Resize(SizeType new_size)
             }
         }
 
-        auto *buffer = GetStorage();
+        T *buffer = GetBuffer();
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>) {
-            Memory::MemSet(&buffer[m_size].data_buffer, 0, sizeof(T) * diff);
+            Memory::MemSet(&buffer[m_size], 0, sizeof(T) * diff);
 
             m_size += diff;
         } else {
             while (Size() < new_size) {
                 // construct item at index
-                Memory::Construct<T>(&buffer[m_size++].data_buffer);
+                Memory::Construct<T>(&buffer[m_size++]);
             }
         }
     } else {
         const SizeType diff = current_size - new_size;
 
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(GetStorage()[--i].Get());
+            Memory::Destruct(GetBuffer()[--i]);
         }
 
         m_size -= diff;
@@ -1083,7 +1034,7 @@ void Array<T, NumInlineBytes>::ResizeUninitialized(SizeType new_size)
         const SizeType diff = current_size - new_size;
 
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(GetStorage()[--i].Get());
+            Memory::Destruct(GetBuffer()[--i]);
         }
 
         m_size -= diff;
@@ -1112,9 +1063,12 @@ auto Array<T, NumInlineBytes>::PushBack(const ValueType &value) -> ValueType&
     }
 
     // set item at index
-    ValueStorage<T> &storage_element = GetStorage()[m_size++];
-    storage_element.Construct(value);
-    return storage_element.Get();
+    T *buffer = GetBuffer();
+    T *element = &buffer[m_size++];
+
+    Memory::Construct<T>(element, value);
+
+    return *element;
 }
 
 template <class T, SizeType NumInlineBytes>
@@ -1129,9 +1083,12 @@ auto Array<T, NumInlineBytes>::PushBack(ValueType &&value) -> ValueType&
     }
 
     // set item at index
-    ValueStorage<T> &storage_element = GetStorage()[m_size++];
-    storage_element.Construct(std::move(value));
-    return storage_element.Get();
+    T *buffer = GetBuffer();
+    T *element = &buffer[m_size++];
+
+    Memory::Construct<T>(element, std::move(value));
+
+    return *element;
 }
 
 template <class T, SizeType NumInlineBytes>
@@ -1145,7 +1102,7 @@ auto Array<T, NumInlineBytes>::PushFront(const ValueType &value) -> ValueType&
                 push_front_padding // copy_offset is 1 so we have a space for 1 at the start
             );
         } else {
-            auto *buffer = GetStorage();
+            T *buffer = GetBuffer();
 
             // shift over without realloc
             for (SizeType index = Size(); index > 0;) {
@@ -1154,13 +1111,13 @@ auto Array<T, NumInlineBytes>::PushFront(const ValueType &value) -> ValueType&
                 const auto move_index = index + push_front_padding;
 
                 if constexpr (std::is_move_constructible_v<T>) {
-                    Memory::Construct<T>(&buffer[move_index].data_buffer, std::move(buffer[index].Get()));
+                    Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
                 } else {
-                    Memory::Construct<T>(&buffer[move_index].data_buffer, buffer[index].Get());
+                    Memory::Construct<T>(&buffer[move_index], buffer[index]);
                 }
 
                 // manual destructor call
-                Memory::Destruct(buffer[index].Get());
+                Memory::Destruct(buffer[index]);
             }
 
             m_start_offset = push_front_padding;
@@ -1171,7 +1128,7 @@ auto Array<T, NumInlineBytes>::PushFront(const ValueType &value) -> ValueType&
     // in-place
     --m_start_offset;
 
-    Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, value);
+    Memory::Construct<T>(&GetBuffer()[m_start_offset], value);
 
     return Front();
 }
@@ -1187,7 +1144,7 @@ auto Array<T, NumInlineBytes>::PushFront(ValueType &&value) -> ValueType&
                 push_front_padding // copy_offset is 1 so we have a space for 1 at the start
             );
         } else {
-            auto *buffer = GetStorage();
+            T *buffer = GetBuffer();
 
             // shift over without realloc
             for (SizeType index = Size(); index > 0;) {
@@ -1196,13 +1153,13 @@ auto Array<T, NumInlineBytes>::PushFront(ValueType &&value) -> ValueType&
                 const auto move_index = index + push_front_padding;
 
                 if constexpr (std::is_move_constructible_v<T>) {
-                    Memory::Construct<T>(&buffer[move_index].data_buffer, std::move(buffer[index].Get()));
+                    Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
                 } else {
-                    Memory::Construct<T>(&buffer[move_index].data_buffer, buffer[index].Get());
+                    Memory::Construct<T>(&buffer[move_index], buffer[index]);
                 }
 
                 // manual destructor call
-                Memory::Destruct(buffer[index].Get());
+                Memory::Destruct(buffer[index]);
             }
 
             m_start_offset = push_front_padding;
@@ -1213,9 +1170,12 @@ auto Array<T, NumInlineBytes>::PushFront(ValueType &&value) -> ValueType&
     // in-place
     --m_start_offset;
 
-    ValueStorage<T> &storage_element = GetStorage()[m_start_offset];
-    storage_element.Construct(std::move(value));
-    return storage_element.Get();
+    T *buffer = GetBuffer();
+    T *element = &buffer[m_start_offset];
+
+    Memory::Construct<T>(element, std::move(value));
+
+    return *element;
 }
 
 template <class T, SizeType NumInlineBytes>
@@ -1229,11 +1189,11 @@ void Array<T, NumInlineBytes>::Concat(const Array &other)
         }
     }
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (SizeType i = 0; i < other.Size(); ++i) {
         // set item at index
-        Memory::Construct<T>(&buffer[m_size++].data_buffer, other[i]);
+        Memory::Construct<T>(&buffer[m_size++], other[i]);
     }
 }
 
@@ -1248,11 +1208,11 @@ void Array<T, NumInlineBytes>::Concat(Array &&other)
         }
     }
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (SizeType i = 0; i < other.Size(); ++i) {
         // set item at index
-        Memory::Construct<T>(&buffer[m_size++].data_buffer, std::move(other[i]));
+        Memory::Construct<T>(&buffer[m_size++], std::move(other[i]));
     }
 
     other.Clear();
@@ -1263,7 +1223,7 @@ void Array<T, NumInlineBytes>::Shift(SizeType count)
 {
     SizeType new_size = 0;
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (SizeType index = m_start_offset; index < m_size; ++index, ++new_size) {
         if (index + count >= m_size) {
@@ -1271,16 +1231,16 @@ void Array<T, NumInlineBytes>::Shift(SizeType count)
         }
 
         if constexpr (std::is_move_assignable_v<T>) {
-            buffer[index].Get() = std::move(buffer[index + count].Get());
+            buffer[index] = std::move(buffer[index + count]);
         } else if constexpr (std::is_move_constructible_v<T>) {
-            Memory::Destruct(buffer[index].Get());
-            Memory::Construct<T>(&buffer[index].data_buffer, std::move(buffer[index + count].Get()));
+            Memory::Destruct(buffer[index]);
+            Memory::Construct<T>(&buffer[index], std::move(buffer[index + count]));
         } else {
-            buffer[index].Get() = buffer[index + count].Get();
+            buffer[index] = buffer[index + count];
         }
 
         // manual destructor call
-        Memory::Destruct(buffer[index + count].Get());
+        Memory::Destruct(buffer[index + count]);
     }
 
     m_size = new_size;
@@ -1321,11 +1281,11 @@ Array<T, NumInlineBytes> Array<T, NumInlineBytes>::Slice(int first, int last) co
     Array<T, NumInlineBytes> result;
     result.ResizeUninitialized(last - first + 1);
 
-    auto *buffer = GetStorage();
-    auto *result_buffer = result.GetStorage();
+    T *buffer = GetBuffer();
+    T *result_buffer = result.GetBuffer();
 
     for (SizeType i = 0; i < result.m_size; ++i) {
-        Memory::Construct<T>(&result_buffer[i].data_buffer, buffer[first + i].Get());
+        Memory::Construct<T>(&result_buffer[i], buffer[first + i]);
     }
 
     return result;
@@ -1344,22 +1304,22 @@ auto Array<T, NumInlineBytes>::Erase(ConstIterator iter) -> Iterator
 
     const SizeType dist = iter - begin;
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (SizeType index = dist; index < size_offset - 1; ++index) {
         /*if constexpr (std::is_move_assignable_v<T>) {
             buffer[m_start_offset + index].Get() = std::move(buffer[m_start_offset + index + 1].Get());
         } else*/ if constexpr (std::is_move_constructible_v<T>) {
-            Memory::Destruct(buffer[m_start_offset + index].Get());
-            Memory::Construct<T>(&buffer[m_start_offset + index].data_buffer, std::move(buffer[m_start_offset + index + 1].Get()));
+            Memory::Destruct(buffer[m_start_offset + index]);
+            Memory::Construct<T>(&buffer[m_start_offset + index], std::move(buffer[m_start_offset + index + 1]));
         } else {
-            Memory::Destruct(buffer[m_start_offset + index].Get());
-            Memory::Construct<T>(&buffer[m_start_offset + index].data_buffer, buffer[m_start_offset + index + 1].Get());
+            Memory::Destruct(buffer[m_start_offset + index]);
+            Memory::Construct<T>(&buffer[m_start_offset + index], buffer[m_start_offset + index + 1]);
             // buffer[m_start_offset + index].Get() = buffer[m_start_offset + index + 1].Get();
         }
     }
 
-    Memory::Destruct(buffer[m_size - 1].Get());
+    Memory::Destruct(buffer[m_size - 1]);
     --m_size;
     
     return begin + dist;
@@ -1416,19 +1376,19 @@ auto Array<T, NumInlineBytes>::Insert(ConstIterator where, const ValueType &valu
 
     SizeType index;
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (index = Size(); index > dist; --index) {
         if constexpr (std::is_move_constructible_v<T>) {
-            Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, std::move(buffer[index + m_start_offset - 1].Get()));
+            Memory::Construct<T>(&buffer[index + m_start_offset], std::move(buffer[index + m_start_offset - 1]));
         } else {
-            Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, buffer[index + m_start_offset - 1].Get());
+            Memory::Construct<T>(&buffer[index + m_start_offset], buffer[index + m_start_offset - 1]);
         }
 
-        Memory::Destruct(buffer[index + m_start_offset - 1].Get());
+        Memory::Destruct(buffer[index + m_start_offset - 1]);
     }
 
-    Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, value);
+    Memory::Construct<T>(&buffer[index + m_start_offset], value);
 
     ++m_size;
 
@@ -1468,19 +1428,19 @@ auto Array<T, NumInlineBytes>::Insert(ConstIterator where, ValueType &&value) ->
 
     SizeType index;
 
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     for (index = Size(); index > dist; --index) {
         if constexpr (std::is_move_constructible_v<T>) {
-            Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, std::move(buffer[index + m_start_offset - 1].Get()));
+            Memory::Construct<T>(&buffer[index + m_start_offset], std::move(buffer[index + m_start_offset - 1]));
         } else {
-            Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, buffer[index + m_start_offset - 1].Get());
+            Memory::Construct<T>(&buffer[index + m_start_offset], buffer[index + m_start_offset - 1]);
         }
 
-        Memory::Destruct(buffer[index + m_start_offset - 1].Get());
+        Memory::Destruct(buffer[index + m_start_offset - 1]);
     }
 
-    Memory::Construct<T>(&buffer[index + m_start_offset].data_buffer, std::move(value));
+    Memory::Construct<T>(&buffer[index + m_start_offset], std::move(value));
 
     ++m_size;
 
@@ -1494,9 +1454,9 @@ auto Array<T, NumInlineBytes>::PopFront() -> ValueType
     AssertThrow(Size() != 0);
 #endif
 
-    auto value = std::move(GetStorage()[m_start_offset].Get());
+    auto value = std::move(GetBuffer()[m_start_offset]);
 
-    Memory::Destruct(GetStorage()[m_start_offset].Get());
+    Memory::Destruct(GetBuffer()[m_start_offset]);
 
     ++m_start_offset;
 
@@ -1510,9 +1470,9 @@ auto Array<T, NumInlineBytes>::PopBack() -> ValueType
     AssertThrow(m_size != 0);
 #endif
 
-    auto value = std::move(GetStorage()[m_size - 1].Get());
+    auto value = std::move(GetBuffer()[m_size - 1]);
 
-    Memory::Destruct(GetStorage()[m_size - 1].Get());
+    Memory::Destruct(GetBuffer()[m_size - 1]);
 
     --m_size;
 
@@ -1522,11 +1482,11 @@ auto Array<T, NumInlineBytes>::PopBack() -> ValueType
 template <class T, SizeType NumInlineBytes>
 void Array<T, NumInlineBytes>::Clear()
 {
-    auto *buffer = GetStorage();
+    T *buffer = GetBuffer();
 
     while (m_size - m_start_offset) {
         // manual destructor call
-        Memory::Destruct(buffer[m_size - 1].Get());
+        Memory::Destruct(buffer[m_size - 1]);
         --m_size;
     }
 

@@ -123,6 +123,8 @@ private:
     mutable Mutex                   m_mutex;
 };
 
+class EntityInstanceBatchHolderMap;
+
 struct EngineDelegates
 {
     Delegate<void>  OnShutdown;
@@ -209,6 +211,9 @@ public:
     HYP_FORCE_INLINE net::NetRequestThread *GetNetRequestThread() const
         { return m_net_request_thread.Get(); }
 
+    HYP_FORCE_INLINE EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap() const
+        { return m_entity_instance_batch_holder_map.Get(); }
+
     HYP_FORCE_INLINE EngineDelegates &GetDelegates()
         { return m_delegates; }
 
@@ -270,6 +275,8 @@ private:
     UniquePtr<ScriptingService>                             m_scripting_service;
 
     UniquePtr<net::NetRequestThread>                        m_net_request_thread;
+
+    UniquePtr<EntityInstanceBatchHolderMap>                 m_entity_instance_batch_holder_map;
 
     CrashHandler                                            m_crash_handler;
 

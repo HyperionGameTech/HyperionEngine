@@ -11,6 +11,9 @@
 #include <rendering/backend/RendererHelpers.hpp>
 
 #include <math/MathUtil.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -247,7 +250,7 @@ void IndirectDrawState::Destroy()
 
 void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData &out)
 {
-    // assume render thread
+    // assume render thread or render task thread
 
     out = { };
 
@@ -357,9 +360,11 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 
 #pragma region IndirectRenderer
 
-IndirectRenderer::IndirectRenderer()
-    : m_cached_cull_data_updated_bits(0x0)
+IndirectRenderer::IndirectRenderer(DrawCallCollection *draw_call_collection)
+    : m_draw_call_collection(draw_call_collection),
+      m_cached_cull_data_updated_bits(0x0)
 {
+    AssertThrow(m_draw_call_collection != nullptr);
 }
 
 IndirectRenderer::~IndirectRenderer() = default;
@@ -375,13 +380,32 @@ void IndirectRenderer::Create()
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
+    AssertThrow(m_draw_call_collection != nullptr);
+    AssertThrow(m_draw_call_collection->GetImpl() != nullptr);
+
+    GPUBufferHolderBase *entity_instance_batches = m_draw_call_collection->GetImpl()->GetEntityInstanceBatchHolder();
+    const SizeType element_size = m_draw_call_collection->GetImpl()->GetElementSize();
+
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
+        auto *entity_instance_batches_buffer_element = descriptor_set->GetLayout().GetElement(NAME("EntityInstanceBatchesBuffer"));
+        AssertThrow(entity_instance_batches_buffer_element != nullptr);
+
+        if (entity_instance_batches_buffer_element->size != ~0u) {
+            const SizeType entity_instance_batches_buffer_size = entity_instance_batches_buffer_element->size;
+            const SizeType size_mod = entity_instance_batches_buffer_size % element_size;
+            
+            AssertThrowMsg(size_mod == 0,
+                "EntityInstanceBatchesBuffer descriptor has size %llu but DrawCallCollection element size is %llu",
+                entity_instance_batches_buffer_size,
+                element_size);
+        }
+
         descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
         descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_draw_state.GetIndirectBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), g_engine->GetRenderData()->entity_instance_batches.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), entity_instance_batches->GetBuffer(frame_index));
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -402,8 +426,22 @@ void IndirectRenderer::Destroy()
     m_indirect_draw_state.Destroy();
 }
 
+void IndirectRenderer::PushDrawCallsToIndirectState()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
+
+    for (DrawCall &draw_call : m_draw_call_collection->GetDrawCalls()) {
+        DrawCommandData draw_command_data;
+        m_indirect_draw_state.PushDrawCall(draw_call, draw_command_data);
+
+        draw_call.draw_command_index = draw_command_data.draw_command_index;
+    }
+}
+
 void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();

@@ -34,7 +34,9 @@
 
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Include/ResourceLimits.h>
+#include <glslang/Include/Types.h>
 #include <glslang/Public/ShaderLang.h>
+#include <glslang/MachineIndependent/reflection.h>
 
 #endif
 
@@ -47,6 +49,72 @@ using renderer::g_static_descriptor_table_decl;
 static const bool should_compile_missing_variants = true;
 
 // #define HYP_SHADER_COMPILER_LOGGING
+
+#pragma region Helpers
+
+static String BuildDescriptorTableDefines(const DescriptorUsageSet &descriptor_usages)
+{
+    String descriptor_table_defines;
+
+    DescriptorTableDeclaration descriptor_table = descriptor_usages.BuildDescriptorTable();
+
+    // Generate descriptor table defines
+    for (const DescriptorSetDeclaration &descriptor_set_declaration : descriptor_table.GetElements()) {
+        const uint set_index = descriptor_table.GetDescriptorSetIndex(descriptor_set_declaration.name);
+        AssertThrow(set_index != -1);
+
+        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(set_index) + "\n";
+
+        const DescriptorSetDeclaration *descriptor_set_declaration_ptr = &descriptor_set_declaration;
+
+        if (descriptor_set_declaration.is_reference) {
+            const DescriptorSetDeclaration *static_decl = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            AssertThrow(static_decl != nullptr);
+
+            descriptor_set_declaration_ptr = static_decl;
+        }
+
+        for (const Array<DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration_ptr->slots) {
+            for (const DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
+                const uint flat_index = descriptor_set_declaration_ptr->CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
+                AssertThrow(flat_index != uint(-1));
+
+                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration_ptr->name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
+            }
+        }
+    }
+
+    return descriptor_table_defines;
+}
+
+static String BuildPreamble(const ShaderProperties &properties)
+{
+    String preamble;
+    
+    for (const VertexAttribute::Type attribute_type : properties.GetRequiredVertexAttributes().BuildAttributes()) {
+        preamble += String("#define HYP_ATTRIBUTE_") + VertexAttribute::mapping[attribute_type].name + "\n";
+    }
+
+    // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
+    // before compiling the shader, they should have all been made Required.
+
+    for (const ShaderProperty &property : properties.GetPropertySet()) {
+        if (property.name.Empty()) {
+            continue;
+        }
+
+        preamble += "#define " + property.name + "\n";
+    }
+
+    return preamble;
+}
+
+static String BuildPreamble(const ShaderProperties &properties, const DescriptorUsageSet &descriptor_usages)
+{
+    return BuildDescriptorTableDefines(descriptor_usages) + "\n\n" + BuildPreamble(properties);
+}
+
+#pragma endregion Helpers
 
 #pragma region SPRIV Compilation
 
@@ -373,7 +441,7 @@ static bool PreprocessShaderSource(
 static ByteBuffer CompileToSPIRV(
     ShaderModuleType type,
     ShaderLanguage language,
-    String preamble,
+    DescriptorUsageSet &descriptor_usages,
     String source,
     String filename,
     const ShaderProperties &properties,
@@ -479,6 +547,8 @@ static ByteBuffer CompileToSPIRV(
     
     glslang_shader_t *shader = glslang_shader_create(&input);
 
+    String preamble = BuildDescriptorTableDefines(descriptor_usages);
+
     glslang_shader_set_preamble(shader, preamble.Data());
 
     if (!glslang_shader_preprocess(shader, &input))	{
@@ -515,7 +585,59 @@ static ByteBuffer CompileToSPIRV(
         return ByteBuffer();
     }
 
-    glslang_program_SPIRV_generate(program, stage);
+    glslang::TProgram *cpp_program = glslang_get_cpp_program(program);
+    if (!cpp_program->buildReflection()) {
+        GLSL_ERROR(LogLevel::ERR, "Failed to build shader reflection!");
+    }
+
+    glslang_spv_options_t spv_options {};
+    spv_options.disable_optimizer = false;
+    spv_options.validate = true;
+
+    glslang_program_SPIRV_generate_with_options(program, stage, &spv_options);
+
+    // @TODO Add info from descriptor usages
+
+    for (int i = 0; i < cpp_program->getNumUniformBlocks(); i++) {
+        const auto &uniform_block = cpp_program->getUniformBlock(i);
+
+        const glslang::TType *type = uniform_block.getType();
+        AssertThrow(type != nullptr);
+
+        DescriptorUsage *descriptor_usage = descriptor_usages.Find(CreateWeakNameFromDynamicString(uniform_block.name.data()));
+
+        if (descriptor_usage != nullptr) {
+            Proc<void, const glslang::TType *, DescriptorUsageType &> HandleType;
+
+            HandleType = [&HandleType](const glslang::TType *type, DescriptorUsageType &out_descriptor_usage_type)
+            {
+                if (type->isStruct()) {
+                    for (auto it = type->getStruct()->begin(); it != type->getStruct()->end(); ++it) {
+                        String field_type_name;
+
+                        if (it->type->isStruct()) {
+                            field_type_name = it->type->getTypeName().data();
+                        } else {
+                            field_type_name = it->type->getCompleteString(true, false, false, true).data();
+                        }
+
+                        HandleType(
+                            it->type,
+                            out_descriptor_usage_type.AddField(
+                                CreateNameFromDynamicString(it->type->getFieldName().data()),
+                                DescriptorUsageType(CreateNameFromDynamicString(field_type_name))
+                            ).second
+                        );
+                    }
+                }
+            };
+
+            HandleType(type, descriptor_usage->type);
+            descriptor_usage->type.size = uniform_block.size;
+        }
+
+        HYP_LOG(ShaderCompiler, LogLevel::DEBUG, "Uniform {} type : {}", uniform_block.name.data(), uniform_block.getType()->getTypeName().data());
+    }
 
     ByteBuffer shader_module(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
     glslang_program_SPIRV_get(program, reinterpret_cast<uint32 *>(shader_module.Data()));
@@ -539,7 +661,7 @@ static ByteBuffer CompileToSPIRV(
 static ByteBuffer CompileToSPIRV(
     ShaderModuleType type,
     ShaderLanguage language,
-    String preamble,
+    DescriptorUsageSet &descriptor_usages,
     String source,
     String filename,
     const ShaderProperties &properties,
@@ -824,7 +946,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
 {
     DescriptorTableDeclaration table;
 
-    for (const DescriptorUsage &descriptor_usage : descriptor_usages) {
+    for (const DescriptorUsage &descriptor_usage : elements) {
         DescriptorSetDeclaration *descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
 
         // check if this descriptor set is defined in the static descriptor table
@@ -1303,68 +1425,6 @@ bool ShaderCompiler::CanCompileShaders() const
 #else
     return false;
 #endif
-}
-
-static String BuildDescriptorTableDefines(const DescriptorUsageSet &descriptor_usages)
-{
-    String descriptor_table_defines;
-
-    DescriptorTableDeclaration descriptor_table = descriptor_usages.BuildDescriptorTable();
-
-    // Generate descriptor table defines
-    for (const DescriptorSetDeclaration &descriptor_set_declaration : descriptor_table.GetElements()) {
-        const uint set_index = descriptor_table.GetDescriptorSetIndex(descriptor_set_declaration.name);
-        AssertThrow(set_index != -1);
-
-        descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(set_index) + "\n";
-
-        const DescriptorSetDeclaration *descriptor_set_declaration_ptr = &descriptor_set_declaration;
-
-        if (descriptor_set_declaration.is_reference) {
-            const DescriptorSetDeclaration *static_decl = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(descriptor_set_declaration.name);
-            AssertThrow(static_decl != nullptr);
-
-            descriptor_set_declaration_ptr = static_decl;
-        }
-
-        for (const Array<DescriptorDeclaration> &descriptor_declarations : descriptor_set_declaration_ptr->slots) {
-            for (const DescriptorDeclaration &descriptor_declaration : descriptor_declarations) {
-                const uint flat_index = descriptor_set_declaration_ptr->CalculateFlatIndex(descriptor_declaration.slot, descriptor_declaration.name);
-                AssertThrow(flat_index != uint(-1));
-
-                descriptor_table_defines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptor_set_declaration_ptr->name.LookupString()) + "_" + descriptor_declaration.name.LookupString() + " " + String::ToString(flat_index) + "\n";
-            }
-        }
-    }
-
-    return descriptor_table_defines;
-}
-
-static String BuildPreamble(const ShaderProperties &properties)
-{
-    String preamble;
-    
-    for (const VertexAttribute::Type attribute_type : properties.GetRequiredVertexAttributes().BuildAttributes()) {
-        preamble += String("#define HYP_ATTRIBUTE_") + VertexAttribute::mapping[attribute_type].name + "\n";
-    }
-
-    // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
-    // before compiling the shader, they should have all been made Required.
-
-    for (const ShaderProperty &property : properties.GetPropertySet()) {
-        if (property.name.Empty()) {
-            continue;
-        }
-
-        preamble += "#define " + property.name + "\n";
-    }
-
-    return preamble;
-}
-
-static String BuildPreamble(const ShaderProperties &properties, const DescriptorUsageSet &descriptor_usages)
-{
-    return BuildDescriptorTableDefines(descriptor_usages) + "\n\n" + BuildPreamble(properties);
 }
 
 ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
@@ -2081,7 +2141,7 @@ bool ShaderCompiler::CompileBundle(
                 );
             }
             
-            ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, BuildDescriptorTableDefines(compiled_shader.descriptor_usages), processed_sources[index], item.file.path, properties, error_messages);
+            ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, compiled_shader.descriptor_usages, processed_sources[index], item.file.path, properties, error_messages);
 
             if (byte_buffer.Empty()) {
                 HYP_LOG(

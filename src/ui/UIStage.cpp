@@ -134,6 +134,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
     new_scene->SetRoot(std::move(current_root_node));
 
     g_engine->GetWorld()->AddScene(new_scene);
+    
     InitObject(new_scene);
 
     if (m_scene.IsValid()) {

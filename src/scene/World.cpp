@@ -185,8 +185,9 @@ void World::Update(GameCounter::TickUnit delta)
         const Handle<Scene> &scene = m_scenes[index];
         AssertThrow(scene.IsValid());
 
-        // sanity check
+        // sanity checks
         AssertThrow(scene->GetWorld() == this);
+        AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
 
         scene->BeginUpdate(delta);
     }
@@ -201,6 +202,10 @@ void World::Update(GameCounter::TickUnit delta)
         AssertThrow(scene->GetWorld() == this);
 
         scene->EndUpdate();
+
+        if (scene->IsNonWorldScene()) {
+            continue;
+        }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
         collect_entities_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, index]
