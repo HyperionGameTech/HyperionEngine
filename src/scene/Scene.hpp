@@ -181,10 +181,6 @@ public:
 
     void SetWorld(World *world);
 
-    /*! \brief A scene is a non-world scene if it exists not as an owner of entities,
-        but rather a simple container that has items based on another Scene. For example,
-        you could have a "shadow map" scene, which gathers entities from the main scene,
-        but does not call Update() on them. */
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsNonWorldScene() const
         { return m_flags & SceneFlags::NON_WORLD; }

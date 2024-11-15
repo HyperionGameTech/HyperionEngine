@@ -114,16 +114,16 @@ void ShaderGlobals::Create()
 {
     auto *device = g_engine->GetGPUDevice();
 
-    scenes.Create(device);
-    cameras.Create(device);
-    materials.Create(device);
-    objects.Create(device);
-    skeletons.Create(device);
-    lights.Create(device);
-    shadow_map_data.Create(device);
-    env_probes.Create(device);
-    env_grids.Create(device);
-    entity_instance_batches.Create(device);
+    // scenes.Create(device);
+    // cameras.Create(device);
+    // materials.Create(device);
+    // objects.Create(device);
+    // skeletons.Create(device);
+    // lights.Create(device);
+    // shadow_map_data.Create(device);
+    // env_probes.Create(device);
+    // env_grids.Create(device);
+    // entity_instance_batches.Create(device);
 
     textures.Create();
 
@@ -134,18 +134,33 @@ void ShaderGlobals::Destroy()
 {
     auto *device = g_engine->GetGPUDevice();
     
-    env_probes.Destroy(device);
-    env_grids.Destroy(device);
+    // env_probes.Destroy(device);
+    // env_grids.Destroy(device);
 
-    scenes.Destroy(device);
-    objects.Destroy(device);
-    materials.Destroy(device);
-    skeletons.Destroy(device);
-    lights.Destroy(device);
-    shadow_map_data.Destroy(device);
-    entity_instance_batches.Destroy(device);
+    // scenes.Destroy(device);
+    // objects.Destroy(device);
+    // materials.Destroy(device);
+    // skeletons.Destroy(device);
+    // lights.Destroy(device);
+    // shadow_map_data.Destroy(device);
+    // entity_instance_batches.Destroy(device);
 
     spherical_harmonics_grid.Destroy();
+}
+
+void ShaderGlobals::UpdateBuffers(uint32 frame_index)
+{
+    auto *device = g_engine->GetGPUDevice();
+
+    scenes.UpdateBuffer(device, frame_index);
+    cameras.UpdateBuffer(device, frame_index);
+    objects.UpdateBuffer(device, frame_index);
+    materials.UpdateBuffer(device, frame_index);
+    skeletons.UpdateBuffer(device, frame_index);
+    lights.UpdateBuffer(device, frame_index);
+    shadow_map_data.UpdateBuffer(device, frame_index);
+    env_probes.UpdateBuffer(device, frame_index);
+    env_grids.UpdateBuffer(device, frame_index);
 }
 
 // ShaderManagerSystem

@@ -39,6 +39,13 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 using renderer::Result;
 
+struct alignas(16) EntityInstanceBatch_UI : EntityInstanceBatch
+{
+    Vec4f   texcoords[max_entities_per_instance_batch];
+};
+
+static_assert(sizeof(EntityInstanceBatch_UI) == 5056);
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
@@ -186,6 +193,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                         attributes,
                         RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
                     );
+
+                    render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>());
 
                     if (framebuffer != nullptr) {
                         render_group->AddFramebuffer(framebuffer);

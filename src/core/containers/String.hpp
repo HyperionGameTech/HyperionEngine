@@ -997,11 +997,11 @@ void String<StringType>::Append(const String &other)
 
     Base::PopBack(); // current NT char
 
-    auto *buffer = Base::GetStorage();
+    auto *buffer = Base::GetBuffer();
 
     for (SizeType i = 0; i < other.Size(); i++) {
         // set item at index
-        new (&buffer[Base::m_size++].data_buffer) CharType(other[i]);
+        new (&buffer[Base::m_size++]) CharType(other[i]);
     }
 
     Base::PushBack(CharType { 0 });
@@ -1022,11 +1022,11 @@ void String<StringType>::Append(String &&other)
 
     Base::PopBack(); // current NT char
 
-    auto *buffer = Base::GetStorage();
+    auto *buffer = Base::GetBuffer();
 
     for (SizeType i = 0; i < other.Size(); i++) {
         // set item at index
-        new (&buffer[Base::m_size++].data_buffer) CharType(std::move(other[i]));
+        new (&buffer[Base::m_size++]) CharType(std::move(other[i]));
     }
 
     Base::PushBack(CharType { 0 });
@@ -1051,6 +1051,7 @@ void String<StringType>::Append(const CharType *_begin, const CharType *_end)
 template <int StringType>
 void String<StringType>::Append(CharType value)
 {
+    // @FIXME: Don't actually need +2 if null char exists
     if (Size() + 2 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + 2) {
             Base::ResetOffsets();
@@ -1059,13 +1060,9 @@ void String<StringType>::Append(CharType value)
         }
     }
 
-    Base::PopBack(); // current NT char
-    Memory::MemCpy(
-        &Base::GetStorage()[Base::m_size++].data_buffer[0],
-        &value,
-        sizeof(CharType)
-    );
-    Base::PushBack(CharType { 0 });
+    // swap null char with value and add null char at the end
+    Base::GetBuffer()[Base::m_size - 1] = value;
+    Base::GetBuffer()[Base::m_size++] = 0;
 
     ++m_length;
 }
