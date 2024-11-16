@@ -545,18 +545,6 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMType &type, UniqueID id,
     }
 
     if (data_location == FBOMDataLocation::LOC_INPLACE) {
-#if 0
-        FBOMEncodedType encoded_type(type);
-
-        out->Write<uint64>(encoded_type.hash_code.Value());
-
-        out->Write<uint16>(encoded_type.index_table.Size());
-        out->Write(encoded_type.index_table.Data(), encoded_type.index_table.ByteSize());
-
-        out->Write<uint16>(encoded_type.buffer.Size());
-        out->Write(encoded_type.buffer);
-#endif
-
         if (type.extends != nullptr) {
             out->Write<uint8>(1);
 
@@ -944,7 +932,7 @@ UniqueID FBOMWriter::AddStaticData(const FBOMData &data)
         AssertThrowMsg(data.ReadName(&name).value == FBOMResult::FBOM_OK, "Invalid name, cannot write to stream");
 
         m_write_stream->GetNameTable().Add(name.LookupString());
-    } else if (data.GetType().HasAnyFlagsSet(FBOMTypeFlags::CONTAINER)) {
+    } else {
         HYP_FAIL("Unhandled container type");
     }
 

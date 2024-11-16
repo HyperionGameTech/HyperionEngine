@@ -311,7 +311,7 @@ void HyperionEditor::Init()
     //     }
     // }
 
-#if 0
+#if 1
     // add sun
     
     auto sun = CreateObject<Light>(
@@ -340,6 +340,32 @@ void HyperionEditor::Init()
         .radius     = 35.0f,
         .resolution = { 2048, 2048 }
     });
+
+
+    // Add Skybox
+    if (true) {
+        Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
+
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
+            Transform(
+                Vec3f::Zero(),
+                Vec3f(1000.0f),
+                Quaternion::Identity()
+            )
+        });
+
+        m_scene->GetEntityManager()->AddComponent<SkyComponent>(skybox_entity, SkyComponent { });
+        m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skybox_entity, VisibilityStateComponent {
+            VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+        });
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skybox_entity, BoundingBoxComponent {
+            BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f))
+        });
+
+        NodeProxy skydome_node = m_scene->GetRoot()->AddChild();
+        skydome_node.SetEntity(skybox_entity);
+        skydome_node.SetName("Sky");
+    }
 
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
@@ -570,31 +596,6 @@ void HyperionEditor::Init()
         NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
         reflection_probe_node.SetEntity(reflection_probe_entity);
         reflection_probe_node.SetName("ReflectionProbeTest");
-    }
-
-    // Add Skybox
-    if (true) {
-        Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
-
-        m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
-            Transform(
-                Vec3f::Zero(),
-                Vec3f(1000.0f),
-                Quaternion::Identity()
-            )
-        });
-
-        m_scene->GetEntityManager()->AddComponent<SkyComponent>(skybox_entity, SkyComponent { });
-        m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skybox_entity, VisibilityStateComponent {
-            VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
-        });
-        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skybox_entity, BoundingBoxComponent {
-            BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f))
-        });
-
-        NodeProxy skydome_node = m_scene->GetRoot()->AddChild();
-        skydome_node.SetEntity(skybox_entity);
-        skydome_node.SetName("Sky");
     }
 #endif
 }

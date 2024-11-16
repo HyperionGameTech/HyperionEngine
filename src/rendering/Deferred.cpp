@@ -154,11 +154,6 @@ static ShaderProperties GetDeferredShaderProperties()
         g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool()
     );
 
-    properties.Set(
-        "LIGHT_RAYS_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.light_rays.enabled").ToBool()
-    );
-
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()) {
         properties.Set("PATHTRACER");
     } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool()) {

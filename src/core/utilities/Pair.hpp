@@ -25,7 +25,8 @@ enum PairArgTrait : PairArgTraits
     COPY_CONSTRUCTIBLE      = 0x2,
     COPY_ASSIGNABLE         = 0x4,
     MOVE_CONSTRUCTIBLE      = 0x8,
-    MOVE_ASSIGNABLE         = 0x10
+    MOVE_ASSIGNABLE         = 0x10,
+    ALL                     = DEFAULT_CONSTRUCTIBLE | COPY_CONSTRUCTIBLE | COPY_ASSIGNABLE | MOVE_CONSTRUCTIBLE | MOVE_ASSIGNABLE
 };
 
 template <class First, class Second>
@@ -50,62 +51,66 @@ struct PairHelper
 // };
 
 /*! \brief Simple Pair class that is also able to hold a reference to a key or value */
-template <PairArgTraits FirstTraits, PairArgTraits SecondTraits, class First, class Second>
-struct PairImpl
+template <class First, class Second, typename T1 = void, typename T2 = void>
+struct Pair
 {
-    static_assert(resolution_failure<PairImpl>, "Invalid PairImpl traits");
+    static_assert(resolution_failure<Pair>, "Invalid Pair traits");
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(const First &first, const Second &second)
+    constexpr Pair(const First &first, const Second &second)
         : first(first), second(second) {}
 
-    constexpr PairImpl(First &&first, const Second &second)
+    constexpr Pair(First &&first, const Second &second)
         : first(std::move(first)), second(second) {}
 
-    constexpr PairImpl(const First &first, Second &&second)
+    constexpr Pair(const First &first, Second &&second)
         : first(first), second(std::move(second)) {}
 
-    constexpr PairImpl(First &&first, Second &&second)
+    constexpr Pair(First &&first, Second &&second)
         : first(std::move(first)), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -120,49 +125,53 @@ struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MO
 };
 
 template <class First, class Second>
-struct PairImpl<MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(First &&first, const Second &second)
+    constexpr Pair(First &&first, const Second &second)
         : first(std::move(first)), second(second) {}
 
-    constexpr PairImpl(First &&first, Second &&second)
+    constexpr Pair(First &&first, Second &&second)
         : first(std::move(first)), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -177,49 +186,53 @@ struct PairImpl<MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, Fir
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && !(std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(const First &first, const Second &second)
+    constexpr Pair(const First &first, const Second &second)
         : first(first), second(second) {}
 
-    constexpr PairImpl(First &&first, const Second &second)
+    constexpr Pair(First &&first, const Second &second)
         : first(std::move(first)), second(second) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -234,49 +247,53 @@ struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, Fir
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && !(std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(const First &first, const Second &second)
+    constexpr Pair(const First &first, const Second &second)
         : first(first), second(second) {}
 
-    constexpr PairImpl(const First &first, Second &&second)
+    constexpr Pair(const First &first, Second &&second)
         : first(first), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -291,49 +308,53 @@ struct PairImpl<COPY_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, Fir
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(const First &first, Second &&second)
+    constexpr Pair(const First &first, Second &&second)
         : first(first), second(std::move(second)) {}
 
-    constexpr PairImpl(First &&first, Second &&second)
+    constexpr Pair(First &&first, Second &&second)
         : first(std::move(first)), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -348,46 +369,50 @@ struct PairImpl<COPY_CONSTRUCTIBLE | MOVE_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, Fir
 };
 
 template <class First, class Second>
-struct PairImpl<MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && !(std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(First &&first, const Second &second)
+    constexpr Pair(First &&first, const Second &second)
         : first(std::move(first)), second(second) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -402,46 +427,50 @@ struct PairImpl<MOVE_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, First, Second>
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && !(std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(const First &first, Second &&second)
+    constexpr Pair(const First &first, Second &&second)
         : first(first), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -456,46 +485,50 @@ struct PairImpl<COPY_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, First, Second>
 };
 
 template <class First, class Second>
-struct PairImpl<COPY_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<First>> && !(std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<std::is_copy_constructible_v<std::remove_const_t<Second>> && !(std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                        = default;
 
-    constexpr PairImpl(const First &first, const Second &second)
+    constexpr Pair(const First &first, const Second &second)
         : first(first), second(second) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                 = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -510,46 +543,50 @@ struct PairImpl<COPY_CONSTRUCTIBLE, COPY_CONSTRUCTIBLE, First, Second>
 };
 
 template <class First, class Second>
-struct PairImpl<MOVE_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, First, Second>
+struct Pair<
+    First, Second,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<First>> && (std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>)>,
+    std::enable_if_t<!std::is_copy_constructible_v<std::remove_const_t<Second>> && (std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>)>
+>
 {
     First   first;
     Second  second;
 
-    constexpr PairImpl()                            = default;
+    constexpr Pair()                            = default;
 
-    constexpr PairImpl(First &&first, Second &&second)
+    constexpr Pair(First &&first, Second &&second)
         : first(std::move(first)), second(std::move(second)) {}
 
-    constexpr PairImpl(const PairImpl &other)       = default;
-    PairImpl &operator=(const PairImpl &other)      = default;
+    constexpr Pair(const Pair &other)       = default;
+    Pair &operator=(const Pair &other)      = default;
 
-    constexpr PairImpl(PairImpl &&other) noexcept   = default;
-    PairImpl &operator=(PairImpl &&other) noexcept  = default;
+    constexpr Pair(Pair &&other) noexcept   = default;
+    Pair &operator=(Pair &&other) noexcept  = default;
 
-    ~PairImpl()                                     = default;
+    ~Pair()                                     = default;
 
     HYP_FORCE_INLINE
-    bool operator<(const PairImpl &other) const
+    bool operator<(const Pair &other) const
         { return first < other.first || (!(other.first < first) && second < other.second); }
 
     HYP_FORCE_INLINE
-    bool operator<=(const PairImpl &other) const
+    bool operator<=(const Pair &other) const
         { return operator<(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator>(const PairImpl &other) const
+    bool operator>(const Pair &other) const
         { return !(operator<(other) || operator==(other)); }
 
     HYP_FORCE_INLINE
-    bool operator>=(const PairImpl &other) const
+    bool operator>=(const Pair &other) const
         { return operator>(other) || operator==(other); }
 
     HYP_FORCE_INLINE
-    bool operator==(const PairImpl &other) const
+    bool operator==(const Pair &other) const
         { return first == other.first && second == other.second; }
 
     HYP_FORCE_INLINE
-    bool operator!=(const PairImpl &other) const
+    bool operator!=(const Pair &other) const
         { return !operator==(other); }
 
     HYP_FORCE_INLINE
@@ -562,18 +599,10 @@ struct PairImpl<MOVE_CONSTRUCTIBLE, MOVE_CONSTRUCTIBLE, First, Second>
         return hc;
     }
 };
-
-
-template <class First, class Second>
-using Pair = utilities::detail::PairImpl<
-    (std::is_copy_constructible_v<std::remove_const_t<First>> ? COPY_CONSTRUCTIBLE : 0) | ((std::is_move_constructible_v<std::remove_const_t<First>> && !std::is_reference_v<First>) ? MOVE_CONSTRUCTIBLE : 0),
-    (std::is_copy_constructible_v<std::remove_const_t<Second>> ? COPY_CONSTRUCTIBLE : 0) | ((std::is_move_constructible_v<std::remove_const_t<Second>> && !std::is_reference_v<Second>) ? MOVE_CONSTRUCTIBLE : 0),
-    std::remove_const_t<First>, std::remove_const_t<Second>
->;
 
 // // deduction guide
 // template <typename First, typename Second>
-// PairImpl(First, Second) -> PairImpl<
+// Pair(First, Second) -> Pair<
 //     (std::is_copy_constructible_v<NormalizedType<First>> ? utilities::detail::COPY_CONSTRUCTIBLE : 0) | (std::is_move_constructible_v<NormalizedType<First>> ? utilities::detail::MOVE_CONSTRUCTIBLE : 0),
 //     (std::is_copy_constructible_v<NormalizedType<Second>> ? utilities::detail::COPY_CONSTRUCTIBLE : 0) | (std::is_move_constructible_v<NormalizedType<Second>> ? utilities::detail::MOVE_CONSTRUCTIBLE : 0),
 //     NormalizedType<First>, NormalizedType<Second>

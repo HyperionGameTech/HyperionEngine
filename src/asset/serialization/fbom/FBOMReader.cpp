@@ -282,7 +282,7 @@ FBOMResult FBOMReader::Deserialize(BufferedReader &reader, FBOMObject &out)
 
 FBOMResult FBOMReader::Deserialize(const FBOMObject &in, HypData &out)
 {
-    const FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(in.m_object_type.name);
+    const FBOMMarshalerBase *marshal = GetMarshalForType(in.m_object_type);
 
     if (!marshal) {
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Marshal class not registered object type {}", in.m_object_type.name) };
@@ -400,9 +400,15 @@ FBOMResult FBOMReader::Eat(BufferedReader *reader, FBOMCommand command, bool rea
 }
 
 
-bool FBOMReader::HasMarshalForType(const FBOMType &type) const
+FBOMMarshalerBase *FBOMReader::GetMarshalForType(const FBOMType &type) const
 {
-    return FBOM::GetInstance().GetMarshal(type.name) != nullptr;
+    if (type.HasNativeTypeID()) {
+        if (FBOMMarshalerBase *marshal = FBOM::GetInstance().GetMarshal(type.GetNativeTypeID(), /* allow_fallback */ true)) {
+            return marshal;
+        }
+    }
+
+    return FBOM::GetInstance().GetMarshal(type.name);
 }
 
 FBOMResult FBOMReader::RequestExternalObject(UUID library_id, uint32 index, FBOMObject &out_object)
@@ -459,35 +465,6 @@ FBOMResult FBOMReader::ReadObjectType(BufferedReader *reader, FBOMType &out_type
     switch (location) {
     case FBOMDataLocation::LOC_INPLACE:
     {
-#if 0
-        uint64 hash_code_value;
-        reader->Read(&hash_code_value);
-        CheckEndianness(hash_code_value);
-
-        uint16 index_table_size;
-        reader->Read(&index_table_size);
-        CheckEndianness(index_table_size);
-
-        ByteBuffer index_table_buffer = reader->ReadBytes(index_table_size);
-
-        if (index_table_buffer.Size() % sizeof(uint16) != 0) {
-            return FBOMResult { FBOMResult::FBOM_ERR, "Type is invalid - expected index table buffer to be a multiple of sizeof(uint16)" };
-        }
-
-        uint16 buffer_size;
-        reader->Read(&buffer_size);
-        CheckEndianness(buffer_size);
-
-        ByteBuffer buffer = reader->ReadBytes(buffer_size);
-        
-        FBOMEncodedType encoded_type;
-        encoded_type.hash_code = HashCode(HashCode::ValueType(hash_code_value));
-        encoded_type.index_table = Array<uint16>(reinterpret_cast<uint16 *>(index_table_buffer.Data()), index_table_buffer.Size());
-        encoded_type.buffer = std::move(buffer);
-
-        out_type = encoded_type.Decode();
-#endif
-
         FBOMType parent_type = FBOMUnset();
 
         uint8 has_parent;
@@ -742,6 +719,10 @@ FBOMResult FBOMReader::ReadArray(BufferedReader *reader, FBOMArray &out_array)
 
         out_array = FBOMArray(element_type);
 
+        if (element_type.IsPlaceholder() && sz > 0) {
+            return { FBOMResult::FBOM_ERR, "Array element type is set to <placeholder>, however it has a non-zero number of elements, making it impossible to determine the actual element type to assign to the elements." };
+        }
+
         for (uint32 index = 0; index < sz; index++) {
             uint32 data_size;
             reader_ptr->Read<uint32>(&data_size);
@@ -935,8 +916,8 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
             }
             case FBOM_OBJECT_END:
             {
-                if (!object_type.Is(FBOMBaseObjectType())) {
-                    if (HasMarshalForType(object_type)) {
+                if (object_type.UsesMarshal()) {
+                    if (GetMarshalForType(object_type) != nullptr) {
                         // call deserializer function, writing into deserialized object
                         out_object.m_deserialized_object.Emplace();
 
@@ -946,7 +927,8 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
                             return err;
                         }
                     } else {
-                        return { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for object type {}", object_type.name) };
+                        HYP_BREAKPOINT;
+                        return { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for type: {}", object_type.ToString(false)) };
                     }
                 }
 

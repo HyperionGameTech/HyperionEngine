@@ -14,13 +14,19 @@ FBOMArray::FBOMArray(const FBOMType &element_type, const Array<FBOMData> &values
     : m_element_type(element_type),
       m_values(values)
 {
-    for (const FBOMData &value : m_values) {
-        AssertThrowMsg(
-            value.GetType().IsOrExtends(m_element_type),
-            "Cannot add element of type '%s' to Array with element type '%s'",
-            value.GetType().name.Data(),
-            m_element_type.name.Data()
-        );
+    if (m_values.Any()) {
+        if (m_element_type.IsPlaceholder() && !m_values[0].GetType().IsPlaceholder()) {
+            m_element_type = m_values[0].GetType();
+        }
+
+        for (const FBOMData &value : m_values) {
+            AssertThrowMsg(
+                value.GetType().IsOrExtends(m_element_type),
+                "Cannot add element of type '%s' to Array with element type '%s'",
+                value.GetType().name.Data(),
+                m_element_type.name.Data()
+            );
+        }
     }
 }
 
@@ -28,13 +34,19 @@ FBOMArray::FBOMArray(const FBOMType &element_type, Array<FBOMData> &&values)
     : m_element_type(element_type),
       m_values(std::move(values))
 {
-    for (const FBOMData &value : m_values) {
-        AssertThrowMsg(
-            value.GetType().IsOrExtends(m_element_type),
-            "Cannot add element of type '%s' to Array with element type '%s'",
-            value.GetType().name.Data(),
-            m_element_type.name.Data()
-        );
+    if (m_values.Any()) {
+        if (m_element_type.IsPlaceholder() && !m_values[0].GetType().IsPlaceholder()) {
+            m_element_type = m_values[0].GetType();
+        }
+
+        for (const FBOMData &value : m_values) {
+            AssertThrowMsg(
+                value.GetType().IsOrExtends(m_element_type),
+                "Cannot add element of type '%s' to Array with element type '%s'",
+                value.GetType().name.Data(),
+                m_element_type.name.Data()
+            );
+        }
     }
 }
 
@@ -80,6 +92,11 @@ FBOMArray::~FBOMArray()
 
 FBOMArray &FBOMArray::AddElement(const FBOMData &value)
 {
+    // If the element type is a placeholder, set it to the type of the value when first added
+    if (m_element_type.IsPlaceholder() && !value.GetType().IsPlaceholder()) {
+        m_element_type = value.GetType();
+    }
+
     AssertThrowMsg(
         value.GetType().Is(m_element_type),
         "Cannot add element of type '%s' to Array with element type '%s'",
@@ -94,6 +111,11 @@ FBOMArray &FBOMArray::AddElement(const FBOMData &value)
 
 FBOMArray &FBOMArray::AddElement(FBOMData &&value)
 {
+    // If the element type is a placeholder, set it to the type of the value when first added
+    if (m_element_type.IsPlaceholder() && !value.GetType().IsPlaceholder()) {
+        m_element_type = value.GetType();
+    }
+
     AssertThrowMsg(
         value.GetType().Is(m_element_type),
         "Cannot add element of type '%s' to Array with element type '%s'",
