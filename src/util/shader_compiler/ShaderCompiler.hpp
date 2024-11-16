@@ -532,11 +532,19 @@ enum DescriptorUsageFlagBits : DescriptorUsageFlags
     DESCRIPTOR_USAGE_FLAG_DYNAMIC = 0x1
 };
 
+HYP_STRUCT()
 struct DescriptorUsageType
 {
+    HYP_FIELD(Property="Name", Serialize=true)
     Name                            name; 
+
+    HYP_FIELD(Property="Size", Serialize=true)
     uint32                          size = ~0u;
+
+    HYP_FIELD(Property="FieldNames", Serialize=true)
     Array<Name>                     field_names;
+
+    HYP_FIELD(Property="FieldTypes", Serialize=true)
     Array<DescriptorUsageType, 0>   field_types;
 
     DescriptorUsageType()                                                   = default;
@@ -648,13 +656,25 @@ struct DescriptorUsageType
     }
 };
 
+HYP_STRUCT()
 struct DescriptorUsage
 {
+    HYP_FIELD(Property="Slot", Serialize=true)
     renderer::DescriptorSlot    slot;
+
+    HYP_FIELD(Property="SetName", Serialize=true)
     Name                        set_name;
+
+    HYP_FIELD(Property="DescriptorName", Serialize=true)
     Name                        descriptor_name;
+
+    HYP_FIELD(Property="Type", Serialize=true)
     DescriptorUsageType         type;
+
+    HYP_FIELD(Property="Flags", Serialize=true)
     DescriptorUsageFlags        flags;
+
+    HYP_FIELD(Property="Params", Serialize=true)
     HashMap<String, String>     params;
 
     DescriptorUsage()
@@ -791,7 +811,7 @@ struct DescriptorUsage
 
     HYP_FORCE_INLINE uint32 GetSize() const
     {
-        if (type.size != ~0u) {
+        if (type.HasExplicitSize()) {
             return type.size;
         }
 

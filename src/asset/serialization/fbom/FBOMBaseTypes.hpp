@@ -129,12 +129,12 @@ struct FBOMString : FBOMType
 struct FBOMBaseObjectType : FBOMType
 {
     FBOMBaseObjectType()
-        : FBOMType("object", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::CONTAINER)
+        : FBOMType("object", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::DEFAULT)
     {
     }
 
     FBOMBaseObjectType(const FBOMType &extends)
-        : FBOMType("object", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::CONTAINER, extends)
+        : FBOMType("object", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::DEFAULT, extends)
     {
     }
 };
@@ -154,18 +154,58 @@ struct FBOMObjectType : FBOMType
             name.Data(), extends.name.Data());
     }
 
+    FBOMObjectType(const ANSIStringView &name, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends)
+        : FBOMType(name, 0, /* no valid TypeID */ TypeID::Void(), flags, extends)
+    {
+        AssertThrowMsg(extends.IsOrExtends(FBOMBaseObjectType()),
+            "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
+            name.Data(), extends.name.Data());
+    }
+
+    template <class T>
+    FBOMObjectType(TypeWrapper<T>)
+        : FBOMType(TypeNameWithoutNamespace<T>(), 0, TypeID::ForType<T>(), FBOMTypeFlags::CONTAINER, FBOMBaseObjectType())
+    {
+    }
+
+    template <class T>
+    FBOMObjectType(TypeWrapper<T>, const FBOMType &extends)
+        : FBOMType(TypeNameWithoutNamespace<T>(), 0, TypeID::ForType<T>(), FBOMTypeFlags::CONTAINER, extends)
+    {
+        AssertThrowMsg(extends.IsOrExtends(FBOMBaseObjectType()),
+            "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
+            TypeNameWithoutNamespace<T>().Data(), extends.name.Data());
+    }
+
+    template <class T>
+    FBOMObjectType(TypeWrapper<T>, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends)
+        : FBOMType(TypeNameWithoutNamespace<T>(), 0, TypeID::ForType<T>(), flags, extends)
+    {
+        AssertThrowMsg(extends.IsOrExtends(FBOMBaseObjectType()),
+            "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
+            TypeNameWithoutNamespace<T>().Data(), extends.name.Data());
+    }
+
     FBOMObjectType(const HypClass *hyp_class);
+};
+
+struct FBOMPlaceholderType : FBOMType
+{
+    FBOMPlaceholderType()
+        : FBOMType("<placeholder>", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::PLACEHOLDER, FBOMBaseObjectType())
+    {
+    }
 };
 
 struct FBOMArrayType : FBOMType
 {
     FBOMArrayType()
-        : FBOMType("array", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::CONTAINER)
+        : FBOMType("array", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::DEFAULT)
     {
     }
 
     FBOMArrayType(const FBOMType &extends)
-        : FBOMType("array", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::CONTAINER, extends)
+        : FBOMType("array", 0, /* no valid TypeID */ TypeID::Void(), FBOMTypeFlags::DEFAULT, extends)
     {
     }
 };

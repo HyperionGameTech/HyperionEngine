@@ -112,6 +112,7 @@ struct TupleLeaf
         { return value != other.value; }
 };
 
+// Specialization to hold references in a TupleLeaf
 template <SizeType Index, class T>
 struct TupleLeaf<Index, T &>
 {

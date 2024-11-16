@@ -26,10 +26,10 @@ extern HYP_API const HypClass *GetClass(TypeID);
 enum class FBOMTypeFlags : uint8
 {
     NONE        = 0x0,
-    RAW_DATA    = 0x1,
-    CONTAINER   = 0x2, // needs custom handling
+    CONTAINER   = 0x2, // uses marshal class to serialize/deserialize after reading the object
+    PLACEHOLDER = 0x4, // a placeholder type that is used to represent an unknown type
 
-    DEFAULT     = RAW_DATA
+    DEFAULT     = 0x0
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMTypeFlags)
@@ -71,12 +71,28 @@ public:
     HYP_FORCE_INLINE bool IsUnset() const
         { return name == "UNSET"; }
 
+    HYP_FORCE_INLINE bool IsPlaceholder() const
+        { return HasAnyFlagsSet(FBOMTypeFlags::PLACEHOLDER, false); }
+
+    HYP_FORCE_INLINE bool UsesMarshal() const
+        { return HasAnyFlagsSet(FBOMTypeFlags::CONTAINER, false); }
+
     HYP_FORCE_INLINE bool operator==(const FBOMType &other) const
     {
         return name == other.name
             && size == other.size
             && type_id == other.type_id
+            && flags == other.flags
             && extends == other.extends;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const FBOMType &other) const
+    {
+        return name != other.name
+            || size != other.size
+            || type_id != other.type_id
+            || flags != other.flags
+            || extends != other.extends;
     }
 
     /*! \brief Get the C++ TypeID of this type object.
@@ -124,51 +140,6 @@ public:
 
         return hc;
     }
-};
-
-struct FBOMEncodedType
-{
-    HashCode        hash_code;
-    Array<uint16>   index_table;
-    ByteBuffer      buffer;
-
-    FBOMEncodedType() = default;
-
-    FBOMEncodedType(const FBOMType &type);
-
-    FBOMEncodedType(const FBOMEncodedType &other)               = default;
-    FBOMEncodedType &operator=(const FBOMEncodedType &other)    = default;
-
-    FBOMEncodedType(FBOMEncodedType &&other) noexcept
-        : hash_code(other.hash_code),
-          index_table(std::move(other.index_table)),
-          buffer(std::move(other.buffer))
-    {
-    }
-
-    FBOMEncodedType &operator=(FBOMEncodedType &&other) noexcept
-    {
-        if (std::addressof(other) == this) {
-            return *this;
-        }
-
-        hash_code = other.hash_code;
-        index_table = std::move(other.index_table);
-        buffer = std::move(other.buffer);
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const FBOMEncodedType &other) const
-        { return hash_code == other.hash_code; }
-
-    HYP_FORCE_INLINE bool operator!=(const FBOMEncodedType &other) const
-        { return hash_code != other.hash_code; }
-
-    HYP_NODISCARD FBOMType Decode() const;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return hash_code; }
 };
 
 } // namespace fbom

@@ -133,7 +133,7 @@ private:
         }
     }
 
-    bool HasMarshalForType(const FBOMType &type) const;
+    FBOMMarshalerBase *GetMarshalForType(const FBOMType &type) const;
 
     FBOMResult RequestExternalObject(UUID library_id, uint32 index, FBOMObject &out_object);
 

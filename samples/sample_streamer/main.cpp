@@ -64,39 +64,6 @@ int main(int argc, char **argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-#if 0
-    fbom::FBOMObject test_obj(fbom::FBOMObjectType("FooBarbazz"));
-    test_obj.SetProperty("Blah", fbom::FBOMUnsignedInt(), 123u);
-    // test_obj.SetProperty("Foo", fbom::FBOMString(), String("hello string test"));
-
-    fbom::FBOMObject test_sub_obj(fbom::FBOMObjectType("BlehBleh"));
-    test_sub_obj.SetProperty("PI", fbom::FBOMFloat(), 3.1415f);
-
-    test_obj.AddChild(std::move(test_sub_obj));
-
-    fbom::FBOMData test_data = fbom::FBOMData::FromObject(test_obj);
-
-    DebugLog(LogType::Debug, "test_data type: %s\n", test_data.GetType().name.Data());
-
-    fbom::FBOMObject test_data_loaded;
-    fbom::FBOMResult read_object_result = test_data.ReadObject(test_data_loaded);
-    AssertThrowMsg(read_object_result == fbom::FBOMResult::FBOM_OK, "Failed to read object : %s", read_object_result.message);
-
-    DebugLog(LogType::Debug, "test_data total size: %u\n", test_data.TotalSize());
-
-    uint32 test_data_loaded_blah1;
-    test_data_loaded.GetProperty("Blah").ReadUnsignedInt(&test_data_loaded_blah1);
-    DebugLog(LogType::Debug, "test_data_loaded Blah: %u\n", test_data_loaded_blah1);
-
-    float nested_value;
-    fbom::FBOMResult nested_read_result = test_data_loaded.nodes->Front().GetProperty("PI").ReadFloat(&nested_value);
-    AssertThrowMsg(nested_read_result == fbom::FBOMResult::FBOM_OK, "Failed to read nested value : %s", nested_read_result.message);
-
-    DebugLog(LogType::Debug, "test_data_loaded sub PI: %f\n", nested_value);
-
-    HYP_BREAKPOINT;
-#endif
-
     HyperionEditor editor;
     // SampleStreamer editor;
     App app;

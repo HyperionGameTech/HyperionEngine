@@ -77,8 +77,6 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
 
             HYP_NAMED_SCOPE_FMT("Serializing property '{}' for HypClass '{}'", property->name, hyp_class->GetName());
 
-            HYP_LOG(Serialization, LogLevel::DEBUG, "Serializing property '{}' for HypClass '{}'", property->name, hyp_class->GetName());
-
             out.SetProperty(property->name.LookupString(), property->Serialize(target_data));
         }
     }
@@ -122,8 +120,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
     {
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hyp_class->GetName());
 
-        HYP_LOG(Serialization, LogLevel::DEBUG, "Deserializing properties for HypClass '{}'", hyp_class->GetName());
-
         for (const KeyValuePair<ANSIString, FBOMData> &it : in.GetProperties()) {
             if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
                 if (!property->GetAttribute("serialize")) {
@@ -135,8 +131,6 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
 
                     continue;
                 }
-
-                HYP_LOG(Serialization, LogLevel::DEBUG, "Deserializing property '{}' on object (type: {}), calling setter for HypClass '{}'", it.first, it.second.GetType().name, hyp_class->GetName());
 
                 property->Deserialize(target_data, it.second);
             }
