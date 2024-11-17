@@ -46,7 +46,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
 using renderer::g_static_descriptor_table_decl;
 
-static const bool should_compile_missing_variants = true;
+static const bool g_should_compile_missing_variants = true;
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
@@ -1176,7 +1176,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         // clear the batch if properties requested are missing.
         batch = CompiledShaderBatch { };
 
-        if (should_compile_missing_variants && CanCompileShaders()) {
+        if (g_should_compile_missing_variants && CanCompileShaders()) {
             HYP_LOG(
                 ShaderCompiler,
                 LogLevel::INFO,

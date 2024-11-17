@@ -817,12 +817,14 @@ void UIText::UpdateMeshData_Internal()
     }
 
     MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
-    mesh_component.instance_data.transforms.Clear();
 
     const Vec2i size = GetActualSize();
     const Vec2f position = GetAbsolutePosition();
 
     const float text_size = GetTextSize();
+
+    Array<Matrix4> instance_transforms;
+    Array<Vec4f> instance_texcoords;
 
     ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, [&](const FontAtlasCharacterIterator &iter)
     {
@@ -834,29 +836,43 @@ void UIText::UpdateMeshData_Internal()
             .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
             .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
 
-        BoundingBox character_aabb_clamped = {
-            Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x, iter.placement.y + offset_y, 0.0f } * text_size),
-            Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f } * text_size)
-        };
+        // BoundingBox character_aabb_clamped = {
+        //     Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x, iter.placement.y + offset_y, 0.0f } * text_size),
+        //     Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f } * text_size)
+        // };
 
+        Transform character_transform;
+        character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));
+        character_transform.GetTranslation().y += (iter.cell_dimensions.y - iter.glyph_dimensions.y) * text_size;
+        character_transform.GetTranslation().y += iter.bearing_y * text_size;
+        character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * text_size;
+        character_transform.UpdateMatrix();
+
+        BoundingBox character_aabb_clamped = BoundingBox(Vec3f::Zero(), Vec3f::One()) * character_transform;
+        character_aabb_clamped.min += Vec3f(position, 0.0f);
+        character_aabb_clamped.max += Vec3f(position, 0.0f);
         character_aabb_clamped = character_aabb_clamped.Intersection(m_aabb_clamped);
-
-            // character.texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
-            // character.texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
 
         Matrix4 instance_transform;
         instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;
         instance_transform[1][1] = character_aabb_clamped.max.y - character_aabb_clamped.min.y;
         instance_transform[2][2] = 1.0f;
-
         instance_transform[0][3] = character_aabb_clamped.min.x;
         instance_transform[1][3] = character_aabb_clamped.min.y;
-        instance_transform[3][3] = 1.0f;
 
-        mesh_component.instance_data.transforms.PushBack(instance_transform);
+        instance_transforms.PushBack(instance_transform);
+
+        instance_texcoords.PushBack(Vec4f(
+            Vec2f(iter.char_offset) * iter.atlas_pixel_size,
+            (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size
+        ));
     });
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Text \"{}\" has {} characters", m_text, mesh_component.instance_data.transforms.Size());
+    mesh_component.instance_data.num_instances = instance_transforms.Size();
+    mesh_component.instance_data.SetBufferData(0, instance_transforms.Data(), instance_transforms.Size());
+    mesh_component.instance_data.SetBufferData(1, instance_texcoords.Data(), instance_texcoords.Size());
+
+    HYP_LOG(UI, LogLevel::DEBUG, "Text \"{}\" has {} characters", m_text, mesh_component.instance_data.NumInstances());
 
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }

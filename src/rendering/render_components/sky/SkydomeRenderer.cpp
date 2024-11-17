@@ -28,6 +28,8 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 
 void SkydomeRenderer::Init()
 {
+    InitObject(m_cubemap);
+
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(m_dimensions.x), int(m_dimensions.y),
@@ -55,8 +57,6 @@ void SkydomeRenderer::InitGame()
 
     InitObject(m_env_probe);
     m_env_probe->EnqueueBind();
-
-    InitObject(m_cubemap);
 
     Asset<Node> dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 

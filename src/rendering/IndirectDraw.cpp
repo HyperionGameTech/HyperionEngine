@@ -384,7 +384,7 @@ void IndirectRenderer::Create()
     AssertThrow(m_draw_call_collection->GetImpl() != nullptr);
 
     GPUBufferHolderBase *entity_instance_batches = m_draw_call_collection->GetImpl()->GetEntityInstanceBatchHolder();
-    const SizeType element_size = m_draw_call_collection->GetImpl()->GetElementSize();
+    const SizeType batch_sizeof = m_draw_call_collection->GetImpl()->GetBatchSizeOf();
 
     for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frame_index);
@@ -395,12 +395,12 @@ void IndirectRenderer::Create()
 
         if (entity_instance_batches_buffer_element->size != ~0u) {
             const SizeType entity_instance_batches_buffer_size = entity_instance_batches_buffer_element->size;
-            const SizeType size_mod = entity_instance_batches_buffer_size % element_size;
+            const SizeType size_mod = entity_instance_batches_buffer_size % batch_sizeof;
             
             AssertThrowMsg(size_mod == 0,
-                "EntityInstanceBatchesBuffer descriptor has size %llu but DrawCallCollection element size is %llu",
+                "EntityInstanceBatchesBuffer descriptor has size %llu but DrawCallCollection has batch struct size of %llu",
                 entity_instance_batches_buffer_size,
-                element_size);
+                batch_sizeof);
         }
 
         descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
