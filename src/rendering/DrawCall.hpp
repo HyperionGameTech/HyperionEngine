@@ -28,6 +28,8 @@ struct DrawCommandData;
 class IndirectDrawState;
 class GPUBufferHolderBase;
 
+struct MeshInstanceData;
+
 extern HYP_API Handle<Engine>   g_engine;
 extern HYP_API SafeDeleter      *g_safe_deleter;
 
@@ -92,8 +94,8 @@ class IDrawCallCollectionImpl
 public:
     virtual ~IDrawCallCollectionImpl() = default;
 
-    virtual SizeType GetElementSize() const = 0;
-    virtual EntityInstanceBatch &GetElement(SizeType index) const = 0;
+    virtual SizeType GetBatchSizeOf() const = 0;
+    virtual EntityInstanceBatch &GetBatch(SizeType index) const = 0;
     virtual uint32 AcquireBatchIndex() const = 0;
     virtual void ReleaseBatchIndex(uint32 batch_index) const = 0;
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const = 0;
@@ -134,7 +136,7 @@ private:
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
     *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
     *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, uint32 num_instances, Span<const Matrix4> instance_transform_data);
+    uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_data_offset);
 
     IDrawCallCollectionImpl             *m_impl;
 
@@ -157,12 +159,12 @@ public:
 
     virtual ~DrawCallCollectionImpl() override = default;
 
-    virtual SizeType GetElementSize() const override
+    virtual SizeType GetBatchSizeOf() const override
     {
         return sizeof(EntityInstanceBatchType);
     }
 
-    virtual EntityInstanceBatch &GetElement(SizeType index) const override
+    virtual EntityInstanceBatch &GetBatch(SizeType index) const override
     {
         return m_entity_instance_batches->Get(index);
     }

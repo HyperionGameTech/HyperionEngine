@@ -175,7 +175,9 @@ public:
             }
 
             if (entity_manager->HasComponent(subobject_type_id, entity)) {
-                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Entity already has component '{}'", component_interface->GetTypeName()) };
+                HYP_LOG(Serialization, LogLevel::WARNING, "Entity already has component '{}'", component_interface->GetTypeName());
+
+                continue;
             }
 
             entity_manager->AddComponent(entity, subobject.m_deserialized_object->ToRef());

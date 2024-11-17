@@ -32,24 +32,70 @@ using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
 
-HYP_STRUCT(Size=32)
+HYP_STRUCT(Size=104)
 struct MeshInstanceData
 {
-    HYP_FIELD(Property="Transforms", Serialize=true, Editor=true)
-    Array<Matrix4, 0>   transforms;
+    static constexpr uint32 max_buffers = 8;
+
+    HYP_FIELD(Property="NumInstances", Serialize=true)
+    uint32                          num_instances = 0;
+
+    HYP_FIELD(Property="Buffers", Serialize=true)
+    Array<Array<ubyte>, 0>          buffers;
+
+    HYP_FIELD(Property="BufferStructSizes", Serialize=true)
+    FixedArray<uint32, max_buffers> buffer_struct_sizes;
+
+    HYP_FIELD(Property="BufferStructAlignments", Serialize=true)
+    FixedArray<uint32, max_buffers> buffer_struct_alignments;
 
     HYP_FORCE_INLINE bool operator==(const MeshInstanceData &other) const
-        { return transforms == other.transforms; }
+    {
+        return num_instances == other.num_instances
+            && buffers == other.buffers
+            && buffer_struct_sizes == other.buffer_struct_sizes
+            && buffer_struct_alignments == other.buffer_struct_alignments;
+    }
 
     HYP_FORCE_INLINE bool operator!=(const MeshInstanceData &other) const
-        { return transforms != other.transforms; }
+    {
+        return num_instances != other.num_instances
+            || buffers != other.buffers
+            || buffer_struct_sizes != other.buffer_struct_sizes
+            || buffer_struct_alignments != other.buffer_struct_alignments;
+    }
 
-    HYP_METHOD(Property="NumInstances", Editor=true)
-    uint32 NumInstances() const
-        { return transforms.Size(); }
+    HYP_FORCE_INLINE uint32 NumInstances() const
+        { return num_instances; }
+
+    template <class StructType>
+    void SetBufferData(int buffer_index, StructType *ptr, SizeType count)
+    {
+        static_assert(IsPODType<StructType>, "Struct type must a POD type");
+
+        AssertThrowMsg(buffer_index < max_buffers, "Buffer index %d must be less than maximum number of buffers (%u)", buffer_index, max_buffers);
+
+        if (buffers.Size() <= buffer_index) {
+            buffers.Resize(buffer_index + 1);
+        }
+
+        buffer_struct_sizes[buffer_index] = sizeof(StructType);
+        buffer_struct_alignments[buffer_index] = alignof(StructType);
+
+        buffers[buffer_index].Resize(sizeof(StructType) * count);
+        Memory::MemCpy(buffers[buffer_index].Data(), ptr, sizeof(StructType) * count);
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return transforms.GetHashCode(); }
+    {
+        HashCode hc;
+        hc.Add(num_instances);
+        hc.Add(buffers);
+        hc.Add(buffer_struct_sizes);
+        hc.Add(buffer_struct_alignments);
+
+        return hc;
+    }
 };
 
 HYP_CLASS()

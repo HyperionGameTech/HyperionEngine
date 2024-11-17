@@ -50,6 +50,12 @@ static inline Scene *GetScene(UIStageType *stage)
     return stage->GetScene().Get();
 }
 
+struct UIObjectInstanceData
+{
+    Matrix4 transform;
+    Vec4f   texcoords;
+};
+
 enum class UIObjectType : uint32
 {
     UNKNOWN             = ~0u,

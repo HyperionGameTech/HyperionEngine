@@ -154,6 +154,8 @@ void HyperionEditor::Init()
     HYP_BREAKPOINT;
 #endif
 
+    constexpr auto x = offsetof(MeshComponent, user_data);
+    DebugLog(LogType::Debug, "MeshComponent user_data offset is %u\n", x);
 
     g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
         GetAppContext(),
@@ -311,7 +313,7 @@ void HyperionEditor::Init()
     //     }
     // }
 
-#if 1
+#if 0
     // add sun
     
     auto sun = CreateObject<Light>(

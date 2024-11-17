@@ -565,7 +565,7 @@ static HYP_FORCE_INLINE void RenderAll(
                 frame->GetCommandBuffer(),
                 pipeline,
                 {
-                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * draw_state.GetImpl()->GetElementSize()) }
+                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * draw_state.GetImpl()->GetBatchSizeOf()) }
                 },
                 instancing_descriptor_set_index
             );
@@ -732,7 +732,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                 secondary,
                                 pipeline,
                                 {
-                                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * draw_state.GetImpl()->GetElementSize()) }
+                                    { NAME("EntityInstanceBatchesBuffer"), uint32(draw_call.batch_index * draw_state.GetImpl()->GetBatchSizeOf()) }
                                 },
                                 instancing_descriptor_set_index
                             );
