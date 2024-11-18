@@ -40,336 +40,6 @@ static float GetWindowDPIFactor()
         : 1.0f;
 }
 
-#pragma region UITextRenderer
-
-struct alignas(16) UITextCharacterShaderData
-{
-    Matrix4 transform;
-    Vec2f   texcoord_start;
-    Vec2f   texcoord_end;
-};
-
-struct alignas(16) UITextUniforms
-{
-    Matrix4 projection_matrix;
-    Vec4f   color;
-    Vec2f   text_aabb_min;
-    Vec2f   text_aabb_max;
-};
-
-class UITextRenderer
-{
-public:
-    UITextRenderer(Vec2u size)
-    {
-        static constexpr SizeType initial_character_instance_buffer_size = sizeof(UITextCharacterShaderData) * 1024;
-
-        { // instance buffer
-            m_character_instance_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-            DeferCreate(m_character_instance_buffer, g_engine->GetGPUDevice(), initial_character_instance_buffer_size);
-        }
-
-        { // uniform buffer
-            m_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-            DeferCreate(m_uniform_buffer, g_engine->GetGPUDevice(), sizeof(UITextUniforms));
-        }
-
-        { // shader
-            m_shader = g_shader_manager->GetOrCreate(NAME("UIText"), ShaderProperties(static_mesh_vertex_attributes));
-            AssertThrow(m_shader.IsValid());
-        }
-
-        { // mesh
-            // m_quad_mesh = UIObjectQuadMeshHelper::GetQuadMesh();
-            
-            m_quad_mesh = MeshBuilder::Quad();
-            InitObject(m_quad_mesh);
-        }
-
-        { // framebuffer
-            m_framebuffer = MakeRenderObject<Framebuffer>(
-                Vec2u(Vec2f(size) * GetWindowDPIFactor()),
-                renderer::RenderPassStage::PRESENT,
-                renderer::RenderPassMode::RENDER_PASS_INLINE
-            );
-            
-            m_framebuffer->AddAttachment(
-                0,
-                InternalFormat::RGBA8,
-                ImageType::TEXTURE_TYPE_2D,
-                renderer::RenderPassStage::SHADER,
-                renderer::LoadOperation::CLEAR,
-                renderer::StoreOperation::STORE
-            );
-
-            DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
-        }
-    }
-
-    UITextRenderer(const UITextRenderer &other)             = delete;
-    UITextRenderer &operator=(const UITextRenderer &other)  = delete;
-
-    UITextRenderer(UITextRenderer &&other) noexcept
-        : m_framebuffer(std::move(other.m_framebuffer)),
-          m_shader(std::move(other.m_shader)),
-          m_quad_mesh(std::move(other.m_quad_mesh)),
-          m_character_instance_buffer(std::move(other.m_character_instance_buffer)),
-          m_uniform_buffer(std::move(other.m_uniform_buffer)),
-          m_render_group(std::move(other.m_render_group))
-    {
-    }
-
-    UITextRenderer &operator=(UITextRenderer &&other) noexcept
-    {
-        if (this != &other) {
-            SafeRelease(std::move(m_shader));
-            SafeRelease(std::move(m_framebuffer));
-            SafeRelease(std::move(m_character_instance_buffer));
-            SafeRelease(std::move(m_uniform_buffer));
-
-            m_shader = std::move(other.m_shader);
-            m_framebuffer = std::move(other.m_framebuffer);
-            m_quad_mesh = std::move(other.m_quad_mesh);
-            m_character_instance_buffer = std::move(other.m_character_instance_buffer);
-            m_uniform_buffer = std::move(other.m_uniform_buffer);
-            m_render_group = std::move(other.m_render_group);
-        }
-
-        return *this;
-    }
-
-    ~UITextRenderer()
-    {
-        SafeRelease(std::move(m_shader));
-        SafeRelease(std::move(m_framebuffer));
-        SafeRelease(std::move(m_character_instance_buffer));
-        SafeRelease(std::move(m_uniform_buffer));
-    }
-
-    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
-        { return m_framebuffer; }
-
-    void RenderText(Frame *frame, const UITextRenderData &render_data)
-    {
-        HYP_SCOPE;
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-        const uint frame_index = frame->GetFrameIndex();
-
-        m_framebuffer->BeginCapture(frame->GetCommandBuffer(), frame_index);
-        
-        const SizeType characters_byte_size = render_data.characters.Size() * sizeof(UITextCharacterShaderData);
-
-        bool was_character_instance_buffer_rebuilt = false;
-
-        if (characters_byte_size > m_character_instance_buffer->Size()) {
-            ByteBuffer previous_data;
-            previous_data.SetSize(m_character_instance_buffer->Size());
-
-            m_character_instance_buffer->Read(
-                g_engine->GetGPUDevice(),
-                m_character_instance_buffer->Size(),
-                previous_data.Data()
-            );
-
-            HYPERION_ASSERT_RESULT(m_character_instance_buffer->EnsureCapacity(
-                g_engine->GetGPUDevice(),
-                characters_byte_size,
-                &was_character_instance_buffer_rebuilt
-            ));
-
-            m_character_instance_buffer->Copy(
-                g_engine->GetGPUDevice(),
-                previous_data.Size(),
-                previous_data.Data()
-            );
-        }
-
-        { // copy characters shader data
-            Array<UITextCharacterShaderData> characters;
-            characters.Resize(render_data.characters.Size());
-
-            for (SizeType index = 0; index < render_data.characters.Size(); index++) {
-                characters[index] = UITextCharacterShaderData {
-                    render_data.characters[index].transform,
-                    render_data.characters[index].texcoord_start,
-                    render_data.characters[index].texcoord_end
-                };
-            }
-
-            m_character_instance_buffer->Copy(
-                g_engine->GetGPUDevice(),
-                0,
-                characters_byte_size,
-                characters.Data()
-            );
-        }
-
-        { // copy uniform
-            // // testing
-            // g_engine->GetRenderData()->cameras.UpdateBuffer(g_engine->GetGPUDevice(), frame_index);
-            
-            Matrix4 projection_matrix = Matrix4::Orthographic(
-                0.0f, 1.0f,
-                0.0f, 1.0f,
-                -1.0f, 1.0f
-            );
-
-            UITextUniforms uniforms;
-            uniforms.projection_matrix = projection_matrix;
-            uniforms.color = render_data.color;
-            uniforms.text_aabb_min = Vec2f(render_data.aabb.min.x, render_data.aabb.min.y);
-            uniforms.text_aabb_max = Vec2f(render_data.aabb.max.x, render_data.aabb.max.y);
-
-            m_uniform_buffer->Copy(
-                g_engine->GetGPUDevice(),
-                0,
-                sizeof(UITextUniforms),
-                &uniforms
-            );
-        }
-
-        CreateRenderGroup(render_data.font_atlas_texture);
-
-        const uint descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("UITextDescriptorSet"));
-        AssertThrow(descriptor_set_index != ~0u);
-
-        if (was_character_instance_buffer_rebuilt) {
-            const DescriptorSetRef &descriptor_set = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(descriptor_set_index, frame_index);
-            descriptor_set->SetElement(NAME("CharacterInstanceBuffer"), m_character_instance_buffer);
-            descriptor_set->Update(g_engine->GetGPUDevice());
-        }
-
-        m_render_group->GetPipeline()->Bind(frame->GetCommandBuffer());
-
-        if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
-            m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-                frame->GetCommandBuffer(),
-                frame_index,
-                m_render_group->GetPipeline(),
-                {
-                    {
-                        NAME("Scene"),
-                        {
-                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
-                        }
-                    },
-                    {
-                        NAME("Object"),
-                        {
-                            { NAME("MaterialsBuffer"), 0 },
-                            { NAME("SkeletonsBuffer"), 0 }
-                        }
-                    },
-                    {
-                        NAME("Instancing"),
-                        {
-                            { NAME("EntityInstanceBatchesBuffer"), 0 }
-                        }
-                    }
-                }
-            );
-        } else {
-            m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-                frame->GetCommandBuffer(),
-                frame_index,
-                m_render_group->GetPipeline(),
-                {
-                    {
-                        NAME("Scene"),
-                        {
-                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
-                        }
-                    },
-                    {
-                        NAME("Object"),
-                        {
-                            { NAME("SkeletonsBuffer"), 0 }
-                        }
-                    },
-                    {
-                        NAME("Instancing"),
-                        {
-                            { NAME("EntityInstanceBatchesBuffer"), 0 }
-                        }
-                    }
-                }
-            );
-        }
-
-        m_quad_mesh->Render(frame->GetCommandBuffer(), render_data.characters.Size());
-
-        m_framebuffer->EndCapture(frame->GetCommandBuffer(), frame_index);
-
-        g_engine->GetRenderState().UnbindCamera();
-    }
-
-private:
-    DescriptorTableRef CreateDescriptorTable(const Handle<Texture> &font_atlas_texture)
-    {
-        renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-        AssertThrow(descriptor_table != nullptr);
-
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("UITextDescriptorSet"), frame_index);
-            AssertThrow(descriptor_set != nullptr);
-
-            descriptor_set->SetElement(NAME("CharacterInstanceBuffer"), m_character_instance_buffer);
-            descriptor_set->SetElement(NAME("UITextUniforms"), m_uniform_buffer);
-            descriptor_set->SetElement(NAME("FontAtlasTexture"), font_atlas_texture->GetImageView());
-        }
-
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-        return descriptor_table;
-    }
-
-    void CreateRenderGroup(const Handle<Texture> &font_atlas_texture)
-    {
-        Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
-            m_shader,
-            RenderableAttributeSet(
-                MeshAttributes {
-                    .vertex_attributes = static_mesh_vertex_attributes
-                },
-                MaterialAttributes {
-                    .bucket         = Bucket::BUCKET_TRANSLUCENT,
-                    .fill_mode      = FillMode::FILL,
-                    .blend_function = BlendFunction::None(),
-                    .cull_faces     = FaceCullMode::NONE
-                }
-            ),
-            CreateDescriptorTable(font_atlas_texture),
-            RenderGroupFlags::NONE
-        );
-
-        render_group->AddFramebuffer(m_framebuffer);
-
-        InitObject(render_group);
-
-        m_render_group = std::move(render_group);
-    }
-
-    FramebufferRef          m_framebuffer;
-    ShaderRef               m_shader;
-    Handle<Mesh>            m_quad_mesh;
-    GPUBufferRef            m_character_instance_buffer;
-    GPUBufferRef            m_uniform_buffer;
-    Handle<RenderGroup>     m_render_group;
-};
-
-#pragma endregion UITextRenderer
-
 struct FontAtlasCharacterIterator
 {
     Vec2f           placement;
@@ -582,56 +252,6 @@ struct RENDER_COMMAND(UpdateUITextRenderData) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(RepaintUIText) : renderer::RenderCommand
-{
-    RC<UITextRenderData>    render_data;
-    Handle<Texture>         texture;
-    UITextRenderer          text_renderer;
-
-    RENDER_COMMAND(RepaintUIText)(const RC<UITextRenderData> &render_data, const Handle<Texture> &texture, UITextRenderer &&text_renderer)
-        : render_data(render_data),
-          texture(texture),
-          text_renderer(std::move(text_renderer))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(RepaintUIText)() override = default;
-
-    virtual renderer::Result operator()() override
-    {
-        if (!render_data) {
-            return { renderer::Result::RENDERER_ERR, "Cannot repaint UI text, invalid render data pointer set" };
-        }
-
-        if (!texture.IsValid()) {
-            return { renderer::Result::RENDERER_ERR, "Cannot repaint UI text, invalid texture set" };
-        }
-
-        if (render_data->size.x * render_data->size.y <= 0) {
-            HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text, size is zero");
-
-            HYPERION_RETURN_OK;
-        }
-
-        Frame *frame = g_engine->GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
-
-        text_renderer.RenderText(frame, *render_data);
-
-        const ImageRef &src_image = text_renderer.GetFramebuffer()->GetAttachment(0)->GetImage();
-        const ImageRef &dst_image = texture->GetImage();
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
-
-        dst_image->Blit(frame->GetCommandBuffer(), src_image);
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-
-        HYPERION_RETURN_OK;
-    };
-};
-
 #pragma endregion Render commands
 
 #pragma region UIText
@@ -641,17 +261,6 @@ UIText::UIText()
       m_render_data(MakeRefCountedPtr<UITextRenderData>())
 {
     m_text_color = Color(Vec4f::One());
-
-    // // temp testing
-    // OnMouseHover.Bind([this](...)
-    // {
-    //     // m_texture.Reset();
-
-    //     // SetNeedsRepaintFlag(true);
-    //     SetIsVisible(false);
-    //     SetIsVisible(true);
-    //     return UIEventHandlerResult::OK;
-    // }).Detach();
 }
 
 const RC<UITextRenderData> &UIText::GetRenderData() const
@@ -770,36 +379,6 @@ void UIText::UpdateRenderData()
 
         SetNeedsRepaintFlag(true);
     }
-
-    const NodeProxy &node = GetNode();
-
-    const Vec2i size = GetActualSize();
-
-    // if (size.x > 0 && size.y > 0) {
-    //     const Vec2u size_clamped = Vec2u(MathUtil::Max(size, Vec2i::One()));
-
-    //     if (!m_texture.IsValid() || m_texture->GetExtent().GetXY() != size_clamped) {
-    //         m_texture = CreateObject<Texture>(TextureDesc {
-    //             ImageType::TEXTURE_TYPE_2D,
-    //             InternalFormat::RGBA8,
-    //             Vec3u { uint32(size_clamped.x * GetWindowDPIFactor()), uint32(size_clamped.y * GetWindowDPIFactor()), 1 },
-    //             FilterMode::TEXTURE_FILTER_NEAREST,
-    //             FilterMode::TEXTURE_FILTER_NEAREST,
-    //             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    //         });
-            
-    //         InitObject(m_texture);
-
-    //         UpdateMaterial(false);
-    //         UpdateMeshData(false);
-    //     }
-
-    //     SetNeedsRepaintFlag(true);
-    // } else {
-    //     m_texture.Reset();
-
-    //     SetNeedsRepaintFlag(false);
-    // }
 }
 
 void UIText::UpdateMeshData_Internal()
@@ -828,18 +407,7 @@ void UIText::UpdateMeshData_Internal()
 
     ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, [&](const FontAtlasCharacterIterator &iter)
     {
-        BoundingBox character_aabb;
-
         const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
-
-        character_aabb = character_aabb
-            .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
-            .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
-
-        // BoundingBox character_aabb_clamped = {
-        //     Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x, iter.placement.y + offset_y, 0.0f } * text_size),
-        //     Vec3f { float(position.x), float(position.y), 0.0f } + (Vec3f { iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f } * text_size)
-        // };
 
         Transform character_transform;
         character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));
@@ -879,12 +447,6 @@ void UIText::UpdateMeshData_Internal()
 
 bool UIText::Repaint_Internal()
 {
-    if (!m_texture.IsValid()) {
-        HYP_LOG_ONCE(UI, LogLevel::WARNING, "Cannot repaint UI text for element: {}, no texture set", GetName());
-
-        return false;
-    }
-
     Vec2i size = GetActualSize();
 
     if (size.x * size.y <= 0) {
@@ -895,15 +457,7 @@ bool UIText::Repaint_Internal()
 
     size = MathUtil::Max(size, Vec2i::One());
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Repaint text '{}', {}, {}", GetText(), m_text_aabb_without_bearing, m_texture->GetExtent());
-
-    
-
-    // if (font_atlas != nullptr && font_atlas_texture != nullptr) {
-    //     PUSH_RENDER_COMMAND(UpdateUITextRenderData, m_text, m_render_data, Vec4f(GetTextColor()), size, GetParentBounds(), GetTextSize(), m_text_aabb_with_bearing, font_atlas, font_atlas_texture);
-    // }
-    
-    // PUSH_RENDER_COMMAND(RepaintUIText, m_render_data, m_texture, UITextRenderer(m_texture->GetExtent().GetXY()));
+    HYP_LOG(UI, LogLevel::DEBUG, "Repaint text '{}', {}", GetText(), m_text_aabb_without_bearing);
 
     return true;
 }
@@ -971,10 +525,6 @@ void UIText::OnComputedVisibilityChange_Internal()
 
     if (GetComputedVisibility()) {
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
-    } else {
-        HYP_LOG(UI, LogLevel::DEBUG, "UIText: Disposing texture for non-visible text \"{}\"", m_text);
-
-        m_texture.Reset();
     }
 }
 

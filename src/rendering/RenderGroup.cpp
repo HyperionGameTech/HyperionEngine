@@ -505,7 +505,7 @@ static HYP_FORCE_INLINE void RenderAll(
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
     
     for (const DrawCall &draw_call : draw_state.GetDrawCalls()) {
-        EntityInstanceBatch &entity_instance_batch = draw_state.GetImpl()->GetElement(draw_call.batch_index);
+        EntityInstanceBatch &entity_instance_batch = draw_state.GetImpl()->GetBatch(draw_call.batch_index);
 
         pipeline->Bind(frame->GetCommandBuffer());
 
@@ -702,7 +702,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                     }
 
                     for (const DrawCall &draw_call : draw_calls) {
-                        EntityInstanceBatch &entity_instance_batch = draw_state.GetImpl()->GetElement(draw_call.batch_index);
+                        EntityInstanceBatch &entity_instance_batch = draw_state.GetImpl()->GetBatch(draw_call.batch_index);
                         
                         if (entity_descriptor_set.IsValid()) {
                             if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {

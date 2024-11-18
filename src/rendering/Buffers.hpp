@@ -271,10 +271,10 @@ static_assert(sizeof(ImmediateDrawShaderData) == 80);
 
 struct alignas(16) ObjectInstance
 {
-    uint32 entity_id;
-    uint32 draw_command_index;
-    uint32 instance_index;
-    uint32 batch_index;
+    uint32  entity_id;
+    uint32  draw_command_index;
+    uint32  instance_index;
+    uint32  batch_index;
 };
 
 static_assert(sizeof(ObjectInstance) == 16);
