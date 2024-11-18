@@ -153,7 +153,6 @@ private:
 
     RC<UITextRenderData>    m_render_data;
 
-    Handle<Texture>         m_texture;
     Handle<Texture>         m_current_font_atlas_texture;
 };
 
