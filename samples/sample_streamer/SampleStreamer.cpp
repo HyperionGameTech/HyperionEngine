@@ -213,12 +213,12 @@ void SampleStreamer::Init()
     }
 
 
-    const Extent2D window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
+    const Vec2i window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
 
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
-        Extent3D(window_size),
+        Vec3u(Vec2u(window_size), 0),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -229,7 +229,7 @@ void SampleStreamer::Init()
     DebugLog(LogType::Debug, "SampleStreamer::Init : Scene ID = %u\n", m_scene.GetID().Value());
     m_scene->SetCamera(CreateObject<Camera>(
         70.0f,
-        window_size.width, window_size.height,
+        window_size.x, window_size.y,
         0.01f, 30000.0f
     ));
 
@@ -375,7 +375,7 @@ void SampleStreamer::Init()
 
     // Used for RTC streaming or for editor view.
     // Has a performance impact due to copying the framebuffer.
-    auto streaming_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
+    auto streaming_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), Vec2u(window_size));
 
     if (false) {
         auto terrain_node = m_scene->GetRoot()->AddChild();
@@ -1037,7 +1037,7 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
 
-    const Extent2D window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
+    const Vec2u window_size = Vec2u(GetAppContext()->GetInputManager()->GetWindow()->GetDimensions());
 
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
         if (event.GetKeyCode() == KeyCode::ARROW_LEFT) {

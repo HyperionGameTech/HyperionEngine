@@ -366,6 +366,9 @@ public:
     /*! \brief Resizes the array to the given size. If the size is smaller than the current size, the array is truncated. */
     void Resize(SizeType new_size);
 
+    /*! \brief Resizes the array to the given size without initializing the new elements. Memory::Construct must be manually called on the new elements. */
+    void ResizeUninitialized(SizeType new_size);
+
     /*! \brief Refits the array to the smallest possible size. This is useful if you have a large array and want to free up memory. */
     void Refit();
 
@@ -601,8 +604,6 @@ protected:
     {
         return m_storage.GetBuffer();
     }
-
-    void ResizeUninitialized(SizeType new_size);
 
     void ResetOffsets();
 

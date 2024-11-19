@@ -138,7 +138,7 @@ class HYP_API Texture2D : public Texture
 {
 public:
     Texture2D(
-        Extent2D extent,
+        const Vec2u &extent,
         InternalFormat format,
         FilterMode filter_mode,
         WrapMode wrap_mode
@@ -147,7 +147,7 @@ public:
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
-                Vec3u { extent.width, extent.height, 1 },
+                Vec3u { extent.x, extent.y, 1 },
                 filter_mode,
                 filter_mode,
                 wrap_mode
@@ -157,14 +157,14 @@ public:
     }
 
     Texture2D(
-        Extent2D extent,
+        const Vec2u &extent,
         InternalFormat format
     ) : Texture(
             TextureDesc
             {
                 ImageType::TEXTURE_TYPE_2D,
                 format,
-                Vec3u { extent.width, extent.height, 1 }
+                Vec3u { extent.x, extent.y, 1 }
             }
         )
     {

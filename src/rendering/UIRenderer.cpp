@@ -42,9 +42,11 @@ using renderer::Result;
 struct alignas(16) EntityInstanceBatch_UI : EntityInstanceBatch
 {
     Vec4f   texcoords[max_entities_per_instance_batch];
+    Vec4f   offsets[max_entities_per_instance_batch];
+    Vec4f   sizes[max_entities_per_instance_batch];
 };
 
-static_assert(sizeof(EntityInstanceBatch_UI) == 5056);
+static_assert(sizeof(EntityInstanceBatch_UI) == 6976);
 
 #pragma region Render commands
 
@@ -161,67 +163,46 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             if (pass_type != PASS_TYPE_UI) {
                 continue;
             }
+            
+            attributes.SetDrawableLayer(pair.second);
 
-            const HashCode element_hash_code = attributes.GetHashCode();
-                //.Combine(mesh.GetID().GetHashCode())
-                //.Combine(material.GetID().GetHashCode());
+            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
 
-            // if (last_render_proxy_group.drawable_layer != ~0u && last_render_proxy_group.attributes_hash_code == element_hash_code) {
-            //     // Set drawable layer on the attributes so it is grouped properly.
-            //     attributes.SetDrawableLayer(last_render_proxy_group.drawable_layer);
+            if (!render_proxy_group.GetRenderGroup().IsValid()) {
+                // Create RenderGroup
+                Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+                    g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
+                    attributes,
+                    RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
+                );
 
-            //     RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
-            //     AssertThrow(render_proxy_group.GetRenderGroup().IsValid());
+                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>());
 
-            //     render_proxy_group.AddRenderProxy(*proxy);
-            // } else {
-            //     last_render_proxy_group = {
-            //         element_hash_code,
-            //         last_render_proxy_group.drawable_layer + 1
-            //     };
+                if (framebuffer != nullptr) {
+                    render_group->AddFramebuffer(framebuffer);
+                } else {
+                    FramebufferRef bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+                    AssertThrow(bucket_framebuffer != nullptr);
 
-            //     attributes.SetDrawableLayer(last_render_proxy_group.drawable_layer);
-
-                attributes.SetDrawableLayer(pair.second);
-
-                RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
-
-                if (!render_proxy_group.GetRenderGroup().IsValid()) {
-                    // Create RenderGroup
-                    Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
-                        g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
-                        attributes,
-                        RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
-                    );
-
-                    render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>());
-
-                    if (framebuffer != nullptr) {
-                        render_group->AddFramebuffer(framebuffer);
-                    } else {
-                        FramebufferRef bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-                        AssertThrow(bucket_framebuffer != nullptr);
-
-                        render_group->AddFramebuffer(bucket_framebuffer);
-                    }
-
-                    HYP_LOG(UI, LogLevel::DEBUG, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
-
-#ifdef HYP_DEBUG_MODE
-                    if (!render_group.IsValid()) {
-                        HYP_LOG(UI, LogLevel::ERR, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
-
-                        continue;
-                    }
-#endif
-
-                    InitObject(render_group);
-
-                    render_proxy_group.SetRenderGroup(render_group);
+                    render_group->AddFramebuffer(bucket_framebuffer);
                 }
 
-                render_proxy_group.AddRenderProxy(*proxy);
-            // }
+                HYP_LOG(UI, LogLevel::DEBUG, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
+
+#ifdef HYP_DEBUG_MODE
+                if (!render_group.IsValid()) {
+                    HYP_LOG(UI, LogLevel::ERR, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
+
+                    continue;
+                }
+#endif
+
+                InitObject(render_group);
+
+                render_proxy_group.SetRenderGroup(render_group);
+            }
+
+            render_proxy_group.AddRenderProxy(*proxy);
         }
 
         collection->RemoveEmptyProxyGroups();

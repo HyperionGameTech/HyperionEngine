@@ -467,9 +467,9 @@ void ShadowPass::Render(Frame *frame)
 
         m_blur_shadow_map_pipeline->Dispatch(
             command_buffer,
-            Extent3D {
-                (m_framebuffer->GetExtent().width + 7) / 8,
-                (m_framebuffer->GetExtent().height + 7) / 8,
+            Vec3u {
+                (m_framebuffer->GetWidth() + 7) / 8,
+                (m_framebuffer->GetHeight() + 7) / 8,
                 1
             }
         );

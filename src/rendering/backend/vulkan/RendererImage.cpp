@@ -103,7 +103,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
         HYPERION_RETURN_OK;
     }
 
-    const Extent3D extent = self->GetExtent();
+    const Vec3u extent = self->GetExtent();
     const InternalFormat format = self->GetTextureFormat();
     const ImageType type = self->GetType();
 
@@ -121,7 +121,7 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
 
     const uint32 num_faces = self->NumFaces();
 
-    if (extent.Size() == 0) {
+    if (extent.Volume() == 0) {
         return Result { Result::RENDERER_ERR, "Invalid image extent - width*height*depth cannot equal zero" };
     }
 
@@ -260,9 +260,9 @@ Result ImagePlatformImpl<Platform::VULKAN>::Create(
 
     VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     image_info.imageType = vk_image_type;
-    image_info.extent.width = extent.width;
-    image_info.extent.height = extent.height;
-    image_info.extent.depth = extent.depth;
+    image_info.extent.width = extent.x;
+    image_info.extent.height = extent.y;
+    image_info.extent.depth = extent.z;
     image_info.mipLevels = num_mipmaps;
     image_info.arrayLayers = num_faces;
     image_info.format = vk_format;

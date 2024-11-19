@@ -156,7 +156,7 @@ public:
     HYP_FORCE_INLINE uint32 GetHeight() const
         { return m_extent.y; }
 
-    HYP_FORCE_INLINE Extent2D GetExtent() const
+    HYP_FORCE_INLINE const Vec2u &GetExtent() const
         { return m_extent; }
 
     HYP_FORCE_INLINE const RenderPassRef<PLATFORM> &GetRenderPass() const

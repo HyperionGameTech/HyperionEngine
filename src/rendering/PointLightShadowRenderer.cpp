@@ -17,7 +17,7 @@ namespace hyperion {
 PointLightShadowRenderer::PointLightShadowRenderer(
     Name name,
     Handle<Light> light,
-    const Extent2D &extent
+    const Vec2u &extent
 ) : RenderComponentBase(name),
     m_light(std::move(light)),
     m_extent(extent)

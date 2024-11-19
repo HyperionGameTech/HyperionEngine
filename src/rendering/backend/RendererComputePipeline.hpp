@@ -34,7 +34,7 @@ public:
 
     void Bind(CommandBuffer<PLATFORM> *command_buffer) const;
 
-    void Dispatch(CommandBuffer<PLATFORM> *command_buffer, Extent3D group_size) const;
+    void Dispatch(CommandBuffer<PLATFORM> *command_buffer, const Vec3u &group_size) const;
     void DispatchIndirect(
         CommandBuffer<PLATFORM> *command_buffer,
         const IndirectBuffer<PLATFORM> *indirect,

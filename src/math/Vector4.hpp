@@ -216,8 +216,14 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
 
     Type Length() const { return std::sqrt(LengthSquared()); }
 
-    constexpr Type Avg() const { return (x + y + z + w) / Type(size); }
-    constexpr Type Sum() const { return x + y + z + w; }
+    HYP_FORCE_INLINE constexpr Type Avg() const
+        { return (x + y + z + w) / Type(size); }
+
+    HYP_FORCE_INLINE constexpr Type Sum() const
+        { return x + y + z + w; }
+
+    HYP_FORCE_INLINE constexpr Type Volume() const
+        { return x * y * z * w; }
 
     Type Max() const;
     Type Min() const;
@@ -451,8 +457,14 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
 
     Type Length() const { return std::sqrt(LengthSquared()); }
 
-    constexpr Type Avg() const { return (x + y + z + w) / Type(size); }
-    constexpr Type Sum() const { return x + y + z + w; }
+    HYP_FORCE_INLINE constexpr Type Avg() const
+        { return (x + y + z + w) / Type(size); }
+
+    HYP_FORCE_INLINE constexpr Type Sum() const
+        { return x + y + z + w; }
+
+    HYP_FORCE_INLINE constexpr Type Volume() const
+        { return x * y * z * w; }
 
     Type Max() const;
     Type Min() const;

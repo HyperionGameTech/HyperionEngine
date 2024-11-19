@@ -7,14 +7,14 @@
 namespace hyperion {
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(MakeRenderObject<Image>(SampledImage2D(
-          Extent2D(1, 1),
+          Vec2u { 1, 1 },
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST
       ))),
       m_image_view_2d_1x1_r8(MakeRenderObject<ImageView>()),
       m_image_2d_1x1_r8_storage(MakeRenderObject<Image>(StorageImage(
-          Extent3D(1, 1, 1),
+          Vec3u { 1, 1, 1 },
           renderer::InternalFormat::R8,
           ImageType::TEXTURE_TYPE_2D,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
@@ -22,14 +22,14 @@ PlaceholderData::PlaceholderData()
       ))),
       m_image_view_2d_1x1_r8_storage(MakeRenderObject<ImageView>()),
       m_image_3d_1x1x1_r8(MakeRenderObject<Image>(SampledImage3D(
-          Extent3D(1, 1, 1),
+          Vec3u { 1, 1, 1 },
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST
       ))),
       m_image_view_3d_1x1x1_r8(MakeRenderObject<ImageView>()),
       m_image_3d_1x1x1_r8_storage(MakeRenderObject<Image>(StorageImage(
-          Extent3D(1, 1, 1),
+          Vec3u { 1, 1, 1 },
           InternalFormat::R8,
           ImageType::TEXTURE_TYPE_3D,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
@@ -37,7 +37,7 @@ PlaceholderData::PlaceholderData()
       ))),
       m_image_view_3d_1x1x1_r8_storage(MakeRenderObject<ImageView>()),
       m_image_cube_1x1_r8(MakeRenderObject<Image>(SampledImageCube(
-          Extent2D(1, 1),
+          Vec2u { 1, 1 },
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST

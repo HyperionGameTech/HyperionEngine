@@ -307,9 +307,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         m_update_splat_distances->Dispatch(
             frame->GetCommandBuffer(),
-            Extent3D {
-                uint32((num_points + 255) / 256), 1, 1
-            }
+            Vec3u { uint32((num_points + 255) / 256), 1, 1 }
         );
 
         m_splat_indices_buffer->InsertBarrier(
@@ -408,7 +406,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
             m_sort_splats->Dispatch(
                 frame->GetCommandBuffer(),
-                Extent3D { workgroup_count, 1, 1 }
+                Vec3u { workgroup_count, 1, 1 }
             );
 
             m_splat_indices_buffer->InsertBarrier(
@@ -469,9 +467,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         m_update_splats->Dispatch(
             frame->GetCommandBuffer(),
-            Extent3D {
-                uint32((num_points + 255) / 256), 1, 1
-            }
+            Vec3u { uint32((num_points + 255) / 256), 1, 1 }
         );
 
         m_indirect_buffer->InsertBarrier(

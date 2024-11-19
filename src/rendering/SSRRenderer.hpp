@@ -30,7 +30,7 @@ public:
     friend struct RenderCommand_CreateSSRImageOutputs;
     friend struct RenderCommand_DestroySSRInstance;
 
-    SSRRenderer(const Extent2D &extent, SSRRendererOptions options);
+    SSRRenderer(const Vec2u &extent, SSRRendererOptions options);
     ~SSRRenderer();
 
     HYP_FORCE_INLINE bool IsRendered() const
@@ -48,7 +48,7 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
 
-    Extent2D                        m_extent;
+    Vec2u                           m_extent;
 
     FixedArray<Handle<Texture>, 4>  m_image_outputs;
     

@@ -90,7 +90,7 @@ struct RENDER_COMMAND(CreateRTRadianceUniformBuffers) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent, RTRadianceRendererOptions options)
+RTRadianceRenderer::RTRadianceRenderer(const Vec2u &extent, RTRadianceRendererOptions options)
     : m_extent(extent),
       m_options(options),
       m_updates { RT_RADIANCE_UPDATES_NONE, RT_RADIANCE_UPDATES_NONE }
@@ -197,17 +197,15 @@ void RTRadianceRenderer::Render(Frame *frame)
         ResourceState::UNORDERED_ACCESS
     );
 
-    const Extent3D image_extent = m_texture->GetImage()->GetExtent();
-    const SizeType num_pixels = image_extent.Size();
-    
+    const Vec3u image_extent = m_texture->GetImage()->GetExtent();
+
+    const SizeType num_pixels = image_extent.Volume();
     const SizeType half_num_pixels = num_pixels / 2;
 
     m_raytracing_pipeline->TraceRays(
         g_engine->GetGPUDevice(),
         frame->GetCommandBuffer(),
-        Extent3D {
-            uint32(half_num_pixels), 1, 1
-        }
+        Vec3u { uint32(half_num_pixels), 1, 1 }
     );
 
     m_texture->GetImage()->InsertBarrier(
@@ -230,7 +228,7 @@ void RTRadianceRenderer::CreateImages()
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA8,
-        Vec3u { m_extent.width, m_extent.height, 1 },
+        Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE

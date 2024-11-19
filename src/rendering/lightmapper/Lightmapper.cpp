@@ -607,7 +607,7 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
     m_raytracing_pipeline->TraceRays(
         g_engine->GetGPUDevice(),
         frame->GetCommandBuffer(),
-        Extent3D { uint32(rays.Size()), 1, 1 }
+        Vec3u { uint32(rays.Size()), 1, 1 }
     );
 
     m_hits_buffers[frame->GetFrameIndex()]->InsertBarrier(

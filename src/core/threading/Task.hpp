@@ -2,14 +2,18 @@
 #ifndef HYPERION_TASK_HPP
 #define HYPERION_TASK_HPP
 
-#include <core/functional/Proc.hpp>
+#include <core/containers/Bitset.hpp>
 
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Span.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/Semaphore.hpp>
+
+#include <core/functional/Proc.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/Util.hpp>
@@ -87,6 +91,8 @@ public:
     virtual TaskID GetTaskID() const = 0;
 
     virtual bool IsCompleted() const = 0;
+
+    virtual Delegate<void> &GetOnCompleteDelegate() = 0;
 };
 
 template <class... ArgTypes>
@@ -109,30 +115,33 @@ public:
         : m_id(other.m_id),
           m_initiator_thread_id(other.m_initiator_thread_id),
           m_assigned_scheduler(other.m_assigned_scheduler),
-          m_semaphore(std::move(other.m_semaphore))
+          m_semaphore(std::move(other.m_semaphore)),
+          OnComplete(std::move(other.OnComplete))
     {
         other.m_id = {};
         other.m_initiator_thread_id = {};
         other.m_assigned_scheduler = nullptr;
     }
 
-    TaskExecutor &operator=(TaskExecutor &&other) noexcept
-    {
-        if (this == &other) {
-            return *this;
-        }
+    TaskExecutor &operator=(TaskExecutor &&other) noexcept = delete;
 
-        m_id = other.m_id;
-        m_initiator_thread_id = other.m_initiator_thread_id;
-        m_assigned_scheduler = other.m_assigned_scheduler;
-        m_semaphore = std::move(other.m_semaphore);
+    // TaskExecutor &operator=(TaskExecutor &&other) noexcept
+    // {
+    //     if (this == &other) {
+    //         return *this;
+    //     }
 
-        other.m_id = {};
-        other.m_initiator_thread_id = {};
-        other.m_assigned_scheduler = nullptr;
+    //     m_id = other.m_id;
+    //     m_initiator_thread_id = other.m_initiator_thread_id;
+    //     m_assigned_scheduler = other.m_assigned_scheduler;
+    //     m_semaphore = std::move(other.m_semaphore);
 
-        return *this;
-    }
+    //     other.m_id = {};
+    //     other.m_initiator_thread_id = {};
+    //     other.m_assigned_scheduler = nullptr;
+
+    //     return *this;
+    // }
 
     virtual ~TaskExecutor() override = default;
 
@@ -167,6 +176,12 @@ public:
         { return m_semaphore.IsInSignalState(); }
 
     virtual void Execute(ArgTypes... args) = 0;
+
+    virtual Delegate<void> &GetOnCompleteDelegate() override final
+        { return OnComplete; }
+
+    /*! \brief Not called if task is part of a TaskBatch. */
+    Delegate<void>  OnComplete;
 
 protected:
     TaskID          m_id;
@@ -323,6 +338,8 @@ public:
         Base::m_result_value.Set(std::move(value));
 
         Base::GetSemaphore().Release(1);
+
+        Base::OnComplete();
     }
 
     void Fulfill(const ReturnType &value)
@@ -332,6 +349,8 @@ public:
         Base::m_result_value.Set(value);
 
         Base::GetSemaphore().Release(1);
+        
+        Base::OnComplete();
     }
 
 protected:
@@ -375,6 +394,8 @@ public:
         AssertThrow(!Base::IsCompleted());
 
         Base::GetSemaphore().Release(1);
+        
+        Base::OnComplete();
     }
 
 protected:
@@ -812,11 +833,105 @@ private:
     bool                m_owns_executor;
 };
 
+#pragma region AwaitAll
+
+namespace detail {
+
+template <class TaskType>
+struct TaskAwaitAll_Impl;
+
+template <class ReturnType, class... ArgTypes>
+struct TaskAwaitAll_Impl<Task<ReturnType, ArgTypes...>>
+{
+    Array<ReturnType> operator()(Span<Task<ReturnType, ArgTypes...>> tasks) const
+    {
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<ReturnType, ArgTypes...> &task = tasks[i];
+
+            AssertThrow(task.IsValid());
+        }
+
+        Bitset completion_states;
+        Bitset bound_states;
+
+        //debug
+        Array<int> called_states;
+        called_states.Resize(tasks.Size());
+
+        Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(tasks.Size());
+
+        while ((completion_states | bound_states).Count() != tasks.Size()) {
+            for (SizeType i = 0; i < tasks.Size(); ++i) {
+                if (completion_states.Test(i) || bound_states.Test(i)) {
+                    continue;
+                }
+
+                Task<ReturnType, ArgTypes...> &task = tasks[i];
+
+                if (task.IsCompleted()) {
+                    completion_states.Set(i, true);
+
+                    semaphore.Release(1);
+
+                    continue;
+                }
+
+                // @TODO : What if task finished right before delegate handler was bound?
+
+                task.GetTaskExecutor()->GetOnCompleteDelegate().Bind([&semaphore, &completion_states, &called_states, &tasks, task_index = i]()
+                {
+                    AssertThrow(called_states[task_index] == 0);
+
+                    called_states[task_index] = 1;
+                    DebugLog(LogType::Debug, "Call OnCompleted for task index %u (executor ptr: %p)\n", task_index, tasks[task_index].GetTaskExecutor());
+                    semaphore.Release(1);
+                });
+
+                bound_states.Set(i, true);
+            }
+        }
+
+        semaphore.Acquire();
+
+        Array<ReturnType> results;
+        results.ResizeUninitialized(tasks.Size());
+
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<ReturnType, ArgTypes...> &task = tasks[i];
+            AssertThrow(task.IsCompleted());
+            
+            Memory::Construct<ReturnType>(&results[i], std::move(task.Await()));
+        }
+
+        return results;
+    }
+};
+
+template <class... ArgTypes>
+struct TaskAwaitAll_Impl<Task<void, ArgTypes...>>
+{
+    void operator()(Span<Task<void, ArgTypes...>> tasks) const
+    {
+        HYP_NOT_IMPLEMENTED_VOID();
+    }
+};
+
+} // namespace detail
+
+template <class TaskType>
+decltype(auto) AwaitAll(Span<TaskType> tasks)
+{
+    return detail::TaskAwaitAll_Impl<TaskType>{}(tasks);
+}
+
+#pragma endregion AwaitAll
+
 } // namespace threading
 
 using threading::Task;
 using threading::TaskExecutor;
 using threading::TaskID;
+using threading::AwaitAll;
 
 } // namespace hyperion
 

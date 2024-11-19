@@ -14,7 +14,7 @@ class Engine;
 class DOFBlur
 {
 public:
-    DOFBlur(const Extent2D &extent);
+    DOFBlur(const Vec2u &extent);
     DOFBlur(const DOFBlur &other) = delete;
     DOFBlur &operator=(const DOFBlur &other) = delete;
     ~DOFBlur();
@@ -34,11 +34,11 @@ public:
     void Render(Frame *frame);
 
 private:
-    Extent2D m_extent;
+    Vec2u                       m_extent;
 
-    UniquePtr<FullScreenPass> m_blur_horizontal_pass;
-    UniquePtr<FullScreenPass> m_blur_vertical_pass;
-    UniquePtr<FullScreenPass> m_blur_mix_pass;
+    UniquePtr<FullScreenPass>   m_blur_horizontal_pass;
+    UniquePtr<FullScreenPass>   m_blur_vertical_pass;
+    UniquePtr<FullScreenPass>   m_blur_mix_pass;
 };
 
 } // namespace hyperion

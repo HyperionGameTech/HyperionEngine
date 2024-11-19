@@ -1631,11 +1631,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             uint32  deferred_flags;
         } deferred_combine_constants;
 
-        deferred_combine_constants.image_dimensions = {
-            m_combine_pass->GetFramebuffer()->GetExtent().width,
-            m_combine_pass->GetFramebuffer()->GetExtent().height
-        };
-
+        deferred_combine_constants.image_dimensions = m_combine_pass->GetFramebuffer()->GetExtent();
         deferred_combine_constants.deferred_flags = deferred_data.flags;
 
         m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
@@ -1732,7 +1728,7 @@ void DeferredRenderer::ApplyCameraJitter()
     static const float jitter_scale = 0.25f;
 
     if (camera.projection[3][3] < MathUtil::epsilon_f) {
-        Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);
+        Matrix4::Jitter(frame_counter, camera.dimensions.x, camera.dimensions.y, jitter);
 
         g_engine->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
         g_engine->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());

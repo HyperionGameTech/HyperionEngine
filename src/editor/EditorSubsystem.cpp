@@ -85,7 +85,7 @@ void EditorSubsystem::Initialize()
 
     const Vec2i window_size = m_app_context->GetMainWindow()->GetDimensions();
 
-    RC<ScreenCaptureRenderComponent> screen_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), window_size);
+    RC<ScreenCaptureRenderComponent> screen_capture_component = m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(NAME("EditorSceneCapture"), Vec2u(window_size));
     m_scene_texture = screen_capture_component->GetTexture();
 
     CreateEditorUI();

@@ -34,17 +34,19 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resourc
 };
 
 static void AddOwnedAttachment(
-    uint binding,
+    uint32 binding,
     InternalFormat format,
     FramebufferRef &framebuffer,
-    Extent2D extent = Extent2D { 0, 0 }
+    Vec2u extent = Vec2u::Zero()
 )
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     
-    if (!extent.Size()) {
+    if (extent == Vec2u::Zero()) {
         extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    } else {
+        AssertThrow(extent.Volume() != 0);
     }
 
     ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
@@ -156,7 +158,7 @@ void GBuffer::Destroy()
     }
 }
 
-void GBuffer::Resize(Extent2D resolution)
+void GBuffer::Resize(Vec2u resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -193,7 +195,7 @@ const AttachmentRef &GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourc
     return framebuffer->GetAttachment(uint(resource_name));
 }
 
-void GBuffer::GBufferBucket::CreateFramebuffer(Extent2D resolution)
+void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -204,7 +206,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Extent2D resolution)
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 
-    Extent2D framebuffer_extent = resolution;
+    Vec2u framebuffer_extent = resolution;
 
     if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
         if (window->IsHighDPI() && bucket != BUCKET_UI) {
@@ -259,12 +261,12 @@ void GBuffer::GBufferBucket::Destroy()
     SafeRelease(std::move(framebuffer));
 }
 
-void GBuffer::GBufferBucket::Resize(Extent2D resolution)
+void GBuffer::GBufferBucket::Resize(Vec2u resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    Extent2D framebuffer_extent = resolution;
+    Vec2u framebuffer_extent = resolution;
 
     if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
         if (window->IsHighDPI() && bucket != BUCKET_UI) {

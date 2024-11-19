@@ -494,9 +494,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
         spawner->GetComputePipeline()->Dispatch(
             frame->GetCommandBuffer(),
-            Extent3D {
-                uint32((max_particles + 255) / 256), 1, 1
-            }
+            Vec3u { uint32((max_particles + 255) / 256), 1, 1 }
         );
 
         spawner->GetIndirectBuffer()->InsertBarrier(

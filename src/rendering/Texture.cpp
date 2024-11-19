@@ -166,22 +166,22 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
 
         commands.Push([this](const CommandBufferRef &command_buffer)
         {
-            const Extent3D extent = m_image->GetExtent();
+            const Vec3u extent = m_image->GetExtent();
 
-            uint32 mip_width = extent.width,
-                mip_height = extent.height;
+            uint32 mip_width = extent.x,
+                mip_height = extent.y;
 
             ImageRef &dst_image = m_image;
 
             for (uint mip_level = 0; mip_level < uint(m_mip_image_views.Size()); mip_level++) {
-                auto &pass = m_passes[mip_level];
+                RC<FullScreenPass> &pass = m_passes[mip_level];
                 AssertThrow(pass != nullptr);
 
                 const uint32 prev_mip_width = mip_width,
                     prev_mip_height = mip_height;
 
-                mip_width = MathUtil::Max(1u, extent.width >> (mip_level));
-                mip_height = MathUtil::Max(1u, extent.height >> (mip_level));
+                mip_width = MathUtil::Max(1u, extent.x >> (mip_level));
+                mip_height = MathUtil::Max(1u, extent.y >> (mip_level));
 
                 struct alignas(128)
                 {
@@ -286,12 +286,12 @@ public:
 
     void Create()
     {
-        const uint num_mip_levels = m_image->NumMipmaps();
+        const uint32 num_mip_levels = m_image->NumMipmaps();
 
         m_mip_image_views.Resize(num_mip_levels);
         m_passes.Resize(num_mip_levels);
 
-        const Extent3D extent = m_image->GetExtent();
+        const Vec3u extent = m_image->GetExtent();
 
         ShaderRef shader = g_shader_manager->GetOrCreate(
             NAME("GenerateMipmaps"),
@@ -303,8 +303,8 @@ public:
 
             DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
-            const uint32 mip_width = MathUtil::Max(1u, extent.width >> mip_level);
-            const uint32 mip_height = MathUtil::Max(1u, extent.height >> mip_level);
+            const uint32 mip_width = MathUtil::Max(1u, extent.x >> mip_level);
+            const uint32 mip_height = MathUtil::Max(1u, extent.y >> mip_level);
 
             ImageViewRef mip_image_view = MakeRenderObject<ImageView>();
             PUSH_RENDER_COMMAND(CreateMipImageView, m_image, mip_image_view, mip_level);
@@ -321,7 +321,7 @@ public:
                     shader,
                     descriptor_table,
                     m_image->GetTextureFormat(),
-                    Extent2D { mip_width, mip_height }
+                    Vec2u { mip_width, mip_height }
                 );
 
                 pass->Create();

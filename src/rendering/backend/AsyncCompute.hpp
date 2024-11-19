@@ -60,13 +60,13 @@ public:
     HYP_API void Dispatch(
         Frame<PLATFORM> *frame,
         const ComputePipelineRef<PLATFORM> &ref,
-        Extent3D extent
+        const Vec3u &extent
     ) const;
 
     HYP_API void Dispatch(
         Frame<PLATFORM> *frame,
         const ComputePipelineRef<PLATFORM> &ref,
-        Extent3D extent,
+        const Vec3u &extent,
         const DescriptorTableRef<PLATFORM> &descriptor_table,
         const ArrayMap<Name, ArrayMap<Name, uint>> &offsets = { }
     ) const;

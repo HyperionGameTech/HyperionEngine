@@ -170,7 +170,7 @@ void FinalPass::SetUITexture(Handle<Texture> texture)
         texture = CreateObject<Texture>(TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA8,
-            Extent3D(1, 1, 1),
+            Vec3u { 1, 1, 1 },
             FilterMode::TEXTURE_FILTER_LINEAR,
             FilterMode::TEXTURE_FILTER_LINEAR,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE

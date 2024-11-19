@@ -24,7 +24,7 @@ class HYP_API PointLightShadowRenderer : public RenderComponentBase
     HYP_OBJECT_BODY(PointLightShadowRenderer);
 
 public:
-    PointLightShadowRenderer(Name name, Handle<Light> light, const Extent2D &extent);
+    PointLightShadowRenderer(Name name, Handle<Light> light, const Vec2u &extent);
     PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
     PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
     virtual ~PointLightShadowRenderer() override;
@@ -39,7 +39,7 @@ private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     Handle<Light>       m_light;
-    Extent2D            m_extent;
+    Vec2u               m_extent;
     BoundingBox         m_aabb;
     Handle<EnvProbe>    m_env_probe;
 

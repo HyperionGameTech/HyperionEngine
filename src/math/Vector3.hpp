@@ -173,6 +173,9 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
 
     HYP_FORCE_INLINE constexpr Type Sum() const
         { return x + y + z; }
+
+    HYP_FORCE_INLINE constexpr Type Volume() const
+        { return x * y * z; }
     
     Type Max() const;
     Type Min() const;
@@ -349,6 +352,9 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
 
     HYP_FORCE_INLINE constexpr Type Sum() const
         { return x + y + z; }
+
+    HYP_FORCE_INLINE constexpr Type Volume() const
+        { return x * y * z; }
     
     Type Max() const;
     Type Min() const;

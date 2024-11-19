@@ -60,17 +60,15 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     VisibilityStateComponent &visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
     visibility_state_component.visibility_state = nullptr;
 
-    if (visibility_state_component.octant_id != OctantID::Invalid()) {
-        Octree &octree = GetEntityManager().GetScene()->GetOctree();
+    Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
-        const Octree::Result remove_result = octree.Remove(entity);
+    const Octree::Result remove_result = octree.Remove(entity);
 
-        if (!remove_result) {
-            HYP_LOG(Octree, LogLevel::WARNING,  "Failed to remove entity {} from octree: {}", entity.Value(), remove_result.message);
-        }
-
-        visibility_state_component.octant_id = OctantID::Invalid();
+    if (!remove_result) {
+        HYP_LOG(Octree, LogLevel::WARNING,  "Failed to remove entity {} from octree: {}", entity.Value(), remove_result.message);
     }
+
+    visibility_state_component.octant_id = OctantID::Invalid();
 }
 
 void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
@@ -97,7 +95,10 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
                 continue;
             }
 
-            const Octree::InsertResult insert_result = octree.Insert(entity_id, bounding_box_component.world_aabb);
+            Handle<Entity> entity { entity_id };
+            AssertThrow(entity.IsValid());
+
+            const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
             if (insert_result.first) {
                 AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");

@@ -245,11 +245,11 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips.Size();
 
-    const Extent3D &image_extent = m_depth_attachment->GetImage()->GetExtent();
-    const Extent3D &depth_pyramid_extent = m_depth_pyramid->GetExtent();
+    const Vec3u &image_extent = m_depth_attachment->GetImage()->GetExtent();
+    const Vec3u &depth_pyramid_extent = m_depth_pyramid->GetExtent();
 
-    uint32 mip_width = image_extent.width,
-        mip_height = image_extent.height;
+    uint32 mip_width = image_extent.x,
+        mip_height = image_extent.y;
 
     for (uint mip_level = 0; mip_level < num_depth_pyramid_mip_levels; mip_level++) {
         // level 0 == write just-rendered depth image into mip 0
@@ -264,8 +264,8 @@ void DepthPyramidRenderer::Render(Frame *frame)
         const uint32 prev_mip_width = mip_width,
             prev_mip_height = mip_height;
 
-        mip_width = MathUtil::Max(1u, depth_pyramid_extent.width >> (mip_level));
-        mip_height = MathUtil::Max(1u, depth_pyramid_extent.height >> (mip_level));
+        mip_width = MathUtil::Max(1u, depth_pyramid_extent.x >> (mip_level));
+        mip_height = MathUtil::Max(1u, depth_pyramid_extent.y >> (mip_level));
 
         m_mip_descriptor_tables[mip_level]->Bind(frame, m_generate_depth_pyramid, { });
 
@@ -288,7 +288,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
         // dispatch to generate this mip level
         m_generate_depth_pyramid->Dispatch(
             command_buffer,
-            Extent3D {
+            Vec3u {
                 (mip_width + 31) / 32,
                 (mip_height + 31) / 32,
                 1

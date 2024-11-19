@@ -80,8 +80,8 @@ public:
 
         const AttachmentRef &GetGBufferAttachment(GBufferResourceName resource_name) const;
 
-        void CreateFramebuffer(Extent2D resolution);
-        void Resize(Extent2D resolution);
+        void CreateFramebuffer(Vec2u resolution);
+        void Resize(Vec2u resolution);
         void Destroy();
     };
 
@@ -101,20 +101,20 @@ public:
     HYP_FORCE_INLINE const FixedArray<GBufferBucket, Bucket::BUCKET_MAX> &GetBuckets() const
         { return m_buckets; }
 
-    HYP_FORCE_INLINE const Extent2D &GetResolution() const
+    HYP_FORCE_INLINE const Vec2u &GetResolution() const
         { return m_resolution; }
 
     void Create();
     void Destroy();
 
-    void Resize(Extent2D resolution);
+    void Resize(Vec2u resolution);
 
-    Delegate<void, Extent2D>                        OnGBufferResolutionChanged;
+    Delegate<void, Vec2u>                           OnGBufferResolutionChanged;
 
 private:
     FixedArray<GBufferBucket, Bucket::BUCKET_MAX>   m_buckets;
 
-    Extent2D                                        m_resolution;
+    Vec2u                                           m_resolution;
 };
 
 } // namespace hyperion

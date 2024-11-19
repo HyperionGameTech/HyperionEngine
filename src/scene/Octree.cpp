@@ -337,8 +337,8 @@ void Octree::ClearInternal(Array<Entry> &out_entries)
         m_entity_manager->PushCommand([entries = m_entries, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta) mutable
         {
             for (auto &entry : entries) {
-                if (mgr.HasEntity(entry.id)) {
-                    VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(entry.id);
+                if (mgr.HasEntity(entry.entity)) {
+                    VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(entry.entity);
                     visibility_state_component.octant_id = OctantID::Invalid();
                     visibility_state_component.visibility_state = nullptr;
                 }
@@ -348,11 +348,12 @@ void Octree::ClearInternal(Array<Entry> &out_entries)
 
     for (Entry &entry : m_entries) {
         if (m_state != nullptr) {
-            auto it = m_state->entity_to_octree.Find(entry.id);
+            auto entity_to_octree_it = m_state->entity_to_octree.FindAs(entry.entity);
 
-            if (it != m_state->entity_to_octree.End()) {
-                m_state->entity_to_octree.Erase(it);
-            }
+            AssertThrow(entity_to_octree_it != m_state->entity_to_octree.End());
+            AssertThrow(entity_to_octree_it->second == this);
+            
+            m_state->entity_to_octree.Erase(entity_to_octree_it);
         }
 
         out_entries.PushBack(std::move(entry));
@@ -371,7 +372,7 @@ void Octree::ClearInternal(Array<Entry> &out_entries)
     }
 }
 
-Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild)
+Octree::InsertResult Octree::Insert(const Handle<Entity> &entity, const BoundingBox &aabb, bool allow_rebuild)
 {
     HYP_SCOPE;
 
@@ -416,7 +417,7 @@ Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool
 
                     AssertThrow(octant.octree != nullptr);
 
-                    return octant.octree->Insert(id, aabb, allow_rebuild);
+                    return octant.octree->Insert(entity, aabb, allow_rebuild);
                 }
             }
         }
@@ -424,27 +425,27 @@ Octree::InsertResult Octree::Insert(ID<Entity> id, const BoundingBox &aabb, bool
 
     m_state->MarkOctantDirty(m_octant_id);
 
-    return InsertInternal(id, aabb);
+    return InsertInternal(entity, aabb);
 }
 
-Octree::InsertResult Octree::InsertInternal(ID<Entity> id, const BoundingBox &aabb)
+Octree::InsertResult Octree::InsertInternal(const Handle<Entity> &entity, const BoundingBox &aabb)
 {
     HYP_SCOPE;
 
-    m_entries.PushBack(Entry { id, aabb });
+    m_entries.PushBack(Entry { entity, aabb });
 
     if (m_state != nullptr) {
-        AssertThrowMsg(m_state->entity_to_octree.Find(id) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
+        AssertThrowMsg(m_state->entity_to_octree.FindAs(entity) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
 
-        m_state->entity_to_octree[id] = this;
+        m_state->entity_to_octree[entity] = this;
     }
 
     if (m_entity_manager) {
-        m_entity_manager->PushCommand([id, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
+        m_entity_manager->PushCommand([entity, octant_id = m_octant_id](EntityManager &mgr, GameCounter::TickUnit delta)
         {
-            if (mgr.HasEntity(id)) {
-                if (!mgr.HasComponent<VisibilityStateComponent>(id)) {
-                    mgr.AddComponent<VisibilityStateComponent>(id, VisibilityStateComponent {
+            if (mgr.HasEntity(entity)) {
+                if (!mgr.HasComponent<VisibilityStateComponent>(entity)) {
+                    mgr.AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {
                         .octant_id          = octant_id,
                         .visibility_state   = nullptr
                     });
@@ -452,17 +453,17 @@ Octree::InsertResult Octree::InsertInternal(ID<Entity> id, const BoundingBox &aa
 #ifdef HYP_OCTREE_DEBUG
                     HYP_LOG(Octree, LogLevel::WARNING,
                         "Entity #{} octant_id was not set, so it was set to {}:{}",
-                        id.Value(), octant_id.GetDepth(), octant_id.GetIndex());
+                        entity.GetID().Value(), octant_id.GetDepth(), octant_id.GetIndex());
 #endif
                 } else {
-                    VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(id);
+                    VisibilityStateComponent &visibility_state_component = mgr.GetComponent<VisibilityStateComponent>(entity);
                     visibility_state_component.octant_id = octant_id;
                     visibility_state_component.visibility_state = nullptr;
 
 #ifdef HYP_OCTREE_DEBUG
                     HYP_LOG(Octree, LogLevel::DEBUG,
                         "Entity #{} octant_id was set to {}:{}",
-                        id.Value(), octant_id.GetDepth(), octant_id.GetIndex());
+                        entity.GetID().Value(), octant_id.GetDepth(), octant_id.GetIndex());
 #endif
                 }
             }
@@ -480,13 +481,13 @@ Octree::Result Octree::Remove(ID<Entity> id, bool allow_rebuild)
     HYP_SCOPE;
 
     if (m_state != nullptr) {
-        const auto it = m_state->entity_to_octree.Find(id);
+        const auto it = m_state->entity_to_octree.FindAs(id);
 
         if (it == m_state->entity_to_octree.End()) {
             return { Result::OCTREE_ERR, "Not found in entry map" };
         }
 
-        if (auto *octree = it->second) {
+        if (Octree *octree = it->second) {
             return octree->RemoveInternal(id, allow_rebuild);
         }
 
@@ -517,7 +518,12 @@ Octree::Result Octree::RemoveInternal(ID<Entity> id, bool allow_rebuild)
     }
 
     if (m_state != nullptr) {
-        m_state->entity_to_octree.Erase(id);
+        auto entity_to_octree_it = m_state->entity_to_octree.FindAs(id);
+
+        AssertThrow(entity_to_octree_it != m_state->entity_to_octree.End());
+        AssertThrow(entity_to_octree_it->second == this);
+        
+        m_state->entity_to_octree.Erase(entity_to_octree_it);
     }
 
     if (m_entity_manager) {
@@ -624,7 +630,12 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
             if (parent->m_aabb.Contains(new_aabb)) {
                 if (it != nullptr) {
                     if (m_state != nullptr) {
-                        m_state->entity_to_octree.Erase(id);
+                        auto entity_to_octree_it = m_state->entity_to_octree.FindAs(id);
+
+                        AssertThrow(entity_to_octree_it != m_state->entity_to_octree.End());
+                        AssertThrow(entity_to_octree_it->second == this);
+
+                        m_state->entity_to_octree.Erase(entity_to_octree_it);
                     }
 
                     m_entries.Erase(*it);
@@ -669,7 +680,12 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
             if (octant.aabb.Contains(new_aabb)) {
                 if (it != nullptr) {
                     if (m_state != nullptr) {
-                        m_state->entity_to_octree.Erase(id);
+                        auto entity_to_octree_it = m_state->entity_to_octree.FindAs(id);
+
+                        AssertThrow(entity_to_octree_it != m_state->entity_to_octree.End());
+                        AssertThrow(entity_to_octree_it->second == this);
+
+                        m_state->entity_to_octree.Erase(entity_to_octree_it);
                     }
 
                     m_entries.Erase(*it);
@@ -700,13 +716,15 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
 
         entity_it->aabb = new_aabb;
     } else { /* Moved into new octant */
+        Handle<Entity> entity { id };
+        AssertThrow(entity.IsValid());
 
-        m_entries.PushBack(Entry { id, new_aabb });
+        m_entries.PushBack(Entry { entity, new_aabb });
 
         if (m_state != nullptr) {
-            AssertThrowMsg(m_state->entity_to_octree.Find(id) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
+            AssertThrowMsg(m_state->entity_to_octree.FindAs(id) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
 
-            m_state->entity_to_octree[id] = this;
+            m_state->entity_to_octree[entity.ToWeak()] = this;
         }
 
         if (m_entity_manager) {
@@ -738,7 +756,7 @@ Octree::InsertResult Octree::Update(ID<Entity> id, const BoundingBox &aabb, bool
     HYP_SCOPE;
 
     if (m_state != nullptr) {
-        const auto it = m_state->entity_to_octree.Find(id);
+        const auto it = m_state->entity_to_octree.FindAs(id);
 
         if (it == m_state->entity_to_octree.End()) {
             return {
@@ -844,7 +862,7 @@ Octree::InsertResult Octree::Rebuild()
             }
         }
 
-        auto insert_result = Insert(it.id, it.aabb, true /* allow rebuild */);
+        auto insert_result = Insert(it.entity, it.aabb, true /* allow rebuild */);
 
         if (!insert_result.first) {
             return insert_result;
@@ -867,7 +885,7 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox &new_aabb)
     m_aabb = new_aabb;
 
     for (auto &it : new_entries) {
-        auto insert_result = Insert(it.id, it.aabb, true /* allow rebuild */);
+        auto insert_result = Insert(it.entity, it.aabb, true /* allow rebuild */);
 
         if (!insert_result.first) {
             return insert_result;
@@ -934,14 +952,14 @@ void Octree::PerformUpdates()
     }
 }
 
-void Octree::CollectEntities(Array<ID<Entity>> &out) const
+void Octree::CollectEntities(Array<Handle<Entity>> &out) const
 {
     HYP_SCOPE;
 
     out.Reserve(out.Size() + m_entries.Size());
 
     for (const Octree::Entry &entry : m_entries) {
-        out.PushBack(entry.id);
+        out.PushBack(entry.entity);
     }
 
     if (m_is_divided) {
@@ -953,7 +971,7 @@ void Octree::CollectEntities(Array<ID<Entity>> &out) const
     }
 }
 
-void Octree::CollectEntitiesInRange(const Vector3 &position, float radius, Array<ID<Entity>> &out) const
+void Octree::CollectEntitiesInRange(const Vec3f &position, float radius, Array<Handle<Entity>> &out) const
 {
     HYP_SCOPE;
 
@@ -967,7 +985,7 @@ void Octree::CollectEntitiesInRange(const Vector3 &position, float radius, Array
 
     for (const Octree::Entry &entry : m_entries) {
         if (inclusion_aabb.Overlaps(entry.aabb)) {
-            out.PushBack(entry.id);
+            out.PushBack(entry.entity);
         }
     }
 
@@ -1113,7 +1131,9 @@ void Octree::RebuildEntriesHash(uint level)
         Array<EntityTag> tags;
         
         if (m_entity_manager) {
-            tags = m_entity_manager->GetTags(item.id);
+            // @FIXME: Having issue here where entity is no longer part of this entitymanager.
+            // Must be getting moved to a different one.
+            tags = m_entity_manager->GetTags(item.entity);
         }
 
         for (uint i = 0; i < uint(tags.Size()); i++) {
@@ -1172,7 +1192,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
 
             if (ray.TestAABB(
                 entry.aabb,
-                entry.id.Value(),
+                entry.entity.GetID().Value(),
                 nullptr,
                 out_results
             )) {

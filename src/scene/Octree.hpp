@@ -118,11 +118,11 @@ class Octree;
 
 struct OctreeState
 {
-    HashMap<ID<Entity>, Octree *>   entity_to_octree;
-    uint8                           visibility_cursor { 0u };
+    HashMap<WeakHandle<Entity>, Octree *>   entity_to_octree;
+    uint8                                   visibility_cursor { 0u };
 
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
-    OctantID                        rebuild_state = OctantID::Invalid();
+    OctantID                                rebuild_state = OctantID::Invalid();
 
     /*! \brief Mark the octant as dirty, meaning it needs to be rebuilt */
     void MarkOctantDirty(OctantID octant_id);
@@ -178,45 +178,47 @@ public:
 
     struct Entry
     {
-        ID<Entity>  id;
-        BoundingBox aabb;
+        Handle<Entity>  entity;
+        BoundingBox     aabb;
 
         Entry() = default;
 
-        Entry(ID<Entity> id, const BoundingBox &aabb)
-            : id(id),
+        Entry(const Handle<Entity> &entity, const BoundingBox &aabb)
+            : entity(entity),
               aabb(aabb)
         {
         }
 
         Entry(const Entry &other)
-            : id(other.id),
+            : entity(other.entity),
               aabb(other.aabb)
         {
         }
 
         Entry &operator=(const Entry &other)
         {
-            id = other.id;
+            entity = other.entity;
             aabb = other.aabb;
 
             return *this;
         }
 
         Entry(Entry &&other) noexcept
-            : id(other.id),
+            : entity(std::move(other.entity)),
               aabb(other.aabb)
         {
-            other.id = ID<Entity>::invalid;
             other.aabb = BoundingBox::Empty();
         }
 
         Entry &operator=(Entry &&other) noexcept
         {
-            id = other.id;
+            if (this == &other) {
+                return *this;
+            }
+
+            entity = std::move(other.entity);
             aabb = other.aabb;
 
-            other.id = ID<Entity>::invalid;
             other.aabb = BoundingBox::Empty();
 
             return *this;
@@ -226,18 +228,21 @@ public:
 
         HYP_FORCE_INLINE bool operator==(const Entry &other) const
         {
-            return id == other.id
+            return entity == other.entity
                 && aabb == other.aabb;
         }
 
         HYP_FORCE_INLINE bool operator!=(const Entry &other) const
-            { return !(*this == other); }
+        {
+            return entity != other.entity
+                || aabb != other.aabb;
+        }
 
         HashCode GetHashCode() const
         {
             HashCode hc;
 
-            hc.Add(id.GetHashCode());
+            hc.Add(entity.GetHashCode());
             hc.Add(aabb.GetHashCode());
 
             return hc;
@@ -312,7 +317,7 @@ public:
     }
         
     void Clear();
-    InsertResult Insert(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild = false);
+    InsertResult Insert(const Handle<Entity> &entity, const BoundingBox &aabb, bool allow_rebuild = false);
     Result Remove(ID<Entity> id, bool allow_rebuild = false);
     
     /*! \brief Update the entry in the octree. 
@@ -325,8 +330,8 @@ public:
     InsertResult Rebuild();
     InsertResult Rebuild(const BoundingBox &new_aabb);
     
-    void CollectEntities(Array<ID<Entity>> &out) const;
-    void CollectEntitiesInRange(const Vector3 &position, float radius, Array<ID<Entity>> &out) const;
+    void CollectEntities(Array<Handle<Entity>> &out) const;
+    void CollectEntitiesInRange(const Vector3 &position, float radius, Array<Handle<Entity>> &out) const;
     bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
     bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
     bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
@@ -357,7 +362,7 @@ private:
     {
         return m_entries.FindIf([id](const Entry &entry)
         {
-            return entry.id == id;
+            return entry.entity == id;
         });
     }
 
@@ -380,7 +385,7 @@ private:
         If \ref{allow_rebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allow_rebuild);
-    InsertResult InsertInternal(ID<Entity> id, const BoundingBox &aabb);
+    InsertResult InsertInternal(const Handle<Entity> &entity, const BoundingBox &aabb);
     InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild);
     Result RemoveInternal(ID<Entity> id, bool allow_rebuild);
     InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
