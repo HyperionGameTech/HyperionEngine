@@ -37,7 +37,7 @@ public:
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
  
     HYP_API RTRadianceRenderer(
-        const Extent2D &extent,
+        const Vec2u &extent,
         RTRadianceRendererOptions options = RT_RADIANCE_RENDERER_OPTION_NONE
     );
 
@@ -67,7 +67,7 @@ private:
 
     RTRadianceRendererOptions                           m_options;
 
-    Extent2D                                            m_extent;
+    Vec2u                                               m_extent;
     TLASRef                                             m_tlas;
     
     FixedArray<uint32, max_frames_in_flight>            m_updates;

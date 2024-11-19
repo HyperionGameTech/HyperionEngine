@@ -63,14 +63,14 @@ void ComputePipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *co
 template <>
 void ComputePipeline<Platform::VULKAN>::Dispatch(
     CommandBuffer<Platform::VULKAN> *command_buffer,
-    Extent3D group_size
+    const Vec3u &group_size
 ) const
 {
     vkCmdDispatch(
         command_buffer->GetPlatformImpl().command_buffer,
-        group_size.width,
-        group_size.height,
-        group_size.depth
+        group_size.x,
+        group_size.y,
+        group_size.z
     );
 }
 

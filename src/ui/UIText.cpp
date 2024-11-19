@@ -395,20 +395,24 @@ void UIText::UpdateMeshData_Internal()
         return;
     }
 
+    BoundingBox parent_aabb_clamped;
+
+    if (UIObject *parent = GetParentUIObject()) {
+        parent_aabb_clamped = parent->GetAABBClamped();
+    }
+
     MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
 
-    const Vec2i size = GetActualSize();
     const Vec2f position = GetAbsolutePosition();
-
     const float text_size = GetTextSize();
 
     Array<Matrix4> instance_transforms;
     Array<Vec4f> instance_texcoords;
+    Array<Vec4f> instance_offsets;
+    Array<Vec4f> instance_sizes;
 
     ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, [&](const FontAtlasCharacterIterator &iter)
     {
-        const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
-
         Transform character_transform;
         character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));
         character_transform.GetTranslation().y += (iter.cell_dimensions.y - iter.glyph_dimensions.y) * text_size;
@@ -416,10 +420,11 @@ void UIText::UpdateMeshData_Internal()
         character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * text_size;
         character_transform.UpdateMatrix();
 
-        BoundingBox character_aabb_clamped = BoundingBox(Vec3f::Zero(), Vec3f::One()) * character_transform;
-        character_aabb_clamped.min += Vec3f(position, 0.0f);
-        character_aabb_clamped.max += Vec3f(position, 0.0f);
-        character_aabb_clamped = character_aabb_clamped.Intersection(m_aabb_clamped);
+        BoundingBox character_aabb = BoundingBox(Vec3f::Zero(), Vec3f::One()) * character_transform;
+        character_aabb.min += Vec3f(position, 0.0f);
+        character_aabb.max += Vec3f(position, 0.0f);
+
+        BoundingBox character_aabb_clamped = character_aabb.Intersection(parent_aabb_clamped);
 
         Matrix4 instance_transform;
         instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;
@@ -427,18 +432,27 @@ void UIText::UpdateMeshData_Internal()
         instance_transform[2][2] = 1.0f;
         instance_transform[0][3] = character_aabb_clamped.min.x;
         instance_transform[1][3] = character_aabb_clamped.min.y;
+        instance_transform[2][3] = 0.0f;
 
         instance_transforms.PushBack(instance_transform);
 
-        instance_texcoords.PushBack(Vec4f(
-            Vec2f(iter.char_offset) * iter.atlas_pixel_size,
-            (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size
-        ));
+        const Vec2f size = character_aabb.GetExtent().GetXY();
+        const Vec2f clamped_size = character_aabb_clamped.GetExtent().GetXY();
+        const Vec2f clamped_offset = character_aabb.min.GetXY() - character_aabb_clamped.min.GetXY();
+
+        Vec2f texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
+        Vec2f texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
+
+        instance_texcoords.PushBack(Vec4f(texcoord_start, texcoord_end));
+        instance_offsets.PushBack(Vec4f(clamped_offset, 0.0f, 0.0f));
+        instance_sizes.PushBack(Vec4f(size, clamped_size));
     });
 
     mesh_component.instance_data.num_instances = instance_transforms.Size();
     mesh_component.instance_data.SetBufferData(0, instance_transforms.Data(), instance_transforms.Size());
     mesh_component.instance_data.SetBufferData(1, instance_texcoords.Data(), instance_texcoords.Size());
+    mesh_component.instance_data.SetBufferData(2, instance_offsets.Data(), instance_offsets.Size());
+    mesh_component.instance_data.SetBufferData(3, instance_sizes.Data(), instance_sizes.Size());
 
     HYP_LOG(UI, LogLevel::DEBUG, "Text \"{}\" has {} characters", m_text, mesh_component.instance_data.NumInstances());
 

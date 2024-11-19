@@ -152,7 +152,7 @@ struct CameraDrawProxy
     Vec3f       position;
     Vec3f       direction;
     Vec3f       up;
-    Extent2D    dimensions;
+    Vec2u       dimensions;
     float       clip_near;
     float       clip_far;
     float       fov;

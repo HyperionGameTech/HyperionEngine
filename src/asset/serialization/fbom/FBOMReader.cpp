@@ -7,8 +7,12 @@
 #include <asset/BufferedByteReader.hpp>
 
 #include <core/utilities/Format.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/object/HypData.hpp>
+
+#include <core/threading/Task.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -854,6 +858,8 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         return err;
     }
 
+    FBOMResult result = FBOMResult::FBOM_OK;
+
     FBOMCommand command = FBOM_NONE;
 
     // read unique ID
@@ -1003,7 +1009,7 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
     //     );
     // }
 
-    return FBOMResult::FBOM_OK;
+    return result;
 }
 
 FBOMResult FBOMReader::ReadArchive(BufferedReader *reader, Archive &out_archive)

@@ -139,7 +139,7 @@ template <>
 void AsyncCompute<Platform::VULKAN>::Dispatch(
     Frame<Platform::VULKAN> *frame,
     const ComputePipelineRef<Platform::VULKAN> &ref,
-    Extent3D extent
+    const Vec3u &extent
 ) const
 {
     HYP_SCOPE;
@@ -154,7 +154,7 @@ template <>
 void AsyncCompute<Platform::VULKAN>::Dispatch(
     Frame<Platform::VULKAN> *frame,
     const ComputePipelineRef<Platform::VULKAN> &ref,
-    Extent3D extent,
+    const Vec3u &extent,
     const DescriptorTableRef<Platform::VULKAN> &descriptor_table,
     const ArrayMap<Name, ArrayMap<Name, uint>> &offsets
 ) const

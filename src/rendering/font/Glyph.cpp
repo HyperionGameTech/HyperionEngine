@@ -8,8 +8,6 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <util/img/Bitmap.hpp>
-
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>
@@ -22,25 +20,22 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
+static constexpr InternalFormat g_glyph_texture_format = InternalFormat::RGBA8;
+
 #pragma region GlyphImageData
 
 Handle<Texture> GlyphImageData::CreateTexture() const
 {
-    AssertThrow(byte_buffer.Size() == dimensions.x * dimensions.y);
-
     RC<StreamedTextureData> streamed_texture_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::R8,
+            g_glyph_texture_format,
             Vec3u { uint32(dimensions.x), uint32(dimensions.y), 1 }
         },
         byte_buffer
     });
 
-    Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_texture_data));
-    InitObject(texture);
-
-    return texture;
+    return CreateObject<Texture>(std::move(streamed_texture_data));
 }
 
 #pragma endregion GlyphImageData
@@ -116,21 +111,23 @@ void Glyph::Render()
     const Vec2i dimensions = GetMax();
 
     ByteBuffer byte_buffer;
-    byte_buffer.SetSize(dimensions.x * dimensions.y);
-
+    byte_buffer.SetSize(dimensions.Volume() * renderer::NumComponents(g_glyph_texture_format) * renderer::NumBytes(g_glyph_texture_format));
+    
     if (ft_bitmap.buffer != nullptr) {
-        // byte_buffer.Write(uint32(MathUtil::Abs(ft_bitmap.pitch)) * ft_bitmap.rows, 0, ft_bitmap.buffer);
-
         for (uint32 row = 0; row < ft_bitmap.rows; ++row) {
             for (uint32 col = 0; col < ft_bitmap.width; ++col) {
-                byte_buffer.Data()[row * dimensions.x + col] = ft_bitmap.buffer[row * ft_bitmap.pitch + col];
+                ubyte *dst_offset = byte_buffer.Data() + (row * dimensions.x + col) * renderer::NumComponents(g_glyph_texture_format) * renderer::NumBytes(g_glyph_texture_format);
+
+                // Copy the grayscale value into the RGBA channels
+                for (uint32 component_index = 0; component_index < renderer::NumComponents(g_glyph_texture_format); component_index++) {
+                    for (uint32 byte_index = 0; byte_index < renderer::NumBytes(g_glyph_texture_format); byte_index++) {
+                        dst_offset[component_index * renderer::NumBytes(g_glyph_texture_format) + byte_index] = ft_bitmap.buffer[row * ft_bitmap.pitch + col];
+                    }
+                }
+                // byte_buffer.Data()[row * dimensions.x + col] = ft_bitmap.buffer[row * ft_bitmap.pitch + col];
             }
         }
     }
-
-    Bitmap<1> bm(dimensions.x, dimensions.y);
-    bm.SetPixels(byte_buffer);
-    bm.Write(String("glyph_") + String::ToString(m_index) + ".bmp");
 
     m_glyph_image_data = GlyphImageData {
         dimensions,

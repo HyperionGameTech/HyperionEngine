@@ -104,7 +104,7 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, con
 void EnvProbe::UpdateRenderData(
     uint32 texture_slot,
     uint32 grid_slot,
-    Extent3D grid_size
+    const Vec3u &grid_size
 )
 {
     const BoundingBox &aabb = m_proxy.aabb;
@@ -131,9 +131,9 @@ void EnvProbe::UpdateRenderData(
         .dimensions         = m_dimensions,
         .position_in_grid   = grid_slot != ~0u
             ? Vec4i {
-                  int32(grid_slot % grid_size.width),
-                  int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
-                  int32(grid_slot / (grid_size.width * grid_size.height)),
+                  int32(grid_slot % grid_size.x),
+                  int32((grid_slot % (grid_size.x * grid_size.y)) / grid_size.x),
+                  int32(grid_slot / (grid_size.x * grid_size.y)),
                   int32(grid_slot)
               }
             : Vec4i::Zero(),
@@ -518,8 +518,8 @@ void EnvProbe::Render(Frame *frame)
             // set it such that the uint value of probe_index
             // would be the held value.
             probe_index = EnvProbeIndex(
-                Extent3D { 0, 0, it->second.Get() },
-                Extent3D { 0, 0, 0 }
+                Vec3u { 0, 0, it->second.Get() },
+                Vec3u { 0, 0, 0 }
             );
         }
 
@@ -632,7 +632,7 @@ void EnvProbe::UpdateRenderData(bool set_texture)
     UpdateRenderData(
         texture_slot,
         IsControlledByEnvGrid() ? m_grid_slot : ~0u,
-        IsControlledByEnvGrid() ? m_bound_index.grid_size : Extent3D { }
+        IsControlledByEnvGrid() ? m_bound_index.grid_size : Vec3u { }
     );
 
     // update cubemap texture in array of bound env probes

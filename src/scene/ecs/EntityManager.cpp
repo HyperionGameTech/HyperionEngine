@@ -309,6 +309,8 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
 
     AssertThrow(entity.IsValid());
 
+    HYP_LOG(ECS, LogLevel::DEBUG, "Moving Entity #{} from EntityManager {} to {}", entity.GetID().Value(), (void *)this, (void *)&other);
+
     // Threads::AssertOnThread(m_owner_thread_mask);
 
     const auto entity_it = m_entities.Find(entity);

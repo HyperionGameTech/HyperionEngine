@@ -34,7 +34,7 @@ public:
     HYP_API void TraceRays(
         Device<Platform::VULKAN> *device,
         CommandBuffer<Platform::VULKAN> *command_buffer,
-        Extent3D extent
+        const Vec3u &extent
     ) const;
 
 private:

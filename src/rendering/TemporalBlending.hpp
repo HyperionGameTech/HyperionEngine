@@ -40,14 +40,14 @@ public:
     friend struct RenderCommand_RecreateTemporalBlendingFramebuffer;
 
     TemporalBlending(
-        const Extent2D &extent,
+        const Vec2u &extent,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
         const FixedArray<ImageViewRef, max_frames_in_flight> &input_image_views
     );
 
     TemporalBlending(
-        const Extent2D &extent,
+        const Vec2u &extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
@@ -55,7 +55,7 @@ public:
     );
 
     TemporalBlending(
-        const Extent2D &extent,
+        const Vec2u &extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
@@ -83,10 +83,10 @@ public:
     void Create();
     void Render(Frame *frame);
 
-    void Resize(Extent2D new_size);
+    void Resize(Vec2u new_size);
 
 private:
-    void Resize_Internal(Extent2D new_size);
+    void Resize_Internal(Vec2u new_size);
 
     ShaderProperties GetShaderProperties() const;
 
@@ -94,7 +94,7 @@ private:
     void CreateDescriptorSets();
     void CreateComputePipelines();
 
-    Extent2D                                        m_extent;
+    Vec2u                                           m_extent;
     InternalFormat                                  m_image_format;
     TemporalBlendTechnique                          m_technique;
     TemporalBlendFeedback                           m_feedback;

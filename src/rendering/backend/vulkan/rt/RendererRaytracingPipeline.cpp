@@ -182,7 +182,7 @@ void RaytracingPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> 
 void RaytracingPipeline<Platform::VULKAN>::TraceRays(
     Device<Platform::VULKAN> *device,
     CommandBuffer<Platform::VULKAN> *command_buffer,
-    Extent3D extent
+    const Vec3u &extent
 ) const
 {
     device->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
@@ -191,7 +191,7 @@ void RaytracingPipeline<Platform::VULKAN>::TraceRays(
         &m_shader_binding_table_entries.ray_miss,
         &m_shader_binding_table_entries.closest_hit,
         &m_shader_binding_table_entries.callable,
-        extent.width, extent.height, extent.depth
+        extent.x, extent.y, extent.z
     );
 }
 

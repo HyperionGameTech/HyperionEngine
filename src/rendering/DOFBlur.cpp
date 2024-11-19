@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-DOFBlur::DOFBlur(const Extent2D &extent)
+DOFBlur::DOFBlur(const Vec2u &extent)
     : m_extent(extent)
 {
 }

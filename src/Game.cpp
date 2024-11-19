@@ -65,7 +65,7 @@ void Game::Init_Internal()
 
     m_game_thread->GetSchedulerInstance()->Enqueue([this](GameCounter::TickUnit delta) -> void
     {
-        Extent2D window_size;
+        Vec2i window_size;
 
         if (m_app_context->GetMainWindow()) {
             window_size = m_app_context->GetMainWindow()->GetDimensions();
@@ -81,7 +81,7 @@ void Game::Init_Internal()
 
         m_scene->SetCamera(CreateObject<Camera>(
             70.0f,
-            window_size.width, window_size.height,
+            window_size.x, window_size.y,
             0.01f, 30000.0f
         ));
 

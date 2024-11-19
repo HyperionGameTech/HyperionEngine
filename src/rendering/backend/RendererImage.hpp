@@ -19,7 +19,7 @@
 
 namespace hyperion::renderer {
 
-static inline BaseFormat GetBaseFormat(InternalFormat fmt)
+static inline constexpr BaseFormat GetBaseFormat(InternalFormat fmt)
 {
     switch (fmt) {
     case InternalFormat::R8:
@@ -69,7 +69,7 @@ static inline BaseFormat GetBaseFormat(InternalFormat fmt)
     }
 }
 
-static inline uint32 NumComponents(BaseFormat format)
+static inline constexpr uint32 NumComponents(BaseFormat format)
 {
     switch (format) {
     case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
@@ -84,12 +84,12 @@ static inline uint32 NumComponents(BaseFormat format)
     }
 }
 
-static inline uint32 NumComponents(InternalFormat format)
+static inline constexpr uint32 NumComponents(InternalFormat format)
 {
     return NumComponents(GetBaseFormat(format));
 }
 
-static inline uint32 NumBytes(InternalFormat format)
+static inline constexpr uint32 NumBytes(InternalFormat format)
 {
     switch (format) {
     case InternalFormat::R8:
@@ -138,7 +138,7 @@ static inline uint32 NumBytes(InternalFormat format)
 
 /*! \brief returns a texture format that has a shifted bytes-per-pixel count
  * e.g calling with RGB16 and num components = 4 --> RGBA16 */
-static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
+static inline constexpr InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
 {
     if (new_num_components == 0) {
         return InternalFormat::NONE;
@@ -151,17 +151,17 @@ static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8
     return InternalFormat(int(fmt) + int(new_num_components) - current_num_components);
 }
 
-static inline bool IsDepthFormat(BaseFormat fmt)
+static inline constexpr bool IsDepthFormat(BaseFormat fmt)
 {
     return fmt == BaseFormat::TEXTURE_FORMAT_DEPTH;
 }
 
-static inline bool IsDepthFormat(InternalFormat fmt)
+static inline constexpr bool IsDepthFormat(InternalFormat fmt)
 {
     return IsDepthFormat(GetBaseFormat(fmt));
 }
 
-static inline bool IsSRGBFormat(InternalFormat fmt)
+static inline constexpr bool IsSRGBFormat(InternalFormat fmt)
 {
     return fmt >= InternalFormat::SRGB && fmt < InternalFormat::DEPTH;
 }

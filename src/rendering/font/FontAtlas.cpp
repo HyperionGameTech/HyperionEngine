@@ -203,7 +203,7 @@ void FontAtlas::Render()
 
         Handle<Texture> texture = CreateObject<Texture>(TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::R8, /* Grayscale 8-bit texture */
+            InternalFormat::RGBA8,
             Vec3u { uint32(scaled_extent.x * s_symbol_columns), uint32(scaled_extent.y * s_symbol_rows), 1 },
             FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,

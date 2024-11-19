@@ -32,7 +32,7 @@ class HYP_API ScreenCaptureRenderComponent : public RenderComponentBase
     HYP_OBJECT_BODY(ScreenCaptureRenderComponent);
 
 public:
-    ScreenCaptureRenderComponent(Name name, const Extent2D window_size, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
+    ScreenCaptureRenderComponent(Name name, const Vec2u &window_size, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
     ScreenCaptureRenderComponent(const ScreenCaptureRenderComponent &other)                 = delete;
     ScreenCaptureRenderComponent &operator=(const ScreenCaptureRenderComponent &other)      = delete;
     ScreenCaptureRenderComponent(ScreenCaptureRenderComponent &&other) noexcept             = delete;
@@ -56,7 +56,7 @@ private:
         { }
 
     ScreenCaptureMode   m_screen_capture_mode;
-    Extent2D            m_window_size;
+    Vec2u               m_window_size;
     Handle<Texture>     m_texture;
     GPUBufferRef        m_buffer;
 };

@@ -1968,15 +1968,20 @@ void UIObject::UpdateMeshData_Internal()
     instance_transform[0][0] = m_aabb_clamped.max.x - m_aabb_clamped.min.x;
     instance_transform[1][1] = m_aabb_clamped.max.y - m_aabb_clamped.min.y;
     instance_transform[2][2] = 1.0f;
-
     instance_transform[0][3] = m_aabb_clamped.min.x;
     instance_transform[1][3] = m_aabb_clamped.min.y;
 
     Vec4f instance_texcoords = Vec4f { 0.0f, 0.0f, 1.0f, 1.0f };
 
+    Vec4f instance_offsets = Vec4f(GetAbsolutePosition() - m_aabb_clamped.min.GetXY(), 0.0f, 0.0f);
+
+    Vec4f instance_sizes = Vec4f(Vec2f(m_actual_size), m_aabb_clamped.max.GetXY() - m_aabb_clamped.min.GetXY());
+
     mesh_component->instance_data.num_instances = 1;
     mesh_component->instance_data.SetBufferData(0, &instance_transform, 1);
     mesh_component->instance_data.SetBufferData(1, &instance_texcoords, 1);
+    mesh_component->instance_data.SetBufferData(2, &instance_offsets, 1);
+    mesh_component->instance_data.SetBufferData(3, &instance_sizes, 1);
 
     mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
 }

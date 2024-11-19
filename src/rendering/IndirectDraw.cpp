@@ -522,7 +522,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 
     m_object_visibility->Bind(command_buffer);
     
-    m_object_visibility->Dispatch(command_buffer, Extent3D { num_batches, 1, 1 });
+    m_object_visibility->Dispatch(command_buffer, Vec3u { num_batches, 1, 1 });
     
     m_indirect_draw_state.GetIndirectBuffer(frame_index)->InsertBarrier(
         frame->GetCommandBuffer(),

@@ -102,7 +102,7 @@ struct EnvGridOptions
 {
     EnvGridType             type = ENV_GRID_TYPE_SH;
     BoundingBox             aabb;
-    Extent3D                density = { 0, 0, 0 };
+    Vec3u                   density = Vec3u::Zero();
     EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
 };
 

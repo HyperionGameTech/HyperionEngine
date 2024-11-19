@@ -6,13 +6,13 @@
 
 namespace hyperion {
 
-ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Extent2D window_size, ScreenCaptureMode screen_capture_mode)
+ScreenCaptureRenderComponent::ScreenCaptureRenderComponent(Name name, const Vec2u &window_size, ScreenCaptureMode screen_capture_mode)
     : RenderComponentBase(name),
       m_window_size(window_size),
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,
           InternalFormat::RGBA8_SRGB,
-          Vec3u { window_size.width, window_size.height, 1 },
+          Vec3u { window_size.x, window_size.y, 1 },
           FilterMode::TEXTURE_FILTER_NEAREST,
           FilterMode::TEXTURE_FILTER_NEAREST,
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE

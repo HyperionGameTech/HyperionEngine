@@ -361,7 +361,7 @@ void DDGI::CreateUniformBuffer()
 
 void DDGI::CreateStorageBuffers()
 {
-    const Extent3D probe_counts = m_grid_info.NumProbesPerDimension();
+    const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
     m_radiance_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
 
@@ -374,9 +374,9 @@ void DDGI::CreateStorageBuffers()
     { // irradiance image
         constexpr InternalFormat irradiance_format = InternalFormat::RGBA16F;
 
-        const Extent3D extent {
-            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,
-            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2,
+        const Vec3u extent {
+            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.x * probe_counts.y + 2,
+            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.z + 2,
             1
         };
 
@@ -398,9 +398,9 @@ void DDGI::CreateStorageBuffers()
     { // depth image
         constexpr InternalFormat depth_format = InternalFormat::RG16F;
 
-        const Extent3D extent {
-            (m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,
-            (m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2,
+        const Vec3u extent {
+            (m_grid_info.depth_octahedron_size + 2) * probe_counts.x * probe_counts.y + 2,
+            (m_grid_info.depth_octahedron_size + 2) * probe_counts.z + 2,
             1
         };
 
@@ -516,7 +516,7 @@ void DDGI::RenderProbes(Frame *frame)
     m_pipeline->TraceRays(
         g_engine->GetGPUDevice(),
         frame->GetCommandBuffer(),
-        Extent3D {
+        Vec3u {
             m_grid_info.NumProbes(),
             m_grid_info.num_rays_per_probe,
             1u
@@ -563,7 +563,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     m_update_irradiance->Dispatch(
         frame->GetCommandBuffer(),
-        Extent3D {
+        Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
             1u
@@ -591,7 +591,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     m_update_depth->Dispatch(
         frame->GetCommandBuffer(),
-        Extent3D {
+        Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
             1u
@@ -631,9 +631,9 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     m_copy_border_texels_irradiance->Dispatch(
         frame->GetCommandBuffer(),
-        Extent3D {
-            (probe_counts.width * probe_counts.height * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.width)) + 7 / 8,
-            (probe_counts.depth * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.depth)) + 7 / 8,
+        Vec3u {
+            (probe_counts.x * probe_counts.y * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.x)) + 7 / 8,
+            (probe_counts.z * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.z)) + 7 / 8,
             1u
         }
     );
@@ -659,9 +659,9 @@ void DDGI::ComputeIrradiance(Frame *frame)
     
     m_copy_border_texels_depth->Dispatch(
         frame->GetCommandBuffer(),
-        Extent3D {
-            (probe_counts.width * probe_counts.height * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.width)) + 15 / 16,
-            (probe_counts.depth * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.depth)) + 15 / 16,
+        Vec3u {
+            (probe_counts.x * probe_counts.y * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.x)) + 15 / 16,
+            (probe_counts.z * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.z)) + 15 / 16,
             1u
         }
     );
