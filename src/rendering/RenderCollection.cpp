@@ -33,9 +33,6 @@ static constexpr bool do_parallel_collection = true;
 
 #pragma region Render commands
 
-// @TODO: Make Material, Texture(?), etc. only need to have their render objects (e.g DescriptorSetRef)
-// while the objects are used by this system (any RenderProxy objects)
-// would free up quite a bit of memory.
 struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 {
     RC<EntityDrawCollection>            collection;
@@ -156,7 +153,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             if (framebuffer != nullptr) {
                 render_group->AddFramebuffer(framebuffer);
             } else {
-                FramebufferRef bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+                const FramebufferRef &bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
                 AssertThrow(bucket_framebuffer != nullptr);
 
                 render_group->AddFramebuffer(bucket_framebuffer);
@@ -179,21 +176,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         auto &proxy_groups = collection->GetProxyGroups()[pass_type];
 
         auto it = proxy_groups.Find(attributes);
-        // AssertThrow(it != proxy_groups.End());
-
-        // temp
-        if (it == proxy_groups.End()) {
-            HYP_LOG(RenderCollection, LogLevel::DEBUG, "Found elements:");
-
-            RenderableAttributeSet **existing_attributes = new RenderableAttributeSet*[proxy_groups.Size()];
-
-            for (int i = 0; i < proxy_groups.Size(); i++) {
-                auto &pair = proxy_groups.AtIndex(i);
-                existing_attributes[i] = &pair.first;
-            }
-
-            HYP_BREAKPOINT;
-        }
+        AssertThrow(it != proxy_groups.End());
 
         const bool removed = it->second.RemoveRenderProxy(entity);
 
@@ -262,7 +245,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
         }
 
-        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}\nRemoved Proxies: {}\nChanged Proxies:{}",
+        HYP_LOG(RenderCollection, LogLevel::DEBUG, "Added Proxies: {}\nRemoved Proxies: {}\nChanged Proxies: {}",
             proxy_list.GetAddedEntities().Count(),
             proxy_list.GetRemovedEntities().Count(),
             proxy_list.GetChangedEntities().Count());
