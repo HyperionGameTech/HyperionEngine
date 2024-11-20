@@ -454,8 +454,6 @@ void UIText::UpdateMeshData_Internal()
     mesh_component.instance_data.SetBufferData(2, instance_offsets.Data(), instance_offsets.Size());
     mesh_component.instance_data.SetBufferData(3, instance_sizes.Data(), instance_sizes.Size());
 
-    HYP_LOG(UI, LogLevel::DEBUG, "Text \"{}\" has {} characters", m_text, mesh_component.instance_data.NumInstances());
-
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }
 

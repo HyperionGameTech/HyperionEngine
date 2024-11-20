@@ -17,18 +17,43 @@ namespace utilities {
 
 using TypeIDValue = uint32;
 
-namespace detail {
+static constexpr uint32 g_type_id_hash_bit_offset = 2;
+static constexpr uint32 g_type_id_hash_max = (~0u << g_type_id_hash_bit_offset) >> g_type_id_hash_bit_offset;
+static constexpr uint32 g_type_id_flag_bit_mask = 0x3u;
+static constexpr uint32 g_type_id_flag_max = 0x3u;
 
-template <class T>
-struct TypeID_Impl
+enum TypeIDFlags : uint8
 {
-    static constexpr TypeIDValue value = TypeNameWithoutNamespace<T>().GetHashCode().Value() % HashCode::ValueType(MathUtil::MaxSafeValue<TypeIDValue>());
+    TYPE_ID_FLAGS_NONE          = 0x0,
+    TYPE_ID_FLAGS_DYNAMIC       = 0x1, // Type is dynamic - does not map 1:1 to a native C++ type. E.g C# class
+    TYPE_ID_FLAGS_PLACEHOLDER   = 0x2
 };
 
-template <>
-struct TypeID_Impl<void>
+namespace detail {
+
+template <class T, uint8 Flags>
+struct TypeID_Impl
+{
+    static_assert(Flags <= g_type_id_flag_max, "Flags cannot be > 0x3");
+
+    static constexpr TypeIDValue value = ((TypeNameWithoutNamespace<T>().GetHashCode().Value() % HashCode::ValueType(g_type_id_hash_max)) << g_type_id_hash_bit_offset) | (Flags & g_type_id_flag_max);
+};
+
+template <uint8 Flags>
+struct TypeID_Impl<void, Flags>
 {
     static constexpr TypeIDValue value = 0;
+};
+
+template <uint8 Flags>
+struct TypeID_FromString_Impl
+{
+    static_assert(Flags <= g_type_id_flag_max, "Flags cannot be > 0x3");
+
+    constexpr TypeIDValue operator()(const char *str) const
+    {
+        return ((HashCode::GetHashCode(str).Value() % HashCode::ValueType(g_type_id_hash_max)) << g_type_id_hash_bit_offset) | (Flags & g_type_id_flag_max);
+    }
 };
 
 } // namespace detail
@@ -46,22 +71,10 @@ private:
 public:
     template <class T>
     static constexpr TypeID ForType()
-        { return TypeID { detail::TypeID_Impl<T>::value }; }
+        { return TypeID { detail::TypeID_Impl<T, TypeIDFlags::TYPE_ID_FLAGS_NONE>::value }; }
 
-    template <SizeType Sz>
-    static constexpr TypeID FromString(const char (&str)[Sz])
-    {
-        return TypeID {
-            ValueType(HashCode::GetHashCode(str).Value() % HashCode::ValueType(MathUtil::MaxSafeValue<ValueType>()))
-        };
-    }
-
-    static TypeID FromString(const char *str)
-    {
-        return TypeID {
-            ValueType(HashCode::GetHashCode(str).Value() % HashCode::ValueType(MathUtil::MaxSafeValue<ValueType>()))
-        };
-    }
+    static constexpr TypeID ForManagedType(const char *str)
+        { return TypeID { detail::TypeID_FromString_Impl<TypeIDFlags::TYPE_ID_FLAGS_DYNAMIC>{}(str) }; }
 
     constexpr TypeID()
         : value { void_value }
@@ -120,6 +133,12 @@ public:
     
     HYP_FORCE_INLINE constexpr bool operator>=(const TypeID &other) const
         { return value >= other.value; }
+
+    HYP_FORCE_INLINE constexpr bool IsNativeType() const
+        { return !((value & g_type_id_flag_max) & TYPE_ID_FLAGS_DYNAMIC); }
+
+    HYP_FORCE_INLINE constexpr bool IsDynamicType() const
+        { return (value & g_type_id_flag_max) & TYPE_ID_FLAGS_DYNAMIC; }
     
     HYP_FORCE_INLINE constexpr ValueType Value() const
         { return value; }

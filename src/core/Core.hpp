@@ -4,8 +4,9 @@
 #define HYP_CORE_CORE_HPP
 
 #include <core/Defines.hpp>
-#include <core/object/HypClassRegistry.hpp>
 #include <core/ID.hpp>
+
+#include <core/object/HypClassRegistry.hpp>
 
 #include <core/utilities/TypeID.hpp>
 
@@ -27,7 +28,9 @@ namespace hyperion {
 
 class Engine;
 class ObjectPool;
+
 class HypClass;
+class HypEnum;
 class HypObjectPtr;
 
 template <class T>
@@ -94,8 +97,16 @@ HYP_FORCE_INLINE const HypClass *GetClass(const Handle<T> &handle)
 }
 
 HYP_API const HypClass *GetClass(TypeID type_id);
-
 HYP_API const HypClass *GetClass(WeakName type_name);
+
+template <class T>
+HYP_FORCE_INLINE const HypEnum *GetEnum()
+{
+    return HypClassRegistry::GetInstance().template GetEnum<T>();
+}
+
+HYP_API const HypEnum *GetEnum(TypeID type_id);
+HYP_API const HypEnum *GetEnum(WeakName type_name);
 
 HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
 

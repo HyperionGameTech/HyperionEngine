@@ -41,6 +41,7 @@ class Engine;
 class Scene;
 class EditorDelegates;
 
+HYP_ENUM()
 enum NodeFlags : uint32
 {
     NONE                        = 0x0,
@@ -50,7 +51,11 @@ enum NodeFlags : uint32
     IGNORE_PARENT_ROTATION      = 0x4,
     IGNORE_PARENT_TRANSFORM     = IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE | IGNORE_PARENT_ROTATION,
 
-    EXCLUDE_FROM_PARENT_AABB    = 0x8
+    EXCLUDE_FROM_PARENT_AABB    = 0x8,
+
+    TRANSIENT                   = 0x100, // Set if the node should not be serialized
+
+    HIDE_IN_SCENE_OUTLINE       = 0x1000 // Should this node be hidden in the editor's outline window?
 };
 
 HYP_MAKE_ENUM_FLAGS(NodeFlags)
@@ -178,6 +183,8 @@ class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
     HYP_OBJECT_BODY(Node);
 
 public:
+    static const String s_unnamed_node_name;
+
 
 #ifdef HYP_EDITOR
     class EditorObservables
@@ -305,6 +312,9 @@ public:
     HYP_METHOD(Property="Name", Serialize=true, Editor=true)
     void SetName(const String &name);
 
+    HYP_METHOD()
+    bool HasName() const;
+
     /*! \returns The type of the node. By default, it will just be NODE. */
     HYP_METHOD(Property="Type")
     HYP_FORCE_INLINE Type GetType() const
@@ -312,16 +322,16 @@ public:
 
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
-     *  \returns The flags of the Node.
-    */
-    HYP_FORCE_INLINE NodeFlags GetFlags() const
+     *  \returns The flags of the Node. */
+    HYP_METHOD(Property="Flags", Serialize=true)
+    HYP_FORCE_INLINE EnumFlags<NodeFlags> GetFlags() const
         { return m_flags; }
 
     /*! \brief Set the flags of the Node.
      *  \see NodeFlagBits
      *  \param flags The flags to set on the Node. */
-    HYP_FORCE_INLINE void SetFlags(NodeFlags flags)
-        { m_flags = flags; }
+    HYP_METHOD(Property="Flags", Serialize=true)
+    void SetFlags(EnumFlags<NodeFlags> flags);
 
     HYP_METHOD(Property="Parent")
     HYP_FORCE_INLINE Node *GetParent() const

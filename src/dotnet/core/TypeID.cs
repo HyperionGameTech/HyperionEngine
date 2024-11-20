@@ -66,7 +66,7 @@ namespace Hyperion
         }
 
         /// <summary>
-        /// Returns the native TypeID for the given type using the type's name. If the type is intended to match a native type, the name of the C# type must match the native type's name.
+        /// Returns the native TypeID for the given type using the type's name. The returned TypeID will have the DYNAMIC flag set on its first two bits.
         /// </summary>
         /// <typeparam name="T">The C# type to lookup the TypeID of</typeparam>
         /// <returns>TypeID</returns>
@@ -75,20 +75,27 @@ namespace Hyperion
             string typeName = typeof(T).Name;
 
             TypeID value = new TypeID(0);
-            TypeID_FromString(typeName, out value);
+            TypeID_ForManagedType(typeName, out value);
 
             return value;
         }
 
-        public static TypeID FromString(string typeName)
+        /// <summary>
+        /// Returns the native TypeID for the given type using the type's name. The returned TypeID will have the DYNAMIC flag set on its first two bits.
+        /// <param name="type">The C# type to lookup the TypeID of</param>
+        /// <returns>TypeID</returns>
+        /// </summary>
+        public static TypeID ForType(Type type)
         {
+            string typeName = type.Name;
+
             TypeID value = new TypeID(0);
-            TypeID_FromString(typeName, out value);
+            TypeID_ForManagedType(typeName, out value);
 
             return value;
         }
 
-        [DllImport("hyperion", EntryPoint = "TypeID_FromString")]
-        private static extern TypeID TypeID_FromString([MarshalAs(UnmanagedType.LPStr)] string typeName, [Out] out TypeID result);
+        [DllImport("hyperion", EntryPoint = "TypeID_ForManagedType")]
+        private static extern TypeID TypeID_ForManagedType([MarshalAs(UnmanagedType.LPStr)] string typeName, [Out] out TypeID result);
     }
 }

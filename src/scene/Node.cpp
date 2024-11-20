@@ -31,8 +31,6 @@
 
 namespace hyperion {
 
-static const String g_unnamed_node_name = "<unnamed>";
-
 #pragma region NodeTag
 
 String NodeTag::ToString() const
@@ -75,6 +73,8 @@ String NodeTag::ToString() const
 #pragma endregion NodeTag
 
 #pragma region Node
+
+const String Node::s_unnamed_node_name = "<unnamed>";
 
 // @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
 // this only happens in the case that the scene in question is destructing and
@@ -128,7 +128,7 @@ Node::Node(
     const Transform &local_transform,
     Scene *scene
 ) : m_type(type),
-    m_name(name.Empty() ? g_unnamed_node_name : name),
+    m_name(name.Empty() ? s_unnamed_node_name : name),
     m_parent_node(nullptr),
     m_local_transform(local_transform),
     m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -154,7 +154,7 @@ Node::Node(Node &&other) noexcept
 {
     other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
-    other.m_name = g_unnamed_node_name;
+    other.m_name = s_unnamed_node_name;
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
@@ -246,7 +246,7 @@ Node::~Node()
 void Node::SetName(const String &name)
 {
     if (name.Empty()) {
-        m_name = g_unnamed_node_name;
+        m_name = s_unnamed_node_name;
     } else {
         m_name = name;
     }
@@ -254,6 +254,26 @@ void Node::SetName(const String &name)
 #ifdef HYP_EDITOR
     if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
+    }
+#endif
+}
+
+bool Node::HasName() const
+{
+    return m_name.Any() && m_name != s_unnamed_node_name;
+}
+
+void Node::SetFlags(EnumFlags<NodeFlags> flags)
+{
+    if (m_flags == flags) {
+        return;
+    }
+
+    m_flags = flags;
+
+#ifdef HYP_EDITOR
+    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Flags")));
     }
 #endif
 }
@@ -684,8 +704,13 @@ void Node::SetEntity(const Handle<Entity> &entity)
 #endif
         }
 
+        // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
+        // to match it, as long as we're not locked
+        // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
         if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity)) {
-            SetWorldTransform(transform_component->transform);
+            if (!IsTransformLocked()) {
+                SetWorldTransform(transform_component->transform);
+            }
         }
 
         RefreshEntityTransform();

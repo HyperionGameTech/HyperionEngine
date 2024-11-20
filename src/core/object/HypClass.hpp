@@ -379,7 +379,7 @@ protected:
 };
 
 template <class T>
-class HypClassInstance : public HypClass
+class HypClassInstance final : public HypClass
 {
 public:
     static HypClassInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)

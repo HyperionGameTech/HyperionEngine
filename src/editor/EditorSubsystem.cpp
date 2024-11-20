@@ -411,9 +411,50 @@ void EditorSubsystem::InitSceneOutline()
         }
     });
 
+    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    {
+        AssertThrow(node != nullptr);
+
+        RC<UIListView> list_view = list_view_weak.Lock();
+
+        if (!list_view) {
+            return;
+        }
+
+        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+            const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+
+            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
+                if (!data_source_element) {
+                    return;
+                }
+
+                data_source->Remove(node->GetUUID());
+            } else {
+                if (data_source_element) {
+                    return;
+                }
+
+                Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
+
+                UUID parent_node_uuid = UUID::Invalid();
+
+                if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
+                    parent_node_uuid = parent_node->GetUUID();
+                }
+
+                data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
+            }
+        }
+    });
+
     m_scene->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
         AssertThrow(node.IsValid());
+
+        if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
+            return;
+        }
 
         HYP_LOG(Editor, LogLevel::DEBUG, "Node added: {}", node->GetName());
 
@@ -442,11 +483,9 @@ void EditorSubsystem::InitSceneOutline()
 
     m_scene->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
-        if (!node.IsValid()) {
+        if (!node.IsValid() || (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)) {
             return;
         }
-
-        HYP_LOG(Editor, LogLevel::DEBUG, "Node removed: {}", node->GetName());
 
         RC<UIListView> list_view = list_view_weak.Lock();
 
@@ -455,10 +494,7 @@ void EditorSubsystem::InitSceneOutline()
         }
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            data_source->RemoveAllWithPredicate([&node](UIDataSourceElement *item)
-            {
-                return item->GetValue().ToRef() == node.Get();
-            });
+            AssertThrow(data_source->Remove(node->GetUUID()));
         }
     }).Detach();
 }

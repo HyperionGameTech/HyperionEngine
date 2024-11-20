@@ -61,7 +61,7 @@ protected:
 };
 
 template <class T>
-class HypStructInstance : public HypStruct
+class HypStructInstance final : public HypStruct
 {
 public:
     static HypStructInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)

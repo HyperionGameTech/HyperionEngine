@@ -278,37 +278,13 @@ void HyperionEditor::Init()
     //     });
     // }
 
-    // if (false) { // test terrain
-    //     auto terrain_node = m_scene->GetRoot()->AddChild();
-    //     auto terrain_entity = m_scene->GetEntityManager()->AddEntity();
-
-    //     // MeshComponent
-    //     m_scene->GetEntityManager()->AddComponent(terrain_entity, MeshComponent {
-    //         Handle<Mesh> { },
-    //         MaterialCache::GetInstance()->GetOrCreate({
-    //             .shader_definition = ShaderDefinition {
-    //                 HYP_NAME(Terrain),
-    //                 ShaderProperties(static_mesh_vertex_attributes)
-    //             },
-    //             .bucket = Bucket::BUCKET_OPAQUE
-    //         })
-    //     });
-
-    //     // TerrainComponent
-    //     m_scene->GetEntityManager()->AddComponent(terrain_entity, TerrainComponent {
-    //     });
-
-    //     terrain_node.SetEntity(terrain_entity);
-    //     terrain_node.SetName("TerrainNode");
-    // }
-
-    // { // test terrain 2
-    //     if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
-    //         world_grid->AddPlugin(0, RC<TerrainWorldGridPlugin>(new TerrainWorldGridPlugin()));
-    //     } else {
-    //         HYP_FAIL("Failed to get world grid");
-    //     }
-    // }
+    { // test terrain
+        if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
+            world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
+        } else {
+            HYP_FAIL("Failed to get world grid");
+        }
+    }
 
 #if 1
     // add sun
@@ -342,7 +318,7 @@ void HyperionEditor::Init()
 
 
     // Add Skybox
-    if (true) {
+    if (false) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {

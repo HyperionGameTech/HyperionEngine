@@ -1127,8 +1127,6 @@ void ReflectionProbePass::Render(Frame *frame)
                         break;
                     }
 
-                    // TODO: Add visibility check so we skip probes that don't have any impact on the current view
-
                     render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
                         ->Bind(
                             cmd,
@@ -1143,7 +1141,7 @@ void ReflectionProbePass::Render(Frame *frame)
                             scene_descriptor_set_index
                         );
 
-                    HYP_LOG(Rendering, LogLevel::DEBUG, "ReflectionProbePass: Render reflection probe #{}, type: {}", env_probe_id.Value(), uint32(env_probe_type));
+                    // HYP_LOG(Rendering, LogLevel::DEBUG, "ReflectionProbePass: Render reflection probe #{}, type: {}", env_probe_id.Value(), uint32(env_probe_type));
 
                     m_full_screen_quad->Render(cmd);
 

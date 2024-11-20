@@ -2,6 +2,7 @@
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>
+#include <core/object/HypEnum.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -57,6 +58,28 @@ const HypClass *HypClassRegistry::GetClass(WeakName type_name) const
     }
 
     return it->second;
+}
+
+const HypEnum *HypClassRegistry::GetEnum(TypeID type_id) const
+{
+    const HypClass *hyp_class = GetClass(type_id);
+
+    if (!hyp_class || !(hyp_class->GetFlags() & HypClassFlags::ENUM_TYPE)) {
+        return nullptr;
+    }
+
+    return static_cast<const HypEnum *>(hyp_class);
+}
+
+const HypEnum *HypClassRegistry::GetEnum(WeakName type_name) const
+{
+    const HypClass *hyp_class = GetClass(type_name);
+
+    if (!hyp_class || !(hyp_class->GetFlags() & HypClassFlags::ENUM_TYPE)) {
+        return nullptr;
+    }
+
+    return static_cast<const HypEnum *>(hyp_class);
 }
 
 void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)

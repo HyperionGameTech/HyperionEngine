@@ -450,6 +450,7 @@ extern HYP_API void LogStackTrace(int depth = 10);
 
 #define HYP_CLASS(...)
 #define HYP_STRUCT(...)
+#define HYP_ENUM(...)
 #define HYP_METHOD(...)
 #define HYP_PROPERTY(name, ...)
 #define HYP_FIELD(...)

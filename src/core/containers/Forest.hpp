@@ -103,6 +103,8 @@ public:
         Node            *m_prev;
     };
 
+    // @TODO: Change to not require a queue, instead,
+    // advance inline
     struct Iterator
     {
         Iterator(Node *root)
@@ -236,19 +238,35 @@ public:
         if (it == End()) {
             return End();
         }
+        
+        if (m_root.Get() == it.current_node) {
+            // if we are the root, remove it
+            m_root.Reset();
 
-        auto next = it++;
+            return End();
+        }
+
+        Iterator next = it;
+        next.Advance();
 
         if (it.current_node->m_next) {
             it.current_node->m_next->m_prev = it.current_node->m_prev;
         }
 
         if (it.current_node->m_prev) {
-            it.current_node->m_prev->m_next = std::move(it.current_node->m_next);
-        } else if (it.current_node->m_parent && it.current_node->m_parent->m_child.Get() == it.current_node) {
-            it.current_node->m_parent->m_child = std::move(it.current_node->m_next);
-        } else if (m_root.Get() == it.current_node) {
-            m_root.Reset();
+            UniquePtr<Node> _this_node = std::move(it.current_node->m_prev->m_next);
+            // If we are a sibling in a chain, update the left sibling to point to our right sibling (if any)
+            _this_node->m_prev->m_next = std::move(_this_node->m_next);
+            // this is released
+            return next;
+        }
+        
+        if (it.current_node->m_parent && it.current_node->m_parent->m_child.Get() == it.current_node) {
+            UniquePtr<Node> _this_node = std::move(it.current_node->m_parent->m_child);
+            // If we are the first child, update the parent to refer to our right sibling (if any) as the first child
+            _this_node->m_parent->m_child = std::move(_this_node->m_next);
+            // this is released
+            return next;
         }
 
         return next;

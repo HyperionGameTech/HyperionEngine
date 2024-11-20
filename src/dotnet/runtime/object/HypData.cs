@@ -227,6 +227,11 @@ namespace Hyperion
 
             if (type.IsValueType)
             {
+                if (type.IsEnum)
+                {
+                    type = Enum.GetUnderlyingType(type);
+                }
+
                 HypClass? hypClass = null;
 
                 if (HypStructHelpers.IsHypStruct(value.GetType(), out hypClass))
@@ -244,18 +249,6 @@ namespace Hyperion
                                 throw new InvalidOperationException("Failed to set HypStruct");
                             }
                         }
-
-                        // IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf(value));
-                        // Marshal.StructureToPtr(value, ptr, false);
-
-                        // if (!HypData_SetHypStruct(ref this, ((HypClass)hypClass).Address, (uint)Marshal.SizeOf(value), ptr))
-                        // {
-                        //     Marshal.FreeHGlobal(ptr);
-                            
-                        //     throw new InvalidOperationException("Failed to set HypStruct");
-                        // }
-
-                        // Marshal.FreeHGlobal(ptr);
 
                         return;
                     }

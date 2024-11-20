@@ -12,7 +12,7 @@ namespace Hyperion
     /// @TODO: For HypClassBinding, if the target is a struct, we need to validate that all fields match the HypClass 
     /// and we can validate, if the "Size" attribute is there, that they match the size of the struct.
 
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false)]
     public class HypClassBinding : Attribute
     {
         public string Name { get; set; }

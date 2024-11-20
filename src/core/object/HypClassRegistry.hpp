@@ -26,6 +26,8 @@ class Object;
 } // namespace dotnet
 
 class HypClass;
+class HypEnum;
+
 struct HypMember;
 
 template <class T>
@@ -34,13 +36,17 @@ class HypClassInstance;
 template <class T>
 class HypStructInstance;
 
+template <class T>
+class HypEnumInstance;
+
 enum class HypClassFlags : uint32
 {
     NONE        = 0x0,
     CLASS_TYPE  = 0x1,
     STRUCT_TYPE = 0x2,
-    ABSTRACT    = 0x4,
-    POD_TYPE    = 0x8
+    ENUM_TYPE   = 0x4,
+    ABSTRACT    = 0x8,
+    POD_TYPE    = 0x10
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)
@@ -65,6 +71,8 @@ public:
     template <class T>
     HYP_FORCE_INLINE const HypClass *GetClass() const
     {
+        static_assert(std::is_class_v<T> || std::is_enum_v<T>, "T must be an class or enum type to use GetClass<T>()");
+
         static constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
         
         return GetClass(type_id);
@@ -83,6 +91,35 @@ public:
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered.
      */
     const HypClass *GetClass(WeakName type_name) const;
+
+    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+     *
+     *  \tparam T The type to get the HypClass instance for.
+     *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
+     */
+    template <class T>
+    HYP_FORCE_INLINE const HypEnum *GetEnum() const
+    {
+        static_assert(std::is_enum_v<T>, "T must be an enum type to use GetEnum<T>()");
+
+        static constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        
+        return GetEnum(type_id);
+    }
+
+    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+     *
+     *  \param type_id The type to get the HypClass instance for.
+     *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
+     */
+    const HypEnum *GetEnum(TypeID type_id) const;
+
+    /*! \brief Get the HypClass instance for the given type casted to HypEnum.
+     *
+     *  \param type_id The type to get the HypClass instance for.
+     *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
+     */
+    const HypEnum *GetEnum(WeakName type_name) const;
 
     void RegisterClass(TypeID type_id, HypClass *hyp_class);
 
@@ -126,6 +163,15 @@ struct HypStructRegistration : public HypClassRegistrationBase
 {   
     HypStructRegistration(Name name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
         : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, {}, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
+    {
+    }
+};
+
+template <class T, EnumFlags<HypClassFlags> Flags>
+struct HypEnumRegistration : public HypClassRegistrationBase
+{   
+    HypEnumRegistration(Name name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, {}, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

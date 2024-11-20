@@ -10,7 +10,8 @@ namespace Hyperion
     {
         None = 0x0,
         ClassType = 0x1,
-        StructType = 0x2
+        StructType = 0x2,
+        EnumType = 0x4
     }
 
     public struct HypClass
@@ -95,6 +96,14 @@ namespace Hyperion
             get
             {
                 return (Flags & HypClassFlags.StructType) != 0;
+            }
+        }
+
+        public bool IsEnumType
+        {
+            get
+            {
+                return (Flags & HypClassFlags.EnumType) != 0;
             }
         }
 
@@ -253,6 +262,13 @@ namespace Hyperion
                 if (!type.IsClass)
                 {
                     throw new Exception("Expected a class type");
+                }
+            }
+            else if (IsEnumType)
+            {
+                if (!type.IsEnum)
+                {
+                    throw new Exception("Expected an enum type");
                 }
             }
             else

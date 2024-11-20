@@ -49,6 +49,8 @@ void EntityManagerCommandQueue::AwaitEmpty()
 
 void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 {
+    HYP_SCOPE;
+
     if (!(m_flags & EntityManagerCommandQueueFlags::EXEC_COMMANDS)) {
         return;
     }
@@ -64,6 +66,8 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 
 void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
+
     if (!(m_flags & EntityManagerCommandQueueFlags::EXEC_COMMANDS)) {
         return;
     }
@@ -97,6 +101,8 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 
 Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id))
 {
+    HYP_SCOPE;
+
     Task<bool> task;
 
     m_mutex.Lock();

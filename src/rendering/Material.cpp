@@ -750,15 +750,17 @@ Handle<Material> MaterialCache::GetOrCreate(
     hc.Add(parameters.GetHashCode());
     hc.Add(textures.GetHashCode());
 
-    Mutex::Guard guard(m_mutex);
+    {
+        Mutex::Guard guard(m_mutex);
 
-    const auto it = m_map.Find(hc);
+        const auto it = m_map.Find(hc);
 
-    if (it != m_map.End()) {
-        if (Handle<Material> handle = it->second.Lock()) {
-            HYP_LOG(Material, LogLevel::INFO, "Reusing material with hash {} from material cache", hc.Value());
+        if (it != m_map.End()) {
+            if (Handle<Material> handle = it->second.Lock()) {
+                HYP_LOG(Material, LogLevel::INFO, "Reusing material with hash {} from material cache", hc.Value());
 
-            return handle;
+                return handle;
+            }
         }
     }
     
@@ -779,7 +781,11 @@ Handle<Material> MaterialCache::GetOrCreate(
 
     InitObject(handle);
 
-    m_map.Set(hc, handle);
+    {
+        Mutex::Guard guard(m_mutex);
+        
+        m_map.Set(hc, handle);
+    }
 
     return handle;
 }

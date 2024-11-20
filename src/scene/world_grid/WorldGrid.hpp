@@ -16,6 +16,7 @@
 #include <core/threading/Mutex.hpp>
 
 #include <scene/Entity.hpp>
+#include <scene/Node.hpp>
 
 #include <math/Vector2.hpp>
 
@@ -28,6 +29,7 @@ class Scene;
 class EntityManager;
 class WorldGridPlugin;
 
+HYP_ENUM()
 enum class WorldGridPatchState
 {
     UNLOADED,
@@ -251,6 +253,8 @@ private:
     WorldGridState                      m_state;
 
     FlatMap<int, RC<WorldGridPlugin>>   m_plugins;
+
+    NodeProxy                           m_root_node;
 
     bool                                m_is_initialized;
 };

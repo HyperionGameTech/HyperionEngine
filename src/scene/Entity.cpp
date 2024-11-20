@@ -7,6 +7,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(Entity, Scene);
@@ -23,6 +25,10 @@ Entity::~Entity()
 
     Task<bool> success = EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity(id, [](EntityManager *entity_manager, ID<Entity> id)
     {
+        HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
+
+        HYP_LOG(Entity, LogLevel::DEBUG, "Removing Entity #{} from EntityManager on thread '{}'", id.Value(), Threads::CurrentThreadID().name);
+
         entity_manager->RemoveEntity(id);
     });
 

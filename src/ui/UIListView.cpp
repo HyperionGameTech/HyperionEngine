@@ -320,19 +320,20 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         HYP_LOG(UI, LogLevel::INFO, "Updating element {}", element->GetUUID().ToString());
 
-        // update the list view item with the new data
-
-        const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID());
-
-        if (list_view_item) {
+        if (const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID())) {
             if (RC<UIObject> ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
                 data_source->GetElementFactory()->UpdateUIObject(
                     ui_object.Get(),
                     element->GetValue()
                 );
+
+                // temp; sanity check
+                AssertThrow(FindListViewItem(element->GetUUID()) != nullptr);
             } else {
                 HYP_LOG(UI, LogLevel::ERR, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
             }
+        } else {
+            HYP_LOG(UI, LogLevel::WARNING, "Failed to update list view item with data source element UUID {}", element->GetUUID());
         }
     });
 }

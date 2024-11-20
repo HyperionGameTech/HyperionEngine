@@ -120,6 +120,27 @@ struct HypPropertyGetter
         type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
     }
 
+    // Special getter that takes no target. Used for Enums
+    template <class ReturnType>
+    HypPropertyGetter(ReturnType(*fnptr)(void))
+        : get_proc([fnptr](const HypData &target) -> HypData
+          {
+              return HypData(fnptr());
+          }),
+          serialize_proc([fnptr](const HypData &target) -> fbom::FBOMData
+          {   
+              fbom::FBOMData out;
+
+              if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(HypData(fnptr()), out)) {
+                  HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+              }
+
+              return out;
+          })
+    {
+        type_info.value_type_id = detail::GetUnwrappedSerializationTypeID<ReturnType>();
+    }
+
     template <class ValueType, class TargetType, typename = std::enable_if_t< !std::is_member_function_pointer_v<ValueType TargetType::*> > >
     explicit HypPropertyGetter(ValueType TargetType::*member)
         : get_proc([member](const HypData &target) -> HypData

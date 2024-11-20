@@ -10,6 +10,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/WorldGridComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/NodeLinkComponent.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -83,6 +84,7 @@ void WorldGridState::PushUpdate(WorldGridPatchUpdate &&update)
 
 WorldGrid::WorldGrid()
     : m_params { },
+      m_root_node(NodeProxy(MakeRefCountedPtr<Node>())),
       m_is_initialized(false)
 {
 }
@@ -90,15 +92,17 @@ WorldGrid::WorldGrid()
 WorldGrid::WorldGrid(const WorldGridParams &params, const Handle<Scene> &scene)
     : m_params(params),
       m_scene(scene),
+      m_root_node(NodeProxy(MakeRefCountedPtr<Node>())),
       m_is_initialized(false)
 {
+    if (scene.IsValid()) {
+        scene->GetRoot()->AddChild(m_root_node);
+    }
 }
 
 WorldGrid::~WorldGrid()
 {
-    Handle<Scene> scene = m_scene.Lock();
-
-    if (scene.IsValid()) {
+    if (Handle<Scene> scene = m_scene.Lock()) {
         const RC<EntityManager> &entity_manager = scene->GetEntityManager();
 
         if (entity_manager != nullptr) {
@@ -106,6 +110,11 @@ WorldGrid::~WorldGrid()
             entity_manager->GetCommandQueue().AwaitEmpty();
         }
     }
+
+    if (m_root_node.IsValid()) {
+        m_root_node->Remove();
+    }
+
 }
 
 void WorldGrid::Initialize()
@@ -139,7 +148,6 @@ void WorldGrid::Shutdown()
 void WorldGrid::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
 
     AssertThrow(m_is_initialized);
@@ -280,9 +288,14 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             // add command to create the entity
-            entity_manager->PushCommand([&state = m_state, &params = m_params, patch_info = initial_patch_info](EntityManager &mgr, GameCounter::TickUnit delta)
+            entity_manager->PushCommand([&root_node = m_root_node, &state = m_state, &params = m_params, patch_info = initial_patch_info](EntityManager &mgr, GameCounter::TickUnit delta)
             {
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+                NodeProxy patch_node(MakeRefCountedPtr<Node>());
+                // patch_node->SetFlags(NodeFlags::TRANSIENT);
+                patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
+                patch_node->SetName(HYP_FORMAT("Patch_{}_{}", patch_info.coord.x, patch_info.coord.y));
 
                 Handle<Entity> patch_entity = mgr.AddEntity();
 
@@ -310,11 +323,17 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                 HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} added", patch_info.coord);
 
-                Mutex::Guard guard(state.patches_mutex);
-                auto it = state.patches.Find(patch_info.coord);
-                AssertThrow(it != state.patches.End());
+                {
+                    Mutex::Guard guard(state.patches_mutex);
+                    auto it = state.patches.Find(patch_info.coord);
+                    AssertThrow(it != state.patches.End());
 
-                it->second.entity = patch_entity;
+                    it->second.entity = patch_entity;
+                }
+
+                patch_node->SetEntity(patch_entity);
+
+                root_node->AddChild(patch_node);
             });
 
             // @TODO: Only generate patch if entity is created successfully
@@ -367,26 +386,32 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             { // remove the patch
                 Mutex::Guard guard(m_state.patches_mutex);
 
-                // Handle<Entity> patch_entity;
+                Handle<Entity> patch_entity;
 
                 const auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it != m_state.patches.End()) {
-                    // patch_entity = patches_it->second.entity;
+                    patch_entity = patches_it->second.entity;
+
                     m_state.patches.Erase(patches_it);
                 }
 
-                // if (patch_entity.IsValid()) {
-                //     // Push command to remove the entity
-                //     entity_manager->PushCommand([&state = m_state, update, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta)
-                //     {
-                //         if (mgr.HasEntity(patch_entity)) {
-                //             mgr.RemoveEntity(patch_entity);
-                //         }
+                if (patch_entity.IsValid()) {
+                    // Push command to remove the entity
+                    entity_manager->PushCommand([&state = m_state, update, entity = std::move(patch_entity)](EntityManager &mgr, GameCounter::TickUnit delta)
+                    {
+                        // Remove the node from the parent
+                        if (mgr.HasEntity(entity)) {
+                            if (NodeLinkComponent *node_link_component = mgr.TryGetComponent<NodeLinkComponent>(entity)) {
+                                if (RC<Node> node = node_link_component->node.Lock()) {
+                                    node->Remove();
+                                }
+                            }
+                        }
 
-                //         HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} removed", update.coord);
-                //     });
-                // }
+                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} removed", update.coord);
+                    });
+                }
             }
 
             m_state.PushUpdate({
