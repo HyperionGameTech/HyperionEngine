@@ -97,7 +97,7 @@ struct DetachedScenesContainer
             const uint64 thread_name_value = 1ull << i;
             const ThreadName thread_name = ThreadName(thread_name_value);
 
-            const ThreadID thread_id = Threads::GetThreadID(thread_name);
+            const ThreadID thread_id = Threads::GetStaticThreadID(thread_name);
 
             if (!thread_id.IsValid()) {
                 continue;

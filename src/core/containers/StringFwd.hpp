@@ -104,10 +104,10 @@ using WideStringView = StringView<StringType::WIDE_CHAR>;
 
 // traits
 template <class T>
-struct IsString { enum { value = false }; };
+struct IsString { static constexpr bool value = false; };
 
 template <int string_type>
-struct IsString<containers::detail::String<string_type>> { enum { value = true }; };
+struct IsString<containers::detail::String<string_type>> { static constexpr bool value = true; };
 
 } // namespace hyperion
 

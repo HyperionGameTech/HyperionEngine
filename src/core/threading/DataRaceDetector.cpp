@@ -26,7 +26,7 @@ const FixedArray<DataRaceDetector::ThreadAccessState, DataRaceDetector::num_prea
             for (SizeType i = 0; i < DataRaceDetector::num_preallocated_states; i++) {
                 const uint64 thread_name_value = 1ull << i;
                 const ThreadName thread_name = ThreadName(thread_name_value);
-                const ThreadID thread_id = Threads::GetThreadID(thread_name);
+                const ThreadID thread_id = Threads::GetStaticThreadID(thread_name);
 
                 data[i] = DataRaceDetector::ThreadAccessState { thread_id, DataAccessFlags::ACCESS_NONE };
             }

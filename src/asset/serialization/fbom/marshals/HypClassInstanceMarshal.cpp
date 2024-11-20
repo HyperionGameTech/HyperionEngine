@@ -75,9 +75,9 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
                 continue;
             }
 
-            HYP_NAMED_SCOPE_FMT("Serializing property '{}' for HypClass '{}'", property->name, hyp_class->GetName());
+            HYP_NAMED_SCOPE_FMT("Serializing property '{}' for HypClass '{}'", property->GetName(), hyp_class->GetName());
 
-            out.SetProperty(property->name.LookupString(), property->Serialize(target_data));
+            out.SetProperty(property->GetName().LookupString(), property->Serialize(target_data));
         }
     }
 

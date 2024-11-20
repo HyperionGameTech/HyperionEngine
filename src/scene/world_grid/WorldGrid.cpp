@@ -165,8 +165,6 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
     if (m_state.patch_generation_queue_shared.has_updates.Exchange(false, MemoryOrder::ACQUIRE_RELEASE)) {
         HYP_NAMED_SCOPE("Processing patch generation updates");
 
-        AssertThrow(m_state.patch_generation_queue_owned.Empty());
-
         // take the shared queue items and move it to the owned queue for this thread
         m_state.patch_generation_queue_shared.mutex.Lock();
         m_state.patch_generation_queue_owned = std::move(m_state.patch_generation_queue_shared.queue);
@@ -198,17 +196,23 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
             HYP_LOG(WorldGrid, LogLevel::INFO, "Adding generated patch at {}", patch_info.coord);
 
-            Mutex::Guard guard(m_state.patches_mutex);
+            Handle<Entity> patch_entity;
 
-            auto it = m_state.patches.Find(patch_info.coord);
+            {
+                Mutex::Guard guard(m_state.patches_mutex);
 
-            if (it == m_state.patches.End()) {
-                HYP_LOG(WorldGrid, LogLevel::WARNING, "Patch at {} was not found when updating entity", patch_info.coord);
+                auto it = m_state.patches.Find(patch_info.coord);
 
-                continue;
+                if (it == m_state.patches.End()) {
+                    HYP_LOG(WorldGrid, LogLevel::WARNING, "Patch at {} was not found when updating entity", patch_info.coord);
+
+                    continue;
+                }
+
+                it->second.patch = patch;
+
+                patch_entity = it->second.entity;
             }
-
-            const Handle<Entity> patch_entity = it->second.entity;
 
             // @TODO: what should happen if this is hit before the entity is created?
 
@@ -219,14 +223,12 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             // Initialize patch entity on game thread
-            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch, scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
+            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch = std::move(patch), scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
             {
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
                 patch->InitializeEntity(scene, patch_entity);
             });
-
-            it->second.patch = std::move(patch);
         }
     }
 
@@ -261,7 +263,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
             update = m_state.patch_update_queue.Pop();
 
-            m_state.patch_update_queue_size.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_state.patch_update_queue_size.Decrement(1, MemoryOrder::RELEASE);
         }
 
         switch (update.state) {
@@ -283,7 +285,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it == m_state.patches.End()) {
-                    patches_it = m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
+                    m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
                 }
             }
 
@@ -293,8 +295,8 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
                 NodeProxy patch_node(MakeRefCountedPtr<Node>());
-                // patch_node->SetFlags(NodeFlags::TRANSIENT);
-                patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
+                patch_node->SetFlags(NodeFlags::TRANSIENT);
+                // patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
                 patch_node->SetName(HYP_FORMAT("Patch_{}_{}", patch_info.coord.x, patch_info.coord.y));
 
                 Handle<Entity> patch_entity = mgr.AddEntity();
@@ -325,6 +327,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                 {
                     Mutex::Guard guard(state.patches_mutex);
+
                     auto it = state.patches.Find(patch_info.coord);
                     AssertThrow(it != state.patches.End());
 
@@ -352,7 +355,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                         shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
                         shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
 
-                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch generation at {} completed", patch_info.coord);
+                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch generation at {} completed on thread {}", patch_info.coord, Threads::CurrentThreadID().name);
                     });
                     
                     m_state.patch_generation_tasks.Insert(initial_patch_info.coord, std::move(generation_task));
@@ -384,16 +387,18 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             { // remove the patch
-                Mutex::Guard guard(m_state.patches_mutex);
-
                 Handle<Entity> patch_entity;
 
-                const auto patches_it = m_state.patches.Find(update.coord);
+                {
+                    Mutex::Guard guard(m_state.patches_mutex);
 
-                if (patches_it != m_state.patches.End()) {
-                    patch_entity = patches_it->second.entity;
+                    const auto patches_it = m_state.patches.Find(update.coord);
 
-                    m_state.patches.Erase(patches_it);
+                    if (patches_it != m_state.patches.End()) {
+                        patch_entity = patches_it->second.entity;
+
+                        m_state.patches.Erase(patches_it);
+                    }
                 }
 
                 if (patch_entity.IsValid()) {

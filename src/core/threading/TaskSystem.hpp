@@ -203,7 +203,7 @@ public:
 
         TaskThread *task_thread = GetNextTaskThread(pool);
 
-        return task_thread->GetSchedulerInstance()->Enqueue(std::forward<TaskFunction>(fn), flags);
+        return task_thread->GetScheduler()->Enqueue(std::forward<TaskFunction>(fn), flags);
     }
 
     /*! \brief Enqueue a batch of multiple Tasks. Each task will be enqueued to run in parallel.

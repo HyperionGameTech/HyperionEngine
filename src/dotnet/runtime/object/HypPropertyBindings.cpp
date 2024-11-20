@@ -26,7 +26,7 @@ HYP_EXPORT void HypProperty_GetName(const HypProperty *property, Name *out_name)
         return;
     }
 
-    *out_name = property->name;
+    *out_name = property->GetName();
 }
 
 HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_type_id)
@@ -35,7 +35,7 @@ HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_t
         return;
     }
 
-    *out_type_id = property->type_id;
+    *out_type_id = property->GetTypeID();
 }
 
 HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)

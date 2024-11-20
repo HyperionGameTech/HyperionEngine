@@ -29,8 +29,6 @@
 namespace hyperion {
 namespace threading {
 
-
-
 class HYP_API SchedulerBase
 {
 public:
@@ -82,16 +80,13 @@ protected:
     ThreadID                m_owner_thread;
 };
 
-template <class... TaskArgTypes>
 class Scheduler : public SchedulerBase
 {
 public:
-    using TaskExecutorType = TaskExecutor<TaskArgTypes...>;
-
     struct ScheduledTask
     {
         // The executor/task memory
-        TaskExecutorType            *executor = nullptr;
+        TaskExecutorBase            *executor = nullptr;
 
         // If the executor is owned by the scheduler, it will be deleted when this object is destroyed
         bool                        owns_executor = false;
@@ -170,10 +165,9 @@ public:
             task_executed->notify_all();
         }
 
-        template <class ...Args>
-        void Execute(Args &&... args)
+        void Execute()
         {
-            executor->Execute(std::forward<Args>(args)...);
+            executor->Execute();
 
             int counter_value = 0;
 
@@ -194,8 +188,8 @@ public:
 
     Scheduler(const Scheduler &other)                   = delete;
     Scheduler &operator=(const Scheduler &other)        = delete;
-    Scheduler(Scheduler &&other) noexcept               = default;
-    Scheduler &operator=(Scheduler &&other) noexcept    = default;
+    Scheduler(Scheduler &&other) noexcept               = delete;
+    Scheduler &operator=(Scheduler &&other) noexcept    = delete;
     virtual ~Scheduler() override                       = default;
 
     HYP_FORCE_INLINE uint NumEnqueued() const
@@ -208,13 +202,13 @@ public:
      *  called from a non-owner thread. 
      *  \param fn The function to execute */
     template <class Lambda>
-    auto Enqueue(Lambda &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Lambda>::ReturnType, TaskArgTypes...>
+    auto Enqueue(Lambda &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Lambda>::ReturnType>
     {
         using ReturnType = typename FunctionTraits<Lambda>::ReturnType;
 
         std::unique_lock lock(m_mutex);
 
-        TaskExecutorInstance<ReturnType, TaskArgTypes...> *executor = new TaskExecutorInstance<ReturnType, TaskArgTypes...>(std::forward<Lambda>(fn));
+        TaskExecutorInstance<ReturnType> *executor = new TaskExecutorInstance<ReturnType>(std::forward<Lambda>(fn));
 
         ScheduledTask scheduled_task;
         scheduled_task.executor = executor;
@@ -229,7 +223,7 @@ public:
 
         WakeUpOwnerThread();
 
-        return Task<ReturnType, TaskArgTypes...>(
+        return Task<ReturnType>(
             executor->GetTaskID(),
             this,
             executor,
@@ -237,13 +231,13 @@ public:
         );
     }
 
-    /*! \brief Enqueue a TaskExecutor to be executed on the owner thread. This is to be
+    /*! \brief Enqueue a task to be executed on the owner thread. This is to be
      *  called from a non-owner thread.
      *  \internal Used by TaskSystem to enqueue batches of tasks.
      *  \param executor_ptr The TaskExecutor to execute (owned by the caller)
      *  \param atomic_counter A pointer to an atomic uint variable that is incremented upon completion.
      *  \param callback A callback to be executed after the task is completed. */
-    TaskID EnqueueTaskExecutor(TaskExecutorType *executor_ptr, SemaphoreType *semaphore, OnTaskCompletedCallback &&callback = nullptr)
+    TaskID EnqueueTaskExecutor(TaskExecutorBase *executor_ptr, SemaphoreType *semaphore, OnTaskCompletedCallback &&callback = nullptr)
     {
         std::unique_lock lock(m_mutex);
 
@@ -307,9 +301,9 @@ public:
         AssertThrow(!Threads::IsOnThread(m_owner_thread));
 
         AssertThrow(id.IsValid());
+        AssertThrow(executor != nullptr);
 
-        TaskExecutorType *executor_casted = dynamic_cast<TaskExecutorType *>(executor);
-        AssertThrowMsg(executor_casted != nullptr, "Invalid TaskExecutor type");
+        TaskExecutorBase *executor_casted = static_cast<TaskExecutorBase *>(executor);
 
         std::unique_lock lock(m_mutex);
 

@@ -416,11 +416,19 @@ NodeProxy Node::AddChild(const NodeProxy &node)
     node->m_parent_node = this;
     node->SetScene(m_scene);
 
-    OnNestedNodeAdded(node, true);
+    Node *current_parent = this;
 
-    for (NodeProxy &nested : node->GetDescendents()) {
-        OnNestedNodeAdded(nested, false);
+    while (current_parent != nullptr) {
+        OnNestedNodeAdded(node, /* direct */ current_parent == this);
+
+        current_parent = current_parent->m_parent_node;
     }
+
+    // OnNestedNodeAdded(node, true);
+
+    // for (NodeProxy &nested : node->GetDescendents()) {
+    //     OnNestedNodeAdded(nested, false);
+    // }
 
     node->UpdateWorldTransform();
 

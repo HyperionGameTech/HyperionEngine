@@ -58,7 +58,7 @@ public:
                     continue;
                 }
 
-                properties_by_name[property->name.LookupString()] = property;
+                properties_by_name[property->GetName().LookupString()] = property;
             } else {
                 HYP_UNREACHABLE();
             }

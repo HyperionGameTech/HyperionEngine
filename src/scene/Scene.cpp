@@ -75,12 +75,12 @@ struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 #pragma endregion Render commands
 
 Scene::Scene()
-    : Scene(Handle<Camera>::empty, Threads::GetThreadID(ThreadName::THREAD_GAME), { })
+    : Scene(Handle<Camera>::empty, Threads::GetStaticThreadID(ThreadName::THREAD_GAME), { })
 {
 }
 
 Scene::Scene(Handle<Camera> camera, EnumFlags<SceneFlags> flags)
-    : Scene(std::move(camera), Threads::GetThreadID(ThreadName::THREAD_GAME), flags)
+    : Scene(std::move(camera), Threads::GetStaticThreadID(ThreadName::THREAD_GAME), flags)
 {
 }
 

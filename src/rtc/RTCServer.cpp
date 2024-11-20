@@ -45,7 +45,7 @@ void RTCServer::EnqueueClientRemoval(String client_id)
 {
     AssertThrow(m_thread != nullptr && m_thread->IsRunning());
 
-    m_thread->GetSchedulerInstance()->Enqueue([this, id = std::move(client_id)]() mutable
+    m_thread->GetScheduler()->Enqueue([this, id = std::move(client_id)]() mutable
     {
         Optional<RC<RTCClient>> client = m_client_list.Get(id);
 
@@ -118,7 +118,7 @@ void LibDataChannelRTCServer::Start()
     m_websocket.Emplace();
 
     m_thread->Start(this);
-    m_thread->GetSchedulerInstance()->Enqueue([this]()
+    m_thread->GetScheduler()->Enqueue([this]()
     {
         m_websocket->onOpen([this]() {
             m_callbacks.OnConnected({
@@ -178,7 +178,7 @@ void LibDataChannelRTCServer::Start()
 void LibDataChannelRTCServer::Stop()
 {
     if (m_thread != nullptr) {
-        m_thread->GetSchedulerInstance()->Enqueue([this, ws = std::move(m_websocket)](...) mutable
+        m_thread->GetScheduler()->Enqueue([this, ws = std::move(m_websocket)](...) mutable
         {
             for (const auto &client : m_client_list) {
                 client.second->Disconnect();
@@ -214,7 +214,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
         return;
     }
 
-    m_thread->GetSchedulerInstance()->Enqueue([this, byte_buffer = RC<ByteBuffer>::Construct(std::move(bytes))]() mutable
+    m_thread->GetScheduler()->Enqueue([this, byte_buffer = RC<ByteBuffer>::Construct(std::move(bytes))]() mutable
     {
         rtc::binary bin;
         bin.resize(byte_buffer->Size());

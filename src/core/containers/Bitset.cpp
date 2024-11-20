@@ -2,6 +2,7 @@
 
 #include <core/containers/Bitset.hpp>
 #include <core/utilities/Span.hpp>
+#include <core/Util.hpp>
 
 #include <util/ByteUtil.hpp>
 
@@ -26,7 +27,7 @@ static Span<const Bitset::BlockType> CreateBlocks_Static_Internal()
 {
     static const Bitset::BlockType blocks[2] = { Bitset::BlockType(InitialValue & 0xFFFFFFFF), Bitset::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull) };
 
-    return Span<const Bitset::BlockType>(blocks);
+    return Span<const Bitset::BlockType>(&blocks[0], &blocks[0] + ArraySize(blocks));
 }
 
 Bitset::Bitset()

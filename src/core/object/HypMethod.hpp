@@ -167,35 +167,24 @@ struct HypMethodHelper<FunctionType, std::enable_if_t< !FunctionTraits<FunctionT
         return (target->*mem_fn)(args...); \
     }
 
-struct HypMethod : public IHypMember
+class HypMethod : public IHypMember
 {
-    Name                                                name;
-    TypeID                                              return_type_id;
-    TypeID                                              target_type_id;
-    Array<HypMethodParameter>                           params;
-    EnumFlags<HypMethodFlags>                           flags;
-    HypClassAttributeSet                                attributes;
-
-    Proc<HypData, HypData **, SizeType>                 proc;
-    Proc<HypData, const Array<HypData *> &>             proc_array;
-    Proc<fbom::FBOMData, Span<HypData>>                 serialize_proc;
-    Proc<void, Span<HypData>, const fbom::FBOMData &>   deserialize_proc;
-
+public:
     HypMethod(Span<const HypClassAttribute> attributes = {})
-        : name(Name::Invalid()),
-          return_type_id(TypeID::Void()),
-          target_type_id(TypeID::Void()),
-          flags(HypMethodFlags::NONE),
-          attributes(attributes)
+        : m_name(Name::Invalid()),
+          m_return_type_id(TypeID::Void()),
+          m_target_type_id(TypeID::Void()),
+          m_flags(HypMethodFlags::NONE),
+          m_attributes(attributes)
     {
     }
 
     template <class ReturnType, class TargetType, class... ArgTypes>
     HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          flags(HypMethodFlags::MEMBER),
-          attributes(attributes),
-          proc([mem_fn](HypData **args, SizeType num_args) -> HypData
+        : m_name(name),
+          m_flags(HypMethodFlags::MEMBER),
+          m_attributes(attributes),
+          m_proc([mem_fn](HypData **args, SizeType num_args) -> HypData
           {
               AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
@@ -210,14 +199,14 @@ struct HypMethod : public IHypMember
               }
           })
     {
-        return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
-        target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
+        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
 
-        params.Reserve(sizeof...(ArgTypes) + 1);
-        detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
+        m_params.Reserve(sizeof...(ArgTypes) + 1);
+        detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(m_params);
 
-        if (this->attributes["serialize"]) {
-            serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
+        if (m_attributes["serialize"]) {
+            m_serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
 
@@ -241,7 +230,7 @@ struct HypMethod : public IHypMember
                 }
             };
 
-            deserialize_proc = [mem_fn](Span<HypData> args, const fbom::FBOMData &data) -> void
+            m_deserialize_proc = [mem_fn](Span<HypData> args, const fbom::FBOMData &data) -> void
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
@@ -271,10 +260,10 @@ struct HypMethod : public IHypMember
     
     template <class ReturnType, class TargetType, class... ArgTypes>
     HypMethod(Name name, ReturnType(TargetType::*mem_fn)(ArgTypes...) const, Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          flags(HypMethodFlags::MEMBER),
-          attributes(attributes),
-          proc([mem_fn](HypData **args, SizeType num_args) -> HypData
+        : m_name(name),
+          m_flags(HypMethodFlags::MEMBER),
+          m_attributes(attributes),
+          m_proc([mem_fn](HypData **args, SizeType num_args) -> HypData
           {
               AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
@@ -290,14 +279,14 @@ struct HypMethod : public IHypMember
               }
           })
     {
-        return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
-        target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
+        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
 
-        params.Reserve(sizeof...(ArgTypes) + 1);
-        detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(params);
+        m_params.Reserve(sizeof...(ArgTypes) + 1);
+        detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(m_params);
 
-        if (this->attributes["serialize"]) {
-            serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
+        if (m_attributes["serialize"]) {
+            m_serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
 
@@ -321,7 +310,7 @@ struct HypMethod : public IHypMember
                 }
             };
 
-            deserialize_proc = [mem_fn](Span<HypData> args, const fbom::FBOMData &data) -> void
+            m_deserialize_proc = [mem_fn](Span<HypData> args, const fbom::FBOMData &data) -> void
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
@@ -362,23 +351,39 @@ struct HypMethod : public IHypMember
 
     virtual Name GetName() const override
     {
-        return name;
+        return m_name;
     }
 
     virtual TypeID GetTypeID() const override
     {
-        return return_type_id;
+        return m_return_type_id;
+    }
+
+    virtual TypeID GetTargetTypeID() const override
+    {
+        return m_target_type_id;
+    }
+    
+    virtual const HypClassAttributeSet &GetAttributes() const override
+    {
+        return m_attributes;
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        return attributes.Get(key);
+        return m_attributes.Get(key);
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const override
     {
-        return attributes.Get(key, default_value);
+        return m_attributes.Get(key, default_value);
     }
+
+    HYP_FORCE_INLINE const Array<HypMethodParameter> &GetParameters() const
+        { return m_params; }
+
+    HYP_FORCE_INLINE EnumFlags<HypMethodFlags> GetFlags() const
+        { return m_flags; }
 
     HYP_FORCE_INLINE HypData Invoke(Span<HypData> args) const
     {
@@ -387,27 +392,40 @@ struct HypMethod : public IHypMember
             arg_ptrs[i] = &args[i];
         }
 
-        return proc(arg_ptrs, args.Size());
+        return m_proc(arg_ptrs, args.Size());
     }
 
     HYP_FORCE_INLINE HypData Invoke(const Array<HypData *> &args) const
     {
-        return proc(const_cast<HypData **>(args.Data()), args.Size());
+        return m_proc(const_cast<HypData **>(args.Data()), args.Size());
     }
 
     HYP_FORCE_INLINE fbom::FBOMData Invoke_Serialized(Span<HypData> args) const
     {
-        AssertThrowMsg(serialize_proc.IsValid(), "Method %s does not support serialization", name.LookupString());
+        AssertThrowMsg(m_serialize_proc.IsValid(), "Method %s does not support serialization", m_name.LookupString());
 
-        return serialize_proc(args);
+        return m_serialize_proc(args);
     }
 
     HYP_FORCE_INLINE void Invoke_Deserialized(Span<HypData> args, const fbom::FBOMData &data) const
     {
-        AssertThrowMsg(deserialize_proc.IsValid(), "Method %s does not support deserialization", name.LookupString());
+        AssertThrowMsg(m_deserialize_proc.IsValid(), "Method %s does not support deserialization", m_name.LookupString());
 
-        deserialize_proc(args, data);
+        m_deserialize_proc(args, data);
     }
+
+private:
+    Name                                                m_name;
+    TypeID                                              m_return_type_id;
+    TypeID                                              m_target_type_id;
+    Array<HypMethodParameter>                           m_params;
+    EnumFlags<HypMethodFlags>                           m_flags;
+    HypClassAttributeSet                                m_attributes;
+
+    Proc<HypData, HypData **, SizeType>                 m_proc;
+    Proc<HypData, const Array<HypData *> &>             m_proc_array;
+    Proc<fbom::FBOMData, Span<HypData>>                 m_serialize_proc;
+    Proc<void, Span<HypData>, const fbom::FBOMData &>   m_deserialize_proc;
 };
 
 #undef HYP_METHOD_MEMBER_FN_WRAPPER

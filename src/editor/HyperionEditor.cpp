@@ -97,33 +97,12 @@ void HyperionEditor::Init()
     Game::Init();
 
 #if 0
-    // const HypClass *cls = GetClass<Mesh>();
-    // HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
-
-    // Handle<Mesh> mesh = CreateObject<Mesh>();
-    
-    // if (HypProperty *property = cls->GetProperty("VertexAttributes")) {
-    //     auto vertex_attributes_value = property->Get(*mesh);
-    //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
-
-    //     decltype(auto) vertex_attributes_value1 = property->Get<VertexAttributeSet>(*mesh);
-    //     HYP_LOG(Editor, LogLevel::INFO, "VertexAttributes: {}", vertex_attributes_value.ToString());
-    // }
-
-    // HYP_LOG(Core, LogLevel::INFO, "cls properties: {}", cls->GetProperty("AABB")->name);
-
 #if 1
     const HypClass *cls = GetClass<LightComponent>();
     HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
 
     LightComponent light_component;
     light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
-
-    // for (HypProperty *property : cls->GetProperties()) {
-    //     fbom::FBOMObject data_object;
-    //     property->getter(light_component).ReadObject(data_object);
-    //     HYP_LOG(Core, LogLevel::INFO, "Property: {}\t{}", property->name, data_object.ToString());
-    // }
 
     if (HypProperty *property = cls->GetProperty("Light")) {
         // property->Set(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));

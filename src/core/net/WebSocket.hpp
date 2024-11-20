@@ -20,7 +20,7 @@ namespace hyperion::net {
 
 class WebSocket;
 
-class HYP_API WebSocketThread final : public Thread<Scheduler<>, WebSocket *>
+class HYP_API WebSocketThread final : public Thread<Scheduler, WebSocket *>
 {
 public:
     WebSocketThread();

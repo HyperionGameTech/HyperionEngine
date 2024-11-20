@@ -57,13 +57,13 @@ void Game::Init_Internal()
 
     m_scene = CreateObject<Scene>(
         Handle<Camera>(),
-        Threads::GetThreadID(ThreadName::THREAD_GAME),
+        Threads::GetStaticThreadID(ThreadName::THREAD_GAME),
         SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT
     );
 
     m_scene->SetName(NAME("Scene_Main"));
 
-    m_game_thread->GetSchedulerInstance()->Enqueue([this](GameCounter::TickUnit delta) -> void
+    m_game_thread->GetScheduler()->Enqueue([this]() -> void
     {
         Vec2i window_size;
 
@@ -90,7 +90,7 @@ void Game::Init_Internal()
         g_engine->GetWorld()->AddScene(m_scene);
         InitObject(m_scene);
         
-        m_ui_stage.Emplace(Threads::GetThreadID(ThreadName::THREAD_GAME));
+        m_ui_stage.Emplace(Threads::GetStaticThreadID(ThreadName::THREAD_GAME));
 
         // Call Init method (overridden)
         Init();
@@ -205,7 +205,7 @@ void Game::PushEvent(SystemEvent &&event)
     }
 
     if (m_game_thread->IsRunning()) {
-        m_game_thread->GetSchedulerInstance()->Enqueue([this, event = std::move(event)](GameCounter::TickUnit delta) mutable -> void
+        m_game_thread->GetScheduler()->Enqueue([this, event = std::move(event)]() mutable -> void
         {
             HandleEvent(std::move(event));
         }, TaskEnqueueFlags::FIRE_AND_FORGET);

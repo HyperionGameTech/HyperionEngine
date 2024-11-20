@@ -24,7 +24,7 @@ HYP_EXPORT void HypMethod_GetName(const HypMethod *method, Name *out_name)
         return;
     }
 
-    *out_name = method->name;
+    *out_name = method->GetName();
 }
 
 HYP_EXPORT void HypMethod_GetReturnTypeID(const HypMethod *method, TypeID *out_return_type_id)
@@ -33,7 +33,7 @@ HYP_EXPORT void HypMethod_GetReturnTypeID(const HypMethod *method, TypeID *out_r
         return;
     }
 
-    *out_return_type_id = method->return_type_id;
+    *out_return_type_id = method->GetTypeID();
 }
 
 HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod *method, const HypMethodParameter **out_params)
@@ -42,13 +42,13 @@ HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod *method, const HypMeth
         return 0;
     }
 
-    if (method->params.Empty()) {
+    if (method->GetParameters().Empty()) {
         return 0;
     }
 
-    *out_params = method->params.Begin();
+    *out_params = method->GetParameters().Begin();
 
-    return (uint32)method->params.Size();
+    return (uint32)method->GetParameters().Size();
 }
 
 HYP_EXPORT uint32 HypMethod_GetFlags(const HypMethod *method)
@@ -57,7 +57,7 @@ HYP_EXPORT uint32 HypMethod_GetFlags(const HypMethod *method)
         return uint32(HypMethodFlags::NONE);
     }
 
-    return uint32(method->flags);
+    return uint32(method->GetFlags());
 }
 
 HYP_EXPORT bool HypMethod_Invoke(const HypMethod *method, HypData *args, uint32 num_args, HypData *out_result)
