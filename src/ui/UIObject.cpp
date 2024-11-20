@@ -1018,6 +1018,14 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     if (m_computed_visibility != computed_visibility) {
         m_computed_visibility = computed_visibility;
 
+        if (const Scene *scene = GetScene()) {
+            if (m_computed_visibility) {
+                scene->GetEntityManager()->AddTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+            } else {
+                scene->GetEntityManager()->RemoveTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
+            }
+        }
+
         OnComputedVisibilityChange_Internal();
     }
 
@@ -2254,49 +2262,67 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
     if (!scene) {
         return;
     }
-    
-    // Visibility affects all child nodes as well, so return from here.
-    if (only_visible && !GetComputedVisibility()) {
-        return;
+
+    if (only_visible) {
+        for (auto [entity, ui_component, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+            if (!ui_component.ui_object) {
+                continue;
+            }
+
+            proc(ui_component.ui_object);
+        }
+    } else {
+        for (auto [entity, ui_component] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+            if (!ui_component.ui_object) {
+                continue;
+            }
+
+            proc(ui_component.ui_object);
+        }
     }
 
-    proc(const_cast<UIObject *>(this));
+    // // Visibility affects all child nodes as well, so return from here.
+    // if (only_visible && !GetComputedVisibility()) {
+    //     return;
+    // }
 
-    Array<Pair<Node *, UIObject *>> children;
-    children.Reserve(m_node_proxy->GetChildren().Size());
+    // proc(const_cast<UIObject *>(this));
 
-    for (const auto &it : m_node_proxy->GetChildren()) {
-        if (!it.IsValid()) {
-            continue;
-        }
+    // Array<Pair<Node *, UIObject *>> children;
+    // children.Reserve(m_node_proxy->GetChildren().Size());
 
-        UIComponent *ui_component = it->GetEntity().IsValid()
-            ? scene->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
-            : nullptr;
+    // for (const auto &it : m_node_proxy->GetChildren()) {
+    //     if (!it.IsValid()) {
+    //         continue;
+    //     }
+
+    //     UIComponent *ui_component = it->GetEntity().IsValid()
+    //         ? scene->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
+    //         : nullptr;
 
 
-        if (!ui_component) {
-            continue;
-        }
+    //     if (!ui_component) {
+    //         continue;
+    //     }
 
-        if (!ui_component->ui_object) {
-            continue;
-        }
+    //     if (!ui_component->ui_object) {
+    //         continue;
+    //     }
 
-        children.PushBack({
-            it.Get(),
-            ui_component->ui_object
-        });
-    }
+    //     children.PushBack({
+    //         it.Get(),
+    //         ui_component->ui_object
+    //     });
+    // }
 
-    std::sort(children.Begin(), children.End(), [](const Pair<Node *, UIObject *> &lhs, const Pair<Node *, UIObject *> &rhs)
-    {
-        return lhs.second->GetDepth() < rhs.second->GetDepth();
-    });
+    // std::sort(children.Begin(), children.End(), [](const Pair<Node *, UIObject *> &lhs, const Pair<Node *, UIObject *> &rhs)
+    // {
+    //     return lhs.second->GetDepth() < rhs.second->GetDepth();
+    // });
 
-    for (const Pair<Node *, UIObject *> &it : children) {
-        it.second->CollectObjects(proc, out_deferred_child_objects, only_visible);
-    }
+    // for (const Pair<Node *, UIObject *> &it : children) {
+    //     it.second->CollectObjects(proc, out_deferred_child_objects, only_visible);
+    // }
 }
 
 void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible) const

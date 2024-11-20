@@ -27,6 +27,10 @@ public:
 
         HYP_LOG(Serialization, LogLevel::DEBUG, "Serializing Node with name '{}'...", in_object.GetName());
 
+        if (in_object.GetFlags() & NodeFlags::TRANSIENT) {
+            return { FBOMResult::FBOM_ERR, "Cannot serialize Node: TRANSIENT flag is set" };
+        }
+
         if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out)) {
             return err;
         }
@@ -34,7 +38,7 @@ public:
         out.SetProperty("Type", uint32(in_object.GetType()));
 
         for (const NodeProxy &child : in_object.GetChildren()) {
-            if (!child.IsValid()) {
+            if (!child.IsValid() || (child->GetFlags() & NodeFlags::TRANSIENT)) {
                 continue;
             }
 

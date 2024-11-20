@@ -341,7 +341,9 @@ namespace Hyperion
                 typeSize = (uint)Marshal.SizeOf(Enum.GetUnderlyingType(type));
             }
 
-            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
+            TypeID typeId = TypeID.ForType(type);
+
+            ManagedClass_Create(ref assemblyGuid, classHolderPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
 
             Marshal.FreeHGlobal(typeNamePtr);
 
@@ -612,7 +614,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr classHolderPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeID typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         private static extern bool ManagedClass_FindByTypeHash(IntPtr classHolderPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);

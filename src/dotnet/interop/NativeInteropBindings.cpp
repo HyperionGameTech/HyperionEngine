@@ -124,14 +124,14 @@ HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, Class **out_class_obje
     fptr(ptr, out_class_object_ptr, out_object_reference);
 }
 
-HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
+HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, TypeID type_id, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
 {
     AssertThrow(assembly_guid != nullptr);
     AssertThrow(class_holder != nullptr);
 
     HYP_LOG(DotNET, LogLevel::INFO, "Registering .NET managed class {}", type_name);
 
-    Class *class_object = class_holder->NewClass(hyp_class, type_hash, type_name, type_size, parent_class, flags);
+    Class *class_object = class_holder->NewClass(hyp_class, type_hash, type_name, type_size, type_id, parent_class, flags);
 
     ManagedClass &managed_class = *out_managed_class;
     managed_class = { };

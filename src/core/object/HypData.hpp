@@ -17,6 +17,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Pair.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/Any.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -443,6 +444,35 @@ struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std
     void Set(HypData &hyp_data, T value) const
     {
         HypDataHelper<std::underlying_type_t<T>>::Set(hyp_data, static_cast<std::underlying_type_t<T>>(value));
+    }
+};
+
+template <class T>
+struct HypDataHelperDecl<EnumFlags<T>> {};
+
+template <class T>
+struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::UnderlyingType>
+{
+    using ConvertibleFrom = Tuple<typename EnumFlags<T>::UnderlyingType>;
+
+    HYP_FORCE_INLINE bool Is(typename EnumFlags<T>::UnderlyingType value) const
+    {
+        return true;
+    }
+
+    constexpr EnumFlags<T> Get(EnumFlags<T> value) const
+    {
+        return value;
+    }
+
+    constexpr EnumFlags<T> Get(typename EnumFlags<T>::UnderlyingType value) const
+    {
+        return static_cast<EnumFlags<T>>(value);
+    }
+
+    void Set(HypData &hyp_data, EnumFlags<T> value) const
+    {
+        HypDataHelper<typename EnumFlags<T>::UnderlyingType>::Set(hyp_data, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
     }
 };
 

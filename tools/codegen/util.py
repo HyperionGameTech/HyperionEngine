@@ -93,13 +93,18 @@ def map_type(type_object):
     last_segment = type_object.typename.segments[-1]
     name = last_segment.name
 
+    # Check if the type is in the dict for 1:1 mapping
     if name in CXX_TO_CSHARP_TYPE_MAPPING:
         return CXX_TO_CSHARP_TYPE_MAPPING[name][0]
 
+    # Map template types to C# types
     if name == 'RC' and last_segment.specialization:
         return map_type(last_segment.specialization.args[0].arg)
     
     if name == 'Handle' and last_segment.specialization:
+        return map_type(last_segment.specialization.args[0].arg)
+    
+    if name == 'EnumFlags' and last_segment.specialization:
         return map_type(last_segment.specialization.args[0].arg)
 
     return name
@@ -171,7 +176,7 @@ def parse_attributes_string(attributes_string) -> 'list[tuple[str, str, int]]':
 
     return inner_args
 
-def format_attribute_value(attribute_value: str, attribute_type: int):
+def format_attribute_value(attribute_value: str, attribute_type: int) -> str:
     if attribute_type == HypAttributeType.NIL:
         raise ValueError('Attribute type cannot be NIL')
 
@@ -181,3 +186,23 @@ def format_attribute_value(attribute_value: str, attribute_type: int):
         return attribute_value.lower()
     else:
         return attribute_value
+
+def extract_class_name(class_match: str) -> 'str | None':
+    class_name_match = re.search(r'(?:class|struct|(?:enum class)|enum)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(\w+)', class_match)
+    if class_name_match:
+        return class_name_match.group(1)
+    
+    return None
+
+def extract_base_classes(class_match: str) -> 'list[str]':
+    base_classes_match = re.search(r'(?:class|struct)\s+(?:alignas\(.*\)\s+)?(?:HYP_API\s+)?(?:\w+)\s*(?:final)?\s*:\s*((?:public|private|protected)?\s*(?:\w+\s*,?\s*)+)', class_match)
+    
+    if base_classes_match:
+        base_classes = base_classes_match.group(1)
+        return [base.strip().split(' ')[-1] for base in base_classes.split(',')]
+
+    return []
+
+# converts text from snake_case to PascalCase
+def to_pascal_case(text: str) -> str:
+    return ''.join(word.capitalize() for word in text.split('_'))

@@ -14,6 +14,7 @@ enum class EntityTag : uint32
     DYNAMIC,
     LIGHT, /* associated with a LightComponent */
     UI,    /* associated with a UIObject */
+    UI_OBJECT_VISIBLE,
 
     MAX
 };

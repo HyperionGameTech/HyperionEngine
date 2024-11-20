@@ -16,6 +16,16 @@ const HypClass *GetClass(WeakName type_name)
     return HypClassRegistry::GetInstance().GetClass(type_name);
 }
 
+const HypEnum *GetEnum(TypeID type_id)
+{
+    return HypClassRegistry::GetInstance().GetEnum(type_id);
+}
+
+const HypEnum *GetEnum(WeakName type_name)
+{
+    return HypClassRegistry::GetInstance().GetEnum(type_name);
+}
+
 bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id)
 {
     if (!hyp_class) {

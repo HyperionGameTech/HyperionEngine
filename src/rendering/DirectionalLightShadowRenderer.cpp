@@ -626,9 +626,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
     needs_statics_rerender |= statics_collection_result.NeedsUpdate();
 
-    // temp
-    needs_statics_rerender = true;
-
     if (needs_statics_rerender) {
         HYP_LOG(Shadows, LogLevel::DEBUG, "statics collection result: {}, {}, {}", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
         

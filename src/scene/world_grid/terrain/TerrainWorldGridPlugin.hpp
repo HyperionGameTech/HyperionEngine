@@ -12,8 +12,11 @@ namespace hyperion {
 class Material;
 class NoiseCombinator;
 
+HYP_CLASS()
 class HYP_API TerrainWorldGridPlugin : public WorldGridPlugin
 {
+    HYP_OBJECT_BODY(TerrainWorldGridPlugin);
+
 public:
     TerrainWorldGridPlugin();
     virtual ~TerrainWorldGridPlugin() override;
