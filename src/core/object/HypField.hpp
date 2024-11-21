@@ -29,42 +29,29 @@ namespace hyperion {
 
 class HypClass;
 
-struct HypField : public IHypMember
+class HypField : public IHypMember
 {
-    Name                                            name;
-    TypeID                                          type_id;
-    TypeID                                          target_type_id;
-    uint32                                          offset;
-    uint32                                          size;
-
-    HypClassAttributeSet                            attributes;
-
-    Proc<HypData, const HypData &>                  get_proc;
-    Proc<void, HypData &, const HypData &>          set_proc;
-
-    Proc<fbom::FBOMData, const HypData &>           serialize_proc;
-    Proc<void, HypData &, const fbom::FBOMData &>   deserialize_proc;
-
+public:
     HypField(Span<const HypClassAttribute> attributes = { })
-        : name(Name::Invalid()),
-          type_id(TypeID::Void()),
-          target_type_id(TypeID::Void()),
-          offset(0),
-          size(0),
-          attributes(attributes)
+        : m_name(Name::Invalid()),
+          m_type_id(TypeID::Void()),
+          m_target_type_id(TypeID::Void()),
+          m_offset(~0u),
+          m_size(0),
+          m_attributes(attributes)
     {
     }
 
     template <class ThisType, class FieldType>
     HypField(Name name, FieldType ThisType::*member, uint32 offset, Span<const HypClassAttribute> attributes = { })
-        : name(name),
-          type_id(TypeID::ForType<FieldType>()),
-          target_type_id(TypeID::ForType<ThisType>()),
-          offset(offset),
-          size(sizeof(FieldType)),
-          attributes(attributes)
+        : m_name(name),
+          m_type_id(TypeID::ForType<FieldType>()),
+          m_target_type_id(TypeID::ForType<ThisType>()),
+          m_offset(offset),
+          m_size(sizeof(FieldType)),
+          m_attributes(attributes)
     {
-        get_proc = [member](const HypData &target_data) -> HypData
+        m_get_proc = [member](const HypData &target_data) -> HypData
         {
             if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                 HYP_FAIL("Cannot assign non-copy-assignable field");
@@ -79,7 +66,7 @@ struct HypField : public IHypMember
             }
         };
 
-        set_proc = [member](HypData &target_data, const HypData &data) -> void
+        m_set_proc = [member](HypData &target_data, const HypData &data) -> void
         {
             if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                 HYP_FAIL("Cannot deserialize non-copy-assignable field");
@@ -116,8 +103,8 @@ struct HypField : public IHypMember
             }
         };
 
-        if (this->attributes["serialize"]) {
-            serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
+        if (m_attributes["serialize"]) {
+            m_serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                     HYP_FAIL("Cannot serialize non-copy-assignable field");
@@ -138,7 +125,7 @@ struct HypField : public IHypMember
                 }
             };
 
-            deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> void
+            m_deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> void
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                     HYP_FAIL("Cannot deserialize non-copy-assignable field");
@@ -196,22 +183,32 @@ struct HypField : public IHypMember
 
     virtual Name GetName() const override
     {
-        return name;
+        return m_name;
     }
 
     virtual TypeID GetTypeID() const override
     {
-        return type_id;
+        return m_type_id;
+    }
+
+    virtual TypeID GetTargetTypeID() const override
+    {
+        return m_target_type_id;
+    }
+    
+    virtual const HypClassAttributeSet &GetAttributes() const override
+    {
+        return m_attributes;
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        return attributes.Get(key);
+        return m_attributes.Get(key);
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const override
     {
-        return attributes.Get(key, default_value);
+        return m_attributes.Get(key, default_value);
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -219,40 +216,58 @@ struct HypField : public IHypMember
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return name.IsValid()
-            && type_id != TypeID::Void()
-            && size != 0;
+        return m_name.IsValid()
+            && m_type_id != TypeID::Void()
+            && m_size != 0;
     }
 
+    HYP_FORCE_INLINE uint32 GetOffset() const
+        { return m_offset; }
+
     HYP_FORCE_INLINE bool CanSerialize() const
-        { return IsValid() && serialize_proc.IsValid(); }
+        { return IsValid() && m_serialize_proc.IsValid(); }
 
     HYP_FORCE_INLINE fbom::FBOMData Serialize(const HypData &target_data) const
     {
         AssertThrow(CanSerialize());
 
-        return serialize_proc(target_data);
+        return m_serialize_proc(target_data);
     }
 
     HYP_FORCE_INLINE bool CanDeserialize() const
-        { return IsValid() && deserialize_proc.IsValid(); }
+        { return IsValid() && m_deserialize_proc.IsValid(); }
 
     HYP_FORCE_INLINE void Deserialize(HypData &target_data, const fbom::FBOMData &data) const
     {
         AssertThrow(CanDeserialize());
 
-        deserialize_proc(target_data, data);
+        m_deserialize_proc(target_data, data);
     }
 
     HYP_FORCE_INLINE HypData Get(const HypData &target_data) const
     {
-        return get_proc(target_data);
+        return m_get_proc(target_data);
     }
 
     HYP_FORCE_INLINE void Set(HypData &target_data, const HypData &data) const
     {
-        return set_proc(target_data, data);
+        return m_set_proc(target_data, data);
     }
+
+private:
+    Name                                            m_name;
+    TypeID                                          m_type_id;
+    TypeID                                          m_target_type_id;
+    uint32                                          m_offset;
+    uint32                                          m_size;
+
+    HypClassAttributeSet                            m_attributes;
+
+    Proc<HypData, const HypData &>                  m_get_proc;
+    Proc<void, HypData &, const HypData &>          m_set_proc;
+
+    Proc<fbom::FBOMData, const HypData &>           m_serialize_proc;
+    Proc<void, HypData &, const fbom::FBOMData &>   m_deserialize_proc;
 };
 
 } // namespace hyperion

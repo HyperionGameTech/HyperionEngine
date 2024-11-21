@@ -29,8 +29,8 @@
 #include <core/containers/String.hpp>
 
 #include <core/object/HypClass.hpp>
-#include <core/object/HypMember.hpp>
 #include <core/object/HypData.hpp>
+#include <core/object/HypProperty.hpp>
 
 #include <core/functional/Delegate.hpp>
 

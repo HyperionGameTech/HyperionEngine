@@ -29,8 +29,8 @@ namespace hyperion {
 
 class HypClass;
 
-struct HypMethod;
-struct HypField;
+class HypMethod;
+class HypField;
 
 struct HypPropertyTypeInfo
 {
@@ -335,52 +335,47 @@ struct HypPropertySetter
     }
 };
 
-struct HypProperty : public IHypMember
+class HypProperty : public IHypMember
 {
-    Name                    name;
-    TypeID                  type_id;
-
-    HypClassAttributeSet    attributes;
-
-    HypPropertyGetter       getter;
-    HypPropertySetter       setter;
+public:
+    friend class HypClass;
 
     HypProperty() = default;
 
     HypProperty(Name name, Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          attributes(attributes)
+        : m_name(name),
+          m_attributes(attributes)
     {
     }
 
     HypProperty(Name name, HypPropertyGetter &&getter, Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          type_id(getter.type_info.value_type_id),
-          attributes(attributes),
-          getter(std::move(getter))
+        : m_name(name),
+          m_type_id(getter.type_info.value_type_id),
+          m_attributes(attributes),
+          m_getter(std::move(getter))
     {
     }
 
     HypProperty(Name name, HypPropertyGetter &&getter, HypPropertySetter &&setter, Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          type_id(getter.type_info.value_type_id),
-          attributes(attributes),
-          getter(std::move(getter)),
-          setter(std::move(setter))
+        : m_name(name),
+          m_type_id(getter.type_info.value_type_id),
+          m_attributes(attributes),
+          m_getter(std::move(getter)),
+          m_setter(std::move(setter))
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(this->setter.type_info.value_type_id == type_id, "Setter value type id should match property type id");
+        AssertThrowMsg(m_setter.type_info.value_type_id == m_type_id, "Setter value type id should match property type id");
 #endif
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t< !std::is_member_function_pointer_v<ValueType TargetType::*> > >
     HypProperty(Name name, ValueType TargetType::*member, Span<const HypClassAttribute> attributes = {})
-        : name(name),
-          attributes(attributes),
-          getter(HypPropertyGetter(member)),
-          setter(HypPropertySetter(member))
+        : m_name(name),
+          m_attributes(attributes),
+          m_getter(HypPropertyGetter(member)),
+          m_setter(HypPropertySetter(member))
     {
-        type_id = getter.type_info.value_type_id;
+        m_type_id = m_getter.type_info.value_type_id;
     }
 
     HypProperty(const HypProperty &other)                   = delete;
@@ -397,62 +392,84 @@ struct HypProperty : public IHypMember
 
     virtual Name GetName() const override
     {
-        return name;
+        return m_name;
     }
 
     virtual TypeID GetTypeID() const override
     {
-        return type_id;
+        return m_type_id;
+    }
+
+    virtual TypeID GetTargetTypeID() const override
+    {
+        return m_getter.IsValid() ? m_getter.type_info.target_type_id
+            : m_setter.IsValid() ? m_setter.type_info.target_type_id
+            : TypeID::Void();
+    }
+    
+    virtual const HypClassAttributeSet &GetAttributes() const override
+    {
+        return m_attributes;
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
     {
-        return attributes.Get(key);
+        return m_attributes.Get(key);
     }
 
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const override
     {
-        return attributes.Get(key, default_value);
+        return m_attributes.Get(key, default_value);
     }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return type_id != TypeID::Void() && CanGet(); }
+        { return m_type_id != TypeID::Void() && CanGet(); }
 
     // getter
 
     HYP_FORCE_INLINE bool CanGet() const
-        { return getter.IsValid(); }
+        { return m_getter.IsValid(); }
 
     HYP_NODISCARD HYP_FORCE_INLINE HypData Get(const HypData &target) const
-        { return getter.Invoke(target); }
+        { return m_getter.Invoke(target); }
 
     // Serializing getter
 
     HYP_FORCE_INLINE bool CanSerialize() const
-        { return getter.IsValid(); }
+        { return m_getter.IsValid(); }
 
     HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData Serialize(const HypData &target) const
-        { return getter.Serialize(target); }
+        { return m_getter.Serialize(target); }
 
     // setter
 
     HYP_FORCE_INLINE bool CanSet() const
-        { return setter.IsValid(); }
+        { return m_setter.IsValid(); }
 
     HYP_FORCE_INLINE void Set(HypData &target, const HypData &value) const
-        { setter.Invoke(target, value); }
+        { m_setter.Invoke(target, value); }
 
     HYP_FORCE_INLINE bool CanDeserialize() const
-        { return setter.IsValid(); }
+        { return m_setter.IsValid(); }
 
     HYP_FORCE_INLINE void Deserialize(HypData &target, const fbom::FBOMData &serialized_value) const
-        { setter.Deserialize(target, serialized_value); }
+        { m_setter.Deserialize(target, serialized_value); }
 
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
     HYP_API const HypClass *GetHypClass() const;
 
     static HYP_API HypProperty MakeHypProperty(const HypField *field);
     static HYP_API HypProperty MakeHypProperty(const HypMethod *getter, const HypMethod *setter);
+
+private:
+    Name                    m_name;
+    TypeID                  m_type_id;
+
+    HypClassAttributeSet    m_attributes;
+
+    HypPropertyGetter       m_getter;
+    HypPropertySetter       m_setter;
+
 };
 
 } // namespace hyperion

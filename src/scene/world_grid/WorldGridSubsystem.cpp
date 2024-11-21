@@ -75,7 +75,7 @@ void WorldGridSubsystem::OnSceneAttached(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
 
-    if (!scene->IsNonWorldScene()) {
+    if (!(scene->GetFlags() & (SceneFlags::NON_WORLD | SceneFlags::DETACHED))) {
         UniquePtr<WorldGrid> &world_grid = m_world_grids.PushBack(MakeUnique<WorldGrid>(
             WorldGridParams { },
             scene
@@ -89,7 +89,7 @@ void WorldGridSubsystem::OnSceneDetached(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
 
-    if (!scene->IsNonWorldScene()) {
+    if (!(scene->GetFlags() & (SceneFlags::NON_WORLD | SceneFlags::DETACHED))) {
         auto it = m_world_grids.FindIf([&scene](const UniquePtr<WorldGrid> &world_grid)
         {
             return world_grid->GetScene() == scene;

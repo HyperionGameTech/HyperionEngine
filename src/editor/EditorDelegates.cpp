@@ -7,7 +7,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/object/HypMember.hpp>
 #include <core/object/HypClass.hpp>
 
 #include <util/profiling/ProfileScope.hpp>

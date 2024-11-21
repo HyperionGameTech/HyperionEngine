@@ -33,6 +33,8 @@ public:
 
     virtual Name GetName() const = 0;
     virtual TypeID GetTypeID() const = 0;
+    virtual TypeID GetTargetTypeID() const = 0;
+    virtual const HypClassAttributeSet &GetAttributes() const = 0;
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const = 0;
     virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const = 0;
 };

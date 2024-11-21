@@ -198,17 +198,23 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
             HYP_LOG(WorldGrid, LogLevel::INFO, "Adding generated patch at {}", patch_info.coord);
 
-            Mutex::Guard guard(m_state.patches_mutex);
+            Handle<Entity> patch_entity;
 
-            auto it = m_state.patches.Find(patch_info.coord);
+            {
+                Mutex::Guard guard(m_state.patches_mutex);
 
-            if (it == m_state.patches.End()) {
-                HYP_LOG(WorldGrid, LogLevel::WARNING, "Patch at {} was not found when updating entity", patch_info.coord);
+                auto it = m_state.patches.Find(patch_info.coord);
 
-                continue;
+                if (it == m_state.patches.End()) {
+                    HYP_LOG(WorldGrid, LogLevel::WARNING, "Patch at {} was not found when updating entity", patch_info.coord);
+
+                    continue;
+                }
+
+                it->second.patch = patch;
+
+                patch_entity = it->second.entity;
             }
-
-            const Handle<Entity> patch_entity = it->second.entity;
 
             // @TODO: what should happen if this is hit before the entity is created?
 
@@ -219,14 +225,12 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             // Initialize patch entity on game thread
-            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch, scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
+            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch = std::move(patch), scene, patch_entity](EntityManager &mgr, GameCounter::TickUnit delta) mutable
             {
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
                 patch->InitializeEntity(scene, patch_entity);
             });
-
-            it->second.patch = std::move(patch);
         }
     }
 
@@ -325,6 +329,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                 {
                     Mutex::Guard guard(state.patches_mutex);
+                    
                     auto it = state.patches.Find(patch_info.coord);
                     AssertThrow(it != state.patches.End());
 
@@ -352,7 +357,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                         shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
                         shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
 
-                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch generation at {} completed", patch_info.coord);
+                        HYP_LOG(WorldGrid, LogLevel::INFO, "Patch generation at {} completed on thread {}", patch_info.coord, Threads::CurrentThreadID().name);
                     });
                     
                     m_state.patch_generation_tasks.Insert(initial_patch_info.coord, std::move(generation_task));
@@ -384,16 +389,18 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             }
 
             { // remove the patch
-                Mutex::Guard guard(m_state.patches_mutex);
-
                 Handle<Entity> patch_entity;
 
-                const auto patches_it = m_state.patches.Find(update.coord);
+                {
+                    Mutex::Guard guard(m_state.patches_mutex);
 
-                if (patches_it != m_state.patches.End()) {
-                    patch_entity = patches_it->second.entity;
+                    const auto patches_it = m_state.patches.Find(update.coord);
 
-                    m_state.patches.Erase(patches_it);
+                    if (patches_it != m_state.patches.End()) {
+                        patch_entity = patches_it->second.entity;
+
+                        m_state.patches.Erase(patches_it);
+                    }
                 }
 
                 if (patch_entity.IsValid()) {
