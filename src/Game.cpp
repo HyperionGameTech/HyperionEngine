@@ -129,12 +129,12 @@ void Game::Init()
     m_ui_stage->Init();
 
     if (m_managed_game_object) {
-        m_managed_game_object->InvokeMethodByName<void, dotnet::Object *, dotnet::Object *, dotnet::Object *, dotnet::Object *>(
+        m_managed_game_object->InvokeMethodByName<void>(
             "BeforeInit",
-            m_scene->GetManagedObject(),
-            m_app_context->GetInputManager()->GetManagedObject(),
-            g_asset_manager->GetManagedObject(),
-            m_ui_stage->GetManagedObject()
+            m_scene,
+            m_app_context->GetInputManager(),
+            g_asset_manager,
+            m_ui_stage
         );
 
         m_managed_game_object->InvokeMethodByName<void>("Init");

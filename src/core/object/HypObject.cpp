@@ -199,7 +199,7 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
     AssertThrow(initializer != nullptr);
     AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class! Is HYP_CLASS() missing for the type?");
 
-    AssertThrowMsg(!hyp_class->IsAbstract(), "Cannot directly create an instance of object with HypClass \"%s\" which is marked abstract!", hyp_class->GetName().LookupString());
+    // AssertThrowMsg(!hyp_class->IsAbstract(), "Cannot directly create an instance of object with HypClass \"%s\" which is marked abstract!", hyp_class->GetName().LookupString());
 
     if (hyp_class->GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR) {
         // Hack to make EnableRefCountedPtr<Base> internally have TypeID of most derived class for a given instance.

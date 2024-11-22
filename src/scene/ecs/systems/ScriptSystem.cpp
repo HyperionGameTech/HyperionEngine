@@ -104,9 +104,9 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
                     AssertThrow(GetEntityManager().GetScene() != nullptr);
                     AssertThrow(GetEntityManager().GetScene()->GetWorld() != nullptr);
 
-                    script_component.object->InvokeMethod<void, dotnet::Object *>(
+                    script_component.object->InvokeMethod<void>(
                         before_init_method_ptr,
-                        GetEntityManager().GetScene()->GetManagedObject()
+                        GetEntityManager().GetScene()
                     );
 
                     script_component.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;

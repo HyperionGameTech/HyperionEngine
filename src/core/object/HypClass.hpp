@@ -329,21 +329,21 @@ public:
 
     virtual bool CanCreateInstance() const = 0;
 
-    HYP_FORCE_INLINE void CreateInstance(HypData &out) const
+    HYP_FORCE_INLINE void CreateInstance(HypData &out, bool allow_abstract = false) const
     {
-        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s", GetName().LookupString());
+        AssertThrowMsg(CanCreateInstance() && (allow_abstract || !IsAbstract()), "Cannot create a new instance for HypClass %s", GetName().LookupString());
 
         CreateInstance_Internal(out);
     }
 
-    HYP_FORCE_INLINE void CreateInstance(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const
-    {
-        AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s", GetName().LookupString());
+    // HYP_FORCE_INLINE void CreateInstance(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const
+    // {
+    //     AssertThrowMsg(CanCreateInstance() && !IsAbstract(), "Cannot create a new instance for HypClass %s", GetName().LookupString());
 
-        AssertThrowMsg(managed_object != nullptr, "Managed object must not be null for this overload of CreateInstance()");
+    //     AssertThrowMsg(managed_object != nullptr, "Managed object must not be null for this overload of CreateInstance()");
 
-        CreateInstance_Internal(out, std::move(managed_object));
-    }
+    //     CreateInstance_Internal(out, std::move(managed_object));
+    // }
 
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {

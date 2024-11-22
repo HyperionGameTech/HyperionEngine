@@ -113,39 +113,25 @@ public:
     LinkedList &operator=(const LinkedList &other);
     LinkedList &operator=(LinkedList &&other) noexcept;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
         { return m_size; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ValueType &Front()
+    HYP_FORCE_INLINE ValueType &Front()
         { return m_head->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ValueType &Front() const
+    HYP_FORCE_INLINE const ValueType &Front() const
         { return m_head->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ValueType &Back()
+    HYP_FORCE_INLINE ValueType &Back()
         { return m_tail->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ValueType &Back() const
+    HYP_FORCE_INLINE const ValueType &Back() const
         { return m_tail->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return Size() == 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any() const
+    HYP_FORCE_INLINE bool Any() const
         { return Size() != 0; }
     
     template <class ...Args>

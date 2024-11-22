@@ -1322,6 +1322,15 @@ const NodeProxy &UIObject::GetNode() const
     return m_node_proxy;
 }
 
+World *UIObject::GetWorld() const
+{
+    if (m_node_proxy.IsValid()) {
+        return m_node_proxy->GetWorld();
+    }
+
+    return nullptr;
+}
+
 BoundingBox UIObject::GetWorldAABB() const
 {
     HYP_SCOPE;

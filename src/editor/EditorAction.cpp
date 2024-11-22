@@ -9,8 +9,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-namespace editor {
-
 #pragma region EditorActionFactoryRegistry
 
 EditorActionFactoryRegistry &EditorActionFactoryRegistry::GetInstance()
@@ -62,20 +60,19 @@ EditorActionFactoryRegistrationBase::~EditorActionFactoryRegistrationBase()
 
 #pragma region Default Editor Actions
 
-HYP_DEFINE_EDITOR_ACTION(GenerateLightmaps)
-{
-    virtual void Execute_Internal() override
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "Generate lightmaps - not yet implemented");
-    }
+// HYP_DEFINE_EDITOR_ACTION(GenerateLightmaps)
+// {
+//     virtual void Execute_Internal() override
+//     {
+//         HYP_LOG(Editor, LogLevel::DEBUG, "Generate lightmaps - not yet implemented");
+//     }
 
-    virtual void Undo_Internal() override
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "Undo generate lightmaps - not yet implemented");
-    }
-};
+//     virtual void Undo_Internal() override
+//     {
+//         HYP_LOG(Editor, LogLevel::DEBUG, "Undo generate lightmaps - not yet implemented");
+//     }
+// };
 
 #pragma endregion Default Editor Actions
 
-} // namespace editor
 } // namespace hyperion

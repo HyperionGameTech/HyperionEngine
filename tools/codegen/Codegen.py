@@ -59,12 +59,13 @@ class GeneratedSource:
         self.content = content
 
 class HypMemberDefinition:
-    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'str | None'=None, method_args: 'list[str | None]'=None, property_args: 'list[str] | None'=None):
+    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'str | None'=None, method_args: 'list[tuple[str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
         self.member_type = member_type
         self.name = name
         self.attributes = attributes
         self.method_return_type = method_return_type
         self.method_args = method_args
+        self.is_const_method = is_const_method
         self.property_args = property_args
 
         if self.is_method:
@@ -120,6 +121,16 @@ class HypMemberDefinition:
             return self.property_args
         
         raise Exception('Member is not a method')
+    
+    def get_attribute(self, attribute_name: str):
+        for name, value, attr_type in self.attributes:
+            if name.lower() == attribute_name.lower():
+                return value
+
+        return None
+
+    def has_attribute(self, attribute_name):
+        return self.get_attribute(attribute_name) is not None
 
 class HypClassDefinition:
     def __init__(self, class_type: int, location: SourceLocation, name: str, base_classes: 'list[str]', attributes: 'list[tuple[str, str, int]]', parsed_data: ParsedData, content: str):
@@ -153,6 +164,14 @@ class HypClassDefinition:
     @property
     def is_enum(self):
         return self.class_type == HypClassType.ENUM
+    
+    @property
+    def has_scriptable_methods(self):
+        for member in self.members:
+            if member.is_method and member.has_attribute('Scriptable'):
+                return True
+            
+        return False
 
     def get_attribute(self, attribute_name: str):
         for name, value, attr_type in self.attributes:
@@ -297,9 +316,13 @@ class HypClassDefinition:
 
                         member_name = member.name.segments[-1].name
 
+                        print(f"Method {member_name} - {member}")
+
+                        is_const_method = member.const
+
                         return_type = map_type(member.return_type)
 
-                        args = []
+                        args: 'list[tuple[str, str]]' = []
 
                         for param in member.parameters:
                             param_type = map_type(param.type)
@@ -319,7 +342,7 @@ class HypClassDefinition:
 
                         # return_type
 
-                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, method_return_type=return_type, method_args=args))
+                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, method_return_type=return_type, method_args=args, is_const_method=is_const_method))
                     else:
                         raise Exception(f'Invalid member type {member_type}')
                 
