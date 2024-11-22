@@ -52,23 +52,20 @@ enum ThreadType : uint32
 class Threads
 {
 public:
-    HYP_API static const FlatMap<ThreadName, ThreadID> thread_ids;
-
     HYP_API static void AssertOnThread(ThreadMask mask, const char *message = nullptr);
     HYP_API static void AssertOnThread(const ThreadID &thread_id, const char *message = nullptr);
     HYP_API static bool IsThreadInMask(const ThreadID &thread_id, ThreadMask mask);
     HYP_API static bool IsOnThread(ThreadMask mask);
     HYP_API static bool IsOnThread(const ThreadID &thread_id);
 
-    HYP_API static IThread *GetTaskThread(ThreadID thread_id);
+    HYP_API static IThread *GetThread(ThreadID thread_id);
 
     HYP_API static IThread *CurrentThreadObject();
 
-    HYP_API static ThreadID GetThreadID(ThreadName thread_name);
+    HYP_API static ThreadID GetStaticThreadID(ThreadName thread_name);
     HYP_API static ThreadID CurrentThreadID();
 
     HYP_API static void SetCurrentThreadObject(IThread *);
-    HYP_API static void SetCurrentThreadID(ThreadID id);
     HYP_API static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
     HYP_API static ThreadType CurrentThreadType();

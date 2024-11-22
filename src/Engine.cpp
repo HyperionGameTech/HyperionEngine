@@ -171,7 +171,6 @@ void Engine::FindTextureFormatDefaults()
 HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     AssertThrow(!m_is_initialized);

@@ -16,7 +16,7 @@ HYP_DECLARE_LOG_CHANNEL(GameThread);
 class Engine;
 class Game;
 
-class GameThread final : public Thread<Scheduler<GameCounter::TickUnit>, Game *>
+class GameThread final : public Thread<Scheduler, Game *>
 {
 public:
     GameThread();

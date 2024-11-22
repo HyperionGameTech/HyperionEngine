@@ -165,8 +165,6 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
     if (m_state.patch_generation_queue_shared.has_updates.Exchange(false, MemoryOrder::ACQUIRE_RELEASE)) {
         HYP_NAMED_SCOPE("Processing patch generation updates");
 
-        AssertThrow(m_state.patch_generation_queue_owned.Empty());
-
         // take the shared queue items and move it to the owned queue for this thread
         m_state.patch_generation_queue_shared.mutex.Lock();
         m_state.patch_generation_queue_owned = std::move(m_state.patch_generation_queue_shared.queue);
@@ -265,7 +263,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
             update = m_state.patch_update_queue.Pop();
 
-            m_state.patch_update_queue_size.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_state.patch_update_queue_size.Decrement(1, MemoryOrder::RELEASE);
         }
 
         switch (update.state) {
@@ -287,7 +285,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it == m_state.patches.End()) {
-                    patches_it = m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
+                    m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
                 }
             }
 
@@ -297,8 +295,8 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
                 NodeProxy patch_node(MakeRefCountedPtr<Node>());
-                // patch_node->SetFlags(NodeFlags::TRANSIENT);
-                patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
+                patch_node->SetFlags(NodeFlags::TRANSIENT);
+                // patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
                 patch_node->SetName(HYP_FORMAT("Patch_{}_{}", patch_info.coord.x, patch_info.coord.y));
 
                 Handle<Entity> patch_entity = mgr.AddEntity();
@@ -329,7 +327,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                 {
                     Mutex::Guard guard(state.patches_mutex);
-                    
+
                     auto it = state.patches.Find(patch_info.coord);
                     AssertThrow(it != state.patches.End());
 

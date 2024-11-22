@@ -14,7 +14,7 @@
 namespace hyperion {
 
 EditorDelegates::EditorDelegates()
-    : m_scheduler(Threads::GetThreadID(ThreadName::THREAD_GAME))
+    : m_scheduler(Threads::GetStaticThreadID(ThreadName::THREAD_GAME))
 {
 }
 
@@ -119,7 +119,7 @@ void EditorDelegates::Update()
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    Queue<typename Scheduler<>::ScheduledTask> tasks;
+    Queue<Scheduler::ScheduledTask> tasks;
 
     if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
         m_scheduler.AcceptAll(tasks);

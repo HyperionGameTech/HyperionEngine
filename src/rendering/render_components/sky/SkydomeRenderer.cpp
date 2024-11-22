@@ -3,6 +3,8 @@
 #include <rendering/render_components/sky/SkydomeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
+#include <core/threading/Scheduler.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
@@ -77,11 +79,13 @@ void SkydomeRenderer::OnRemoved()
         m_env_probe.Reset();
     }
 
-    g_engine->GetWorld()->RemoveScene(m_virtual_scene);
-    m_virtual_scene.Reset();
-
     m_camera.Reset();
     m_cubemap.Reset();
+
+    Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler()->Enqueue([scene = std::move(m_virtual_scene)]()
+    {
+        g_engine->GetWorld()->RemoveScene(scene);
+    }, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)

@@ -19,8 +19,10 @@ namespace hyperion {
 namespace threading {
 
 class SchedulerBase;
+class Scheduler;
 
 using ThreadMask = uint32;
+enum ThreadName : ThreadMask;
 
 enum class ThreadPriorityValue
 {
@@ -41,6 +43,22 @@ struct ThreadID
 
     uint32  value;
     Name    name;
+
+    ThreadID()                                      = default;
+
+    ThreadID(uint32 value, Name name)
+        : value(value),
+          name(name)
+    {
+    }
+
+    HYP_API ThreadID(ThreadName thread_name);
+
+    ThreadID(const ThreadID &other)                 = default;
+    ThreadID &operator=(const ThreadID &other)      = default;
+    ThreadID(ThreadID &&other) noexcept             = default;
+    ThreadID &operator=(ThreadID &&other) noexcept  = default;
+    ~ThreadID()                                     = default;
 
     HYP_FORCE_INLINE bool operator==(const ThreadID &other) const
         { return value == other.value; }
@@ -89,22 +107,19 @@ public:
     virtual const ThreadID &GetID() const = 0;
 
     /*! \brief Get the scheduler that this thread is associated with. */
-    virtual SchedulerBase *GetScheduler() = 0;
+    virtual Scheduler *GetScheduler() = 0;
 
     /*! \brief Get the priority of this thread. */
     virtual ThreadPriorityValue GetPriority() const = 0;
 };
 
 extern HYP_API void SetCurrentThreadObject(IThread *);
-extern HYP_API void SetCurrentThreadID(const ThreadID &thread_id);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-template <class SchedulerType, class... Args>
+template <class Scheduler, class... Args>
 class Thread : public IThread
 {
 public:
-    using Scheduler = SchedulerType;
-
     // Dynamic thread
     Thread(Name dynamic_thread_name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
     Thread(const ThreadID &id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
@@ -114,16 +129,13 @@ public:
     Thread &operator=(Thread &&other) noexcept  = delete;
     virtual ~Thread() override;
 
-    virtual const ThreadID &GetID() const override
+    virtual const ThreadID &GetID() const override final
         { return m_id; }
 
-    virtual ThreadPriorityValue GetPriority() const override
+    virtual ThreadPriorityValue GetPriority() const override final
         { return m_priority; }
 
-    virtual SchedulerBase *GetScheduler() override
-        { return &m_scheduler; }
-
-    HYP_FORCE_INLINE Scheduler *GetSchedulerInstance()
+    virtual Scheduler *GetScheduler() override final
         { return &m_scheduler; }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
@@ -139,7 +151,7 @@ public:
     bool CanJoin() const;
 
 protected:
-    virtual void operator()(Args ...args) = 0;
+    virtual void operator()(Args... args) = 0;
 
     const ThreadID              m_id;
     const ThreadPriorityValue   m_priority;
@@ -150,24 +162,24 @@ private:
     std::thread                 *m_thread;
 };
 
-template <class SchedulerType, class ...Args>
-Thread<SchedulerType, Args...>::Thread(Name dynamic_thread_name, ThreadPriorityValue priority)
+template <class Scheduler, class ...Args>
+Thread<Scheduler, Args...>::Thread(Name dynamic_thread_name, ThreadPriorityValue priority)
     : m_id(ThreadID::CreateDynamicThreadID(dynamic_thread_name)),
       m_priority(priority),
       m_thread(nullptr)
 {
 }
 
-template <class SchedulerType, class ...Args>
-Thread<SchedulerType, Args...>::Thread(const ThreadID &id, ThreadPriorityValue priority)
+template <class Scheduler, class ...Args>
+Thread<Scheduler, Args...>::Thread(const ThreadID &id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
       m_thread(nullptr)
 {
 }
 
-template <class SchedulerType, class ...Args>
-Thread<SchedulerType, Args...>::~Thread()
+template <class Scheduler, class ...Args>
+Thread<Scheduler, Args...>::~Thread()
 {
     if (m_thread != nullptr) {
         if (m_thread->joinable()) {
@@ -179,8 +191,8 @@ Thread<SchedulerType, Args...>::~Thread()
     }
 }
 
-template <class SchedulerType, class... Args>
-bool Thread<SchedulerType, Args...>::Start(Args ... args)
+template <class Scheduler, class... Args>
+bool Thread<Scheduler, Args...>::Start(Args ... args)
 {
     if (m_thread != nullptr) {
         return false;
@@ -198,8 +210,8 @@ bool Thread<SchedulerType, Args...>::Start(Args ... args)
     return true;
 }
 
-template <class SchedulerType, class ...Args>
-void Thread<SchedulerType, Args...>::Detach()
+template <class Scheduler, class ...Args>
+void Thread<Scheduler, Args...>::Detach()
 {
     if (m_thread == nullptr) {
         return;
@@ -208,8 +220,8 @@ void Thread<SchedulerType, Args...>::Detach()
     m_thread->detach();
 }
 
-template <class SchedulerType, class ...Args>
-bool Thread<SchedulerType, Args...>::Join()
+template <class Scheduler, class ...Args>
+bool Thread<Scheduler, Args...>::Join()
 {
     if (!CanJoin()) {
         return false;
@@ -220,8 +232,8 @@ bool Thread<SchedulerType, Args...>::Join()
     return true;
 }
 
-template <class SchedulerType, class ...Args>
-bool Thread<SchedulerType, Args...>::CanJoin() const
+template <class Scheduler, class ...Args>
+bool Thread<Scheduler, Args...>::CanJoin() const
 {
     if (m_thread == nullptr) {
         return false;

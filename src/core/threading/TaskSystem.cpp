@@ -50,7 +50,7 @@ TaskSystem::TaskSystem()
         for (auto &it : pool.threads) {
             AssertThrow(THREAD_TASK & mask);
 
-            it = MakeUnique<TaskThread>(Threads::thread_ids.At(ThreadName(mask)), task_thread_pool_info.priority);
+            it = MakeUnique<TaskThread>(Threads::GetStaticThreadID(ThreadName(mask)), task_thread_pool_info.priority);
             mask <<= 1;
         }
     }
@@ -125,13 +125,10 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 #endif
 
     for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it) {
-        //TaskExecutor<> *executor = it;
-        //AssertThrow(executor != nullptr);
-
         TaskThread *task_thread = GetNextTaskThread(pool);
         AssertThrow(task_thread != nullptr);
 
-        const TaskID task_id = task_thread->GetSchedulerInstance()->EnqueueTaskExecutor(
+        const TaskID task_id = task_thread->GetScheduler()->EnqueueTaskExecutor(
             &(*it),
             &batch->semaphore,
             next_batch != nullptr
@@ -176,13 +173,7 @@ TaskThread *TaskSystem::GetNextTaskThread(TaskThreadPool &pool)
     const ThreadID current_thread_id = Threads::CurrentThreadID();
     const bool is_on_task_thread = current_thread_id & THREAD_TASK;
 
-    IThread *current_thread_object = is_on_task_thread
-        ? Threads::CurrentThreadObject()
-        : nullptr;
-
-    if (is_on_task_thread) {
-        AssertThrow(current_thread_object != nullptr);
-    }
+    IThread *current_thread_object = Threads::CurrentThreadObject();
 
     uint32 cycle = pool.cycle.Get(MemoryOrder::RELAXED) % num_threads_in_pool;
     uint32 num_spins = 0;
@@ -211,7 +202,7 @@ TaskThread *TaskSystem::GetNextTaskThread(TaskThreadPool &pool)
                 return task_thread;
             }
         } while (task_thread->GetID() == current_thread_id
-            || (is_on_task_thread && current_thread_object->GetScheduler()->HasWorkAssignedFromThread(task_thread->GetID())));
+            || (current_thread_object != nullptr && current_thread_object->GetScheduler()->HasWorkAssignedFromThread(task_thread->GetID())));
     } while (!task_thread->IsRunning() && !task_thread->IsFree());
 
     return task_thread;

@@ -368,7 +368,6 @@ void World::StopSimulating()
 void World::AddScene(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     if (!scene.IsValid()) {
@@ -402,7 +401,6 @@ void World::AddScene(const Handle<Scene> &scene)
 void World::RemoveScene(const WeakHandle<Scene> &scene_weak)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     typename Array<Handle<Scene>>::Iterator it = m_scenes.FindAs(scene_weak);
@@ -451,7 +449,7 @@ const Handle<Scene> &World::GetSceneByName(Name name) const
 
 const Handle<Scene> &World::GetDetachedScene(ThreadName thread_name)
 {
-    const ThreadID thread_id = Threads::GetThreadID(thread_name);
+    const ThreadID thread_id = Threads::GetStaticThreadID(thread_name);
 
     Threads::AssertOnThread(thread_id);
 

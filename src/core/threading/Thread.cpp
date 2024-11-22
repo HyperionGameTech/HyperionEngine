@@ -18,6 +18,11 @@ namespace threading {
 
 const ThreadID ThreadID::invalid = ThreadID { ~0u, NAME("InvalidThreadID") };
 
+ThreadID::ThreadID(ThreadName thread_name)
+{
+    *this = Threads::GetStaticThreadID(thread_name);
+}
+
 ThreadID ThreadID::Current()
 {
     return Threads::CurrentThreadID();
@@ -63,11 +68,6 @@ ThreadMask ThreadID::GetMask() const
 HYP_API void SetCurrentThreadObject(IThread *thread)
 {
     Threads::SetCurrentThreadObject(thread);
-}
-
-HYP_API void SetCurrentThreadID(const ThreadID &thread_id)
-{
-    Threads::SetCurrentThreadID(thread_id);
 }
 
 HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)

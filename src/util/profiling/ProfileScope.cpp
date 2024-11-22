@@ -26,7 +26,7 @@ namespace hyperion {
 
 #pragma region ProfilerConnectionThread
 
-class ProfilerConnectionThread final : public Thread<Scheduler<>, ProfilerConnection *>
+class ProfilerConnectionThread final : public Thread<Scheduler, ProfilerConnection *>
 {
 public:
     ProfilerConnectionThread()

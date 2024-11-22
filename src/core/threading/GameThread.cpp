@@ -22,7 +22,7 @@ HYP_DEFINE_LOG_CHANNEL(GameThread);
 static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
 GameThread::GameThread()
-    : Thread(Threads::thread_ids.At(ThreadName::THREAD_GAME)),
+    : Thread(Threads::GetStaticThreadID(ThreadName::THREAD_GAME)),
       m_is_running { false },
       m_stop_requested { false }
 {
@@ -62,7 +62,7 @@ void GameThread::operator()(Game *game)
             m_scheduler.AcceptAll(tasks);
 
             while (tasks.Any()) {
-                tasks.Pop().Execute(counter.delta);
+                tasks.Pop().Execute();
             }
         }
         
@@ -72,7 +72,7 @@ void GameThread::operator()(Game *game)
     // flush scheduler
     m_scheduler.Flush([](auto &operation)
     {
-        operation.Execute(MathUtil::epsilon_f);
+        operation.Execute();
     });
 
     game->Teardown();

@@ -105,7 +105,7 @@ private:
     HashMap<Name, NodeWatcher>      m_node_watchers;
     HashMap<Node *, SuppressedNode> m_suppressed_nodes;
 
-    Scheduler<>                     m_scheduler;
+    Scheduler                       m_scheduler;
 };
 
 } // namespace hyperion
