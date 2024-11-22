@@ -285,7 +285,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 auto patches_it = m_state.patches.Find(update.coord);
 
                 if (patches_it == m_state.patches.End()) {
-                    m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info }).first;
+                    m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info });
                 }
             }
 

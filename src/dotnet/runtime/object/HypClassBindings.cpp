@@ -74,7 +74,10 @@ HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Class 
             created_object_ptr = container.GetObjectPointer(index);
         } else if (hyp_class->UseRefCountedPtr()) {
             HypData value;
-            hyp_class->CreateInstance(value);
+            
+            // Set allow_abstract to true so we can use classes marked as "Abstract"
+            // allowing the managed class to override methods of an abstract class
+            hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
             RC<void> &rc = value.Get<RC<void>>();
             AssertThrow(rc != nullptr);

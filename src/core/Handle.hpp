@@ -6,6 +6,7 @@
 #include <core/Core.hpp>
 #include <core/ID.hpp>
 #include <core/ObjectPool.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 namespace hyperion {
 
@@ -79,6 +80,15 @@ struct Handle : HandleBase
     {
         if (index != 0) {
             GetContainer().IncRefStrong(index - 1);
+        }
+    }
+
+    template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
+    explicit Handle(TPointerType *ptr)
+        : HandleBase()
+    {
+        if (ptr != nullptr) {
+            *this = ptr->HandleFromThis();
         }
     }
 
@@ -284,6 +294,15 @@ struct WeakHandle
     {
         if (index != 0) {
             GetContainer().IncRefWeak(index - 1);
+        }
+    }
+
+    template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
+    explicit WeakHandle(TPointerType *ptr)
+        : index(0)
+    {
+        if (ptr != nullptr) {
+            *this = ptr->WeakHandleFromThis();
         }
     }
 

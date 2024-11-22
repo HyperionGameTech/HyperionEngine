@@ -22,8 +22,10 @@
 
 namespace hyperion {
 
+class World;
 class UIObject;
 class UIStage;
+class World;
 
 class IUIDataSourceElementFactory;
 
@@ -228,7 +230,7 @@ class HYP_API UIDataSource : public UIDataSourceBase
     }
 
 public:
-    // temp : fixme
+    // temp : required for HypClass
     UIDataSource()
         : UIDataSource(TypeWrapper<Any> { })
     {

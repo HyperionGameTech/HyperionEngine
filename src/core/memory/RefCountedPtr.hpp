@@ -1209,6 +1209,7 @@ protected:
         return *this;
     }
 
+    // Needs to be virtual to allow static_cast to this class from void *
     virtual ~EnableRefCountedPtrFromThisBase() = default;
 
 public:
@@ -1221,22 +1222,26 @@ public:
  * 
  *  T must be a subclass of EnableRefCountedPtrFromThis<T> to use this class.
  * 
- *  \note Reassigning the OwningRefCountedPtr will reassign the underlying T object, meaning all RC<T> will continue pointing to the same object they were pointing to before. */
+ *  \note Reassigning the OwningRefCountedPtr will reassign the underlying T object, meaning all RC<T> will continue pointing to the current data - be careful. */
 template <class T, class CountType = std::atomic<uint>, typename = std::enable_if_t<std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>>>
 class OwningRefCountedPtr
 {
 public:
     template <class... Args>
     OwningRefCountedPtr(Args &&... args)
-        : m_value(std::forward<Args>(args)...)
     {
-        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+        if constexpr (IsHypObject<T>::value) {
+            Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), std::forward<Args>(args)...);
+        } else {
+            Memory::Construct<T>(m_value.GetPointer(), std::forward<Args>(args)...);
+        }
+
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
     }
 
     OwningRefCountedPtr(const OwningRefCountedPtr &other)
-        : m_value(other.m_value)
+        : OwningRefCountedPtr(other.m_value.Get())
     {
-        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
     }
 
     OwningRefCountedPtr &operator=(const OwningRefCountedPtr &other)
@@ -1247,43 +1252,93 @@ public:
     }
 
     OwningRefCountedPtr(OwningRefCountedPtr &&other) noexcept
-        : m_value(std::move(other.m_value))
+        : OwningRefCountedPtr(std::move(other.m_value.Get()))
     {
-        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->IncRefCount_Strong();
     }
 
     OwningRefCountedPtr &operator=(OwningRefCountedPtr &&other) noexcept
     {
-        m_value = std::move(other.m_value);
+        m_value.Get() = std::move(other.m_value.Get());
 
         return *this;
     }
 
     ~OwningRefCountedPtr()
     {
-        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(&m_value)->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+        
+        Memory::Destruct<T>(m_value.GetPointer());
     }
+    
+    HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
+        { return TypeID::ForType<T>(); }
 
-    HYP_FORCE_INLINE T &Get()
-        { return m_value; }
+    HYP_FORCE_INLINE constexpr bool Empty() const
+        { return false; }
 
-    HYP_FORCE_INLINE const T &Get() const
-        { return m_value; }
+    HYP_FORCE_INLINE constexpr bool Any() const
+        { return true; }
 
-    HYP_FORCE_INLINE T *operator->()
-        { return &m_value; }
+    HYP_FORCE_INLINE T *Get() const
+        { return &m_value.Get(); }
 
-    HYP_FORCE_INLINE const T *operator->() const
-        { return &m_value; }
+    HYP_FORCE_INLINE T *operator->() const
+        { return static_cast<T *>(m_value.GetPointer()); }
 
-    HYP_FORCE_INLINE T &operator*()
-        { return m_value; }
+    HYP_FORCE_INLINE T &operator*() const
+        { return m_value.Get(); }
 
-    HYP_FORCE_INLINE const T &operator*() const
-        { return m_value; }
+    HYP_FORCE_INLINE operator T *() const
+        { return &m_value.Get(); }
+
+    HYP_FORCE_INLINE operator const T *() const
+        { return &m_value.Get(); }
+
+    HYP_FORCE_INLINE constexpr operator bool() const
+        { return true; }
+
+    HYP_FORCE_INLINE constexpr bool operator!() const
+        { return false; }
+
+    HYP_FORCE_INLINE bool operator==(const OwningRefCountedPtr &other) const
+        { return m_value.GetPointer() == other.m_value.GetPointer(); }
+
+    HYP_FORCE_INLINE bool operator!=(const OwningRefCountedPtr &other) const
+        { return m_value.GetPointer() != other.m_value.GetPointer(); }
+
+    HYP_FORCE_INLINE constexpr bool operator==(std::nullptr_t) const
+        { return false; }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(std::nullptr_t) const
+        { return true; }
+
+    HYP_FORCE_INLINE bool operator==(const T *ptr) const
+        { return m_value.GetPointer() == ptr; }
+
+    HYP_FORCE_INLINE bool operator!=(const T *ptr) const
+        { return m_value.GetPointer() != ptr; }
+
+    HYP_FORCE_INLINE bool operator==(T *ptr) const
+        { return m_value.GetPointer() == ptr; }
+
+    HYP_FORCE_INLINE bool operator!=(T *ptr) const
+        { return m_value.GetPointer() != ptr; }
+
+    HYP_FORCE_INLINE bool operator<(const OwningRefCountedPtr &other) const
+        { return m_value.GetPointer() < other.m_value.GetPointer(); }
+
+    HYP_FORCE_INLINE bool operator<(const T *ptr) const
+        { return m_value.GetPointer() < ptr; }
+
+    HYP_FORCE_INLINE bool operator<(T *ptr) const
+        { return m_value.GetPointer() < ptr; }
+
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
+        { return static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak; }
 
 private:
-    T   m_value;
+    // Keep it mutable to allow the same interface as RefCountedPtr
+    mutable ValueStorage<T> m_value;
 };
 
 /*! \brief Helper struct to convert raw pointers to RefCountedPtrs.

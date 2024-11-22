@@ -735,6 +735,9 @@ public:
     HYP_METHOD()
     const NodeProxy &GetNode() const;
 
+    HYP_METHOD()
+    World *GetWorld() const;
+
     virtual Scene *GetScene() const;
 
     const Handle<Material> &GetMaterial() const;

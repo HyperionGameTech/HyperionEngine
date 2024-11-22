@@ -4,6 +4,7 @@
 #define HYPERION_EDITOR_SUBSYSTEM_HPP
 
 #include <editor/ui/EditorUI.hpp>
+#include <editor/EditorActionStack.hpp>
 
 #include <scene/Subsystem.hpp>
 #include <scene/NodeProxy.hpp>
@@ -57,6 +58,10 @@ public:
         { return m_ui_stage; }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE EditorActionStack *GetActionStack() const
+        { return m_action_stack.Get(); }
+
+    HYP_METHOD()
     void SetFocusedNode(const NodeProxy &focused_node);
 
     HYP_METHOD()
@@ -79,22 +84,24 @@ private:
 
     void UpdateCamera(GameCounter::TickUnit delta);
 
-    RC<AppContext>          m_app_context;
-    Handle<Scene>           m_scene;
-    Handle<Camera>          m_camera;
-    RC<UIStage>             m_ui_stage;
+    RC<AppContext>              m_app_context;
+    Handle<Scene>               m_scene;
+    Handle<Camera>              m_camera;
+    RC<UIStage>                 m_ui_stage;
 
-    Handle<Texture>         m_scene_texture;
-    RC<UIObject>            m_main_panel;
+    OwningRC<EditorActionStack> m_action_stack;
 
-    NodeProxy               m_focused_node;
+    Handle<Texture>             m_scene_texture;
+    RC<UIObject>                m_main_panel;
+
+    NodeProxy                   m_focused_node;
     // the actual node that displays the highlight for the focused item
-    NodeProxy               m_highlight_node;
+    NodeProxy                   m_highlight_node;
 
-    bool                    m_editor_camera_enabled;
-    bool                    m_should_cancel_next_click;
+    bool                        m_editor_camera_enabled;
+    bool                        m_should_cancel_next_click;
 
-    EditorDelegates         *m_editor_delegates;
+    EditorDelegates             *m_editor_delegates;
 };
 
 } // namespace hyperion

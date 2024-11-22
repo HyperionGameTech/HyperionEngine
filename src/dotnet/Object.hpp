@@ -57,18 +57,18 @@ public:
         { return m_object_reference; }
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeMethod(const Method *method_ptr, Args... args)
+    ReturnType InvokeMethod(const Method *method_ptr, Args &&... args)
     {
-        return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<Args>{}(args)...);
+        return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<NormalizedType<Args>>{}(args)...);
     }
 
     template <class ReturnType, class... Args>
-    HYP_FORCE_INLINE ReturnType InvokeMethodByName(UTF8StringView method_name, Args... args)
+    HYP_FORCE_INLINE ReturnType InvokeMethodByName(UTF8StringView method_name, Args &&... args)
     {
         const Method *method_ptr = GetMethod(method_name);
         AssertThrowMsg(method_ptr != nullptr, "Method %s not found", method_name.Data());
 
-        return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<Args>{}(args)...);
+        return InvokeMethod_Internal<ReturnType>(method_ptr, detail::TransformArgument<NormalizedType<Args>>{}(args)...);
     }
 
 private:

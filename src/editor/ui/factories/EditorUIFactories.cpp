@@ -1,8 +1,11 @@
 #include <editor/ui/EditorUI.hpp>
+#include <editor/EditorAction.hpp>
+#include <editor/EditorSubsystem.hpp>
 
 #include <asset/Assets.hpp>
 
 #include <scene/Node.hpp>
+#include <scene/World.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 
@@ -229,7 +232,6 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIDataSourceElementFactory);
 
-
 class QuaternionUIDataSourceElementFactory : public UIDataSourceElementFactory<Quaternion, QuaternionUIDataSourceElementFactory>
 {
 public:
@@ -435,21 +437,40 @@ public:
 
             RC<UIButton> add_entity_button = stage->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             add_entity_button->SetText("Add Entity");
-            add_entity_button->OnClick.Bind([node_weak = context->node](...) -> UIEventHandlerResult
+
+            add_entity_button->OnClick.Bind([world = Handle<World>(stage->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
             {
                 HYP_LOG(Editor, LogLevel::DEBUG, "Add Entity clicked");
 
                 if (RC<Node> node_rc = node_weak.Lock()) {
-                    Scene *scene = node_rc->GetScene();
+                    world->GetSubsystem<EditorSubsystem>()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
+                        NAME("NodeSetEntity"),
+                        [node_rc, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
+                        {
+                            return {
+                                [&]()
+                                {
+                                    Scene *scene = node_rc->GetScene();
 
-                    if (!scene) {
-                        HYP_LOG(Editor, LogLevel::ERR, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node_rc->GetName());
+                                    if (!scene) {
+                                        HYP_LOG(Editor, LogLevel::ERR, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node_rc->GetName());
 
-                        return UIEventHandlerResult::ERR;
-                    }
+                                        return;
+                                    }
 
-                    const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
-                    node_rc->SetEntity(entity);
+                                    if (!entity.IsValid()) {
+                                        entity = scene->GetEntityManager()->AddEntity();
+                                    }
+
+                                    node_rc->SetEntity(entity);
+                                },
+                                [&]()
+                                {
+                                    node_rc->SetEntity(Handle<Entity>::empty);
+                                }
+                            };
+                        }
+                    ));
 
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }

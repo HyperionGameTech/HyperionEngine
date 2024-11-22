@@ -7,92 +7,82 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
+#include <core/memory/RefCountedPtr.hpp>
+
+#include <core/functional/Proc.hpp>
 
 #include <core/utilities/Tuple.hpp>
 
 #include <core/containers/TypeMap.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
-namespace editor {
 
-class IEditorAction
+HYP_CLASS(Abstract)
+class IEditorAction : public EnableRefCountedPtrFromThis<IEditorAction>
 {
+    HYP_OBJECT_BODY(IEditorAction);
+
 public:
     virtual ~IEditorAction() = default;
 
-    virtual Name GetName() const = 0;
+    HYP_METHOD(Scriptable)
+    virtual Name GetName() const;
 
-    virtual void Execute() = 0;
+    HYP_METHOD(Scriptable)
+    virtual void Execute();
 
-    virtual void Undo() = 0;
-    virtual void Redo() = 0;
+    HYP_METHOD(Scriptable)
+    virtual void Revert();
+
+protected:
+    virtual Name GetName_Impl() const { HYP_PURE_VIRTUAL(); }
+    virtual void Execute_Impl() { HYP_PURE_VIRTUAL(); };
+    virtual void Revert_Impl() { HYP_PURE_VIRTUAL(); }
 };
 
-template <auto NameStaticString, class... Args>
-class HYP_API EditorAction : public IEditorAction
+struct EditorActionFunctions
 {
+    Proc<void>  execute;
+    Proc<void>  revert;
+};
+
+HYP_CLASS()
+class HYP_API FunctionalEditorAction : public IEditorAction
+{
+    HYP_OBJECT_BODY(FunctionalEditorAction);
+
 public:
-    static Name GetName_Static()
+    FunctionalEditorAction(Name name, Proc<EditorActionFunctions> &&get_state_proc)
+        : m_name(name),
+          m_get_state_proc(std::move(get_state_proc)),
+          m_get_state_proc_result(m_get_state_proc())
     {
-        static const Name name = CreateNameFromDynamicString(NameStaticString.Data());
-
-        return name;
-    }
-
-    EditorAction()
-        : m_is_executed(false)
-    {
-    }
-
-    virtual ~EditorAction() override = default;
-
-    virtual Name GetName() const final override
-    {
-        return GetName_Static();
-    }
-
-    virtual void Execute() final
-    {
-        if (m_is_executed) {
-            return;
-        }
-
-        Execute_Internal();
-
-        m_is_executed = true;
-    }
-
-    virtual void Undo() final override
-    {
-        if (!m_is_executed) {
-            return;
-        }
-
-        Undo_Internal();
-
-        m_is_executed = false;
-        m_args = { };
-    }
-
-    virtual void Redo() final override
-    {
-        if (m_is_executed) {
-            return;
-        }
-
-        Execute_Internal();
-        m_is_executed = true;
     }
 
 protected:
-    virtual void Execute_Internal() = 0;
-    virtual void Undo_Internal() = 0;
+    virtual Name GetName_Impl() const override
+    {
+        return m_name;
+    }
+
+    virtual void Execute_Impl() override
+    {
+        m_get_state_proc_result.execute();
+    }
+
+    virtual void Revert_Impl() override
+    {
+        m_get_state_proc_result.revert();
+    }
 
 private:
-    bool                            m_is_executed;
-    Tuple<NormalizedType<Args>...>  m_args;
+    Name                        m_name;
+    Proc<EditorActionFunctions> m_get_state_proc;
+    EditorActionFunctions       m_get_state_proc_result;
 };
 
 class IEditorActionFactory;
@@ -150,13 +140,12 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
 };
 
 } // namespace detail
-} // namespace editor
 } // namespace hyperion
 
-#define HYP_DEFINE_EDITOR_ACTION(action_name, ...) \
+#define HYP_DEFINE_EDITOR_ACTION(action_name) \
     class EditorAction_##action_name; \
-    static ::hyperion::editor::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
-    class EditorAction_##action_name : public ::hyperion::editor::EditorAction<HYP_STATIC_STRING(HYP_STR(action_name)), ##__VA_ARGS__>
+    static ::hyperion::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
+    class EditorAction_##action_name : public ::hyperion::EditorAction
 
 #endif
 
