@@ -3,18 +3,26 @@
 #ifndef HYPERION_EDITOR_DELEGATES_HPP
 #define HYPERION_EDITOR_DELEGATES_HPP
 
+#include <core/Defines.hpp>
+
+#include <core/Name.hpp>
+
 #include <core/containers/String.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatSet.hpp>
 
 #include <core/functional/Delegate.hpp>
+#include <core/functional/Proc.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Scheduler.hpp>
 
 #include <core/memory/AnyRef.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
-#include <core/Name.hpp>
+#include <core/object/HypProperty.hpp>
+
+#include <scene/Node.hpp>
 
 #include <math/Transform.hpp>
 
@@ -33,7 +41,7 @@ struct NodeWatcher
     Delegate<void, Node *, const HypProperty *> OnChange;
 };
 
-class HYP_API EditorDelegates
+class EditorDelegates
 {
     struct SuppressedNode
     {
@@ -85,7 +93,7 @@ public:
         bool                            suppress_all = false;
     };
 
-    EditorDelegates();
+    HYP_API EditorDelegates();
     EditorDelegates(const EditorDelegates &other)               = delete;
     EditorDelegates &operator=(const EditorDelegates &other)    = delete;
     EditorDelegates(EditorDelegates &&other)                    = delete;
@@ -93,13 +101,13 @@ public:
     ~EditorDelegates()                                          = default;
 
     /*! \brief Receive events and changes to any node that is a descendant of the given \ref{root_node}. */
-    void AddNodeWatcher(Name watcher_key, const Weak<Node> &root_node, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc);
-    void RemoveNodeWatcher(WeakName watcher_key);
-    NodeWatcher *GetNodeWatcher(WeakName watcher_key);
+    HYP_API void AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc);
+    HYP_API void RemoveNodeWatcher(WeakName watcher_key);
+    HYP_API NodeWatcher *GetNodeWatcher(WeakName watcher_key);
 
-    void OnNodeUpdate(Node *node, const HypProperty *property);
+    HYP_API void OnNodeUpdate(Node *node, const HypProperty *property);
 
-    void Update();
+    HYP_API void Update();
 
 private:
     HashMap<Name, NodeWatcher>      m_node_watchers;

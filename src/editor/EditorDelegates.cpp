@@ -18,12 +18,12 @@ EditorDelegates::EditorDelegates()
 {
 }
 
-void EditorDelegates::AddNodeWatcher(Name watcher_key, const Weak<Node> &root_node, const FlatSet<const HypProperty *> &properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)
+void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    RC<Node> root_node_rc = root_node.Lock();
+    AssertThrow(root_node != nullptr);
 
     auto it = m_node_watchers.Find(watcher_key);
 
@@ -31,14 +31,13 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, const Weak<Node> &root_no
         it = m_node_watchers.Insert(watcher_key, NodeWatcher { }).first;
     }
 
-    for (const HypProperty *property : properties_to_watch) {
-        AssertThrow(property != nullptr);
-    }
-
     NodeWatcher &node_watcher = it->second;
-    node_watcher.root_node = root_node;
-    node_watcher.properties_to_watch.Merge(properties_to_watch);
+    node_watcher.root_node = root_node->WeakRefCountedPtrFromThis();
     node_watcher.OnChange.Bind(std::move(proc)).Detach();
+
+    for (const HypProperty &property : properties_to_watch) {
+        node_watcher.properties_to_watch.Insert(&property);
+    }
 }
 
 void EditorDelegates::RemoveNodeWatcher(WeakName watcher_key)

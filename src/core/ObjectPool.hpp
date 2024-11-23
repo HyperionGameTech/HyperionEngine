@@ -11,6 +11,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/system/Debug.hpp>
 
@@ -31,6 +32,9 @@ class Engine;
 
 template <class T>
 struct HandleDefinition;
+
+template <class T>
+class ObjectContainer;
 
 class ObjectContainerBase
 {
@@ -328,12 +332,13 @@ class ObjectPool
 public:
     struct ObjectContainerMap
     {
-        // Mutex for accessing the map
-        Mutex                                                       mutex;
-
         // Maps type ID to object container
         // Use a linked list so that iterators are never invalidated.
         LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>>    map;
+
+#ifdef HYP_ENABLE_MT_CHECK
+        DataRaceDetector                                            data_race_detector;
+#endif
 
         ObjectContainerMap()                                            = default;
         ObjectContainerMap(const ObjectContainerMap &)                  = delete;
@@ -368,7 +373,7 @@ public:
         };
 
         ObjectContainerMap object_container_map;
-
+        
         template <class T>
         ObjectContainer<T> &GetObjectContainer(UniquePtr<ObjectContainerBase> *allotted_container)
         {
@@ -377,6 +382,7 @@ public:
             return *static_cast<ObjectContainer<T> *>((*allotted_container).Get());
         }
         
+        // Calls the callback function to allocate the ObjectContainer (if needed)
         HYP_API UniquePtr<ObjectContainerBase> *AllotObjectContainer(TypeID type_id);
 
         HYP_API ObjectContainerBase &GetObjectContainer(TypeID type_id);
@@ -386,7 +392,7 @@ public:
     HYP_API static ObjectContainerHolder &GetObjectContainerHolder();
 
     template <class T>
-    HYP_FORCE_INLINE static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> *allotted_container)
+    HYP_FORCE_INLINE static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> &allotted_container)
     {
         static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
 

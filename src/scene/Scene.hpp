@@ -168,8 +168,8 @@ public:
     HYP_FORCE_INLINE const Octree &GetOctree() const
         { return m_octree; }
 
-    HYP_FORCE_INLINE RenderEnvironment *GetEnvironment() const
-        { return m_environment.Get(); }
+    HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
+        { return m_environment; }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsAttachedToWorld() const
@@ -246,7 +246,7 @@ private:
     Handle<Camera>                  m_camera;
     RenderCollector                 m_render_collector;
 
-    UniquePtr<RenderEnvironment>    m_environment;
+    Handle<RenderEnvironment>       m_environment;
     World                           *m_world;
 
     FogParams                       m_fog_params;

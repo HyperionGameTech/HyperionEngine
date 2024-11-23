@@ -345,14 +345,13 @@ struct alignas(16) VoxelUniforms
 
 static_assert(sizeof(VoxelUniforms) == 64);
 
-struct alignas(256) BlueNoiseBuffer
+struct BlueNoiseBuffer
 {
     Vec4i   sobol_256spp_256d[256 * 256 / 4];
     Vec4i   scrambling_tile[128 * 128 * 8 / 4];
     Vec4i   ranking_tile[128 * 128 * 8 / 4];
 };
 
-static_assert(sizeof(BlueNoiseBuffer) == 1310720);
 struct alignas(16) PostProcessingUniforms
 {
     Vec2u   effect_counts; // pre, post

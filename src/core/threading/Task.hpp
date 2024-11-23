@@ -33,8 +33,8 @@ HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags)
 namespace threading {
 
 class TaskThread;
+class TaskBatch;
 class SchedulerBase;
-struct TaskBatch;
 
 using TaskSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>;
 

@@ -58,6 +58,11 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+RenderEnvironment::RenderEnvironment()
+    : RenderEnvironment(nullptr)
+{
+}
+
 RenderEnvironment::RenderEnvironment(Scene *scene)
     : BasicObject(),
       m_scene(scene),

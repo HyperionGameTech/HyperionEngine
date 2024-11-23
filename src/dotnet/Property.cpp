@@ -24,7 +24,7 @@ void Property::InvokeSetter_Internal(const Object *object_ptr, void *value_vptr)
 
     object_ptr->GetClass()->EnsureLoaded();
 
-    object_ptr->GetClass()->GetClassHolder()->GetInvokeGetterFunction()(m_guid, object_ptr->GetObjectReference().guid, &value_vptr, nullptr);
+    object_ptr->GetClass()->GetClassHolder()->GetInvokeSetterFunction()(m_guid, object_ptr->GetObjectReference().guid, &value_vptr, nullptr);
 }
 
 } // namespace hyperion::dotnet

@@ -65,7 +65,7 @@ protected:
     uint                m_effect_index;
 };
 
-class HYP_API PostProcessingEffect : public BasicObject<PostProcessingEffect>
+class HYP_API PostProcessingEffect
 {
 public:
     PostProcessingEffect(
@@ -89,7 +89,7 @@ public:
     PostProcessingStage GetStage() const
         { return m_pass.GetStage(); }
 
-    uint GetEffectIndex() const
+    uint32 GetEffectIndex() const
         { return m_pass.GetEffectIndex(); }
 
     bool IsEnabled() const
@@ -211,11 +211,11 @@ private:
 
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects; // only touch from render thread
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects_pending_addition;
-    FixedArray<FlatSet<TypeID>, 2> m_effects_pending_removal;
-    std::mutex m_effects_mutex;
-    AtomicVar<bool> m_effects_updated { false };
+    FixedArray<FlatSet<TypeID>, 2>                          m_effects_pending_removal;
+    std::mutex                                              m_effects_mutex;
+    AtomicVar<bool>                                         m_effects_updated { false };
 
-    GPUBufferRef m_uniform_buffer;
+    GPUBufferRef                                            m_uniform_buffer;
 };
 
 } // namespace hyperion

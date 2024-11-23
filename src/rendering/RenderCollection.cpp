@@ -429,14 +429,12 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 #pragma region RenderCollector
 
 RenderCollector::RenderCollector()
-    : m_render_environment(nullptr),
-      m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>())
+    : m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>())
 {
 }
 
 RenderCollector::RenderCollector(const Handle<Camera> &camera)
-    : m_render_environment(nullptr),
-      m_camera(camera)
+    : m_camera(camera)
 {
 }
 

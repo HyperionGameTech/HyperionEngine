@@ -774,8 +774,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                     .absolute_position  = mouse_position,
                     .mouse_buttons      = event.GetMouseButtons(),
-                    .is_down            = false,
-                    .wheel              = Vec2i { wheel_x, wheel_y }
+                    .wheel              = Vec2i { wheel_x, wheel_y },
+                    .is_down            = false
                 });
 
                 if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
