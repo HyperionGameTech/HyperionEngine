@@ -22,7 +22,9 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
     AssertThrow(hyp_class != nullptr);
 
     if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+        //ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+        
+        ObjectContainerBase &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
         
         const uint32 index = container.NextIndex();
         container.ConstructAtIndex(index);
@@ -66,7 +68,9 @@ HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Class 
         HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
 
         if (hyp_class->UseHandles()) {
-            ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+            //ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+            
+            ObjectContainerBase &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
             
             const uint32 index = container.NextIndex();
             container.ConstructAtIndex(index);

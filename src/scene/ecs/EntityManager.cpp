@@ -227,9 +227,13 @@ Handle<Entity> EntityManager::AddEntity()
 
     Threads::AssertOnThread(m_owner_thread_mask);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+    //auto *entity_container = hyperion::GetContainer<Entity>();
+        
+    ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<Entity>(HandleDefinition<Entity>::GetAllottedContainerPointer());
     
-    const uint32 index = Handle<Entity>::GetContainer().NextIndex();
-    Handle<Entity>::GetContainer().ConstructAtIndex(index);
+    const uint32 index = container.NextIndex();
+    container.ConstructAtIndex(index);
     
     Handle<Entity> entity { ID<Entity>::FromIndex(index) };
 

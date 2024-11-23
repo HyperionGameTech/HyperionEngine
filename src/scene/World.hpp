@@ -47,7 +47,7 @@ public:
         render_collector.SetCamera(scene->GetCamera());
 
         if (scene->IsNonWorldScene()) {
-            render_collector.SetRenderEnvironment(nullptr);
+            render_collector.SetRenderEnvironment(WeakHandle<RenderEnvironment> { });
         } else {
             render_collector.SetRenderEnvironment(scene->GetEnvironment());
         }
@@ -64,7 +64,7 @@ public:
 
         RenderCollector &render_collector = m_render_collectors_by_id_index[id.ToIndex()];
         render_collector.SetCamera(Handle<Camera>::empty);
-        render_collector.SetRenderEnvironment(nullptr);
+        render_collector.SetRenderEnvironment(WeakHandle<RenderEnvironment> { });
         render_collector.Reset();
     }
 

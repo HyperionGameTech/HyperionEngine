@@ -71,8 +71,7 @@ PostProcessingEffect::PostProcessingEffect(
     PostProcessingStage stage,
     uint effect_index,
     InternalFormat image_format
-) : BasicObject(),
-    m_pass(
+) : m_pass(
         nullptr,
         stage,
         effect_index,
@@ -86,18 +85,10 @@ PostProcessingEffect::~PostProcessingEffect() = default;
 
 void PostProcessingEffect::Init()
 {
-    if (IsInitCalled()) {
-        return;
-    }
-
-    BasicObject::Init();
-
     m_shader = CreateShader();
 
     m_pass.SetShader(m_shader);
     m_pass.Create();
-
-    SetReady(true);
 }
 
 void PostProcessingEffect::RenderEffect(Frame *frame, uint slot)

@@ -145,8 +145,6 @@ public:
 
     static constexpr bool is_contiguous = true;
     
-    static constexpr bool is_pod_type = IsPODType<T>;
-    
     static constexpr bool use_inline_storage = ArrayStorageType::use_inline_storage;
     static constexpr SizeType num_inline_bytes = ArrayStorageType::num_inline_bytes;
     static constexpr SizeType num_inline_elements = ArrayStorageType::num_inline_elements;

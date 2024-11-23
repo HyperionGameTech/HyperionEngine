@@ -93,7 +93,7 @@ Scene::Scene(
     m_flags(flags),
     m_camera(std::move(camera)),
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
-    m_environment(MakeUnique<RenderEnvironment>(this)),
+    m_environment(CreateObject<RenderEnvironment>(this)),
     m_world(nullptr),
     m_is_audio_listener(false),
     m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id.GetMask(), this)),
@@ -174,7 +174,7 @@ void Scene::Init()
             }
         }
         
-        m_environment->Init();
+        InitObject(m_environment);
 
         if (m_tlas) {
             m_environment->SetTLAS(m_tlas);

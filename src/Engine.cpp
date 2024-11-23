@@ -578,7 +578,7 @@ void Engine::RenderDeferred(Frame *frame)
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    m_deferred_renderer->Render(frame, render_state.GetScene().render_environment);
+    m_deferred_renderer->Render(frame, render_state.GetScene().render_environment.Get());
 }
 
 // GlobalDescriptorSetManager

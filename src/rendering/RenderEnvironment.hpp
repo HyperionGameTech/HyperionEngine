@@ -39,15 +39,15 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
     RENDER_ENVIRONMENT_UPDATES_TLAS                 = 0x4
 };
 
-class HYP_API RenderEnvironment
-    : public BasicObject<RenderEnvironment>
+class HYP_API RenderEnvironment : public BasicObject<RenderEnvironment>
 {
     using RenderComponentPendingRemovalEntry = Pair<TypeID, Name>;
 
 public:
+    RenderEnvironment();
     RenderEnvironment(Scene *scene);
-    RenderEnvironment(const RenderEnvironment &other) = delete;
-    RenderEnvironment &operator=(const RenderEnvironment &other) = delete;
+    RenderEnvironment(const RenderEnvironment &other)               = delete;
+    RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
     ~RenderEnvironment();
 
     void SetTLAS(const TLASRef &tlas);
@@ -74,7 +74,7 @@ public:
         return component;
     }
 
-    template <class T, class ...Args>
+    template <class T, class... Args>
     RC<T> AddRenderComponent(Name name, Args &&... args)
     {
         return AddRenderComponent(MakeRefCountedPtr<T>(name, std::forward<Args>(args)...));

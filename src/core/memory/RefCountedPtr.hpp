@@ -1376,7 +1376,7 @@ public:
         { return Base::weak.template CastUnsafe<T>(); }
 
     const WeakRefCountedPtr<T, CountType> &WeakThis() const
-        { return static_cast<const WeakRefCountedPtr<T, CountType> &>(Base::weak); }
+        { return (const WeakRefCountedPtr<T, CountType> &)(Base::weak); }
 
 private:
     EnableRefCountedPtrFromThis(const EnableRefCountedPtrFromThis &)

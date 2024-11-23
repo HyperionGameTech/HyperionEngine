@@ -422,8 +422,8 @@ void HyperionEditor::Init()
                 m_scene->GetEntityManager()->AddComponent<AudioComponent>(zombie_entity, AudioComponent {
                     .audio_source = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav").Result(),
                     .playback_state = {
-                        .speed = 2.0f,
-                        .loop_mode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE
+                        .loop_mode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE,
+                        .speed = 2.0f
                     }
                 });
             }

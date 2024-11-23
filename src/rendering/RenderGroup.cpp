@@ -580,14 +580,14 @@ static HYP_FORCE_INLINE void RenderAll(
         }
 
         if constexpr (IsIndirect) {
-            Handle<Mesh>::GetContainer().Get(draw_call.mesh_id.ToIndex())
+            GetContainer<Mesh>()->Get(draw_call.mesh_id.ToIndex())
                 .RenderIndirect(
                     frame->GetCommandBuffer(),
                     indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
                     draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
                 );
         } else {
-            Handle<Mesh>::GetContainer().Get(draw_call.mesh_id.ToIndex())
+            GetContainer<Mesh>()->Get(draw_call.mesh_id.ToIndex())
                 .Render(frame->GetCommandBuffer(), entity_instance_batch.num_entities);
         }
     }
@@ -667,7 +667,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                 return;
             }
 
-            auto &mesh_container = Handle<Mesh>::GetContainer();
+            auto *mesh_container = GetContainer<Mesh>();
 
             command_buffers[frame_index][index]->Record(
                 g_engine->GetGPUDevice(),
@@ -747,14 +747,14 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         }
 
                         if constexpr (IsIndirect) {
-                            mesh_container.Get(draw_call.mesh_id.ToIndex())
+                            mesh_container->Get(draw_call.mesh_id.ToIndex())
                                 .RenderIndirect(
                                     secondary,
                                     indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
                                     draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
                                 );
                         } else {
-                            mesh_container.Get(draw_call.mesh_id.ToIndex())
+                            mesh_container->Get(draw_call.mesh_id.ToIndex())
                                 .Render(secondary, entity_instance_batch.num_entities);
                         }
                     }

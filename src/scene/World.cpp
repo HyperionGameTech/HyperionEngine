@@ -167,7 +167,7 @@ void World::Update(GameCounter::TickUnit delta)
             continue;
         }
 
-        if (RenderEnvironment *render_environment = m_scenes[index]->GetEnvironment()) {
+        if (const Handle<RenderEnvironment> &render_environment = m_scenes[index]->GetEnvironment()) {
             HYP_NAMED_SCOPE_FMT("Update RenderEnvironment for Scene with ID #{}", m_scenes[index]->GetID().Value());
 
             render_environment->Update(delta);
@@ -252,8 +252,8 @@ void World::Render(Frame *frame)
     const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
 
     for (uint32 i = 0; i < num_render_collectors; i++) {
-        if (RenderEnvironment *render_environment = m_render_collector_container.GetRenderCollectorAtIndex(i)->GetRenderEnvironment()) {
-            render_environment->RenderComponents(frame);
+        if (const WeakHandle<RenderEnvironment> &render_environment = m_render_collector_container.GetRenderCollectorAtIndex(i)->GetRenderEnvironment()) {
+            render_environment.GetUnsafe()->RenderComponents(frame);
         }
     }
 }

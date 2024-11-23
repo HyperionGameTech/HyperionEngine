@@ -29,7 +29,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_class_v<T>>>
 template <class T>
 struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
 {
-    static constexpr EnumFlags<HypClassFlags> value = HypClassFlags::NONE;
+    static constexpr EnumFlags<HypClassFlags> value = HypClassFlags::ENUM_TYPE;
 };
 
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
@@ -65,12 +65,12 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
     { \
         using Type = cls; \
         \
-        using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type, HypClassFlags::ENUM_TYPE>; \
+        using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type, DefaultHypClassFlags<Type>::value>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration = { NAME(HYP_STR(cls)), Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_ENUM } } };
 
