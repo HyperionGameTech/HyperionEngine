@@ -390,63 +390,63 @@ void EditorSubsystem::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
-    {
-        HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
+    //m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    //{
+    //    HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
-        // Update name in list view
-        // @TODO: Ensure game thread
+    //    // Update name in list view
+    //    // @TODO: Ensure game thread
 
-        RC<UIListView> list_view = list_view_weak.Lock();
+    //    RC<UIListView> list_view = list_view_weak.Lock();
 
-        if (!list_view) {
-            return;
-        }
+    //    if (!list_view) {
+    //        return;
+    //    }
 
-        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
-            AssertThrow(data_source_element != nullptr);
+    //    if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+    //        const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+    //        AssertThrow(data_source_element != nullptr);
 
-            data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
-        }
-    });
+    //        data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
+    //    }
+    //});
 
-    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
-    {
-        AssertThrow(node != nullptr);
+    //m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    //{
+    //    AssertThrow(node != nullptr);
 
-        RC<UIListView> list_view = list_view_weak.Lock();
+    //    RC<UIListView> list_view = list_view_weak.Lock();
 
-        if (!list_view) {
-            return;
-        }
+    //    if (!list_view) {
+    //        return;
+    //    }
 
-        if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+    //    if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+    //        const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
 
-            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
-                if (!data_source_element) {
-                    return;
-                }
+    //        if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
+    //            if (!data_source_element) {
+    //                return;
+    //            }
 
-                data_source->Remove(node->GetUUID());
-            } else {
-                if (data_source_element) {
-                    return;
-                }
+    //            data_source->Remove(node->GetUUID());
+    //        } else {
+    //            if (data_source_element) {
+    //                return;
+    //            }
 
-                Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
+    //            Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
 
-                UUID parent_node_uuid = UUID::Invalid();
+    //            UUID parent_node_uuid = UUID::Invalid();
 
-                if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
-                    parent_node_uuid = parent_node->GetUUID();
-                }
+    //            if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
+    //                parent_node_uuid = parent_node->GetUUID();
+    //            }
 
-                data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
-            }
-        }
-    });
+    //            data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
+    //        }
+    //    }
+    //});
 
     m_scene->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
     {
@@ -564,7 +564,9 @@ void EditorSubsystem::InitDetailView()
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
 
-        m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node, {}, [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
+        m_editor_delegates->RemoveNodeWatcher(NAME("DetailView"));
+
+        m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node.Get(), {}, Proc<void, Node *, const HypProperty *> { [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {
             HYP_LOG(Editor, LogLevel::DEBUG, "(detail) Node property changed: {}", property->GetName());
 
@@ -596,7 +598,7 @@ void EditorSubsystem::InitDetailView()
                 
                 // data_source->Set(data_source_element->GetUUID(), HypData(&node_property_ref));
             }
-        });
+        } });
     }).Detach();
 }
 

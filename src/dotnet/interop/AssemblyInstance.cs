@@ -285,6 +285,8 @@ namespace Hyperion
 
         public void Unload()
         {
+            Logger.Log(LogType.Info, $"Attempting to unload assembly {assembly?.FullName}");
+
             if (assembly == null)
             {
                 return;
@@ -302,6 +304,8 @@ namespace Hyperion
                     continue;
                 }
 
+                Logger.Log(LogType.Info, $"Referenced assembly unloading: {referencedAssembly.AssemblyName?.FullName}");
+
                 referencedAssembly.Unload();
             }
 
@@ -316,8 +320,7 @@ namespace Hyperion
                 numCachedObjectsRemoved.Add(kvp.Key, numRemoved);
             }
 
-            Logger.Log(LogType.Info, $"Unloaded assembly {guid} from {assemblyName.FullName}:");
-            Logger.Log(LogType.Info, $"\tRemoved {numObjectsRemoved} objects.");
+            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed {numObjectsRemoved} objects.");
 
             foreach (KeyValuePair<Type, int> kvp in numCachedObjectsRemoved)
             {
@@ -326,7 +329,9 @@ namespace Hyperion
 
             if (ownsContext)
             {
+                Logger.Log(LogType.Info, "Unloading context");
                 context.Unload();
+                Logger.Log(LogType.Info, "Context unloaded");
             }
 
             assembly = null;

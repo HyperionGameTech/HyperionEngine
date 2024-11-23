@@ -150,10 +150,10 @@ public:
     HYP_FORCE_INLINE void SetCamera(const Handle<Camera> &camera)
         { m_camera = camera; }
 
-    HYP_FORCE_INLINE RenderEnvironment *GetRenderEnvironment() const
+    HYP_FORCE_INLINE const WeakHandle<RenderEnvironment> &GetRenderEnvironment() const
         { return m_render_environment; }
 
-    HYP_FORCE_INLINE void SetRenderEnvironment(RenderEnvironment *render_environment)
+    HYP_FORCE_INLINE void SetRenderEnvironment(const WeakHandle<RenderEnvironment> &render_environment)
         { m_render_environment = render_environment; }
 
     HYP_FORCE_INLINE const RC<EntityDrawCollection> &GetEntityCollection() const
@@ -217,9 +217,9 @@ public:
     void Reset();
 
 protected:
-    Handle<Camera>              m_camera;
-    RenderEnvironment           *m_render_environment;
-    RC<EntityDrawCollection>    m_draw_collection;
+    Handle<Camera>                  m_camera;
+    WeakHandle<RenderEnvironment>   m_render_environment;
+    RC<EntityDrawCollection>        m_draw_collection;
 };
 
 } // namespace hyperion

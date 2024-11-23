@@ -34,14 +34,19 @@ class HypEnum;
 class HypObjectPtr;
 
 template <class T>
+class ObjectContainer;
+
+template <class T>
 struct Handle;
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 {
-    auto &container = Handle<T>::GetContainer();
+    //auto *container = GetContainer<T>();
+    
+    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
 
-    const uint index = container.NextIndex();
+    const uint32 index = container.NextIndex();
     container.ConstructAtIndex(index);
 
     return Handle<T>(ID<T>::FromIndex(index));
@@ -50,9 +55,11 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 template <class T, class... Args>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 {
-    auto &container = Handle<T>::GetContainer();
+    //auto *container = GetContainer<T>();
+    
+    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
 
-    const uint index = container.NextIndex();
+    const uint32 index = container.NextIndex();
 
     container.ConstructAtIndex(
         index,

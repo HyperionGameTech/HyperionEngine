@@ -152,6 +152,8 @@ HYP_API const HypClass *HypObjectPtr::GetHypClass(TypeID type_id) const
 
 #pragma endregion HypObjectPtr
 
+HYP_DISABLE_OPTIMIZATION;
+
 HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address)
 {
 #ifdef HYP_DEBUG_MODE
@@ -160,10 +162,12 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     AssertThrow(address != nullptr);
 #endif
 
+    Stack<HypObjectInitializerContext> &contexts = g_contexts;
+
     bool valid = false;
 
-    for (int i = int(g_contexts.Size()) - 1; i >= 0; i--) {
-        HypObjectInitializerContext *context = g_contexts.Data() + i;
+    for (int i = int(contexts.Size()) - 1; i >= 0; i--) {
+        HypObjectInitializerContext *context = contexts.Data() + i;
 
         if (context->address != address) {
             valid = false;
@@ -181,8 +185,8 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     if (!valid) {
         ANSIString initializer_contexts_string = "\tHypClass\t\tObject Address\n";
 
-        for (int i = int(g_contexts.Size()) - 1; i >= 0; i--) {
-            HypObjectInitializerContext *context = g_contexts.Data() + i;
+        for (int i = int(contexts.Size()) - 1; i >= 0; i--) {
+            HypObjectInitializerContext *context = contexts.Data() + i;
 
             initializer_contexts_string += HYP_FORMAT("\t{}\t\t{}\n", hyp_class->GetName(), context->address);
         }
@@ -193,6 +197,8 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
             hyp_class->GetName().LookupString());
     }
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object)
 {
@@ -211,9 +217,10 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
 
     do {
         if (const HypClass *parent_hyp_class = parent_initializer->GetClass()->GetParent()) {
-            if ((parent_initializer = parent_hyp_class->GetObjectInitializer(native_address))) {
-                parent_initializer->FixupPointer(native_address, initializer);
-            }
+            parent_initializer = parent_hyp_class->GetObjectInitializer(native_address);
+            AssertThrow(parent_initializer != nullptr);
+
+            parent_initializer->FixupPointer(native_address, initializer);
         } else {
             parent_initializer = nullptr;
         }

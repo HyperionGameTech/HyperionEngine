@@ -14,10 +14,9 @@ class HypClass;
 
 namespace dotnet {
 
-struct Method;
-
 class Class;
 class Assembly;
+class Method;
 
 class ClassHolder
 {

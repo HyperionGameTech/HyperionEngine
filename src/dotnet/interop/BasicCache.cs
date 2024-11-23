@@ -99,12 +99,16 @@ namespace Hyperion
         }
         
         private Dictionary<Guid, StoredCachedObject<T>> cache = new Dictionary<Guid, StoredCachedObject<T>>();
+        private object lockObject = new object();
 
         public T Get(Guid guid)
         {
-            if (cache.ContainsKey(guid))
+            lock (lockObject)
             {
-                return cache[guid].Value;
+                if (cache.ContainsKey(guid))
+                {
+                    return cache[guid].Value;
+                }
             }
 
             return default(T);
@@ -112,36 +116,43 @@ namespace Hyperion
 
         public void Add(Guid assemblyGuid, Guid guid, T value)
         {
-            if (cache.ContainsKey(guid))
+            lock (lockObject)
             {
-                if (cache[guid].AssemblyGuid == assemblyGuid)
+                if (cache.ContainsKey(guid))
                 {
-                    return;
+                    if (cache[guid].AssemblyGuid == assemblyGuid)
+                    {
+                        return;
+                    }
+
+                    throw new Exception("Object already exists in cache for a different assembly!");
                 }
 
-                throw new Exception("Object already exists in cache for a different assembly!");
+                cache.Add(guid, new StoredCachedObject<T> { AssemblyGuid = assemblyGuid, Value = value });
             }
-
-            cache.Add(guid, new StoredCachedObject<T> { AssemblyGuid = assemblyGuid, Value = value });
         }
 
         public int RemoveForAssembly(Guid assemblyGuid)
         {
             List<Guid> keysToRemove = new List<Guid>();
+            int numKeysToRemove = 0;
 
-            foreach (KeyValuePair<Guid, StoredCachedObject<T>> kvp in cache)
+            lock (lockObject)
             {
-                if (kvp.Value.AssemblyGuid == assemblyGuid)
+                foreach (KeyValuePair<Guid, StoredCachedObject<T>> kvp in cache)
                 {
-                    keysToRemove.Add(kvp.Key);
+                    if (kvp.Value.AssemblyGuid == assemblyGuid)
+                    {
+                        keysToRemove.Add(kvp.Key);
+                    }
                 }
-            }
 
-            int numKeysToRemove = keysToRemove.Count;
+                numKeysToRemove = keysToRemove.Count;
 
-            foreach (Guid key in keysToRemove)
-            {
-                cache.Remove(key);
+                foreach (Guid key in keysToRemove)
+                {
+                    cache.Remove(key);
+                }
             }
 
             return numKeysToRemove;

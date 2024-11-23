@@ -20,7 +20,7 @@
 
       <ArrayItems Condition="use_inline_storage == false || m_storage.m_is_dynamic == true">
         <Size>(m_size - m_start_offset)</Size>
-        <ValuePointer>($T1 *)(m_storage.m_buffer + m_start_offset)</ValuePointer>
+        <ValuePointer>(($T1 *)m_storage.m_buffer + m_start_offset)</ValuePointer>
       </ArrayItems>
       <ArrayItems Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false">
         <Size>(m_size - m_start_offset)</Size>
@@ -31,27 +31,27 @@
   </Type>
 
   <Type Name="hyperion::containers::detail::String&lt;*&gt;">
-    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 2">{{ {(m_storage.m_buffer + m_start_offset), s8} }}</DisplayString>
+    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 2">{{ {((CharType *)m_storage.m_buffer + m_start_offset), s8} }}</DisplayString>
     <DisplayString Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; $T1 == 2">{{ {(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s8} }}</DisplayString>
-    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {(m_storage.m_buffer + m_start_offset), s} }}</DisplayString>
+    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {((CharType *)m_storage.m_buffer + m_start_offset), s} }}</DisplayString>
     <DisplayString Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s} }}</DisplayString>
-    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {(m_storage.m_buffer + m_start_offset), su} }}</DisplayString>
+    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {((CharType *)m_storage.m_buffer + m_start_offset), su} }}</DisplayString>
     <DisplayString Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), su} }}</DisplayString>
-    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {(m_storage.m_buffer + m_start_offset), s32} }}</DisplayString>
+    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {((CharType *)m_storage.m_buffer + m_start_offset), s32} }}</DisplayString>
     <DisplayString Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s32} }}</DisplayString>
-    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {(m_storage.m_buffer + m_start_offset), su} }}</DisplayString>
+    <DisplayString Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {((CharType *)m_storage.m_buffer + m_start_offset), su} }}</DisplayString>
     <DisplayString Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), su} }}</DisplayString>
 
     <Expand>
-      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf8">(m_storage.m_buffer + m_start_offset), s8</Item>
+      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf8">((CharType *)m_storage.m_buffer + m_start_offset), s8</Item>
       <Item Name="[Text]" Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; is_utf8">(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s8</Item>
-      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_ansi">(m_storage.m_buffer + m_start_offset), s</Item>
+      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_ansi">((CharType *)m_storage.m_buffer + m_start_offset), s</Item>
       <Item Name="[Text]" Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; is_ansi">(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s</Item>
-      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf16">(m_storage.m_buffer + m_start_offset), su</Item>
+      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf16">((CharType *)m_storage.m_buffer + m_start_offset), su</Item>
       <Item Name="[Text]" Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; is_utf16">(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), su</Item>
-      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf32">(m_storage.m_buffer + m_start_offset), s32</Item>
+      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_utf32">((CharType *)m_storage.m_buffer + m_start_offset), s32</Item>
       <Item Name="[Text]" Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; is_utf32">(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), s32</Item>
-      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_wide">(m_storage.m_buffer + m_start_offset), su</Item>
+      <Item Name="[Text]" Condition="use_inline_storage == false || m_storage.m_is_dynamic == true &amp;&amp; is_wide">((CharType *)m_storage.m_buffer + m_start_offset), su</Item>
       <Item Name="[Text]" Condition="use_inline_storage == true &amp;&amp; m_storage.m_is_dynamic == false &amp;&amp; is_wide">(((CharType *)&amp;m_storage.m_inline_storage.data[0]) + m_start_offset), su</Item>
 
       <Item Name="[Type]">string_type</Item>
@@ -78,7 +78,7 @@
         <Exec Condition="m_buckets.use_inline_storage == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *) m_buckets.m_storage.m_buffer)</Exec>
 
         <Exec Condition="m_buckets.use_inline_storage == true &amp;&amp; m_buckets.m_storage.m_is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *)&amp;m_buckets.m_storage.m_inline_storage.data[0] + m_buckets.m_start_offset)</Exec>
-        <Exec Condition="m_buckets.use_inline_storage == false || m_buckets.m_storage.m_is_dynamic == true">bucket_ptr = (hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *)(m_buckets.m_storage.m_buffer + m_buckets.m_start_offset)</Exec>
+        <Exec Condition="m_buckets.use_inline_storage == false || m_buckets.m_storage.m_is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;$T1,$T2&gt; *)m_buckets.m_storage.m_buffer + m_buckets.m_start_offset)</Exec>
 
         <Loop>
           <Break Condition="bucket_index == (m_buckets.m_size - m_buckets.m_start_offset)" />
@@ -128,7 +128,7 @@
   </Type>
 
   <Type Name="hyperion::utilities::detail::VariantBase&lt;*,*&gt;">
-    <DisplayString>{{ TypeID={m_current_type_id} }}</DisplayString>
+    <DisplayString>{{ Index={m_current_index} }}</DisplayString>
     <Expand>
       <Item Name="[Data]">m_storage.data_buffer</Item>
     </Expand>
@@ -167,7 +167,7 @@
 
     <Expand>
       <!--<Item Name="[Data]">(0)</Item>-->
-      <ExpandedItem Condition="index != 0">($T1 *)(&amp;(s_container-&gt;m_data.m_values[index - 1]))</ExpandedItem>
+      <ExpandedItem Condition="index != 0">($T1 *)(&amp;(((hyperion::ObjectContainer&gt;$T1&lt; *)s_container)-&gt;m_data.m_values[index - 1]))</ExpandedItem>
       <ExpandedItem Condition="index == 0">($T1 *)0</ExpandedItem>
     </Expand>
   </Type>
@@ -189,7 +189,7 @@
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.use_inline_storage == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_buffer))</Exec>
 
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.use_inline_storage == true &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)&amp;g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_inline_storage.data[0] + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
-        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.use_inline_storage == false || g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_is_dynamic == true">bucket_ptr = (hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)(g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_buffer + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
+        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.use_inline_storage == false || g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)g_name_registry-&gt;m_name_map.m_buckets.m_storage.m_buffer + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
 
         <Loop>
           <Break Condition="found == true || bucket_index == (g_name_registry-&gt;m_name_map.m_buckets.m_size - g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)" />
@@ -204,7 +204,7 @@
                   <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_storage.m_inline_storage.data + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
                 </If>
                 <If Condition="current_head-&gt;pair.second.use_inline_storage == false || current_head-&gt;pair.second.m_storage.m_is_dynamic == true">
-                  <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_storage.m_buffer + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
+                  <Item Name="StringValue">&amp;((char*)current_head-&gt;pair.second.m_storage.m_buffer + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
                 </If>
                 <Exec>found = true</Exec>
               </If>
@@ -224,14 +224,14 @@
   </Type>
 
   <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
-    <DisplayString>{{ ID={index} Strong={_container->m_data.m_values[index - 1].ref_count_strong.m_value} Weak={_container->m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
+    <DisplayString>{{ ID={index} Strong={s_container->m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container->m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
 
     <Expand>
-      <Item Name="[Strong]">(_container->m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
-      <Item Name="[Weak]">_container->m_data.m_values[index - 1].ref_count_weak.m_value</Item>
+      <Item Name="[Strong]">(s_container->m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
+      <Item Name="[Weak]">s_container->m_data.m_values[index - 1].ref_count_weak.m_value</Item>
       <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
 
-      <ExpandedItem>($T1 *)(&amp;(_container->m_data.m_values[index - 1].storage))</ExpandedItem>
+      <ExpandedItem>($T1 *)(&amp;(s_container->m_data.m_values[index - 1].storage))</ExpandedItem>
     </Expand>
   </Type>
 

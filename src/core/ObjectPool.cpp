@@ -13,7 +13,7 @@ ObjectPool::ObjectContainerHolder &ObjectPool::GetObjectContainerHolder()
 
 UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
 {
-    // Threads::AssertOnThread(ThreadName::THREAD_MAIN);
+    HYP_MT_CHECK_RW(object_container_map.data_race_detector);
 
     auto it = object_container_map.map.FindIf([type_id](const auto &element)
     {
@@ -35,6 +35,8 @@ UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectCo
 
 ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID type_id)
 {
+    HYP_MT_CHECK_READ(object_container_map.data_race_detector);
+
     const auto it = object_container_map.map.FindIf([type_id](const auto &element)
     {
         return element.first == type_id;
@@ -51,6 +53,8 @@ ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeI
 
 ObjectContainerBase *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
 {
+    HYP_MT_CHECK_READ(object_container_map.data_race_detector);
+
     const auto it = object_container_map.map.FindIf([type_id](const auto &element)
     {
         return element.first == type_id;
