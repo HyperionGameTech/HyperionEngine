@@ -25,7 +25,7 @@ public:
         { return m_entity_instance_batch_holders; }
 
     template <class EntityInstanceBatchType>
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches> *GetOrCreate()
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *GetOrCreate(uint32 count)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -34,10 +34,10 @@ public:
         if (it == m_entity_instance_batch_holders.End()) {
             HYP_MT_CHECK_WRITE(m_data_race_detector);
 
-            it = m_entity_instance_batch_holders.Set<EntityInstanceBatchType>(MakeUnique<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches>>()).first;
+            it = m_entity_instance_batch_holders.Set<EntityInstanceBatchType>(MakeUnique<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER>>(count)).first;
         }
 
-        return static_cast<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches> *>(it->second.Get());
+        return static_cast<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *>(it->second.Get());
     }
 
 private:

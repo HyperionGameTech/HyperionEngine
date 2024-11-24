@@ -48,6 +48,8 @@ struct alignas(16) EntityInstanceBatch_UI : EntityInstanceBatch
 
 static_assert(sizeof(EntityInstanceBatch_UI) == 6976);
 
+static constexpr uint32 max_ui_entity_instance_batches = 16384;
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
@@ -176,7 +178,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                     RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
                 );
 
-                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>());
+                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>(max_ui_entity_instance_batches));
 
                 if (framebuffer != nullptr) {
                     render_group->AddFramebuffer(framebuffer);

@@ -163,6 +163,26 @@ bool Threads::IsOnThread(const ThreadID &thread_id)
 
 ThreadID Threads::GetThreadID(ThreadName thread_name)
 {
+    // @FIXME : this is temporarily here because static initialization order is out of whack on windows
+    // fix it by creating a static method that will return a static const map
+
+    static const FlatMap<ThreadName, ThreadID> thread_ids = {
+        { THREAD_MAIN,      ThreadID { uint32(THREAD_MAIN),         HYP_NAME_UNSAFE(MainThread) } },
+        { THREAD_GAME,      ThreadID { uint32(THREAD_GAME),         HYP_NAME_UNSAFE(GameThread) } },
+        { THREAD_RESERVED0, ThreadID { uint32(THREAD_RESERVED0),    HYP_NAME_UNSAFE(ReservedThread0) } },
+        { THREAD_TASK_0,    ThreadID { uint32(THREAD_TASK_0),       HYP_NAME_UNSAFE(TaskThread0) } },
+        { THREAD_TASK_1,    ThreadID { uint32(THREAD_TASK_1),       HYP_NAME_UNSAFE(TaskThread1) } },
+        { THREAD_TASK_2,    ThreadID { uint32(THREAD_TASK_2),       HYP_NAME_UNSAFE(TaskThread2) } },
+        { THREAD_TASK_3,    ThreadID { uint32(THREAD_TASK_3),       HYP_NAME_UNSAFE(TaskThread3) } },
+        { THREAD_TASK_4,    ThreadID { uint32(THREAD_TASK_4),       HYP_NAME_UNSAFE(TaskThread4) } },
+        { THREAD_TASK_5,    ThreadID { uint32(THREAD_TASK_5),       HYP_NAME_UNSAFE(TaskThread5) } },
+        { THREAD_TASK_6,    ThreadID { uint32(THREAD_TASK_6),       HYP_NAME_UNSAFE(TaskThread6) } },
+        { THREAD_TASK_7,    ThreadID { uint32(THREAD_TASK_7),       HYP_NAME_UNSAFE(TaskThread7) } },
+        { THREAD_TASK_8,    ThreadID { uint32(THREAD_TASK_8),       HYP_NAME_UNSAFE(TaskThread8) } },
+        { THREAD_RESERVED1, ThreadID { uint32(THREAD_RESERVED1),    HYP_NAME_UNSAFE(ReservedThread1) } },
+        { THREAD_RESERVED2, ThreadID { uint32(THREAD_RESERVED2),    HYP_NAME_UNSAFE(ReservedThread2) } }
+    };
+
     const auto it = thread_ids.Find(thread_name);
 
     if (it != thread_ids.End()) {

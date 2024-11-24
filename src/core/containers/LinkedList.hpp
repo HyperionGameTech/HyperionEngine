@@ -113,42 +113,51 @@ public:
     LinkedList &operator=(const LinkedList &other);
     LinkedList &operator=(LinkedList &&other) noexcept;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType Size() const
+    HYP_FORCE_INLINE SizeType Size() const
         { return m_size; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ValueType &Front()
+    HYP_FORCE_INLINE ValueType &Front()
         { return m_head->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ValueType &Front() const
+    HYP_FORCE_INLINE const ValueType &Front() const
         { return m_head->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    ValueType &Back()
+    HYP_FORCE_INLINE ValueType &Back()
         { return m_tail->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const ValueType &Back() const
+    HYP_FORCE_INLINE const ValueType &Back() const
         { return m_tail->value.Get(); }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
+    HYP_FORCE_INLINE bool Empty() const
         { return Size() == 0; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any() const
+    HYP_FORCE_INLINE bool Any() const
         { return Size() != 0; }
+
+    /*! \brief Access the element at \ref{index}. Note that the LinkedList must be traversed until we reach the element,
+     *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */ 
+    HYP_FORCE_INLINE T &operator[](SizeType index)
+    {
+        AssertThrow(index < m_size);
+
+        Node *node = m_head;
+
+        SizeType curr = 0;
+
+        while (curr < index && node->next != nullptr) {
+            node = node->next;
+            ++curr;
+        }
+
+        return node->value.Get();
+    }
+
+    /*! \brief Access the element at \ref{index}. Note that the LinkedList must be traversed until we reach the element,
+     *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */ 
+    HYP_FORCE_INLINE const T &operator[](SizeType index) const
+        { return const_cast<LinkedList<T> *>(this)->operator[](index); }
     
-    template <class ...Args>
+    template <class... Args>
     ValueType &EmplaceBack(Args &&... args)
     {
         Node *new_node = new Node;
@@ -168,7 +177,7 @@ public:
         return new_node->value.Get();
     }
 
-    template <class ...Args>
+    template <class... Args>
     ValueType &EmplaceFront(Args &&... args)
     {
         Node *new_node = new Node;
