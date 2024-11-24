@@ -178,7 +178,7 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
     // // The instance data buffer should be all the bytes after `indices`.
     // AssertThrow(mesh_instance_data + offsetof(EntityInstanceBatch, transforms) == m_impl->GetBatchSizeOf());
 
-    AssertThrow(draw_call.batch_index < max_entity_instance_batches);
+    AssertThrow(draw_call.batch_index < m_impl->GetNumBatches());
 
     for (uint32 buffer_index = 0; buffer_index < uint32(mesh_instance_data.buffers.Size()); buffer_index++) {
         AssertThrow(mesh_instance_data.buffers[buffer_index].Size() / mesh_instance_data.buffer_struct_sizes[buffer_index] == mesh_instance_data.num_instances);

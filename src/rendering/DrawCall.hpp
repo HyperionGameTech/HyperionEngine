@@ -96,6 +96,7 @@ public:
 
     virtual SizeType GetBatchSizeOf() const = 0;
     virtual EntityInstanceBatch &GetBatch(SizeType index) const = 0;
+    virtual uint32 GetNumBatches() const = 0;
     virtual uint32 AcquireBatchIndex() const = 0;
     virtual void ReleaseBatchIndex(uint32 batch_index) const = 0;
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const = 0;
@@ -152,8 +153,8 @@ class DrawCallCollectionImpl final : public IDrawCallCollectionImpl
 public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, EntityInstanceBatchType>, "EntityInstanceBatchType must be a derived struct type of EntityInstanceBatch");
 
-    DrawCallCollectionImpl()
-        : m_entity_instance_batches(GetEntityInstanceBatchHolderMap()->GetOrCreate<EntityInstanceBatchType>())
+    DrawCallCollectionImpl(uint32 count)
+        : m_entity_instance_batches(GetEntityInstanceBatchHolderMap()->GetOrCreate<EntityInstanceBatchType>(count))
     {
     }
 
@@ -167,6 +168,11 @@ public:
     virtual EntityInstanceBatch &GetBatch(SizeType index) const override
     {
         return m_entity_instance_batches->Get(index);
+    }
+
+    virtual uint32 GetNumBatches() const override
+    {
+        return m_entity_instance_batches->Count();
     }
 
     virtual uint32 AcquireBatchIndex() const override
@@ -185,20 +191,20 @@ public:
     }
 
 private:
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches>    *m_entity_instance_batches;
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *m_entity_instance_batches;
 };
 
 extern HYP_API IDrawCallCollectionImpl *GetDrawCallCollectionImpl(TypeID type_id);
 extern HYP_API IDrawCallCollectionImpl *SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl> &&impl);
 
 template <class EntityInstanceBatchType>
-IDrawCallCollectionImpl *GetOrCreateDrawCallCollectionImpl()
+IDrawCallCollectionImpl *GetOrCreateDrawCallCollectionImpl(uint32 count)
 {
     if (IDrawCallCollectionImpl *impl = GetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>())) {
         return impl;
     }
 
-    return SetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>(), MakeUnique<DrawCallCollectionImpl<EntityInstanceBatchType>>());
+    return SetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>(), MakeUnique<DrawCallCollectionImpl<EntityInstanceBatchType>>(count));
 }
 
 } // namespace hyperion

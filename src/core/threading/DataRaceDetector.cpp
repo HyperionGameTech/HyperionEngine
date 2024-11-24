@@ -28,6 +28,12 @@ const FixedArray<DataRaceDetector::ThreadAccessState, DataRaceDetector::num_prea
                 const ThreadName thread_name = ThreadName(thread_name_value);
                 const ThreadID thread_id = Threads::GetStaticThreadID(thread_name);
 
+                if (!thread_id.IsValid()) {
+                    continue;
+                }
+
+                AssertThrow(!thread_id.IsDynamic());
+
                 data[i] = DataRaceDetector::ThreadAccessState { thread_id, DataAccessFlags::ACCESS_NONE };
             }
         }

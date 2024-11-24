@@ -167,7 +167,7 @@
 
     <Expand>
       <!--<Item Name="[Data]">(0)</Item>-->
-      <ExpandedItem Condition="index != 0">($T1 *)(&amp;(((hyperion::ObjectContainer&gt;$T1&lt; *)s_container)-&gt;m_data.m_values[index - 1]))</ExpandedItem>
+      <ExpandedItem Condition="index != 0">($T1 *)(&amp;(((hyperion::ObjectContainer&lt;$T1&gt; *)s_container)-&gt;m_data.m_values[index - 1]))</ExpandedItem>
       <ExpandedItem Condition="index == 0">($T1 *)0</ExpandedItem>
     </Expand>
   </Type>

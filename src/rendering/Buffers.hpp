@@ -12,6 +12,8 @@
 
 #include <core/utilities/Range.hpp>
 
+#include <core/IDGenerator.hpp>
+
 #include <core/Defines.hpp>
 
 #include <rendering/DrawProxy.hpp>
@@ -428,19 +430,22 @@ class GPUBufferHolderBase
 public:
     virtual ~GPUBufferHolderBase();
 
+    virtual uint32 Count() const = 0;
+
     HYP_FORCE_INLINE const GPUBufferRef &GetBuffer(uint32 frame_index) const
         { return m_buffers[frame_index]; }
 
-    HYP_FORCE_INLINE void MarkDirty(SizeType index)
+    /*HYP_FORCE_INLINE void MarkDirty(SizeType index)
     {
         // @TODO Ensure thread safety
         for (auto &dirty_range : m_dirty_ranges) {
             dirty_range |= Range<uint32> { uint32(index), uint32(index + 1) };
         }
-    }
+    }*/
 
+    virtual void MarkDirty(uint32 index) = 0;
+    virtual void ResetElement(uint32 index) = 0;
     virtual void UpdateBuffer(Device *device, uint32 frame_index) = 0;
-    virtual void ResetElement(SizeType index) = 0;
 
 protected:
     void CreateBuffers(SizeType count, SizeType size, SizeType alignment = 0);
@@ -449,20 +454,281 @@ protected:
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
 
-template <class StructType, GPUBufferType BufferType, uint32 Size>
+// @TODO Implement to allow dynamic resizing of buffers
+template <class StructType>
+class BufferList
+{
+    static constexpr uint32 num_elements_per_block = 128;
+
+    struct Block
+    {
+        FixedArray<StructType, num_elements_per_block>          data;
+        AtomicVar<uint32>                                       num_elements { 0 };
+
+#ifdef HYP_ENABLE_MT_CHECK
+        FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
+#endif
+
+        Block()
+        {
+            Memory::MemSet(data.Data(), 0, sizeof(StructType) * num_elements_per_block);
+        }
+
+        HYP_FORCE_INLINE bool IsEmpty() const
+            { return num_elements.Get(MemoryOrder::ACQUIRE) == 0; }
+    };
+
+public:
+    static constexpr uint32 s_invalid_index = 0;
+
+    BufferList(uint32 initial_count = 16 * num_elements_per_block)
+        : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
+          m_num_blocks(m_initial_num_blocks)
+    {
+        for (uint32 i = 0; i < m_initial_num_blocks; i++) {
+            m_blocks.EmplaceBack();
+        }
+    }
+
+    HYP_FORCE_INLINE uint32 NumElements() const
+    {
+        return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;
+    }
+
+    HYP_FORCE_INLINE void MarkDirty(uint32 index)
+    {
+        if (index == s_invalid_index) {
+            return;
+        }
+
+        m_dirty_range |= { index - 1, index };
+    }
+
+    uint32 AcquireIndex()
+    {
+        const uint32 index = m_id_generator.NextID();
+
+        const uint32 block_index = (index - 1) / num_elements_per_block;
+
+        if (block_index < m_initial_num_blocks) {
+            Block &block = m_blocks[block_index];
+            block.num_elements.Increment(1, MemoryOrder::RELEASE);
+        } else {
+            Mutex::Guard guard(m_blocks_mutex);
+
+            if (index < num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
+                Block &block = m_blocks[block_index];
+                block.num_elements.Increment(1, MemoryOrder::RELEASE);
+            } else {
+                // Add blocks until we can insert the element
+                while (index >= num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
+                    m_blocks.EmplaceBack();
+                    m_num_blocks.Increment(1, MemoryOrder::RELEASE);
+                }
+
+                Block &block = m_blocks[block_index];
+                block.num_elements.Increment(1, MemoryOrder::RELEASE);
+            }
+        }
+
+        return index;
+    }
+
+    void ReleaseIndex(uint32 index)
+    {
+        if (index == s_invalid_index) {
+            return;
+        }
+
+        m_id_generator.FreeID(index);
+
+        const uint32 block_index = (index - 1) / num_elements_per_block;
+
+        if (block_index < m_initial_num_blocks) {
+            Block &block = m_blocks[block_index];
+
+            block.num_elements.Decrement(1, MemoryOrder::RELEASE);
+        } else {
+            Mutex::Guard guard(m_blocks_mutex);
+
+            AssertThrow(index < num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE));
+
+            Block &block = m_blocks[block_index];
+            block.num_elements.Decrement(1, MemoryOrder::RELEASE);
+        }
+    }
+
+    StructType &GetElement(uint32 index)
+    {
+        const uint32 block_index = (index - 1) / num_elements_per_block;
+        const uint32 element_index = (index - 1) % num_elements_per_block;
+
+        if (block_index < m_initial_num_blocks) {
+            Block &block = m_blocks[block_index];
+            //HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
+
+            return block.data[element_index];
+        } else {
+            Mutex::Guard guard(m_blocks_mutex);
+
+            Block &block = m_blocks[block_index];
+            //HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
+            
+            return block.data[element_index];
+        }
+    }
+
+    void SetElement(uint32 index, const StructType &value)
+    {
+        AssertThrow(index != s_invalid_index);
+
+        const uint32 block_index = (index - 1) / num_elements_per_block;
+        const uint32 element_index = (index - 1) % num_elements_per_block;
+
+        if (block_index < m_initial_num_blocks) {
+            Block &block = m_blocks[block_index];
+            //HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
+                
+            block.data[element_index] = value;
+        } else {
+            Mutex::Guard guard(m_blocks_mutex);
+
+            AssertThrow(block_index < m_num_blocks.Get(MemoryOrder::ACQUIRE));
+
+            Block &block = m_blocks[block_index];
+            //HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
+                
+            block.data[element_index] = value;
+        }
+
+        MarkDirty(index);
+    }
+
+    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer)
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        const uint32 range_end = m_dirty_range.GetEnd(),
+            range_start = m_dirty_range.GetStart();
+
+        if (range_end <= range_start) {
+            return;
+        }
+
+        AssertThrowMsg(buffer->Size() >= range_end * sizeof(StructType),
+            "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
+            buffer->Size());
+
+        uint32 block_index = 0;
+
+        typename LinkedList<Block>::Iterator begin_it = m_blocks.Begin();
+        typename LinkedList<Block>::Iterator end_it = m_blocks.End();
+
+        for (uint32 block_index = 0; block_index < m_num_blocks.Get(MemoryOrder::ACQUIRE) && begin_it != end_it; ++block_index, ++begin_it) {
+            if (block_index < range_start / num_elements_per_block) {
+                continue;
+            }
+
+            if (block_index * num_elements_per_block > range_end) {
+                break;
+            }
+
+            const uint32 offset = range_start > (block_index * num_elements_per_block) ? (range_start - (block_index * num_elements_per_block)) : 0;
+            const uint32 count = MathUtil::Min(range_end - range_start, num_elements_per_block - offset);
+
+            buffer->Copy(
+                device,
+                (offset + (block_index * num_elements_per_block)) * sizeof(StructType),
+                count * sizeof(StructType),
+                &begin_it->data[offset]
+            );
+        }
+
+        m_dirty_range.Reset();
+    }
+
+    /*! \brief Remove empty blocks from the back of the list */
+    void RemoveEmptyBlocks()
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        if (m_num_blocks.Get(MemoryOrder::ACQUIRE) <= m_initial_num_blocks) {
+            return;
+        }
+
+        Mutex::Guard guard(m_blocks_mutex);
+
+        typename LinkedList<Block>::Iterator begin_it = m_blocks.Begin();
+        typename LinkedList<Block>::Iterator end_it = m_blocks.End();
+
+        Array<typename LinkedList<Block>::Iterator> to_remove;
+
+        for (uint32 block_index = 0; block_index < m_num_blocks.Get(MemoryOrder::ACQUIRE) && begin_it != end_it; ++block_index, ++begin_it) {
+            if (block_index < m_initial_num_blocks) {
+                continue;
+            }
+
+            if (begin_it->IsEmpty()) {
+                to_remove.PushBack(begin_it);
+            } else {
+                to_remove.Clear();
+            }
+        }
+
+        if (to_remove.Any()) {
+            m_num_blocks.Decrement(to_remove.Size(), MemoryOrder::RELEASE);
+
+            while (to_remove.Any()) {
+                m_blocks.Erase(to_remove.PopBack());
+            }
+        }
+    }
+
+private:
+    uint32              m_initial_num_blocks;
+
+    LinkedList<Block>   m_blocks;
+    AtomicVar<uint32>   m_num_blocks;
+    // Needs to be locked when accessing blocks beyond initial_num_blocks or adding/removing blocks.
+    Mutex               m_blocks_mutex;
+    // @TODO Make atomic
+    Range<uint32>       m_dirty_range;
+
+    IDGenerator         m_id_generator;
+
+#ifdef HYP_ENABLE_MT_CHECK
+    DataRaceDetector    m_data_race_detector;
+#endif
+};
+
+template <class StructType, GPUBufferType BufferType, uint32 TCount = ~0u>
 class GPUBufferHolder final : public GPUBufferHolderBase
 {
 public:
     GPUBufferHolder()
+        : GPUBufferHolder(TCount)
     {
+        AssertThrowMsg(TCount != ~0u, "Count must be provided as a template argument to use the default constructor!");
+    }
+
+    GPUBufferHolder(uint32 count)
+        : m_count(count),
+          m_buffer_list(count)
+    {
+        m_objects.Resize(count);
+
+#ifdef HYP_ENABLE_MT_CHECK
+        m_data_race_detectors.Resize(count);
+#endif
+
         for (uint32 frame_index = 0; frame_index < m_buffers.Size(); frame_index++) {
             m_buffers[frame_index] = MakeRenderObject<GPUBuffer>(BufferType);
 
             m_dirty_ranges[frame_index].SetStart(0);
-            m_dirty_ranges[frame_index].SetEnd(Size);
+            m_dirty_ranges[frame_index].SetEnd(count);
         }
 
-        GPUBufferHolderBase::CreateBuffers(Size, sizeof(StructType));
+        GPUBufferHolderBase::CreateBuffers(count, sizeof(StructType));
     }
 
     GPUBufferHolder(const GPUBufferHolder &other)               = delete;
@@ -470,149 +736,126 @@ public:
 
     virtual ~GPUBufferHolder() override                         = default;
 
-    virtual void UpdateBuffer(Device *device, uint32 frame_index) override
+    virtual uint32 Count() const override
     {
-        m_staging_objects_pool.m_cpu_buffer.PerformUpdate(
-            device,
-            m_buffers[frame_index],
-            m_dirty_ranges[frame_index]
-        );
-
-        m_dirty_ranges[frame_index].Reset();
+        return m_buffer_list.NumElements();
+        //return m_count;
     }
 
-    void Set(SizeType index, const StructType &value)
+    virtual void UpdateBuffer(Device *device, uint32 frame_index) override
     {
-        m_staging_objects_pool.Set(index, value);
+        /*const uint32 range_end = m_dirty_ranges[frame_index].GetEnd(),
+            range_start = m_dirty_ranges[frame_index].GetStart();
 
-        MarkDirty(index);
+        if (range_end <= range_start) {
+            return;
+        }
+
+        const uint32 range_distance = range_end - range_start;
+
+        m_buffers[frame_index]->Copy(
+            device,
+            range_start * sizeof(StructType),
+            range_distance * sizeof(StructType),
+            &m_objects.Data()[range_start]
+        );
+
+        m_dirty_ranges[frame_index].Reset();*/
+
+
+        // Temp
+        m_buffer_list.RemoveEmptyBlocks();
+        m_buffer_list.CopyToGPUBuffer(device, m_buffers[frame_index]);
+    }
+
+    virtual void MarkDirty(uint32 index) override
+    {
+        // temp
+        m_buffer_list.MarkDirty(index + 1);
+    }
+
+    virtual void ResetElement(uint32 index) override
+    {
+        Set(index, { });
+    }
+
+    HYP_FORCE_INLINE void Set(uint32 index, const StructType &value)
+    {
+        /*AssertThrowMsg(index < m_objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
+
+        HYP_MT_CHECK_RW(m_data_race_detectors[index]);
+
+        m_objects[index] = value;
+
+        MarkDirty(index);*/
+
+        // temp
+        m_buffer_list.SetElement(index + 1, value);
     }
 
     /*! \brief Get a reference to an object in the _current_ staging buffer,
      * use when it is preferable to fetch the object, update the struct, and then
      * call Set. This is usually when the object would have a large stack size
      */
-    HYP_FORCE_INLINE StructType &Get(SizeType index)
+    HYP_FORCE_INLINE StructType &Get(uint32 index)
     {
-        return m_staging_objects_pool.Get(index);
+        /*AssertThrowMsg(index < m_objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
+
+        HYP_MT_CHECK_READ(m_data_race_detectors[index]);
+
+        return m_objects[index];*/
+        
+
+        // temp
+        return m_buffer_list.GetElement(index + 1);
     }
-
-    virtual void ResetElement(SizeType index) override
-    {
-        m_staging_objects_pool.Set(index, { });
-
-        MarkDirty(index);
-    }
-
-    BufferTicket<StructType>        current_index = 1; // reserve first index (0)
-    Queue<BufferTicket<StructType>> free_indices;
-    Mutex                           m_mutex;
-
 
     BufferTicket<StructType> AcquireTicket()
     {
+        // temp
+        return m_buffer_list.AcquireIndex();
+
         Mutex::Guard guard(m_mutex);
 
-        if (free_indices.Any()) {
-            return free_indices.Pop();
+        if (m_free_indices.Any()) {
+            return m_free_indices.Pop();
         }
 
-        return current_index++;
+        return m_current_index++;
     }
 
     void ReleaseTicket(BufferTicket<StructType> batch_index)
     {
+        // temp
+        return m_buffer_list.ReleaseIndex(batch_index);
+
+
         if (batch_index == 0) {
             return;
         }
 
         Mutex::Guard guard(m_mutex);
 
-        free_indices.Push(batch_index);
+        m_free_indices.Push(batch_index);
     }
     
 private:
-    struct StagingObjectsPool
-    {
-        static constexpr uint32 num_staging_buffers = 1;
 
-        StagingObjectsPool() = default;
-        StagingObjectsPool(const StagingObjectsPool &other) = delete;
-        StagingObjectsPool &operator=(const StagingObjectsPool &other) = delete;
-        StagingObjectsPool(StagingObjectsPool &other) = delete;
-        StagingObjectsPool &operator=(StagingObjectsPool &&other) = delete;
-        ~StagingObjectsPool() = default;
-
-        struct StagingObjects
-        {
-            HeapArray<StructType, Size>         objects;
+    uint32                              m_count;
+    
+    Array<StructType>                   m_objects;
 
 #ifdef HYP_ENABLE_MT_CHECK
-            HeapArray<DataRaceDetector, Size>   data_race_detectors;
+    Array<DataRaceDetector>             m_data_race_detectors;
 #endif
 
-            StagingObjects()
-            {
-                for (auto &object : objects) {
-                    object = { };
-                }
-            }
+    BufferTicket<StructType>            m_current_index = 1; // reserve first index (0)
+    Queue<BufferTicket<StructType>>     m_free_indices;
+    Mutex                               m_mutex;
 
-            StagingObjects(const StagingObjects &other)                 = delete;
-            StagingObjects &operator=(const StagingObjects &other)      = delete;
-            StagingObjects(StagingObjects &other) noexcept              = delete;
-            StagingObjects &operator=(StagingObjects &&other) noexcept  = delete;
-            ~StagingObjects()                                           = default;
 
-            void PerformUpdate(Device *device, const GPUBufferRef &buffer, const Range<uint32> &range)
-            {
-                const uint32 range_end = range.GetEnd(),
-                    range_start = range.GetStart();
-
-                if (range_end <= range_start) {
-                    return;
-                }
-
-                const uint32 range_distance = range_end - range_start;
-
-                buffer->Copy(
-                    device,
-                    range_start * sizeof(StructType),
-                    range_distance * sizeof(StructType),
-                    &objects.Data()[range_start]
-                );
-            }
-        } m_cpu_buffer;
-
-        HYP_FORCE_INLINE void Set(SizeType index, const StructType &value)
-        {
-            AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
-
-            HYP_MT_CHECK_RW(m_cpu_buffer.data_race_detectors[index]);
-
-            m_cpu_buffer.objects[index] = value;
-        }
-
-        HYP_FORCE_INLINE StructType &Get(SizeType index)
-        {
-            AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
-
-            HYP_MT_CHECK_READ(m_cpu_buffer.data_race_detectors[index]);
-
-            return m_cpu_buffer.objects[index];
-        }
-
-        HYP_FORCE_INLINE const StructType &Get(SizeType index) const
-        {
-            AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
-
-            HYP_MT_CHECK_READ(m_cpu_buffer.data_race_detectors[index]);
-
-            return m_cpu_buffer.objects[index];
-        }
-    };
-
-    StagingObjectsPool                                  m_staging_objects_pool;
+    // Testing, WIP
+    BufferList<StructType>              m_buffer_list;
 };
 
 } // namespace hyperion
