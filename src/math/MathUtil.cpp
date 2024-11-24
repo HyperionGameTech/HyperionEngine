@@ -72,33 +72,21 @@ Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec3f &v0, const Vec3f &v1
 
 Vec3f MathUtil::CalculateBarycentricCoordinates(const Vec2f &v0, const Vec2f &v1, const Vec2f &v2, const Vec2f &p)
 {
- //   // http://www.blackpawn.com/texts/pointinpoly/
-	//// Compute vectors
-	//Vec2f v0 = p3 - p1;
-	//Vec2f v1 = p2 - p1;
-	//Vec2f v2 = p - p1;
-	//// Compute dot products
-	//float dot00 = v0.Dot(v0);
-	//float dot01 = v0.Dot(v1);
-	//float dot02 = v0.Dot(v2);
-	//float dot11 = v1.Dot(v1);
-	//float dot12 = v1.Dot(v2);
-	//// Compute barycentric coordinates
-	//float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
-	//float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-	//float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-	//return Vec2f(u, v);
-
     Vec3f s[2];
-    for (int i=2; i--; ) {
-        s[i][0] = v2[i]-v0[i];
-        s[i][1] = v1[i]-v0[i];
-        s[i][2] = v0[i]-p[i];
+
+    for (int i = 2; i--;) {
+        s[i][0] = v2[i] - v0[i];
+        s[i][1] = v1[i] - v0[i];
+        s[i][2] = v0[i] - p[i];
     }
+
     Vec3f u = s[0].Cross(s[1]);
-    if (Abs(u[2])>1e-2) // dont forget that u[2] is integer. If it is zero then triangle ABC is degenerate
-        return Vec3f(1.f-(u.x+u.y)/u.z, u.y/u.z, u.x/u.z);
-    return Vec3f(-1,1,1); // in this case generate negative coordinates, it will be thrown away by the rasterizator
+
+    if (Abs(u.z) > 1e-2) {
+        return Vec3f(1.0f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+    }
+
+    return Vec3f(-1, 1, 1);
 }
 
 void MathUtil::ComputeOrthonormalBasis(const Vec3f &normal, Vec3f &out_tangent, Vec3f &out_bitangent)

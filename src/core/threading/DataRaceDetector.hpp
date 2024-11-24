@@ -75,7 +75,15 @@ public:
     DataRaceDetector();
     DataRaceDetector(const DataRaceDetector &other)             = delete;
     DataRaceDetector &operator=(const DataRaceDetector &other)  = delete;
-    DataRaceDetector(DataRaceDetector &&other)                  = delete;
+
+    DataRaceDetector(DataRaceDetector &&other) noexcept
+        : m_preallocated_states(std::move(other.m_preallocated_states)),
+          m_dynamic_states(std::move(other.m_dynamic_states)),
+          m_writers(other.m_writers.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+          m_readers(other.m_readers.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
+    {
+    }
+
     DataRaceDetector &operator=(DataRaceDetector &&other)       = delete;
     ~DataRaceDetector();
 

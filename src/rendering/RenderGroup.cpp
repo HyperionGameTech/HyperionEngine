@@ -121,7 +121,7 @@ RenderGroup::RenderGroup()
     : BasicObject(),
       m_flags(RenderGroupFlags::NONE),
       m_pipeline(MakeRenderObject<GraphicsPipeline>()),
-      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
+      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
 {
 }
 
@@ -134,7 +134,7 @@ RenderGroup::RenderGroup(
     m_shader(shader),
     m_pipeline(MakeRenderObject<GraphicsPipeline>()),
     m_renderable_attributes(renderable_attributes),
-    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
+    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
 {
     if (m_shader != nullptr) {
         m_pipeline->SetShader(m_shader);
@@ -151,7 +151,7 @@ RenderGroup::RenderGroup(
     m_pipeline(MakeRenderObject<GraphicsPipeline>(ShaderRef::unset, descriptor_table)),
     m_shader(shader),
     m_renderable_attributes(renderable_attributes),
-    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
+    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
 {
     if (m_shader != nullptr) {
         m_pipeline->SetShader(m_shader);

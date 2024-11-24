@@ -195,7 +195,7 @@ void ScriptingService::Update()
 
         script_event_queue = std::move(m_script_event_queue);
 
-        m_script_event_queue_count.Decrement(1, MemoryOrder::RELEASE);
+        m_script_event_queue_count.Decrement(script_event_queue.Size(), MemoryOrder::RELEASE);
     }
 
     if (script_event_queue.Empty()) {
