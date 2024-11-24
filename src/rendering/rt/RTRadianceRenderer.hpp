@@ -43,12 +43,10 @@ public:
 
     HYP_API ~RTRadianceRenderer();
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool IsPathTracer() const
+    HYP_FORCE_INLINE bool IsPathTracer() const
         { return m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER; }
     
-    void SetTLAS(const TLASRef &tlas)
+    HYP_FORCE_INLINE void SetTLAS(const TLASRef &tlas)
         { m_tlas = tlas; }
 
     HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);

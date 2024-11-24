@@ -191,7 +191,7 @@ struct alignas(16) RTRadianceUniforms
 {
     uint32 num_bound_lights;
     uint32 ray_offset; // for lightmapper
-    uint32 _pad1, _pad2;
+    Vec2i  output_image_resolution;
     uint32 light_indices[16];
 };
 

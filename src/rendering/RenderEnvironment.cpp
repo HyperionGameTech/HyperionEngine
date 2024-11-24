@@ -73,7 +73,8 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
           .aabb = {{-25.0f, -5.0f, -25.0f}, {25.0f, 30.0f, 25.0f}}
       }),
       m_has_rt_radiance(false),
-      m_has_ddgi_probes(false)
+      m_has_ddgi_probes(false),
+      m_rt_initialized(false)
 {
 }
 
@@ -254,44 +255,12 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS, MemoryOrder::RELEASE);
     }
 
-    if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {
-        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-            if (m_tlas) {
-                if (m_has_rt_radiance) {
-                    m_rt_radiance->Destroy();
-                }
-
-                if (m_has_ddgi_probes) {
-                    m_ddgi.Destroy();
-                }
-                
-                m_ddgi.SetTLAS(m_tlas);
-                m_rt_radiance->SetTLAS(m_tlas);
-
-                m_rt_radiance->Create();
-                m_ddgi.Init();
-
-                m_has_rt_radiance = true;
-                m_has_ddgi_probes = true;
-
-                HYP_SYNC_RENDER();
-            } else {
-                if (m_has_rt_radiance) {
-                    m_rt_radiance->Destroy();
-                }
-
-                if (m_has_ddgi_probes) {
-                    m_ddgi.Destroy();
-                }
-
-                m_has_rt_radiance = false;
-                m_has_ddgi_probes = false;
-
-                HYP_SYNC_RENDER();
-            }
-        }
-
+    //if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {
         // for RT, we may need to perform resizing of buffers, and thus modification of descriptor sets
+
+    if (!m_rt_initialized) {
+        InitializeRT();
+        }
         AssertThrow(m_scene != nullptr);
 
         if (const TLASRef &tlas = m_scene->GetTLAS()) {
@@ -308,7 +277,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         }
 
         m_update_marker.BitAnd(~RENDER_ENVIRONMENT_UPDATES_TLAS, MemoryOrder::RELEASE);
-    }
+    //}
 
     ++m_frame_counter;
 }
@@ -426,6 +395,47 @@ void RenderEnvironment::RemoveRenderComponent(TypeID type_id, Name name)
     };
 
     PUSH_RENDER_COMMAND(RemoveRenderComponent, *this, type_id, name);
+}
+
+void RenderEnvironment::InitializeRT()
+{
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+        if (m_tlas) {
+            if (m_has_rt_radiance) {
+                m_rt_radiance->Destroy();
+            }
+
+            if (m_has_ddgi_probes) {
+                m_ddgi.Destroy();
+            }
+                
+            m_ddgi.SetTLAS(m_tlas);
+            m_rt_radiance->SetTLAS(m_tlas);
+
+            m_rt_radiance->Create();
+            m_ddgi.Init();
+
+            m_has_rt_radiance = true;
+            m_has_ddgi_probes = true;
+
+            HYP_SYNC_RENDER();
+        } else {
+            if (m_has_rt_radiance) {
+                m_rt_radiance->Destroy();
+            }
+
+            if (m_has_ddgi_probes) {
+                m_ddgi.Destroy();
+            }
+
+            m_has_rt_radiance = false;
+            m_has_ddgi_probes = false;
+
+            HYP_SYNC_RENDER();
+        }
+    }
+
+    m_rt_initialized = true;
 }
 
 } // namespace hyperion
