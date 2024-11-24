@@ -23,7 +23,7 @@
 #include <Types.hpp>
 #include <HashCode.hpp>
 
-#define HYP_RENDER_OBJECT_OFFSET(cls, index) \
+#define HYP_SHADER_DATA_OFFSET(cls, index) \
     (uint32((index) * sizeof(cls ## ShaderData)))
 
 namespace hyperion {

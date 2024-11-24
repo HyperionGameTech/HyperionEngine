@@ -25,6 +25,7 @@
 
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
+#include <rendering/Scene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 

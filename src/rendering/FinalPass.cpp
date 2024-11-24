@@ -374,13 +374,7 @@ void FinalPass::Render(Frame *frame)
             {
                 {
                     NAME("Scene"),
-                    {
-                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, 0) },
-                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, 0) },
-                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
-                    }
+                    { }
                 }
             }
         );
