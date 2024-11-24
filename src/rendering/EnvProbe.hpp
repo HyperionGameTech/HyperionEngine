@@ -12,7 +12,6 @@
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 
@@ -60,6 +59,31 @@ enum EnvProbeType : uint
 
     ENV_PROBE_TYPE_MAX
 };
+
+struct alignas(256) EnvProbeShaderData
+{
+    Matrix4 face_view_matrices[6];
+
+    Vec4f   aabb_max;
+    Vec4f   aabb_min;
+    Vec4f   world_position;
+
+    uint32  texture_index;
+    uint32  flags;
+    float   camera_near;
+    float   camera_far;
+
+    Vec2u   dimensions;
+    Vec2u   _pad2;
+
+    Vec4i   position_in_grid;
+    Vec4i   position_offset;
+    Vec4u   _pad5;
+};
+
+static_assert(sizeof(EnvProbeShaderData) == 512);
+
+static constexpr uint32 max_env_probes = (8ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
 
 class EnvProbe;
 

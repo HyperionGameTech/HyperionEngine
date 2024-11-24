@@ -15,9 +15,6 @@
 
 #include <math/MathUtil.hpp>
 
-#include <rendering/Buffers.hpp>
-#include <rendering/ShaderGlobals.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 
 #include <GameCounter.hpp>

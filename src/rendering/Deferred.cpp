@@ -5,6 +5,8 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
+#include <rendering/EnvGrid.hpp>
+#include <rendering/EnvProbe.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
