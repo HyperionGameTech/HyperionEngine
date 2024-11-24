@@ -140,6 +140,8 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
+    uniforms.output_image_resolution = Vec2i(m_extent);
+
     const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState().NumBoundLights(), ArraySize(uniforms.light_indices));
     uint32 num_bound_lights = 0;
 
