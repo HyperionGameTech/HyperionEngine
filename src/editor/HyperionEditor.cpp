@@ -297,7 +297,7 @@ void HyperionEditor::Init()
 
 
     // Add Skybox
-    if (false) {
+    if (true) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {

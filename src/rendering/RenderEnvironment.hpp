@@ -173,6 +173,8 @@ private:
 
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
+    void InitializeRT();
+
     Scene                                           *m_scene;
 
     AtomicVar<RenderEnvironmentUpdates>             m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
@@ -191,6 +193,7 @@ private:
     DDGI                                            m_ddgi;
     bool                                            m_has_rt_radiance;
     bool                                            m_has_ddgi_probes;
+    bool                                            m_rt_initialized;
     TLASRef                                         m_tlas;
     
     uint32                                          m_frame_counter;
