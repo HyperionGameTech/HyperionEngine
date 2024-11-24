@@ -311,7 +311,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
             AssertThrow(descriptor_set.IsValid());
             
-            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials.GetBuffer(frame_index));
+            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
             
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
             descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetImageView());
@@ -1724,8 +1724,8 @@ void DeferredRenderer::ApplyCameraJitter()
     if (camera.projection[3][3] < MathUtil::epsilon_f) {
         Matrix4::Jitter(frame_counter, camera.dimensions.x, camera.dimensions.y, jitter);
 
-        g_engine->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
-        g_engine->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());
+        g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_id.ToIndex()).jitter = jitter * jitter_scale;
+        g_engine->GetRenderData()->cameras->MarkDirty(camera_id.ToIndex());
     }
 }
 

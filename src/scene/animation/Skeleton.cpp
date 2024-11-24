@@ -33,7 +33,7 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
         SkeletonShaderData shader_data;
         Memory::MemCpy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(ArraySize(shader_data.bones), bone_data.matrices->Size()));
 
-        g_engine->GetRenderData()->skeletons.Set(id.ToIndex(), shader_data);
+        g_engine->GetRenderData()->skeletons->Set(id.ToIndex(), shader_data);
 
         HYPERION_RETURN_OK;
     }

@@ -3,7 +3,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/Scene.hpp>
+#include <rendering/Camera.hpp>
+#include <rendering/Skeleton.hpp>
+#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -396,10 +400,10 @@ void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
             draw_call_id = DrawCallID(render_proxy.mesh.GetID());
         }
 
-        BufferTicket<EntityInstanceBatch> batch_index = 0;
+        uint32 batch_index = 0;
 
         // take a batch for reuse if a draw call was using one
-        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id))) {
+        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id)) != 0) {
             m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->ResetElement(batch_index);
         }
 

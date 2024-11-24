@@ -11,7 +11,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
 

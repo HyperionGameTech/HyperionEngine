@@ -8,8 +8,6 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
-#include <rendering/FullScreenPass.hpp>
-#include <rendering/RenderCollection.hpp>
 
 #include <math/MathUtil.hpp>
 

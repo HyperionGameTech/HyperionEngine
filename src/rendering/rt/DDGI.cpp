@@ -9,6 +9,7 @@
 
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -222,8 +223,8 @@ void DDGI::CreatePipelines()
 
         descriptor_set->SetElement(NAME("TLAS"), m_tlas);
         
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights.GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(NAME("DDGIUniforms"), m_uniform_buffer);
@@ -639,5 +640,13 @@ void DDGI::ComputeIrradiance(Frame *frame)
     );
 #endif
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_CBUFF(Global, DDGIUniforms, 1, sizeof(DDGIUniforms), false);
+HYP_DESCRIPTOR_SRV(Global, DDGIIrradianceTexture, 1);
+HYP_DESCRIPTOR_SRV(Global, DDGIDepthTexture, 1);
+
+} // namespace renderer
 
 } // namespace hyperion

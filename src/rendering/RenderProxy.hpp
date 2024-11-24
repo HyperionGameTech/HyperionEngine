@@ -130,14 +130,14 @@ public:
 
     HYP_FORCE_INLINE Bitset GetAddedEntities() const
     {
-        const uint32 new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
+        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
 
         return Bitset(m_next_entities).Resize(new_num_bits) & ~Bitset(m_previous_entities).Resize(new_num_bits);
     }
 
     HYP_FORCE_INLINE Bitset GetRemovedEntities() const
     {
-        const uint32 new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
+        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
 
         return Bitset(m_previous_entities).Resize(new_num_bits) & ~Bitset(m_next_entities).Resize(new_num_bits);
     }

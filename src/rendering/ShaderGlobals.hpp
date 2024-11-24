@@ -57,16 +57,15 @@ struct ShaderGlobals
     void Destroy();
     void UpdateBuffers(uint32 frame_index);
 
-    GPUBufferHolder<SceneShaderData, GPUBufferType::STORAGE_BUFFER, max_scenes>                         scenes;
-    GPUBufferHolder<CameraShaderData, GPUBufferType::CONSTANT_BUFFER, max_cameras>                      cameras;
-    GPUBufferHolder<LightShaderData, GPUBufferType::STORAGE_BUFFER, max_lights>                         lights;
-    GPUBufferHolder<EntityShaderData, GPUBufferType::STORAGE_BUFFER, max_entities>                      objects;
-    GPUBufferHolder<MaterialShaderData, GPUBufferType::STORAGE_BUFFER, max_materials>                   materials;
-    GPUBufferHolder<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER, max_skeletons>                   skeletons;
-    GPUBufferHolder<ShadowShaderData, GPUBufferType::STORAGE_BUFFER, max_shadow_maps>                   shadow_map_data;
-    GPUBufferHolder<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER, max_env_probes>                  env_probes;
-    GPUBufferHolder<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER, max_env_grids>                   env_grids;
-    // GPUBufferHolder<EntityInstanceBatch, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches>    entity_instance_batches;
+    UniquePtr<GPUBufferHolderBase>  scenes;
+    UniquePtr<GPUBufferHolderBase>  cameras;
+    UniquePtr<GPUBufferHolderBase>  lights;
+    UniquePtr<GPUBufferHolderBase>  objects;
+    UniquePtr<GPUBufferHolderBase>  materials;
+    UniquePtr<GPUBufferHolderBase>  skeletons;
+    UniquePtr<GPUBufferHolderBase>  shadow_map_data;
+    UniquePtr<GPUBufferHolderBase>  env_probes;
+    UniquePtr<GPUBufferHolderBase>  env_grids;
     
     BindlessStorage                         textures;
 

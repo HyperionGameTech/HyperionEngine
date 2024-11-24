@@ -127,7 +127,7 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
     }
 }
 
-BufferTicket<EntityInstanceBatch> DrawCallCollection::TakeDrawCallBatchIndex(DrawCallID id)
+uint32 DrawCallCollection::TakeDrawCallBatchIndex(DrawCallID id)
 {
     const auto it = m_index_map.Find(id.Value());
 
@@ -139,7 +139,7 @@ BufferTicket<EntityInstanceBatch> DrawCallCollection::TakeDrawCallBatchIndex(Dra
                 continue;
             }
 
-            const BufferTicket<EntityInstanceBatch> batch_index = draw_call.batch_index;
+            const uint32 batch_index = draw_call.batch_index;
 
             // Reset the DrawCall
             draw_call = { };

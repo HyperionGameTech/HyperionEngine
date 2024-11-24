@@ -11,7 +11,6 @@
 #include <core/Handle.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/FullScreenPass.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/font/FontAtlas.hpp>

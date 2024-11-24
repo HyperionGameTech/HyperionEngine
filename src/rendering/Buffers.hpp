@@ -204,11 +204,14 @@ static const SizeType max_entities_bytes = max_entities * sizeof(EntityShaderDat
 static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowShaderData);
 static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);
 
-template <class T>
-using BufferTicket = uint;
-
 class GPUBufferHolderBase
 {
+protected:
+    GPUBufferHolderBase(TypeID struct_type_id)
+        : m_struct_type_id(struct_type_id)
+    {
+    }
+
 public:
     virtual ~GPUBufferHolderBase();
 
@@ -217,21 +220,33 @@ public:
     HYP_FORCE_INLINE const GPUBufferRef &GetBuffer(uint32 frame_index) const
         { return m_buffers[frame_index]; }
 
-    /*HYP_FORCE_INLINE void MarkDirty(SizeType index)
-    {
-        // @TODO Ensure thread safety
-        for (auto &dirty_range : m_dirty_ranges) {
-            dirty_range |= Range<uint32> { uint32(index), uint32(index + 1) };
-        }
-    }*/
-
     virtual void MarkDirty(uint32 index) = 0;
     virtual void ResetElement(uint32 index) = 0;
     virtual void UpdateBuffer(Device *device, uint32 frame_index) = 0;
 
+    template <class T>
+    HYP_FORCE_INLINE T &Get(uint32 index)
+    {
+        AssertThrowMsg(TypeID::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
+
+        return *static_cast<T *>(Get_Internal(index));
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE void Set(uint32 index, const T &value)
+    {
+        AssertThrowMsg(TypeID::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
+
+        Set_Internal(index, &value);
+    }
+
 protected:
     void CreateBuffers(SizeType count, SizeType size, SizeType alignment = 0);
 
+    virtual void *Get_Internal(uint32 index) = 0;
+    virtual void Set_Internal(uint32 index, const void *ptr) = 0;
+
+    TypeID                                          m_struct_type_id;
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_buffers;
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
@@ -240,7 +255,7 @@ HYP_DISABLE_OPTIMIZATION;
 template <class StructType>
 class BufferList
 {
-    static constexpr uint32 num_elements_per_block = 128;
+    static constexpr uint32 num_elements_per_block = 16;
 
     struct Block
     {
@@ -283,7 +298,9 @@ public:
             return;
         }
 
-        m_dirty_range |= { index - 1, index };
+        for (auto &it : m_dirty_ranges) {
+            it |= { index - 1, index };
+        }
     }
 
     uint32 AcquireIndex()
@@ -386,12 +403,12 @@ public:
         MarkDirty(index);
     }
 
-    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer)
+    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer, uint32 frame_index)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        const uint32 range_end = m_dirty_range.GetEnd(),
-            range_start = m_dirty_range.GetStart();
+        const uint32 range_end = m_dirty_ranges[frame_index].GetEnd(),
+            range_start = m_dirty_ranges[frame_index].GetStart();
 
         if (range_end <= range_start) {
             return;
@@ -415,10 +432,15 @@ public:
                 break;
             }
 
-            const uint32 index = block_index * num_elements_per_block;
+            uint32 index = block_index * num_elements_per_block;
 
-            const uint32 offset = range_start > index ? range_start : index;
-            const uint32 count = num_elements_per_block - offset;
+            uint32 offset = (range_start > index)
+                ? range_start
+                : index;
+
+            uint32 count = (range_end > (block_index + 1) * num_elements_per_block)
+                ? num_elements_per_block
+                : range_end - offset;
 
             // sanity checks
             AssertThrow(offset - index < begin_it->data.Size());
@@ -432,7 +454,7 @@ public:
             );
         }
 
-        m_dirty_range.Reset();
+        m_dirty_ranges[frame_index].Reset();
     }
 
     /*! \brief Remove empty blocks from the back of the list */
@@ -473,35 +495,30 @@ public:
     }
 
 private:
-    uint32              m_initial_num_blocks;
+    uint32                          m_initial_num_blocks;
 
-    LinkedList<Block>   m_blocks;
-    AtomicVar<uint32>   m_num_blocks;
+    LinkedList<Block>               m_blocks;
+    AtomicVar<uint32>               m_num_blocks;
     // Needs to be locked when accessing blocks beyond initial_num_blocks or adding/removing blocks.
-    Mutex               m_blocks_mutex;
+    Mutex                           m_blocks_mutex;
     // @TODO Make atomic
-    Range<uint32>       m_dirty_range;
+    FixedArray<Range<uint32>, 2>    m_dirty_ranges;
 
-    IDGenerator         m_id_generator;
+    IDGenerator                     m_id_generator;
 
 #ifdef HYP_ENABLE_MT_CHECK
-    DataRaceDetector    m_data_race_detector;
+    DataRaceDetector                m_data_race_detector;
 #endif
 };
 HYP_ENABLE_OPTIMIZATION;
 
-template <class StructType, GPUBufferType BufferType, uint32 TCount = ~0u>
+template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase
 {
 public:
-    GPUBufferHolder()
-        : GPUBufferHolder(TCount)
-    {
-        AssertThrowMsg(TCount != ~0u, "Count must be provided as a template argument to use the default constructor!");
-    }
-
     GPUBufferHolder(uint32 count)
-        : m_buffer_list(count)
+        : GPUBufferHolderBase(TypeID::ForType<StructType>()),
+          m_buffer_list(count)
     {
         for (uint32 frame_index = 0; frame_index < m_buffers.Size(); frame_index++) {
             m_buffers[frame_index] = MakeRenderObject<GPUBuffer>(BufferType);
@@ -522,7 +539,7 @@ public:
     virtual void UpdateBuffer(Device *device, uint32 frame_index) override
     {
         m_buffer_list.RemoveEmptyBlocks();
-        m_buffer_list.CopyToGPUBuffer(device, m_buffers[frame_index]);
+        m_buffer_list.CopyToGPUBuffer(device, m_buffers[frame_index], frame_index);
     }
 
     virtual void MarkDirty(uint32 index) override
@@ -535,11 +552,6 @@ public:
         Set(index, { });
     }
 
-    HYP_FORCE_INLINE void Set(uint32 index, const StructType &value)
-    {
-        m_buffer_list.SetElement(index + 1, value);
-    }
-
     /*! \brief Get a reference to an object in the _current_ staging buffer,
      * use when it is preferable to fetch the object, update the struct, and then
      * call Set. This is usually when the object would have a large stack size
@@ -549,17 +561,32 @@ public:
         return m_buffer_list.GetElement(index + 1);
     }
 
-    BufferTicket<StructType> AcquireTicket()
+    HYP_FORCE_INLINE void Set(uint32 index, const StructType &value)
+    {
+        m_buffer_list.SetElement(index + 1, value);
+    }
+
+    uint32 AcquireTicket()
     {
         return m_buffer_list.AcquireIndex();
     }
 
-    void ReleaseTicket(BufferTicket<StructType> batch_index)
+    void ReleaseTicket(uint32 batch_index)
     {
         return m_buffer_list.ReleaseIndex(batch_index);
     }
     
 private:
+    virtual void *Get_Internal(uint32 index) override
+    {
+        return &Get(index);
+    }
+
+    virtual void Set_Internal(uint32 index, const void *ptr)
+    {
+        Set(index, *static_cast<const StructType *>(ptr));
+    }
+
     BufferList<StructType>              m_buffer_list;
 };
 

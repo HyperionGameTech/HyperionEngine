@@ -13,10 +13,10 @@
 #include <scene/camera/Camera.hpp>
 
 #include <rendering/DrawProxy.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererStructs.hpp>

@@ -9,7 +9,6 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>

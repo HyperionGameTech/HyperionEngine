@@ -2,6 +2,9 @@
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/Camera.hpp>
+#include <rendering/Scene.hpp>
+#include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>

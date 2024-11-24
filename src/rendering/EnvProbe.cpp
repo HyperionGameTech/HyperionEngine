@@ -4,6 +4,8 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
+#include <rendering/backend/RendererDescriptorSet.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -140,7 +142,7 @@ void EnvProbe::UpdateRenderData(
         .position_offset    = Vec4i::Zero()
     };
 
-    g_engine->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
+    g_engine->GetRenderData()->env_probes->Set(GetID().ToIndex(), data);
 }
 
 EnvProbe::EnvProbe() : EnvProbe(
@@ -717,5 +719,12 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
         }
     }
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_SSBO(Scene, EnvProbesBuffer, 1, sizeof(EnvProbeShaderData) * max_env_probes, false);
+HYP_DESCRIPTOR_SSBO(Scene, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion

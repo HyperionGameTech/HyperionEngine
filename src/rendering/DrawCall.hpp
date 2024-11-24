@@ -202,11 +202,12 @@ public:
 
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const override
     {
-        return m_entity_instance_batches;
+        // Need to use reinterpret_cast because GPUBufferHolder is forward declared here
+        return reinterpret_cast<GPUBufferHolderBase *>(m_entity_instance_batches);
     }
 
 private:
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, ~0u>    *m_entity_instance_batches;
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *m_entity_instance_batches;
 };
 
 extern HYP_API IDrawCallCollectionImpl *GetDrawCallCollectionImpl(TypeID type_id);
