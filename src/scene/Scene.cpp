@@ -25,8 +25,10 @@
 
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
+#include <rendering/Scene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
@@ -505,7 +507,7 @@ void Scene::EnqueueRenderUpdates()
             shader_data.frame_counter = frame_counter;
             shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();
             
-            g_engine->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
+            g_engine->GetRenderData()->scenes->Set(id.ToIndex(), shader_data);
 
             HYPERION_RETURN_OK;
         }

@@ -8,8 +8,6 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/Array.hpp>
 
-#include <rendering/Buffers.hpp>
-
 #include <scene/animation/Animation.hpp>
 #include <scene/NodeProxy.hpp>
 
@@ -25,7 +23,7 @@ class Bone;
 
 struct SkeletonBoneData
 {
-    using BoneMatricesPtr = RC<FixedArray<Matrix4, SkeletonShaderData::max_bones>>;
+    using BoneMatricesPtr = RC<FixedArray<Matrix4, 128>>;
 
     BoneMatricesPtr matrices;
 

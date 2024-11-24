@@ -23,6 +23,8 @@
 #include <Types.hpp>
 #include <HashCode.hpp>
 
+#define HYP_SHADER_DATA_OFFSET(cls, index) \
+    (uint32((index) * sizeof(cls ## ShaderData)))
 
 namespace hyperion {
 namespace renderer {
@@ -313,7 +315,7 @@ public:
     };
 };
 
-extern DescriptorTableDeclaration *g_static_descriptor_table_decl;
+extern DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration();
 
 namespace platform {
 
@@ -861,9 +863,14 @@ public:
             }
 
             const auto offsets_it = offsets.Find(descriptor_set_name);
-            AssertThrowMsg(offsets_it != offsets.End(), "No offsets given for descriptor set %s", descriptor_set_name.LookupString());
 
-            set->Bind(command_buffer, pipeline, offsets_it->second, set_index);
+            if (offsets_it != offsets.End()) {
+                set->Bind(command_buffer, pipeline, offsets_it->second, set_index);
+
+                continue;
+            }
+
+            set->Bind(command_buffer, pipeline, set_index);
         }
     }
 
@@ -882,5 +889,28 @@ using DescriptorTable = platform::DescriptorTable<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion
+
+#define HYP_DESCRIPTOR_SET(index, name) \
+    static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))
+
+#define HYP_DESCRIPTOR_SRV_COND(set_name, name, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_UAV_COND(set_name, name, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_CBUFF_COND(set_name, name, count, size, is_dynamic, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_CBUFF, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, is_dynamic)
+#define HYP_DESCRIPTOR_SSBO_COND(set_name, name, count, size, is_dynamic, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_SSBO, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, is_dynamic)
+#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(set_name, name, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_SAMPLER_COND(set_name, name, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(set_name), DESCRIPTOR_SLOT_SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+
+#define HYP_DESCRIPTOR_SRV(set_name, name, count) HYP_DESCRIPTOR_SRV_COND(set_name, name, count, true)
+#define HYP_DESCRIPTOR_UAV(set_name, name, count) HYP_DESCRIPTOR_UAV_COND(set_name, name, count, true)
+#define HYP_DESCRIPTOR_CBUFF(set_name, name, count, size, is_dynamic) HYP_DESCRIPTOR_CBUFF_COND(set_name, name, count, size, is_dynamic, true)
+#define HYP_DESCRIPTOR_SSBO(set_name, name, count, size, is_dynamic) HYP_DESCRIPTOR_SSBO_COND(set_name, name, count, size, is_dynamic, true)
+#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(set_name, name, count) HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(set_name, name, count, true)
+#define HYP_DESCRIPTOR_SAMPLER(set_name, name, count) HYP_DESCRIPTOR_SAMPLER_COND(set_name, name, count, true)
 
 #endif

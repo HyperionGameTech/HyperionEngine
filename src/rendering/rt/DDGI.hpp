@@ -4,7 +4,6 @@
 #define HYPERION_DDGI_HPP
 
 #include <rendering/Shader.hpp>
-#include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>
@@ -37,6 +36,22 @@ struct ProbeRayData
 };
 
 static_assert(sizeof(ProbeRayData) == 64);
+
+struct alignas(256) DDGIUniforms
+{
+    Vec4f   aabb_max;
+    Vec4f   aabb_min;
+    Vec4u   probe_border;
+    Vec4u   probe_counts;
+    Vec4u   grid_dimensions;
+    Vec4u   image_dimensions;
+    Vec4u   params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
+    uint32  shadow_map_index;
+    uint32  _pad0, _pad1, _pad2;
+    uint32  light_indices[16];
+};
+
+static_assert(sizeof(DDGIUniforms) == 256);
 
 struct DDGIInfo
 {

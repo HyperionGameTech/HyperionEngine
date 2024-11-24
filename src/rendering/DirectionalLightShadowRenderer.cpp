@@ -2,6 +2,7 @@
 
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -162,7 +163,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        g_engine->GetRenderData()->shadow_map_data.Set(
+        g_engine->GetRenderData()->shadow_map_data->Set(
             shadow_map_index,
             ShadowShaderData {
                 .projection = projection_matrix,

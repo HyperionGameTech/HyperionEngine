@@ -38,7 +38,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
         for (const RC<RenderProxy> &proxy_ptr : render_proxies) {
             const RenderProxy &proxy = *proxy_ptr;
 
-            g_engine->GetRenderData()->objects.Set(proxy.entity.GetID().ToIndex(), EntityShaderData {
+            g_engine->GetRenderData()->objects->Set(proxy.entity.GetID().ToIndex(), EntityShaderData {
                 .model_matrix           = proxy.model_matrix,
                 .previous_model_matrix  = proxy.previous_model_matrix,
                 .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),

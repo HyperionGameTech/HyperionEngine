@@ -27,8 +27,6 @@
 #include <math/BlendVar.hpp>
 #include <math/MathUtil.hpp>
 
-#include <rendering/FullScreenPass.hpp>
-
 #include <Types.hpp>
 
 namespace hyperion {

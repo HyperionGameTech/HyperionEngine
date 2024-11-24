@@ -4,7 +4,6 @@
 #define HYPERION_MATERIAL_HPP
 
 #include <rendering/Texture.hpp>
-#include <rendering/Buffers.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderResources.hpp>
@@ -20,12 +19,37 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <math/Color.hpp>
+
 #include <Types.hpp>
 
 #include <util/EnumOptions.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+struct MaterialShaderData
+{
+    Vec4f               albedo;
+    
+    // 4 vec4s of 0.0..1.0 values stuffed into uint32s
+    Vec4u               packed_params;
+    
+    Vec2f               uv_scale;
+    float               parallax_height;
+    float               _pad0;
+    
+    uint32              texture_index[16];
+    
+    uint32              texture_usage;
+    uint32              _pad1;
+    uint32              _pad2;
+    uint32              _pad3;
+};
+
+static_assert(sizeof(MaterialShaderData) == 128);
+
+static constexpr uint32 max_materials = (8ull * 1024ull * 1024ull) / sizeof(MaterialShaderData);
 
 enum class MaterialTextureKey : uint64
 {

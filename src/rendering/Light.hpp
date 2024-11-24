@@ -14,6 +14,8 @@
 #include <rendering/Material.hpp>
 
 #include <math/Vector3.hpp>
+#include <math/BoundingBox.hpp>
+#include <math/BoundingSphere.hpp>
 
 #include <Types.hpp>
 
@@ -31,6 +33,36 @@ enum class LightType : uint32
 
     MAX
 };
+
+struct alignas(128) LightShaderData
+{
+    uint32  light_id;
+    uint32  light_type;
+    uint32  color_packed;
+    float   radius;
+    // 16
+
+    float   falloff;
+    uint32  shadow_map_index;
+    Vec2f   area_size;
+    // 32
+
+    Vec4f   position_intensity;
+    Vec4f   normal;
+    // 64
+
+    Vec2f   spot_angles;
+    uint32  material_id;
+    uint32  _pad2;
+
+    Vec4u   pad3;
+    Vec4u   pad4;
+    Vec4u   pad5;
+};
+
+static_assert(sizeof(LightShaderData) == 128);
+
+static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData);
 
 struct LightDrawProxy
 {

@@ -5,6 +5,11 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
+#include <rendering/EnvGrid.hpp>
+#include <rendering/EnvProbe.hpp>
+#include <rendering/Scene.hpp>
+#include <rendering/Camera.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -306,7 +311,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
             AssertThrow(descriptor_set.IsValid());
             
-            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials.GetBuffer(frame_index));
+            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
             
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
             descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetImageView());
@@ -454,11 +459,11 @@ void DeferredPass::Record(uint frame_index)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, light_id.ToIndex()) },
-                                { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, env_grid_index) },
-                                { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, shadow_probe_index) }
+                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
+                                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_id.ToIndex()) },
+                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) },
+                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, shadow_probe_index) }
                             },
                             scene_descriptor_set_index
                         );
@@ -714,11 +719,9 @@ void EnvGridPass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                                { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, env_grid_index) },
-                                { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
+                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
                             }
                         }
                     }
@@ -764,11 +767,9 @@ void EnvGridPass::Render(Frame *frame)
                     cmd,
                     m_render_group->GetPipeline(),
                     {
-                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, env_grid_index) },
-                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
+                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
                     },
                     scene_descriptor_set_index
                 );
@@ -1060,11 +1061,8 @@ void ReflectionProbePass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                                { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                                { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
                             }
                         }
                     }
@@ -1132,11 +1130,9 @@ void ReflectionProbePass::Render(Frame *frame)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                                { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                                { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, env_probe_id.ToIndex()) }
+                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
+                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, env_probe_id.ToIndex()) }
                             },
                             scene_descriptor_set_index
                         );
@@ -1643,11 +1639,11 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                        { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                        { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, 0) },
+                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
                 }
             }
@@ -1728,8 +1724,8 @@ void DeferredRenderer::ApplyCameraJitter()
     if (camera.projection[3][3] < MathUtil::epsilon_f) {
         Matrix4::Jitter(frame_counter, camera.dimensions.x, camera.dimensions.y, jitter);
 
-        g_engine->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
-        g_engine->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());
+        g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_id.ToIndex()).jitter = jitter * jitter_scale;
+        g_engine->GetRenderData()->cameras->MarkDirty(camera_id.ToIndex());
     }
 }
 

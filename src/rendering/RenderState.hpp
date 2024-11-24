@@ -160,8 +160,6 @@ struct RenderState
         if (scene == nullptr) {
             scene_bindings.Push(RenderBinding<Scene>::empty);
         } else {
-            AssertThrow(scene->GetID().ToIndex() < max_scenes);
-
             scene_bindings.Push(RenderBinding<Scene> {
                 scene->GetID(),
                 scene->GetEnvironment(),

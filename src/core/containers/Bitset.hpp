@@ -119,7 +119,7 @@ public:
 
     /*! \brief Resizes the bitset to the given number of bits.
         \param num_bits The new number of bits in the bitset. */
-    HYP_API Bitset &Resize(uint32 num_bits);
+    HYP_API Bitset &Resize(SizeType num_bits);
 
     /*! \brief Returns the index of the first set bit. If no bit is set, -1 is returned.
         \returns The index of the first set bit. */
@@ -163,7 +163,7 @@ public:
 
     /*! \brief Returns the total number of bits in the bitset.
         \returns The total number of bits in the bitset. */
-    HYP_FORCE_INLINE uint32 NumBits() const
+    HYP_FORCE_INLINE SizeType NumBits() const
         { return m_blocks.Size() * num_bits_per_block; }
 
     /*! \brief Returns the number of ones in the bitset.
@@ -276,8 +276,7 @@ public:
         { return End(); }
 
 private:
-    HYP_FORCE_INLINE
-    void RemoveLeadingZeros()
+    HYP_FORCE_INLINE void RemoveLeadingZeros()
     {
         while (m_blocks.Size() > num_preallocated_blocks && m_blocks.Back() == 0) {
             m_blocks.PopBack();

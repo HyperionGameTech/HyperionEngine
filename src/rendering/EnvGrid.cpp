@@ -2,11 +2,15 @@
 
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/Scene.hpp>
+#include <rendering/Camera.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/system/AppContext.hpp>
 
@@ -79,34 +83,6 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
 }
 
 #pragma region Render commands
-
-struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
-{
-    EnvGrid     *grid;
-    Array<uint> updates;
-
-    RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(
-        EnvGrid *grid,
-        Array<uint> &&updates
-    ) : grid(grid),
-        updates(std::move(updates))
-    {
-        AssertThrow(grid != nullptr);
-
-        if (this->updates.Empty()) {
-            HYP_LOG(EnvGrid, LogLevel::WARNING, "Pushed update command with zero updates, redundant command invocation");
-        }
-    }
-
-    virtual Result operator()() override
-    {
-        for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
-            grid->m_env_probe_collection.SetProbeIndexOnRenderThread(update_index, updates[update_index]);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
 
 struct RENDER_COMMAND(CreateSHData) : renderer::RenderCommand
 {
@@ -203,8 +179,33 @@ EnvGrid::~EnvGrid()
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+
+    struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
+    {
+        EnvGrid     *grid;
+        Array<uint> updates;
+
+        RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(EnvGrid *grid, Array<uint> &&updates)
+            : grid(grid),
+              updates(std::move(updates))
+        {
+            AssertThrow(grid != nullptr);
+
+            if (this->updates.Empty()) {
+                HYP_LOG(EnvGrid, LogLevel::WARNING, "Pushed update command with zero updates, redundant command invocation");
+            }
+        }
+
+        virtual Result operator()() override
+        {
+            for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
+                grid->m_env_probe_collection.SetProbeIndexOnRenderThread(update_index, updates[update_index]);
+            }
+
+            HYPERION_RETURN_OK;
+        }
+    };
 
     m_aabb = aabb;
 
@@ -292,11 +293,7 @@ void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
             m_env_probe_collection.SetProbeIndexOnGameThread(update_index, updates[update_index]);
         }
 
-        PUSH_RENDER_COMMAND(
-            UpdateEnvProbeAABBsInGrid,
-            this,
-            std::move(updates)
-        );
+        PUSH_RENDER_COMMAND(UpdateEnvProbeAABBsInGrid, this, std::move(updates));
     }
 }
 
@@ -572,7 +569,7 @@ void EnvGrid::OnRender(Frame *frame)
     m_shader_data.aabb_min = Vec4f(grid_aabb.GetMin(), 1.0f);
     m_shader_data.density = { m_options.density.x, m_options.density.y, m_options.density.z, 0 };
 
-    g_engine->GetRenderData()->env_grids.Set(GetComponentIndex(), m_shader_data);
+    g_engine->GetRenderData()->env_grids->Set(GetComponentIndex(), m_shader_data);
 }
 
 void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
@@ -634,8 +631,8 @@ void EnvGrid::CreateVoxelGridData()
         descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
-        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids.GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetImageView());
 
         AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
@@ -989,11 +986,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1016,11 +1012,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1067,11 +1062,10 @@ void EnvGrid::ComputeSH(
                     {
                         NAME("Scene"),
                         {
-                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
+                            { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
                         }
                     }
                 }
@@ -1105,11 +1099,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1155,7 +1148,7 @@ void EnvGrid::OffsetVoxelGrid(
             {
                 NAME("VoxelizeProbeDescriptorSet"),
                 {
-                    { NAME("EnvGridBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) }
+                    { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
                 }
             }
         }
@@ -1224,7 +1217,7 @@ void EnvGrid::VoxelizeProbe(
                 {
                     NAME("VoxelizeProbeDescriptorSet"),
                     {
-                        { NAME("EnvGridBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) }
+                        { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
                     }
                 }
             }
@@ -1249,7 +1242,7 @@ void EnvGrid::VoxelizeProbe(
                 {
                     NAME("VoxelizeProbeDescriptorSet"),
                     {
-                        { NAME("EnvGridBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex()) }
+                        { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
                     }
                 }
             }
@@ -1333,5 +1326,11 @@ void EnvGrid::VoxelizeProbe(
 
     // m_probe_data_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_CBUFF(Scene, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion

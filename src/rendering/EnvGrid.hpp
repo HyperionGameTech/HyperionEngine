@@ -16,7 +16,6 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
-#include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -32,7 +31,32 @@ enum class EnvGridFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(EnvGridFlags);
 
-struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid);
+enum EnvGridType : uint32
+{
+    ENV_GRID_TYPE_INVALID   = uint32(-1),
+    ENV_GRID_TYPE_SH        = 0,
+    ENV_GRID_TYPE_MAX
+};
+
+struct alignas(256) EnvGridShaderData
+{
+    uint32  probe_indices[max_bound_ambient_probes];
+
+    Vec4f   center;
+    Vec4f   extent;
+    Vec4f   aabb_max;
+    Vec4f   aabb_min;
+
+    Vec4u   density;
+    Vec4u   enabled_indices_mask;
+
+    Vec4f   voxel_grid_aabb_max;
+    Vec4f   voxel_grid_aabb_min;
+};
+
+static_assert(sizeof(EnvGridShaderData) == 4352);
+
+static constexpr uint32 max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvGridShaderData);
 
 struct EnvProbeCollection
 {
@@ -112,8 +136,6 @@ class HYP_API EnvGrid : public RenderComponentBase
     HYP_OBJECT_BODY(EnvGrid);
 
 public:
-    friend struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid);
-
     EnvGrid(Name name, EnvGridOptions options);
     EnvGrid(const EnvGrid &other)               = delete;
     EnvGrid &operator=(const EnvGrid &other)    = delete;

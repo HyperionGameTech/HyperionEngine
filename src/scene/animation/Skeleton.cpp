@@ -3,8 +3,8 @@
 #include <scene/animation/Skeleton.hpp>
 #include <scene/animation/Bone.hpp>
 
+#include <rendering/Skeleton.hpp>
 #include <rendering/ShaderGlobals.hpp>
-
 #include <rendering/backend/RendererResult.hpp>
 
 #include <core/object/HypClassUtils.hpp>
@@ -31,9 +31,9 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
     virtual Result operator()() override
     {
         SkeletonShaderData shader_data;
-        Memory::MemCpy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(std::size(shader_data.bones), bone_data.matrices->Size()));
+        Memory::MemCpy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(ArraySize(shader_data.bones), bone_data.matrices->Size()));
 
-        g_engine->GetRenderData()->skeletons.Set(id.ToIndex(), shader_data);
+        g_engine->GetRenderData()->skeletons->Set(id.ToIndex(), shader_data);
 
         HYPERION_RETURN_OK;
     }

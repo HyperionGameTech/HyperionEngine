@@ -2,6 +2,8 @@
 
 #include <rendering/PostFX.hpp>
 
+#include <rendering/backend/RendererDescriptorSet.hpp>
+
 #include <core/object/HypClassUtils.hpp>
 
 #include <util/MeshBuilder.hpp>
@@ -279,4 +281,11 @@ void PostProcessing::RenderPost(Frame *frame) const
         ++index;
     }
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_CBUFF(Global, PostProcessingUniforms, 1, sizeof(PostProcessingUniforms), false);
+
+} // namespace renderer
+
 } // namespace hyperion

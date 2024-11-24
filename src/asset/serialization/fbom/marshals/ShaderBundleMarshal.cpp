@@ -24,7 +24,7 @@ public:
         }
 
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
-        out.SetProperty("global_descriptor_table_version", FBOMData::FromUInt64(renderer::g_static_descriptor_table_decl->GetHashCode().Value()));
+        out.SetProperty("global_descriptor_table_version", FBOMData::FromUInt64(renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value()));
 
         out.SetProperty("name", FBOMData::FromName(in_object.definition.name));
 
@@ -112,13 +112,13 @@ public:
             return err;
         }
 
-        if (global_descriptor_table_version != renderer::g_static_descriptor_table_decl->GetHashCode().Value()) {
+        if (global_descriptor_table_version != renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value()) {
             DebugLog(
                 LogType::Error,
                 "Failed to deserialize Shader instance: The global descriptor table version does not match.\n"
                 "\tExpected: %llu\n"
                 "\tActual: %llu\n",
-                renderer::g_static_descriptor_table_decl->GetHashCode().Value(),
+                renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value(),
                 global_descriptor_table_version
             );
 

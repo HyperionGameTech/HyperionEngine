@@ -22,6 +22,8 @@ class EditorDelegates;
 class RenderCollectorContainer
 {
 public:
+    static constexpr uint32 max_scenes = 128;
+
     RenderCollectorContainer()
         : m_num_render_collectors { 0u }
     {
@@ -33,7 +35,7 @@ public:
     RenderCollectorContainer &operator=(RenderCollectorContainer &&other) noexcept    = delete;
     ~RenderCollectorContainer()                                                  = default;
 
-    uint NumRenderCollectors() const
+    uint32 NumRenderCollectors() const
         { return m_num_render_collectors.Get(MemoryOrder::ACQUIRE); }
 
     void AddScene(const Scene *scene)
@@ -41,7 +43,8 @@ public:
         AssertThrow(scene != nullptr);
         AssertThrowMsg(scene->GetCamera().IsValid(), "Cannot acquire RenderCollector for Scene with no Camera attached.");
 
-        const uint scene_index = scene->GetID().ToIndex();
+        const uint32 scene_index = scene->GetID().ToIndex();
+        AssertThrow(scene_index < max_scenes);
 
         RenderCollector &render_collector = m_render_collectors_by_id_index[scene_index];
         render_collector.SetCamera(scene->GetCamera());
@@ -52,7 +55,7 @@ public:
             render_collector.SetRenderEnvironment(scene->GetEnvironment());
         }
 
-        const uint render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
+        const uint32 render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
         m_render_collectors[render_collector_index] = &render_collector;
     }
 

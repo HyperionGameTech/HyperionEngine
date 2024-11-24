@@ -2,6 +2,7 @@
 
 #include <rendering/Light.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -65,7 +66,7 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
                 HYP_LOG(Light, LogLevel::DEBUG, "Bound Light: {}", light->GetID().Value());
             }
 
-            g_engine->GetRenderData()->lights.Set(
+            g_engine->GetRenderData()->lights->Set(
                 light->GetID().ToIndex(),
                 LightShaderData {
                     .light_id           = proxy.id.Value(),
@@ -338,5 +339,11 @@ BoundingSphere Light::GetBoundingSphere() const
 
     return BoundingSphere(m_position, m_radius);
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_SSBO(Scene, LightsBuffer, 1, sizeof(LightShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion

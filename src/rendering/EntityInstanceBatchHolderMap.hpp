@@ -10,13 +10,17 @@
 #include <core/containers/TypeMap.hpp>
 
 #include <rendering/Shader.hpp>
-#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererBuffer.hpp>
 
 namespace hyperion {
 
 using renderer::GPUBufferType;
+
+class GPUBufferHolderBase;
+
+template <class StructType, GPUBufferType BufferType>
+class GPUBufferHolder;
 
 class EntityInstanceBatchHolderMap
 {
