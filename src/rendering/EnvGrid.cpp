@@ -80,34 +80,6 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
-{
-    EnvGrid     *grid;
-    Array<uint> updates;
-
-    RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(
-        EnvGrid *grid,
-        Array<uint> &&updates
-    ) : grid(grid),
-        updates(std::move(updates))
-    {
-        AssertThrow(grid != nullptr);
-
-        if (this->updates.Empty()) {
-            HYP_LOG(EnvGrid, LogLevel::WARNING, "Pushed update command with zero updates, redundant command invocation");
-        }
-    }
-
-    virtual Result operator()() override
-    {
-        for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
-            grid->m_env_probe_collection.SetProbeIndexOnRenderThread(update_index, updates[update_index]);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(CreateSHData) : renderer::RenderCommand
 {
     GPUBufferRef sh_tiles_buffer;
@@ -203,8 +175,33 @@ EnvGrid::~EnvGrid()
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_GAME | ThreadName::THREAD_TASK);
+
+    struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
+    {
+        EnvGrid     *grid;
+        Array<uint> updates;
+
+        RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(EnvGrid *grid, Array<uint> &&updates)
+            : grid(grid),
+              updates(std::move(updates))
+        {
+            AssertThrow(grid != nullptr);
+
+            if (this->updates.Empty()) {
+                HYP_LOG(EnvGrid, LogLevel::WARNING, "Pushed update command with zero updates, redundant command invocation");
+            }
+        }
+
+        virtual Result operator()() override
+        {
+            for (uint update_index = 0; update_index < uint(updates.Size()); update_index++) {
+                grid->m_env_probe_collection.SetProbeIndexOnRenderThread(update_index, updates[update_index]);
+            }
+
+            HYPERION_RETURN_OK;
+        }
+    };
 
     m_aabb = aabb;
 
@@ -292,11 +289,7 @@ void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
             m_env_probe_collection.SetProbeIndexOnGameThread(update_index, updates[update_index]);
         }
 
-        PUSH_RENDER_COMMAND(
-            UpdateEnvProbeAABBsInGrid,
-            this,
-            std::move(updates)
-        );
+        PUSH_RENDER_COMMAND(UpdateEnvProbeAABBsInGrid, this, std::move(updates));
     }
 }
 

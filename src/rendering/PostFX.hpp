@@ -9,7 +9,6 @@
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -21,6 +20,15 @@
 namespace hyperion {
 
 class Engine;
+
+struct alignas(16) PostProcessingUniforms
+{
+    Vec2u   effect_counts; // pre, post
+    Vec2u   last_enabled_indices; // pre, post
+    Vec2u   masks; // pre, post
+};
+
+static_assert(sizeof(PostProcessingUniforms) == 32);
 
 enum PostProcessingStage
 {

@@ -23,43 +23,10 @@ enum ProbeSystemUpdates : uint32
     PROBE_SYSTEM_UPDATES_TLAS = 0x1
 };
 
+static constexpr InternalFormat ddgi_irradiance_format = InternalFormat::RGBA16F;
+static constexpr InternalFormat ddgi_depth_format = InternalFormat::RG16F;
+
 #pragma region Render commands
-
-struct RENDER_COMMAND(CreateDDGIImage) : renderer::RenderCommand
-{
-    ImageRef storage_image;
-
-    RENDER_COMMAND(CreateDDGIImage)(const ImageRef &storage_image)
-        : storage_image(storage_image)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateDDGIImage)() override = default;
-
-    virtual Result operator()() override
-    {
-        return storage_image->Create(g_engine->GetGPUDevice());
-    }
-};
-
-struct RENDER_COMMAND(CreateDDGIImageView) : renderer::RenderCommand
-{
-    ImageViewRef image_view;
-    ImageRef image;
-
-    RENDER_COMMAND(CreateDDGIImageView)(const ImageViewRef &image_view, const ImageRef &image)
-        : image_view(image_view),
-          image(image)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateDDGIImageView)() override = default;
-
-    virtual Result operator()() override
-    {
-        return image_view->Create(g_engine->GetGPUDevice(), image);
-    }
-};
 
 struct RENDER_COMMAND(SetDDGIDescriptors) : renderer::RenderCommand
 {
@@ -372,8 +339,6 @@ void DDGI::CreateStorageBuffers()
     );
 
     { // irradiance image
-        constexpr InternalFormat irradiance_format = InternalFormat::RGBA16F;
-
         const Vec3u extent {
             (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.x * probe_counts.y + 2,
             (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.z + 2,
@@ -382,22 +347,20 @@ void DDGI::CreateStorageBuffers()
 
         m_irradiance_image = MakeRenderObject<Image>(StorageImage(
             extent,
-            irradiance_format,
+            ddgi_irradiance_format,
             ImageType::TEXTURE_TYPE_2D
         ));
 
-        PUSH_RENDER_COMMAND(CreateDDGIImage, m_irradiance_image);
+        DeferCreate(m_irradiance_image, g_engine->GetGPUDevice());
     }
 
     { // irradiance image view
         m_irradiance_image_view = MakeRenderObject<ImageView>();
 
-        PUSH_RENDER_COMMAND(CreateDDGIImageView, m_irradiance_image_view, m_irradiance_image);
+        DeferCreate(m_irradiance_image_view, g_engine->GetGPUDevice(), m_irradiance_image);
     }
 
     { // depth image
-        constexpr InternalFormat depth_format = InternalFormat::RG16F;
-
         const Vec3u extent {
             (m_grid_info.depth_octahedron_size + 2) * probe_counts.x * probe_counts.y + 2,
             (m_grid_info.depth_octahedron_size + 2) * probe_counts.z + 2,
@@ -406,17 +369,17 @@ void DDGI::CreateStorageBuffers()
 
         m_depth_image = MakeRenderObject<Image>(StorageImage(
             extent,
-            depth_format,
+            ddgi_depth_format,
             ImageType::TEXTURE_TYPE_2D
         ));
 
-        PUSH_RENDER_COMMAND(CreateDDGIImage, m_depth_image);
+        DeferCreate(m_depth_image, g_engine->GetGPUDevice());
     }
 
     { // depth image view
         m_depth_image_view = MakeRenderObject<ImageView>();
 
-        PUSH_RENDER_COMMAND(CreateDDGIImageView, m_depth_image_view, m_depth_image);
+        DeferCreate(m_depth_image_view, g_engine->GetGPUDevice(), m_depth_image);
     }
 }
 

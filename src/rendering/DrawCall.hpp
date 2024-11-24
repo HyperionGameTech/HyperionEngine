@@ -9,7 +9,6 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/EntityInstanceBatchHolderMap.hpp>
 
@@ -34,6 +33,22 @@ extern HYP_API Handle<Engine>   g_engine;
 extern HYP_API SafeDeleter      *g_safe_deleter;
 
 extern HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap();
+
+static constexpr uint32 max_entities_per_instance_batch = 60;
+
+struct alignas(16) EntityInstanceBatch
+{
+    uint32  num_entities;
+    uint32  _pad0;
+    uint32  _pad1;
+    uint32  _pad2;
+    uint32  indices[max_entities_per_instance_batch];
+    Matrix4 transforms[max_entities_per_instance_batch];
+};
+
+static_assert(sizeof(EntityInstanceBatch) == 4096);
+
+static constexpr uint32 max_entity_instance_batches = (128ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
 
 struct DrawCallID
 {
@@ -77,16 +92,16 @@ struct DrawCallID
 
 struct DrawCall
 {
-    DrawCallID                          id;
-    BufferTicket<EntityInstanceBatch>   batch_index;
-    uint32                              draw_command_index;
+    DrawCallID      id;
+    uint32          batch_index;
+    uint32          draw_command_index;
 
-    ID<Mesh>                            mesh_id;
-    ID<Material>                        material_id;
-    ID<Skeleton>                        skeleton_id;
+    ID<Mesh>        mesh_id;
+    ID<Material>    material_id;
+    ID<Skeleton>    skeleton_id;
 
-    uint32                              entity_id_count;
-    ID<Entity>                          entity_ids[max_entities_per_instance_batch];
+    uint32          entity_id_count;
+    ID<Entity>      entity_ids[max_entities_per_instance_batch];
 };
 
 class IDrawCallCollectionImpl
@@ -191,7 +206,7 @@ public:
     }
 
 private:
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *m_entity_instance_batches;
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, ~0u>    *m_entity_instance_batches;
 };
 
 extern HYP_API IDrawCallCollectionImpl *GetDrawCallCollectionImpl(TypeID type_id);

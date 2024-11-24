@@ -5,7 +5,6 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/Array.hpp>
 
-#include <rendering/Buffers.hpp>
 #include <rendering/CullData.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
@@ -29,6 +28,16 @@ struct RenderCommand_DestroyIndirectRenderer;
 
 struct DrawCall;
 class DrawCallCollection;
+
+struct alignas(16) ObjectInstance
+{
+    uint32  entity_id;
+    uint32  draw_command_index;
+    uint32  instance_index;
+    uint32  batch_index;
+};
+
+static_assert(sizeof(ObjectInstance) == 16);
 
 struct DrawCommandData
 {

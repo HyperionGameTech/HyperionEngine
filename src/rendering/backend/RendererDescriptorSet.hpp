@@ -23,6 +23,8 @@
 #include <Types.hpp>
 #include <HashCode.hpp>
 
+#define HYP_RENDER_OBJECT_OFFSET(cls, index) \
+    (uint32((index) * sizeof(cls ## ShaderData)))
 
 namespace hyperion {
 namespace renderer {
@@ -860,8 +862,13 @@ public:
                 continue;
             }
 
+            uint32 offset = 0;
+
             const auto offsets_it = offsets.Find(descriptor_set_name);
-            AssertThrowMsg(offsets_it != offsets.End(), "No offsets given for descriptor set %s", descriptor_set_name.LookupString());
+
+            if (offsets_it != offsets.End()) {
+                offset = offsets_it->second;
+            }
 
             set->Bind(command_buffer, pipeline, offsets_it->second, set_index);
         }

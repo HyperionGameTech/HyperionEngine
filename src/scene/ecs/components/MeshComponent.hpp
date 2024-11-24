@@ -25,7 +25,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
     MESH_COMPONENT_FLAG_DIRTY   = 0x1
 };
 
-using MeshComponentUserData = UserData<sizeof(EntityUserData), alignof(EntityUserData)>;
+using MeshComponentUserData = UserData<32, 16>;
 
 HYP_STRUCT(Component, Size=240, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
 struct MeshComponent
