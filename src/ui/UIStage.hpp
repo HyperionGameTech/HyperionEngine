@@ -19,7 +19,6 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/FullScreenPass.hpp>
 
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>

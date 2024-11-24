@@ -5,6 +5,8 @@
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -66,7 +68,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
                 }
             }
 
-            g_engine->GetRenderData()->materials.Set(material.GetID().ToIndex(), shader_data);
+            g_engine->GetRenderData()->materials->Set(material.GetID().ToIndex(), shader_data);
         }
 
         HYPERION_RETURN_OK;
@@ -1117,5 +1119,12 @@ void MaterialDescriptorSetManager::Update(Frame *frame)
 }
 
 #pragma endregion MaterialDescriptorSetManager
+
+namespace renderer {
+
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
+
+} // namespace renderer
 
 } // namespace hyperion

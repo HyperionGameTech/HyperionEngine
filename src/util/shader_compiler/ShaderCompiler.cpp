@@ -44,8 +44,6 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
-using renderer::g_static_descriptor_table_decl;
-
 static const bool g_should_compile_missing_variants = true;
 
 // #define HYP_SHADER_COMPILER_LOGGING
@@ -68,7 +66,7 @@ static String BuildDescriptorTableDefines(const DescriptorUsageSet &descriptor_u
         const DescriptorSetDeclaration *descriptor_set_declaration_ptr = &descriptor_set_declaration;
 
         if (descriptor_set_declaration.is_reference) {
-            const DescriptorSetDeclaration *static_decl = g_static_descriptor_table_decl->FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            const DescriptorSetDeclaration *static_decl = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
             AssertThrow(static_decl != nullptr);
 
             descriptor_set_declaration_ptr = static_decl;
@@ -952,8 +950,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
         // check if this descriptor set is defined in the static descriptor table
         // if it is, we can use those definitions
         // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration *static_descriptor_set_declaration = g_static_descriptor_table_decl
-            ->FindDescriptorSetDeclaration(descriptor_usage.set_name);
+        DescriptorSetDeclaration *static_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_usage.set_name);
 
         if (static_descriptor_set_declaration != nullptr) {
             AssertThrowMsg(

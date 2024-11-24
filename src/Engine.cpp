@@ -198,14 +198,14 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
-    constexpr bool use_debug_layers = true;
+    constexpr bool use_debug_layers = false;// true;
 #else
     constexpr bool use_debug_layers = false;
 #endif
 
     HYPERION_ASSERT_RESULT(m_instance->Initialize(*app_context, use_debug_layers));
     
-    m_global_descriptor_table = MakeRenderObject<DescriptorTable>(*renderer::g_static_descriptor_table_decl);
+    m_global_descriptor_table = MakeRenderObject<DescriptorTable>(renderer::GetStaticDescriptorTableDeclaration());
 
     // Update app configuration to reflect device, after instance is created (e.g RT is not supported)
     m_app_context->UpdateConfigurationOverrides();
@@ -293,14 +293,14 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("FinalOutputTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Scene
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ScenesBuffer"), m_render_data->scenes.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightsBuffer"), m_render_data->lights.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ObjectsBuffer"), m_render_data->objects.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CamerasBuffer"), m_render_data->cameras.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvGridsBuffer"), m_render_data->env_grids.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvProbesBuffer"), m_render_data->env_probes.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CurrentEnvProbe"), m_render_data->env_probes.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), m_render_data->shadow_map_data.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ScenesBuffer"), m_render_data->scenes->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightsBuffer"), m_render_data->lights->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ObjectsBuffer"), m_render_data->objects->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CamerasBuffer"), m_render_data->cameras->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvGridsBuffer"), m_render_data->env_grids->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvProbesBuffer"), m_render_data->env_probes->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CurrentEnvProbe"), m_render_data->env_probes->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), m_render_data->shadow_map_data->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("SHGridBuffer"), GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
         for (uint shadow_map_index = 0; shadow_map_index < max_shadow_maps; shadow_map_index++) {
@@ -318,8 +318,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("VoxelGridTexture"), GetPlaceholderData()->GetImageView3D1x1x1R8());
 
         // Object
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials.GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), m_render_data->skeletons.GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), m_render_data->skeletons->GetBuffer(frame_index));
         // m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchesBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(EntityInstanceBatch)));
 
         // Material
@@ -586,7 +586,7 @@ GlobalDescriptorSetManager::GlobalDescriptorSetManager(Engine *engine)
 {
     Mutex::Guard guard(m_mutex);
 
-    for (auto &it : renderer::g_static_descriptor_table_decl->GetElements()) {
+    for (auto &it : renderer::GetStaticDescriptorTableDeclaration().GetElements()) {
         renderer::DescriptorSetLayout layout(it);
 
         DescriptorSetRef ref = layout.CreateDescriptorSet();

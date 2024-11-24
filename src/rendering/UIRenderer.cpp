@@ -4,6 +4,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/Buffers.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 

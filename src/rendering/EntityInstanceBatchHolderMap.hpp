@@ -19,7 +19,7 @@ using renderer::GPUBufferType;
 
 class GPUBufferHolderBase;
 
-template <class StructType, GPUBufferType BufferType, uint32 TCount>
+template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder;
 
 class EntityInstanceBatchHolderMap
@@ -29,7 +29,7 @@ public:
         { return m_entity_instance_batch_holders; }
 
     template <class EntityInstanceBatchType>
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, ~0u> *GetOrCreate(uint32 count)
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *GetOrCreate(uint32 count)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -38,10 +38,10 @@ public:
         if (it == m_entity_instance_batch_holders.End()) {
             HYP_MT_CHECK_WRITE(m_data_race_detector);
 
-            it = m_entity_instance_batch_holders.Set<EntityInstanceBatchType>(MakeUnique<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, ~0u>>(count)).first;
+            it = m_entity_instance_batch_holders.Set<EntityInstanceBatchType>(MakeUnique<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER>>(count)).first;
         }
 
-        return static_cast<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER, ~0u> *>(it->second.Get());
+        return static_cast<GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *>(it->second.Get());
     }
 
 private:

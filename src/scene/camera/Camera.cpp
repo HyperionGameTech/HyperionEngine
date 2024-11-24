@@ -39,7 +39,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
     {
         camera->m_proxy = proxy;
 
-        g_engine->GetRenderData()->cameras.Set(camera->GetID().ToIndex(), CameraShaderData {
+        g_engine->GetRenderData()->cameras->Set(camera->GetID().ToIndex(), CameraShaderData {
             .view               = proxy.view,
             .projection         = proxy.projection,
             .previous_view      = proxy.previous_view,

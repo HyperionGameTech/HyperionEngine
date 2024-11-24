@@ -4,11 +4,11 @@
 #include <rendering/backend/RenderConfig.hpp>
 
 #include <rendering/Buffers.hpp>
+#include <rendering/Material.hpp>
+#include <rendering/Scene.hpp>
 
 namespace hyperion {
 namespace renderer {
-
-DescriptorTableDeclaration *g_static_descriptor_table_decl = new DescriptorTableDeclaration();
 
 DescriptorDeclaration *DescriptorSetDeclaration::FindDescriptorDeclaration(Name name) const
 {
@@ -66,15 +66,26 @@ DescriptorSetDeclaration *DescriptorTableDeclaration::AddDescriptorSetDeclaratio
     return &m_elements.Back();
 }
 
+DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration()
+{
+    static struct Initializer
+    {
+        DescriptorTableDeclaration decl;
+
+        DescriptorTableDeclaration::DeclareSet global_set { &decl, 0, NAME("Global") };
+        DescriptorTableDeclaration::DeclareSet scene_set { &decl, 1, NAME("Scene") };
+        DescriptorTableDeclaration::DeclareSet object_set { &decl, 2, NAME("Object") };
+        DescriptorTableDeclaration::DeclareSet material_set { &decl, 3, NAME("Material") };
+    } initializer;
+
+    return initializer.decl;
+}
+
 static struct GlobalDescriptorSetsDeclarations
 {
     GlobalDescriptorSetsDeclarations()
     {
-#define HYP_DESCRIPTOR_SETS_DEFINE
-#define HYP_DESCRIPTOR_SETS_GLOBAL_STATIC_DESCRIPTOR_TABLE g_static_descriptor_table_decl
 #include <rendering/inl/DescriptorSets.inl>
-#undef HYP_DESCRIPTOR_SETS_GLOBAL_STATIC_DESCRIPTOR_TABLE
-#undef HYP_DESCRIPTOR_SETS_DEFINE
     }
 } s_global_descriptor_sets_declarations;
 

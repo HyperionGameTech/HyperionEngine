@@ -71,7 +71,7 @@ Bitset Bitset::operator<<(uint32 pos) const
 {
     Bitset result;
 
-    const uint32 total_bit_size = NumBits();
+    const SizeType total_bit_size = NumBits();
 
     for (uint32 combined_bit_index = 0; combined_bit_index < total_bit_size; ++combined_bit_index) {
         result.Set(combined_bit_index + pos, Get(combined_bit_index));
@@ -201,14 +201,14 @@ uint64 Bitset::Count() const
     return count;
 }
 
-Bitset &Bitset::Resize(uint32 num_bits)
+Bitset &Bitset::Resize(SizeType num_bits)
 {
-    const uint32 previous_num_blocks = m_blocks.Size();
-    const uint32 new_num_blocks = (num_bits + (num_bits_per_block - 1)) / num_bits_per_block;
+    const SizeType previous_num_blocks = m_blocks.Size();
+    const SizeType new_num_blocks = (num_bits + (num_bits_per_block - 1)) / num_bits_per_block;
 
     m_blocks.Resize(new_num_blocks);
 
-    const uint32 current_num_bits = NumBits();
+    const SizeType current_num_bits = NumBits();
 
     // if (current_num_bits > num_bits && !m_blocks.Empty()) {
     //     // @FIXME: Use bitmask

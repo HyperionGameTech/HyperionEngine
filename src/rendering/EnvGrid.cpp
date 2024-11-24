@@ -4,11 +4,13 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Scene.hpp>
 #include <rendering/Camera.hpp>
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/system/AppContext.hpp>
 
@@ -567,7 +569,7 @@ void EnvGrid::OnRender(Frame *frame)
     m_shader_data.aabb_min = Vec4f(grid_aabb.GetMin(), 1.0f);
     m_shader_data.density = { m_options.density.x, m_options.density.y, m_options.density.z, 0 };
 
-    g_engine->GetRenderData()->env_grids.Set(GetComponentIndex(), m_shader_data);
+    g_engine->GetRenderData()->env_grids->Set(GetComponentIndex(), m_shader_data);
 }
 
 void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
@@ -629,8 +631,8 @@ void EnvGrid::CreateVoxelGridData()
         descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
-        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids.GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes.GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetImageView());
 
         AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
@@ -1324,5 +1326,11 @@ void EnvGrid::VoxelizeProbe(
 
     // m_probe_data_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
+
+namespace renderer {
+
+HYP_DESCRIPTOR_CBUFF(Scene, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion
