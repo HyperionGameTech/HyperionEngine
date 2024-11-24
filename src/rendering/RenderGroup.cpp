@@ -520,11 +520,11 @@ static HYP_FORCE_INLINE void RenderAll(
             frame->GetCommandBuffer(),
             pipeline,
             {
-                { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
-                { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
+                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
             },
             scene_descriptor_set_index
         );
@@ -543,8 +543,8 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
+                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                        { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                     },
                     entity_descriptor_set_index
                 );
@@ -553,7 +553,7 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
+                        { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                     },
                     entity_descriptor_set_index
                 );
@@ -687,11 +687,11 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         secondary,
                         pipeline,
                         {
-                            { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
-                            { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
+                            { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                            { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                         },
                         scene_descriptor_set_index
                     );
@@ -710,8 +710,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     secondary,
                                     pipeline,
                                     {
-                                        { NAME("MaterialsBuffer"), HYP_RENDER_OBJECT_OFFSET(Material, draw_call.material_id.ToIndex()) },
-                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
+                                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                                        { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                                     },
                                     entity_descriptor_set_index
                                 );
@@ -720,7 +720,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     secondary,
                                     pipeline,
                                     {
-                                        { NAME("SkeletonsBuffer"), HYP_RENDER_OBJECT_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
+                                        { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                                     },
                                     entity_descriptor_set_index
                                 );

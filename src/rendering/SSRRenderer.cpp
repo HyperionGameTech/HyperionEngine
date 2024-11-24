@@ -3,6 +3,8 @@
 #include <core/threading/Threads.hpp>
 
 #include <rendering/SSRRenderer.hpp>
+#include <rendering/Scene.hpp>
+#include <rendering/Camera.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -352,11 +354,8 @@ void SSRRenderer::Render(Frame *frame)
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
                 }
             }
         }
@@ -381,11 +380,8 @@ void SSRRenderer::Render(Frame *frame)
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) },
-                    { NAME("CamerasBuffer"), HYP_RENDER_OBJECT_OFFSET(Camera, camera_index) },
-                    { NAME("LightsBuffer"), HYP_RENDER_OBJECT_OFFSET(Light, 0) },
-                    { NAME("EnvGridsBuffer"), HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0) },
-                    { NAME("CurrentEnvProbe"), HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0) }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
                 }
             }
         }
