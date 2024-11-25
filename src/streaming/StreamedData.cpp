@@ -9,8 +9,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <asset/BufferedByteReader.hpp>
-
 #include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {

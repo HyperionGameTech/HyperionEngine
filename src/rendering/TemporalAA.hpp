@@ -7,8 +7,6 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <rendering/RenderState.hpp>
-
 namespace hyperion {
 
 using renderer::Result;

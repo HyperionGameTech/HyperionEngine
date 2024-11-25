@@ -14,6 +14,7 @@
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
+#include <rendering/Light.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

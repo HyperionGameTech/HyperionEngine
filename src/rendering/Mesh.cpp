@@ -27,20 +27,17 @@ using renderer::GPUBufferType;
 
 struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 {
-    Array<float>    vertex_data;
-    Array<uint32>   index_data;
-    GPUBufferRef    vbo;
-    GPUBufferRef    ibo;
+    WeakHandle<Mesh>    mesh_weak;
+    Array<float>        vertex_data;
+    Array<uint32>       index_data;
 
     RENDER_COMMAND(UploadMeshData)(
+        const WeakHandle<Mesh> &mesh_weak,
         Array<float> vertex_data,
-        Array<uint32> index_data,
-        GPUBufferRef vbo,
-        GPUBufferRef ibo
-    ) : vertex_data(std::move(vertex_data)),
-        index_data(std::move(index_data)),
-        vbo(std::move(vbo)),
-        ibo(std::move(ibo))
+        Array<uint32> index_data
+    ) : mesh_weak(mesh_weak),
+        vertex_data(std::move(vertex_data)),
+        index_data(std::move(index_data))
     {
         // Ensure vertex buffer is not empty
         if (this->vertex_data.Empty()) {
@@ -59,45 +56,74 @@ struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
-        auto *instance = g_engine->GetGPUInstance();
-        auto *device = g_engine->GetGPUDevice();
+        if (Handle<Mesh> mesh = mesh_weak.Lock()) {
+            auto *instance = g_engine->GetGPUInstance();
+            auto *device = g_engine->GetGPUDevice();
 
-        const SizeType packed_buffer_size = vertex_data.Size() * sizeof(float);
-        const SizeType packed_indices_size = index_data.Size() * sizeof(uint32);
+            const SizeType packed_buffer_size = vertex_data.Size() * sizeof(float);
+            const SizeType packed_indices_size = index_data.Size() * sizeof(uint32);
 
-        HYPERION_BUBBLE_ERRORS(vbo->Create(device, packed_buffer_size));
-        HYPERION_BUBBLE_ERRORS(ibo->Create(device, packed_indices_size));
+            GPUBufferRef vbo;
+            GPUBufferRef ibo;
 
-        HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
-            device,
-            [&](renderer::StagingBufferPool::Context &holder)
-            {
-                renderer::SingleTimeCommands commands { device };
+            if (mesh->m_vbo.IsValid()) {
+                vbo = std::move(mesh->m_vbo);
+            } else {
+                vbo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER);
+            }
 
-                auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
-                staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_data.Data());
+            if (!vbo->IsCreated() || vbo->Size() != packed_buffer_size) {
+                SafeRelease(std::move(mesh->m_vbo));
+                HYPERION_BUBBLE_ERRORS(vbo->Create(device, packed_buffer_size));
+            }
 
-                auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
-                staging_buffer_indices->Copy(device, packed_indices_size, index_data.Data());
+            if (mesh->m_ibo.IsValid()) {
+                ibo = std::move(mesh->m_ibo);
+            } else {
+                ibo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER);
+            }
 
-                commands.Push([&](CommandBuffer *cmd)
+            if (!ibo->IsCreated() || ibo->Size() != packed_indices_size) {
+                SafeRelease(std::move(mesh->m_ibo));
+                HYPERION_BUBBLE_ERRORS(ibo->Create(device, packed_indices_size));
+            }
+
+            HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
+                device,
+                [&](renderer::StagingBufferPool::Context &holder)
                 {
-                    vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
+                    renderer::SingleTimeCommands commands { device };
+
+                    auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
+                    staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_data.Data());
+
+                    auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
+                    staging_buffer_indices->Copy(device, packed_indices_size, index_data.Data());
+
+                    commands.Push([&](CommandBuffer *cmd)
+                    {
+                        vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
+
+                        HYPERION_RETURN_OK;
+                    });
+
+                    commands.Push([&](CommandBuffer *cmd)
+                    {
+                        ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
+
+                        HYPERION_RETURN_OK;
+                    });
+
+                    HYPERION_BUBBLE_ERRORS(commands.Execute());
 
                     HYPERION_RETURN_OK;
-                });
+                }));
 
-                commands.Push([&](CommandBuffer *cmd)
-                {
-                    ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
-
-                    HYPERION_RETURN_OK;
-                });
-
-                HYPERION_BUBBLE_ERRORS(commands.Execute());
-
-                HYPERION_RETURN_OK;
-            }));
+            mesh->m_vbo = std::move(vbo);
+            mesh->m_ibo = std::move(ibo);
+        } else {
+            HYP_LOG(Mesh, LogLevel::ERR, "Mesh with ID {} was destroyed before UploadMeshData could be executed", mesh_weak.GetID().Value());
+        }
 
         HYPERION_RETURN_OK;
     }
@@ -315,10 +341,9 @@ void Mesh::Init()
 
         PUSH_RENDER_COMMAND(
             UploadMeshData,
+            WeakHandleFromThis(),
             BuildVertexBuffer(GetVertexAttributes(), mesh_data),
-            mesh_data.indices,
-            m_vbo,
-            m_ibo
+            mesh_data.indices
         );
         
         m_streamed_mesh_data->Unpage();
@@ -365,12 +390,6 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
     CalculateAABB();
 
     if (IsInitCalled()) {
-        SafeRelease(std::move(m_vbo));
-        SafeRelease(std::move(m_ibo));
-
-        m_vbo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER);
-        m_ibo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER);
-
         if (!m_streamed_mesh_data) {
             // Create empty buffers
             m_streamed_mesh_data = StreamedMeshData::FromMeshData({
@@ -387,10 +406,9 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
         // Execute render command inline
         PUSH_RENDER_COMMAND(
             UploadMeshData,
+            WeakHandleFromThis(),
             BuildVertexBuffer(GetVertexAttributes(), mesh_data),
-            mesh_data.indices,
-            m_vbo,
-            m_ibo
+            mesh_data.indices
         );
     }
 }

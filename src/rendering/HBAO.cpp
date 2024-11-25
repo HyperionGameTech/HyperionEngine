@@ -5,6 +5,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Scene.hpp>
 #include <rendering/Camera.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 

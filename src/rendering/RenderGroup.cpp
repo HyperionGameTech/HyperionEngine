@@ -400,10 +400,10 @@ void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
             draw_call_id = DrawCallID(render_proxy.mesh.GetID());
         }
 
-        uint32 batch_index = 0;
+        uint32 batch_index = ~0u;
 
         // take a batch for reuse if a draw call was using one
-        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id)) != 0) {
+        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id)) != ~0u) {
             m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->ResetElement(batch_index);
         }
 
@@ -438,29 +438,30 @@ void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_dat
     );
 }
 
-static void GetDividedDrawCalls(
-    const Array<DrawCall> &draw_calls,
-    uint num_batches,
-    Array<Span<const DrawCall>> &out_divided_draw_calls
-)
+static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batches, Array<Span<const DrawCall>> &out_divided_draw_calls)
 {
     HYP_SCOPE;
-    
+
+    const uint32 num_draw_calls = uint32(draw_calls.Size());
+
+    // Make sure we don't try to divide into more batches than we have draw calls
+    num_batches = MathUtil::Min(num_batches, num_draw_calls);
     out_divided_draw_calls.Resize(num_batches);
 
-    const uint num_draw_calls = uint(draw_calls.Size());
-    const uint num_draw_calls_divided = (num_draw_calls + num_batches - 1) / num_batches;
+    const uint32 num_draw_calls_divided = (num_draw_calls + num_batches - 1) / num_batches;
 
-    uint draw_call_index = 0;
+    uint32 draw_call_index = 0;
 
-    for (SizeType container_index = 0; container_index < num_async_rendering_command_buffers; container_index++) {
-
-        const uint diff_to_next_or_end = MathUtil::Min(num_draw_calls_divided, num_draw_calls - draw_call_index);
+    for (uint32 container_index = 0; container_index < num_batches; container_index++) {
+        const uint32 diff_to_next_or_end = MathUtil::Min(num_draw_calls_divided, num_draw_calls - draw_call_index);
 
         out_divided_draw_calls[container_index] = {
             draw_calls.Begin() + draw_call_index,
             draw_calls.Begin() + draw_call_index + diff_to_next_or_end
         };
+
+        // temp, sanity check
+        AssertThrow(draw_calls.Size() >= draw_call_index + diff_to_next_or_end);
 
         draw_call_index += diff_to_next_or_end;
     }
@@ -622,11 +623,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     const uint num_batches = MathUtil::Min(uint(TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers);
     
-    GetDividedDrawCalls(
-        draw_state.GetDrawCalls(),
-        num_async_rendering_command_buffers,
-        divided_draw_calls
-    );
+    GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
 
     // rather than using a single integer, we have to set states in a fixed array
     // because otherwise we'd need to use an atomic integer
@@ -671,13 +668,13 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                 return;
             }
 
-            auto *mesh_container = GetContainer<Mesh>();
-
             command_buffers[frame_index][index]->Record(
                 g_engine->GetGPUDevice(),
                 pipeline->GetRenderPass(),
                 [&](CommandBuffer *secondary)
                 {
+                    ObjectContainer<Mesh> *mesh_container = GetContainer<Mesh>();
+
                     pipeline->Bind(secondary);
                     
                     global_descriptor_set->Bind(

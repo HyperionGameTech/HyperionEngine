@@ -77,26 +77,28 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
 
 #ifdef HYP_DEBUG_MODE
             AssertThrow(draw_call->id == id);
-            AssertThrow(draw_call->batch_index != 0);
+            AssertThrow(draw_call->batch_index != ~0u);
 #endif
         } else {
             // check if we need to allocate new batch (if it has not been provided as first argument)
-            if (batch_index == 0) {
+            if (batch_index == ~0u) {
                 batch_index = m_impl->AcquireBatchIndex();
             }
 
             draw_call = &m_draw_calls.EmplaceBack();
+
+            *draw_call = DrawCall { };
             draw_call->id = id;
+            draw_call->batch_index = batch_index;
             draw_call->draw_command_index = ~0u;
             draw_call->mesh_id = render_proxy.mesh.GetID();
             draw_call->material_id = render_proxy.material.GetID();
             draw_call->skeleton_id = render_proxy.skeleton.GetID();
             draw_call->entity_id_count = 0;
-            draw_call->batch_index = batch_index;
 
             index_map_it->second.PushBack(m_draw_calls.Size() - 1);
         
-            batch_index = 0;
+            batch_index = ~0u;
         }
 
         if (render_proxy.instance_data.buffers.Any()) {
@@ -121,7 +123,7 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
         instance_data_offset += initial_num_instances - num_instances;
     }
 
-    if (batch_index != 0) {
+    if (batch_index != ~0u) {
         // ticket has not been used at this point (always gets set to 0 after used) - need to release it
         m_impl->ReleaseBatchIndex(batch_index);
     }
@@ -135,20 +137,20 @@ uint32 DrawCallCollection::TakeDrawCallBatchIndex(DrawCallID id)
         for (SizeType draw_call_index : it->second) {
             DrawCall &draw_call = m_draw_calls[draw_call_index];
 
-            if (draw_call.batch_index == 0) {
+            if (draw_call.batch_index == ~0u) {
                 continue;
             }
 
             const uint32 batch_index = draw_call.batch_index;
 
-            // Reset the DrawCall
-            draw_call = { };
+            Memory::MemSet(&draw_call, 0, sizeof(DrawCall));
+            draw_call.batch_index = ~0u;
 
             return batch_index;
         }
     }
 
-    return 0;
+    return ~0u;
 }
 
 void DrawCallCollection::ResetDrawCalls()
@@ -157,7 +159,7 @@ void DrawCallCollection::ResetDrawCalls()
     AssertThrow(entity_instance_batches != nullptr);
 
     for (const DrawCall &draw_call : m_draw_calls) {
-        if (draw_call.batch_index != 0) {
+        if (draw_call.batch_index != ~0u) {
             entity_instance_batches->ResetElement(draw_call.batch_index);
 
             m_impl->ReleaseBatchIndex(draw_call.batch_index);

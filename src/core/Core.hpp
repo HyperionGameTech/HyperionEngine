@@ -40,52 +40,6 @@ template <class T>
 struct Handle;
 
 template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
-{
-    //auto *container = GetContainer<T>();
-    
-    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
-
-    const uint32 index = container.NextIndex();
-    container.ConstructAtIndex(index);
-
-    return Handle<T>(ID<T>::FromIndex(index));
-}
-
-template <class T, class... Args>
-HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
-{
-    //auto *container = GetContainer<T>();
-    
-    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
-
-    const uint32 index = container.NextIndex();
-
-    container.ConstructAtIndex(
-        index,
-        std::forward<Args>(args)...
-    );
-
-    return Handle<T>(ID<T>::FromIndex(index));
-}
-
-template <class T>
-HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
-{
-    if (!handle) {
-        return false;
-    }
-
-    if (!handle->GetID()) {
-        return false;
-    }
-
-    handle->Init();
-
-    return true;
-}
-
-template <class T>
 HYP_FORCE_INLINE const HypClass *GetClass()
 {
     return HypClassRegistry::GetInstance().template GetClass<T>();

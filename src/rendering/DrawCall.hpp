@@ -136,10 +136,10 @@ public:
     HYP_FORCE_INLINE IDrawCallCollectionImpl *GetImpl() const
         { return m_impl; }
 
-    HYP_FORCE_INLINE Array<DrawCall> &GetDrawCalls()
+    HYP_FORCE_INLINE Array<DrawCall, 4096> &GetDrawCalls()
         { return m_draw_calls; }
 
-    HYP_FORCE_INLINE const Array<DrawCall> &GetDrawCalls() const
+    HYP_FORCE_INLINE const Array<DrawCall, 4096> &GetDrawCalls() const
         { return m_draw_calls; }
 
     void PushDrawCallToBatch(uint32 batch_index, DrawCallID id, const RenderProxy &render_proxy);
@@ -156,7 +156,7 @@ private:
 
     IDrawCallCollectionImpl             *m_impl;
 
-    Array<DrawCall>                     m_draw_calls;
+    Array<DrawCall, 4096>               m_draw_calls;
 
     // Map from draw call ID to index in draw_calls
     HashMap<uint64, Array<SizeType>>    m_index_map;
@@ -192,12 +192,14 @@ public:
 
     virtual uint32 AcquireBatchIndex() const override
     {
-        return m_entity_instance_batches->AcquireTicket();
+        uint32 index = m_entity_instance_batches->AcquireIndex();
+        AssertThrow(index < m_entity_instance_batches->Count());
+        return index;
     }
 
     virtual void ReleaseBatchIndex(uint32 batch_index) const override
     {
-        m_entity_instance_batches->ReleaseTicket(batch_index);
+        m_entity_instance_batches->ReleaseIndex(batch_index);
     }
 
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const override

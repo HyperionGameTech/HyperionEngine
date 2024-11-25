@@ -5,7 +5,6 @@
 #include <asset/serialization/fbom/FBOMWriter.hpp>
 
 #include <asset/ByteWriter.hpp>
-#include <asset/BufferedByteReader.hpp>
 
 namespace hyperion::fbom {
 

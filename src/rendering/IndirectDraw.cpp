@@ -9,6 +9,7 @@
 #include <rendering/Camera.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/Deferred.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>

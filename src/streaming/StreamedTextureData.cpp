@@ -6,8 +6,8 @@
 #include <asset/serialization/fbom/FBOMWriter.hpp>
 #include <asset/serialization/fbom/FBOMReader.hpp>
 
-#include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
+#include <asset/BufferedByteReader.hpp>
 
 #include <core/object/HypData.hpp>
 

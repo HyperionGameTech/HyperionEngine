@@ -13,6 +13,7 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/BLASComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
@@ -683,12 +684,12 @@ bool LightmapJob::IsCompleted() const
     if (!m_params.elements_view) {
         return true;
     }
-    
-    if (!m_current_tasks.Every([](const Task<void> &task) { return task.IsCompleted(); })) {
-        return false;
-    }
 
     if (m_current_rays.Any()) {
+        return false;
+    }
+    
+    if (m_current_tasks.Any() && !m_current_tasks.Every([](const Task<void> &task) { return task.IsCompleted(); })) {
         return false;
     }
 
@@ -758,10 +759,6 @@ void LightmapJob::Update()
     case LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU:
         GatherRays(max_ray_hits_gpu, m_current_rays);
 
-        if (m_current_rays.Empty()) {
-            return;
-        }
-
         PUSH_RENDER_COMMAND(LightmapTraceRaysOnGPU, this, std::move(m_current_rays));
 
         break;
@@ -786,6 +783,8 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
 
     while (ray_index < max_ray_hits) {
         if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
+            HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: stopping gathering, texel index = {}, texel_indices count = {}", m_uuid, m_texel_index, m_texel_indices.Size());
+
             break;
         }
 
@@ -803,12 +802,18 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         Handle<Mesh> mesh = Handle<Mesh>(uv.mesh_id);
 
         if (!mesh.IsValid()) {
+            HYP_LOG(Lightmap, LogLevel::WARNING, "Lightmap job {}: Mesh at texel index {} is not valid, skipping", m_uuid, m_texel_index);
+
             ++m_texel_index;
+
             continue;
         }
 
         if (!mesh->GetStreamedMeshData()) {
+            HYP_LOG(Lightmap, LogLevel::WARNING, "Lightmap job {}: Mesh {} does not have streamed mesh data set, skipping", m_uuid, mesh->GetName());
+
             ++m_texel_index;
+
             continue;
         }
 
@@ -857,6 +862,8 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         ++m_texel_index;
         ++ray_index;
     }
+
+    HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Gathered {} rays", m_uuid, ray_index);
 }
 
 void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint num_hits, LightmapShadingType shading_type)
@@ -1159,6 +1166,17 @@ void Lightmapper::PerformLightmapping()
             HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with bucket that is not opaque or translucent");
 
             continue;
+        }
+
+        // GPU lightmap trace mode requires a raytracing BLAS to be attached
+        if (m_trace_mode == LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU) {
+            BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity);
+
+            if (!blas_component || !blas_component->blas) {
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skipping entity #{} because it has no bottom level acceleration structure attached", entity.Value());
+
+                continue;
+            }
         }
 
         m_lightmap_elements.PushBack(LightmapElement {

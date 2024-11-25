@@ -36,7 +36,7 @@ void RenderResourcesBase::Unclaim()
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 #endif
 
-    AssertThrow(m_ref_count != 0);
+    AssertThrow(m_ref_count > 0);
 
     if (--m_ref_count == 0) {
         Destroy();

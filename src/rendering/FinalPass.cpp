@@ -3,6 +3,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 

@@ -3,6 +3,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/FullScreenPass.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>

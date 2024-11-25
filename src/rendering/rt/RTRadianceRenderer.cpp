@@ -7,6 +7,7 @@
 #include <rendering/Camera.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>

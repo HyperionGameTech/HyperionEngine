@@ -2,6 +2,7 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -82,13 +83,15 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
     Handle<Texture>         texture;
 
     RENDER_COMMAND(UpdateMaterialTexture)(
-        const WeakHandle<Material> &material,
+        const Handle<Material> &material,
         SizeType texture_index,
         const Handle<Texture> &texture
     ) : material(material),
         texture_index(texture_index),
         texture(texture)
     {
+        AssertThrow(material.IsValid());
+        AssertThrow(material->IsReady());
     }
 
     virtual ~RENDER_COMMAND(UpdateMaterialTexture)() override = default;
@@ -122,11 +125,13 @@ struct RENDER_COMMAND(CreateMaterialDescriptorSet) : renderer::RenderCommand
     FixedArray<Handle<Texture>, max_bound_textures> textures;
 
     RENDER_COMMAND(CreateMaterialDescriptorSet)(
-        const WeakHandle<Material> &material,
+        const Handle<Material> &material,
         FixedArray<Handle<Texture>, max_bound_textures> &&textures
     ) : material(material),
         textures(std::move(textures))
     {
+        AssertThrow(material.IsValid());
+        AssertThrow(material->IsReady());
     }
 
     virtual ~RENDER_COMMAND(CreateMaterialDescriptorSet)() override = default;
@@ -145,9 +150,11 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 {
     WeakHandle<Material>    material;
 
-    RENDER_COMMAND(RemoveMaterialDescriptorSet)(const WeakHandle<Material> &material)
+    RENDER_COMMAND(RemoveMaterialDescriptorSet)(const Handle<Material> &material)
         : material(material)
     {
+        AssertThrow(material.IsValid());
+        AssertThrow(material->IsReady());
     }
 
     virtual ~RENDER_COMMAND(RemoveMaterialDescriptorSet)() override = default;
@@ -223,54 +230,54 @@ void MaterialRenderResources::Update()
     AssertThrow(m_material_weak.IsValid());
 
     if (Handle<Material> material = m_material_weak.Lock()) {
-        Mutex::Guard guard(m_mutex);
+        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            Mutex::Guard guard(m_mutex);
 
-        for (const auto &it : m_textures) {
-            const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
+            for (const auto &it : m_textures) {
+                const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
 
-            if (texture_index >= max_bound_textures) {
-                HYP_LOG(Material, LogLevel::WARNING, "Texture index {} is out of bounds of max bound textures ({})", texture_index, max_bound_textures);
+                if (texture_index >= max_bound_textures) {
+                    HYP_LOG(Material, LogLevel::WARNING, "Texture index {} is out of bounds of max bound textures ({})", texture_index, max_bound_textures);
 
-                continue;
+                    continue;
+                }
+
+                const Handle<Texture> &texture = it.second;
+
+                PUSH_RENDER_COMMAND(
+                    UpdateMaterialTexture,
+                    material,
+                    texture_index,
+                    texture
+                );
             }
-
-            const Handle<Texture> &texture = it.second;
-
-            PUSH_RENDER_COMMAND(
-                UpdateMaterialTexture,
-                m_material_weak,
-                texture_index,
-                texture
-            );
         }
     }
 }
 
 void MaterialRenderResources::CreateDescriptorSets()
 {
-    if (!m_material_weak.IsValid()) {
-        return;
-    }
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
 
-    FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
+        for (const Pair<MaterialTextureKey, Handle<Texture>> &it : m_textures) {
+            const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
 
-    for (const Pair<MaterialTextureKey, Handle<Texture>> &it : m_textures) {
-        const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
+            if (texture_index >= texture_bindings.Size()) {
+                continue;
+            }
 
-        if (texture_index >= texture_bindings.Size()) {
-            continue;
+            if (const Handle<Texture> &texture = it.second) {
+                texture_bindings[texture_index] = texture;
+            }
         }
 
-        if (const Handle<Texture> &texture = it.second) {
-            texture_bindings[texture_index] = texture;
-        }
+        PUSH_RENDER_COMMAND(
+            CreateMaterialDescriptorSet,
+            material,
+            std::move(texture_bindings)
+        );
     }
-
-    PUSH_RENDER_COMMAND(
-        CreateMaterialDescriptorSet,
-        m_material_weak,
-        std::move(texture_bindings)
-    );
 }
 
 void MaterialRenderResources::DestroyDescriptorSets()
@@ -278,11 +285,13 @@ void MaterialRenderResources::DestroyDescriptorSets()
     if (!m_material_weak.IsValid()) {
         return;
     }
-
-    PUSH_RENDER_COMMAND(
-        RemoveMaterialDescriptorSet,
-        m_material_weak
-    );
+    
+    if (Handle<Material> material = m_material_weak.Lock()) {
+        PUSH_RENDER_COMMAND(
+            RemoveMaterialDescriptorSet,
+            material
+        );
+    }
 }
 
 #pragma endregion MaterialRenderResources
