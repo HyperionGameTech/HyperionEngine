@@ -13,6 +13,7 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/BLASComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 
@@ -1165,6 +1166,17 @@ void Lightmapper::PerformLightmapping()
             HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with bucket that is not opaque or translucent");
 
             continue;
+        }
+
+        // GPU lightmap trace mode requires a raytracing BLAS to be attached
+        if (m_trace_mode == LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU) {
+            BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity);
+
+            if (!blas_component || !blas_component->blas) {
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skipping entity #{} because it has no bottom level acceleration structure attached", entity.Value());
+
+                continue;
+            }
         }
 
         m_lightmap_elements.PushBack(LightmapElement {

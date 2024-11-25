@@ -58,7 +58,11 @@ struct ArrayStorage<T, 0>
     HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
     {
         AssertThrow(m_buffer == nullptr);
-        m_buffer = Memory::Allocate(sizeof(T) * size);
+
+        AssertThrow(size <= SIZE_MAX / sizeof(T));
+
+        m_buffer = static_cast<T *>(Memory::Allocate(sizeof(T) * size));
+        AssertThrow(m_buffer != nullptr);
     }
 
     HYP_FORCE_INLINE void FreeDynamic()
@@ -102,7 +106,12 @@ struct ArrayStorage<T, NumInlineBytes, std::enable_if_t< (sizeof(T) <= NumInline
     HYP_FORCE_INLINE void AllocateDynamic(SizeType size)
     {
         AssertThrow(!m_is_dynamic);
+
+        AssertThrow(size <= SIZE_MAX / sizeof(T));
+
         m_buffer = static_cast<T *>(Memory::Allocate(sizeof(T) * size));
+        AssertThrow(m_buffer != nullptr);
+
         m_is_dynamic = true;
     }
 
@@ -853,8 +862,11 @@ void Array<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_offs
     T *old_buffer = GetBuffer();
 
     if (capacity > num_inline_elements) {
+        AssertThrow(capacity <= SIZE_MAX / sizeof(T));
+
         // delete and copy all over again
         T *new_buffer = static_cast<T *>(Memory::Allocate(sizeof(T) * capacity));
+        AssertThrow(new_buffer != nullptr);
 
         // AssertThrow(Size() <= m_capacity);
         
