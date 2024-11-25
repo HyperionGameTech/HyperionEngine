@@ -683,12 +683,12 @@ bool LightmapJob::IsCompleted() const
     if (!m_params.elements_view) {
         return true;
     }
-    
-    if (!m_current_tasks.Every([](const Task<void> &task) { return task.IsCompleted(); })) {
-        return false;
-    }
 
     if (m_current_rays.Any()) {
+        return false;
+    }
+    
+    if (m_current_tasks.Any() && !m_current_tasks.Every([](const Task<void> &task) { return task.IsCompleted(); })) {
         return false;
     }
 
@@ -758,10 +758,6 @@ void LightmapJob::Update()
     case LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU:
         GatherRays(max_ray_hits_gpu, m_current_rays);
 
-        if (m_current_rays.Empty()) {
-            return;
-        }
-
         PUSH_RENDER_COMMAND(LightmapTraceRaysOnGPU, this, std::move(m_current_rays));
 
         break;
@@ -786,6 +782,8 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
 
     while (ray_index < max_ray_hits) {
         if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
+            HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: stopping gathering, texel index = {}, texel_indices count = {}", m_uuid, m_texel_index, m_texel_indices.Size());
+
             break;
         }
 
@@ -803,12 +801,18 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         Handle<Mesh> mesh = Handle<Mesh>(uv.mesh_id);
 
         if (!mesh.IsValid()) {
+            HYP_LOG(Lightmap, LogLevel::WARNING, "Lightmap job {}: Mesh at texel index {} is not valid, skipping", m_uuid, m_texel_index);
+
             ++m_texel_index;
+
             continue;
         }
 
         if (!mesh->GetStreamedMeshData()) {
+            HYP_LOG(Lightmap, LogLevel::WARNING, "Lightmap job {}: Mesh {} does not have streamed mesh data set, skipping", m_uuid, mesh->GetName());
+
             ++m_texel_index;
+
             continue;
         }
 
@@ -857,6 +861,8 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         ++m_texel_index;
         ++ray_index;
     }
+
+    HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Gathered {} rays", m_uuid, ray_index);
 }
 
 void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint num_hits, LightmapShadingType shading_type)
