@@ -31,6 +31,7 @@ using renderer::Topology;
 using renderer::IndirectDrawCommand;
 
 struct RENDER_COMMAND(SetStreamedMeshData);
+struct RENDER_COMMAND(UploadMeshData);
 
 HYP_STRUCT(Size=104)
 struct MeshInstanceData
@@ -107,6 +108,7 @@ class HYP_API Mesh final : public BasicObject<Mesh>
     
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
+    friend struct RENDER_COMMAND(UploadMeshData);
 
     using Index = uint32;
 
@@ -153,12 +155,6 @@ public:
     HYP_METHOD(Property="Name", Serialize=true, Editor=true)
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
-
-    HYP_FORCE_INLINE const GPUBufferRef &GetVertexBuffer() const
-        { return m_vbo; }
-
-    HYP_FORCE_INLINE const GPUBufferRef &GetIndexBuffer() const
-        { return m_ibo; }
 
     void SetVertices(Array<Vertex> vertices);
     void SetVertices(Array<Vertex> vertices, Array<Index> indices);
