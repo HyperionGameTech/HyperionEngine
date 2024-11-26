@@ -5,6 +5,7 @@
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/Scene.hpp>
 #include <rendering/Camera.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>

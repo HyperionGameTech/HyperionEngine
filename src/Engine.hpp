@@ -5,15 +5,10 @@
 
 #include <Config.hpp>
 
-#include <rendering/Deferred.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderableAttributes.hpp>
 #include <rendering/DefaultFormats.hpp>
-#include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/FinalPass.hpp>
-#include <rendering/RenderGroup.hpp>
 
 #include <scene/World.hpp>
 
@@ -22,8 +17,6 @@
 #include <rendering/backend/RenderCommand.hpp>
 
 #include <core/object/HypObject.hpp>
-
-#include <core/containers/FlatMap.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -56,6 +49,9 @@ class ShaderGlobals;
 class ScriptingService;
 class AssetManager;
 class DebugDrawer;
+class DeferredRenderer;
+class FinalPass;
+class PlaceholderData;
 
 extern Handle<Engine>       g_engine;
 extern Handle<AssetManager> g_asset_manager;

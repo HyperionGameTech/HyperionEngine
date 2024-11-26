@@ -8,6 +8,10 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/EntityInstanceBatchHolderMap.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/DefaultFormats.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/FinalPass.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 

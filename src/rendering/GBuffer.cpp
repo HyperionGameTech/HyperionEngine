@@ -2,6 +2,7 @@
 
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/Deferred.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 

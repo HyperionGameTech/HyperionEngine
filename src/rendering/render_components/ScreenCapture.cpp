@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/render_components/ScreenCapture.hpp>
+#include <rendering/FinalPass.hpp>
 
 #include <Engine.hpp>
 

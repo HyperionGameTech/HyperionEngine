@@ -8,8 +8,10 @@
 #include <rendering/EnvProbe.hpp>
 #include <rendering/EnvGrid.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
+#include <rendering/backend/RendererImage.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -81,7 +83,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
         const Vec3u image_dimensions { dimension_cube, dimension_cube, dimension_cube };
 
         for (auto &item : textures) {
-            item.image = MakeRenderObject<Image>(StorageImage(
+            item.image = MakeRenderObject<Image>(renderer::StorageImage(
                 image_dimensions,
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_3D,

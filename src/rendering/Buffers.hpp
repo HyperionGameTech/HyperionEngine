@@ -276,7 +276,7 @@ class BufferList
     };
 
 public:
-    static constexpr uint32 s_invalid_index = 0;
+    static constexpr uint32 s_invalid_index = ~0u;
 
     BufferList(uint32 initial_count = 16 * num_elements_per_block)
         : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
@@ -294,20 +294,16 @@ public:
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
     {
-        if (index == s_invalid_index) {
-            return;
-        }
-
         for (auto &it : m_dirty_ranges) {
-            it |= { index - 1, index };
+            it |= { index, index + 1 };
         }
     }
 
     uint32 AcquireIndex()
     {
-        const uint32 index = m_id_generator.NextID();
+        const uint32 index = m_id_generator.NextID() - 1;
 
-        const uint32 block_index = (index - 1) / num_elements_per_block;
+        const uint32 block_index = index / num_elements_per_block;
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
@@ -335,13 +331,9 @@ public:
 
     void ReleaseIndex(uint32 index)
     {
-        if (index == s_invalid_index) {
-            return;
-        }
+        m_id_generator.FreeID(index + 1);
 
-        m_id_generator.FreeID(index);
-
-        const uint32 block_index = (index - 1) / num_elements_per_block;
+        const uint32 block_index = index / num_elements_per_block;
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
@@ -359,8 +351,10 @@ public:
 
     StructType &GetElement(uint32 index)
     {
-        const uint32 block_index = (index - 1) / num_elements_per_block;
-        const uint32 element_index = (index - 1) % num_elements_per_block;
+        AssertThrow(index < m_blocks.Size() * num_elements_per_block);
+
+        const uint32 block_index = index / num_elements_per_block;
+        const uint32 element_index = index % num_elements_per_block;
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
@@ -379,10 +373,10 @@ public:
 
     void SetElement(uint32 index, const StructType &value)
     {
-        AssertThrow(index != s_invalid_index);
+        AssertThrow(index < m_blocks.Size() * num_elements_per_block);
 
-        const uint32 block_index = (index - 1) / num_elements_per_block;
-        const uint32 element_index = (index - 1) % num_elements_per_block;
+        const uint32 block_index = index / num_elements_per_block;
+        const uint32 element_index = index % num_elements_per_block;
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
@@ -544,7 +538,7 @@ public:
 
     virtual void MarkDirty(uint32 index) override
     {
-        m_buffer_list.MarkDirty(index + 1);
+        m_buffer_list.MarkDirty(index);
     }
 
     virtual void ResetElement(uint32 index) override
@@ -558,20 +552,20 @@ public:
      */
     HYP_FORCE_INLINE StructType &Get(uint32 index)
     {
-        return m_buffer_list.GetElement(index + 1);
+        return m_buffer_list.GetElement(index);
     }
 
     HYP_FORCE_INLINE void Set(uint32 index, const StructType &value)
     {
-        m_buffer_list.SetElement(index + 1, value);
+        m_buffer_list.SetElement(index, value);
     }
 
-    uint32 AcquireTicket()
+    uint32 AcquireIndex()
     {
         return m_buffer_list.AcquireIndex();
     }
 
-    void ReleaseTicket(uint32 batch_index)
+    void ReleaseIndex(uint32 batch_index)
     {
         return m_buffer_list.ReleaseIndex(batch_index);
     }
