@@ -19,5 +19,5 @@ DEF_HANDLE(InputManager,                16)
 DEF_HANDLE(AssetManager,                1)
 DEF_HANDLE_NS(physics, RigidBody,       8192)
 
-DEF_HANDLE(GaussianSplattingInstance,   16)
-DEF_HANDLE(GaussianSplatting,           16)
+DEF_HANDLE(GaussianSplattingInstance,   32768)
+DEF_HANDLE(GaussianSplatting,           32768)

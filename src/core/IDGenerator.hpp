@@ -46,14 +46,18 @@ struct IDGenerator
 
     uint NextID()
     {
-        if (num_free_indices.Get(MemoryOrder::ACQUIRE) != 0) {
+        uint32 current_num_free_indices;
+        
+        if ((current_num_free_indices = num_free_indices.Get(MemoryOrder::RELAXED)) != 0) {
             Mutex::Guard guard(free_id_mutex);
 
             // Check that it hasn't changed before the lock
             if (free_indices.Any()) {
                 const uint index = free_indices.Pop();
 
-                num_free_indices.Decrement(1, MemoryOrder::RELEASE);
+                if (num_free_indices.Get(MemoryOrder::ACQUIRE) != 0) {
+                    num_free_indices.Decrement(1, MemoryOrder::RELEASE);
+                }
 
                 return index;
             }

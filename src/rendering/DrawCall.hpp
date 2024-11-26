@@ -192,7 +192,9 @@ public:
 
     virtual uint32 AcquireBatchIndex() const override
     {
-        return m_entity_instance_batches->AcquireIndex();
+        uint32 index = m_entity_instance_batches->AcquireIndex();
+        AssertThrow(index < m_entity_instance_batches->Count());
+        return index;
     }
 
     virtual void ReleaseBatchIndex(uint32 batch_index) const override

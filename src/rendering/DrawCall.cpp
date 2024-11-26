@@ -89,12 +89,12 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
 
             *draw_call = DrawCall { };
             draw_call->id = id;
+            draw_call->batch_index = batch_index;
             draw_call->draw_command_index = ~0u;
             draw_call->mesh_id = render_proxy.mesh.GetID();
             draw_call->material_id = render_proxy.material.GetID();
             draw_call->skeleton_id = render_proxy.skeleton.GetID();
             draw_call->entity_id_count = 0;
-            draw_call->batch_index = batch_index;
 
             index_map_it->second.PushBack(m_draw_calls.Size() - 1);
         
@@ -142,13 +142,15 @@ uint32 DrawCallCollection::TakeDrawCallBatchIndex(DrawCallID id)
             }
 
             const uint32 batch_index = draw_call.batch_index;
+
+            Memory::MemSet(&draw_call, 0, sizeof(DrawCall));
             draw_call.batch_index = ~0u;
 
             return batch_index;
         }
     }
 
-    return 0;
+    return ~0u;
 }
 
 void DrawCallCollection::ResetDrawCalls()

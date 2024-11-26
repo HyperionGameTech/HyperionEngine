@@ -351,7 +351,7 @@ public:
 
     StructType &GetElement(uint32 index)
     {
-        AssertThrow(index < m_blocks.Size() * num_elements_per_block);
+        AssertThrow(index < NumElements());
 
         const uint32 block_index = index / num_elements_per_block;
         const uint32 element_index = index % num_elements_per_block;
@@ -373,7 +373,7 @@ public:
 
     void SetElement(uint32 index, const StructType &value)
     {
-        AssertThrow(index < m_blocks.Size() * num_elements_per_block);
+        AssertThrow(index < NumElements());
 
         const uint32 block_index = index / num_elements_per_block;
         const uint32 element_index = index % num_elements_per_block;
