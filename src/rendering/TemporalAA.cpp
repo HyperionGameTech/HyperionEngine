@@ -2,6 +2,8 @@
 
 #include <rendering/TemporalAA.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>

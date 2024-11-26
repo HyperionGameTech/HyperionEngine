@@ -282,16 +282,16 @@ public:
 
     template <SizeType OtherNumInlineBytes>
     Array(const Array<T, OtherNumInlineBytes> &other)
+        : Array()
     {
         const SizeType size = other.Size();
 
         SetCapacity(size);
 
         T *buffer = GetBuffer();
-        T *other_buffer = other.GetBuffer();
 
         for (SizeType i = 0; i < size; i++) {
-            Memory::Construct<T>(&buffer[m_size++], other_buffer[i + other.m_start_offset]);
+            Memory::Construct<T>(&buffer[m_size++], other.Data()[i]);
         }
     }
 
@@ -299,16 +299,16 @@ public:
 
     template <SizeType OtherNumInlineBytes>
     Array(Array<T, OtherNumInlineBytes> &&other)
+        : Array()
     {
         const SizeType size = other.Size();
 
         SetCapacity(size);
 
-        T *storage = GetBuffer();
-        T *other_buffer = other.GetBuffer();
+        T *buffer = GetBuffer();
 
         for (SizeType i = 0; i < size; i++) {
-            Memory::Construct<T>(&storage[m_size++], std::move(other_buffer[i + other.m_start_offset]));
+            Memory::Construct<T>(&buffer[m_size++], std::move(other.Data()[i]));
         }
 
         other.Clear();

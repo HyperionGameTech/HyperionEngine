@@ -2,6 +2,8 @@
 
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>

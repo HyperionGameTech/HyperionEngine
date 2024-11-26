@@ -400,10 +400,10 @@ void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
             draw_call_id = DrawCallID(render_proxy.mesh.GetID());
         }
 
-        uint32 batch_index = 0;
+        uint32 batch_index = ~0u;
 
         // take a batch for reuse if a draw call was using one
-        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id)) != 0) {
+        if ((batch_index = previous_draw_state.TakeDrawCallBatchIndex(draw_call_id)) != ~0u) {
             m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->ResetElement(batch_index);
         }
 

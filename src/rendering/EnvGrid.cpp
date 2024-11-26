@@ -5,6 +5,7 @@
 #include <rendering/Scene.hpp>
 #include <rendering/Camera.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -148,12 +149,11 @@ EnvGrid::EnvGrid(Name name, EnvGridOptions options)
       m_offset(options.aabb.GetCenter()),
       m_current_probe_index(0)
 {
-    HYP_LOG(EnvGrid, LogLevel::INFO, "Constructor for EnvGrid {}", (void *)this);
-    LogStackTrace(25);
+    HYP_LOG(EnvGrid, LogLevel::DEBUG, "Constructor for EnvGrid {}", (void *)this);
 }
 
 EnvGrid::~EnvGrid()
-{   HYP_LOG(EnvGrid, LogLevel::INFO, "Destructor for EnvGrid {}", (void *)this);
+{   HYP_LOG(EnvGrid, LogLevel::DEBUG, "Destructor for EnvGrid {}", (void *)this);
 
     SafeRelease(std::move(m_ambient_shader));
 

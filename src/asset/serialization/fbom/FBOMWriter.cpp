@@ -5,7 +5,6 @@
 #include <asset/serialization/fbom/FBOMArray.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
 
-#include <asset/BufferedByteReader.hpp>
 #include <asset/ByteWriter.hpp>
 
 #include <core/containers/Stack.hpp>

@@ -19,7 +19,6 @@
 
 #include <asset/Assets.hpp>
 #include <asset/ByteWriter.hpp>
-#include <asset/BufferedByteReader.hpp>
 
 #include <asset/serialization/fbom/FBOMWriter.hpp>
 #include <asset/serialization/fbom/FBOMReader.hpp>

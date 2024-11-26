@@ -5,6 +5,8 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/FinalPass.hpp>
+#include <rendering/Deferred.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 
