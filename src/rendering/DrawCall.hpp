@@ -93,14 +93,16 @@ struct DrawCallID
 struct DrawCall
 {
     DrawCallID      id;
-    uint32          batch_index;
-    uint32          draw_command_index;
+    uint32          batch_index = ~0u;
+    uint32          draw_command_index = 0;
+
+    uint32          material_buffer_index = ~0u;
 
     ID<Mesh>        mesh_id;
     ID<Material>    material_id;
     ID<Skeleton>    skeleton_id;
 
-    uint32          entity_id_count;
+    uint32          entity_id_count = 0;
     ID<Entity>      entity_ids[max_entities_per_instance_batch];
 };
 

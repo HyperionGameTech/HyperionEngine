@@ -109,7 +109,9 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         mesh_component.mesh->BuildPackedVertices(),
         mesh_component.mesh->BuildPackedIndices(),
         entity.GetID().ToIndex(),
-        mesh_component.material.GetID().ToIndex()
+        mesh_component.material.IsValid() && mesh_component.material->GetRenderResources().GetBufferIndex() != ~0u
+            ? mesh_component.material->GetRenderResources().GetBufferIndex()
+            : 0
     );
 
     DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
