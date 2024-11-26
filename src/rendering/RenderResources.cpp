@@ -45,6 +45,14 @@ void RenderResourcesBase::Unclaim()
 
 void RenderResourcesBase::SetNeedsUpdate()
 {
+    // @TODO: Change to attach this to some global manager that updates all at start of frame
+    // so we dont enqueue multiple commands for one RenderResourcesBase
+
+    // OR
+
+    // When Set* calls happen on derived classes, don't have them lock mutex + set the member,
+    // instead, have them push some command to a local queue when gets executed on Update() call.
+
     struct RENDER_COMMAND(ApplyRenderResourcesUpdates) : renderer::RenderCommand
     {
         Weak<RenderResourcesBase>   render_resources_weak;

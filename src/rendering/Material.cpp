@@ -69,7 +69,11 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
                 }
             }
 
-            g_engine->GetRenderData()->materials->Set(material.GetID().ToIndex(), shader_data);
+            // temp
+            AssertThrow(material_locked->GetRenderResources().GetBufferIndex() != ~0u);
+            g_engine->GetRenderData()->materials->Set(material_locked->GetRenderResources().GetBufferIndex(), shader_data);
+
+            // g_engine->GetRenderData()->materials->Set(material.GetID().ToIndex(), shader_data);
         }
 
         HYPERION_RETURN_OK;
@@ -172,42 +176,27 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 #pragma region MaterialRenderResources
 
 MaterialRenderResources::MaterialRenderResources(const WeakHandle<Material> &material_weak)
-    : m_material_weak(material_weak)
+    : m_material_weak(material_weak),
+      m_buffer_data { },
+      m_buffer_index(~0u)
 {
 }
 
 MaterialRenderResources::~MaterialRenderResources()
 {
-    if (m_material_weak.IsValid()) {
-        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            DestroyDescriptorSets();
-        }
-    }
-}
-
-void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
-{
-    Mutex::Guard guard(m_mutex);
-
-    m_textures.Set(texture_key, texture);
-
-    SetNeedsUpdate();
-}
-
-void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
-{
-    Mutex::Guard guard(m_mutex);
-
-    m_textures = std::move(textures);
-
-    SetNeedsUpdate();
+    Destroy();
 }
 
 void MaterialRenderResources::Initialize()
 {
     AssertThrow(m_material_weak.IsValid());
+    AssertThrow(m_buffer_index == ~0u);
+
+    m_buffer_index = g_engine->GetRenderData()->materials->AcquireIndex();
 
     if (Handle<Material> material = m_material_weak.Lock()) {
+        UpdateMaterialBufferData();
+
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             CreateDescriptorSets();
         }
@@ -217,6 +206,12 @@ void MaterialRenderResources::Initialize()
 void MaterialRenderResources::Destroy()
 {
     AssertThrow(m_material_weak.IsValid());
+
+    if (m_buffer_index != ~0u) {
+        g_engine->GetRenderData()->materials->ReleaseIndex(m_buffer_index);
+
+        m_buffer_index = ~0u;
+    }
 
     if (Handle<Material> material = m_material_weak.Lock()) {
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
@@ -230,9 +225,13 @@ void MaterialRenderResources::Update()
     AssertThrow(m_material_weak.IsValid());
 
     if (Handle<Material> material = m_material_weak.Lock()) {
-        if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            Mutex::Guard guard(m_mutex);
+        const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
+        Mutex::Guard guard(m_mutex);
+
+        UpdateMaterialBufferData();
+
+        if (!use_bindless_textures) {
             for (const auto &it : m_textures) {
                 const SizeType texture_index = Material::TextureSet::EnumToOrdinal(it.first);
 
@@ -292,6 +291,68 @@ void MaterialRenderResources::DestroyDescriptorSets()
             material
         );
     }
+}
+
+void MaterialRenderResources::UpdateMaterialBufferData()
+{
+    AssertThrow(m_buffer_index != ~0u);
+
+    const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+
+    m_buffer_data.texture_usage = 0;
+    Memory::MemSet(m_buffer_data.texture_index, 0, sizeof(m_buffer_data.texture_index));
+
+    if (m_bound_texture_ids.Any()) {
+        for (SizeType i = 0; i < m_bound_texture_ids.Size(); i++) {
+            if (m_bound_texture_ids[i] != ID<Texture>::invalid) {
+                if (use_bindless_textures) {
+                    m_buffer_data.texture_index[i] = m_bound_texture_ids[i].ToIndex();
+                } else {
+                    m_buffer_data.texture_index[i] = i;
+                }
+
+                m_buffer_data.texture_usage |= 1 << i;
+            }
+        }
+    }
+
+    g_engine->GetRenderData()->materials->Set(m_buffer_index, m_buffer_data);
+}
+
+void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_textures.Set(texture_key, texture);
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_textures = std::move(textures);
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::SetMaterialBufferData(const MaterialShaderData &buffer_data)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_buffer_data = buffer_data;
+
+    SetNeedsUpdate();
+}
+
+void MaterialRenderResources::SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_bound_texture_ids = bound_texture_ids;
+
+    SetNeedsUpdate();
 }
 
 #pragma endregion MaterialRenderResources
@@ -429,14 +490,15 @@ void Material::EnqueueRenderUpdates()
         return;
     }
 
-    FixedArray<ID<Texture>, max_bound_textures> bound_texture_ids { };
-
     static const uint num_bound_textures = MathUtil::Min(
         max_textures,
         g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()
             ? max_bindless_resources
             : max_bound_textures
     );
+
+    Array<ID<Texture>> bound_texture_ids;
+    bound_texture_ids.Resize(num_bound_textures);
 
     for (uint i = 0; i < num_bound_textures; i++) {
         if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
@@ -463,13 +525,8 @@ void Material::EnqueueRenderUpdates()
         .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
     };
 
-    PUSH_RENDER_COMMAND(
-        UpdateMaterialRenderData,
-        WeakHandleFromThis(),
-        shader_data,
-        num_bound_textures,
-        std::move(bound_texture_ids)
-    );
+    m_render_resources->SetMaterialBufferData(shader_data);
+    m_render_resources->SetBoundTextureIDs(bound_texture_ids);
 
     m_mutation_state = DataMutationState::CLEAN;
 }

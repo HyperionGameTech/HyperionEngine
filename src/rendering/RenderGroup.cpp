@@ -548,7 +548,7 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_buffer_index != ~0u ? draw_call.material_buffer_index : 0) },
                         { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                     },
                     entity_descriptor_set_index
@@ -711,7 +711,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     secondary,
                                     pipeline,
                                     {
-                                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_id.ToIndex()) },
+                                        { NAME("MaterialsBuffer"), HYP_SHADER_DATA_OFFSET(Material, draw_call.material_buffer_index != ~0u ? draw_call.material_buffer_index : 0) },
                                         { NAME("SkeletonsBuffer"), HYP_SHADER_DATA_OFFSET(Skeleton, draw_call.skeleton_id.ToIndex()) }
                                     },
                                     entity_descriptor_set_index

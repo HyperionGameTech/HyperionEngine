@@ -96,8 +96,15 @@ public:
     MaterialRenderResources(const WeakHandle<Material> &material_weak);
     virtual ~MaterialRenderResources() override;
 
+    HYP_FORCE_INLINE uint32 GetBufferIndex() const
+        { return m_buffer_index; }
+
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);
+
+    void SetMaterialBufferData(const MaterialShaderData &buffer_data);
+
+    void SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids);
 
 protected:
     virtual void Initialize() override;
@@ -108,8 +115,13 @@ private:
     void CreateDescriptorSets();
     void DestroyDescriptorSets();
 
+    void UpdateMaterialBufferData();
+
     WeakHandle<Material>                            m_material_weak;
     FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
+    MaterialShaderData                              m_buffer_data;
+    Array<ID<Texture>>                              m_bound_texture_ids;
+    uint32                                          m_buffer_index;
     Mutex                                           m_mutex;
 };
 

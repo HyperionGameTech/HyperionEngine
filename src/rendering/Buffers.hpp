@@ -224,6 +224,9 @@ public:
     virtual void ResetElement(uint32 index) = 0;
     virtual void UpdateBuffer(Device *device, uint32 frame_index) = 0;
 
+    virtual uint32 AcquireIndex() = 0;
+    virtual void ReleaseIndex(uint32 index) = 0;
+
     template <class T>
     HYP_FORCE_INLINE T &Get(uint32 index)
     {
@@ -546,6 +549,16 @@ public:
         Set(index, { });
     }
 
+    virtual uint32 AcquireIndex() override
+    {
+        return m_buffer_list.AcquireIndex();
+    }
+
+    virtual void ReleaseIndex(uint32 batch_index) override
+    {
+        return m_buffer_list.ReleaseIndex(batch_index);
+    }
+
     /*! \brief Get a reference to an object in the _current_ staging buffer,
      * use when it is preferable to fetch the object, update the struct, and then
      * call Set. This is usually when the object would have a large stack size
@@ -559,16 +572,6 @@ public:
     {
         m_buffer_list.SetElement(index, value);
     }
-
-    uint32 AcquireIndex()
-    {
-        return m_buffer_list.AcquireIndex();
-    }
-
-    void ReleaseIndex(uint32 batch_index)
-    {
-        return m_buffer_list.ReleaseIndex(batch_index);
-    }
     
 private:
     virtual void *Get_Internal(uint32 index) override
@@ -576,7 +579,7 @@ private:
         return &Get(index);
     }
 
-    virtual void Set_Internal(uint32 index, const void *ptr)
+    virtual void Set_Internal(uint32 index, const void *ptr) override
     {
         Set(index, *static_cast<const StructType *>(ptr));
     }
