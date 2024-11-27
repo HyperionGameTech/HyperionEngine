@@ -16,8 +16,6 @@ namespace hyperion {
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
 
-// Claim/Unclaim are only meant to be used from the render thread, as the reference count is not atomic.
-
 class RenderResourcesBase : public EnableRefCountedPtrFromThis<RenderResourcesBase>
 {
 public:
@@ -42,8 +40,90 @@ protected:
     void SetNeedsUpdate();
 
 private:
-    uint16              m_ref_count;
-    AtomicVar<uint16>   m_update_counter;
+    AtomicVar<int16>    m_ref_count;
+    AtomicVar<int16>    m_update_counter;
+    bool                m_is_initialized;
+};
+
+struct RenderResourcesHandle
+{
+    RenderResourcesHandle()
+        : render_resources(nullptr)
+    {
+    }
+
+    RenderResourcesHandle(RenderResourcesBase &render_resources)
+        : render_resources(&render_resources)
+    {
+        render_resources.Claim();
+    }
+
+    RenderResourcesHandle(const RenderResourcesHandle &other)
+        : render_resources(other.render_resources)
+    {
+        if (render_resources != nullptr) {
+            render_resources->Claim();
+        }
+    }
+
+    RenderResourcesHandle &operator=(const RenderResourcesHandle &other)
+    {
+        if (this == &other || render_resources == other.render_resources) {
+            return *this;
+        }
+
+        if (render_resources != nullptr) {
+            render_resources->Unclaim();
+        }
+
+        render_resources = other.render_resources;
+
+        if (render_resources != nullptr) {
+            render_resources->Claim();
+        }
+
+        return *this;
+    }
+
+    RenderResourcesHandle(RenderResourcesHandle &&other) noexcept
+        : render_resources(other.render_resources)
+    {
+        other.render_resources = nullptr;
+    }
+
+    RenderResourcesHandle &operator=(RenderResourcesHandle &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (render_resources != nullptr) {
+            render_resources->Unclaim();
+        }
+
+        render_resources = other.render_resources;
+        other.render_resources = nullptr;
+
+        return *this;
+    }
+
+    ~RenderResourcesHandle()
+    {
+        if (render_resources != nullptr) {
+            render_resources->Unclaim();
+        }
+    }
+
+    void Reset()
+    {
+        if (render_resources != nullptr) {
+            render_resources->Unclaim();
+        }
+
+        render_resources = nullptr;
+    }
+
+    RenderResourcesBase *render_resources;
 };
 
 } // namespace hyperion

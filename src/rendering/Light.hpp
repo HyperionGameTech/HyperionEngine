@@ -12,6 +12,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <rendering/Material.hpp>
+#include <rendering/RenderResources.hpp>
 
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>
@@ -52,7 +53,7 @@ struct alignas(128) LightShaderData
     // 64
 
     Vec2f   spot_angles;
-    uint32  material_id;
+    uint32  material_index;
     uint32  _pad2;
 
     Vec4u   pad3;
@@ -66,18 +67,18 @@ static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData)
 
 struct LightDrawProxy
 {
-    ID<Light>       id;
-    LightType       type;
-    Color           color;
-    float           radius;
-    float           falloff;
-    Vec2f           spot_angles;
-    uint32          shadow_map_index;
-    Vec2f           area_size;
-    Vec4f           position_intensity;
-    Vec4f           normal;
-    uint64          visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
-    ID<Material>    material_id;
+    ID<Light>           id;
+    LightType           type;
+    Color               color;
+    float               radius;
+    float               falloff;
+    Vec2f               spot_angles;
+    uint32              shadow_map_index;
+    Vec2f               area_size;
+    Vec4f               position_intensity;
+    Vec4f               normal;
+    uint64              visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
+    Handle<Material>    material;
 };
 
 struct RENDER_COMMAND(UpdateLightShaderData);
@@ -386,17 +387,18 @@ public:
     void EnqueueRenderUpdates();
 
 protected:
-    LightType           m_type;
-    Vec3f               m_position;
-    Vec3f               m_normal;
-    Vec2f               m_area_size;
-    Color               m_color;
-    float               m_intensity;
-    float               m_radius;
-    float               m_falloff;
-    Vec2f               m_spot_angles;
-    uint32              m_shadow_map_index;
-    Handle<Material>    m_material;
+    LightType               m_type;
+    Vec3f                   m_position;
+    Vec3f                   m_normal;
+    Vec2f                   m_area_size;
+    Color                   m_color;
+    float                   m_intensity;
+    float                   m_radius;
+    float                   m_falloff;
+    Vec2f                   m_spot_angles;
+    uint32                  m_shadow_map_index;
+    Handle<Material>        m_material;
+    RenderResourcesHandle   m_material_render_resources_handle;
 
 private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;

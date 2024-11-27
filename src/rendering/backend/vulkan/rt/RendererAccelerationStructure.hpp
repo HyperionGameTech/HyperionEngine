@@ -7,6 +7,8 @@
 
 #include <core/containers/Array.hpp>
 
+#include <core/Handle.hpp>
+
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -20,6 +22,9 @@
 #include <memory>
 
 namespace hyperion {
+
+class Entity;
+class Material;
 namespace renderer {
 
 namespace platform {
@@ -51,8 +56,8 @@ public:
     HYP_API AccelerationGeometry(
         const Array<PackedVertex> &packed_vertices,
         const Array<uint32> &packed_indices,
-        uint entity_index,
-        uint material_index
+        const WeakHandle<Entity> &entity,
+        const Handle<Material> &material
     );
 
     AccelerationGeometry(const AccelerationGeometry &other)             = delete;
@@ -71,21 +76,11 @@ public:
     HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedIndexStorageBuffer() const
         { return m_packed_index_buffer; }
 
-    HYP_FORCE_INLINE uint GetEntityIndex() const
-        { return m_entity_index; }
+    HYP_FORCE_INLINE const WeakHandle<Entity> &GetEntity() const
+        { return m_entity; }
 
-    // must set proper flag on the parent BLAS
-    // for it to take effect
-    HYP_FORCE_INLINE void SetEntityIndex(uint entity_index)
-        { m_entity_index = entity_index; }
-
-    HYP_FORCE_INLINE uint GetMaterialIndex() const
-        { return m_material_index; }
-
-    // must set proper flag on the parent BLAS
-    // for it to take effect
-    HYP_FORCE_INLINE void SetMaterialIndex(uint material_index)
-        { m_material_index = material_index; }
+    HYP_FORCE_INLINE const Handle<Material> &GetMaterial() const
+        { return m_material; }
 
     HYP_API bool IsCreated() const;
 
@@ -100,8 +95,8 @@ private:
     GPUBufferRef<PLATFORM>                      m_packed_vertex_buffer;
     GPUBufferRef<PLATFORM>                      m_packed_index_buffer;
     
-    uint                                        m_entity_index;
-    uint                                        m_material_index;
+    WeakHandle<Entity>                          m_entity;
+    Handle<Material>                            m_material;
 
     VkAccelerationStructureGeometryKHR          m_geometry;
 };

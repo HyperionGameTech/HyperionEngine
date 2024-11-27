@@ -97,7 +97,14 @@ public:
     virtual ~MaterialRenderResources() override;
 
     HYP_FORCE_INLINE uint32 GetBufferIndex() const
-        { return m_buffer_index; }
+    {
+#ifdef HYP_DEBUG_MODE
+        // Allow render thread or task thread (under render thread) to call this method.
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
+#endif
+
+        return m_buffer_index;
+    }
 
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);

@@ -469,9 +469,11 @@ void DeferredPass::Record(uint frame_index)
                         );
                     
                     // Bind material descriptor set (for area lights)
-                    if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                        g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_proxy.material_id, frame_index)
-                            ->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
+                    if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_proxy.material.IsValid()) {
+                        const DescriptorSetRef &material_descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_proxy.material.GetID(), frame_index);
+                        AssertThrow(material_descriptor_set != nullptr);
+                        
+                        material_descriptor_set->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
                     m_full_screen_quad->Render(cmd);

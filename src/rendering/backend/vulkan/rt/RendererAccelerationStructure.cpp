@@ -5,6 +5,8 @@
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <rendering/Material.hpp>
+
 #include <core/utilities/Range.hpp>
 #include <math/MathUtil.hpp>
 
@@ -74,14 +76,14 @@ template <>
 AccelerationGeometry<Platform::VULKAN>::AccelerationGeometry(
     const Array<PackedVertex> &packed_vertices,
     const Array<uint32> &packed_indices,
-    uint entity_index,
-    uint material_index
+    const WeakHandle<Entity> &entity,
+    const Handle<Material> &material
 ) : m_packed_vertices(packed_vertices),
     m_packed_indices(packed_indices),
     m_packed_vertex_buffer(MakeRenderObject<GPUBuffer<Platform::VULKAN>>(GPUBufferType::RT_MESH_VERTEX_BUFFER)),
     m_packed_index_buffer(MakeRenderObject<GPUBuffer<Platform::VULKAN>>(GPUBufferType::RT_MESH_INDEX_BUFFER)),
-    m_entity_index(entity_index),
-    m_material_index(material_index),
+    m_entity(entity),
+    m_material(material),
     m_geometry { }
 {
     m_packed_vertex_buffer.SetName(NAME("RTPackedVertexBuffer"));
@@ -105,6 +107,10 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
 {
     if (IsCreated()) {
         return { Result::RENDERER_ERR, "Cannot initialize acceleration geometry that has already been initialized" };
+    }
+
+    if (m_material.IsValid()) {
+        m_material->GetRenderResources().Claim();
     }
 
     if (!device->GetFeatures().IsRaytracingSupported()) {
@@ -214,6 +220,14 @@ Result AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *
 template <>
 Result AccelerationGeometry<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
+    if (!IsCreated()) {
+        return { Result::RENDERER_ERR, "Cannot destroy acceleration geometry that has not been initialized" };
+    }
+
+    if (m_material.IsValid()) {
+        m_material->GetRenderResources().Unclaim();
+    }
+
     Result result;
 
     SafeRelease(std::move(m_packed_vertex_buffer));
@@ -848,10 +862,18 @@ Result TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescriptionsBu
 
             mesh_description = { };
         } else {
+            const WeakHandle<Entity> &entity_weak = blas->GetGeometries()[0]->GetEntity();
+            const Handle<Material> &material = blas->GetGeometries()[0]->GetMaterial();
+
+            if (material.IsValid()) {
+                // Must be initialized (AccelerationGeometry calls Claim() and Unclaim())
+                AssertThrow(material->GetRenderResources().GetBufferIndex() != ~0u);
+            }
+
             mesh_description.vertex_buffer_address = blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
             mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
-            mesh_description.entity_index = blas->GetGeometries()[0]->GetEntityIndex();
-            mesh_description.material_index = blas->GetGeometries()[0]->GetMaterialIndex();
+            mesh_description.entity_index = entity_weak.IsValid() ? entity_weak.GetID().ToIndex() : 0;
+            mesh_description.material_index = material.IsValid() ? material->GetRenderResources().GetBufferIndex() : ~0u;
             mesh_description.num_indices = uint32(blas->GetGeometries()[0]->GetPackedIndices().Size());
             mesh_description.num_vertices = uint32(blas->GetGeometries()[0]->GetPackedVertices().Size());
         }
