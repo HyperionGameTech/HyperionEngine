@@ -265,6 +265,59 @@ void HyperionEditor::Init()
         }
     }
 
+    if (true) { // add test area light
+        Handle<Light> light = CreateObject<Light>(
+            LightType::AREA_RECT,
+            Vec3f(0.0f, 1.25f, 0.0f),
+            Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
+            Vec2f(2.0f, 2.0f),
+            Color(1.0f, 0.0f, 0.0f),
+            1.0f,
+            1.0f
+        );
+
+        Handle<Texture> dummy_light_texture;
+
+        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
+            dummy_light_texture = dummy_light_texture_asset.Result();
+        }
+
+        light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
+            {
+               .shader_definition = ShaderDefinition {
+                    HYP_NAME(Forward),
+                    ShaderProperties(static_mesh_vertex_attributes)
+                },
+               .bucket = Bucket::BUCKET_OPAQUE
+            },
+            {
+            },
+            {
+                {
+                    MaterialTextureKey::ALBEDO_MAP,
+                    std::move(dummy_light_texture)
+                }
+            }
+        ));
+        AssertThrow(light->GetMaterial().IsValid());
+
+        InitObject(light);
+
+        auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
+
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, {
+            Transform(
+                light->GetPosition(),
+                Vec3f(1.0f),
+                Quaternion::Identity()
+            )
+        });
+
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, {
+            light
+        });
+    }
+
 #if 1
     // add sun
     

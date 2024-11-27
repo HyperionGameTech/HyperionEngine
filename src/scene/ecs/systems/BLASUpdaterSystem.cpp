@@ -108,10 +108,8 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
         mesh_component.mesh->BuildPackedVertices(),
         mesh_component.mesh->BuildPackedIndices(),
-        entity.GetID().ToIndex(),
-        mesh_component.material.IsValid() && mesh_component.material->GetRenderResources().GetBufferIndex() != ~0u
-            ? mesh_component.material->GetRenderResources().GetBufferIndex()
-            : 0
+        entity,
+        mesh_component.material
     );
 
     DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());

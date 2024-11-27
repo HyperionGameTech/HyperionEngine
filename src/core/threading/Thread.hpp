@@ -33,6 +33,10 @@ enum class ThreadPriorityValue
     HIGHEST
 };
 
+// @TODO Implement "synthetic" thread IDs to trace which thread tasks are being queued from
+// e.g Render thread enqueues a few render tasks, the tasks execute on task threads but can have a synthetic task thread id
+// that combines render thread ID + the respective task thread ID.
+
 struct ThreadID
 {
     static const ThreadID invalid;

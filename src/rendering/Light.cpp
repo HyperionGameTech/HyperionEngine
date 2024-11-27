@@ -15,6 +15,8 @@
 
 namespace hyperion {
 
+// @TODO Convert Light to use RenderResources
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
@@ -66,6 +68,11 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
                 HYP_LOG(Light, LogLevel::DEBUG, "Bound Light: {}", light->GetID().Value());
             }
 
+            // temp
+            if (proxy.material.IsValid()) {
+                AssertThrow(proxy.material->GetRenderResources().GetBufferIndex() != ~0u);
+            }
+
             g_engine->GetRenderData()->lights->Set(
                 light->GetID().ToIndex(),
                 LightShaderData {
@@ -79,7 +86,7 @@ struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
                     .position_intensity = proxy.position_intensity,
                     .normal             = proxy.normal,
                     .spot_angles        = proxy.spot_angles,
-                    .material_id        = proxy.material_id.Value()
+                    .material_index     = proxy.material.IsValid() ? proxy.material->GetRenderResources().GetBufferIndex() : ~0u
                 }
             );
         }
@@ -156,13 +163,16 @@ Light::Light(Light &&other) noexcept
       m_shadow_map_index(other.m_shadow_map_index),
       m_visibility_bits(std::move(other.m_visibility_bits)),
       m_mutation_state(DataMutationState::CLEAN),
-      m_material(std::move(other.m_material))
+      m_material(std::move(other.m_material)),
+      m_material_render_resources_handle(std::move(other.m_material_render_resources_handle))
 {
     other.m_shadow_map_index = ~0u;
 }
 
 Light::~Light()
 {
+    m_material_render_resources_handle.Reset();
+    
     // If material is set for this Light, defer its deletion for a few frames
     if (m_material.IsValid()) {
         g_safe_deleter->SafeRelease(std::move(m_material));
@@ -179,8 +189,13 @@ void Light::Init()
 
     BasicObject::Init();
 
-    InitObject(m_material);
+    if (m_material.IsValid()) {
+        InitObject(m_material);
 
+        m_material_render_resources_handle = RenderResourcesHandle(m_material->GetRenderResources());
+    }
+
+    // @TODO: If buffer index for material changes, how do we update that?
     m_proxy = LightDrawProxy {
         .id                 = GetID(),
         .type               = m_type,
@@ -193,7 +208,7 @@ void Light::Init()
         .position_intensity = Vec4f(m_position, m_intensity),
         .normal             = Vec4f(m_normal, 0.0f),
         .visibility_bits    = m_visibility_bits.ToUInt64(),
-        .material_id        = m_material.GetID()
+        .material           = m_material
     };
 
     m_mutation_state |= DataMutationState::DIRTY;
@@ -226,6 +241,8 @@ void Light::EnqueueRenderUpdates()
     AssertReady();
 
     if (m_material.IsValid() && m_material->GetMutationState().IsDirty()) {
+        m_mutation_state |= DataMutationState::DIRTY;
+
         m_material->EnqueueRenderUpdates();
     }
 
@@ -248,7 +265,7 @@ void Light::EnqueueRenderUpdates()
             .position_intensity = Vec4f(m_position, m_intensity),
             .normal             = Vec4f(m_normal, 0.0f),
             .visibility_bits    = m_visibility_bits.ToUInt64(),
-            .material_id        = m_material.GetID()
+            .material           = m_material
         }
     );
 
@@ -261,7 +278,9 @@ void Light::SetMaterial(Handle<Material> material)
         return;
     }
 
-    if (m_material.IsValid()) {
+    m_material_render_resources_handle.Reset();
+
+    if (m_material.IsValid() && IsInitCalled()) {
         g_safe_deleter->SafeRelease(std::move(m_material));
     }
 
@@ -269,6 +288,8 @@ void Light::SetMaterial(Handle<Material> material)
 
     if (IsInitCalled()) {
         InitObject(m_material);
+
+        m_material_render_resources_handle = RenderResourcesHandle(m_material->GetRenderResources());
 
         m_mutation_state |= DataMutationState::DIRTY;
     }

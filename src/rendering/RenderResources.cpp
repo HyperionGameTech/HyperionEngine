@@ -8,39 +8,89 @@ namespace hyperion {
 
 RenderResourcesBase::RenderResourcesBase()
     : m_ref_count(0),
-      m_update_counter(0)
+      m_update_counter(0),
+      m_is_initialized(false)
 {
 }
 
 RenderResourcesBase::RenderResourcesBase(RenderResourcesBase &&other) noexcept
-    : m_ref_count(other.m_ref_count),
-      m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
+    : m_ref_count(other.m_ref_count.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+      m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+      m_is_initialized(other.m_is_initialized)
 {
-    other.m_ref_count = 0;
+    other.m_is_initialized = false;
 }
 
 void RenderResourcesBase::Claim()
 {
-#ifdef HYP_DEBUG_MODE
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-#endif
+    struct RENDER_COMMAND(InitializeRenderResources) : renderer::RenderCommand
+    {
+        Weak<RenderResourcesBase>   render_resources_weak;
 
-    if (m_ref_count++ == 0) {
-        Initialize();
+        RENDER_COMMAND(InitializeRenderResources)(const Weak<RenderResourcesBase> &render_resources_weak)
+            : render_resources_weak(render_resources_weak)
+        {
+        }
+
+        virtual ~RENDER_COMMAND(InitializeRenderResources)() override = default;
+
+        virtual renderer::Result operator()() override
+        {
+            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
+                AssertThrow(!render_resources->m_is_initialized);
+                
+                render_resources->Initialize();
+
+                render_resources->m_is_initialized = true;
+            } else {
+                HYP_FAIL("Render resources expired");
+            }
+
+            return { };
+        }
+    };
+
+    if (m_ref_count.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1 == 1) {
+        PUSH_RENDER_COMMAND(InitializeRenderResources, WeakRefCountedPtrFromThis());
     }
 }
 
 void RenderResourcesBase::Unclaim()
 {
-#ifdef HYP_DEBUG_MODE
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-#endif
+    struct RENDER_COMMAND(DestroyRenderResources) : renderer::RenderCommand
+    {
+        Weak<RenderResourcesBase>   render_resources_weak;
 
-    AssertThrow(m_ref_count > 0);
+        RENDER_COMMAND(DestroyRenderResources)(const Weak<RenderResourcesBase> &render_resources_weak)
+            : render_resources_weak(render_resources_weak)
+        {
+        }
 
-    if (--m_ref_count == 0) {
-        Destroy();
+        virtual ~RENDER_COMMAND(DestroyRenderResources)() override = default;
+
+        virtual renderer::Result operator()() override
+        {
+            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
+                AssertThrow(render_resources->m_is_initialized);
+
+                render_resources->Destroy();
+
+                render_resources->m_is_initialized = false;
+            } else {
+                HYP_FAIL("Render resources expired");
+            }
+
+            return { };
+        }
+    };
+
+    const int16 ref_count = m_ref_count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
+
+    if (ref_count == 0) {
+        PUSH_RENDER_COMMAND(DestroyRenderResources, WeakRefCountedPtrFromThis());
     }
+
+    AssertThrow(ref_count >= 0);
 }
 
 void RenderResourcesBase::SetNeedsUpdate()
@@ -67,16 +117,20 @@ void RenderResourcesBase::SetNeedsUpdate()
         virtual renderer::Result operator()() override
         {
             if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
-                while (render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE) != 0) {
-                    // HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Updating render resources {}", (void *)this);
+                int16 current_count = render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-                    // Only update if m_ref_count is not zero (data would not be initialized otherwise)
-                    if (render_resources->m_ref_count != 0) {
+                while (current_count != 0) {
+                    AssertThrow(current_count > 0);
+
+                    // Only update if already initialized.
+                    if (render_resources->m_is_initialized) {
                         render_resources->Update();
                     }
 
-                    render_resources->m_update_counter.Set(0, MemoryOrder::RELEASE);
+                    current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
                 }
+            } else {
+                HYP_FAIL("Render resources expired");
             }
 
             return { };
