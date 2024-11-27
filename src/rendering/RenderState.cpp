@@ -34,14 +34,45 @@ void RenderState::UnbindCamera()
     }
 }
 
-void RenderState::BindLight(LightType light_type, ID<Light> id, const LightDrawProxy &light_proxy)
+void RenderState::BindLight(Light *light)
 {
-    bound_lights[uint32(light_type)].Set(id, light_proxy);
+    AssertThrow(light != nullptr);
+    AssertThrow(light->IsReady());
+
+    auto &array = bound_lights[uint32(light->GetLightType())];
+
+    auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
+    {
+        return item->GetLight().GetUnsafe() == light;
+    });
+
+    if (it != array.End()) {
+        *it = TRenderResourcesHandle(light->GetRenderResources());
+    } else {
+        array.PushBack(TRenderResourcesHandle(light->GetRenderResources()));
+    }
 }
 
-void RenderState::UnbindLight(LightType light_type, ID<Light> id)
+void RenderState::UnbindLight(Light *light)
 {
-    bound_lights[uint32(light_type)].Erase(id);
+    AssertThrow(light != nullptr);
+    AssertThrow(light->IsReady());
+
+    auto &array = bound_lights[uint32(light->GetLightType())];
+
+    auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
+    {
+        return item->GetLight().GetUnsafe() == light;
+    });
+
+    if (it != array.End()) {
+        array.Erase(it);
+    }
+}
+
+void RenderState::SetActiveLight(LightRenderResources &light_render_resources)
+{
+    light_bindings.Push(TRenderResourcesHandle(light_render_resources));
 }
 
 void RenderState::BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)

@@ -98,7 +98,9 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
         return;
     }
 
-    if (m_light->GetProxy().visibility_bits & (1ull << SizeType(GetParent()->GetScene()->GetCamera().GetID().ToIndex()))) {
+    LightRenderResources &light_render_resources = m_light->GetRenderResources();
+
+    if (light_render_resources.GetVisibilityBits().Test(GetParent()->GetScene()->GetCamera().GetID().ToIndex())) {
         if (!m_last_visibility_state) {
             g_engine->GetRenderState().BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
 

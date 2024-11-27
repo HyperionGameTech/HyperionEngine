@@ -65,29 +65,56 @@ static_assert(sizeof(LightShaderData) == 128);
 
 static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData);
 
-struct LightDrawProxy
+class LightRenderResources final : public RenderResourcesBase
 {
-    ID<Light>           id;
-    LightType           type;
-    Color               color;
-    float               radius;
-    float               falloff;
-    Vec2f               spot_angles;
-    uint32              shadow_map_index;
-    Vec2f               area_size;
-    Vec4f               position_intensity;
-    Vec4f               normal;
-    uint64              visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
-    Handle<Material>    material;
-};
+public:
+    LightRenderResources(const WeakHandle<Light> &light_weak);
+    LightRenderResources(LightRenderResources &&other) noexcept;
+    virtual ~LightRenderResources() override;
 
-struct RENDER_COMMAND(UpdateLightShaderData);
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const WeakHandle<Light> &GetLight() const
+        { return m_light_weak; }
+
+    void SetMaterial(const Handle<Material> &material);
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const Handle<Material> &GetMaterial() const
+        { return m_material; }
+
+    void SetBufferData(const LightShaderData &buffer_data);
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const LightShaderData &GetBufferData() const
+        { return m_buffer_data; }
+
+    void SetVisibilityBits(const Bitset &visibility_bits);
+    
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const Bitset &GetVisibilityBits() const
+        { return m_visibility_bits; }
+
+protected:
+    virtual void Initialize() override;
+    virtual void Destroy() override;
+    virtual void Update() override;
+
+    virtual uint32 AcquireBufferIndex() const override;
+    virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
+
+private:
+    void UpdateBufferData();
+
+    WeakHandle<Light>       m_light_weak;
+    Bitset                  m_visibility_bits;
+    Handle<Material>        m_material;
+    RenderResourcesHandle   m_material_render_resources_handle;
+    LightShaderData         m_buffer_data;
+};
 
 HYP_CLASS()
 class HYP_API Light : public BasicObject<Light>
 {
-    friend struct RENDER_COMMAND(UpdateLightShaderData);
-
     HYP_OBJECT_BODY(Light);
 
     HYP_PROPERTY(ID, &Light::GetID, { { "serialize", false } });
@@ -120,6 +147,12 @@ public:
     Light &operator=(Light &&other) noexcept = delete;
 
     ~Light();
+
+    HYP_FORCE_INLINE LightRenderResources &GetRenderResources()
+        { return *m_render_resources; }
+
+    HYP_FORCE_INLINE const LightRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
 
     /*! \brief Get the current mutation state of the light.
      *
@@ -377,9 +410,6 @@ public:
 
     BoundingSphere GetBoundingSphere() const;
 
-    HYP_FORCE_INLINE const LightDrawProxy &GetProxy() const
-        { return m_proxy; }
-
     void Init();
     //void EnqueueBind() const;
     void EnqueueUnbind() const;
@@ -387,27 +417,26 @@ public:
     void EnqueueRenderUpdates();
 
 protected:
-    LightType               m_type;
-    Vec3f                   m_position;
-    Vec3f                   m_normal;
-    Vec2f                   m_area_size;
-    Color                   m_color;
-    float                   m_intensity;
-    float                   m_radius;
-    float                   m_falloff;
-    Vec2f                   m_spot_angles;
-    uint32                  m_shadow_map_index;
-    Handle<Material>        m_material;
-    RenderResourcesHandle   m_material_render_resources_handle;
+    LightType                       m_type;
+    Vec3f                           m_position;
+    Vec3f                           m_normal;
+    Vec2f                           m_area_size;
+    Color                           m_color;
+    float                           m_intensity;
+    float                           m_radius;
+    float                           m_falloff;
+    Vec2f                           m_spot_angles;
+    uint32                          m_shadow_map_index;
+    Handle<Material>                m_material;
 
 private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;
 
-    mutable DataMutationState   m_mutation_state;
+    mutable DataMutationState       m_mutation_state;
 
-    Bitset                      m_visibility_bits;
+    Bitset                          m_visibility_bits;
 
-    LightDrawProxy              m_proxy;
+    OwningRC<LightRenderResources>  m_render_resources;
 };
 
 class HYP_API DirectionalLight : public Light

@@ -441,17 +441,18 @@ void DeferredPass::Record(uint frame_index)
 
                 const auto &lights = g_engine->GetRenderState().bound_lights[uint32(light_type)]; 
 
-                for (const auto &it : lights) {
-                    const ID<Light> light_id = it.first;
-                    const LightDrawProxy &light_proxy = it.second;
+                for (const TRenderResourcesHandle<LightRenderResources> &it : lights) {
+                    LightRenderResources &light_render_resources = *it;
+                    AssertThrow(light_render_resources.GetBufferIndex() != ~0u);
+
+                    const LightShaderData &buffer_data = light_render_resources.GetBufferData();
 
                     // We'll use the EnvProbe slot to bind whatever EnvProbe
                     // is used for the light's shadow map (if applicable)
-
                     uint shadow_probe_index = 0;
 
-                    if (light_proxy.shadow_map_index != ~0u && light_type == LightType::POINT) {
-                        shadow_probe_index = light_proxy.shadow_map_index;
+                    if (buffer_data.shadow_map_index != ~0u && light_type == LightType::POINT) {
+                        shadow_probe_index = buffer_data.shadow_map_index;
                     }
 
                     render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
@@ -461,7 +462,7 @@ void DeferredPass::Record(uint frame_index)
                             {
                                 { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
                                 { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_id.ToIndex()) },
+                                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_render_resources.GetBufferIndex()) },
                                 { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) },
                                 { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, shadow_probe_index) }
                             },
@@ -469,10 +470,10 @@ void DeferredPass::Record(uint frame_index)
                         );
                     
                     // Bind material descriptor set (for area lights)
-                    if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_proxy.material.IsValid()) {
-                        const DescriptorSetRef &material_descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_proxy.material.GetID(), frame_index);
+                    if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_render_resources.GetMaterial().IsValid()) {
+                        const DescriptorSetRef &material_descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_render_resources.GetMaterial().GetID(), frame_index);
                         AssertThrow(material_descriptor_set != nullptr);
-                        
+
                         material_descriptor_set->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
@@ -1643,7 +1644,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                     {
                         { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
                         { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, 0) },
                         { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                         { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
