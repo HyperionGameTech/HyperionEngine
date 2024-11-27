@@ -37,6 +37,11 @@ protected:
 
         Block()
         {
+            // // Default initialization for POD types - zero it out
+            // if constexpr (IsPODType<ElementType>) {
+            //     Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+            // }
+
             elements = { };
         }
 

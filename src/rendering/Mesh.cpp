@@ -25,110 +25,6 @@ using renderer::GPUBufferType;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
-{
-    WeakHandle<Mesh>    mesh_weak;
-    Array<float>        vertex_data;
-    Array<uint32>       index_data;
-
-    RENDER_COMMAND(UploadMeshData)(
-        const WeakHandle<Mesh> &mesh_weak,
-        Array<float> vertex_data,
-        Array<uint32> index_data
-    ) : mesh_weak(mesh_weak),
-        vertex_data(std::move(vertex_data)),
-        index_data(std::move(index_data))
-    {
-        // Ensure vertex buffer is not empty
-        if (this->vertex_data.Empty()) {
-            this->vertex_data.Resize(1);
-        }
-
-        // Ensure indices exist and are a multiple of 3
-        if (this->index_data.Empty()) {
-            this->index_data.Resize(3);
-        } else if (this->index_data.Size() % 3 != 0) {
-            this->index_data.Resize(this->index_data.Size() + (3 - (this->index_data.Size() % 3)));
-        }
-    }
-
-    virtual ~RENDER_COMMAND(UploadMeshData)() override = default;
-
-    virtual Result operator()() override
-    {
-        if (Handle<Mesh> mesh = mesh_weak.Lock()) {
-            auto *instance = g_engine->GetGPUInstance();
-            auto *device = g_engine->GetGPUDevice();
-
-            const SizeType packed_buffer_size = vertex_data.Size() * sizeof(float);
-            const SizeType packed_indices_size = index_data.Size() * sizeof(uint32);
-
-            GPUBufferRef vbo;
-            GPUBufferRef ibo;
-
-            if (mesh->m_vbo.IsValid()) {
-                vbo = std::move(mesh->m_vbo);
-            } else {
-                vbo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER);
-            }
-
-            if (!vbo->IsCreated() || vbo->Size() != packed_buffer_size) {
-                SafeRelease(std::move(mesh->m_vbo));
-                HYPERION_BUBBLE_ERRORS(vbo->Create(device, packed_buffer_size));
-            }
-
-            if (mesh->m_ibo.IsValid()) {
-                ibo = std::move(mesh->m_ibo);
-            } else {
-                ibo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER);
-            }
-
-            if (!ibo->IsCreated() || ibo->Size() != packed_indices_size) {
-                SafeRelease(std::move(mesh->m_ibo));
-                HYPERION_BUBBLE_ERRORS(ibo->Create(device, packed_indices_size));
-            }
-
-            HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
-                device,
-                [&](renderer::StagingBufferPool::Context &holder)
-                {
-                    renderer::SingleTimeCommands commands { device };
-
-                    auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
-                    staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_data.Data());
-
-                    auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
-                    staging_buffer_indices->Copy(device, packed_indices_size, index_data.Data());
-
-                    commands.Push([&](CommandBuffer *cmd)
-                    {
-                        vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
-
-                        HYPERION_RETURN_OK;
-                    });
-
-                    commands.Push([&](CommandBuffer *cmd)
-                    {
-                        ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
-
-                        HYPERION_RETURN_OK;
-                    });
-
-                    HYPERION_BUBBLE_ERRORS(commands.Execute());
-
-                    HYPERION_RETURN_OK;
-                }));
-
-            mesh->m_vbo = std::move(vbo);
-            mesh->m_ibo = std::move(ibo);
-        } else {
-            HYP_LOG(Mesh, LogLevel::ERR, "Mesh with ID {} was destroyed before UploadMeshData could be executed", mesh_weak.GetID().Value());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(SetStreamedMeshData) : renderer::RenderCommand
 {
     Handle<Mesh>            mesh;
@@ -155,6 +51,243 @@ struct RENDER_COMMAND(SetStreamedMeshData) : renderer::RenderCommand
 };
 
 #pragma endregion Render commands
+
+#pragma region MeshRenderResources
+
+MeshRenderResources::MeshRenderResources(const WeakHandle<Mesh> &mesh_weak)
+    : m_mesh_weak(mesh_weak),
+      m_num_indices(0)
+{
+}
+
+MeshRenderResources::MeshRenderResources(MeshRenderResources &&other) noexcept
+    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+      m_mesh_weak(std::move(other.m_mesh_weak)),
+      m_vertex_attributes(other.m_vertex_attributes),
+      m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
+      m_vbo(std::move(other.m_vbo)),
+      m_ibo(std::move(other.m_ibo)),
+      m_num_indices(other.m_num_indices)
+{
+}
+
+MeshRenderResources::~MeshRenderResources()
+{
+    Destroy();
+}
+
+void MeshRenderResources::Initialize()
+{
+    HYP_SCOPE;
+
+    AssertThrow(m_mesh_weak.IsValid());
+
+    if (Handle<Mesh> mesh = m_mesh_weak.Lock()) {
+        UploadMeshData();
+    }
+}
+
+void MeshRenderResources::Destroy()
+{
+    HYP_SCOPE;
+
+    SafeRelease(std::move(m_vbo));
+    SafeRelease(std::move(m_ibo));
+}
+
+void MeshRenderResources::Update()
+{
+    HYP_SCOPE;
+
+    AssertThrow(m_mesh_weak.IsValid());
+
+    if (Handle<Mesh> mesh = m_mesh_weak.Lock()) {
+        UploadMeshData();
+    }
+}
+
+void MeshRenderResources::UploadMeshData()
+{
+    HYP_SCOPE;
+
+    if (Handle<Mesh> mesh = m_mesh_weak.Lock()) {
+        // upload mesh data
+        Array<float> vertex_buffer;
+        Array<uint32> index_buffer;
+        
+        if (m_streamed_mesh_data != nullptr) {
+            auto ref = m_streamed_mesh_data->AcquireRef();
+            const MeshData &mesh_data = ref->GetMeshData();
+
+            vertex_buffer = BuildVertexBuffer(m_vertex_attributes, mesh_data);
+            index_buffer = mesh_data.indices;
+            
+            m_streamed_mesh_data->Unpage();
+        }
+
+        // Ensure vertex buffer is not empty
+        if (vertex_buffer.Empty()) {
+            vertex_buffer.Resize(1);
+        }
+
+        // Ensure indices exist and are a multiple of 3
+        if (index_buffer.Empty()) {
+            index_buffer.Resize(3);
+        } else if (index_buffer.Size() % 3 != 0) {
+            index_buffer.Resize(index_buffer.Size() + (3 - (index_buffer.Size() % 3)));
+        }
+
+        m_num_indices = index_buffer.Size();
+
+        auto *instance = g_engine->GetGPUInstance();
+        auto *device = g_engine->GetGPUDevice();
+
+        const SizeType packed_buffer_size = vertex_buffer.ByteSize();
+        const SizeType packed_indices_size = index_buffer.ByteSize();
+
+        if (!m_vbo.IsValid() || m_vbo->Size() != packed_buffer_size) {
+            SafeRelease(std::move(m_vbo));
+
+            m_vbo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER);
+        }
+
+        if (!m_vbo->IsCreated()) {
+            HYPERION_ASSERT_RESULT(m_vbo->Create(device, packed_buffer_size));
+        }
+
+        if (!m_ibo.IsValid() || m_ibo->Size() != packed_indices_size) {
+            SafeRelease(std::move(m_ibo));
+
+            m_ibo = MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER);
+        }
+
+        if (!m_ibo->IsCreated()) {
+            HYPERION_ASSERT_RESULT(m_ibo->Create(device, packed_indices_size));
+        }
+
+        HYPERION_ASSERT_RESULT(instance->GetStagingBufferPool().Use(
+            device,
+            [&](renderer::StagingBufferPool::Context &holder)
+            {
+                renderer::SingleTimeCommands commands { device };
+
+                auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
+                staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_buffer.Data());
+
+                auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
+                staging_buffer_indices->Copy(device, packed_indices_size, index_buffer.Data());
+
+                commands.Push([&](CommandBuffer *cmd)
+                {
+                    m_vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
+
+                    HYPERION_RETURN_OK;
+                });
+
+                commands.Push([&](CommandBuffer *cmd)
+                {
+                    m_ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
+
+                    HYPERION_RETURN_OK;
+                });
+
+                HYPERION_BUBBLE_ERRORS(commands.Execute());
+
+                HYPERION_RETURN_OK;
+            }));
+    } else {
+        HYP_LOG(Mesh, LogLevel::ERR, "Mesh with ID {} was destroyed before UploadMeshData could be executed", m_mesh_weak.GetID().Value());
+    }
+}
+
+void MeshRenderResources::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
+{
+    HYP_SCOPE;
+
+    Execute([this, vertex_attributes]()
+    {
+        m_vertex_attributes = vertex_attributes;
+
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
+}
+
+void MeshRenderResources::SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data)
+{
+    HYP_SCOPE;
+
+    Execute([this, streamed_mesh_data]()
+    {
+        m_streamed_mesh_data = streamed_mesh_data;
+
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
+}
+
+/* Copy our values into the packed vertex buffer, and increase the index for the next possible
+ * mesh attribute. This macro helps keep the code cleaner and easier to maintain. */
+#define PACKED_SET_ATTR(raw_values, arg_size)                                                    \
+    do {                                                                                         \
+        Memory::MemCpy((void *)(raw_buffer + current_offset), (raw_values), (arg_size) * sizeof(float)); \
+        current_offset += (arg_size);                                                            \
+    } while (0)
+
+Array<float> MeshRenderResources::BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data)
+{
+    const SizeType vertex_size = vertex_attributes.CalculateVertexSize();
+
+    Array<float> packed_buffer;
+    packed_buffer.Resize(vertex_size * mesh_data.vertices.Size());
+
+    /* Raw buffer that is used with our helper macro. */
+    float *raw_buffer = packed_buffer.Data();
+    SizeType current_offset = 0;
+
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
+        const Vertex &vertex = mesh_data.vertices[i];
+        /* Offset aligned to the current vertex */
+        //current_offset = i * vertex_size;
+
+        /* Position and normals */
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION)  PACKED_SET_ATTR(vertex.GetPosition().values, 3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL)    PACKED_SET_ATTR(vertex.GetNormal().values,   3);
+        /* Texture coordinates */
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1) PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
+        /* Tangents and Bitangents */
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT)   PACKED_SET_ATTR(vertex.GetTangent().values,   3);
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT) PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
+
+        /* TODO: modify GetBoneIndex/GetBoneWeight to return a Vector4. */
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS) {
+            float weights[4] = {
+                vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
+                vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
+            };
+            PACKED_SET_ATTR(weights, std::size(weights));
+        }
+
+        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES) {
+            float indices[4] = {
+                    (float)vertex.GetBoneIndex(0), (float)vertex.GetBoneIndex(1),
+                    (float)vertex.GetBoneIndex(2), (float)vertex.GetBoneIndex(3)
+            };
+            PACKED_SET_ATTR(indices, std::size(indices));
+        }
+    }
+
+    return packed_buffer;
+}
+
+#undef PACKED_SET_ATTR
+
+#pragma endregion MeshRenderResources
+
+#pragma region Mesh
 
 Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &vertices)
 {
@@ -192,13 +325,12 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &v
 
 Mesh::Mesh()
     : BasicObject(),
-      m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
-      m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
       m_mesh_attributes {
           .vertex_attributes    = static_mesh_vertex_attributes,
           .topology             = Topology::TRIANGLES
       },
-      m_aabb(BoundingBox::Empty())
+      m_aabb(BoundingBox::Empty()),
+      m_render_resources(nullptr)
 {
 }
 
@@ -207,14 +339,13 @@ Mesh::Mesh(
     Topology topology,
     const VertexAttributeSet &vertex_attributes
 ) : BasicObject(),
-    m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
-    m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
     m_mesh_attributes {
         .vertex_attributes  = vertex_attributes,
         .topology           = topology
     },
     m_streamed_mesh_data(std::move(streamed_mesh_data)),
-    m_aabb(BoundingBox::Empty())
+    m_aabb(BoundingBox::Empty()),
+    m_render_resources(nullptr)
 {
     CalculateAABB();
 }
@@ -249,8 +380,6 @@ Mesh::Mesh(
     Topology topology,
     const VertexAttributeSet &vertex_attributes
 ) : BasicObject(),
-    m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
-    m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
     m_mesh_attributes {
         .vertex_attributes = vertex_attributes,
         .topology = topology
@@ -259,26 +388,24 @@ Mesh::Mesh(
         std::move(vertices),
         std::move(indices)
     })),
-    m_aabb(BoundingBox::Empty())
+    m_aabb(BoundingBox::Empty()),
+    m_render_resources(nullptr)
 {
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
-
-    m_indices_count = mesh_data.indices.Size();
 
     CalculateAABB();
 }
 
 Mesh::Mesh(Mesh &&other) noexcept
-    : m_vbo(std::move(other.m_vbo)),
-      m_ibo(std::move(other.m_ibo)),
-      m_indices_count(other.m_indices_count),
+    : BasicObject(static_cast<BasicObject &&>(other)),
       m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
-      m_aabb(other.m_aabb)
+      m_aabb(other.m_aabb),
+      m_render_resources(other.m_render_resources)
 {
     other.m_aabb = BoundingBox::Empty();
-    other.m_indices_count = 0;
+    other.m_render_resources = nullptr;
 }
 
 Mesh &Mesh::operator=(Mesh &&other) noexcept
@@ -287,15 +414,17 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
         return *this;
     }
 
-    m_vbo = std::move(other.m_vbo);
-    m_ibo = std::move(other.m_ibo);
+    if (m_render_resources != nullptr) {
+        FreeRenderResources(m_render_resources);
+    }
+
     m_mesh_attributes = other.m_mesh_attributes;
     m_streamed_mesh_data = std::move(other.m_streamed_mesh_data);
     m_aabb = other.m_aabb;
-    m_indices_count = other.m_indices_count;
+    m_render_resources = other.m_render_resources;
 
     other.m_aabb = BoundingBox::Empty();
-    other.m_indices_count = 0;
+    other.m_render_resources = nullptr;
 
     return *this;
 }
@@ -305,8 +434,12 @@ Mesh::~Mesh()
     if (IsInitCalled()) {
         SetReady(false);
 
-        SafeRelease(std::move(m_vbo));
-        SafeRelease(std::move(m_ibo));
+        m_always_claimed_render_resources_handle.Reset();
+
+        if (m_render_resources != nullptr) {
+            HYP_LOG(Mesh, LogLevel::DEBUG, "Releasing render resources for mesh {}, current use count = {}", GetID().Value(), m_render_resources->GetUseCount());
+            FreeRenderResources(m_render_resources);
+        }
     }
 }
 
@@ -320,11 +453,16 @@ void Mesh::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
-        SafeRelease(std::move(m_vbo));
-        SafeRelease(std::move(m_ibo));
+        if (m_render_resources != nullptr) {
+            FreeRenderResources(m_render_resources);
+
+            m_render_resources = nullptr;
+        }
     }));
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
+
+    m_render_resources = AllocateRenderResources<MeshRenderResources>(WeakHandleFromThis());
 
     {
         HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
@@ -333,20 +471,8 @@ void Mesh::Init()
             m_streamed_mesh_data.Emplace();
         }
 
-        // upload mesh data
-        auto ref = m_streamed_mesh_data->AcquireRef();
-        const MeshData &mesh_data = ref->GetMeshData();
-
-        m_indices_count = uint32(mesh_data.indices.Size());
-
-        PUSH_RENDER_COMMAND(
-            UploadMeshData,
-            WeakHandleFromThis(),
-            BuildVertexBuffer(GetVertexAttributes(), mesh_data),
-            mesh_data.indices
-        );
-        
-        m_streamed_mesh_data->Unpage();
+        m_render_resources->SetVertexAttributes(GetVertexAttributes());
+        m_render_resources->SetStreamedMeshData(m_streamed_mesh_data);
     }
 
     SetReady(true);
@@ -398,18 +524,7 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
             });
         }
 
-        auto ref = m_streamed_mesh_data->AcquireRef();
-        const MeshData &mesh_data = ref->GetMeshData();
-
-        m_indices_count = mesh_data.indices.Size();
-
-        // Execute render command inline
-        PUSH_RENDER_COMMAND(
-            UploadMeshData,
-            WeakHandleFromThis(),
-            BuildVertexBuffer(GetVertexAttributes(), mesh_data),
-            mesh_data.indices
-        );
+        m_render_resources->SetStreamedMeshData(m_streamed_mesh_data);
     }
 }
 
@@ -426,62 +541,39 @@ void Mesh::SetStreamedMeshData_ThreadSafe(RC<StreamedMeshData> streamed_mesh_dat
     );
 }
 
-/* Copy our values into the packed vertex buffer, and increase the index for the next possible
- * mesh attribute. This macro helps keep the code cleaner and easier to maintain. */
-#define PACKED_SET_ATTR(raw_values, arg_size)                                                    \
-    do {                                                                                         \
-        Memory::MemCpy((void *)(raw_buffer + current_offset), (raw_values), (arg_size) * sizeof(float)); \
-        current_offset += (arg_size);                                                            \
-    } while (0)
-
-Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data)
+uint32 Mesh::NumIndices() const
 {
-    const SizeType vertex_size = vertex_attributes.CalculateVertexSize();
+    HYP_SCOPE;
+    HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
 
-    Array<float> packed_buffer;
-    packed_buffer.Resize(vertex_size * mesh_data.vertices.Size());
-
-    /* Raw buffer that is used with our helper macro. */
-    float *raw_buffer = packed_buffer.Data();
-    SizeType current_offset = 0;
-
-    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
-        const Vertex &vertex = mesh_data.vertices[i];
-        /* Offset aligned to the current vertex */
-        //current_offset = i * vertex_size;
-
-        /* Position and normals */
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION)  PACKED_SET_ATTR(vertex.GetPosition().values, 3);
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL)    PACKED_SET_ATTR(vertex.GetNormal().values,   3);
-        /* Texture coordinates */
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0) PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1) PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
-        /* Tangents and Bitangents */
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT)   PACKED_SET_ATTR(vertex.GetTangent().values,   3);
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT) PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
-
-        /* TODO: modify GetBoneIndex/GetBoneWeight to return a Vector4. */
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS) {
-            float weights[4] = {
-                vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
-                vertex.GetBoneWeight(2), vertex.GetBoneWeight(3)
-            };
-            PACKED_SET_ATTR(weights, std::size(weights));
-        }
-
-        if (vertex_attributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES) {
-            float indices[4] = {
-                    (float)vertex.GetBoneIndex(0), (float)vertex.GetBoneIndex(1),
-                    (float)vertex.GetBoneIndex(2), (float)vertex.GetBoneIndex(3)
-            };
-            PACKED_SET_ATTR(indices, std::size(indices));
-        }
-    }
-
-    return packed_buffer;
+    return m_streamed_mesh_data != nullptr
+        ? m_streamed_mesh_data->NumIndices()
+        : 0;
 }
 
-#undef PACKED_SET_ATTR
+void Mesh::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
+{
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Attributes");
+
+    m_mesh_attributes.vertex_attributes = vertex_attributes;
+
+    if (IsInitCalled()) {
+        m_render_resources->SetVertexAttributes(vertex_attributes);
+    }
+}
+
+void Mesh::SetMeshAttributes(const MeshAttributes &attributes)
+{
+    HYP_SCOPE;
+    HYP_MT_CHECK_RW(m_data_race_detector, "Attributes");
+
+    m_mesh_attributes = attributes;
+
+    if (IsInitCalled()) {
+        m_render_resources->SetVertexAttributes(attributes.vertex_attributes);
+    }
+}
 
 void Mesh::Render(CommandBuffer *cmd, uint32 num_instances, uint32 instance_index) const
 {
@@ -489,10 +581,10 @@ void Mesh::Render(CommandBuffer *cmd, uint32 num_instances, uint32 instance_inde
     AssertReady();
 #endif
 
-    cmd->BindVertexBuffer(m_vbo);
-    cmd->BindIndexBuffer(m_ibo);
+    cmd->BindVertexBuffer(m_render_resources->GetVertexBuffer());
+    cmd->BindIndexBuffer(m_render_resources->GetIndexBuffer());
 
-    cmd->DrawIndexed(m_indices_count, num_instances, instance_index);
+    cmd->DrawIndexed(m_render_resources->NumIndices(), num_instances, instance_index);
 }
 
 void Mesh::RenderIndirect(
@@ -505,8 +597,8 @@ void Mesh::RenderIndirect(
     AssertReady();
 #endif
 
-    cmd->BindVertexBuffer(m_vbo);
-    cmd->BindIndexBuffer(m_ibo);
+    cmd->BindVertexBuffer(m_render_resources->GetVertexBuffer());
+    cmd->BindIndexBuffer(m_render_resources->GetIndexBuffer());
 
     cmd->DrawIndexedIndirect(
         indirect_buffer,
@@ -516,9 +608,13 @@ void Mesh::RenderIndirect(
 
 void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 {
+#ifdef HYP_DEBUG_MODE
+    AssertReady();
+#endif
+
 #if HYP_VULKAN
     out.command = {
-        .indexCount = m_indices_count
+        .indexCount = m_render_resources->NumIndices()
     };
 #else
     #error Not implemented for this platform!
@@ -842,5 +938,7 @@ void Mesh::CalculateAABB()
 
     m_aabb = aabb;
 }
+
+#pragma endregion Mesh
 
 } // namespace hyperion

@@ -4,7 +4,6 @@
 #define HYPERION_CORE_NAME_INTERNAL_HPP
 
 #include <core/containers/StaticString.hpp>
-#include <core/containers/HeapArray.hpp>
 #include <core/Defines.hpp>
 
 #include <HashCode.hpp>

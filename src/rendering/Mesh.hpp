@@ -15,6 +15,7 @@
 #include <math/Vertex.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/RenderResources.hpp>
 #include <rendering/Shader.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
@@ -99,6 +100,49 @@ struct MeshInstanceData
     }
 };
 
+class MeshRenderResources final : public RenderResourcesBase
+{
+public:
+    MeshRenderResources(const WeakHandle<Mesh> &mesh_weak);
+    MeshRenderResources(MeshRenderResources &&other) noexcept;
+    virtual ~MeshRenderResources() override;
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const GPUBufferRef &GetVertexBuffer() const
+        { return m_vbo; }
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const GPUBufferRef &GetIndexBuffer() const
+        { return m_ibo; }
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE uint32 NumIndices() const
+        { return m_num_indices; }
+
+    void SetVertexAttributes(const VertexAttributeSet &vertex_attributes);
+    void SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data);
+
+protected:
+    virtual void Initialize() override;
+    virtual void Destroy() override;
+    virtual void Update() override;
+
+private:
+    static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
+
+    void UploadMeshData();
+
+    WeakHandle<Mesh>        m_mesh_weak;
+
+    VertexAttributeSet      m_vertex_attributes;
+    RC<StreamedMeshData>    m_streamed_mesh_data;
+
+    GPUBufferRef            m_vbo;
+    GPUBufferRef            m_ibo;
+
+    uint32                  m_num_indices;
+};
+
 HYP_CLASS()
 class HYP_API Mesh final : public BasicObject<Mesh>
 {
@@ -156,12 +200,11 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
+    HYP_FORCE_INLINE MeshRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     void SetVertices(Array<Vertex> vertices);
     void SetVertices(Array<Vertex> vertices, Array<Index> indices);
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE uint32 NumIndices() const
-        { return m_indices_count; }
 
     HYP_METHOD(Property="StreamedMeshData")
     const RC<StreamedMeshData> &GetStreamedMeshData() const;
@@ -171,19 +214,20 @@ public:
 
     void SetStreamedMeshData_ThreadSafe(RC<StreamedMeshData> streamed_mesh_data);
 
+    HYP_METHOD()
+    uint32 NumIndices() const;
+
     HYP_METHOD(Property="VertexAttributes")
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_mesh_attributes.vertex_attributes; }
 
     HYP_METHOD(Property="VertexAttributes")
-    HYP_FORCE_INLINE void SetVertexAttributes(const VertexAttributeSet &attributes)
-        { m_mesh_attributes.vertex_attributes = attributes; }
+    void SetVertexAttributes(const VertexAttributeSet &attributes);
 
     HYP_FORCE_INLINE const MeshAttributes &GetMeshAttributes() const
         { return m_mesh_attributes; }
 
-    HYP_FORCE_INLINE void SetMeshAttributes(const MeshAttributes &attributes)
-        { m_mesh_attributes = attributes; }
+    void SetMeshAttributes(const MeshAttributes &attributes);
 
     HYP_METHOD(Property="Topology")
     HYP_FORCE_INLINE Topology GetTopology() const
@@ -223,17 +267,25 @@ public:
 
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
 
+    /*! \brief Set the mesh to be able to have Render* methods called without needing to have its resources claimed.
+     *  \note Init() must be called before this method. */
+    void SetPersistentRenderResourcesEnabled(bool enabled)
+    {
+        AssertIsInitCalled();
+
+        HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resources_handle");
+
+        if (enabled) {
+            m_always_claimed_render_resources_handle = RenderResourcesHandle(*m_render_resources);
+        } else {
+            m_always_claimed_render_resources_handle.Reset();
+        }
+    }
+
 private:
     void CalculateAABB();
 
-    static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
-
     Name                    m_name;
-
-    GPUBufferRef            m_vbo;
-    GPUBufferRef            m_ibo;
-
-    uint32                  m_indices_count = 0;
 
     MeshAttributes          m_mesh_attributes;
 
@@ -242,6 +294,9 @@ private:
     mutable BoundingBox     m_aabb;
 
     DataRaceDetector        m_data_race_detector;
+
+    MeshRenderResources     *m_render_resources;
+    RenderResourcesHandle   m_always_claimed_render_resources_handle;
 };
 
 } // namespace hyperion

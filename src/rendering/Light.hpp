@@ -140,18 +140,15 @@ public:
         float radius
     );
 
-    Light(const Light &other) = delete;
-    Light &operator=(const Light &other) = delete;
+    Light(const Light &other)                   = delete;
+    Light &operator=(const Light &other)        = delete;
 
-    Light(Light &&other) noexcept;
-    Light &operator=(Light &&other) noexcept = delete;
+    Light(Light &&other) noexcept               = delete;
+    Light &operator=(Light &&other) noexcept    = delete;
 
     ~Light();
 
-    HYP_FORCE_INLINE LightRenderResources &GetRenderResources()
-        { return *m_render_resources; }
-
-    HYP_FORCE_INLINE const LightRenderResources &GetRenderResources() const
+    HYP_FORCE_INLINE LightRenderResources &GetRenderResources() const
         { return *m_render_resources; }
 
     /*! \brief Get the current mutation state of the light.
@@ -436,7 +433,7 @@ private:
 
     Bitset                          m_visibility_bits;
 
-    OwningRC<LightRenderResources>  m_render_resources;
+    LightRenderResources            *m_render_resources;
 };
 
 class HYP_API DirectionalLight : public Light

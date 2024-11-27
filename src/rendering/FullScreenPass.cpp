@@ -203,6 +203,9 @@ void FullScreenPass::CreateQuad()
 {
     m_full_screen_quad = MeshBuilder::Quad();
     InitObject(m_full_screen_quad);
+
+    // Allow Render() to be called directly without a RenderGroup
+    m_full_screen_quad->SetPersistentRenderResourcesEnabled(true);
 }
 
 void FullScreenPass::CreateCommandBuffers()

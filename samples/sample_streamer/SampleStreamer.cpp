@@ -401,33 +401,33 @@ void SampleStreamer::Init()
         terrain_node.SetName("TerrainNode");
     }
 
-    if (true) { // add sun
-        auto sun = CreateObject<Light>(DirectionalLight(
-            Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
-            Color(1.0f),
-            4.0f
-        ));
+    // if (true) { // add sun
+    //     auto sun = CreateObject<Light>(DirectionalLight(
+    //         Vec3f(-0.1f, 0.65f, 0.1f).Normalize(),
+    //         Color(1.0f),
+    //         4.0f
+    //     ));
 
-        InitObject(sun);
+    //     InitObject(sun);
 
-        auto sun_node = m_scene->GetRoot()->AddChild();
-        sun_node.SetName("Sun");
+    //     auto sun_node = m_scene->GetRoot()->AddChild();
+    //     sun_node.SetName("Sun");
 
-        auto sun_entity = m_scene->GetEntityManager()->AddEntity();
-        sun_node.SetEntity(sun_entity);
+    //     auto sun_entity = m_scene->GetEntityManager()->AddEntity();
+    //     sun_node.SetEntity(sun_entity);
 
-        sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
+    //     sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
 
-        m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, {
-            sun
-        });
+    //     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, {
+    //         sun
+    //     });
 
-        m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, {
-            .mode       = ShadowMode::PCF,
-            .radius     = 18.0f,
-            .resolution = { 2048, 2048 }
-        });
-    }
+    //     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, {
+    //         .mode       = ShadowMode::PCF,
+    //         .radius     = 18.0f,
+    //         .resolution = { 2048, 2048 }
+    //     });
+    // }
 
     Array<Handle<Light>> point_lights;
 
@@ -462,83 +462,83 @@ void SampleStreamer::Init()
         });
     }
 
-    { // Add test spotlight
-        auto spotlight = CreateObject<Light>(SpotLight(
-            Vec3f(0.0f, 0.1f, 0.0f),
-            Vec3f(-1.0f, 0.0f, 0.0f).Normalize(),
-            Color(0.0f, 1.0f, 0.0f),
-            2.0f,
-            15.0f,
-            Vec2f { MathUtil::Cos(MathUtil::DegToRad(50.0f)), MathUtil::Cos(MathUtil::DegToRad(10.0f)) }
-        ));
+    // { // Add test spotlight
+    //     auto spotlight = CreateObject<Light>(SpotLight(
+    //         Vec3f(0.0f, 0.1f, 0.0f),
+    //         Vec3f(-1.0f, 0.0f, 0.0f).Normalize(),
+    //         Color(0.0f, 1.0f, 0.0f),
+    //         2.0f,
+    //         15.0f,
+    //         Vec2f { MathUtil::Cos(MathUtil::DegToRad(50.0f)), MathUtil::Cos(MathUtil::DegToRad(10.0f)) }
+    //     ));
 
-        InitObject(spotlight);
+    //     InitObject(spotlight);
 
-        auto spotlight_entity = m_scene->GetEntityManager()->AddEntity();
+    //     auto spotlight_entity = m_scene->GetEntityManager()->AddEntity();
 
-        m_scene->GetEntityManager()->AddComponent<TransformComponent>(spotlight_entity, {
-            Transform(
-                spotlight->GetPosition(),
-                Vec3f(1.0f),
-                Quaternion::Identity()
-            )
-        });
+    //     m_scene->GetEntityManager()->AddComponent<TransformComponent>(spotlight_entity, {
+    //         Transform(
+    //             spotlight->GetPosition(),
+    //             Vec3f(1.0f),
+    //             Quaternion::Identity()
+    //         )
+    //     });
 
-        m_scene->GetEntityManager()->AddComponent<LightComponent>(spotlight_entity, {
-            spotlight
-        });
-    }
+    //     m_scene->GetEntityManager()->AddComponent<LightComponent>(spotlight_entity, {
+    //         spotlight
+    //     });
+    // }
 
-    if (false) { // add test area light
-        auto light = CreateObject<Light>(RectangleLight(
-            Vec3f(0.0f, 1.25f, 0.0f),
-            Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
-            Vec2f(2.0f, 2.0f),
-            Color(1.0f, 0.0f, 0.0f),
-            1.0f
-        ));
+    // if (false) { // add test area light
+    //     auto light = CreateObject<Light>(RectangleLight(
+    //         Vec3f(0.0f, 1.25f, 0.0f),
+    //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
+    //         Vec2f(2.0f, 2.0f),
+    //         Color(1.0f, 0.0f, 0.0f),
+    //         1.0f
+    //     ));
 
-        Handle<Texture> dummy_light_texture;
+    //     Handle<Texture> dummy_light_texture;
 
-        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
-            dummy_light_texture = dummy_light_texture_asset.Result();
-        }
+    //     if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
+    //         dummy_light_texture = dummy_light_texture_asset.Result();
+    //     }
 
-        light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
-            {
-               .shader_definition = ShaderDefinition {
-                    HYP_NAME(Forward),
-                    ShaderProperties(static_mesh_vertex_attributes)
-                },
-               .bucket = Bucket::BUCKET_OPAQUE
-            },
-            {
-            },
-            {
-                {
-                    MaterialTextureKey::ALBEDO_MAP,
-                    std::move(dummy_light_texture)
-                }
-            }
-        ));
-        AssertThrow(light->GetMaterial().IsValid());
+    //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
+    //         {
+    //            .shader_definition = ShaderDefinition {
+    //                 HYP_NAME(Forward),
+    //                 ShaderProperties(static_mesh_vertex_attributes)
+    //             },
+    //            .bucket = Bucket::BUCKET_OPAQUE
+    //         },
+    //         {
+    //         },
+    //         {
+    //             {
+    //                 MaterialTextureKey::ALBEDO_MAP,
+    //                 std::move(dummy_light_texture)
+    //             }
+    //         }
+    //     ));
+    //     AssertThrow(light->GetMaterial().IsValid());
 
-        InitObject(light);
+    //     InitObject(light);
 
-        auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
+    //     auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
 
-        m_scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, {
-            Transform(
-                light->GetPosition(),
-                Vec3f(1.0f),
-                Quaternion::Identity()
-            )
-        });
+    //     m_scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, {
+    //         Transform(
+    //             light->GetPosition(),
+    //             Vec3f(1.0f),
+    //             Quaternion::Identity()
+    //         )
+    //     });
 
-        m_scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, {
-            light
-        });
-    }
+    //     m_scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, {
+    //         light
+    //     });
+    // }
 
     // add sample model
     {

@@ -17,13 +17,9 @@ void RenderProxy::ClaimRenderResources() const
         material->GetRenderResources().Claim();
     }
 
-    // if (mesh.IsValid()) {
-    //     mesh->ClaimRenderResources();
-    // }
-
-    // if (skeleton.IsValid()) {
-    //     skeleton->ClaimRenderResources();
-    // }
+    if (mesh.IsValid()) {
+        mesh->GetRenderResources().Claim();
+    }
 }
 
 void RenderProxy::UnclaimRenderResources() const
@@ -32,13 +28,9 @@ void RenderProxy::UnclaimRenderResources() const
         material->GetRenderResources().Unclaim();
     }
 
-    // if (mesh.IsValid()) {
-    //     mesh->UnclaimRenderResources();
-    // }
-
-    // if (skeleton.IsValid()) {
-    //     skeleton->UnclaimRenderResources();
-    // }
+    if (mesh.IsValid()) {
+        mesh->GetRenderResources().Unclaim();
+    }
 }
 
 #pragma endregion RenderProxy
