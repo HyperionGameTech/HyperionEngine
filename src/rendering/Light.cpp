@@ -216,7 +216,8 @@ Light::Light(
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
-    m_mutation_state(DataMutationState::CLEAN)
+    m_mutation_state(DataMutationState::CLEAN),
+    m_render_resources(nullptr)
 {
 }
 
@@ -239,36 +240,19 @@ Light::Light(
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
-    m_mutation_state(DataMutationState::CLEAN)
+    m_mutation_state(DataMutationState::CLEAN),
+    m_render_resources(nullptr)
 {
-}
-
-Light::Light(Light &&other) noexcept
-    : BasicObject(std::move(other)),
-      m_type(other.m_type),
-      m_position(other.m_position),
-      m_normal(other.m_normal),
-      m_area_size(other.m_area_size),
-      m_color(other.m_color),
-      m_intensity(other.m_intensity),
-      m_radius(other.m_radius),
-      m_falloff(other.m_falloff),
-      m_spot_angles(other.m_spot_angles),
-      m_shadow_map_index(other.m_shadow_map_index),
-      m_visibility_bits(std::move(other.m_visibility_bits)),
-      m_mutation_state(DataMutationState::CLEAN),
-      m_material(std::move(other.m_material))
-{
-    other.m_shadow_map_index = ~0u;
 }
 
 Light::~Light()
 {
     if (IsInitCalled()) {
         PUSH_RENDER_COMMAND(UnbindLight, WeakHandleFromThis());
-    
-        // Prevent RenderResources from going out of scope
-        HYP_SYNC_RENDER();
+    }
+
+    if (m_render_resources != nullptr) {
+        FreeRenderResources(m_render_resources);
     }
     
     // If material is set for this Light, defer its deletion for a few frames
@@ -285,7 +269,7 @@ void Light::Init()
 
     BasicObject::Init();
 
-    m_render_resources = OwningRC<LightRenderResources>(WeakHandleFromThis());
+    m_render_resources = AllocateRenderResources<LightRenderResources>(WeakHandleFromThis());
 
     if (m_material.IsValid()) {
         InitObject(m_material);

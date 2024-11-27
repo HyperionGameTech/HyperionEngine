@@ -438,7 +438,8 @@ Material::Material()
         .flags              = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST
       },
       m_is_dynamic(false),
-      m_mutation_state(DataMutationState::CLEAN)
+      m_mutation_state(DataMutationState::CLEAN),
+      m_render_resources(nullptr)
 {
     ResetParameters();
 }
@@ -453,7 +454,8 @@ Material::Material(Name name, Bucket bucket)
         .bucket = Bucket::BUCKET_OPAQUE
       },
       m_is_dynamic(false),
-      m_mutation_state(DataMutationState::CLEAN)
+      m_mutation_state(DataMutationState::CLEAN),
+      m_render_resources(nullptr)
 {
     ResetParameters();
 }
@@ -468,15 +470,15 @@ Material::Material(
     m_textures(textures),
     m_render_attributes(attributes),
     m_is_dynamic(false),
-    m_mutation_state(DataMutationState::CLEAN)
+    m_mutation_state(DataMutationState::CLEAN),
+      m_render_resources(nullptr)
 {
 }
 
 Material::~Material()
 {
-    if (IsInitCalled()) {
-        // Prevent RenderResources from going out of scope
-        HYP_SYNC_RENDER();
+    if (m_render_resources != nullptr) {
+        FreeRenderResources(m_render_resources);
     }
 
     SetReady(false);
@@ -496,7 +498,7 @@ void Material::Init()
 
     BasicObject::Init();
 
-    m_render_resources = OwningRC<MaterialRenderResources>(WeakHandleFromThis());
+    m_render_resources = AllocateRenderResources<MaterialRenderResources>(WeakHandleFromThis());
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {

@@ -136,6 +136,9 @@ void DebugDrawer::Create()
 
     for (auto &shape : m_shapes) {
         InitObject(shape);
+
+        // Allow Render() to be called on it
+        shape->SetPersistentRenderResourcesEnabled(true);
     }
 
     m_shader = g_shader_manager->GetOrCreate(

@@ -1,6 +1,10 @@
 #include <rendering/RenderResources.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
+#include <core/containers/TypeMap.hpp>
+
+#include <core/threading/Mutex.hpp>
+
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -9,6 +13,30 @@
 #include <util/profiling/ProfileScope.hpp>
 
 namespace hyperion {
+
+HYP_DEFINE_LOG_SUBCHANNEL(RenderResources, Rendering);
+
+#pragma region Memory Pool
+
+static TypeMap<UniquePtr<IRenderResourcesMemoryPool>> g_render_resources_memory_pools;
+static Mutex g_render_resources_memory_pools_mutex;
+
+HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID type_id, UniquePtr<IRenderResourcesMemoryPool>(*create_fn)(void))
+{
+    Mutex::Guard guard(g_render_resources_memory_pools_mutex);
+
+    auto it = g_render_resources_memory_pools.Find(type_id);
+
+    if (it == g_render_resources_memory_pools.End()) {
+        it = g_render_resources_memory_pools.Set(type_id, create_fn()).first;
+    }
+
+    return it->second.Get();
+}
+
+#pragma endregion Memory Pool
+
+#pragma region RenderResourcesBase
 
 RenderResourcesBase::RenderResourcesBase()
     : m_is_initialized(false),
@@ -55,8 +83,8 @@ void RenderResourcesBase::Claim()
                     HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
 
                     AssertThrow(!render_resources->m_is_initialized);
+                    
                     AssertThrow(render_resources->m_buffer_index == ~0u);
-
                     render_resources->m_buffer_index = render_resources->AcquireBufferIndex();
 
                     render_resources->Initialize();
@@ -78,7 +106,7 @@ void RenderResourcesBase::Claim()
                     }
                 }
             } else {
-                HYP_FAIL("Render resources expired");
+                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
             }
 
             return { };
@@ -90,6 +118,8 @@ void RenderResourcesBase::Claim()
     m_init_semaphore.Produce(1, [this](bool is_signalled)
     {
         AssertThrow(is_signalled);
+
+        m_completion_semaphore.Produce(1);
 
         PUSH_RENDER_COMMAND(InitializeRenderResources, WeakRefCountedPtrFromThis());
     });
@@ -116,16 +146,21 @@ void RenderResourcesBase::Unclaim()
                 HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
 
                 AssertThrow(render_resources->m_is_initialized);
-                AssertThrow(render_resources->m_buffer_index != ~0u);
 
-                render_resources->ReleaseBufferIndex(render_resources->m_buffer_index);
-                render_resources->m_buffer_index = ~0u;
+                if (render_resources->m_buffer_index != ~0u) {
+                    render_resources->ReleaseBufferIndex(render_resources->m_buffer_index);
+                    render_resources->m_buffer_index = ~0u;
+                }
 
                 render_resources->Destroy();
 
                 render_resources->m_is_initialized = false;
+
+                render_resources->m_completion_semaphore.Release(1);
             } else {
-                HYP_FAIL("Render resources expired");
+                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
+
+                HYP_FAIL("Render resources expired before safe destruction could be performed");
             }
 
             return { };
@@ -166,8 +201,10 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
                 HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
 
                 proc();
+
+                render_resources->m_completion_semaphore.Release(1);
             } else {
-                HYP_FAIL("Render resources expired");
+                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
             }
 
             return { };
@@ -175,6 +212,8 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
     };
 
     HYP_SCOPE;
+
+    m_completion_semaphore.Produce(1);
 
     if (!force_render_thread) {
         if (!IsInitialized()) {
@@ -194,6 +233,8 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
 
                     // Execute inline if not initialized yet instead of pushing to render thread
                     proc();
+
+                    m_completion_semaphore.Release(1);
                 }
 
                 return;
@@ -237,8 +278,10 @@ void RenderResourcesBase::SetNeedsUpdate()
 
                     current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
                 }
+
+                render_resources->m_completion_semaphore.Release(1);
             } else {
-                HYP_FAIL("Render resources expired");
+                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
             }
 
             return { };
@@ -246,6 +289,8 @@ void RenderResourcesBase::SetNeedsUpdate()
     };
 
     HYP_SCOPE;
+
+    m_completion_semaphore.Produce(1);
 
     // If not yet initialized, increment the counter and return immediately
     // Otherwise, we need to push a command to the render thread to update the resources
@@ -260,6 +305,8 @@ void RenderResourcesBase::SetNeedsUpdate()
         if (!IsInitialized()) {
             m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
+            m_completion_semaphore.Release(1);
+
             return;
         }
     }
@@ -268,5 +315,37 @@ void RenderResourcesBase::SetNeedsUpdate()
 
     PUSH_RENDER_COMMAND(ApplyRenderResourcesUpdates, WeakRefCountedPtrFromThis());
 }
+
+void RenderResourcesBase::WaitForCompletion()
+{
+    HYP_SCOPE;
+
+    HYP_LOG(RenderResources, LogLevel::DEBUG, "Waiting for completion of RenderResources with pool index {} from thread {}", m_pool_handle.index, Threads::CurrentThreadID().name);
+
+    if (Threads::IsOnThread(ThreadName::THREAD_RENDER)) {
+        // Wait for any threads that are using this RenderResources pre-initialization to stop
+        m_pre_init_semaphore.Acquire();
+
+        // We need to execute pending tasks if we are on the render thread and
+        // we still have pending tasks. Not ideal, but we need to wrap up
+        // destruction of resources before we can return.
+        if (!m_completion_semaphore.IsInSignalState()) {
+            HYP_NAMED_SCOPE("Waiting for RenderResources tasks to complete on Render Thread");
+
+            HYP_LOG(RenderResources, LogLevel::DEBUG, "Waiting for RenderResources tasks to complete on Render Thread");
+            
+            HYP_SYNC_RENDER();
+        
+            AssertThrow(m_completion_semaphore.IsInSignalState());
+        }
+
+        return;
+    }
+
+    // Wait for render tasks to complete
+    m_completion_semaphore.Acquire();
+}
+
+#pragma endregion RenderResourcesBase
 
 } // namespace hyperion

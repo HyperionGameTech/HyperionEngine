@@ -403,10 +403,7 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
-    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources()
-        { return *m_render_resources; }
-
-    HYP_FORCE_INLINE const MaterialRenderResources &GetRenderResources() const
+    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources() const
         { return *m_render_resources; }
 
     /*! \brief Get the current mutation state of this Material.
@@ -655,7 +652,7 @@ private:
     MaterialShaderData                  m_shader_data;
     mutable DataMutationState           m_mutation_state;
 
-    OwningRC<MaterialRenderResources>   m_render_resources;
+    MaterialRenderResources             *m_render_resources;
 };
 
 HYP_CLASS()

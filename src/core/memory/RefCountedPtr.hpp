@@ -1287,7 +1287,7 @@ public:
                 return *this;
             }
         }
-        
+
         if (m_is_initialized) {
             static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
             
@@ -1446,6 +1446,17 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
         { return m_is_initialized ? static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak : WeakRefCountedPtr<T, CountType>(); }
+
+    void Reset()
+    {
+        if (m_is_initialized) {
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+            
+            Memory::Destruct<T>(m_value.GetPointer());
+
+            m_is_initialized = false;
+        }
+    }
 
 private:
     // Keep it mutable to allow the same interface as RefCountedPtr
