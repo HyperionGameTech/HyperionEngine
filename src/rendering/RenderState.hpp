@@ -10,7 +10,7 @@
 
 #include <rendering/Light.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/DrawProxy.hpp>
+#include <rendering/RenderResources.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -93,14 +93,14 @@ struct RenderBinding<Camera>
 
 struct RenderState
 {
-    Stack<RenderBinding<Scene>>                                             scene_bindings;
-    Stack<RenderBinding<Camera>>                                            camera_bindings;
-    FixedArray<FlatMap<ID<Light>, LightDrawProxy>, uint32(LightType::MAX)>  bound_lights;
-    Stack<ID<Light>>                                                        light_bindings;
-    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>  bound_env_probes; // map to texture slot
-    ID<EnvGrid>                                                             bound_env_grid;
-    Stack<ID<EnvProbe>>                                                     env_probe_bindings;
-    uint32                                                                  frame_counter = ~0u;
+    Stack<RenderBinding<Scene>>                                                             scene_bindings;
+    Stack<RenderBinding<Camera>>                                                            camera_bindings;
+    FixedArray<Array<TRenderResourcesHandle<LightRenderResources>>, uint32(LightType::MAX)> bound_lights;
+    Stack<TRenderResourcesHandle<LightRenderResources>>                                     light_bindings;
+    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>                  bound_env_probes; // map to texture slot
+    ID<EnvGrid>                                                                             bound_env_grid;
+    Stack<ID<EnvProbe>>                                                                     env_probe_bindings;
+    uint32                                                                                  frame_counter = ~0u;
 
     HYP_FORCE_INLINE void AdvanceFrameCounter()
         { ++frame_counter; }
@@ -139,11 +139,10 @@ struct RenderState
         return count;
     }
 
-    void BindLight(LightType light_type, ID<Light> id, const LightDrawProxy &light_proxy);
-    void UnbindLight(LightType light_type, ID<Light> id);
+    void BindLight(Light *light);
+    void UnbindLight(Light *light);
 
-    HYP_FORCE_INLINE void SetActiveLight(ID<Light> id)
-        { light_bindings.Push(id); }
+    void SetActiveLight(LightRenderResources &light_render_resources);
 
     HYP_FORCE_INLINE void UnsetActiveLight()
     {
@@ -152,8 +151,8 @@ struct RenderState
         }
     }
 
-    HYP_FORCE_INLINE ID<Light> GetActiveLight() const
-        { return light_bindings.Any() ? light_bindings.Top() : ID<Light>(); }
+    HYP_FORCE_INLINE const TRenderResourcesHandle<LightRenderResources> *GetActiveLight() const
+        { return light_bindings.Any() ? &light_bindings.Top() : nullptr; }
 
     HYP_FORCE_INLINE void BindScene(const Scene *scene)
     {

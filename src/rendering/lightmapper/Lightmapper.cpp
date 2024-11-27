@@ -525,7 +525,7 @@ void LightmapPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
                 break;
             }
 
-            uniforms.light_indices[num_bound_lights++] = it.first.ToIndex();
+            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
         }
     }
 

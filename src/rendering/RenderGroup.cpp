@@ -521,13 +521,18 @@ static HYP_FORCE_INLINE void RenderAll(
             global_descriptor_set_index
         );
 
+        const TRenderResourcesHandle<LightRenderResources> *light_render_resources = g_engine->GetRenderState().GetActiveLight();
+
+        const uint32 light_index = light_render_resources != nullptr ? (*light_render_resources)->GetBufferIndex() : 0;
+        AssertThrow(light_index != ~0u);
+
         scene_descriptor_set->Bind(
             frame->GetCommandBuffer(),
             pipeline,
             {
                 { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
                 { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
+                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_index) },
                 { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                 { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
             },
@@ -648,6 +653,11 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     // AtomicVar<uint32> num_rendered_objects { 0u };
 
+    const TRenderResourcesHandle<LightRenderResources> *light_render_resources = g_engine->GetRenderState().GetActiveLight();
+
+    const uint32 light_index = light_render_resources != nullptr ? (*light_render_resources)->GetBufferIndex() : 0;
+    AssertThrow(light_index != ~0u);
+
     if (divided_draw_calls.Size() == 1) {
         RenderAll<IsIndirect>(
             frame,
@@ -690,7 +700,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
                             { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, g_engine->GetRenderState().GetActiveLight().ToIndex()) },
+                            { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_index) },
                             { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                             { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                         },

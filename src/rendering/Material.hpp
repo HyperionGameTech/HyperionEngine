@@ -94,22 +94,13 @@ class MaterialRenderResources final : public RenderResourcesBase
 {
 public:
     MaterialRenderResources(const WeakHandle<Material> &material_weak);
+    MaterialRenderResources(MaterialRenderResources &&other) noexcept;
     virtual ~MaterialRenderResources() override;
-
-    HYP_FORCE_INLINE uint32 GetBufferIndex() const
-    {
-#ifdef HYP_DEBUG_MODE
-        // Allow render thread or task thread (under render thread) to call this method.
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
-#endif
-
-        return m_buffer_index;
-    }
 
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);
 
-    void SetMaterialBufferData(const MaterialShaderData &buffer_data);
+    void SetBufferData(const MaterialShaderData &buffer_data);
 
     void SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids);
 
@@ -118,18 +109,19 @@ protected:
     virtual void Destroy() override;
     virtual void Update() override;
 
+    virtual uint32 AcquireBufferIndex() const override;
+    virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
+
 private:
     void CreateDescriptorSets();
     void DestroyDescriptorSets();
 
-    void UpdateMaterialBufferData();
+    void UpdateBufferData();
 
     WeakHandle<Material>                            m_material_weak;
     FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
-    MaterialShaderData                              m_buffer_data;
     Array<ID<Texture>>                              m_bound_texture_ids;
-    uint32                                          m_buffer_index;
-    Mutex                                           m_mutex;
+    MaterialShaderData                              m_buffer_data;
 };
 
 HYP_CLASS()
@@ -411,6 +403,12 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
+    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources()
+        { return *m_render_resources; }
+
+    HYP_FORCE_INLINE const MaterialRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     /*! \brief Get the current mutation state of this Material.
         \return The current mutation state of this Material */
     HYP_FORCE_INLINE DataMutationState GetMutationState() const
@@ -599,12 +597,6 @@ public:
     HYP_FORCE_INLINE bool IsStatic() const
         { return !m_is_dynamic; }
 
-    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources()
-        { return *m_render_resources; }
-
-    HYP_FORCE_INLINE const MaterialRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
-
     /*! \brief If a Material is
      *  dynamic, it is expected to change frequently and may be modified. Otherwise,
      *  it is considered static and should not be modified as it may be shared across many
@@ -663,7 +655,7 @@ private:
     MaterialShaderData                  m_shader_data;
     mutable DataMutationState           m_mutation_state;
 
-    RC<MaterialRenderResources>         m_render_resources;
+    OwningRC<MaterialRenderResources>   m_render_resources;
 };
 
 HYP_CLASS()

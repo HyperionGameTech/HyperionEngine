@@ -156,7 +156,7 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
                 break;
             }
 
-            uniforms.light_indices[num_bound_lights++] = it.first.ToIndex();
+            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
         }
     }
 

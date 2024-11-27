@@ -433,7 +433,7 @@ void DDGI::UpdateUniforms(Frame *frame)
                 break;
             }
 
-            m_uniforms.light_indices[num_bound_lights++] = it.first.ToIndex();
+            m_uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
         }
     }
 

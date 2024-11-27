@@ -15,6 +15,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <util/ByteUtil.hpp>
+#include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -177,8 +178,16 @@ struct RENDER_COMMAND(RemoveMaterialDescriptorSet) : renderer::RenderCommand
 
 MaterialRenderResources::MaterialRenderResources(const WeakHandle<Material> &material_weak)
     : m_material_weak(material_weak),
-      m_buffer_data { },
-      m_buffer_index(~0u)
+      m_buffer_data { }
+{
+}
+
+MaterialRenderResources::MaterialRenderResources(MaterialRenderResources &&other) noexcept
+    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+      m_material_weak(std::move(other.m_material_weak)),
+      m_textures(std::move(other.m_textures)),
+      m_bound_texture_ids(std::move(other.m_bound_texture_ids)),
+      m_buffer_data(std::move(other.m_buffer_data))
 {
 }
 
@@ -189,13 +198,12 @@ MaterialRenderResources::~MaterialRenderResources()
 
 void MaterialRenderResources::Initialize()
 {
-    AssertThrow(m_material_weak.IsValid());
-    AssertThrow(m_buffer_index == ~0u);
+    HYP_SCOPE;
 
-    m_buffer_index = g_engine->GetRenderData()->materials->AcquireIndex();
+    AssertThrow(m_material_weak.IsValid());
 
     if (Handle<Material> material = m_material_weak.Lock()) {
-        UpdateMaterialBufferData();
+        UpdateBufferData();
 
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             CreateDescriptorSets();
@@ -205,13 +213,9 @@ void MaterialRenderResources::Initialize()
 
 void MaterialRenderResources::Destroy()
 {
+    HYP_SCOPE;
+
     AssertThrow(m_material_weak.IsValid());
-
-    if (m_buffer_index != ~0u) {
-        g_engine->GetRenderData()->materials->ReleaseIndex(m_buffer_index);
-
-        m_buffer_index = ~0u;
-    }
 
     if (Handle<Material> material = m_material_weak.Lock()) {
         if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
@@ -222,14 +226,14 @@ void MaterialRenderResources::Destroy()
 
 void MaterialRenderResources::Update()
 {
+    HYP_SCOPE;
+
     AssertThrow(m_material_weak.IsValid());
 
     if (Handle<Material> material = m_material_weak.Lock()) {
         const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
-        Mutex::Guard guard(m_mutex);
-
-        UpdateMaterialBufferData();
+        UpdateBufferData();
 
         if (!use_bindless_textures) {
             for (const auto &it : m_textures) {
@@ -254,8 +258,24 @@ void MaterialRenderResources::Update()
     }
 }
 
+uint32 MaterialRenderResources::AcquireBufferIndex() const
+{
+    HYP_SCOPE;
+
+    return g_engine->GetRenderData()->materials->AcquireIndex();
+}
+
+void MaterialRenderResources::ReleaseBufferIndex(uint32 buffer_index) const
+{
+    HYP_SCOPE;
+
+    g_engine->GetRenderData()->materials->ReleaseIndex(buffer_index);
+}
+
 void MaterialRenderResources::CreateDescriptorSets()
 {
+    HYP_SCOPE;
+
     if (Handle<Material> material = m_material_weak.Lock()) {
         FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
 
@@ -281,6 +301,8 @@ void MaterialRenderResources::CreateDescriptorSets()
 
 void MaterialRenderResources::DestroyDescriptorSets()
 {
+    HYP_SCOPE;
+
     if (!m_material_weak.IsValid()) {
         return;
     }
@@ -293,8 +315,10 @@ void MaterialRenderResources::DestroyDescriptorSets()
     }
 }
 
-void MaterialRenderResources::UpdateMaterialBufferData()
+void MaterialRenderResources::UpdateBufferData()
 {
+    HYP_SCOPE;
+
     AssertThrow(m_buffer_index != ~0u);
 
     const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
@@ -321,38 +345,58 @@ void MaterialRenderResources::UpdateMaterialBufferData()
 
 void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_SCOPE;
 
-    m_textures.Set(texture_key, texture);
+    Execute([this, texture_key, texture]()
+    {
+        m_textures.Set(texture_key, texture);
 
-    SetNeedsUpdate();
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
 }
 
 void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_SCOPE;
 
-    m_textures = std::move(textures);
+    Execute([this, textures = std::move(textures)]()
+    {
+        m_textures = std::move(textures);
 
-    SetNeedsUpdate();
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
 }
 
-void MaterialRenderResources::SetMaterialBufferData(const MaterialShaderData &buffer_data)
+void MaterialRenderResources::SetBufferData(const MaterialShaderData &buffer_data)
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_SCOPE;
 
-    m_buffer_data = buffer_data;
+    Execute([this, buffer_data]()
+    {
+        m_buffer_data = buffer_data;
 
-    SetNeedsUpdate();
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
 }
 
 void MaterialRenderResources::SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids)
 {
-    Mutex::Guard guard(m_mutex);
+    HYP_SCOPE;
 
-    m_bound_texture_ids = bound_texture_ids;
+    Execute([this, bound_texture_ids]()
+    {
+        m_bound_texture_ids = bound_texture_ids;
 
-    SetNeedsUpdate();
+        if (m_is_initialized) {
+            SetNeedsUpdate();
+        }
+    });
 }
 
 #pragma endregion MaterialRenderResources
@@ -430,6 +474,11 @@ Material::Material(
 
 Material::~Material()
 {
+    if (IsInitCalled()) {
+        // Prevent RenderResources from going out of scope
+        HYP_SYNC_RENDER();
+    }
+
     SetReady(false);
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
@@ -447,7 +496,7 @@ void Material::Init()
 
     BasicObject::Init();
 
-    m_render_resources = MakeRefCountedPtr<MaterialRenderResources>(WeakHandleFromThis());
+    m_render_resources = OwningRC<MaterialRenderResources>(WeakHandleFromThis());
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {
@@ -506,7 +555,7 @@ void Material::EnqueueRenderUpdates()
         }
     }
 
-    MaterialShaderData shader_data {
+    MaterialShaderData buffer_data {
         .albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO),
         .packed_params = Vec4u(
             ByteUtil::PackVec4f(Vec4f(
@@ -525,7 +574,7 @@ void Material::EnqueueRenderUpdates()
         .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
     };
 
-    m_render_resources->SetMaterialBufferData(shader_data);
+    m_render_resources->SetBufferData(buffer_data);
     m_render_resources->SetBoundTextureIDs(bound_texture_ids);
 
     m_mutation_state = DataMutationState::CLEAN;

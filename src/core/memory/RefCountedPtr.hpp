@@ -1227,118 +1227,230 @@ template <class T, class CountType = std::atomic<uint>, typename = std::enable_i
 class OwningRefCountedPtr
 {
 public:
-    template <class... Args>
-    OwningRefCountedPtr(Args &&... args)
+    OwningRefCountedPtr()
+        : m_is_initialized(false)
+    {
+        if constexpr (std::is_default_constructible_v<T>) {
+            if constexpr (IsHypObject<T>::value) {
+                Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer());
+            } else {
+                Memory::Construct<T>(m_value.GetPointer());
+            }
+
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+            
+            m_is_initialized = true;
+        }
+    }
+
+    template <class Arg0, class... Args>
+    OwningRefCountedPtr(Arg0 &&arg0, Args &&... args)
+        : m_is_initialized(true)
     {
         if constexpr (IsHypObject<T>::value) {
-            Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), std::forward<Args>(args)...);
+            Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), std::forward<Arg0>(arg0), std::forward<Args>(args)...);
         } else {
-            Memory::Construct<T>(m_value.GetPointer(), std::forward<Args>(args)...);
+            Memory::Construct<T>(m_value.GetPointer(), std::forward<Arg0>(arg0), std::forward<Args>(args)...);
         }
 
         static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
     }
 
     OwningRefCountedPtr(const OwningRefCountedPtr &other)
-        : OwningRefCountedPtr(other.m_value.Get())
+        : m_is_initialized(other.m_is_initialized)
     {
+        if (m_is_initialized) {
+            if constexpr (IsHypObject<T>::value) {
+                Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), other.m_value.Get());
+            } else {
+                Memory::Construct<T>(m_value.GetPointer(), other.m_value.Get());
+            }
+
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+        }
     }
 
+#if 0
+    // Deleted to prevent accidental assignment while other RefCountedPtr and WeakRefCountedPtr are using this.
+    OwningRefCountedPtr &operator=(const OwningRefCountedPtr &other) = delete;
+#else
     OwningRefCountedPtr &operator=(const OwningRefCountedPtr &other)
     {
-        m_value = other.m_value;
+        if (this == &other) {
+            return *this;
+        }
+
+        if constexpr (std::is_copy_assignable_v<T>) {
+            if (m_is_initialized) {
+                m_value.Get() = other.m_value.Get();
+
+                return *this;
+            }
+        }
+        
+        if (m_is_initialized) {
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+            
+            Memory::Destruct<T>(m_value.GetPointer());
+        }
+
+        if (other.m_is_initialized) {
+            if constexpr (IsHypObject<T>::value) {
+                Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), other.m_value.Get());
+            } else {
+                Memory::Construct<T>(m_value.GetPointer(), other.m_value.Get());
+            }
+
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+        }
+
+        m_is_initialized = other.m_is_initialized;
 
         return *this;
     }
+#endif
 
     OwningRefCountedPtr(OwningRefCountedPtr &&other) noexcept
-        : OwningRefCountedPtr(std::move(other.m_value.Get()))
+        : m_is_initialized(other.m_is_initialized)
     {
+        if (other.m_is_initialized) {
+            if constexpr (IsHypObject<T>::value) {
+                Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), std::move(other.m_value.Get()));
+            } else {
+                Memory::Construct<T>(m_value.GetPointer(), std::move(other.m_value.Get()));
+            }
+
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+        }
+
+        other.m_is_initialized = false;
     }
 
+#if 0
+    // Deleted to prevent accidental assignment while other RefCountedPtr and WeakRefCountedPtr are using this.
+    OwningRefCountedPtr &operator=(OwningRefCountedPtr &&other) noexcept = delete;
+#else
     OwningRefCountedPtr &operator=(OwningRefCountedPtr &&other) noexcept
     {
-        m_value.Get() = std::move(other.m_value.Get());
+        if (this == &other) {
+            return *this;
+        }
+
+        if constexpr (std::is_move_assignable_v<T> || std::is_copy_assignable_v<T>) {
+            if (m_is_initialized) {
+                m_value.Get() = std::move(other.m_value.Get());
+                return *this;
+            }
+        }
+
+        if (m_is_initialized) {
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+            
+            Memory::Destruct<T>(m_value.GetPointer());
+        }
+
+        if (other.m_is_initialized) {
+            if constexpr (IsHypObject<T>::value) {
+                Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(m_value.GetPointer(), std::move(other.m_value.Get()));
+            } else {
+                Memory::Construct<T>(m_value.GetPointer(), std::move(other.m_value.Get()));
+            }
+
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->IncRefCount_Strong();
+        }
+
+        m_is_initialized = other.m_is_initialized;
+        other.m_is_initialized = false;
 
         return *this;
     }
+#endif
 
     ~OwningRefCountedPtr()
     {
-        static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
-        
-        Memory::Destruct<T>(m_value.GetPointer());
+        if (m_is_initialized) {
+            static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak.GetRefCountData_Internal()->DecRefCount_Strong();
+            
+            Memory::Destruct<T>(m_value.GetPointer());
+        }
     }
     
     HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
         { return TypeID::ForType<T>(); }
 
-    HYP_FORCE_INLINE constexpr bool Empty() const
-        { return false; }
+    HYP_FORCE_INLINE bool Empty() const
+        { return !m_is_initialized; }
 
-    HYP_FORCE_INLINE constexpr bool Any() const
-        { return true; }
+    HYP_FORCE_INLINE bool Any() const
+        { return m_is_initialized; }
+
+    HYP_FORCE_INLINE operator bool() const
+        { return m_is_initialized; }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return !m_is_initialized; }
 
     HYP_FORCE_INLINE T *Get() const
-        { return &m_value.Get(); }
+        { return m_is_initialized ? &m_value.Get() : nullptr; }
 
     HYP_FORCE_INLINE T *operator->() const
-        { return static_cast<T *>(m_value.GetPointer()); }
+        { return m_is_initialized ? static_cast<T *>(m_value.GetPointer()) : nullptr; }
 
     HYP_FORCE_INLINE T &operator*() const
-        { return m_value.Get(); }
+    {
+        if (!m_is_initialized) {
+            HYP_FAIL("Dereferenced uninitialized pointer");
+        }
+
+        return m_value.Get();
+    }
 
     HYP_FORCE_INLINE operator T *() const
-        { return &m_value.Get(); }
+        { return m_is_initialized ? &m_value.Get() : nullptr; }
 
     HYP_FORCE_INLINE operator const T *() const
-        { return &m_value.Get(); }
-
-    HYP_FORCE_INLINE constexpr operator bool() const
-        { return true; }
-
-    HYP_FORCE_INLINE constexpr bool operator!() const
-        { return false; }
+        { return m_is_initialized ? &m_value.Get() : nullptr; }
 
     HYP_FORCE_INLINE bool operator==(const OwningRefCountedPtr &other) const
-        { return m_value.GetPointer() == other.m_value.GetPointer(); }
+        { return Get() == other.Get(); }
 
     HYP_FORCE_INLINE bool operator!=(const OwningRefCountedPtr &other) const
-        { return m_value.GetPointer() != other.m_value.GetPointer(); }
+        { return Get() != other.Get(); }
 
-    HYP_FORCE_INLINE constexpr bool operator==(std::nullptr_t) const
-        { return false; }
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return !m_is_initialized; }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(std::nullptr_t) const
-        { return true; }
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return m_is_initialized; }
 
     HYP_FORCE_INLINE bool operator==(const T *ptr) const
-        { return m_value.GetPointer() == ptr; }
+        { return Get() == ptr; }
 
     HYP_FORCE_INLINE bool operator!=(const T *ptr) const
-        { return m_value.GetPointer() != ptr; }
+        { return Get() != ptr; }
 
     HYP_FORCE_INLINE bool operator==(T *ptr) const
-        { return m_value.GetPointer() == ptr; }
+        { return Get() == ptr; }
 
     HYP_FORCE_INLINE bool operator!=(T *ptr) const
-        { return m_value.GetPointer() != ptr; }
+        { return Get() != ptr; }
 
     HYP_FORCE_INLINE bool operator<(const OwningRefCountedPtr &other) const
-        { return m_value.GetPointer() < other.m_value.GetPointer(); }
+        { return Get() < other.Get(); }
 
     HYP_FORCE_INLINE bool operator<(const T *ptr) const
-        { return m_value.GetPointer() < ptr; }
+        { return Get() < ptr; }
 
     HYP_FORCE_INLINE bool operator<(T *ptr) const
-        { return m_value.GetPointer() < ptr; }
+        { return Get() < ptr; }
 
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeak() const
-        { return static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak; }
+        { return m_is_initialized ? static_cast<EnableRefCountedPtrFromThisBase<CountType> *>(m_value.GetPointer())->weak : WeakRefCountedPtr<T, CountType>(); }
 
 private:
     // Keep it mutable to allow the same interface as RefCountedPtr
     mutable ValueStorage<T> m_value;
+    bool                    m_is_initialized;
 };
 
 /*! \brief Helper struct to convert raw pointers to RefCountedPtrs.

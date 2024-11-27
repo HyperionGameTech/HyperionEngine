@@ -535,7 +535,7 @@ void EnvProbe::Render(Frame *frame)
 
     BindToIndex(probe_index);
     
-    ID<Light> light_id;
+    TRenderResourcesHandle<LightRenderResources> *light_render_resources_handle = nullptr;
 
     if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY) {
         // Find a directional light to use for the sky
@@ -544,10 +544,10 @@ void EnvProbe::Render(Frame *frame)
         auto &directional_lights = g_engine->GetRenderState().bound_lights[uint32(LightType::DIRECTIONAL)];
 
         if (directional_lights.Any()) {
-            light_id = directional_lights.AtIndex(0).first;
+            light_render_resources_handle = &directional_lights[0];
         }
 
-        if (!light_id.IsValid()) {
+        if (!light_render_resources_handle) {
             HYP_LOG(EnvProbe, LogLevel::WARNING, "No directional light found for Sky EnvProbe #{}", GetID().Value());
         }
     }
@@ -555,8 +555,8 @@ void EnvProbe::Render(Frame *frame)
     {
         g_engine->GetRenderState().SetActiveEnvProbe(GetID());
 
-        if (light_id.IsValid()) {
-            g_engine->GetRenderState().SetActiveLight(light_id);
+        if (light_render_resources_handle != nullptr) {
+            g_engine->GetRenderState().SetActiveLight(**light_render_resources_handle);
         }
 
         g_engine->GetRenderState().BindScene(m_parent_scene.Get());
@@ -576,8 +576,7 @@ void EnvProbe::Render(Frame *frame)
         g_engine->GetRenderState().UnbindCamera();
         g_engine->GetRenderState().UnbindScene();
 
-
-        if (light_id.IsValid()) {
+        if (light_render_resources_handle != nullptr) {
             g_engine->GetRenderState().UnsetActiveLight();
         }
 
