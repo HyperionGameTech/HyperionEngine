@@ -61,7 +61,8 @@ protected:
     virtual void ReleaseBufferIndex(uint32 buffer_index) const = 0;
 
     /*! \brief Performs an operation on the render thread if the resources are initialized,
-     *  otherwise executes it immediately on the calling thread.
+     *  otherwise executes it immediately on the calling thread. Initialization on the render thread will not begin until at least the end of the given proc,
+     *  so it is safe to use this method on any thread.
      *  \param proc The operation to perform.
      *  \param force_render_thread If true, the operation will be performed on the render thread regardless of initialization state. */
     void Execute(Proc<void> &&proc, bool force_render_thread = false);
