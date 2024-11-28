@@ -9,14 +9,6 @@ namespace Hyperion
         Dirty = 0x1
     }
 
-    [HypClassBinding(Name="MeshInstanceData")]
-    [StructLayout(LayoutKind.Explicit, Size = 104)]
-    public struct MeshInstanceData
-    {
-        [FieldOffset(0)]
-        private unsafe fixed byte arrayData[104];
-    }
-
     [HypClassBinding(Name="MeshComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 240)]
     public unsafe struct MeshComponent : IComponent

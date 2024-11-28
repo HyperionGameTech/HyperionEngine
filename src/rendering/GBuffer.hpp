@@ -11,8 +11,6 @@
 
 #include <core/functional/Delegate.hpp>
 
-#include <core/Handle.hpp>
-
 #include <rendering/RenderBucket.hpp>
 #include <rendering/DefaultFormats.hpp>
 

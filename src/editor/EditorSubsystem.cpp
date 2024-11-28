@@ -350,7 +350,7 @@ void EditorSubsystem::InitSceneOutline()
             return UIEventHandlerResult::ERR;
         }
 
-        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item->GetName());
+        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item != nullptr ? list_view_item->GetName() : Name());
 
         if (!list_view_item) {
             SetFocusedNode(NodeProxy::empty);
@@ -448,9 +448,9 @@ void EditorSubsystem::InitSceneOutline()
     //    }
     //});
 
-    m_scene->GetRoot()->GetDelegates()->OnNestedNodeAdded.Bind([this, list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
+    m_scene->GetRoot()->GetDelegates()->OnChildAdded.Bind([this, list_view_weak = list_view.ToWeak()](Node *node, bool)
     {
-        AssertThrow(node.IsValid());
+        AssertThrow(node != nullptr);
 
         if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
             return;
@@ -469,7 +469,7 @@ void EditorSubsystem::InitSceneOutline()
         }
 
         if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-            Weak<Node> editor_node_weak = node.ToWeak();
+            Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
 
             UUID parent_node_uuid = UUID::Invalid();
 
@@ -481,9 +481,9 @@ void EditorSubsystem::InitSceneOutline()
         }
     }).Detach();
 
-    m_scene->GetRoot()->GetDelegates()->OnNestedNodeRemoved.Bind([list_view_weak = list_view.ToWeak()](const NodeProxy &node, bool)
+    m_scene->GetRoot()->GetDelegates()->OnChildRemoved.Bind([list_view_weak = list_view.ToWeak()](Node *node, bool)
     {
-        if (!node.IsValid() || (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)) {
+        if (!node || (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)) {
             return;
         }
 

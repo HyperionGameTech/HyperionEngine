@@ -22,20 +22,24 @@ class NotNullPtr<T, std::enable_if_t<!std::is_const_v<T>>>
 {
     NotNullPtr() { }
 
+    // Disallow nullptr assignment
     NotNullPtr(std::nullptr_t) { }
     NotNullPtr &operator=(std::nullptr_t) { }
 
 public:
     NotNullPtr(T * HYP_NOTNULL ptr)
     {
+        AssertDebug(ptr);
+
         m_ptr = ptr;
     }
 
     NotNullPtr(const NotNullPtr &other)                 = default;
     NotNullPtr &operator=(const NotNullPtr &other)      = default;
 
-    NotNullPtr(NotNullPtr &&other) noexcept             = default;
-    NotNullPtr &operator=(NotNullPtr &&other) noexcept  = default;
+    // Delete move constructor and assignment to prevent setting other to nullptr
+    NotNullPtr(NotNullPtr &&other) noexcept             = delete;
+    NotNullPtr &operator=(NotNullPtr &&other) noexcept  = delete;
 
     template <class OtherT>
     NotNullPtr(const NotNullPtr<OtherT> &other)
@@ -55,23 +59,32 @@ public:
         return *this;
     }
 
-    template <class OtherT>
-    NotNullPtr(NotNullPtr<OtherT> &&other) noexcept
+    NotNullPtr &operator=(T * HYP_NOTNULL ptr)
     {
-        static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
+        AssertDebug(ptr);
 
-        m_ptr = other.m_ptr;
-    }
-
-    template <class OtherT>
-    NotNullPtr &operator=(NotNullPtr<OtherT> &&other) noexcept
-    {
-        static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
-
-        m_ptr = other.m_ptr;
+        m_ptr = ptr;
 
         return *this;
     }
+
+    // template <class OtherT>
+    // NotNullPtr(NotNullPtr<OtherT> &&other) noexcept
+    // {
+    //     static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
+
+    //     m_ptr = other.m_ptr;
+    // }
+
+    // template <class OtherT>
+    // NotNullPtr &operator=(NotNullPtr<OtherT> &&other) noexcept
+    // {
+    //     static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
+
+    //     m_ptr = other.m_ptr;
+
+    //     return *this;
+    // }
 
     ~NotNullPtr()                                       = default;
 
@@ -154,6 +167,14 @@ private:
 
 template <class T>
 using NotNullPtr = memory::NotNullPtr<T>;
+
+template <class T>
+HYP_FORCE_INLINE void Swap(NotNullPtr<T> &a, NotNullPtr<T> &b)
+{
+    T *temp = a.Get();
+    a = b.Get();
+    b = temp;
+}
 
 } // namespace hyperion
 

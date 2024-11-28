@@ -23,6 +23,50 @@ struct HypObjectInitializer
 
 #pragma region HypObject
 
+HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *class_object_ptr, dotnet::ObjectReference *object_reference, void **out_instance_ptr)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(class_object_ptr != nullptr);
+    AssertThrow(object_reference != nullptr);
+    AssertThrow(out_instance_ptr != nullptr);
+
+    *out_instance_ptr = nullptr;
+
+    {
+        // Suppress default managed object creation
+        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+
+        HypData value;
+        
+        // Set allow_abstract to true so we can use classes marked as "Abstract"
+        // allowing the managed class to override methods of an abstract class
+        hyp_class->CreateInstance(value, /* allow_abstract */ true);
+
+        if (hyp_class->UseHandles()) {
+            AnyHandle handle = std::move(value.Get<AnyHandle>());
+            AssertThrow(handle.IsValid());
+
+            *out_instance_ptr = handle.Release();
+        } else if (hyp_class->UseRefCountedPtr()) {
+            RC<void> rc = std::move(value.Get<RC<void>>());
+            AssertThrow(rc != nullptr);
+
+            *out_instance_ptr = rc.Release();
+        } else {
+            HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+        }
+    }
+
+    IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(*out_instance_ptr);
+    AssertThrow(initializer != nullptr);
+
+    // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
+    // as it is managed by the .NET runtime
+
+    UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(class_object_ptr, *object_reference, ObjectFlags::WEAK_REFERENCE);
+    initializer->SetManagedObject(managed_object.Release());
+}
+
 HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)
 {
     if (!hyp_class || !native_address) {
@@ -37,29 +81,6 @@ HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address
         AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject() != nullptr);
         AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject()->GetObjectReference() == *object_reference);
     }
-
-    // AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject()->GetObjectReference
-
-    // if (hyp_class->UseHandles()) {
-    //     const TypeID type_id = hyp_class->GetTypeID();
-
-    //     ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-    //     const uint32 index = container.GetObjectIndex(native_address);
-
-    //     if (index == ~0u) {
-    //         HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-    //     }
-    // } else if (hyp_class->UseRefCountedPtr()) {
-    //     AssertThrow(native_address != nullptr);
-
-    //     EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
-        
-    //     auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-    //     AssertThrow(ref_count_data != nullptr);
-    // } else {
-    //     HYP_FAIL("Unhandled HypClass allocation method");
-    // }
 }
 
 HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_address, int8 is_weak)
@@ -70,17 +91,12 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-        const uint32 index = container.GetObjectIndex(native_address);
-        if (index == ~0u) {
-            HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-        }
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
 
         if (is_weak) {
-            container.IncRefWeak(index);
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
         } else {
-            container.IncRefStrong(index);
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefStrong();
         }
 
         return nullptr;
@@ -110,17 +126,12 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-        const uint32 index = container.GetObjectIndex(native_address);
-        if (index == ~0u) {
-            HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-        }
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
         
         if (is_weak) {
-            container.DecRefWeak(index);
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
         } else {
-            container.DecRefStrong(index);
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefStrong();
         }
     } else if (hyp_class->UseRefCountedPtr()) {
         AssertThrow(control_block_ptr != nullptr);
@@ -128,9 +139,11 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
         typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
 
         if (is_weak) {
-            Weak<void>{}.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+            Weak<void> weak;
+            weak.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
         } else {
-            RC<void>{}.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+            RC<void> rc;
+            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
         }
     } else {
         HYP_FAIL("Unhandled HypClass allocation method");

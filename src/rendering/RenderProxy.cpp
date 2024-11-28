@@ -1,7 +1,11 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/SafeDeleter.hpp>
+#include <rendering/Skeleton.hpp>
+#include <rendering/Material.hpp>
 
 #include <scene/Entity.hpp>
+
+#include <scene/animation/Skeleton.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 
@@ -20,6 +24,10 @@ void RenderProxy::ClaimRenderResources() const
     if (mesh.IsValid()) {
         mesh->GetRenderResources().Claim();
     }
+
+    if (skeleton.IsValid()) {
+        skeleton->GetRenderResources().Claim();
+    }
 }
 
 void RenderProxy::UnclaimRenderResources() const
@@ -30,6 +38,10 @@ void RenderProxy::UnclaimRenderResources() const
 
     if (mesh.IsValid()) {
         mesh->GetRenderResources().Unclaim();
+    }
+
+    if (skeleton.IsValid()) {
+        skeleton->GetRenderResources().Unclaim();
     }
 }
 
@@ -52,13 +64,13 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
     // try having list of m_previous_proxies and m_proxies for next iteration?
 
     if (iter != m_proxies.End()) {
-        if (proxy != iter->second) {
+        // if (proxy != iter->second) {
 
         // Advance if version has changed
-        // if (proxy.version != iter->second.version) {
+        if (proxy.version != iter->second.version) {
             // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
-            AssertThrow(!m_changed_entities.Test(entity.ToIndex()));
-            AssertThrow(!m_changed_proxies.Contains(entity));
+            AssertDebug(!m_changed_entities.Test(entity.ToIndex()));
+            AssertDebug(!m_changed_proxies.Contains(entity));
 
             // Mark as changed if it is found in the previous iteration
             m_changed_proxies.Insert({ entity, std::move(iter->second) });
@@ -68,8 +80,8 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
         }
     } else {
         // sanity check - if not in previous iteration, it must not be in the changed list
-        AssertThrow(!m_changed_entities.Test(entity.ToIndex()));
-        AssertThrow(!m_changed_proxies.Contains(entity));
+        AssertDebug(!m_changed_entities.Test(entity.ToIndex()));
+        AssertDebug(!m_changed_proxies.Contains(entity));
 
         iter = m_proxies.Insert(entity, proxy).first;
     }

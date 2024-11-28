@@ -383,7 +383,9 @@ void DeferredPass::Record(uint frame_index)
 
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
-    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
     
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -460,18 +462,18 @@ void DeferredPass::Record(uint frame_index)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_render_resources.GetBufferIndex()) },
-                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) },
-                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, shadow_probe_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("LightsBuffer"), ShaderDataOffset<LightShaderData>(light_render_resources.GetBufferIndex()) },
+                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) },
+                                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
                             },
                             scene_descriptor_set_index
                         );
                     
                     // Bind material descriptor set (for area lights)
                     if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_render_resources.GetMaterial().IsValid()) {
-                        const DescriptorSetRef &material_descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_render_resources.GetMaterial().GetID(), frame_index);
+                        const DescriptorSetRef &material_descriptor_set = light_render_resources.GetMaterial()->GetRenderResources().GetDescriptorSets()[frame_index];
                         AssertThrow(material_descriptor_set != nullptr);
 
                         material_descriptor_set->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
@@ -700,8 +702,11 @@ void EnvGridPass::Render(Frame *frame)
     const uint frame_index = frame->GetFrameIndex();
 
     const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
-    const uint camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
     const uint env_grid_index = g_engine->GetRenderState().bound_env_grid.ToIndex();
+
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
@@ -710,7 +715,7 @@ void EnvGridPass::Render(Frame *frame)
         m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->Record(
             g_engine->GetGPUInstance()->GetDevice(),
             m_render_group->GetPipeline()->GetRenderPass(),
-            [this, frame_index, scene_index, camera_index, env_grid_index](CommandBuffer *cmd)
+            [&](CommandBuffer *cmd)
             {
                 // render previous frame's result to screen
                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
@@ -722,9 +727,9 @@ void EnvGridPass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
                             }
                         }
                     }
@@ -745,7 +750,7 @@ void EnvGridPass::Render(Frame *frame)
     command_buffer->Record(
         g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetRenderPass(),
-        [this, frame_index, scene_index, camera_index, env_grid_index](CommandBuffer *cmd)
+        [&](CommandBuffer *cmd)
         {
             const uint global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
             const uint scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
@@ -770,9 +775,9 @@ void EnvGridPass::Render(Frame *frame)
                     cmd,
                     m_render_group->GetPipeline(),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
                     },
                     scene_descriptor_set_index
                 );
@@ -1015,7 +1020,10 @@ void ReflectionProbePass::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const uint32 scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
-    const uint32 camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     // Sky renders first
     static const FixedArray<EnvProbeType, ApplyReflectionProbeMode::MAX> reflection_probe_types {
@@ -1052,7 +1060,7 @@ void ReflectionProbePass::Render(Frame *frame)
         m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->Record(
             g_engine->GetGPUInstance()->GetDevice(),
             m_render_group->GetPipeline()->GetRenderPass(),
-            [this, frame_index, scene_index, camera_index](CommandBuffer *cmd)
+            [&](CommandBuffer *cmd)
             {
                 // render previous frame's result to screen
                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
@@ -1064,8 +1072,8 @@ void ReflectionProbePass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                             }
                         }
                     }
@@ -1133,9 +1141,9 @@ void ReflectionProbePass::Render(Frame *frame)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, env_probe_id.ToIndex()) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_id.ToIndex()) }
                             },
                             scene_descriptor_set_index
                         );
@@ -1420,6 +1428,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
 
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
+
     const bool is_render_environment_ready = environment && environment->IsReady();
 
     const bool do_particles = true;
@@ -1642,10 +1654,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
                 }
             }
@@ -1708,26 +1720,31 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     src_image->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
 }
 
+// @TODO Move to CameraRenderResources
 void DeferredRenderer::ApplyCameraJitter()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    Vec4f jitter;
-
-    const ID<Camera> camera_id = g_engine->GetRenderState().GetCamera().id;
-    const CameraDrawProxy &camera = g_engine->GetRenderState().GetCamera().camera;
-
-    const uint frame_counter = g_engine->GetRenderState().frame_counter + 1;
 
     static const float jitter_scale = 0.25f;
 
-    if (camera.projection[3][3] < MathUtil::epsilon_f) {
-        Matrix4::Jitter(frame_counter, camera.dimensions.x, camera.dimensions.y, jitter);
+    const CameraRenderResources &active_camera = g_engine->GetRenderState().GetActiveCamera();
 
-        g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_id.ToIndex()).jitter = jitter * jitter_scale;
-        g_engine->GetRenderData()->cameras->MarkDirty(camera_id.ToIndex());
+    const uint32 camera_buffer_index = active_camera.GetBufferIndex();
+    AssertThrow(camera_buffer_index != ~0u);
+
+    Vec4f jitter = Vec4f::Zero();
+
+    const uint frame_counter = g_engine->GetRenderState().frame_counter + 1;
+
+    CameraShaderData &buffer_data = g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_buffer_index);
+
+    if (buffer_data.projection[3][3] < MathUtil::epsilon_f) {
+        Matrix4::Jitter(frame_counter, buffer_data.dimensions.x, buffer_data.dimensions.y, jitter);
+
+        buffer_data.jitter = jitter * jitter_scale;
+
+        g_engine->GetRenderData()->cameras->MarkDirty(camera_buffer_index);
     }
 }
 

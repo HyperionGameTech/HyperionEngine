@@ -3,7 +3,6 @@
 #ifndef HYPERION_MATERIAL_HPP
 #define HYPERION_MATERIAL_HPP
 
-#include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderResources.hpp>
@@ -27,6 +26,8 @@
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+class Texture;
 
 struct MaterialShaderData
 {
@@ -93,24 +94,30 @@ enum class MaterialTextureKey : uint64
 class MaterialRenderResources final : public RenderResourcesBase
 {
 public:
-    MaterialRenderResources(const WeakHandle<Material> &material_weak);
+    MaterialRenderResources(Material *material);
     MaterialRenderResources(MaterialRenderResources &&other) noexcept;
     virtual ~MaterialRenderResources() override;
+
+    /*! \note Only call this method from the render thread or task initiated by the render thread */
+    HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight> &GetDescriptorSets() const
+        { return m_descriptor_sets; }
 
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);
 
-    void SetBufferData(const MaterialShaderData &buffer_data);
-
     void SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids);
+
+    void SetBufferData(const MaterialShaderData &buffer_data);
 
 protected:
     virtual void Initialize() override;
     virtual void Destroy() override;
     virtual void Update() override;
+    
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
-    virtual uint32 AcquireBufferIndex() const override;
-    virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
+    virtual Name GetTypeName() const override
+        { return NAME("MaterialRenderResources"); }
 
 private:
     void CreateDescriptorSets();
@@ -118,14 +125,15 @@ private:
 
     void UpdateBufferData();
 
-    WeakHandle<Material>                            m_material_weak;
-    FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
-    Array<ID<Texture>>                              m_bound_texture_ids;
-    MaterialShaderData                              m_buffer_data;
+    Material                                            *m_material;
+    FlatMap<MaterialTextureKey, Handle<Texture>>        m_textures;
+    Array<ID<Texture>>                                  m_bound_texture_ids;
+    MaterialShaderData                                  m_buffer_data;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
 };
 
 HYP_CLASS()
-class HYP_API Material : public BasicObject<Material>
+class HYP_API Material : public HypObject<Material>
 {
     HYP_OBJECT_BODY(Material);
 
@@ -656,7 +664,7 @@ private:
 };
 
 HYP_CLASS()
-class MaterialGroup : public BasicObject<MaterialGroup>
+class MaterialGroup : public HypObject<MaterialGroup>
 {
     HYP_OBJECT_BODY(MaterialGroup);
 
@@ -753,7 +761,7 @@ public:
      *  be created on the next call to Update.
      *  \param material The material to add
      */
-    void AddMaterial(const Handle<Material> &material);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
@@ -763,7 +771,7 @@ public:
      *  \param material The material to add
      *  \param textures The textures to add to the material
      */
-    void AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
      *  for the material from the manager. Usable from any thread.

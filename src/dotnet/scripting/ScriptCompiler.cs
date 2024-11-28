@@ -105,17 +105,27 @@ namespace Hyperion
 
             Logger.Log(LogType.Info, $"Relative path: {relativePath}");
 
-            if (relativePath.EndsWith("/"))
+            while (relativePath.EndsWith("/"))
             {
                 relativePath = relativePath.Substring(0, relativePath.Length - 1);
             }
 
             // chop the last part of the relative path
-            string moduleName = "GameName";
+            string moduleName = "Default";
 
             if (relativePath.Length != 0)
             {
-                moduleName += "." + relativePath.Replace("/", ".");
+                moduleName = relativePath.Replace("/", ".");
+            }
+
+            while (moduleName.StartsWith("."))
+            {
+                moduleName = moduleName.Substring(1);
+            }
+
+            if (moduleName.Length == 0)
+            {
+                throw new Exception("Invalid module name");
             }
 
             return moduleName;

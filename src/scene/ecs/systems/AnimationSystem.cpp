@@ -3,6 +3,8 @@
 #include <scene/ecs/systems/AnimationSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/animation/Animation.hpp>
+
 namespace hyperion {
 
 void AnimationSystem::Process(GameCounter::TickUnit delta)
@@ -21,11 +23,12 @@ void AnimationSystem::Process(GameCounter::TickUnit delta)
                 continue;
             }
 
-            Animation &animation = mesh_component.skeleton->GetAnimation(playback_state.animation_index);
+            const Handle<Animation> &animation = mesh_component.skeleton->GetAnimation(playback_state.animation_index);
+            AssertThrow(animation.IsValid());
 
             playback_state.current_time += delta * playback_state.speed;
 
-            if (playback_state.current_time > animation.GetLength()) {
+            if (playback_state.current_time > animation->GetLength()) {
                 playback_state.current_time = 0.0f;
 
                 if (playback_state.loop_mode == ANIMATION_LOOP_MODE_ONCE) {
@@ -34,7 +37,7 @@ void AnimationSystem::Process(GameCounter::TickUnit delta)
                 }
             }
 
-            animation.ApplyBlended(playback_state.current_time, 0.5f);
+            animation->ApplyBlended(playback_state.current_time, 0.5f);
 
             // mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
         }

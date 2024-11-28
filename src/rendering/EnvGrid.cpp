@@ -462,8 +462,9 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 void EnvGrid::OnRender(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    const CameraRenderResources &active_camera = g_engine->GetRenderState().GetActiveCamera();
 
     const BoundingBox grid_aabb = m_aabb;
 
@@ -507,7 +508,7 @@ void EnvGrid::OnRender(Frame *frame)
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_env_probe_collection.num_probes);
 
-        const Vec3f &camera_position = g_engine->GetRenderState().GetCamera().camera.position;
+        const Vec3f &camera_position = active_camera.GetBufferData().camera_position.GetXYZ();
 
         Array<Pair<uint, float>> indices_distances;
         indices_distances.Reserve(16);
@@ -935,6 +936,10 @@ void EnvGrid::ComputeSH(
 
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
+
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);//GetEnvProbeOnRenderThread(probe_index);
     AssertThrow(probe.IsValid());
 
@@ -986,10 +991,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1012,10 +1017,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1062,10 +1067,10 @@ void EnvGrid::ComputeSH(
                     {
                         NAME("Scene"),
                         {
-                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                         }
                     }
                 }
@@ -1099,10 +1104,10 @@ void EnvGrid::ComputeSH(
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, probe.GetID().ToIndex()) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
         }
@@ -1148,7 +1153,7 @@ void EnvGrid::OffsetVoxelGrid(
             {
                 NAME("VoxelizeProbeDescriptorSet"),
                 {
-                    { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
+                    { NAME("EnvGridBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) }
                 }
             }
         }
@@ -1217,7 +1222,7 @@ void EnvGrid::VoxelizeProbe(
                 {
                     NAME("VoxelizeProbeDescriptorSet"),
                     {
-                        { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
+                        { NAME("EnvGridBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) }
                     }
                 }
             }
@@ -1242,7 +1247,7 @@ void EnvGrid::VoxelizeProbe(
                 {
                     NAME("VoxelizeProbeDescriptorSet"),
                     {
-                        { NAME("EnvGridBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, GetComponentIndex()) }
+                        { NAME("EnvGridBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) }
                     }
                 }
             }

@@ -68,6 +68,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Node, Scene);
 HYP_DEFINE_LOG_SUBCHANNEL(Camera, Scene);
 HYP_DEFINE_LOG_SUBCHANNEL(Octree, Scene);
 HYP_DEFINE_LOG_SUBCHANNEL(Light, Scene);
+HYP_DEFINE_LOG_SUBCHANNEL(Animation, Scene);
 
 #pragma endregion Scene
 

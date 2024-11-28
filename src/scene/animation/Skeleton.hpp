@@ -4,14 +4,18 @@
 #define HYPERION_SKELETON_HPP
 
 #include <core/Base.hpp>
+
 #include <core/utilities/DataMutationState.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/Array.hpp>
 
-#include <scene/animation/Animation.hpp>
-#include <scene/NodeProxy.hpp>
-
 #include <core/system/Debug.hpp>
+
+#include <core/object/HypObject.hpp>
+
+#include <scene/NodeProxy.hpp>
 
 #include <GameCounter.hpp>
 #include <Types.hpp>
@@ -20,6 +24,8 @@ namespace hyperion {
 
 class Engine;
 class Bone;
+class Animation;
+class SkeletonRenderResources;
 
 struct SkeletonBoneData
 {
@@ -54,7 +60,7 @@ struct SkeletonBoneData
 };
 
 HYP_CLASS()
-class HYP_API Skeleton : public BasicObject<Skeleton>
+class HYP_API Skeleton : public HypObject<Skeleton>
 {
     HYP_OBJECT_BODY(Skeleton);
 
@@ -65,14 +71,17 @@ public:
     Skeleton &operator=(const Skeleton &other)  = delete;
     ~Skeleton();
 
+    HYP_FORCE_INLINE SkeletonRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     /*! \brief Get the mutation state of this skeleton.
      *  \returns The mutation state of this skeleton. */
-    DataMutationState GetMutationState() const
+    HYP_FORCE_INLINE DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
     /*! \brief Set the mutation state of this skeleton. To be called by the Bone class.
      *  \note This is not intended to be called by the user. */
-    void SetMutationState(DataMutationState state)
+    HYP_FORCE_INLINE void SetMutationState(DataMutationState state)
         { m_mutation_state = state; }
 
     /*! \brief Look up a bone with the given name/tag. If no root bone was set,
@@ -107,38 +116,34 @@ public:
     /*! \brief Get the array of animations that are associated with this skeleton.
      *  \returns The array of animations associated with this skeleton. */
     HYP_METHOD(Serialize, Property="Animations")
-    const Array<Animation> &GetAnimations() const
+    const Array<Handle<Animation>> &GetAnimations() const
         { return m_animations; }
 
     /*! \brief Set the array of animations that are associated with this skeleton.
      *  \param animations The array of animations to set on this skeleton. */
     HYP_METHOD(Serialize, Property="Animations")
-    void SetAnimations(const Array<Animation> &animations)
+    void SetAnimations(const Array<Handle<Animation>> &animations)
         { m_animations = animations; }
 
     /*! \brief Get the number of animations that are associated with this skeleton.
      *  \returns The number of animations associated with this skeleton.
      */
-    SizeType NumAnimations() const
-        { return m_animations.Size(); }
+    HYP_METHOD()
+    uint32 NumAnimations() const
+        { return uint32(m_animations.Size()); }
 
     /*! \brief Add an animation to this skeleton.
      *  \param animation The animation to add to this skeleton.
      */
-    void AddAnimation(Animation &&animation);
+    HYP_METHOD()
+    void AddAnimation(const Handle<Animation> &animation);
 
     /*! \brief Get the animation at the given index. Ensure the index is valid before calling this.
      *  \param index The index of the animation to get.
      *  \returns The animation at the given index.
      */
-    Animation &GetAnimation(SizeType index)
-        { return m_animations[index]; }
-
-    /*! \brief Get the animation at the given index. Ensure the index is valid before calling this.
-     *  \param index The index of the animation to get.
-     *  \returns The animation at the given index.
-     */
-    const Animation &GetAnimation(SizeType index) const
+    HYP_METHOD()
+    const Handle<Animation> &GetAnimation(uint32 index) const
         { return m_animations[index]; }
 
     /*! \brief Find an animation with the given name. If the animation could not be found, nullptr is returned.
@@ -146,7 +151,7 @@ public:
      *  \param out_index The index of the animation, if it was found.
      *  \returns The animation with the given name, or nullptr if it could not be found.
      */
-    const Animation *FindAnimation(const String &name, uint32 *out_index) const;
+    const Animation *FindAnimation(UTF8StringView name, uint32 *out_index) const;
     
     void Init();
     void Update(GameCounter::TickUnit delta);
@@ -155,9 +160,11 @@ private:
     SkeletonBoneData            m_bone_data;
     
     RC<Bone>                    m_root_bone;
-    Array<Animation>            m_animations;
+    Array<Handle<Animation>>    m_animations;
 
     mutable DataMutationState   m_mutation_state;
+
+    SkeletonRenderResources     *m_render_resources;
 };
 
 } // namespace hyperion

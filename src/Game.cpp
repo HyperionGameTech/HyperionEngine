@@ -308,7 +308,7 @@ void Game::OnFrameEnd(Frame *frame)
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (m_scene.IsValid() && m_scene->GetCamera()) {
-        g_engine->GetRenderState().UnbindCamera();
+        g_engine->GetRenderState().UnbindCamera(m_scene->GetCamera().Get());
     }
 
     g_engine->GetRenderState().UnbindScene();

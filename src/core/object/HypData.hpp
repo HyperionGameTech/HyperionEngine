@@ -68,7 +68,7 @@ struct HypDataGetReturnTypeHelper
 
 using HypDataSerializeFunction = fbom::FBOMResult(*)(HypData &&hyp_data, fbom::FBOMData &out_data);
 
-/*! \brief A type-safe union that can store any type of data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
+/*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
  *  \note Used in serialization, reflection, scripting, and other systems where data needs to be stored in a generic way.
  */
@@ -646,6 +646,7 @@ struct HypDataHelper<AnyHandle>
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
 
         if (!marshal) {
+            HYP_BREAKPOINT;
             return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
         }
 
@@ -680,7 +681,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
 
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
-        return value.type_id == TypeID::ForType<T>();
+        return value.GetTypeID() == TypeID::ForType<T>();
     }
 
     Handle<T> Get(const AnyHandle &value) const
@@ -705,6 +706,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
+            HYP_BREAKPOINT;
             return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
         }
 

@@ -30,8 +30,6 @@ class Object;
 class Class;
 } // namespace dotnet
 
-class IHypObjectInitializer;
-
 extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
@@ -188,20 +186,6 @@ private:
             { return HypObjectInitializer<T>::GetClass_Static(); } \
         \
     private:
-
-// template <class T>
-// HYP_FORCE_INLINE inline bool InitObject(HypObjectType<T> *object)
-// {
-//     static_assert(!has_opaque_handle_defined<T>, "Use InitObject(Handle<T>) overload instead");
-
-//     if (!object) {
-//         return false;
-//     }
-
-//     object
-
-//     return true;
-// }
 
 class HypObjectPtr
 {

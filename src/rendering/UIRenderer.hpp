@@ -22,7 +22,6 @@ namespace hyperion {
 
 class UIStage;
 class UIObject;
-struct UITextRenderData;
 
 class UIRenderCollector : public RenderCollector
 {
@@ -84,9 +83,6 @@ private:
     FramebufferRef                              m_framebuffer;
     ShaderRef                                   m_shader;
     UIRenderCollector                           m_render_collector;
-
-    // testing
-    Array<Pair<RC<UITextRenderData>, Matrix4>>  m_text_render_data;
 
     DelegateHandler                             m_on_gbuffer_resolution_changed_handle;
 };

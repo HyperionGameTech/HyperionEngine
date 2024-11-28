@@ -11,6 +11,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/containers/FixedArray.hpp>
+#include <core/containers/HeapArray.hpp>
 
 #include <core/Name.hpp>
 #include <core/IDGenerator.hpp>
@@ -59,7 +60,7 @@ protected:
 };
 
 template <class T, PlatformType PLATFORM>
-class RenderObjectContainer : public RenderObjectContainerBase
+class RenderObjectContainer final : public RenderObjectContainerBase
 {
 public:
     static constexpr SizeType max_size = RenderObjectDefinition<T, PLATFORM>::max_size;

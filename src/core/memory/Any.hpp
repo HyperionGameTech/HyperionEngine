@@ -703,10 +703,6 @@ protected:
 using memory::Any;
 using memory::CopyableAny;
 
-// // Temp 
-// using Any = memory::CopyableAny;
-// using UniqueAny = memory::Any;
-
 } // namespace hyperion
 
 #endif

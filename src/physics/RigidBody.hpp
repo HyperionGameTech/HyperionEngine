@@ -168,7 +168,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API RigidBody : public BasicObject<RigidBody>
+class HYP_API RigidBody : public HypObject<RigidBody>
 {
     HYP_OBJECT_BODY(RigidBody);
 

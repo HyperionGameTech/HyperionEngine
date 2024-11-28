@@ -3,6 +3,9 @@
 #include <scene/ecs/systems/EntityMeshDirtyStateSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
 
 namespace hyperion {

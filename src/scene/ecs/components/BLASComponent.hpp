@@ -3,8 +3,6 @@
 #ifndef HYPERION_ECS_BLAS_COMPONENT_HPP
 #define HYPERION_ECS_BLAS_COMPONENT_HPP
 
-#include <core/Handle.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 

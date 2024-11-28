@@ -16,7 +16,6 @@
 #include <scene/Scene.hpp>
 
 #include <scene/ecs/components/UIComponent.hpp>
-#include <scene/ecs/EntityManager.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
 

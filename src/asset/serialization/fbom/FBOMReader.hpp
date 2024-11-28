@@ -175,7 +175,7 @@ private:
 
     FBOMResult Handle(BufferedReader *, FBOMCommand, FBOMObject *root);
 
-public: // temp
+public:
     FBOMReaderConfig        m_config;
 
     bool                    m_in_static_data;

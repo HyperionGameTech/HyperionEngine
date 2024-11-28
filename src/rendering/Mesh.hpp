@@ -34,76 +34,10 @@ using renderer::IndirectDrawCommand;
 struct RENDER_COMMAND(SetStreamedMeshData);
 struct RENDER_COMMAND(UploadMeshData);
 
-HYP_STRUCT(Size=104)
-struct MeshInstanceData
-{
-    static constexpr uint32 max_buffers = 8;
-
-    HYP_FIELD(Property="NumInstances", Serialize=true)
-    uint32                          num_instances = 0;
-
-    HYP_FIELD(Property="Buffers", Serialize=true)
-    Array<Array<ubyte>, 0>          buffers;
-
-    HYP_FIELD(Property="BufferStructSizes", Serialize=true)
-    FixedArray<uint32, max_buffers> buffer_struct_sizes;
-
-    HYP_FIELD(Property="BufferStructAlignments", Serialize=true)
-    FixedArray<uint32, max_buffers> buffer_struct_alignments;
-
-    HYP_FORCE_INLINE bool operator==(const MeshInstanceData &other) const
-    {
-        return num_instances == other.num_instances
-            && buffers == other.buffers
-            && buffer_struct_sizes == other.buffer_struct_sizes
-            && buffer_struct_alignments == other.buffer_struct_alignments;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const MeshInstanceData &other) const
-    {
-        return num_instances != other.num_instances
-            || buffers != other.buffers
-            || buffer_struct_sizes != other.buffer_struct_sizes
-            || buffer_struct_alignments != other.buffer_struct_alignments;
-    }
-
-    HYP_FORCE_INLINE uint32 NumInstances() const
-        { return num_instances; }
-
-    template <class StructType>
-    void SetBufferData(int buffer_index, StructType *ptr, SizeType count)
-    {
-        static_assert(IsPODType<StructType>, "Struct type must a POD type");
-
-        AssertThrowMsg(buffer_index < max_buffers, "Buffer index %d must be less than maximum number of buffers (%u)", buffer_index, max_buffers);
-
-        if (buffers.Size() <= buffer_index) {
-            buffers.Resize(buffer_index + 1);
-        }
-
-        buffer_struct_sizes[buffer_index] = sizeof(StructType);
-        buffer_struct_alignments[buffer_index] = alignof(StructType);
-
-        buffers[buffer_index].Resize(sizeof(StructType) * count);
-        Memory::MemCpy(buffers[buffer_index].Data(), ptr, sizeof(StructType) * count);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(num_instances);
-        hc.Add(buffers);
-        hc.Add(buffer_struct_sizes);
-        hc.Add(buffer_struct_alignments);
-
-        return hc;
-    }
-};
-
 class MeshRenderResources final : public RenderResourcesBase
 {
 public:
-    MeshRenderResources(const WeakHandle<Mesh> &mesh_weak);
+    MeshRenderResources(Mesh *mesh);
     MeshRenderResources(MeshRenderResources &&other) noexcept;
     virtual ~MeshRenderResources() override;
 
@@ -127,12 +61,15 @@ protected:
     virtual void Destroy() override;
     virtual void Update() override;
 
+    virtual Name GetTypeName() const override
+        { return NAME("MeshRenderResources"); }
+
 private:
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
 
     void UploadMeshData();
 
-    WeakHandle<Mesh>        m_mesh_weak;
+    Mesh                    *m_mesh;
 
     VertexAttributeSet      m_vertex_attributes;
     RC<StreamedMeshData>    m_streamed_mesh_data;
@@ -144,7 +81,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Mesh final : public BasicObject<Mesh>
+class HYP_API Mesh final : public HypObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
 

@@ -120,9 +120,9 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
 
 struct LightmapRayHitData
 {
-    ID<Entity>  entity;
-    Triangle    triangle;
-    RayHit      hit;
+    Handle<Entity>  entity;
+    Triangle        triangle;
+    RayHit          hit;
 };
 
 using LightmapRayTestResults = FlatMap<float, LightmapRayHitData>;
@@ -273,7 +273,7 @@ private:
 class LightmapBottomLevelAccelerationStructure final : public ILightmapAccelerationStructure
 {
 public:
-    LightmapBottomLevelAccelerationStructure(ID<Entity> entity, const Handle<Mesh> &mesh, const Transform &transform)
+    LightmapBottomLevelAccelerationStructure(const Handle<Entity> &entity, const Handle<Mesh> &mesh, const Transform &transform)
         : m_entity(entity),
           m_mesh(mesh),
           m_root(BuildBVH(mesh, transform))
@@ -363,7 +363,7 @@ private:
         return root;
     }
 
-    ID<Entity>                  m_entity;
+    Handle<Entity>              m_entity;
     Handle<Mesh>                m_mesh;
     UniquePtr<LightmapBVHNode>  m_root;
 };
@@ -547,9 +547,16 @@ void LightmapPathTracer::ReadHitsBuffer(LightmapHitsBuffer *ptr, uint frame_inde
 
 void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uint32 ray_offset)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     const uint frame_index = frame->GetFrameIndex();
     const uint previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
+    
     /*m_hits_buffers[previous_frame_index]->Read(
         g_engine->GetGPUDevice(),
         sizeof(LightmapHitsBuffer),
@@ -595,10 +602,10 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }
@@ -655,13 +662,21 @@ void LightmapJob::Start()
 
     m_is_started.Set(true, MemoryOrder::RELAXED);
 
-    BuildUVMap();
+    if (Optional<LightmapUVMap> uv_map_opt = BuildUVMap()) {
+        m_uv_map = std::move(*uv_map_opt);
+    } else {
+        HYP_LOG(Lightmap, LogLevel::ERR, "Failed to build UV map for lightmap job {}", m_uuid);
+
+        // Mark as ready to prevent further processing
+        m_is_ready.Set(true, MemoryOrder::RELAXED);
+        
+        return;
+    }
 
     // Flatten texel indices, grouped by mesh IDs
-    const LightmapUVMap &uv_map = GetUVMap();
-    m_texel_indices.Reserve(uv_map.uvs.Size());
+    m_texel_indices.Reserve(m_uv_map.uvs.Size());
 
-    for (const auto &it : uv_map.mesh_to_uv_indices) {
+    for (const auto &it : m_uv_map.mesh_to_uv_indices) {
         for (uint i = 0; i < it.second.Size(); i++) {
              m_texel_indices.PushBack(it.second[i]);
         }
@@ -711,15 +726,15 @@ bool LightmapJob::IsCompleted() const
     return false;
 }
 
-void LightmapJob::BuildUVMap()
+Optional<LightmapUVMap> LightmapJob::BuildUVMap()
 {
     LightmapUVBuilder uv_builder { { m_params.elements_view } };
 
-    auto uv_builder_result = uv_builder.Build();
+    if (LightmapUVBuilder::Result uv_builder_result = uv_builder.Build(); uv_builder_result) {
+        return std::move(uv_builder_result.uv_map);
+    }
 
-    // @TODO Handle bad result
-
-    m_uv_map = std::move(uv_builder_result.uv_map);
+    return { };
 }
 
 void LightmapJob::Update()
@@ -799,7 +814,7 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
 
         const LightmapUV &uv = m_uv_map.uvs[uv_index];
 
-        Handle<Mesh> mesh = Handle<Mesh>(uv.mesh_id);
+        const Handle<Mesh> &mesh = uv.mesh;
 
         if (!mesh.IsValid()) {
             HYP_LOG(Lightmap, LogLevel::WARNING, "Lightmap job {}: Mesh at texel index {} is not valid, skipping", m_uuid, m_texel_index);
@@ -872,7 +887,7 @@ void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *h
         const LightmapRay &ray = rays[i];
         const LightmapHit &hit = hits[i];
 
-        LightmapUVMap &uv_map = GetUVMap();
+        LightmapUVMap &uv_map = m_uv_map;
 
         AssertThrowMsg(
             ray.texel_index < uv_map.uvs.Size(),
@@ -1148,7 +1163,7 @@ void Lightmapper::PerformLightmapping()
     m_lightmap_elements.Clear();
     m_all_elements_map.Clear();
 
-    for (auto [entity, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!mesh_component.mesh.IsValid()) {
             HYP_LOG(Lightmap, LogLevel::INFO, "Skip entity with invalid mesh on MeshComponent");
 
@@ -1170,14 +1185,17 @@ void Lightmapper::PerformLightmapping()
 
         // GPU lightmap trace mode requires a raytracing BLAS to be attached
         if (m_trace_mode == LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU) {
-            BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity);
+            BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity_id);
 
             if (!blas_component || !blas_component->blas) {
-                HYP_LOG(Lightmap, LogLevel::INFO, "Skipping entity #{} because it has no bottom level acceleration structure attached", entity.Value());
+                HYP_LOG(Lightmap, LogLevel::INFO, "Skipping entity #{} because it has no bottom level acceleration structure attached", entity_id.Value());
 
                 continue;
             }
         }
+
+        Handle<Entity> entity { entity_id };
+        AssertThrow(entity.IsValid());
 
         m_lightmap_elements.PushBack(LightmapElement {
             entity,
@@ -1226,7 +1244,7 @@ void Lightmapper::PerformLightmapping()
             ));
         }
 
-        HYP_LOG(Lightmap, LogLevel::INFO, "Add Entity (#{}) to be processed for lightmap", element.entity.Value());
+        HYP_LOG(Lightmap, LogLevel::INFO, "Add Entity (#{}) to be processed for lightmap", element.entity.GetID().Value());
 
         num_triangles += element.mesh->NumIndices() / 3;
     }
@@ -1253,6 +1271,8 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
     HYP_LOG(Lightmap, LogLevel::INFO, "Processing {} lightmap jobs...", num_jobs);
 
     // Trace lightmap on CPU
+    Mutex::Guard guard(m_queue_mutex);
+
     AssertThrow(!m_queue.Empty());
     LightmapJob *job = m_queue.Front().Get();
 
@@ -1272,7 +1292,7 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
 
 void Lightmapper::HandleCompletedJob(LightmapJob *job)
 {
-    HYP_LOG(Lightmap, LogLevel::DEBUG, "Tracing completed for lightmapping job {}...\n", job->GetUUID());
+    HYP_LOG(Lightmap, LogLevel::DEBUG, "Tracing completed for lightmapping job {}...", job->GetUUID());
 
     const LightmapUVMap &uv_map = job->GetUVMap();
 
@@ -1400,6 +1420,8 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             });
         }        
     }
+
+    Mutex::Guard guard(m_queue_mutex);
 
     m_queue.Pop();
     m_num_jobs.Decrement(1, MemoryOrder::RELEASE);

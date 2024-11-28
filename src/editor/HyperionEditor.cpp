@@ -8,6 +8,7 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>

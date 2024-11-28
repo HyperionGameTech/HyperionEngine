@@ -1,4 +1,5 @@
 #include <rendering/RenderResources.hpp>
+#include <rendering/Buffers.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
 #include <core/containers/TypeMap.hpp>
@@ -41,6 +42,7 @@ HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID 
 RenderResourcesBase::RenderResourcesBase()
     : m_is_initialized(false),
       m_buffer_index(~0u),
+      m_buffer_address(nullptr),
       m_ref_count(0),
       m_update_counter(0)
 {
@@ -49,23 +51,29 @@ RenderResourcesBase::RenderResourcesBase()
 RenderResourcesBase::RenderResourcesBase(RenderResourcesBase &&other) noexcept
     : m_is_initialized(other.m_is_initialized),
       m_buffer_index(other.m_buffer_index),
+      m_buffer_address(other.m_buffer_address),
       m_ref_count(other.m_ref_count.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
     other.m_is_initialized = false;
     other.m_buffer_index = ~0u;
+    other.m_buffer_address = nullptr;
 }
 
-RenderResourcesBase::~RenderResourcesBase() = default;
+RenderResourcesBase::~RenderResourcesBase()
+{
+    // Ensure that the resources are no longer being used
+    AssertThrowMsg(m_completion_semaphore.IsInSignalState(), "RenderResources destroyed while still in use, was WaitForCompletion() called?");
+}
 
 void RenderResourcesBase::Claim()
 {
     struct RENDER_COMMAND(InitializeRenderResources) : renderer::RenderCommand
     {
-        Weak<RenderResourcesBase>   render_resources_weak;
+        RenderResourcesBase *render_resources;
 
-        RENDER_COMMAND(InitializeRenderResources)(const Weak<RenderResourcesBase> &render_resources_weak)
-            : render_resources_weak(render_resources_weak)
+        RENDER_COMMAND(InitializeRenderResources)(RenderResourcesBase *render_resources)
+            : render_resources(render_resources)
         {
         }
 
@@ -73,40 +81,38 @@ void RenderResourcesBase::Claim()
 
         virtual renderer::Result operator()() override
         {
-            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
-                {
-                    HYP_NAMED_SCOPE("Initializing RenderResources - Initialization");
-                        
-                    // Wait for pre-init to complete
-                    render_resources->m_pre_init_semaphore.Acquire();
+            {
+                HYP_NAMED_SCOPE("Initializing RenderResources - Initialization");
 
-                    HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
-
-                    AssertThrow(!render_resources->m_is_initialized);
+                HYP_LOG(RenderResources, LogLevel::INFO, "Initializing RenderResources of type {}", render_resources->GetTypeName());
                     
-                    AssertThrow(render_resources->m_buffer_index == ~0u);
-                    render_resources->m_buffer_index = render_resources->AcquireBufferIndex();
+                // Wait for pre-init to complete
+                render_resources->m_pre_init_semaphore.Acquire();
 
-                    render_resources->Initialize();
-                    render_resources->m_is_initialized = true;
+                HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
+
+                AssertThrow(!render_resources->m_is_initialized);
+                
+                AssertThrow(render_resources->m_buffer_index == ~0u);
+                render_resources->AcquireBufferIndex();
+
+                render_resources->Initialize();
+                render_resources->m_is_initialized = true;
+            }
+
+            {
+                HYP_NAMED_SCOPE("Initializing RenderResources - Post-Initialization Update");
+
+                // Perform any updates that were requested before initialization
+                int16 current_count = render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE);
+
+                while (current_count != 0) {
+                    AssertThrow(current_count > 0);
+
+                    render_resources->Update();
+
+                    current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
                 }
-
-                {
-                    HYP_NAMED_SCOPE("Initializing RenderResources - Post-Initialization Update");
-
-                    // Perform any updates that were requested before initialization
-                    int16 current_count = render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE);
-
-                    while (current_count != 0) {
-                        AssertThrow(current_count > 0);
-
-                        render_resources->Update();
-
-                        current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
-                    }
-                }
-            } else {
-                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
             }
 
             return { };
@@ -121,7 +127,7 @@ void RenderResourcesBase::Claim()
 
         m_completion_semaphore.Produce(1);
 
-        PUSH_RENDER_COMMAND(InitializeRenderResources, WeakRefCountedPtrFromThis());
+        PUSH_RENDER_COMMAND(InitializeRenderResources, this);
     });
 }
 
@@ -129,10 +135,10 @@ void RenderResourcesBase::Unclaim()
 {
     struct RENDER_COMMAND(DestroyRenderResources) : renderer::RenderCommand
     {
-        Weak<RenderResourcesBase>   render_resources_weak;
+        RenderResourcesBase *render_resources;
 
-        RENDER_COMMAND(DestroyRenderResources)(const Weak<RenderResourcesBase> &render_resources_weak)
-            : render_resources_weak(render_resources_weak)
+        RENDER_COMMAND(DestroyRenderResources)(RenderResourcesBase *render_resources)
+            : render_resources(render_resources)
         {
         }
 
@@ -140,28 +146,21 @@ void RenderResourcesBase::Unclaim()
 
         virtual renderer::Result operator()() override
         {
-            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
-                HYP_NAMED_SCOPE("Destroying RenderResources");
+            HYP_NAMED_SCOPE("Destroying RenderResources");
 
-                HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
+            HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
 
-                AssertThrow(render_resources->m_is_initialized);
+            AssertThrow(render_resources->m_is_initialized);
 
-                if (render_resources->m_buffer_index != ~0u) {
-                    render_resources->ReleaseBufferIndex(render_resources->m_buffer_index);
-                    render_resources->m_buffer_index = ~0u;
-                }
-
-                render_resources->Destroy();
-
-                render_resources->m_is_initialized = false;
-
-                render_resources->m_completion_semaphore.Release(1);
-            } else {
-                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
-
-                HYP_FAIL("Render resources expired before safe destruction could be performed");
+            if (render_resources->m_buffer_index != ~0u) {
+                render_resources->ReleaseBufferIndex();
             }
+
+            render_resources->Destroy();
+
+            render_resources->m_is_initialized = false;
+
+            render_resources->m_completion_semaphore.Release(1);
 
             return { };
         }
@@ -174,7 +173,7 @@ void RenderResourcesBase::Unclaim()
         // Must be put into non-initialized state to destroy
         AssertThrow(!is_signalled);
 
-        PUSH_RENDER_COMMAND(DestroyRenderResources, WeakRefCountedPtrFromThis());
+        PUSH_RENDER_COMMAND(DestroyRenderResources, this);
     });
 }
 
@@ -182,11 +181,11 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
 {
     struct RENDER_COMMAND(ExecuteOnRenderThread) : renderer::RenderCommand
     {
-        Weak<RenderResourcesBase>   render_resources_weak;
-        Proc<void>                  proc;
+        RenderResourcesBase *render_resources;
+        Proc<void>          proc;
 
-        RENDER_COMMAND(ExecuteOnRenderThread)(const Weak<RenderResourcesBase> &render_resources_weak, Proc<void> &&proc)
-            : render_resources_weak(render_resources_weak),
+        RENDER_COMMAND(ExecuteOnRenderThread)(RenderResourcesBase *render_resources, Proc<void> &&proc)
+            : render_resources(render_resources),
               proc(std::move(proc))
         {
         }
@@ -195,17 +194,13 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
 
         virtual renderer::Result operator()() override
         {
-            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
-                HYP_NAMED_SCOPE("Executing RenderResources Command on Render Thread");
+            HYP_NAMED_SCOPE("Executing RenderResources Command on Render Thread");
 
-                HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
+            HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
 
-                proc();
+            proc();
 
-                render_resources->m_completion_semaphore.Release(1);
-            } else {
-                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
-            }
+            render_resources->m_completion_semaphore.Release(1);
 
             return { };
         }
@@ -243,17 +238,17 @@ void RenderResourcesBase::Execute(Proc<void> &&proc, bool force_render_thread)
     }
 
     // Execute on render thread
-    PUSH_RENDER_COMMAND(ExecuteOnRenderThread, WeakRefCountedPtrFromThis(), std::move(proc));
+    PUSH_RENDER_COMMAND(ExecuteOnRenderThread, this, std::move(proc));
 }
 
 void RenderResourcesBase::SetNeedsUpdate()
 {
     struct RENDER_COMMAND(ApplyRenderResourcesUpdates) : renderer::RenderCommand
     {
-        Weak<RenderResourcesBase>   render_resources_weak;
+        RenderResourcesBase *render_resources;
 
-        RENDER_COMMAND(ApplyRenderResourcesUpdates)(const Weak<RenderResourcesBase> &render_resources_weak)
-            : render_resources_weak(render_resources_weak)
+        RENDER_COMMAND(ApplyRenderResourcesUpdates)(RenderResourcesBase *render_resources)
+            : render_resources(render_resources)
         {
         }
 
@@ -261,28 +256,24 @@ void RenderResourcesBase::SetNeedsUpdate()
 
         virtual renderer::Result operator()() override
         {
-            if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
-                HYP_NAMED_SCOPE("Applying RenderResources Updates on Render Thread");
+            HYP_NAMED_SCOPE("Applying RenderResources Updates on Render Thread");
+            
+            int16 current_count = render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE);
+
+            while (current_count != 0) {
+                HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
+
+                AssertThrow(current_count > 0);
+
+                // Only should get here if already initialized due to the check when SetNeedsUpdate() is called
+                AssertThrow(render_resources->m_is_initialized);
                 
-                int16 current_count = render_resources->m_update_counter.Get(MemoryOrder::ACQUIRE);
+                render_resources->Update();
 
-                while (current_count != 0) {
-                    HYP_MT_CHECK_RW(render_resources->m_data_race_detector);
-
-                    AssertThrow(current_count > 0);
-
-                    // Only should get here if already initialized due to the check when SetNeedsUpdate() is called
-                    AssertThrow(render_resources->m_is_initialized);
-                    
-                    render_resources->Update();
-
-                    current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
-                }
-
-                render_resources->m_completion_semaphore.Release(1);
-            } else {
-                HYP_LOG(RenderResources, LogLevel::WARNING, "Render resources expired");
+                current_count = render_resources->m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
             }
+
+            render_resources->m_completion_semaphore.Release(1);
 
             return { };
         }
@@ -313,7 +304,7 @@ void RenderResourcesBase::SetNeedsUpdate()
 
     m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
-    PUSH_RENDER_COMMAND(ApplyRenderResourcesUpdates, WeakRefCountedPtrFromThis());
+    PUSH_RENDER_COMMAND(ApplyRenderResourcesUpdates, this);
 }
 
 void RenderResourcesBase::WaitForCompletion()
@@ -346,6 +337,86 @@ void RenderResourcesBase::WaitForCompletion()
     m_completion_semaphore.Acquire();
 }
 
+void RenderResourcesBase::AcquireBufferIndex()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertThrow(m_buffer_index == ~0u);
+
+    GPUBufferHolderBase *holder = GetGPUBufferHolder();
+
+    if (holder == nullptr) {
+        return;
+    }
+
+    m_buffer_index = holder->AcquireIndex(&m_buffer_address);
+}
+
+void RenderResourcesBase::ReleaseBufferIndex()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertThrow(m_buffer_index != ~0u);
+
+    GPUBufferHolderBase *holder = GetGPUBufferHolder();
+    AssertThrow(holder != nullptr);
+
+    holder->ReleaseIndex(m_buffer_index);
+
+    m_buffer_index = ~0u;
+    m_buffer_address = nullptr;
+}
+
 #pragma endregion RenderResourcesBase
+
+class NullRenderResources final : public RenderResourcesBase
+{
+public:
+    NullRenderResources()                                       = default;
+    NullRenderResources(NullRenderResources &&other) noexcept   = default;
+    virtual ~NullRenderResources() override                     = default;
+
+protected:
+    virtual bool IsNull() const override
+    {
+        return true;
+    }
+
+    virtual void Initialize() override
+    {
+        // Do nothing
+    }
+
+    virtual void Destroy() override
+    {
+        // Do nothing
+    }
+
+    virtual void Update() override
+    {
+        // Do nothing
+    }
+
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override
+    {
+        return nullptr;
+    }
+
+    virtual Name GetTypeName() const override
+    {
+        return NAME("NullRenderResources");
+    }
+};
+
+HYP_API RenderResourcesBase &GetNullRenderResources()
+{
+    static NullRenderResources empty;
+
+    return empty;
+}
 
 } // namespace hyperion

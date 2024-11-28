@@ -227,15 +227,13 @@ Handle<Entity> EntityManager::AddEntity()
 
     Threads::AssertOnThread(m_owner_thread_mask);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
-
-    //auto *entity_container = hyperion::GetContainer<Entity>();
         
-    ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<Entity>(HandleDefinition<Entity>::GetAllottedContainerPointer());
+    ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetOrCreate<Entity>();
     
-    const uint32 index = container.NextIndex();
-    container.ConstructAtIndex(index);
+    HypObjectMemory<Entity> *memory = container.Allocate();
+    memory->Construct();
     
-    Handle<Entity> entity { ID<Entity>::FromIndex(index) };
+    Handle<Entity> entity { memory };
 
     HYP_LOG(ECS, LogLevel::DEBUG, "Add entity #{} to entity manager {}", entity.GetID().Value(), (void *)this);
     GetEntityToEntityManagerMap().Add(entity.GetID(), this);

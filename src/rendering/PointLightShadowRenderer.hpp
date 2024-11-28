@@ -4,6 +4,7 @@
 #define HYPERION_POINT_LIGHT_SHADOW_RENDERER_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -12,11 +13,11 @@
 #include <rendering/backend/RenderObject.hpp>
 
 #include <math/BoundingBox.hpp>
-#include <scene/camera/Camera.hpp>
 
 namespace hyperion {
 
 class Light;
+class EnvProbe;
 
 HYP_CLASS()
 class HYP_API PointLightShadowRenderer : public RenderComponentBase

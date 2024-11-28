@@ -176,7 +176,7 @@ EnvProbe::EnvProbe(
     const Vec2u &dimensions,
     EnvProbeType env_probe_type,
     const ShaderRef &custom_shader
-) : BasicObject(),
+) : HypObject(),
     m_parent_scene(parent_scene),
     m_aabb(aabb),
     m_dimensions(dimensions),
@@ -217,7 +217,7 @@ void EnvProbe::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
@@ -573,7 +573,7 @@ void EnvProbe::Render(Frame *frame)
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
-        g_engine->GetRenderState().UnbindCamera();
+        g_engine->GetRenderState().UnbindCamera(m_camera.Get());
         g_engine->GetRenderState().UnbindScene();
 
         if (light_render_resources_handle != nullptr) {

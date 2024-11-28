@@ -14,6 +14,8 @@
 
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -43,16 +45,8 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class HYP_API BasicObjectBase
-{
-protected:
-    BasicObjectBase() = default;
-    BasicObjectBase(BasicObjectBase &&other) noexcept;
-    ~BasicObjectBase();
-};
-
 template <class T>
-class BasicObject : public BasicObjectBase
+class HypObject : public HypObjectBase
 {
     using InnerType = T;
 
@@ -64,32 +58,25 @@ public:
         INIT_STATE_READY            = 0x2
     };
 
-    BasicObject()
+    HypObject()
         : m_init_state(INIT_STATE_UNINITIALIZED)
     {
     }
 
-    BasicObject(const BasicObject &other)               = delete;
-    BasicObject &operator=(const BasicObject &other)    = delete;
+    HypObject(const HypObject &other)               = delete;
+    HypObject &operator=(const HypObject &other)    = delete;
 
-    BasicObject(BasicObject &&other) noexcept
-        : m_id(other.m_id),
-          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
+    HypObject(HypObject &&other) noexcept
+        : m_init_state(other.m_init_state.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE))
     {
-        other.m_id = ID<T> { };
-        other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
     }
 
-    BasicObject &operator=(BasicObject &&other) noexcept = delete;
+    HypObject &operator=(HypObject &&other) noexcept = delete;
 
-    ~BasicObject() = default;
+    virtual ~HypObject() override = default;
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
-        { return m_id; }
-
-    /* To be called from ObjectHolder<Type> */
-    HYP_FORCE_INLINE void SetID(ID<InnerType> id)
-        { m_id = id; }
+        { return ID<InnerType>(HypObjectBase::GetID().Value()); }
 
     HYP_FORCE_INLINE bool IsInitCalled() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }
@@ -107,14 +94,18 @@ public:
 
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
     {
-        AssertThrowMsg(m_id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
-        return Handle<T>(m_id);
+        ID<InnerType> id = GetID();
+        AssertThrowMsg(id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
+
+        return Handle<T>(id);
     }
 
     HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
     {
-        AssertThrowMsg(m_id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
-        return WeakHandle<T>(m_id);
+        ID<InnerType> id = GetID();
+        AssertThrowMsg(id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
+
+        return WeakHandle<T>(id);
     }
 
 protected:
@@ -150,13 +141,9 @@ protected:
         m_delegate_handlers.PushBack(std::move(delegate_handler));
     }
     
-    ID<InnerType>               m_id;
     AtomicVar<uint16>           m_init_state;
     Array<DelegateHandler>      m_delegate_handlers;
 };
-
-// template <class T>
-// const ClassInfo<T> BasicObject<T>::s_class_info = { };
 
 } // namespace hyperion
 

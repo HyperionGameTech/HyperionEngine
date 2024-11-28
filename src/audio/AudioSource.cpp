@@ -8,7 +8,7 @@
 namespace hyperion {
 
 AudioSource::AudioSource()
-    : BasicObject(),
+    : HypObject(),
       m_format(AudioSourceFormat::MONO8),
       m_freq(0),
       m_buffer_id(~0u),
@@ -18,7 +18,7 @@ AudioSource::AudioSource()
 }
 
 AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer &byte_buffer, uint64 freq)
-    : BasicObject(),
+    : HypObject(),
       m_format(format),
       m_data(byte_buffer),
       m_freq(freq),
@@ -29,7 +29,7 @@ AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer &byte_buffer
 }
 
 AudioSource::AudioSource(AudioSource &&other) noexcept
-    : BasicObject(),
+    : HypObject(),
       m_format(other.m_format),
       m_freq(other.m_freq),
       m_data(std::move(other.m_data)),
@@ -87,7 +87,7 @@ void AudioSource::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     if (AudioManager::GetInstance()->IsInitialized()) {
         auto al_format = AL_FORMAT_MONO8;

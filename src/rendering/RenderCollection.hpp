@@ -72,45 +72,14 @@ constexpr PassType BucketToPassType(Bucket bucket)
     return pass_type_per_bucket[uint(bucket)];
 }
 
-struct RenderProxyGroup
-{
-    RenderProxyEntityMap    m_render_proxies;
-    Handle<RenderGroup>     m_render_group;
-
-public:
-    RenderProxyGroup() = default;
-    RenderProxyGroup(const RenderProxyGroup &other);
-    RenderProxyGroup &operator=(const RenderProxyGroup &other);
-    RenderProxyGroup(RenderProxyGroup &&other) noexcept;
-    RenderProxyGroup &operator=(RenderProxyGroup &&other) noexcept;
-    ~RenderProxyGroup() = default;
-
-    void ClearProxies();
-
-    void AddRenderProxy(const RenderProxy &render_proxy);
-
-    bool RemoveRenderProxy(ID<Entity> entity);
-    typename RenderProxyEntityMap::Iterator RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator);
-
-    HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
-        { return m_render_proxies; }
-
-    void ResetRenderGroup();
-
-    void SetRenderGroup(const Handle<RenderGroup> &render_group);
-
-    HYP_FORCE_INLINE const Handle<RenderGroup> &GetRenderGroup() const
-        { return m_render_group; }
-};
-
 class EntityDrawCollection
 {
 public:
-    void ClearProxyGroups(bool reset_render_groups = false);
+    void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
 
-    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();
-    const FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups() const;
+    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups();
+    const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups() const;
 
     RenderProxyList &GetProxyList(ThreadType);
     const RenderProxyList &GetProxyList(ThreadType) const;
@@ -118,7 +87,7 @@ public:
     uint32 NumRenderGroups() const;
 
 private:
-    FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX>    m_proxy_groups;
+    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> m_proxy_groups;
     FixedArray<RenderProxyList, 2>                                                  m_proxy_lists;
 };
 

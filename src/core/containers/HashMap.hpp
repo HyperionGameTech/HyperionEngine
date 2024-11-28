@@ -460,7 +460,7 @@ public:
     HYP_FORCE_INLINE bool Contains(const TFindAsType &key) const
         { return FindAs<TFindAsType>(key) != End(); }
     
-    Iterator Erase(Iterator iter);
+    Iterator Erase(ConstIterator iter);
     bool Erase(const KeyType &key);
 
     void Set(const KeyType &key, const ValueType &value);
@@ -710,7 +710,7 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) const -> ConstIterato
 }
 
 template <class KeyType, class ValueType>
-auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
+auto HashMap<KeyType, ValueType>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End()) {
         return End();
@@ -725,18 +725,18 @@ auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
     }
 
     if (iter.bucket_iter.element == iter.bucket_iter.bucket->head) {
-        iter.bucket_iter.bucket->head = iter.bucket_iter.element->next;
+        const_cast<detail::HashBucket<KeyType, ValueType> *>(iter.bucket_iter.bucket)->head = iter.bucket_iter.element->next;
     }
 
     if (iter.bucket_iter.element == iter.bucket_iter.bucket->tail) {
-        iter.bucket_iter.bucket->tail = prev;
+        const_cast<detail::HashBucket<KeyType, ValueType> *>(iter.bucket_iter.bucket)->tail = prev;
     }
 
     if (prev != nullptr) {
         prev->next = iter.bucket_iter.element->next;
     }
 
-    Iterator next_iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { iter.bucket_iter.bucket, iter.bucket_iter.element->next });
+    Iterator next_iterator(this, typename detail::HashBucket<KeyType, ValueType>::Iterator { const_cast<detail::HashBucket<KeyType, ValueType> *>(iter.bucket_iter.bucket), iter.bucket_iter.element->next });
 
     delete iter.bucket_iter.element;
 

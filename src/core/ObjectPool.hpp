@@ -8,17 +8,16 @@
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
 
-#include <core/object/HypObject.hpp>
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/system/Debug.hpp>
 
-#include <core/containers/LinkedList.hpp>
-
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Memory.hpp>
+#include <core/memory/MemoryPool.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -36,146 +35,246 @@ struct HandleDefinition;
 template <class T>
 class ObjectContainer;
 
-class ObjectContainerBase
+class IObjectContainer;
+
+struct HypObjectHeader;
+
+class HypClass;
+
+class IObjectContainer
 {
 public:
-    virtual ~ObjectContainerBase() = default;
+    virtual ~IObjectContainer() = default;
+    
+    virtual void IncRefStrong(HypObjectHeader *) = 0;
+    virtual void IncRefWeak(HypObjectHeader *) = 0;
+    virtual void DecRefStrong(HypObjectHeader *) = 0;
+    virtual void DecRefWeak(HypObjectHeader *) = 0;
+    virtual uint32 GetRefCountStrong(HypObjectHeader *) = 0;
+    virtual uint32 GetRefCountWeak(HypObjectHeader *) = 0;
+    virtual HypObjectBase *Release(HypObjectHeader *) = 0;
 
-    virtual uint32 NextIndex() = 0;
-
-    /*! \brief Check if an object at the given address is a valid object within this ObjectContainer instance. */
-    virtual bool IsValidObject(const void *address) const = 0;
-
-    /*! \brief Get TypeID for any object held in this container */
+    virtual HypObjectBase *GetObject(HypObjectHeader *) = 0;
+    virtual HypObjectHeader *GetObjectHeader(uint32 index) = 0;
+    virtual HypObjectHeader *GetDefaultObjectHeader() = 0;
+    virtual uint32 GetObjectIndex(const HypObjectHeader *ptr) = 0;
     virtual TypeID GetObjectTypeID() const = 0;
+    virtual const HypClass *GetObjectClass() const = 0;
 
-    /*! \brief If the object at the given address is a valid object within this ObjectContainer instance,
-     *  returns its given index. Otherwise, ~0u (-1) is returned. */
-    virtual uint32 GetObjectIndex(const void *address) const = 0;
-
-    virtual void *GetObjectPointer(uint32 index) = 0;
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
 
-    virtual void IncRefStrong(uint32 index) = 0;
-    virtual void IncRefWeak(uint32 index) = 0;
-    virtual void DecRefStrong(uint32 index) = 0;
-    virtual void DecRefWeak(uint32 index) = 0;
-    virtual uint32 GetRefCountStrong(uint32 index) = 0;
-    virtual uint32 GetRefCountWeak(uint32 index) = 0;
+    virtual void *ConstructAtIndex(uint32 index) = 0;
 
-    virtual void ConstructAtIndex(uint32 index) = 0;
+    virtual IDGenerator &GetIDGenerator() = 0;
+};
+
+/*! \brief Metadata for a generic object in the object pool. */
+struct HypObjectHeader
+{
+    IObjectContainer    *container;
+    uint32              index;
+    AtomicVar<uint32>   ref_count_strong;
+    AtomicVar<uint32>   ref_count_weak;
+
+#ifdef HYP_DEBUG_MODE
+    AtomicVar<bool>     has_value;
+#endif
+
+    HypObjectHeader()
+        : container(nullptr),
+          index(~0u),
+          ref_count_strong(0),
+          ref_count_weak(0)
+    {
+#ifdef HYP_DEBUG_MODE
+        has_value.Set(false, MemoryOrder::SEQUENTIAL);
+#endif
+    }
+
+    HypObjectHeader(const HypObjectHeader &)                = delete;
+    HypObjectHeader &operator=(const HypObjectHeader &)     = delete;
+    HypObjectHeader(HypObjectHeader &&) noexcept            = delete;
+    HypObjectHeader &operator=(HypObjectHeader &&) noexcept = delete;
+    ~HypObjectHeader()                                      = default;
+
+    HYP_FORCE_INLINE bool IsNull() const
+        { return index == ~0u; }
+
+    HYP_FORCE_INLINE uint32 GetRefCountStrong() const
+        { return ref_count_strong.Get(MemoryOrder::ACQUIRE); }
+
+    HYP_FORCE_INLINE uint32 GetRefCountWeak() const
+        { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
+
+    HYP_FORCE_INLINE void IncRefStrong()
+    {
+#ifdef HYP_DEBUG_MODE
+        uint32 count = ref_count_strong.Increment(1, MemoryOrder::RELAXED);
+        AssertThrow(count < UINT32_MAX);
+#else
+        ref_count_strong.Increment(1, MemoryOrder::RELAXED)
+#endif
+    }
+
+    HYP_FORCE_INLINE void IncRefWeak()
+    {
+#ifdef HYP_DEBUG_MODE
+        uint32 count = ref_count_weak.Increment(1, MemoryOrder::RELAXED);
+        AssertThrow(count < UINT32_MAX);
+#else
+        ref_count_weak.Increment(1, MemoryOrder::RELAXED);
+#endif
+    }
+
+    HYP_FORCE_INLINE void DecRefStrong()
+        { container->DecRefStrong(this); }
+
+    HYP_FORCE_INLINE void DecRefWeak()
+        { container->DecRefWeak(this); }
+
+    HYP_FORCE_INLINE HypObjectBase *Release()
+        { return container->Release(this); }
+};
+
+/*! \brief Memory storage for T where T is a subclass of HypObjectBase.
+ *  Derives from HypObjectHeader to store reference counts and other information at the start of the memory. */
+template <class T>
+struct HypObjectMemory final : HypObjectHeader
+{
+    static_assert(std::is_base_of_v<HypObjectBase, T>, "T must be a subclass of HypObjectBase");
+
+    alignas(T) ubyte    bytes[sizeof(T)];
+
+    HypObjectMemory()                                       = default;
+    HypObjectMemory(const HypObjectMemory &)                = delete;
+    HypObjectMemory &operator=(const HypObjectMemory &)     = delete;
+    HypObjectMemory(HypObjectMemory &&) noexcept            = delete;
+    HypObjectMemory &operator=(HypObjectMemory &&) noexcept = delete;
+    ~HypObjectMemory()                                      = default;
+
+    template <class... Args>
+    T *Construct(Args &&... args)
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(!has_value.Exchange(true, MemoryOrder::SEQUENTIAL));
+#endif
+
+        T *ptr = reinterpret_cast<T *>(&bytes[0]);
+
+        // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
+        HypObjectInitializerGuard<T> context { ptr };
+
+        // Set the object header to point to this
+        ptr->HypObjectBase::m_header = static_cast<HypObjectHeader *>(this);
+
+        Memory::Construct<T>(static_cast<void *>(ptr), std::forward<Args>(args)...);
+
+        return ptr;
+    }
+
+    uint32 DecRefStrong()
+    {
+        uint32 count;
+
+        if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(has_value.Exchange(false, MemoryOrder::SEQUENTIAL));
+
+            AssertThrow(container != nullptr);
+            AssertThrow(index != ~0u);
+#endif
+
+            reinterpret_cast<T *>(bytes)->~T();
+
+            if (ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0) {
+                // Free the slot for this
+                container->GetIDGenerator().FreeID(index + 1);
+            }
+        }
+
+        AssertDebug(count != 0);
+
+        return count - 1;
+    }
+
+    uint32 DecRefWeak()
+    {
+        uint32 count;
+
+        if ((count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(container != nullptr);
+            AssertThrow(index != ~0u);
+#endif
+
+            if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0) {
+#ifdef HYP_DEBUG_MODE
+                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
+#endif
+
+                // Free the slot for this
+                container->GetIDGenerator().FreeID(index + 1);
+            }
+        }
+
+        AssertDebug(count != 0);
+
+        return count - 1;
+    }
+
+    T *Release()
+    {
+        T *ptr = reinterpret_cast<T *>(bytes);
+
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(has_value.Get(MemoryOrder::SEQUENTIAL));
+
+        AssertThrow(container != nullptr);
+        AssertThrow(index != ~0u);
+#endif
+
+        const uint32 count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+        AssertDebug(count != 0);
+
+        return ptr;
+    }
+
+    HYP_FORCE_INLINE T &Get()
+        { return *reinterpret_cast<T *>(bytes); }
+
+    HYP_FORCE_INLINE T *GetPointer()
+        { return reinterpret_cast<T *>(bytes); }
+
+    HYP_FORCE_INLINE const T *GetPointer() const
+        { return reinterpret_cast<const T *>(bytes); }
 };
 
 template <class T>
-class ObjectContainer final : public ObjectContainerBase
+static inline void ObjectContainer_OnBlockAllocated(void *ctx, HypObjectMemory<T> *elements, uint32 offset, uint32 count)
 {
-    struct ObjectBytes
-    {
-        alignas(T) ubyte    bytes[sizeof(T)];
-        AtomicVar<uint16>   ref_count_strong;
-        AtomicVar<uint16>   ref_count_weak;
+    IObjectContainer *container = static_cast<ObjectContainer<T> *>(ctx);
+    AssertThrow(container != nullptr);
 
-#ifdef HYP_OBJECT_POOL_DEBUG
-        bool                has_value;
-#endif
+    for (uint32 index = 0; index < count; index++) {
+        elements[index].container = container;
+        elements[index].index = offset + index;
+    }
+}
 
-        ObjectBytes()
-            : ref_count_strong(0),
-              ref_count_weak(0)
-        {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            has_value = false;
-#endif
-        }
+template <class T>
+class ObjectContainer final : public IObjectContainer
+{
+    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, 2048, ObjectContainer_OnBlockAllocated<T>>;
 
-        ObjectBytes(const ObjectBytes &)                = delete;
-        ObjectBytes &operator=(const ObjectBytes &)     = delete;
-        ObjectBytes(ObjectBytes &&) noexcept            = delete;
-        ObjectBytes &operator=(ObjectBytes &&) noexcept = delete;
-
-        ~ObjectBytes()
-        {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            AssertThrow(!HasValue());
-#endif
-        }
-
-        template <class... Args>
-        T *Construct(Args &&... args)
-        {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            AssertThrow(!HasValue());
-#endif
-
-            Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(bytes, std::forward<Args>(args)...);
-
-            return reinterpret_cast<T *>(&bytes[0]);
-        }
-
-        HYP_FORCE_INLINE void IncRefStrong()
-        {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            AssertThrow(HasValue());
-#endif
-
-            ref_count_strong.Increment(1, MemoryOrder::RELAXED);
-        }
-
-        HYP_FORCE_INLINE void IncRefWeak()
-        {
-            ref_count_weak.Increment(1, MemoryOrder::RELAXED);
-        }
-
-        uint32 DecRefStrong()
-        {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            AssertThrow(HasValue());
-#endif
-
-            uint16 count;
-
-            if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
-                reinterpret_cast<T *>(bytes)->~T();
-            }
-
-            return uint(count) - 1;
-        }
-
-        uint32 DecRefWeak()
-        {
-            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
-
-            return uint32(count) - 1;
-        }
-
-        HYP_FORCE_INLINE uint32 GetRefCountStrong() const
-            { return uint32(ref_count_strong.Get(MemoryOrder::ACQUIRE)); }
-
-        HYP_FORCE_INLINE uint32 GetRefCountWeak() const
-            { return uint32(ref_count_weak.Get(MemoryOrder::ACQUIRE)); }
-
-        HYP_FORCE_INLINE T &Get()
-            { return *reinterpret_cast<T *>(bytes); }
-
-        HYP_FORCE_INLINE T *GetPointer()
-            { return reinterpret_cast<T *>(bytes); }
-
-        HYP_FORCE_INLINE const T *GetPointer() const
-            { return reinterpret_cast<const T *>(bytes); }
-
-    private:
-#ifdef HYP_OBJECT_POOL_DEBUG
-        HYP_FORCE_INLINE bool HasValue() const
-            { return has_value; }
-#endif
-    };
+    using HypObjectMemory = HypObjectMemory<T>;
 
 public:
-    static constexpr SizeType max_size = HandleDefinition<T>::max_size;
-
     ObjectContainer()
-        : m_size(0)
+        : m_pool(2048, /* create_initial_blocks */ true, /* block_init_ctx */ this)
     {
+        // Initialize the default / null object
+        m_default_object.container = this;
+        m_default_object.index = ~0u;
     }
 
     ObjectContainer(const ObjectContainer &other)                   = delete;
@@ -184,29 +283,82 @@ public:
     ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
     virtual ~ObjectContainer() override                             = default;
 
-    virtual uint32 NextIndex() override
+    HYP_NODISCARD HYP_FORCE_INLINE HypObjectMemory *Allocate()
     {
-        const uint32 index = m_id_generator.NextID() - 1;
+        HypObjectMemory *element;
+        uint32 index = m_pool.AcquireIndex(&element);
 
-        AssertThrowMsg(
-            index < HandleDefinition<T>::max_size,
-            "Maximum number of type '%s' allocated! Maximum: %llu\n",
-            TypeName<T>().Data(),
-            HandleDefinition<T>::max_size
-        );
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(uintptr_t(element->container) == uintptr_t(this));
+        AssertThrow(element->index == index);
+#endif
 
-        return index;
+        return element;
     }
 
-    virtual bool IsValidObject(const void *address) const override
+    virtual void IncRefStrong(HypObjectHeader *ptr) override
     {
-        const uintptr_t addr = reinterpret_cast<uintptr_t>(address);
+        static_cast<HypObjectMemory *>(ptr)->IncRefStrong();
+    }
 
-        if (addr < reinterpret_cast<uintptr_t>(&m_data[0]) || addr > reinterpret_cast<uintptr_t>(&m_data[max_size - 1]) + offsetof(ObjectBytes, bytes)) {
-            return false;
+    virtual void IncRefWeak(HypObjectHeader *ptr) override
+    {
+        static_cast<HypObjectMemory *>(ptr)->IncRefWeak();
+    }
+
+    virtual void DecRefStrong(HypObjectHeader *ptr) override
+    {
+        // Have to call the derived implementation or it will recursive infinitely
+        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefStrong();
+    }
+
+    virtual void DecRefWeak(HypObjectHeader *ptr) override
+    {
+        // Have to call the derived implementation or it will recursive infinitely
+        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefWeak();
+    }
+
+    virtual uint32 GetRefCountStrong(HypObjectHeader *ptr) override
+    {
+        return static_cast<HypObjectMemory *>(ptr)->GetRefCountStrong();
+    }
+
+    virtual uint32 GetRefCountWeak(HypObjectHeader *ptr) override
+    {
+        return static_cast<HypObjectMemory *>(ptr)->GetRefCountWeak();
+    }
+
+    virtual HypObjectBase *Release(HypObjectHeader *ptr) override
+    {
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::Release();
+    }
+
+    virtual HypObjectBase *GetObject(HypObjectHeader *ptr) override
+    {
+        if (!ptr) {
+            return nullptr;
         }
 
-        return ((addr - reinterpret_cast<uintptr_t>(&m_data[0]) - offsetof(ObjectBytes, bytes)) % sizeof(ObjectBytes)) == 0;
+        return static_cast<HypObjectMemory *>(ptr)->GetPointer();
+    }
+
+    virtual HypObjectHeader *GetObjectHeader(uint32 index) override
+    {
+        return &m_pool.GetElement(index);
+    }
+
+    virtual HypObjectHeader *GetDefaultObjectHeader() override
+    {
+        return &m_default_object;
+    }
+
+    virtual uint32 GetObjectIndex(const HypObjectHeader *ptr) override
+    {
+        if (!ptr) {
+            return ~0u;
+        }
+
+        return static_cast<const HypObjectMemory *>(ptr)->index;
     }
 
     virtual TypeID GetObjectTypeID() const override
@@ -216,206 +368,111 @@ public:
         return type_id;
     }
 
-    virtual uint32 GetObjectIndex(const void *address) const override
+    virtual const HypClass *GetObjectClass() const override
     {
-        if (!IsValidObject(address)) {
-            return ~0u;
-        }
-        
-        const uintptr_t addr = reinterpret_cast<uintptr_t>(address);
-        const uintptr_t base_ptr = addr - reinterpret_cast<uintptr_t>(&m_data[0]) - offsetof(ObjectBytes, bytes);
+        static const HypClass *hyp_class = GetClass(TypeID::ForType<T>());
 
-        return uint32(base_ptr / sizeof(ObjectBytes));
-    }
-
-    virtual void *GetObjectPointer(uint32 index) override
-    {
-        return m_data[index].GetPointer();
+        return hyp_class;
     }
 
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) override
     {
         // check is temporary for now
         if constexpr (IsHypObject<T>::value) {
-            return m_data[index].Get().GetObjectInitializer();
+            return m_pool.GetElement(index).Get().GetObjectInitializer();
         }
 
         return nullptr;
     }
-
-    virtual void IncRefStrong(uint32 index) override
-    {
-        m_data[index].IncRefStrong();
-    }
-
-    virtual void IncRefWeak(uint32 index) override
-    {
-        m_data[index].IncRefWeak();
-    }
-
-    virtual void DecRefStrong(uint32 index) override
-    {
-        if (m_data[index].DecRefStrong() == 0) {
-#ifdef HYP_OBJECT_POOL_DEBUG
-            m_data[index].has_value = false;
-#endif
-
-            if (m_data[index].GetRefCountWeak() == 0) {
-                m_id_generator.FreeID(index + 1);
-            }
-        }
-    }
-
-    virtual void DecRefWeak(uint32 index) override
-    {
-        if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
-            m_id_generator.FreeID(index + 1);
-        }
-    }
-
-    virtual uint32 GetRefCountStrong(uint32 index) override
-    {
-        return m_data[index].GetRefCountStrong();
-    }
-
-    virtual uint32 GetRefCountWeak(uint32 index) override
-    {
-        return m_data[index].GetRefCountWeak();
-    }
-
-    HYP_FORCE_INLINE T *GetPointer(uint32 index)
-        { return m_data[index].GetPointer(); }
-
-    HYP_FORCE_INLINE const T *GetPointer(uint32 index) const
-        { return m_data[index].GetPointer(); }
-
-    HYP_FORCE_INLINE T &Get(uint32 index)
-        { return m_data[index].Get(); }
-
-    HYP_FORCE_INLINE ObjectBytes &GetObjectBytes(uint32 index)
-        { return m_data[index]; }
-
-    HYP_FORCE_INLINE const ObjectBytes &GetObjectBytes(uint32 index) const
-        { return m_data[index]; }
     
-    virtual void ConstructAtIndex(uint32 index) override
+    virtual void *ConstructAtIndex(uint32 index) override
     {
-        T *ptr = m_data[index].Construct();
+        HypObjectMemory &element = m_pool.GetElement(index);
+        element.Construct();
 
-#ifdef HYP_OBJECT_POOL_DEBUG
-        m_data[index].has_value = true;
-#endif
-
-        ptr->SetID(ID<T> { index + 1 });
+        return &element.Get();
     }
     
     template <class Arg0, class... Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(uint32 index, Arg0 &&arg0, Args &&... args)
+    HYP_FORCE_INLINE void *ConstructAtIndex(uint32 index, Arg0 &&arg0, Args &&... args)
     {
-        T *ptr = m_data[index].Construct(std::forward<Arg0>(arg0), std::forward<Args>(args)...);
+        HypObjectMemory &element = m_pool.GetElement(index);
+        element.Construct(std::forward<Arg0>(arg0), std::forward<Args>(args)...);
 
-#ifdef HYP_OBJECT_POOL_DEBUG
-        m_data[index].has_value = true;
-#endif
+        return &element.Get();
+    }
 
-        ptr->SetID(ID<T> { index + 1 });
+    virtual IDGenerator &GetIDGenerator() override
+    {
+        return m_pool.GetIDGenerator();
     }
 
 private:
-    HeapArray<ObjectBytes, max_size>    m_data;
-    SizeType                            m_size;
-    IDGenerator                         m_id_generator;
+    MemoryPoolType  m_pool;
+    HypObjectMemory m_default_object;
 };
 
 class ObjectPool
 {
 public:
-    struct ObjectContainerMap
+    class ObjectContainerMap
     {
         // Maps type ID to object container
-        // Use a linked list so that iterators are never invalidated.
-        LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>>    map;
+        // Use a linked list so that references are never invalidated.
+        LinkedList<Pair<TypeID, UniquePtr<IObjectContainer>>>   m_map;
+        Mutex                                                   m_mutex;
 
-#ifdef HYP_ENABLE_MT_CHECK
-        DataRaceDetector                                            data_race_detector;
-#endif
-
+    public:
         ObjectContainerMap()                                            = default;
         ObjectContainerMap(const ObjectContainerMap &)                  = delete;
         ObjectContainerMap &operator=(const ObjectContainerMap &)       = delete;
         ObjectContainerMap(ObjectContainerMap &&) noexcept              = delete;
         ObjectContainerMap &operator=(ObjectContainerMap &&) noexcept   = delete;
         ~ObjectContainerMap()                                           = default;
-    };
 
-    struct ObjectContainerHolder
-    {
         template <class T>
-        struct ObjectContainerDeclaration
+        ObjectContainer<T> &GetOrCreate()
         {
-            ObjectContainerDeclaration(UniquePtr<ObjectContainerBase> *allotted_container)
+            // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
+            static ObjectContainer<T> &container = static_cast<ObjectContainer<T> &>(GetOrCreate(TypeID::ForType<T>(), []() -> UniquePtr<IObjectContainer>
             {
-                AssertThrowMsg(allotted_container != nullptr, "Allotted container pointer was null!");
+                return MakeUnique<ObjectContainer<T>>();
+            }));
 
-                if (*allotted_container != nullptr) {
-                    // Already allocated
-                    return;
-                }
-
-                (*allotted_container) = MakeUnique<ObjectContainer<T>>();
-            }
-
-            ObjectContainerDeclaration(const ObjectContainerDeclaration &)                  = delete;
-            ObjectContainerDeclaration &operator=(const ObjectContainerDeclaration &)       = delete;
-            ObjectContainerDeclaration(ObjectContainerDeclaration &&) noexcept              = delete;
-            ObjectContainerDeclaration &operator=(ObjectContainerDeclaration &&) noexcept   = delete;
-            ~ObjectContainerDeclaration()                                                   = default;
-        };
-
-        ObjectContainerMap object_container_map;
-        
-        template <class T>
-        ObjectContainer<T> &GetObjectContainer(UniquePtr<ObjectContainerBase> *allotted_container)
-        {
-            static ObjectContainerDeclaration<T> object_container_declaration(allotted_container);
-
-            return *static_cast<ObjectContainer<T> *>((*allotted_container).Get());
+            return container;
         }
         
-        // Calls the callback function to allocate the ObjectContainer (if needed)
-        HYP_API UniquePtr<ObjectContainerBase> *AllotObjectContainer(TypeID type_id);
+        HYP_API IObjectContainer &Add(TypeID type_id);
 
-        HYP_API ObjectContainerBase &GetObjectContainer(TypeID type_id);
-        HYP_API ObjectContainerBase *TryGetObjectContainer(TypeID type_id);
+        HYP_API IObjectContainer &Get(TypeID type_id);
+        HYP_API IObjectContainer *TryGet(TypeID type_id);
+
+    private:
+        IObjectContainer &GetOrCreate(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void))
+        {
+            Mutex::Guard guard(m_mutex);
+
+            auto it = m_map.FindIf([type_id](const auto &element)
+            {
+                return element.first == type_id;
+            });
+
+            if (it != m_map.End()) {
+                if (it->second == nullptr) {
+                    it->second = create_fn();
+                }
+
+                return *it->second;
+            }
+
+            UniquePtr<IObjectContainer> container = create_fn();
+            AssertThrow(container != nullptr);
+
+            return *m_map.EmplaceBack(type_id, std::move(container)).second;
+        }
     };
 
-    HYP_API static ObjectContainerHolder &GetObjectContainerHolder();
-
-    template <class T>
-    HYP_FORCE_INLINE static ObjectContainer<T> &GetContainer(UniquePtr<ObjectContainerBase> &allotted_container)
-    {
-        static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
-
-        return GetObjectContainerHolder().GetObjectContainer<T>(allotted_container);
-    }
-
-    template <class T>
-    HYP_FORCE_INLINE static UniquePtr<ObjectContainerBase> *AllotContainer()
-    {
-        static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
-
-        return GetObjectContainerHolder().AllotObjectContainer(TypeID::ForType<T>());
-    }
-
-    HYP_FORCE_INLINE static ObjectContainerBase *TryGetContainer(TypeID type_id)
-    {
-        return GetObjectContainerHolder().TryGetObjectContainer(type_id);
-    }
-
-    HYP_FORCE_INLINE static ObjectContainerBase &GetContainer(TypeID type_id)
-    {
-        return GetObjectContainerHolder().GetObjectContainer(type_id);
-    }
+    HYP_API static ObjectContainerMap &GetObjectContainerHolder();
 };
 
 } // namespace hyperion

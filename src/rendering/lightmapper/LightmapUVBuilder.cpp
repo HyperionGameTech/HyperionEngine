@@ -79,7 +79,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
         auto ref = mesh_data->AcquireRef();
 
-        lightmap_mesh_data.mesh_id = element.mesh.GetID();
+        lightmap_mesh_data.mesh = element.mesh;
 
         lightmap_mesh_data.transform = element.transform.GetMatrix();
 
@@ -232,7 +232,7 @@ LightmapUVBuilder::Result LightmapUVBuilder::Build()
                         + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
 
                     uv_map.uvs[index] = {
-                        m_mesh_data[mesh_index].mesh_id,                                    // mesh_id
+                        m_mesh_data[mesh_index].mesh,                                       // mesh
                         m_mesh_data[mesh_index].transform,                                  // transform
                         i / 3,                                                              // triangle_index
                         bc_screen,                                                          // barycentric_coords

@@ -144,8 +144,11 @@ public:
 
         SizeType curr = 0;
 
-        while (curr < index && node->next != nullptr) {
+        while (curr < index) {
+            AssertThrow(node != nullptr);
+
             node = node->next;
+
             ++curr;
         }
 

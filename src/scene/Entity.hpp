@@ -14,9 +14,8 @@ namespace hyperion {
 // Will require a lot of manual refactoring to figure out where we need the reference tracked and we'll need to use Entity or WeakEntity.
 // some places (like function params where the entity is never stored) can just use ID<EntityInstance>
 
-/*! \brief Do not use this class directly. Use ID<Entity> instead. */
 HYP_CLASS()
-class Entity : public BasicObject<Entity>
+class Entity : public HypObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);
 

@@ -12,6 +12,9 @@
 
 #include <core/system/AppContext.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -19,63 +22,6 @@ namespace hyperion {
 using renderer::Result;
 
 class Camera;
-
-#pragma region Render commands
-
-struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
-{
-    Camera          *camera;
-    CameraDrawProxy proxy;
-
-    RENDER_COMMAND(UpdateCameraDrawProxy)(Camera *camera, const CameraDrawProxy &proxy)
-        : camera(camera),
-          proxy(proxy)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UpdateCameraDrawProxy)() override = default;
-
-    virtual Result operator()() override
-    {
-        camera->m_proxy = proxy;
-
-        g_engine->GetRenderData()->cameras->Set(camera->GetID().ToIndex(), CameraShaderData {
-            .view               = proxy.view,
-            .projection         = proxy.projection,
-            .previous_view      = proxy.previous_view,
-            .dimensions         = Vec4u { proxy.dimensions.x, proxy.dimensions.y, 0, 1 },
-            .camera_position    = Vec4f(proxy.position, 1.0f),
-            .camera_direction   = Vec4f(proxy.position, 1.0f),
-            .camera_near        = proxy.clip_near,
-            .camera_far         = proxy.clip_far,
-            .camera_fov         = proxy.fov
-        });
-        
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
-static Matrix4 BuildJitterMatrix(const Camera &camera, uint frame_counter)
-{
-    if (camera.GetWidth() == 0 || camera.GetHeight() == 0) {
-        return Matrix4::Identity();
-    }
-
-    static const HaltonSequence halton;
-
-    const Vec2f pixel_size = Vec2f::One() / Vec2f(float(MathUtil::Abs(camera.GetWidth())), float(MathUtil::Abs(camera.GetHeight())));
-    const uint index = frame_counter % HaltonSequence::size;
-
-    const Vec2f jitter = halton.sequence[index] * 2.0f - 1.0f;
-
-    Matrix4 jitter_matrix = camera.GetProjectionMatrix();
-    jitter_matrix[0][2] += jitter.x * pixel_size.x;
-    jitter_matrix[1][2] += jitter.y * pixel_size.y;
-
-    return jitter_matrix;
-}
 
 #pragma region CameraController
 
@@ -136,7 +82,7 @@ Camera::Camera()
 }
 
 Camera::Camera(int width, int height)
-    : BasicObject(),
+    : HypObject(),
       m_fov(50.0f),
       m_width(width),
       m_height(height),
@@ -148,36 +94,44 @@ Camera::Camera(int width, int height)
       m_top(0.0f),
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_up(Vec3f::UnitY()),
+      m_render_resources(nullptr)
 {
 }
 
 Camera::Camera(float fov, int width, int height, float _near, float _far)
-    : BasicObject(),
+    : HypObject(),
       m_fov(fov),
       m_width(width),
       m_height(height),
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_up(Vec3f::UnitY()),
+      m_render_resources(nullptr)
 {
     SetToPerspectiveProjection(fov, _near, _far);
 }
 
 Camera::Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far)
-    : BasicObject(),
+    : HypObject(),
       m_fov(0.0f),
       m_width(width),
       m_height(height),
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
-      m_up(Vec3f::UnitY())
+      m_up(Vec3f::UnitY()),
+      m_render_resources(nullptr)
 {
     SetToOrthographicProjection(left, right, bottom, top, _near, _far);
 }
 
 Camera::~Camera()
 {
+    if (m_render_resources != nullptr) {
+        m_render_resources->Unclaim();
+        FreeRenderResources(m_render_resources);
+    }
+
     SafeRelease(std::move(m_framebuffer));
 
     // Sync render commands to prevent dangling pointers to this
@@ -190,32 +144,38 @@ void Camera::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
+        if (m_render_resources != nullptr) {
+            m_render_resources->Unclaim();
+            FreeRenderResources(m_render_resources);
+
+            m_render_resources = nullptr;
+        }
+
         SafeRelease(std::move(m_framebuffer));
     }));
 
+    m_render_resources = AllocateRenderResources<CameraRenderResources>(this);
+
     UpdateMatrices();
 
-    PUSH_RENDER_COMMAND(
-        UpdateCameraDrawProxy,
-        this,
-        CameraDrawProxy {
-            .view           = m_view_mat,
-            .projection     = m_proj_mat,
-            .previous_view  = m_previous_view_matrix,
-            .position       = m_translation,
-            .direction      = m_direction,
-            .up             = m_up,
-            .dimensions     = Vec2u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)) },
-            .clip_near      = m_near,
-            .clip_far       = m_far,
-            .fov            = m_fov,
-            .frustum        = m_frustum
-        }
-    );
+    m_render_resources->SetBufferData(CameraShaderData {
+        .view               = m_view_mat,
+        .projection         = m_proj_mat,
+        .previous_view      = m_previous_view_matrix,
+        .dimensions         = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 },
+        .camera_position    = Vec4f(m_translation, 1.0f),
+        .camera_direction   = Vec4f(m_direction, 1.0f),
+        .camera_near        = m_near,
+        .camera_far         = m_far,
+        .camera_fov         = m_fov,
+        .id                 = GetID().Value()
+    });
+
+    m_render_resources->Claim();
 
     DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 
@@ -370,6 +330,8 @@ Vec2f Camera::GetPixelSize() const
 
 void Camera::Update(GameCounter::TickUnit dt)
 {
+    AssertReady();
+
     if (m_camera_controller) {
         m_camera_controller->m_camera = this;
 
@@ -381,23 +343,18 @@ void Camera::Update(GameCounter::TickUnit dt)
 
     UpdateMatrices();
 
-    PUSH_RENDER_COMMAND(
-        UpdateCameraDrawProxy, 
-        this,
-        CameraDrawProxy {
-            .view           = m_view_mat,
-            .projection     = m_proj_mat,
-            .previous_view  = m_previous_view_matrix,
-            .position       = m_translation,
-            .direction      = m_direction,
-            .up             = m_up,
-            .dimensions     = Vec2u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)) },
-            .clip_near      = m_near,
-            .clip_far       = m_far,
-            .fov            = m_fov,
-            .frustum        = m_frustum
-        }
-    );
+    m_render_resources->SetBufferData(CameraShaderData {
+        .view               = m_view_mat,
+        .projection         = m_proj_mat,
+        .previous_view      = m_previous_view_matrix,
+        .dimensions         = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 },
+        .camera_position    = Vec4f(m_translation, 1.0f),
+        .camera_direction   = Vec4f(m_translation, 1.0f),
+        .camera_near        = m_near,
+        .camera_far         = m_far,
+        .camera_fov         = m_fov,
+        .id                 = GetID().Value()
+    });
 }
 
 void Camera::UpdateViewMatrix()

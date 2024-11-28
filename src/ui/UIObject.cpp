@@ -16,6 +16,8 @@
 #include <scene/Scene.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
+
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -1205,7 +1207,6 @@ int UIObject::RemoveAllChildUIObjects()
 
         // num_removed = int(m_child_ui_objects.Size());
 
-        // temp testing
         for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
             HYP_LOG(UI, LogLevel::DEBUG, "Remove child {} from {} -- {} refs", child_ui_object->GetName(), GetName(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong());
         }
@@ -2058,22 +2059,11 @@ void UIObject::UpdateMaterial(bool update_children)
         Handle<Material> new_material;
         
         if (current_material->IsDynamic()) {
-            // // temp
-            // AssertThrowMsg(current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()) == 2, "ref count : %u",
-            //     current_material.s_container->GetRefCountStrong(current_material.GetID().ToIndex()));
-
             new_material = current_material;
         } else {
             new_material = current_material->Clone();
 
-            // // temp
-            // AssertThrowMsg(new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()) == 2, "ref count : %u",
-            //     new_material.s_container->GetRefCountStrong(new_material.GetID().ToIndex()));
-
             HYP_LOG(UI, LogLevel::DEBUG, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
-
-            // release the old material
-            // g_safe_deleter->SafeRelease(std::move(mesh_component->material));
 
             mesh_component->material = new_material;
             mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;

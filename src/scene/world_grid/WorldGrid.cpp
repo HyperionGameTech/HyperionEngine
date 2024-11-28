@@ -423,13 +423,13 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                         HYP_LOG(WorldGrid, LogLevel::INFO, "Patch entity at {} removed (Entity ID : {}), usecount strong: {}, weak: {}", update.coord, entity.GetID().Value(), weak_node.GetRefCountData_Internal()->UseCount_Strong(), weak_node.GetRefCountData_Internal()->UseCount_Weak());
 
-                        weak_node.GetRefCountData_Internal()->GetRefTrackData([](const auto &ref_track_data)
-                        {
-                            HYP_LOG(WorldGrid, LogLevel::DEBUG, "RefTrackData: {} refs", ref_track_data.Size());
-                            for (auto &it : ref_track_data) {
-                                HYP_LOG(WorldGrid, LogLevel::DEBUG, "\n\tAddress : {}\n\tStack Trace: {}\n\tCount: {}", it.first, it.second.stack_trace, it.second.count);
-                            }
-                        });
+                        // weak_node.GetRefCountData_Internal()->GetRefTrackData([](const auto &ref_track_data)
+                        // {
+                        //     HYP_LOG(WorldGrid, LogLevel::DEBUG, "RefTrackData: {} refs", ref_track_data.Size());
+                        //     for (auto &it : ref_track_data) {
+                        //         HYP_LOG(WorldGrid, LogLevel::DEBUG, "\n\tAddress : {}\n\tStack Trace: {}\n\tCount: {}", it.first, it.second.stack_trace, it.second.count);
+                        //     }
+                        // });
                     });
                 }
             }

@@ -6,23 +6,22 @@ namespace Hyperion
     public static class ManagedHandleNativeBindings
     {
         [DllImport("hyperion", EntryPoint = "Handle_Get")]
-        internal static extern void Handle_Get(TypeID type_id, uint id, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Handle_Get(TypeID type_id, IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
 
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
-        internal static extern void Handle_Set(TypeID type_id, uint id, [In] ref HypDataBuffer hypDataBuffer);
+        internal static extern void Handle_Set(TypeID type_id, IntPtr ptr, [In] ref HypDataBuffer hypDataBuffer);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Handle<T> where T : HypObject
     {
-        public static readonly Handle<T> Empty = new Handle<T>(0);
+        public static readonly Handle<T> Empty = new Handle<T>();
 
-        [MarshalAs(UnmanagedType.U4)]
-        public uint id;
+        private IntPtr ptr;
 
-        public Handle(uint id)
+        public Handle(IntPtr ptr)
         {
-            this.id = id;
+            this.ptr = ptr;
         }
 
         public Handle(T value)
@@ -36,7 +35,7 @@ namespace Hyperion
 
             using (HypData hypData = new HypData(value))
             {
-                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, id, ref hypData.Buffer);
+                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ptr, ref hypData.Buffer);
             }
         }
 
@@ -44,7 +43,7 @@ namespace Hyperion
         {
             get
             {
-                return id != 0;
+                return ptr != IntPtr.Zero;
             }
         }
 
@@ -58,7 +57,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            ManagedHandleNativeBindings.Handle_Get(((HypClass)hypClass).TypeID, id, out hypDataBuffer);
+            ManagedHandleNativeBindings.Handle_Get(((HypClass)hypClass).TypeID, ptr, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

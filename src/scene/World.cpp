@@ -31,7 +31,7 @@ using renderer::RTUpdateStateFlags;
 #define HYP_WORLD_ASYNC_SCENE_UPDATES
 
 World::World()
-    : BasicObject(),
+    : HypObject(),
       m_detached_scenes(this),
       m_has_scene_updates(false)
 {
@@ -85,7 +85,7 @@ void World::Init()
 
     UpdatePendingScenes();
     
-    BasicObject::Init();
+    HypObject::Init();
 
     m_physics_world.Init();
 

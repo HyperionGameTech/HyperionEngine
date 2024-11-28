@@ -405,6 +405,9 @@ public:
     HYP_FORCE_INLINE const EntityManagerCommandQueue &GetCommandQueue() const
         { return m_command_queue; }
 
+    HYP_FORCE_INLINE const EntityContainer &GetEntities() const
+        { return m_entities; }
+
     /*! \brief Adds a new entity to the EntityManager.
      *  \note Must be called from the owner thread.
      *
@@ -809,17 +812,19 @@ public:
 
             entity_sets_it = entity_sets_insert_result.first;
 
-            // Make sure the element exists in m_component_entity_sets
-            for (TypeID component_type_id : { TypeID::ForType<Components>()... }) {
-                auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+            if constexpr (sizeof...(Components) > 0) {
+                // Make sure the element exists in m_component_entity_sets
+                for (TypeID component_type_id : { TypeID::ForType<Components>()... }) {
+                    auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 
-                if (component_entity_sets_it == m_component_entity_sets.End()) {
-                    auto component_entity_sets_insert_result = m_component_entity_sets.Set(component_type_id, { });
+                    if (component_entity_sets_it == m_component_entity_sets.End()) {
+                        auto component_entity_sets_insert_result = m_component_entity_sets.Set(component_type_id, { });
 
-                    component_entity_sets_it = component_entity_sets_insert_result.first;
+                        component_entity_sets_it = component_entity_sets_insert_result.first;
+                    }
+
+                    component_entity_sets_it->second.Insert(type_id);
                 }
-
-                component_entity_sets_it->second.Insert(type_id);
             }
         }
 

@@ -180,6 +180,9 @@ void RTRadianceRenderer::Render(Frame *frame)
 {
     UpdateUniforms(frame);
 
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    AssertThrow(camera_render_resources.GetBufferIndex() != ~0u);
+
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 
     m_raytracing_pipeline->GetDescriptorTable()->Bind(
@@ -189,10 +192,10 @@ void RTRadianceRenderer::Render(Frame *frame)
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources.GetBufferIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }
@@ -220,10 +223,10 @@ void RTRadianceRenderer::Render(Frame *frame)
     );
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && g_engine->GetRenderState().GetCamera().camera.view != m_previous_view_matrix) {
+    if (IsPathTracer() && camera_render_resources.GetBufferData().view != m_previous_view_matrix) {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = g_engine->GetRenderState().GetCamera().camera.view;
+        m_previous_view_matrix = camera_render_resources.GetBufferData().view;
     }
 
     m_temporal_blending->Render(frame);

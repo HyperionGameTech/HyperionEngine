@@ -9,10 +9,10 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -31,6 +31,7 @@ class Skeleton;
 class Entity;
 class RenderCollector;
 class GPUBufferHolderBase;
+class IndirectRenderer;
 
 enum class RenderGroupFlags : uint32
 {
@@ -44,7 +45,7 @@ enum class RenderGroupFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
-class HYP_API RenderGroup : public BasicObject<RenderGroup>
+class HYP_API RenderGroup : public HypObject<RenderGroup>
 {
     friend class DebugDrawerRenderGroupProxy;
 
@@ -95,14 +96,23 @@ public:
     HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
         { return m_flags; }
 
+    void ClearProxies();
+
+    void AddRenderProxy(const RenderProxy &render_proxy);
+
+    bool RemoveRenderProxy(ID<Entity> entity);
+    typename RenderProxyEntityMap::Iterator RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator);
+
+    HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
+        { return m_render_proxies; }
+
     void SetDrawCallCollectionImpl(IDrawCallCollectionImpl *draw_call_collection_impl);
 
     /*! \brief Collect drawable objects, then run the culling compute shader
      *  to mark any occluded objects as such. Must be used with indirect rendering.
      *  If nullptr is provided for cull_data, no occlusion culling will happen.
-     *  \param render_proxies The render proxies to collect draw calls from.
      */
-    void CollectDrawCalls(const RenderProxyEntityMap &render_proxies);
+    void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(Frame *frame);
@@ -151,6 +161,8 @@ private:
     uint                                                m_command_buffer_index = 0u;
 
     DrawCallCollection                                  m_draw_state;
+
+    RenderProxyEntityMap                                m_render_proxies;
 };
 
 } // namespace hyperion

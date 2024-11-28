@@ -3,7 +3,10 @@
 #include <scene/ecs/systems/RenderProxyUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/animation/Skeleton.hpp>
+
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/Skeleton.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 
@@ -44,10 +47,8 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
                 .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),
                 .world_aabb_min         = Vec4f(proxy.aabb.min, 1.0f),
                 .entity_index           = proxy.entity.GetID().ToIndex(),
-                .material_index         = proxy.material.IsValid() && proxy.material->GetRenderResources().GetBufferIndex() != ~0u
-                    ? proxy.material->GetRenderResources().GetBufferIndex()
-                    : 0,
-                .skeleton_index         = proxy.skeleton.GetID().ToIndex(),
+                .material_index         = proxy.material.IsValid() ? proxy.material->GetRenderResources().GetBufferIndex() : ~0u,
+                .skeleton_index         = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResources().GetBufferIndex() : ~0u,
                 .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
                 .flags                  = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
                 .user_data              = proxy.user_data.ReinterpretAs<EntityUserData>()
@@ -99,16 +100,12 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }
 
-        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity.ToIndex());
-
-        const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
-        const ID<Material> material_id = mesh_component.material.GetID();
-        const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
+        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity_id.Value());
 
         const uint32 render_proxy_version = mesh_component.proxy != nullptr
             ? mesh_component.proxy->version + 1
@@ -116,7 +113,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         // Update MeshComponent's proxy
         *mesh_component.proxy = RenderProxy {
-            Handle<Entity>(entity),
+            Handle<Entity>(entity_id),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,

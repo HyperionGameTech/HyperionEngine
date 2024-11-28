@@ -3,13 +3,12 @@
 #ifndef HYPERION_MEMORY_POOL_HPP
 #define HYPERION_MEMORY_POOL_HPP
 
-#include <core/Handle.hpp>
-
-#include <core/containers/HeapArray.hpp>
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/FixedArray.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/memory/Memory.hpp>
 
@@ -20,7 +19,7 @@
 namespace hyperion {
 namespace memory {
 
-template <class ElementType, uint32 NumElementsPerBlock = 16>
+template <class ElementType, uint32 NumElementsPerBlock = 2048, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
 protected:
@@ -35,29 +34,48 @@ protected:
         FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
 #endif
 
-        Block()
+        Block(void *ctx, uint32 block_index)
         {
-            // // Default initialization for POD types - zero it out
-            // if constexpr (IsPODType<ElementType>) {
-            //     Memory::MemSet(elements.Data(), 0, elements.ByteSize());
-            // }
-
-            elements = { };
+            // Allow overloading assignment of elements
+            if (OnBlockAllocated != nullptr) {
+                OnBlockAllocated(ctx, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
+            } else {
+                if constexpr (IsPODType<ElementType>) {
+                    // Default initialization for POD types - zero it out
+                    Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+                } else if constexpr (std::is_copy_assignable_v<ElementType> || std::is_move_assignable_v<ElementType>) {
+                    // For non-POD types, default assign each element
+                    for (uint32 i = 0; i < num_elements_per_block; i++) {
+                        elements[i] = ElementType();
+                    }
+                }
+            }
         }
 
         HYP_FORCE_INLINE bool IsEmpty() const
             { return num_elements.Get(MemoryOrder::ACQUIRE) == 0; }
     };
 
+protected:
+    void CreateInitialBlocks()
+    {
+        m_num_blocks.Set(m_initial_num_blocks, MemoryOrder::RELEASE);
+
+        for (uint32 i = 0; i < m_initial_num_blocks; i++) {
+            m_blocks.EmplaceBack(m_block_init_ctx, i);
+        }
+    }
+
 public:
     static constexpr uint32 s_invalid_index = ~0u;
 
-    MemoryPool(uint32 initial_count = 16 * num_elements_per_block)
+    MemoryPool(uint32 initial_count = 16 * num_elements_per_block, bool create_initial_blocks = true, void *block_init_ctx = nullptr)
         : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
-          m_num_blocks(m_initial_num_blocks)
+          m_num_blocks(0),
+          m_block_init_ctx(block_init_ctx)
     {
-        for (uint32 i = 0; i < m_initial_num_blocks; i++) {
-            m_blocks.EmplaceBack();
+        if (create_initial_blocks) {
+            CreateInitialBlocks();
         }
     }
 
@@ -66,7 +84,13 @@ public:
         return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;
     }
 
-    uint32 AcquireIndex()
+    HYP_FORCE_INLINE IDGenerator &GetIDGenerator()
+        { return m_id_generator; }
+
+    HYP_FORCE_INLINE const IDGenerator &GetIDGenerator() const
+        { return m_id_generator; }
+
+    uint32 AcquireIndex(ElementType **out_element_ptr = nullptr)
     {
         const uint32 index = m_id_generator.NextID() - 1;
 
@@ -75,21 +99,38 @@ public:
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
             block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+            if (out_element_ptr != nullptr) {
+                *out_element_ptr = &block.elements[index % num_elements_per_block];
+            }
         } else {
             Mutex::Guard guard(m_blocks_mutex);
 
             if (index < num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
                 Block &block = m_blocks[block_index];
                 block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+                if (out_element_ptr != nullptr) {
+                    *out_element_ptr = &block.elements[index % num_elements_per_block];
+                }
             } else {
                 // Add blocks until we can insert the element
+                uint32 current_block_index = m_blocks.Size();
+
                 while (index >= num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
-                    m_blocks.EmplaceBack();
+                    m_blocks.EmplaceBack(m_block_init_ctx, current_block_index);
+
                     m_num_blocks.Increment(1, MemoryOrder::RELEASE);
+
+                    ++current_block_index;
                 }
 
                 Block &block = m_blocks[block_index];
                 block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+                if (out_element_ptr != nullptr) {
+                    *out_element_ptr = &block.elements[index % num_elements_per_block];
+                }
             }
         }
 
@@ -204,6 +245,8 @@ protected:
     AtomicVar<uint32>               m_num_blocks;
     // Needs to be locked when accessing blocks beyond initial_num_blocks or adding/removing blocks.
     Mutex                           m_blocks_mutex;
+
+    void                            *m_block_init_ctx;
 
     IDGenerator                     m_id_generator;
 };

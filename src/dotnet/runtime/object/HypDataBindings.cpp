@@ -336,14 +336,9 @@ HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
 
     if (hyp_class->IsClassType()) {
         if (hyp_class->UseHandles()) {
-            ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-            
-            const uint32 index = container.GetObjectIndex(native_address);
-            if (index == ~0u) {
-                HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-            }
+            HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
 
-            *hyp_data = HypData(AnyHandle(type_id, IDBase { index + 1 }));
+            *hyp_data = HypData(AnyHandle(hyp_object_ptr));
 
             return true;
         } else if (hyp_class->UseRefCountedPtr()) {

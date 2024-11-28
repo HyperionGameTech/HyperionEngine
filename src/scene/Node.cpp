@@ -168,10 +168,7 @@ Node::Node(Node &&other) noexcept
     SetEntity(entity);
 
     m_child_nodes = std::move(other.m_child_nodes);
-    other.m_child_nodes = {};
-
-    m_descendents = std::move(other.m_descendents);
-    other.m_descendents = {};
+    m_descendants = std::move(other.m_descendants);
 
     for (NodeProxy &node : m_child_nodes) {
         AssertThrow(node.IsValid());
@@ -223,10 +220,7 @@ Node &Node::operator=(Node &&other) noexcept
     m_name = std::move(other.m_name);
 
     m_child_nodes = std::move(other.m_child_nodes);
-    other.m_child_nodes = {};
-
-    m_descendents = std::move(other.m_descendents);
-    other.m_descendents = {};
+    m_descendants = std::move(other.m_descendants);
 
     for (NodeProxy &node : m_child_nodes) {
         AssertThrow(node.IsValid());
@@ -359,29 +353,21 @@ World *Node::GetWorld() const
         : g_engine->GetDefaultWorld().Get();
 }
 
-void Node::OnNestedNodeAdded(const NodeProxy &node, bool direct)
+void Node::OnNestedNodeAdded(Node *node, bool direct)
 {
-    if (m_delegates) {
-        m_delegates->OnNestedNodeAdded(node, direct);
-    }
-
-    m_descendents.PushBack(node);
+    m_descendants.PushBack(node);
     
     if (m_parent_node != nullptr) {
         m_parent_node->OnNestedNodeAdded(node, false);
     }
 }
 
-void Node::OnNestedNodeRemoved(const NodeProxy &node, bool direct)
+void Node::OnNestedNodeRemoved(Node *node, bool direct)
 {
-    if (m_delegates) {
-        m_delegates->OnNestedNodeRemoved(node, direct);
-    }
+    const auto it = m_descendants.Find(node);
 
-    const auto it = m_descendents.Find(node);
-
-    if (it != m_descendents.End()) {
-        m_descendents.Erase(it);
+    if (it != m_descendants.End()) {
+        m_descendants.Erase(it);
     }
 
     if (m_parent_node != nullptr) {
@@ -420,17 +406,17 @@ NodeProxy Node::AddChild(const NodeProxy &node)
 
     Node *current_parent = this;
 
-    while (current_parent != nullptr) {
-        OnNestedNodeAdded(node, /* direct */ current_parent == this);
+    while (current_parent != nullptr && current_parent->m_delegates != nullptr) {
+        current_parent->m_delegates->OnChildAdded(node, /* direct */ current_parent == this);
 
         current_parent = current_parent->m_parent_node;
     }
 
-    // OnNestedNodeAdded(node, true);
+    OnNestedNodeAdded(node, true);
 
-    // for (NodeProxy &nested : node->GetDescendents()) {
-    //     OnNestedNodeAdded(nested, false);
-    // }
+    for (Node *nested : node->GetDescendants()) {
+        OnNestedNodeAdded(nested, false);
+    }
 
     node->UpdateWorldTransform();
 
@@ -447,7 +433,15 @@ bool Node::RemoveChild(NodeList::Iterator iter)
         AssertThrow(node.IsValid());
         AssertThrow(node->GetParent() == this);
 
-        for (NodeProxy &nested : node->GetDescendents()) {
+        Node *current_parent = this;
+
+        while (current_parent != nullptr && current_parent->m_delegates != nullptr) {
+            current_parent->m_delegates->OnChildRemoved(node, /* direct */ current_parent == this);
+
+            current_parent = current_parent->m_parent_node;
+        }
+
+        for (Node *nested : node->GetDescendants()) {
             OnNestedNodeRemoved(nested, false);
         }
 
@@ -493,7 +487,15 @@ void Node::RemoveAllChildren()
             AssertThrow(node.IsValid());
             AssertThrow(node->GetParent() == this);
 
-            for (NodeProxy &nested : node->GetDescendents()) {
+            Node *current_parent = this;
+
+            while (current_parent != nullptr && current_parent->m_delegates != nullptr) {
+                current_parent->m_delegates->OnChildRemoved(node, /* direct */ current_parent == this);
+
+                current_parent = current_parent->m_parent_node;
+            }
+
+            for (Node *nested : node->GetDescendants()) {
                 OnNestedNodeRemoved(nested, false);
             }
 

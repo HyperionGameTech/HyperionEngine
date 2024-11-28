@@ -22,7 +22,7 @@ namespace hyperion {
 
 struct LightmapElement
 {
-    ID<Entity>          entity;
+    Handle<Entity>      entity;
     Handle<Mesh>        mesh;
     Handle<Material>    material;
     Transform           transform;
@@ -36,7 +36,7 @@ struct LightmapUVBuilderParams
 
 struct LightmapMeshData
 {
-    ID<Mesh>        mesh_id;
+    Handle<Mesh>    mesh;
 
     Matrix4         transform;
 
@@ -51,19 +51,19 @@ struct LightmapMeshData
 
 struct LightmapUV
 {
-    ID<Mesh>    mesh_id = ID<Mesh>::invalid;
-    Matrix4     transform = Matrix4::identity;
-    uint        triangle_index = ~0u;
-    Vec3f       barycentric_coords = Vec3f::Zero();
-    Vec2f       lightmap_uv = Vec2f::Zero();
-    Vec4f       radiance = Vec4f::Zero();
-    Vec4f       irradiance = Vec4f::Zero();
+    Handle<Mesh>    mesh;
+    Matrix4         transform = Matrix4::identity;
+    uint            triangle_index = ~0u;
+    Vec3f           barycentric_coords = Vec3f::Zero();
+    Vec2f           lightmap_uv = Vec2f::Zero();
+    Vec4f           radiance = Vec4f::Zero();
+    Vec4f           irradiance = Vec4f::Zero();
 };
 
 struct LightmapUVMap
 {
-    uint                            width = 0;
-    uint                            height = 0;
+    uint32                          width = 0;
+    uint32                          height = 0;
     Array<LightmapUV>               uvs;
     HashMap<ID<Mesh>, Array<uint>>  mesh_to_uv_indices;
     

@@ -215,34 +215,6 @@ namespace Hyperion
             return new HypField(fieldPtr);
         }
 
-        /// <summary>
-        ///  Creates a native instance of this object. The object has an initial ref count of zero,
-        ///  so the reference must be manually decremented to destroy the object (with HypObject_DecRef)  
-        /// </summary>
-        public IntPtr CreateInstance()
-        {
-            IntPtr instancePtr = HypClass_CreateInstance(ptr);
-
-            if (instancePtr == IntPtr.Zero)
-            {
-                throw new Exception("Failed to initialize HypObject");
-            }
-
-            return instancePtr;
-        }
-
-        public IntPtr InitInstance(IntPtr classObjectPtr, ObjectReference objectReference)
-        {
-            IntPtr instancePtr = HypClass_InitInstance(ptr, classObjectPtr, ref objectReference);
-
-            if (instancePtr == IntPtr.Zero)
-            {
-                throw new Exception("Failed to initialize HypObject");
-            }
-
-            return instancePtr;
-        }
-
         public void ValidateType(Type type)
         {
             if (!IsValid)
@@ -373,12 +345,6 @@ namespace Hyperion
 
             return hypClassBindingAttribute.HypClass;
         }
-        
-        [DllImport("hyperion", EntryPoint = "HypClass_CreateInstance")]
-        private static extern IntPtr HypClass_CreateInstance([In] IntPtr hypClassPtr);
-        
-        [DllImport("hyperion", EntryPoint = "HypClass_InitInstance")]
-        private static extern IntPtr HypClass_InitInstance([In] IntPtr hypClassPtr, [In] IntPtr classObjectPtr, [In] ref ObjectReference objectReference);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);

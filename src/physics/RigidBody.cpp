@@ -19,7 +19,7 @@ RigidBody::RigidBody(const PhysicsMaterial &physics_material)
 }
 
 RigidBody::RigidBody(const RC<PhysicsShape> &shape, const PhysicsMaterial &physics_material)
-    : BasicObject(),
+    : HypObject(),
       m_shape(shape),
       m_physics_material(physics_material),
       m_is_kinematic(true)
@@ -36,7 +36,7 @@ void RigidBody::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 }
 
 void RigidBody::SetShape(const RC<PhysicsShape> &shape)

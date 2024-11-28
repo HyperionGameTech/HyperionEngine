@@ -4,11 +4,16 @@
 #define HYPERION_DELEGATE_HPP
 
 #include <core/functional/Proc.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/FlatMap.hpp>
+
 #include <core/threading/Mutex.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/IDGenerator.hpp>
+
 #include <core/Name.hpp>
 
 #include <core/Defines.hpp>

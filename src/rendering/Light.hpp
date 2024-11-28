@@ -68,13 +68,13 @@ static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData)
 class LightRenderResources final : public RenderResourcesBase
 {
 public:
-    LightRenderResources(const WeakHandle<Light> &light_weak);
+    LightRenderResources(Light *light);
     LightRenderResources(LightRenderResources &&other) noexcept;
     virtual ~LightRenderResources() override;
 
     /*! \note Only to be called from render thread or render task */
-    HYP_FORCE_INLINE const WeakHandle<Light> &GetLight() const
-        { return m_light_weak; }
+    HYP_FORCE_INLINE Light *GetLight() const
+        { return m_light; }
 
     void SetMaterial(const Handle<Material> &material);
 
@@ -99,13 +99,15 @@ protected:
     virtual void Destroy() override;
     virtual void Update() override;
 
-    virtual uint32 AcquireBufferIndex() const override;
-    virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
+
+    virtual Name GetTypeName() const override
+        { return NAME("LightRenderResources"); }
 
 private:
     void UpdateBufferData();
 
-    WeakHandle<Light>       m_light_weak;
+    Light                   *m_light;
     Bitset                  m_visibility_bits;
     Handle<Material>        m_material;
     RenderResourcesHandle   m_material_render_resources_handle;
@@ -113,7 +115,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Light : public BasicObject<Light>
+class HYP_API Light : public HypObject<Light>
 {
     HYP_OBJECT_BODY(Light);
 

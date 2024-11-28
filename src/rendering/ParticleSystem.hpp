@@ -37,7 +37,7 @@ struct ParticleSpawnerParams
 };
 
 class HYP_API ParticleSpawner
-    : public BasicObject<ParticleSpawner>
+    : public HypObject<ParticleSpawner>
 {
 public:
     ParticleSpawner();
@@ -83,7 +83,7 @@ private:
     Bitmap<1>               m_noise_map;
 };
 
-class HYP_API ParticleSystem : public BasicObject<ParticleSystem>
+class HYP_API ParticleSystem : public HypObject<ParticleSystem>
 {
 public:
     ParticleSystem();

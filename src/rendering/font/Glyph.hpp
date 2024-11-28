@@ -3,13 +3,16 @@
 #ifndef HYP_FONT_FONTGLYPH_HPP
 #define HYP_FONT_FONTGLYPH_HPP
 
+#include <core/Handle.hpp>
+
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/Texture.hpp>
 
 namespace hyperion {
+
+class Texture;
 
 struct GlyphImageData
 {

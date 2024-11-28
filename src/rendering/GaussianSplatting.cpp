@@ -25,6 +25,8 @@
 #include <util/NoiseFactory.hpp>
 #include <util/MeshBuilder.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 //#define HYP_GAUSSIAN_SPLATTING_CPU_SORT
@@ -245,7 +247,7 @@ void GaussianSplattingInstance::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     CreateBuffers();
     CreateShader();
@@ -270,7 +272,14 @@ void GaussianSplattingInstance::Init()
 
 void GaussianSplattingInstance::Record(Frame *frame)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     AssertThrow(IsReady());
+
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
@@ -297,8 +306,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                     }
                 }
             }
@@ -318,7 +327,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 #ifdef HYP_GAUSSIAN_SPLATTING_CPU_SORT
     { // Temporary CPU sorting -- inefficient but useful for testing
         for (SizeType index = 0; index < m_model->points.Size(); index++) {
-            m_cpu_distances[index] = (g_engine->GetRenderState().GetCamera().camera.view * m_model->points[index].position).z;
+            m_cpu_distances[index] = ((active_camera ? active_camera->GetBufferData().view : Matrix4()) * m_model->points[index].position).z;
         }
 
         std::sort(m_cpu_sorted_indices.Begin(), m_cpu_sorted_indices.End(), [&distances = m_cpu_distances](uint32 a, uint32 b) {
@@ -377,7 +386,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
 
-        auto DoPass = [this, frame, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
+        auto DoPass = [this, frame, camera_index, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
         {
             pc.stage = uint32(stage);
             pc.h = h;
@@ -393,8 +402,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
                     {
                         NAME("Scene"),
                         {
-                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                         }
                     }
                 }
@@ -451,8 +460,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                     }
                 }
             }
@@ -650,7 +659,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 }
 
 GaussianSplatting::GaussianSplatting()
-    : BasicObject()
+    : HypObject()
 {
 }
 
@@ -671,7 +680,7 @@ void GaussianSplatting::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
@@ -780,10 +789,15 @@ void GaussianSplatting::UpdateSplats(Frame *frame)
 void GaussianSplatting::Render(Frame *frame)
 {
     AssertReady();
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (!m_gaussian_splatting_instance) {
         return;
     }
+
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     const uint frame_index = frame->GetFrameIndex();
 
@@ -804,8 +818,8 @@ void GaussianSplatting::Render(Frame *frame)
                     {
                         NAME("Scene"),
                         {
-                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                         }
                     }
                 }

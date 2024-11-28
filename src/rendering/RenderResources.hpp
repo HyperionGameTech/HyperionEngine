@@ -24,6 +24,8 @@ class RenderResourcesMemoryPool;
 
 class IRenderResourcesMemoryPool;
 
+class GPUBufferHolderBase;
+
 struct RenderResourcesMemoryPoolHandle
 {
     uint32  index = ~0u;
@@ -38,7 +40,7 @@ struct RenderResourcesMemoryPoolHandle
 // Represents the objects an engine object (e.g Material) uses while it is currently being rendered.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
-class RenderResourcesBase : public EnableRefCountedPtrFromThis<RenderResourcesBase>
+class RenderResourcesBase
 {
     using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using InitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
@@ -58,21 +60,18 @@ public:
 
     virtual ~RenderResourcesBase();
 
+    virtual bool IsNull() const
+        { return false; }
+
     void Claim();
     void Unclaim();
 
     /*! \brief Waits (blocking) until all operations on this RenderResources are complete and the RenderResources is no longer being used. */
     void WaitForCompletion();
 
+    /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
     HYP_FORCE_INLINE uint32 GetBufferIndex() const
-    {
-#ifdef HYP_DEBUG_MODE
-        // Allow render thread or task thread (under render thread) to call this method.
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
-#endif
-
-        return m_buffer_index;
-    }
+        { return m_buffer_index; }
 
 #ifdef HYP_DEBUG_MODE
     HYP_FORCE_INLINE uint32 GetUseCount() const
@@ -89,8 +88,9 @@ protected:
     virtual void Destroy() = 0;
     virtual void Update() = 0;
 
-    virtual uint32 AcquireBufferIndex() const { return ~0u; }
-    virtual void ReleaseBufferIndex(uint32 buffer_index) const { }
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const { return nullptr; }
+
+    virtual Name GetTypeName() const = 0;
 
     /*! \brief Performs an operation on the render thread if the resources are initialized,
      *  otherwise executes it immediately on the calling thread. Initialization on the render thread will not begin until at least the end of the given proc,
@@ -103,8 +103,12 @@ protected:
 
     bool                            m_is_initialized;
     uint32                          m_buffer_index;
+    void                            *m_buffer_address;
 
 private:
+    void AcquireBufferIndex();
+    void ReleaseBufferIndex();
+
     RenderResourcesMemoryPoolHandle m_pool_handle;
 
     AtomicVar<int16>                m_ref_count;
@@ -128,12 +132,12 @@ public:
 extern HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID type_id, UniquePtr<IRenderResourcesMemoryPool>(*create_fn)(void));
 
 template <class T>
-class RenderResourcesMemoryPool final : private MemoryPool<OwningRC<T>, 128>, public IRenderResourcesMemoryPool
+class RenderResourcesMemoryPool final : private MemoryPool<ValueStorage<T>>, public IRenderResourcesMemoryPool
 {
 public:
     static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
 
-    using Base = MemoryPool<OwningRC<T>, 128>;
+    using Base = MemoryPool<ValueStorage<T>>;
 
     static RenderResourcesMemoryPool<T> *GetInstance()
     {
@@ -146,7 +150,7 @@ public:
     }
 
     RenderResourcesMemoryPool()
-        : Base(/* initial_count */ 128)
+        : Base()
     {
     }
 
@@ -155,15 +159,13 @@ public:
     template <class... Args>
     T *Allocate(Args &&... args)
     {
-        const uint32 index = Base::AcquireIndex();
+        ValueStorage<T> *element;
+        const uint32 index = Base::AcquireIndex(&element);
 
-        OwningRC<T> &element = Base::GetElement(index);
-        element = OwningRC<T>(std::forward<Args>(args)...);
-        element->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
+        T *ptr = element->Construct(std::forward<Args>(args)...);
+        ptr->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
 
-        DebugLog(LogType::Debug, "Allocated RenderResources of type %s, total allocated pool size: %llu\n", TypeName<T>().Data(), Base::NumAllocatedElements());
-
-        return element.Get();
+        return ptr;
     }
 
     void Free(T *ptr)
@@ -177,8 +179,8 @@ public:
         AssertThrow(pool_handle);
 
         // Invoke the destructor
-        OwningRC<T> &element = Base::GetElement(pool_handle.index);
-        element.Reset();
+        ValueStorage<T> &element = Base::GetElement(pool_handle.index);
+        element.Destruct();
 
         Base::ReleaseIndex(pool_handle.index);
     }
@@ -200,11 +202,15 @@ HYP_FORCE_INLINE static void FreeRenderResources(T *ptr)
     RenderResourcesMemoryPool<T>::GetInstance()->Free(ptr);
 }
 
+// Returns a render resources object that will return true for IsNull().
+// To be used as a placeholder.
+HYP_API RenderResourcesBase &GetNullRenderResources();
+
 class RenderResourcesHandle
 {
 public:
     RenderResourcesHandle()
-        : render_resources(nullptr)
+        : render_resources(&GetNullRenderResources())
     {
     }
 
@@ -217,7 +223,7 @@ public:
     RenderResourcesHandle(const RenderResourcesHandle &other)
         : render_resources(other.render_resources)
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Claim();
         }
     }
@@ -228,13 +234,13 @@ public:
             return *this;
         }
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
 
         render_resources = other.render_resources;
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Claim();
         }
 
@@ -244,7 +250,7 @@ public:
     RenderResourcesHandle(RenderResourcesHandle &&other) noexcept
         : render_resources(other.render_resources)
     {
-        other.render_resources = nullptr;
+        other.render_resources = &GetNullRenderResources();
     }
 
     RenderResourcesHandle &operator=(RenderResourcesHandle &&other) noexcept
@@ -253,37 +259,37 @@ public:
             return *this;
         }
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
 
         render_resources = other.render_resources;
-        other.render_resources = nullptr;
+        other.render_resources = &GetNullRenderResources();
 
         return *this;
     }
 
     ~RenderResourcesHandle()
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
     }
 
     void Reset()
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
-        }
 
-        render_resources = nullptr;
+            render_resources = &GetNullRenderResources();
+        }
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return render_resources != nullptr; }
+        { return !render_resources->IsNull(); }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return !render_resources; }
+        { return render_resources->IsNull(); }
 
     HYP_FORCE_INLINE bool operator==(const RenderResourcesHandle &other) const
         { return render_resources == other.render_resources; }
@@ -305,13 +311,12 @@ template <class T>
 class TRenderResourcesHandle
 {
 public:
-    static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
-
     TRenderResourcesHandle()    = default;
 
     TRenderResourcesHandle(T &render_resources)
         : handle(render_resources)
     {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
     }
 
     TRenderResourcesHandle(const TRenderResourcesHandle &other)
@@ -349,10 +354,24 @@ public:
     ~TRenderResourcesHandle()   = default;
 
     HYP_FORCE_INLINE void Reset()
-        { handle.Reset();  }
+    {
+        handle.Reset();
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return bool(handle); }
+    {
+        // Check if the handle is not null and not the null render resources.
+        return bool(handle);
+    }
+
+    HYP_FORCE_INLINE operator RenderResourcesHandle &() &
+        { return handle; }
+
+    HYP_FORCE_INLINE operator const RenderResourcesHandle &() const &
+        { return handle; }
+
+    HYP_FORCE_INLINE operator RenderResourcesHandle &&() &&
+        { return std::move(handle); }
 
     HYP_FORCE_INLINE bool operator!() const
         { return !handle; }
@@ -364,10 +383,32 @@ public:
         { return handle != other.handle; }
 
     HYP_FORCE_INLINE T *operator->() const
-        { return static_cast<T *>(handle.operator->()); }
+    {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
+
+        RenderResourcesBase &ptr = *handle;
+
+        if (ptr.IsNull()) {
+            return nullptr;
+        }
+
+        // can safely cast to T since we know it's not null
+        return static_cast<T *>(&ptr);
+    }
 
     HYP_FORCE_INLINE T &operator*() const
-        { return static_cast<T &>(handle.operator*()); }
+    {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
+
+        RenderResourcesBase &ptr = *handle;
+
+        if (ptr.IsNull()) {
+            HYP_FAIL("Dereferenced null render resources handle");
+        }
+
+        // can safely cast to T since we know it's not null
+        return *static_cast<T *>(&ptr);
+    }
 
 private:
     RenderResourcesHandle   handle;

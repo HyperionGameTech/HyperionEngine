@@ -46,36 +46,30 @@ struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 
 #pragma region LightRenderResources
 
-LightRenderResources::LightRenderResources(const WeakHandle<Light> &light_weak)
-    : m_light_weak(light_weak),
+LightRenderResources::LightRenderResources(Light *light)
+    : m_light(light),
       m_buffer_data { }
 {
 }
 
 LightRenderResources::LightRenderResources(LightRenderResources &&other) noexcept
     : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
-      m_light_weak(std::move(other.m_light_weak)),
+      m_light(other.m_light),
       m_visibility_bits(std::move(other.m_visibility_bits)),
       m_material(std::move(other.m_material)),
       m_material_render_resources_handle(std::move(other.m_material_render_resources_handle)),
       m_buffer_data(std::move(other.m_buffer_data))
 {
+    other.m_light = nullptr;
 }
 
-LightRenderResources::~LightRenderResources()
-{
-    Destroy();
-}
+LightRenderResources::~LightRenderResources() = default;
 
 void LightRenderResources::Initialize()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_light_weak.IsValid());
-
-    if (Handle<Light> light = m_light_weak.Lock()) {
-        UpdateBufferData();
-    }
+    UpdateBufferData();
 }
 
 void LightRenderResources::Destroy()
@@ -86,40 +80,25 @@ void LightRenderResources::Destroy()
 void LightRenderResources::Update()
 {
     HYP_SCOPE;
-
-    AssertThrow(m_light_weak.IsValid());
-
-    if (Handle<Light> light = m_light_weak.Lock()) {
-        UpdateBufferData();
-    }
 }
 
-uint32 LightRenderResources::AcquireBufferIndex() const
+GPUBufferHolderBase *LightRenderResources::GetGPUBufferHolder() const
 {
-    HYP_SCOPE;
-
-    return g_engine->GetRenderData()->lights->AcquireIndex();
-}
-
-void LightRenderResources::ReleaseBufferIndex(uint32 buffer_index) const
-{
-    HYP_SCOPE;
-
-    g_engine->GetRenderData()->lights->ReleaseIndex(buffer_index);
+    return g_engine->GetRenderData()->lights.Get();
 }
 
 void LightRenderResources::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_buffer_index != ~0u);
-
     // override material buffer index
     m_buffer_data.material_index = m_material_render_resources_handle
         ? m_material_render_resources_handle->GetBufferIndex()
         : ~0u;
 
-    g_engine->GetRenderData()->lights->Set(m_buffer_index, m_buffer_data);
+    *static_cast<LightShaderData *>(m_buffer_address) = m_buffer_data;
+
+    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void LightRenderResources::SetMaterial(const Handle<Material> &material)
@@ -151,7 +130,7 @@ void LightRenderResources::SetBufferData(const LightShaderData &buffer_data)
         m_buffer_data = buffer_data;
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
         }
     });
 }
@@ -169,19 +148,11 @@ void LightRenderResources::SetVisibilityBits(const Bitset &visibility_bits)
 
         if (previous_count != new_count) {
             if (previous_count == 0) {
-                if (Handle<Light> light = m_light_weak.Lock()) {
-                    // May cause Initialize() to be called due to Claim() being called when binding a light.
-                    g_engine->GetRenderState().BindLight(light.Get());
-                } else {
-                    HYP_LOG(Light, LogLevel::ERR, "Light {} was expired when setting visibility bits", m_light_weak.GetID().Value());
-                }
+                // May cause Initialize() to be called due to Claim() being called when binding a light.
+                g_engine->GetRenderState().BindLight(m_light);
             } else if (new_count == 0) {
-                if (Handle<Light> light = m_light_weak.Lock()) {
                     // May cause Destroy() to be called due to Unclaim() being called.
-                    g_engine->GetRenderState().UnbindLight(light.Get());
-                } else {
-                    HYP_LOG(Light, LogLevel::ERR, "Light {} was expired when setting visibility bits", m_light_weak.GetID().Value());
-                }
+                g_engine->GetRenderState().UnbindLight(m_light);
             }
         }
     }, /* force_render_thread */ true);
@@ -207,7 +178,7 @@ Light::Light(
     const Color &color,
     float intensity,
     float radius
-) : BasicObject(),
+) : HypObject(),
     m_type(type),
     m_position(position),
     m_color(color),
@@ -229,7 +200,7 @@ Light::Light(
     const Color &color,
     float intensity,
     float radius
-) : BasicObject(),
+) : HypObject(),
     m_type(type),
     m_position(position),
     m_normal(normal),
@@ -247,10 +218,6 @@ Light::Light(
 
 Light::~Light()
 {
-    if (IsInitCalled()) {
-        PUSH_RENDER_COMMAND(UnbindLight, WeakHandleFromThis());
-    }
-
     if (m_render_resources != nullptr) {
         FreeRenderResources(m_render_resources);
     }
@@ -267,9 +234,9 @@ void Light::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
-    m_render_resources = AllocateRenderResources<LightRenderResources>(WeakHandleFromThis());
+    m_render_resources = AllocateRenderResources<LightRenderResources>(this);
 
     if (m_material.IsValid()) {
         InitObject(m_material);
@@ -332,8 +299,6 @@ void Light::EnqueueRenderUpdates()
 
     m_render_resources->SetBufferData(buffer_data);
     m_render_resources->SetVisibilityBits(m_visibility_bits);
-
-    // @TODO: Bind / Unbind to global render data - will claim / unclaim render resources
 
     m_mutation_state = DataMutationState::CLEAN;
 }

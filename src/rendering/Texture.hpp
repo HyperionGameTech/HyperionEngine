@@ -4,7 +4,6 @@
 #define HYPERION_TEXTURE_HPP
 
 #include <core/Base.hpp>
-#include <core/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -31,7 +30,7 @@
 namespace hyperion {
 
 HYP_CLASS()
-class HYP_API Texture : public BasicObject<Texture>
+class HYP_API Texture : public HypObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
 
