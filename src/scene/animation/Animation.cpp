@@ -7,16 +7,38 @@
 
 namespace hyperion {
 
+#pragma region AnimationTrack
+
+AnimationTrack::AnimationTrack()
+    : m_bone(nullptr)
+{
+}
+
+AnimationTrack::AnimationTrack(const AnimationTrackDesc &desc)
+    : m_bone(nullptr),
+      m_desc(desc)
+{
+}
+
+float AnimationTrack::GetLength() const
+{
+    if (m_desc.keyframes.Empty()) {
+        return 0.0f;
+    }
+
+    return m_desc.keyframes.Back().GetTime();
+}
+
 Keyframe AnimationTrack::GetKeyframe(float time) const
 {
     int first = 0, second = -1;
 
-    if (keyframes.Empty()) {
+    if (m_desc.keyframes.Empty()) {
         return { time, Transform() };
     }
 
-    for (int i = 0; i < int(keyframes.Size() - 1); i++) {
-        if (MathUtil::InRange(time, { keyframes[i].GetTime(), keyframes[i + 1].GetTime() })) {
+    for (int i = 0; i < int(m_desc.keyframes.Size() - 1); i++) {
+        if (MathUtil::InRange(time, { m_desc.keyframes[i].GetTime(), m_desc.keyframes[i + 1].GetTime() })) {
             first = i;
             second = i + 1;
 
@@ -24,12 +46,12 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         }
     }
 
-    const Keyframe &current = keyframes[first];
+    const Keyframe &current = m_desc.keyframes[first];
 
     Transform transform = current.GetTransform();
 
     if (second > first) {
-        const Keyframe &next = keyframes[second];
+        const Keyframe &next = m_desc.keyframes[second];
 
         const float delta = (time - current.GetTime()) / (next.GetTime() - current.GetTime());
 
@@ -41,6 +63,10 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
     return { time, transform };
 }
 
+#pragma endregion AnimationTrack
+
+#pragma region Animation
+
 Animation::Animation() = default;
 
 Animation::Animation(const String &name)
@@ -50,35 +76,37 @@ Animation::Animation(const String &name)
 
 void Animation::Apply(float time)
 {
-    for (AnimationTrack &track : m_tracks) {
-        if (track.bone == nullptr) {
+    for (const Handle<AnimationTrack> &track : m_tracks) {
+        if (track->m_bone == nullptr) {
             continue;
         }
 
-        track.bone->ClearPose();
-        track.bone->SetKeyframe(track.GetKeyframe(time));
+        track->m_bone->ClearPose();
+        track->m_bone->SetKeyframe(track->GetKeyframe(time));
     }
 }
 
 void Animation::ApplyBlended(float time, float blend)
 {
-    for (AnimationTrack &track : m_tracks) {
-        if (track.bone == nullptr) {
+    for (const Handle<AnimationTrack> &track : m_tracks) {
+        if (track->m_bone == nullptr) {
             continue;
         }
 
         if (blend <= MathUtil::epsilon_f) {
-            track.bone->ClearPose();
+            track->m_bone->ClearPose();
         }
 
-        auto frame = track.GetKeyframe(time);
-        auto blended = track.bone->GetKeyframe().Blend(
+        Keyframe frame = track->GetKeyframe(time);
+        Keyframe blended = track->m_bone->GetKeyframe().Blend(
             frame, 
             MathUtil::Clamp(blend, 0.0f, 1.0f)
         );
 
-        track.bone->SetKeyframe(blended);
+        track->m_bone->SetKeyframe(blended);
     }
 }
+
+#pragma endregion Animation
 
 } // namespace hyperion

@@ -10,7 +10,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <asset/ByteWriter.hpp>
-#include <asset/BufferedByteReader.hpp>;
+#include <asset/BufferedByteReader.hpp>
 
 namespace hyperion {
 namespace config {

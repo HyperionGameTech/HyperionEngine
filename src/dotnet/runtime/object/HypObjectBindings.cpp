@@ -128,9 +128,11 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
         typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
 
         if (is_weak) {
-            Weak<void>{}.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+            Weak<void> weak;
+            weak.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
         } else {
-            RC<void>{}.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+            RC<void> rc;
+            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
         }
     } else {
         HYP_FAIL("Unhandled HypClass allocation method");

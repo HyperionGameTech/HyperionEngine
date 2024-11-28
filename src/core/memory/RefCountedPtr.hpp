@@ -18,6 +18,7 @@
 
 #ifdef HYP_ENABLE_REF_TRACKING
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/FlatMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/system/StackDump.hpp>
 
@@ -112,7 +113,7 @@ struct RefCountData
 
 #ifdef HYP_ENABLE_REF_TRACKING
     Mutex                           ref_track_data_mutex;
-    HashMap<void *, RefTrackData>   ref_track_data;
+    FlatMap<void *, RefTrackData>   ref_track_data;
 
     template <class... Args>
     void AddRefTrackData(void *addr, Args &&... args)
@@ -124,7 +125,7 @@ struct RefCountData
 
         Mutex::Guard guard(ref_track_data_mutex);
 
-        AssertThrow(ref_track_data.Insert(addr, RefTrackData { addr, std::forward<Args>(args)... }).second);
+        ref_track_data.Set(addr, RefTrackData { addr, std::forward<Args>(args)... });
     }
 
     void RemoveRefTrackData(void *addr)
@@ -359,11 +360,6 @@ public:
     RefCountedPtrBase()
         : m_ref(const_cast<RefCountDataType *>(&empty_ref_count_data))
     {
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-        }
-#endif
     }
 
 protected:
@@ -372,8 +368,12 @@ protected:
         : m_ref(other.m_ref)
     {
 #ifdef HYP_ENABLE_REF_TRACKING
+        AssertThrow(&other != this);
+
         if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            if (m_ref->HasValue()) {
+                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            }
         }
 #endif
 
@@ -388,17 +388,13 @@ protected:
 
         DecRefCount();
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->RemoveRefTrackData(this);
-        }
-#endif
-
         m_ref = other.m_ref;
 
 #ifdef HYP_ENABLE_REF_TRACKING
         if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            if (m_ref->HasValue()) {
+                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            }
         }
 #endif
 
@@ -411,16 +407,14 @@ protected:
         : m_ref(other.m_ref)
     {
 #ifdef HYP_ENABLE_REF_TRACKING
+        AssertThrow(&other != this);
+
         if constexpr (EnableRefTracking) {
             if (m_ref->HasValue()) {
                 m_ref->DecRefTrackDataCount(&other);
-            }
-
-            m_ref->RemoveRefTrackData(&other);
-
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-
-            if (m_ref->HasValue()) {
+                m_ref->RemoveRefTrackData(&other);
+                
+                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
                 m_ref->IncRefTrackDataCount(this);
             }
         }
@@ -428,12 +422,6 @@ protected:
 
         // NOTE: Cast away constness -- modifying empty_ref_count_data or dereferencing its value (always nullptr) shouldn't happen anyway.
         other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
-
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            other.m_ref->AddRefTrackData(&other, HYP_REF_TRACKING_GETSTACKTRACE());
-        }
-#endif
     }
 
     RefCountedPtrBase &operator=(RefCountedPtrBase &&other) noexcept
@@ -446,21 +434,11 @@ protected:
 
 #ifdef HYP_ENABLE_REF_TRACKING
         if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->DecRefTrackDataCount(this);
-            }
-            
-            m_ref->RemoveRefTrackData(this);
-
             if (other.m_ref->HasValue()) {
                 other.m_ref->DecRefTrackDataCount(&other);
-            }
-            
-            other.m_ref->RemoveRefTrackData(&other);
+                other.m_ref->RemoveRefTrackData(&other);
 
-            other.m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-
-            if (other.m_ref->HasValue()) {
+                other.m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
                 other.m_ref->IncRefTrackDataCount(this);
             }
         }
@@ -470,12 +448,6 @@ protected:
 
         other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            other.m_ref->AddRefTrackData(&other, HYP_REF_TRACKING_GETSTACKTRACE());
-        }
-#endif
-
         return *this;
     }
 
@@ -483,12 +455,6 @@ public:
     ~RefCountedPtrBase()
     {
         DecRefCount();
-
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->RemoveRefTrackData(this);
-        }
-#endif
     }
 
     HYP_FORCE_INLINE void *Get() const
@@ -523,17 +489,11 @@ public:
         if constexpr (EnableRefTracking) {
             if (m_ref->HasValue()) {
                 m_ref->DecRefTrackDataCount(this);
-            }
-
-            m_ref->RemoveRefTrackData(this);
-
-            m_ref->AddRefTrackData(&rc, HYP_REF_TRACKING_GETSTACKTRACE());
-
-            if (m_ref->HasValue()) {
+                m_ref->RemoveRefTrackData(this);
+                
+                m_ref->AddRefTrackData(&rc, HYP_REF_TRACKING_GETSTACKTRACE());
                 m_ref->IncRefTrackDataCount(&rc);
             }
-
-            rc.m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
         }
 #endif  
 
@@ -556,12 +516,6 @@ public:
         DecRefCount();
 
         if (ptr) {
-#ifdef HYP_ENABLE_REF_TRACKING
-            if constexpr (EnableRefTracking) {
-                m_ref->RemoveRefTrackData(this);
-            }
-#endif
-
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, TyN>) {
                 // T has EnableRefCountedPtrFromThisBase as a base class -- share the RefCountData and just increment the refcount
 
@@ -582,7 +536,6 @@ public:
 #ifdef HYP_ENABLE_REF_TRACKING
             if constexpr (EnableRefTracking) {
                 m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-                
                 m_ref->IncRefTrackDataCount(this);
             }
 #endif
@@ -603,17 +556,13 @@ public:
     {
         DecRefCount();
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->RemoveRefTrackData(this);
-        }
-#endif
-
         m_ref = ref;
 
 #ifdef HYP_ENABLE_REF_TRACKING
         if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            if (m_ref->HasValue()) {
+                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            }
         }
 #endif
 
@@ -630,9 +579,8 @@ public:
         if constexpr (EnableRefTracking) {
             if (m_ref->HasValue()) {
                 m_ref->DecRefTrackDataCount(this);
+                m_ref->RemoveRefTrackData(this);
             }
-
-            m_ref->RemoveRefTrackData(this);
         }
 #endif
 
@@ -646,12 +594,6 @@ public:
 
         m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-        }
-#endif
-
         return ptr;
     }
 
@@ -661,7 +603,9 @@ protected:
     {
 #ifdef HYP_ENABLE_REF_TRACKING
         if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            if (m_ref->HasValue()) {
+                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
+            }
         }
 #endif
     }
@@ -691,9 +635,8 @@ protected:
         if constexpr (EnableRefTracking) {
             if (m_ref->HasValue()) {
                 m_ref->DecRefTrackDataCount(this);
+                m_ref->RemoveRefTrackData(this);
             }
-
-            m_ref->RemoveRefTrackData(this);
         }
 #endif
 
@@ -708,12 +651,6 @@ protected:
         }
 
         m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
-
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-        }
-#endif
     }
 
     NotNullPtr<RefCountDataType>    m_ref;

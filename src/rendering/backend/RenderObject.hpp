@@ -11,6 +11,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 
 #include <core/containers/FixedArray.hpp>
+#include <core/containers/HeapArray.hpp>
 
 #include <core/Name.hpp>
 #include <core/IDGenerator.hpp>

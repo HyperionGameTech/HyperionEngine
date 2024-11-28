@@ -7,6 +7,7 @@
 
 #include <core/containers/Queue.hpp>
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/HeapArray.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>

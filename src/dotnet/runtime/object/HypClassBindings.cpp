@@ -34,7 +34,7 @@ HYP_EXPORT void *HypClass_CreateInstance(const HypClass *hyp_class)
         HypData value;
         hyp_class->CreateInstance(value);
 
-        RC<void> &rc = value.Get<RC<void>>();
+        RC<void> rc = std::move(value.Get<RC<void>>());
         AssertThrow(rc != nullptr);
 
         return rc.Release();
@@ -83,7 +83,7 @@ HYP_EXPORT void *HypClass_InitInstance(const HypClass *hyp_class, dotnet::Class 
             // allowing the managed class to override methods of an abstract class
             hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
-            RC<void> &rc = value.Get<RC<void>>();
+            RC<void> rc = std::move(value.Get<RC<void>>());
             AssertThrow(rc != nullptr);
 
             created_object_ptr = rc.Release();

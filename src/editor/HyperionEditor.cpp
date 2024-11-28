@@ -377,7 +377,7 @@ void HyperionEditor::Init()
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");
-    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
     HYP_LOG(Editor, LogLevel::DEBUG, "Loading assets, scene ID = {}", GetScene()->GetID().Value());

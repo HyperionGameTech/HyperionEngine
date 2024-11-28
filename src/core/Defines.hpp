@@ -407,7 +407,7 @@
 
     // Add more data to RefCountedPtr to track down memory leaks.
     // Expensive as it requires a mutex lock on every ref count operation, so only enable in debugging.
-    #define HYP_ENABLE_REF_TRACKING
+    // #define HYP_ENABLE_REF_TRACKING
 #endif
 
 #if !defined(HYP_EDITOR) || !HYP_EDITOR

@@ -16,6 +16,7 @@
 #include <core/system/Debug.hpp>
 
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/HeapArray.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Memory.hpp>
@@ -35,6 +36,9 @@ struct HandleDefinition;
 
 template <class T>
 class ObjectContainer;
+
+// @TODO Change ObjectPool to use the new MemoryPool<T> template class underneath, as it supports dynamic resizing of the buffer
+// But first, we need a way to map from address directly to index, so GetObjectIndex() will work properly without needing to iterate all blocks
 
 class ObjectContainerBase
 {

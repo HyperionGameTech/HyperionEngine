@@ -6,6 +6,8 @@
 #include <core/Name.hpp>
 #include <core/Defines.hpp>
 
+#include <core/containers/HeapArray.hpp>
+
 #include <math/Vertex.hpp>
 
 #include <rendering/backend/RendererShader.hpp>

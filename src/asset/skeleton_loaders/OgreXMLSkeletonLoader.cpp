@@ -4,6 +4,7 @@
 
 #include <scene/animation/Skeleton.hpp>
 #include <scene/animation/Bone.hpp>
+#include <scene/animation/Animation.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -221,24 +222,24 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
     }
 
     for (const auto &animation_it : object.animations) {
-        Animation animation(animation_it.name);
+        Handle<Animation> animation = CreateObject<Animation>(animation_it.name);
 
         for (const auto &track_it : animation_it.tracks) {
-            AnimationTrack animation_track;
-            animation_track.bone_name = track_it.bone_name;
-            animation_track.keyframes.Reserve(track_it.keyframes.Size());
+            AnimationTrackDesc animation_track_desc;
+            animation_track_desc.bone_name = track_it.bone_name;
+            animation_track_desc.keyframes.Reserve(track_it.keyframes.Size());
             
             for (const auto &keyframe_it : track_it.keyframes) {
-                animation_track.keyframes.PushBack(Keyframe(
+                animation_track_desc.keyframes.PushBack(Keyframe(
                     keyframe_it.time,
                     Transform(keyframe_it.translation, Vector3::One(), keyframe_it.rotation)
                 ));
             }
 
-            animation.AddTrack(animation_track);
+            animation->AddTrack(CreateObject<AnimationTrack>(animation_track_desc));
         }
 
-        skeleton_handle->AddAnimation(std::move(animation));
+        skeleton_handle->AddAnimation(animation);
     }
 
     if (Bone *root_bone = skeleton_handle->GetRootBone()) {

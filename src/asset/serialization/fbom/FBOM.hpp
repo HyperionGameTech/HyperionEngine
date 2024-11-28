@@ -4,22 +4,14 @@
 #define HYPERION_FBOM_HPP
 
 #include <core/containers/TypeMap.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/TypeAttributes.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
-
-#include <math/MathUtil.hpp>
 
 #include <asset/ByteWriter.hpp>
 

@@ -37,12 +37,15 @@ protected:
 
         Block()
         {
-            // // Default initialization for POD types - zero it out
-            // if constexpr (IsPODType<ElementType>) {
-            //     Memory::MemSet(elements.Data(), 0, elements.ByteSize());
-            // }
-
-            elements = { };
+            if constexpr (IsPODType<ElementType>) {
+                // Default initialization for POD types - zero it out
+                Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+            } else {
+                // For non-POD types, default construct each element
+                for (uint32 i = 0; i < num_elements_per_block; i++) {
+                    elements[i] = ElementType();
+                }
+            }
         }
 
         HYP_FORCE_INLINE bool IsEmpty() const

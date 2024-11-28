@@ -253,8 +253,8 @@ public:
 
     struct Delegates
     {
-        Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeAdded;
-        Delegate<void, const NodeProxy &, bool /* direct */> OnNestedNodeRemoved;
+        Delegate<void, Node *, bool /* direct */> OnChildAdded;
+        Delegate<void, Node *, bool /* direct */> OnChildRemoved;
     };
 
     using NodeList = Array<NodeProxy>;
@@ -448,17 +448,11 @@ public:
     HYP_FORCE_INLINE const NodeList &GetChildren() const
         { return m_child_nodes; }
 
-    /*! \brief Get all descendent child Nodes from this Node. This vector is pre-calculated,
+    /*! \brief Get all descendant child Nodes from this Node. This vector is pre-calculated,
      * so no calculation happens when calling this method.
-     * \returns A vector of raw pointers to descendent Nodes */
-    HYP_FORCE_INLINE Array<NodeProxy> &GetDescendents()
-        { return m_descendents; }
-
-    /*! \brief Get all descendent child Nodes from this Node. This vector is pre-calculated,
-     * so no calculation happens when calling this method.
-     * \returns A vector of raw pointers to descendent Nodes */
-    HYP_FORCE_INLINE const Array<NodeProxy> &GetDescendents() const
-        { return m_descendents; }
+     * \returns A vector of raw pointers to descendant Nodes */
+    HYP_FORCE_INLINE const Array<Node *> &GetDescendants() const
+        { return m_descendants; }
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD(Property="LocalTransform", Serialize=true, Editor=true, Label="Local-space Transform")
@@ -722,8 +716,8 @@ protected:
      *  and will update the TransformComponent of the entity if it exists. */
     void RefreshEntityTransform();
 
-    void OnNestedNodeAdded(const NodeProxy &node, bool direct);
-    void OnNestedNodeRemoved(const NodeProxy &node, bool direct);
+    void OnNestedNodeAdded(Node *node, bool direct);
+    void OnNestedNodeRemoved(Node *node, bool direct);
 
 #ifdef HYP_EDITOR
     EditorDelegates *GetEditorDelegates();
@@ -740,7 +734,7 @@ protected:
 
     Handle<Entity>              m_entity;
 
-    Array<NodeProxy>            m_descendents;
+    Array<Node *>               m_descendants;
 
     Scene                       *m_scene;
 

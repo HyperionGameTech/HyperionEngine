@@ -2,12 +2,16 @@
 
 #include <scene/animation/Skeleton.hpp>
 #include <scene/animation/Bone.hpp>
+#include <scene/animation/Animation.hpp>
 
 #include <rendering/Skeleton.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <Engine.hpp>
 
@@ -94,8 +98,8 @@ void Skeleton::Update(GameCounter::TickUnit)
         m_bone_data.SetMatrix(0, static_cast<Bone *>(m_root_bone.Get())->GetBoneMatrix());
 
         for (SizeType i = 1; i < num_bones; i++) {
-            if (auto &descendent = m_root_bone->GetDescendents()[i - 1]) {
-                if (!descendent.IsValid()) {
+            if (Node *descendent = m_root_bone->GetDescendants()[i - 1]) {
+                if (!descendent) {
                     continue;
                 }
 
@@ -103,7 +107,7 @@ void Skeleton::Update(GameCounter::TickUnit)
                     continue;
                 }
 
-                m_bone_data.SetMatrix(i, static_cast<const Bone *>(descendent.Get())->GetBoneMatrix());
+                m_bone_data.SetMatrix(i, static_cast<const Bone *>(descendent)->GetBoneMatrix());
             }
         }
 
@@ -123,7 +127,7 @@ Bone *Skeleton::FindBone(UTF8StringView name) const
         return static_cast<Bone *>(m_root_bone.Get());
     }
 
-    for (NodeProxy &node : m_root_bone->GetDescendents()) {
+    for (Node *node : m_root_bone->GetDescendants()) {
         if (!node) {
             continue;
         }
@@ -132,7 +136,7 @@ Bone *Skeleton::FindBone(UTF8StringView name) const
             continue;
         }
 
-        Bone *bone = static_cast<Bone *>(node.Get());  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        Bone *bone = static_cast<Bone *>(node);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 
         if (bone->GetName() == name) {
             return bone;
@@ -154,7 +158,7 @@ uint32 Skeleton::FindBoneIndex(UTF8StringView name) const
         return index;
     }
 
-    for (NodeProxy &node : m_root_bone->GetDescendents()) {
+    for (Node *node : m_root_bone->GetDescendants()) {
         ++index;
 
         if (!node) {
@@ -165,7 +169,7 @@ uint32 Skeleton::FindBoneIndex(UTF8StringView name) const
             continue;
         }
 
-        const Bone *bone = static_cast<const Bone *>(node.Get());  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        const Bone *bone = static_cast<const Bone *>(node);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 
         if (bone->GetName() == name) {
             return index;
@@ -202,37 +206,37 @@ SizeType Skeleton::NumBones() const
         return 0;
     }
 
-    return 1 + m_root_bone->GetDescendents().Size();
+    return 1 + m_root_bone->GetDescendants().Size();
 }
 
-void Skeleton::AddAnimation(Animation &&animation)
+void Skeleton::AddAnimation(const Handle<Animation> &animation)
 {
-    for (AnimationTrack &track : animation.GetTracks()) {
-        track.bone = nullptr;
+    if (!animation) {
+        return;
+    }
 
-        if (track.bone_name.Empty()) {
+    for (const Handle<AnimationTrack> &track : animation->GetTracks()) {
+        if (track->GetDesc().bone_name.Empty()) {
+            track->SetBone(nullptr);
+
             continue;
         }
 
-        track.bone = FindBone(track.bone_name);
+        track->SetBone(FindBone(track->GetDesc().bone_name));
 
-        if (track.bone == nullptr) {
-            DebugLog(
-                LogType::Warn,
-                "Skeleton could not find bone with name \"%s\"\n",
-                track.bone_name.Data()
-            );
+        if (!track->GetBone()) {
+            HYP_LOG(Animation, LogLevel::WARNING, "Skeleton could not find bone with name '{}'", track->GetDesc().bone_name);
         }
     }
 
-    m_animations.PushBack(std::move(animation));
+    m_animations.PushBack(animation);
 }
 
-const Animation *Skeleton::FindAnimation(const String &name, uint32 *out_index) const
+const Animation *Skeleton::FindAnimation(UTF8StringView name, uint32 *out_index) const
 {
     const auto it = m_animations.FindIf([&name](const auto &item)
     {
-        return item.GetName() == name;
+        return item->GetName() == name;
     });
 
     if (it == m_animations.End()) {
@@ -243,7 +247,7 @@ const Animation *Skeleton::FindAnimation(const String &name, uint32 *out_index) 
         *out_index = m_animations.IndexOf(it);
     }
 
-    return it;
+    return it->Get();
 }
 
 } // namespace hyperion
