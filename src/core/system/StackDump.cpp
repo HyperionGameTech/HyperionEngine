@@ -84,7 +84,7 @@ static Array<String> CreatePlatformStackTrace(uint32 depth, uint32 offset)
     void **stack = (void **)malloc((depth + offset) * sizeof(void *));
     const int frames = backtrace(stack, depth + offset);
     
-    if (frames - offset > 0) {
+    if (frames - int(offset) > 0) {
         Array<String> symbols;
         symbols.Resize(frames - offset);
 
