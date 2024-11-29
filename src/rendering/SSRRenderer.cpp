@@ -328,7 +328,10 @@ void SSRRenderer::Render(Frame *frame)
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
-    const uint camera_index = g_engine->render_state.GetCamera().id.ToIndex();
+    
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->render_state.GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();

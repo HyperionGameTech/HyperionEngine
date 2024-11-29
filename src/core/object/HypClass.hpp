@@ -404,7 +404,7 @@ public:
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override
     {
-        if constexpr (IsHypObject<T>::value) {
+        if constexpr (std::is_base_of_v<IHypObject, T>) {
             return HypClassAllocationMethod::OBJECT_POOL_HANDLE;
         } else {
             static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
@@ -445,7 +445,7 @@ protected:
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {
-            if constexpr (IsHypObject<T>::value) {
+            if constexpr (std::is_base_of_v<IHypObject, T>) {
                 out = CreateObject<T>();
             } else {
                 out = MakeRefCountedPtr<T>();
@@ -461,7 +461,7 @@ protected:
         HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
 
         if constexpr (std::is_default_constructible_v<T>) {
-            if constexpr (IsHypObject<T>::value) {
+            if constexpr (std::is_base_of_v<IHypObject, T>) {
                 out = CreateObject<T>();
             } else {
                 out = MakeRefCountedPtr<T>();

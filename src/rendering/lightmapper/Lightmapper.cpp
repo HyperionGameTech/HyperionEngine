@@ -547,9 +547,16 @@ void LightmapPathTracer::ReadHitsBuffer(LightmapHitsBuffer *ptr, uint frame_inde
 
 void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uint32 ray_offset)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     const uint frame_index = frame->GetFrameIndex();
     const uint previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
+    
     /*m_hits_buffers[previous_frame_index]->Read(
         g_engine->GetGPUDevice(),
         sizeof(LightmapHitsBuffer),
@@ -596,7 +603,7 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }

@@ -16,6 +16,8 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
+struct AnyHandle;
+
 template <class T>
 static inline ObjectContainer<T> &GetContainer(UniquePtr<IObjectContainer> &allotted_container)
 {
@@ -33,7 +35,7 @@ HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< implementatio
 {
     // If T is a defined type, we can use ObjectContainer<T> methods (ObjectContainer<T> is final, virtual calls can be optimized)
     if constexpr (implementation_exists<T>) {
-        return reinterpret_cast<ObjectContainer<T> *>(Handle<T>::GetContainer_Internal());
+        return static_cast<ObjectContainer<T> *>(Handle<T>::GetContainer_Internal());
     } else {
         return Handle<T>::GetContainer_Internal();
     }
@@ -56,6 +58,19 @@ struct Handle : HandleBase
     using IDType = ID<T>;
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+
+private:
+    explicit Handle(ObjectBytesBase *ptr)
+        : ptr(ptr)
+    {
+        if (ptr != nullptr) {
+            ptr->IncRefStrong();
+        }
+    }
+
+public:
+    friend struct AnyHandle;
+    friend struct WeakHandle<T>;
     
     static IObjectContainer *s_container;
 
@@ -83,11 +98,8 @@ struct Handle : HandleBase
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
-        : ptr(id.IsValid() ? GetContainer<T>()->GetObjectBytes(id.Value() - 1) : nullptr)
+        : Handle(id.IsValid() ? GetContainer<T>()->GetObjectBytes(id.Value() - 1) : nullptr)
     {
-        if (ptr != nullptr) {
-            ptr->IncRefStrong();
-        }
     }
 
     template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
@@ -100,11 +112,8 @@ struct Handle : HandleBase
     }
 
     explicit Handle(ObjectBytes<T> *ptr)
-        : ptr(reinterpret_cast<ObjectBytesBase *>(ptr))
+        : Handle(reinterpret_cast<ObjectBytesBase *>(ptr))
     {
-        if (ptr != nullptr) {
-            ptr->IncRefStrong();
-        }
     }
 
     Handle(const Handle &other)
@@ -294,14 +303,14 @@ struct WeakHandle
         }
     }
 
-    template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
-    explicit WeakHandle(TPointerType *ptr)
-        : ptr(nullptr)
-    {
-        if (ptr != nullptr) {
-            *this = ptr->WeakHandleFromThis();
-        }
-    }
+    // template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
+    // explicit WeakHandle(TPointerType *ptr)
+    //     : ptr(nullptr)
+    // {
+    //     if (ptr != nullptr) {
+    //         *this = ptr->WeakHandleFromThis();
+    //     }
+    // }
 
     WeakHandle(const Handle<T> &other)
         : ptr(other.ptr)
@@ -396,7 +405,7 @@ struct WeakHandle
         }
 
         return ptr->GetRefCountStrong() != 0
-            ? Handle<T>(reinterpret_cast<ObjectBytes<T> *>(ptr))
+            ? Handle<T>(ptr)
             : Handle<T>();
     }
 
@@ -603,7 +612,7 @@ struct AnyHandle
             return { };
         }
 
-        return Handle<T>(reinterpret_cast<ObjectBytes<T> *>(ptr));
+        return Handle<T>(ptr);
     }
 
     HYP_API AnyRef ToRef() const;

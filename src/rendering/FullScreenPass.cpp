@@ -14,6 +14,8 @@
 
 #include <util/MeshBuilder.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 namespace hyperion {
 
 using renderer::CommandBufferType;
@@ -129,6 +131,8 @@ FullScreenPass::~FullScreenPass()
 
 void FullScreenPass::Create()
 {
+    HYP_SCOPE;
+
     AssertThrow(!m_is_initialized);
 
     AssertThrowMsg(
@@ -173,6 +177,7 @@ void FullScreenPass::Resize(Vec2u new_size)
 
 void FullScreenPass::Resize_Internal(Vec2u new_size)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (m_extent == new_size) {
@@ -201,6 +206,8 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
 
 void FullScreenPass::CreateQuad()
 {
+    HYP_SCOPE;
+
     m_full_screen_quad = MeshBuilder::Quad();
     InitObject(m_full_screen_quad);
 
@@ -210,6 +217,8 @@ void FullScreenPass::CreateQuad()
 
 void FullScreenPass::CreateCommandBuffers()
 {
+    HYP_SCOPE;
+
     for (uint i = 0; i < max_frames_in_flight; i++) {
         m_command_buffers[i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
@@ -220,6 +229,8 @@ void FullScreenPass::CreateCommandBuffers()
 
 void FullScreenPass::CreateFramebuffer()
 {
+    HYP_SCOPE;
+
     if (m_extent.x * m_extent.y == 0) {
         // TODO: Make non render-thread dependent
         m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
@@ -262,6 +273,8 @@ void FullScreenPass::CreateFramebuffer()
 
 void FullScreenPass::CreatePipeline()
 {
+    HYP_SCOPE;
+
     CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes
@@ -276,6 +289,8 @@ void FullScreenPass::CreatePipeline()
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
+    HYP_SCOPE;
+
     if (m_descriptor_table.HasValue()) {
         m_render_group = CreateObject<RenderGroup>(
             m_shader,
@@ -302,45 +317,47 @@ void FullScreenPass::CreateDescriptors()
 
 void FullScreenPass::Record(uint frame_index)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
+    }
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
-    auto record_result = command_buffer->Record(
-        g_engine->GetGPUInstance()->GetDevice(),
-        m_render_group->GetPipeline()->GetRenderPass(),
-        [this, frame_index](CommandBuffer *cmd)
+    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
+
+    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+    m_render_group->GetPipeline()->Bind(command_buffer);
+
+    m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
+        command_buffer,
+        frame_index,
+        m_render_group->GetPipeline(),
         {
-            m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
-            m_render_group->GetPipeline()->Bind(cmd);
-
-            m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-                cmd,
-                frame_index,
-                m_render_group->GetPipeline(),
+            {
+                NAME("Scene"),
                 {
-                    {
-                        NAME("Scene"),
-                        {
-                            { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
-                            { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                            { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
-                        }
-                    }
+                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
+                    { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
-            );
+            }
+        }
+    );
 
-            m_full_screen_quad->Render(cmd);
+    m_full_screen_quad->Render(command_buffer);
 
-            HYPERION_RETURN_OK;
-        });
-
-    HYPERION_ASSERT_RESULT(record_result);
+    command_buffer->End(g_engine->GetGPUDevice());
 }
 
 void FullScreenPass::Render(Frame *frame)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const auto frame_index = frame->GetFrameIndex();
@@ -355,6 +372,7 @@ void FullScreenPass::Render(Frame *frame)
 
 void FullScreenPass::Begin(Frame *frame)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
@@ -368,6 +386,7 @@ void FullScreenPass::Begin(Frame *frame)
 
 void FullScreenPass::End(Frame *frame)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();

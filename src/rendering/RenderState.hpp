@@ -21,6 +21,7 @@ namespace hyperion {
 class RenderEnvironment;
 class EnvGrid;
 class Camera;
+class CameraRenderResources;
 
 using RenderStateMask = uint32;
 
@@ -94,7 +95,7 @@ struct RenderBinding<Camera>
 struct RenderState
 {
     Stack<RenderBinding<Scene>>                                                             scene_bindings;
-    Stack<RenderBinding<Camera>>                                                            camera_bindings;
+    Stack<TRenderResourcesHandle<CameraRenderResources>>                                    camera_bindings;
     FixedArray<Array<TRenderResourcesHandle<LightRenderResources>>, uint32(LightType::MAX)> bound_lights;
     Stack<TRenderResourcesHandle<LightRenderResources>>                                     light_bindings;
     FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>                  bound_env_probes; // map to texture slot
@@ -182,14 +183,12 @@ struct RenderState
             : scene_bindings.Top();
     }
 
-    void BindCamera(const Camera *camera);
-    void UnbindCamera();
+    void BindCamera(Camera *camera);
+    void UnbindCamera(Camera *camera);
 
-    HYP_FORCE_INLINE const RenderBinding<Camera> &GetCamera() const
+    HYP_FORCE_INLINE const TRenderResourcesHandle<CameraRenderResources> *GetActiveCamera() const
     {
-        return camera_bindings.Empty()
-            ? RenderBinding<Camera>::empty
-            : camera_bindings.Top();
+        return camera_bindings.Any() ? &camera_bindings.Top() : nullptr;
     }
 
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);

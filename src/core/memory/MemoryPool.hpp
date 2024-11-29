@@ -67,6 +67,8 @@ public:
         }
     }
 
+    virtual ~MemoryPool() = default;
+
     HYP_FORCE_INLINE uint32 NumAllocatedElements() const
     {
         return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;

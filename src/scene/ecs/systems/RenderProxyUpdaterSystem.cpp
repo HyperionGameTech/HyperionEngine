@@ -106,10 +106,6 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity.ToIndex());
 
-        const ID<Mesh> mesh_id = mesh_component.mesh.GetID();
-        const ID<Material> material_id = mesh_component.material.GetID();
-        const ID<Skeleton> skeleton_id = mesh_component.skeleton.GetID();
-
         const uint32 render_proxy_version = mesh_component.proxy != nullptr
             ? mesh_component.proxy->version + 1
             : 0;

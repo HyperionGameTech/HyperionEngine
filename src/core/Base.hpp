@@ -81,7 +81,7 @@ public:
     HYP_FORCE_INLINE ID<InnerType> GetID() const
         { return m_id; }
 
-    /* To be called from ObjectHolder<Type> */
+    /*! \internal To be called when constructing the object */
     HYP_FORCE_INLINE void SetID(ID<InnerType> id)
         { m_id = id; }
 

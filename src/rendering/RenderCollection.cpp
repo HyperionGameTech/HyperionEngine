@@ -660,7 +660,7 @@ void RenderCollector::ExecuteDrawCalls(
         }
     }
 
-    g_engine->GetRenderState().UnbindCamera();
+    g_engine->GetRenderState().UnbindCamera(camera.Get());
 
     if (framebuffer) {
         framebuffer->EndCapture(command_buffer, frame_index);

@@ -92,7 +92,7 @@ void DrawCallCollection::PushDrawCallToBatch(uint32 batch_index, DrawCallID id, 
             draw_call->batch_index = batch_index;
             draw_call->draw_command_index = ~0u;
             draw_call->material_buffer_index = render_proxy.material.IsValid() ? render_proxy.material->GetRenderResources().GetBufferIndex() : ~0u;
-            draw_call->mesh_id = render_proxy.mesh.GetID();
+            draw_call->mesh = render_proxy.mesh.Get();
             draw_call->material_id = render_proxy.material.GetID();
             draw_call->skeleton_id = render_proxy.skeleton.GetID();
             draw_call->entity_id_count = 0;

@@ -13,25 +13,23 @@ namespace hyperion {
 const RenderBinding<Scene> RenderBinding<Scene>::empty = { };
 const RenderBinding<Camera> RenderBinding<Camera>::empty = { };
 
-void RenderState::BindCamera(const Camera *camera)
+void RenderState::BindCamera(Camera *camera)
 {
-    if (camera == nullptr) {
-        camera_bindings.Push(RenderBinding<Camera>::empty);
-    } else {
-        AssertThrow(camera->GetID().ToIndex() < max_cameras);
-
-        camera_bindings.Push(RenderBinding<Camera> {
-            camera->GetID(),
-            camera->GetProxy()
-        });
-    }
+    AssertThrow(camera != nullptr);
+    AssertThrow(camera->IsReady());
+    
+    camera_bindings.Push(TRenderResourcesHandle(camera->GetRenderResources()));
 }
 
-void RenderState::UnbindCamera()
+void RenderState::UnbindCamera(Camera *camera)
 {
-    if (camera_bindings.Any()) {
-        camera_bindings.Pop();
-    }
+    AssertThrow(camera != nullptr);
+    AssertThrow(camera->IsReady());
+
+    AssertThrowMsg(camera_bindings.Any(), "No camera is currently bound!");
+    AssertThrowMsg(camera_bindings.Top()->GetCamera().GetUnsafe() == camera, "Camera is not currently bound!");
+
+    camera_bindings.Pop();
 }
 
 void RenderState::BindLight(Light *light)

@@ -573,7 +573,7 @@ void EnvProbe::Render(Frame *frame)
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
-        g_engine->GetRenderState().UnbindCamera();
+        g_engine->GetRenderState().UnbindCamera(m_camera.Get());
         g_engine->GetRenderState().UnbindScene();
 
         if (light_render_resources_handle != nullptr) {

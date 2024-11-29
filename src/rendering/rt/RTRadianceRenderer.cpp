@@ -180,6 +180,10 @@ void RTRadianceRenderer::Render(Frame *frame)
 {
     UpdateUniforms(frame);
 
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
+
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 
     m_raytracing_pipeline->GetDescriptorTable()->Bind(
@@ -190,7 +194,7 @@ void RTRadianceRenderer::Render(Frame *frame)
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }
@@ -220,10 +224,10 @@ void RTRadianceRenderer::Render(Frame *frame)
     );
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && g_engine->GetRenderState().GetCamera().camera.view != m_previous_view_matrix) {
+    if (IsPathTracer() && active_camera != nullptr && (*active_camera)->GetBufferData().view != m_previous_view_matrix) {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = g_engine->GetRenderState().GetCamera().camera.view;
+        m_previous_view_matrix = (*active_camera)->GetBufferData().view;
     }
 
     m_temporal_blending->Render(frame);

@@ -4,13 +4,18 @@
 #define HYPERION_SKELETON_HPP
 
 #include <core/Base.hpp>
+
 #include <core/utilities/DataMutationState.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/Array.hpp>
 
-#include <scene/NodeProxy.hpp>
-
 #include <core/system/Debug.hpp>
+
+#include <core/object/HypObject.hpp>
+
+#include <scene/NodeProxy.hpp>
 
 #include <GameCounter.hpp>
 #include <Types.hpp>

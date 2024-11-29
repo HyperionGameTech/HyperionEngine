@@ -305,13 +305,12 @@ template <class T>
 class TRenderResourcesHandle
 {
 public:
-    static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
-
     TRenderResourcesHandle()    = default;
 
     TRenderResourcesHandle(T &render_resources)
         : handle(render_resources)
     {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
     }
 
     TRenderResourcesHandle(const TRenderResourcesHandle &other)

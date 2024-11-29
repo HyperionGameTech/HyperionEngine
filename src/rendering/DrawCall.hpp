@@ -98,7 +98,7 @@ struct DrawCall
 
     uint32          material_buffer_index = ~0u;
 
-    ID<Mesh>        mesh_id;
+    Mesh            *mesh = nullptr;
     ID<Material>    material_id;
     ID<Skeleton>    skeleton_id;
 

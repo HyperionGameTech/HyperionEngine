@@ -39,10 +39,8 @@ public:
 
     HYP_API AnimationTrack();
     HYP_API AnimationTrack(const AnimationTrackDesc &desc);
-    AnimationTrack(const AnimationTrack &other)                 = default;
-    AnimationTrack &operator=(const AnimationTrack &other)      = default;
-    AnimationTrack(AnimationTrack &&other) noexcept             = default;
-    AnimationTrack &operator=(AnimationTrack &&other) noexcept  = default;
+    AnimationTrack(const AnimationTrack &other)                 = delete;
+    AnimationTrack &operator=(const AnimationTrack &other)      = delete;
     ~AnimationTrack()                                           = default;
 
     HYP_FORCE_INLINE Bone *GetBone() const
@@ -76,8 +74,6 @@ public:
     HYP_API Animation(const String &name);
     Animation(const Animation &other)                   = delete;
     Animation &operator=(const Animation &other)        = delete;
-    Animation(Animation &&other) noexcept               = default;
-    Animation &operator=(Animation &&other) noexcept    = delete;
     ~Animation()                                        = default;
 
     HYP_METHOD(Property="Name", Serialize=true)

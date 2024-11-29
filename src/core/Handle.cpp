@@ -36,6 +36,15 @@ AnyHandle::AnyHandle(TypeID type_id, IDBase id)
     }
 }
 
+AnyHandle::AnyHandle(const AnyHandle &other)
+    : container(other.container),
+      ptr(other.ptr)
+{
+    if (ptr) {
+        container->IncRefStrong(ptr);
+    }
+}
+
 AnyHandle &AnyHandle::operator=(const AnyHandle &other)
 {
     if (this == &other) {

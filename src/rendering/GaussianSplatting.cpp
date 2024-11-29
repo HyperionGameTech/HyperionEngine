@@ -25,6 +25,8 @@
 #include <util/NoiseFactory.hpp>
 #include <util/MeshBuilder.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 //#define HYP_GAUSSIAN_SPLATTING_CPU_SORT
@@ -270,7 +272,16 @@ void GaussianSplattingInstance::Init()
 
 void GaussianSplattingInstance::Record(Frame *frame)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     AssertThrow(IsReady());
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
+    }
 
     const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
@@ -298,7 +309,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) }
                     }
                 }
             }
@@ -318,7 +329,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
 #ifdef HYP_GAUSSIAN_SPLATTING_CPU_SORT
     { // Temporary CPU sorting -- inefficient but useful for testing
         for (SizeType index = 0; index < m_model->points.Size(); index++) {
-            m_cpu_distances[index] = (g_engine->GetRenderState().GetCamera().camera.view * m_model->points[index].position).z;
+            m_cpu_distances[index] = ((active_camera != nullptr ? (*active_camera)->GetBufferData().view : Matrix4()) * m_model->points[index].position).z;
         }
 
         std::sort(m_cpu_sorted_indices.Begin(), m_cpu_sorted_indices.End(), [&distances = m_cpu_distances](uint32 a, uint32 b) {
@@ -377,7 +388,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
 
-        auto DoPass = [this, frame, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
+        auto DoPass = [this, frame, active_camera, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
         {
             pc.stage = uint32(stage);
             pc.h = h;
@@ -394,7 +405,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
                         NAME("Scene"),
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) }
                         }
                     }
                 }
@@ -452,7 +463,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) }
                     }
                 }
             }
@@ -780,9 +791,16 @@ void GaussianSplatting::UpdateSplats(Frame *frame)
 void GaussianSplatting::Render(Frame *frame)
 {
     AssertReady();
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (!m_gaussian_splatting_instance) {
         return;
+    }
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
     }
 
     const uint frame_index = frame->GetFrameIndex();
@@ -805,7 +823,7 @@ void GaussianSplatting::Render(Frame *frame)
                         NAME("Scene"),
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) }
                         }
                     }
                 }

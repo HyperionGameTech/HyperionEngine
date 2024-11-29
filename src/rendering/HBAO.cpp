@@ -157,9 +157,16 @@ void HBAO::Record(uint frame_index)
 void HBAO::Render(Frame *frame)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     const uint frame_index = frame->GetFrameIndex();
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
+    }
 
     {
         struct alignas(128)
@@ -182,7 +189,7 @@ void HBAO::Render(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) }
                     }
                 }
             }

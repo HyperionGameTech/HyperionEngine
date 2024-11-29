@@ -11,6 +11,8 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <util/profiling/ProfileScope.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -281,6 +283,13 @@ void TemporalBlending::CreateComputePipelines()
 
 void TemporalBlending::Render(Frame *frame)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
+
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
         &m_history_texture
@@ -317,7 +326,7 @@ void TemporalBlending::Render(Frame *frame)
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) }
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
                 }
             }
         }

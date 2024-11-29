@@ -254,7 +254,7 @@ protected:
 };
 
 template <class StructType>
-class GPUBufferHolderMemoryPool : public MemoryPool<StructType>
+class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
 {
 public:
     using Base = MemoryPool<StructType>;
@@ -263,6 +263,8 @@ public:
         : Base(initial_count)
     {
     }
+
+    virtual ~GPUBufferHolderMemoryPool() override = default;
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
     {

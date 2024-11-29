@@ -486,6 +486,10 @@ static HYP_FORCE_INLINE void RenderAll(
 
     const ID<Scene> scene_id = g_engine->GetRenderState().GetScene().id;
 
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
+
     const uint frame_index = frame->GetFrameIndex();
 
     const uint num_batches = use_parallel_rendering
@@ -531,7 +535,7 @@ static HYP_FORCE_INLINE void RenderAll(
             pipeline,
             {
                 { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                 { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_index) },
                 { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                 { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
@@ -590,15 +594,13 @@ static HYP_FORCE_INLINE void RenderAll(
         }
 
         if constexpr (IsIndirect) {
-            GetContainer<Mesh>()->Get(draw_call.mesh_id.ToIndex())
-                .RenderIndirect(
-                    frame->GetCommandBuffer(),
-                    indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
-                    draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
-                );
+            draw_call.mesh->RenderIndirect(
+                frame->GetCommandBuffer(),
+                indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
+                draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
+            );
         } else {
-            GetContainer<Mesh>()->Get(draw_call.mesh_id.ToIndex())
-                .Render(frame->GetCommandBuffer(), entity_instance_batch.num_entities);
+            draw_call.mesh->Render(frame->GetCommandBuffer(), entity_instance_batch.num_entities);
         }
     }
 }
@@ -654,9 +656,12 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     // AtomicVar<uint32> num_rendered_objects { 0u };
 
     const TRenderResourcesHandle<LightRenderResources> *light_render_resources = g_engine->GetRenderState().GetActiveLight();
-
     const uint32 light_index = light_render_resources != nullptr ? (*light_render_resources)->GetBufferIndex() : 0;
     AssertThrow(light_index != ~0u);
+    
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    AssertThrow(camera_index != ~0u);
 
     if (divided_draw_calls.Size() == 1) {
         RenderAll<IsIndirect>(
@@ -683,8 +688,6 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                 pipeline->GetRenderPass(),
                 [&](CommandBuffer *secondary)
                 {
-                    ObjectContainer<Mesh> *mesh_container = GetContainer<Mesh>();
-
                     pipeline->Bind(secondary);
                     
                     global_descriptor_set->Bind(
@@ -699,7 +702,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         pipeline,
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                             { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_index) },
                             { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                             { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
@@ -758,15 +761,13 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         }
 
                         if constexpr (IsIndirect) {
-                            mesh_container->Get(draw_call.mesh_id.ToIndex())
-                                .RenderIndirect(
-                                    secondary,
-                                    indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
-                                    draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
-                                );
+                            draw_call.mesh->RenderIndirect(
+                                secondary,
+                                indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index).Get(),
+                                draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand))
+                            );
                         } else {
-                            mesh_container->Get(draw_call.mesh_id.ToIndex())
-                                .Render(secondary, entity_instance_batch.num_entities);
+                            draw_call.mesh->Render(secondary, entity_instance_batch.num_entities);
                         }
                     }
 

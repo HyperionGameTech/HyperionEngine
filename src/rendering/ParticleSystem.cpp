@@ -24,8 +24,11 @@
 #include <core/util/ForEach.hpp>
 
 #include <math/MathUtil.hpp>
+
 #include <util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>
+
+#include <util/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
@@ -413,8 +416,16 @@ void ParticleSystem::CreateCommandBuffers()
 
 void ParticleSystem::UpdateParticles(Frame *frame)
 {
+    HYP_SCOPE;
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
+    }
 
     if (m_particle_spawners.GetItems().Empty()) {
         if (m_particle_spawners.HasUpdatesPending()) {
@@ -452,9 +463,10 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             renderer::ResourceState::INDIRECT_ARG
         );
 
-        if (!g_engine->GetRenderState().GetCamera().camera.frustum.ContainsBoundingSphere(spawner->GetBoundingSphere())) {
-            continue;
-        }
+        // @FIXME: frustum needs to be added to buffer data
+        // if (active_camera != nullptr && !(*active_camera)->GetBufferData().frustum.ContainsBoundingSphere(spawner->GetBoundingSphere())) {
+        //     continue;
+        // }
 
         struct alignas(128)
         {
@@ -490,7 +502,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
                     {
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
                             { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                             { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                         }
@@ -521,16 +533,25 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
 void ParticleSystem::Render(Frame *frame)
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
 
     const uint frame_index = frame->GetFrameIndex();
+
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    if (active_camera != nullptr) {
+        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
+    }
 
     FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
     ForEachInBatches(
         m_particle_spawners.GetItems(),
         num_async_rendering_command_buffers,
-        [this, &command_buffers_recorded_states, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint index, uint batch_index) {
+        [this, &command_buffers_recorded_states, active_camera, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint index, uint batch_index) {
             const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -549,7 +570,7 @@ void ParticleSystem::Render(Frame *frame)
                                 NAME("Scene"),
                                 {
                                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()) },
+                                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
                                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                                 }

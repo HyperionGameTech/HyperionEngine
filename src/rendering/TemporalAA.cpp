@@ -5,6 +5,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/Camera.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -189,7 +190,9 @@ void TemporalAA::Render(Frame *frame)
     const uint frame_index = frame->GetFrameIndex();
 
     const auto &scene = g_engine->GetRenderState().GetScene().scene;
-    const auto &camera = g_engine->GetRenderState().GetCamera().camera;
+    
+    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
+    AssertThrow(active_camera != nullptr);
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
@@ -211,7 +214,7 @@ void TemporalAA::Render(Frame *frame)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
-    push_constants.camera_near_far = Vec2f { camera.clip_near, camera.clip_far };
+    push_constants.camera_near_far = Vec2f { (*active_camera)->GetBufferData().camera_near, (*active_camera)->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->Bind(command_buffer);

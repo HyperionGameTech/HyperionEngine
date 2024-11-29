@@ -464,7 +464,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame) const
         proxy_group.GetRenderGroup()->PerformRendering(frame);
     }
 
-    g_engine->GetRenderState().UnbindCamera();
+    g_engine->GetRenderState().UnbindCamera(m_camera.Get());
 
     framebuffer->EndCapture(command_buffer, frame_index);
 }
@@ -573,41 +573,6 @@ void UIRenderer::OnRender(Frame *frame)
 
     m_render_collector.CollectDrawCalls(frame);
     m_render_collector.ExecuteDrawCalls(frame);
-
-
-    // g_engine->GetRenderState().BindCamera(m_render_collector.GetCamera().Get());
-    // m_render_collector.GetCamera()->GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame->GetFrameIndex());
-
-    // for (auto &it : m_text_render_data) {
-    //     if (!it.first) {
-    //         continue;
-    //     }
-    //     m_text_renderer->RenderText(frame, *it.first, it.second);
-    // }
-
-    // // // testing
-    // // if (m_ui_stage->GetDefaultFontAtlas()) {
-    // //     const auto &font_atlas_texture = m_ui_stage->GetDefaultFontAtlas()->GetAtlases()->GetAtlasForPixelSize(12);
-
-    // //     if (font_atlas_texture) {
-    // //         Array<UITextCharacterShaderData> characters;
-    // //         characters.PushBack(UITextCharacterShaderData {
-    // //             Vec2i { 0, 0 },
-    // //             Vec2f { 0.0f, 0.0f },
-    // //             Vec2f { 1.0f, 1.0f }
-    // //         });
-    // //         characters.PushBack(UITextCharacterShaderData {
-    // //             Vec2i { 25, 25 },
-    // //             Vec2f { 0.2f, 0.2f },
-    // //             Vec2f { 1.0f, 1.0f }
-    // //         });
-    // //     }
-
-    // // }
-
-    // m_render_collector.GetCamera()->GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame->GetFrameIndex());
-
-    // g_engine->GetRenderState().UnbindCamera();
 
     g_engine->GetRenderState().UnbindScene();
 }

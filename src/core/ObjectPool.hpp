@@ -119,6 +119,7 @@ struct ObjectBytes final : ObjectBytesBase
     T *Construct(Args &&... args)
     {
         Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(bytes, std::forward<Args>(args)...);
+        Get().SetID(ID<T> { index + 1 });
 
         return reinterpret_cast<T *>(&bytes[0]);
     }
@@ -183,7 +184,7 @@ static inline void ObjectContainer_OnBlockAllocated(void *pool, ElementType *ptr
 }
 
 template <class T>
-class ObjectContainer final : public IObjectContainer, private MemoryPool<ObjectBytes<T>, 128, ObjectContainer_OnBlockAllocated<ObjectBytes<T>>>
+class ObjectContainer final : private MemoryPool<ObjectBytes<T>, 128, ObjectContainer_OnBlockAllocated<ObjectBytes<T>>>, public IObjectContainer
 {
     using Base = MemoryPool<ObjectBytes<T>, 128, ObjectContainer_OnBlockAllocated<ObjectBytes<T>>>;
 
@@ -215,7 +216,7 @@ public:
         ObjectBytes *element = &Base::GetElement(index);
 
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(element->container == this);
+        AssertThrow(uintptr_t(element->container) == uintptr_t(this));
         AssertThrow(element->index == index);
 #endif
 
@@ -224,7 +225,7 @@ public:
 
     virtual void IncRefStrong(ObjectBytesBase *ptr) override
     {
-        reinterpret_cast<ObjectBytes *>(ptr)->IncRefStrong();
+        static_cast<ObjectBytes *>(ptr)->IncRefStrong();
     }
 
     virtual void IncRefStrong(uint32 index) override
@@ -234,7 +235,7 @@ public:
 
     virtual void IncRefWeak(ObjectBytesBase *ptr) override
     {
-        reinterpret_cast<ObjectBytes *>(ptr)->IncRefWeak();
+        static_cast<ObjectBytes *>(ptr)->IncRefWeak();
     }
 
     virtual void IncRefWeak(uint32 index) override
@@ -244,7 +245,7 @@ public:
 
     virtual void DecRefStrong(ObjectBytesBase *ptr) override
     {
-        reinterpret_cast<ObjectBytes *>(ptr)->DecRefStrong();
+        static_cast<ObjectBytes *>(ptr)->DecRefStrong();
     }
 
     virtual void DecRefStrong(uint32 index) override
@@ -254,7 +255,7 @@ public:
 
     virtual void DecRefWeak(ObjectBytesBase *ptr) override
     {
-        reinterpret_cast<ObjectBytes *>(ptr)->DecRefWeak();
+        static_cast<ObjectBytes *>(ptr)->DecRefWeak();
     }
 
     virtual void DecRefWeak(uint32 index) override
@@ -264,7 +265,7 @@ public:
 
     virtual uint32 GetRefCountStrong(ObjectBytesBase *ptr) override
     {
-        return reinterpret_cast<ObjectBytes *>(ptr)->GetRefCountStrong();
+        return static_cast<ObjectBytes *>(ptr)->GetRefCountStrong();
     }
 
     virtual uint32 GetRefCountStrong(uint32 index) override
@@ -274,7 +275,7 @@ public:
 
     virtual uint32 GetRefCountWeak(ObjectBytesBase *ptr) override
     {
-        return reinterpret_cast<ObjectBytes *>(ptr)->GetRefCountWeak();
+        return static_cast<ObjectBytes *>(ptr)->GetRefCountWeak();
     }
 
     virtual uint32 GetRefCountWeak(uint32 index) override
@@ -288,7 +289,7 @@ public:
             return AnyRef(TypeID::ForType<T>(), nullptr);
         }
 
-        return AnyRef(TypeID::ForType<T>(), reinterpret_cast<ObjectBytes *>(ptr)->GetPointer());
+        return AnyRef(TypeID::ForType<T>(), static_cast<ObjectBytes *>(ptr)->GetPointer());
     }
 
     virtual ObjectBytesBase *GetObjectBytes(uint32 index) override
@@ -302,7 +303,7 @@ public:
             return ~0u;
         }
 
-        return reinterpret_cast<const ObjectBytes *>(ptr)->index;
+        return static_cast<const ObjectBytes *>(ptr)->index;
     }
 
     virtual TypeID GetObjectTypeID() const override
