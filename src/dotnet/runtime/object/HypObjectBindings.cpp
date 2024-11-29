@@ -23,6 +23,56 @@ struct HypObjectInitializer
 
 #pragma region HypObject
 
+HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *class_object_ptr, dotnet::ObjectReference *object_reference, void **out_instance_ptr)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(class_object_ptr != nullptr);
+    AssertThrow(object_reference != nullptr);
+    AssertThrow(out_instance_ptr != nullptr);
+
+    *out_instance_ptr = nullptr;
+
+    {
+        // Suppress default managed object creation
+        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+
+        if (hyp_class->UseHandles()) {
+            //ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+            
+            ObjectContainerBase &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
+            
+            const uint32 index = container.NextIndex();
+            container.ConstructAtIndex(index);
+
+            *out_instance_ptr = container.GetObjectPointer(index);
+        } else if (hyp_class->UseRefCountedPtr()) {
+            HypData value;
+            
+            // Set allow_abstract to true so we can use classes marked as "Abstract"
+            // allowing the managed class to override methods of an abstract class
+            hyp_class->CreateInstance(value, /* allow_abstract */ true);
+
+            RC<void> rc = std::move(value.Get<RC<void>>());
+            AssertThrow(rc != nullptr);
+
+            *out_instance_ptr = rc.Release();
+        } else {
+            HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
+        }
+    }
+
+    IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(*out_instance_ptr);
+    AssertThrow(initializer != nullptr);
+
+    // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
+    // as it is managed by the .NET runtime
+
+    // @FIXME: Don't use hyp_class->GetManagedClass(), instead, take Class* passed into the function
+    // this will allow C# derived classes to be used
+    UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(class_object_ptr, *object_reference, ObjectFlags::WEAK_REFERENCE);
+    initializer->SetManagedObject(managed_object.Release());
+}
+
 HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)
 {
     if (!hyp_class || !native_address) {

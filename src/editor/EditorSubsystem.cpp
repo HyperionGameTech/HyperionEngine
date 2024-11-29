@@ -350,7 +350,7 @@ void EditorSubsystem::InitSceneOutline()
             return UIEventHandlerResult::ERR;
         }
 
-        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item->GetName());
+        HYP_LOG(Editor, LogLevel::DEBUG, "Selected item changed: {}", list_view_item != nullptr ? list_view_item->GetName() : Name());
 
         if (!list_view_item) {
             SetFocusedNode(NodeProxy::empty);

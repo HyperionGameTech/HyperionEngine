@@ -64,7 +64,8 @@ namespace Hyperion
 #endif
 
                     _hypClassPtr = hypClass.Address;
-                    _nativeAddress = hypClass.InitInstance(classObjectPtr, objectReference);
+                    
+                    HypObject_Initialize(_hypClassPtr, classObjectPtr, ref objectReference, out _nativeAddress);
 
 #if DEBUG
                     HypObject_Verify(_hypClassPtr, _nativeAddress, objectReferencePtr);
@@ -206,6 +207,9 @@ namespace Hyperion
 
             return new HypMethod(methodPtr);
         }
+        
+        [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
+        private static extern void HypObject_Initialize([In] IntPtr hypClassPtr, [In] IntPtr classObjectPtr, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
 
         [DllImport("hyperion", EntryPoint = "HypObject_Verify")]
         private static extern void HypObject_Verify([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [In] IntPtr objectReferencePtr);
