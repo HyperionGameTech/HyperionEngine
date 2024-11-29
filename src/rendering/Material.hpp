@@ -125,7 +125,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Material : public BasicObject<Material>
+class HYP_API Material : public HypObject<Material>
 {
     HYP_OBJECT_BODY(Material);
 
@@ -656,7 +656,7 @@ private:
 };
 
 HYP_CLASS()
-class MaterialGroup : public BasicObject<MaterialGroup>
+class MaterialGroup : public HypObject<MaterialGroup>
 {
     HYP_OBJECT_BODY(MaterialGroup);
 

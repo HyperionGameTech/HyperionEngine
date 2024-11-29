@@ -31,7 +31,7 @@
 namespace hyperion {
 
 HYP_CLASS()
-class HYP_API Texture : public BasicObject<Texture>
+class HYP_API Texture : public HypObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
 

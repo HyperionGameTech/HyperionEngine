@@ -14,6 +14,8 @@
 
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/object/HypObjectFwd.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -43,16 +45,8 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class HYP_API BasicObjectBase
-{
-protected:
-    BasicObjectBase() = default;
-    BasicObjectBase(BasicObjectBase &&other) noexcept;
-    ~BasicObjectBase();
-};
-
 template <class T>
-class BasicObject : public BasicObjectBase
+class HypObject : public IHypObject
 {
     using InnerType = T;
 
@@ -64,15 +58,15 @@ public:
         INIT_STATE_READY            = 0x2
     };
 
-    BasicObject()
+    HypObject()
         : m_init_state(INIT_STATE_UNINITIALIZED)
     {
     }
 
-    BasicObject(const BasicObject &other)               = delete;
-    BasicObject &operator=(const BasicObject &other)    = delete;
+    HypObject(const HypObject &other)               = delete;
+    HypObject &operator=(const HypObject &other)    = delete;
 
-    BasicObject(BasicObject &&other) noexcept
+    HypObject(HypObject &&other) noexcept
         : m_id(other.m_id),
           m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
     {
@@ -80,9 +74,9 @@ public:
         other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
     }
 
-    BasicObject &operator=(BasicObject &&other) noexcept = delete;
+    HypObject &operator=(HypObject &&other) noexcept = delete;
 
-    ~BasicObject() = default;
+    virtual ~HypObject() override = default;
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
         { return m_id; }
@@ -118,6 +112,11 @@ public:
     }
 
 protected:
+    virtual IDBase GetID_Internal() const override
+    {
+        return m_id;
+    }
+
     void SetReady(bool is_ready)
     {
         if (is_ready) {
@@ -154,9 +153,6 @@ protected:
     AtomicVar<uint16>           m_init_state;
     Array<DelegateHandler>      m_delegate_handlers;
 };
-
-// template <class T>
-// const ClassInfo<T> BasicObject<T>::s_class_info = { };
 
 } // namespace hyperion
 

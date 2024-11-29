@@ -8,6 +8,8 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
+#include <core/ID.hpp>
+
 #ifdef HYP_DEBUG_MODE
 #include <core/threading/Threads.hpp>
 #endif
@@ -21,8 +23,25 @@ class Object;
 } // namespace dotnet
 
 class HypClass;
+class IHypObject;
+
+template <class T>
+class HypObject;
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
+
+class HYP_API IHypObject
+{
+public:
+    // Needs to be virtual so we can get ID
+    virtual ~IHypObject() = default;
+
+    HYP_FORCE_INLINE IDBase GetID() const
+        { return GetID_Internal(); }
+
+protected:
+    virtual IDBase GetID_Internal() const = 0;
+};
 
 template <class T, class T2 = void>
 struct IsHypObject
@@ -31,7 +50,7 @@ struct IsHypObject
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t< T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type > > >
+struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<IHypObject, T>>>
 {
     static constexpr bool value = true;
 };

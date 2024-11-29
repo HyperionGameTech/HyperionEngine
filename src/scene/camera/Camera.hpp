@@ -163,7 +163,7 @@ struct CameraDrawProxy
 };
 
 HYP_CLASS()
-class HYP_API Camera : public BasicObject<Camera>
+class HYP_API Camera : public HypObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);
 

@@ -324,7 +324,7 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &v
 }
 
 Mesh::Mesh()
-    : BasicObject(),
+    : HypObject(),
       m_mesh_attributes {
           .vertex_attributes    = static_mesh_vertex_attributes,
           .topology             = Topology::TRIANGLES
@@ -338,7 +338,7 @@ Mesh::Mesh(
     RC<StreamedMeshData> streamed_mesh_data,
     Topology topology,
     const VertexAttributeSet &vertex_attributes
-) : BasicObject(),
+) : HypObject(),
     m_mesh_attributes {
         .vertex_attributes  = vertex_attributes,
         .topology           = topology
@@ -379,7 +379,7 @@ Mesh::Mesh(
     Array<uint32> indices,
     Topology topology,
     const VertexAttributeSet &vertex_attributes
-) : BasicObject(),
+) : HypObject(),
     m_mesh_attributes {
         .vertex_attributes = vertex_attributes,
         .topology = topology
@@ -398,7 +398,7 @@ Mesh::Mesh(
 }
 
 Mesh::Mesh(Mesh &&other) noexcept
-    : BasicObject(static_cast<BasicObject &&>(other)),
+    : HypObject(static_cast<HypObject &&>(other)),
       m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_aabb(other.m_aabb),
@@ -449,7 +449,7 @@ void Mesh::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {

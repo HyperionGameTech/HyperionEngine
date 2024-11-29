@@ -74,7 +74,7 @@ struct AssetLoaderDefinition
 };
 
 HYP_CLASS()
-class AssetManager : public BasicObject<AssetManager>
+class AssetManager : public HypObject<AssetManager>
 {
     friend class AssetBatch;
     friend class AssetLoader;

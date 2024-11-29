@@ -44,7 +44,7 @@ enum class RenderGroupFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
-class HYP_API RenderGroup : public BasicObject<RenderGroup>
+class HYP_API RenderGroup : public HypObject<RenderGroup>
 {
     friend class DebugDrawerRenderGroupProxy;
 

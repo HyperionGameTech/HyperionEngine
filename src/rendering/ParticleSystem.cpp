@@ -231,7 +231,7 @@ void ParticleSpawner::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     if (m_params.texture) {
         InitObject(m_params.texture);
@@ -343,7 +343,7 @@ void ParticleSpawner::CreateComputePipelines()
 #pragma region ParticleSystem
 
 ParticleSystem::ParticleSystem()
-    : BasicObject(),
+    : HypObject(),
       m_particle_spawners(ThreadName::THREAD_RENDER),
       m_counter(0u)
 {
@@ -375,7 +375,7 @@ void ParticleSystem::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     m_quad_mesh = MeshBuilder::Quad();
     InitObject(m_quad_mesh);

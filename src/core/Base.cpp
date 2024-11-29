@@ -4,12 +4,4 @@
 
 namespace hyperion {
 
-BasicObjectBase::BasicObjectBase(BasicObjectBase &&other) noexcept
-{
-}
-
-BasicObjectBase::~BasicObjectBase()
-{
-}
-
 } // namespace hyperion

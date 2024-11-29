@@ -64,7 +64,7 @@ RenderEnvironment::RenderEnvironment()
 }
 
 RenderEnvironment::RenderEnvironment(Scene *scene)
-    : BasicObject(),
+    : HypObject(),
       m_scene(scene),
       m_frame_counter(0),
       m_current_enabled_render_components_mask(0),
@@ -118,7 +118,7 @@ void RenderEnvironment::Init()
         return;
     }
     
-    BasicObject::Init();
+    HypObject::Init();
 
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);

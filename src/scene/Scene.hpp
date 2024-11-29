@@ -61,7 +61,7 @@ struct SceneDrawProxy
 };
 
 HYP_CLASS()
-class HYP_API Scene : public BasicObject<Scene>
+class HYP_API Scene : public HypObject<Scene>
 {
     friend class World;
     friend class UIStage;

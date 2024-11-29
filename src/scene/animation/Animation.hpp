@@ -29,7 +29,7 @@ struct AnimationTrackDesc
 };
 
 HYP_CLASS()
-class AnimationTrack : public BasicObject<AnimationTrack>
+class AnimationTrack : public HypObject<AnimationTrack>
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -67,7 +67,7 @@ private:
 };
 
 HYP_CLASS()
-class Animation : public BasicObject<Animation>
+class Animation : public HypObject<Animation>
 {
     HYP_OBJECT_BODY(Animation);
 

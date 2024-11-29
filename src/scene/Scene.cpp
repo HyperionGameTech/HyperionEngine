@@ -155,7 +155,7 @@ void Scene::Init()
         return;
     }
     
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {

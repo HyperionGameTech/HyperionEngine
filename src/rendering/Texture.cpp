@@ -392,7 +392,7 @@ Texture::Texture(RC<StreamedTextureData> &&streamed_data)
 Texture::Texture(
     ImageRef image,
     ImageViewRef image_view
-) : BasicObject(),
+) : HypObject(),
     m_image(std::move(image)),
     m_image_view(std::move(image_view))
 {
@@ -407,7 +407,7 @@ Texture::Texture(
 
 Texture::Texture(
     Image &&image
-) : BasicObject(),
+) : HypObject(),
     m_image(MakeRenderObject<Image>(std::move(image))),
     m_image_view(MakeRenderObject<ImageView>())
 {
@@ -436,7 +436,7 @@ void Texture::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {

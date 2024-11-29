@@ -113,7 +113,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Light : public BasicObject<Light>
+class HYP_API Light : public HypObject<Light>
 {
     HYP_OBJECT_BODY(Light);
 

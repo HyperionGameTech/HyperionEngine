@@ -87,29 +87,6 @@ HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address
         AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject() != nullptr);
         AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject()->GetObjectReference() == *object_reference);
     }
-
-    // AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject()->GetObjectReference
-
-    // if (hyp_class->UseHandles()) {
-    //     const TypeID type_id = hyp_class->GetTypeID();
-
-    //     ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-    //     const uint32 index = container.GetObjectIndex(native_address);
-
-    //     if (index == ~0u) {
-    //         HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-    //     }
-    // } else if (hyp_class->UseRefCountedPtr()) {
-    //     AssertThrow(native_address != nullptr);
-
-    //     EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
-        
-    //     auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-    //     AssertThrow(ref_count_data != nullptr);
-    // } else {
-    //     HYP_FAIL("Unhandled HypClass allocation method");
-    // }
 }
 
 HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_address, int8 is_weak)
@@ -121,16 +98,13 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
 
     if (hyp_class->UseHandles()) {
         ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-        const uint32 index = container.GetObjectIndex(native_address);
-        if (index == ~0u) {
-            HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-        }
+
+        IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
 
         if (is_weak) {
-            container.IncRefWeak(index);
+            container.IncRefWeak(hyp_object_ptr->GetID().Value() - 1);
         } else {
-            container.IncRefStrong(index);
+            container.IncRefStrong(hyp_object_ptr->GetID().Value() - 1);
         }
 
         return nullptr;
@@ -161,16 +135,13 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
 
     if (hyp_class->UseHandles()) {
         ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-        
-        const uint32 index = container.GetObjectIndex(native_address);
-        if (index == ~0u) {
-            HYP_FAIL("Address %p is not valid for object container for TypeID %u", native_address, type_id.Value());
-        }
+
+        IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
         
         if (is_weak) {
-            container.DecRefWeak(index);
+            container.DecRefWeak(hyp_object_ptr->GetID().Value() - 1);
         } else {
-            container.DecRefStrong(index);
+            container.DecRefStrong(hyp_object_ptr->GetID().Value() - 1);
         }
     } else if (hyp_class->UseRefCountedPtr()) {
         AssertThrow(control_block_ptr != nullptr);

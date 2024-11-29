@@ -496,7 +496,7 @@ void Material::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     m_render_resources = AllocateRenderResources<MaterialRenderResources>(WeakHandleFromThis());
 
@@ -749,7 +749,7 @@ Handle<Material> Material::Clone() const
 #pragma region MaterialGroup
 
 MaterialGroup::MaterialGroup()
-    : BasicObject()
+    : HypObject()
 {
 }
 
@@ -763,7 +763,7 @@ void MaterialGroup::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     for (auto &it : m_materials) {
         InitObject(it.second);

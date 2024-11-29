@@ -136,7 +136,7 @@ Camera::Camera()
 }
 
 Camera::Camera(int width, int height)
-    : BasicObject(),
+    : HypObject(),
       m_fov(50.0f),
       m_width(width),
       m_height(height),
@@ -153,7 +153,7 @@ Camera::Camera(int width, int height)
 }
 
 Camera::Camera(float fov, int width, int height, float _near, float _far)
-    : BasicObject(),
+    : HypObject(),
       m_fov(fov),
       m_width(width),
       m_height(height),
@@ -165,7 +165,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
 }
 
 Camera::Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far)
-    : BasicObject(),
+    : HypObject(),
       m_fov(0.0f),
       m_width(width),
       m_height(height),
@@ -190,7 +190,7 @@ void Camera::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {

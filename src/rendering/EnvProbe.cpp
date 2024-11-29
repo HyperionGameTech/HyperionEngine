@@ -176,7 +176,7 @@ EnvProbe::EnvProbe(
     const Vec2u &dimensions,
     EnvProbeType env_probe_type,
     const ShaderRef &custom_shader
-) : BasicObject(),
+) : HypObject(),
     m_parent_scene(parent_scene),
     m_aabb(aabb),
     m_dimensions(dimensions),
@@ -217,7 +217,7 @@ void EnvProbe::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {

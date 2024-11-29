@@ -44,7 +44,7 @@ struct InputState
 };
 
 HYP_CLASS()
-class InputManager : public BasicObject<InputManager>
+class InputManager : public HypObject<InputManager>
 {
     HYP_OBJECT_BODY(InputManager);
 

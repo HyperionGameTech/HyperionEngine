@@ -122,7 +122,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 #pragma region RenderGroup
 
 RenderGroup::RenderGroup()
-    : BasicObject(),
+    : HypObject(),
       m_flags(RenderGroupFlags::NONE),
       m_pipeline(MakeRenderObject<GraphicsPipeline>()),
       m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
@@ -133,7 +133,7 @@ RenderGroup::RenderGroup(
     const ShaderRef &shader,
     const RenderableAttributeSet &renderable_attributes,
     EnumFlags<RenderGroupFlags> flags
-) : BasicObject(),
+) : HypObject(),
     m_flags(flags),
     m_shader(shader),
     m_pipeline(MakeRenderObject<GraphicsPipeline>()),
@@ -150,7 +150,7 @@ RenderGroup::RenderGroup(
     const RenderableAttributeSet &renderable_attributes,
     const DescriptorTableRef &descriptor_table,
     EnumFlags<RenderGroupFlags> flags
-) : BasicObject(),
+) : HypObject(),
     m_flags(flags),
     m_pipeline(MakeRenderObject<GraphicsPipeline>(ShaderRef::unset, descriptor_table)),
     m_shader(shader),
@@ -234,7 +234,7 @@ void RenderGroup::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {

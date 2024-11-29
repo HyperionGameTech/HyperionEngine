@@ -46,14 +46,14 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
 #pragma endregion Render commands
 
 Skeleton::Skeleton()
-    : BasicObject(),
+    : HypObject(),
       m_root_bone(nullptr),
       m_mutation_state(DataMutationState::CLEAN)
 {
 }
 
 Skeleton::Skeleton(const RC<Bone> &root_bone)
-    : BasicObject(),
+    : HypObject(),
       m_root_bone(root_bone),
       m_mutation_state(DataMutationState::CLEAN)
 {
@@ -77,7 +77,7 @@ void Skeleton::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     m_mutation_state |= DataMutationState::DIRTY;
     

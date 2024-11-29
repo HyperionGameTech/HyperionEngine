@@ -189,20 +189,6 @@ private:
         \
     private:
 
-// template <class T>
-// HYP_FORCE_INLINE inline bool InitObject(HypObjectType<T> *object)
-// {
-//     static_assert(!has_opaque_handle_defined<T>, "Use InitObject(Handle<T>) overload instead");
-
-//     if (!object) {
-//         return false;
-//     }
-
-//     object
-
-//     return true;
-// }
-
 class HypObjectPtr
 {
 public:

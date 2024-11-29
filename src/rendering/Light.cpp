@@ -207,7 +207,7 @@ Light::Light(
     const Color &color,
     float intensity,
     float radius
-) : BasicObject(),
+) : HypObject(),
     m_type(type),
     m_position(position),
     m_color(color),
@@ -229,7 +229,7 @@ Light::Light(
     const Color &color,
     float intensity,
     float radius
-) : BasicObject(),
+) : HypObject(),
     m_type(type),
     m_position(position),
     m_normal(normal),
@@ -267,7 +267,7 @@ void Light::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     m_render_resources = AllocateRenderResources<LightRenderResources>(WeakHandleFromThis());
 

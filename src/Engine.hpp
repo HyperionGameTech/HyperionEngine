@@ -129,7 +129,7 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class Engine : public BasicObject<Engine>
+class Engine : public HypObject<Engine>
 {
     HYP_OBJECT_BODY(Engine);
 

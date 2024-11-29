@@ -245,7 +245,7 @@ void GaussianSplattingInstance::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     CreateBuffers();
     CreateShader();
@@ -650,7 +650,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 }
 
 GaussianSplatting::GaussianSplatting()
-    : BasicObject()
+    : HypObject()
 {
 }
 
@@ -671,7 +671,7 @@ void GaussianSplatting::Init()
         return;
     }
 
-    BasicObject::Init();
+    HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {

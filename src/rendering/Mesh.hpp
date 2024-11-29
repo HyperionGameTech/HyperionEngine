@@ -144,7 +144,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API Mesh final : public BasicObject<Mesh>
+class HYP_API Mesh final : public HypObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
 
