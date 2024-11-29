@@ -27,14 +27,10 @@ using Device = platform::Device<Platform::CURRENT>;
 namespace hyperion {
 
 class Engine;
-class ObjectPool;
 
 class HypClass;
 class HypEnum;
 class HypObjectPtr;
-
-template <class T>
-class ObjectContainer;
 
 template <class T>
 struct Handle;

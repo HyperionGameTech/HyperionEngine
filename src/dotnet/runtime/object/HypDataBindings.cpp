@@ -336,7 +336,7 @@ HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
 
     if (hyp_class->IsClassType()) {
         if (hyp_class->UseHandles()) {
-            ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+            IObjectContainer &container = ObjectPool::GetContainer(type_id);
 
             IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
 

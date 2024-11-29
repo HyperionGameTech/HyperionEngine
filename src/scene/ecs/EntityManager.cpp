@@ -232,10 +232,10 @@ Handle<Entity> EntityManager::AddEntity()
         
     ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<Entity>(HandleDefinition<Entity>::GetAllottedContainerPointer());
     
-    const uint32 index = container.NextIndex();
-    container.ConstructAtIndex(index);
+    ObjectBytes<Entity> *element = container.Allocate();
+    element->Construct();
     
-    Handle<Entity> entity { ID<Entity>::FromIndex(index) };
+    Handle<Entity> entity { element };
 
     HYP_LOG(ECS, LogLevel::DEBUG, "Add entity #{} to entity manager {}", entity.GetID().Value(), (void *)this);
     GetEntityToEntityManagerMap().Add(entity.GetID(), this);

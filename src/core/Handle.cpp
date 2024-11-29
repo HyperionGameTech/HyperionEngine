@@ -5,15 +5,15 @@
 namespace hyperion {
 
 #define DEF_HANDLE(T, sz) \
-    UniquePtr<ObjectContainerBase> *g_container_ptr_##T = AllotContainer< T >(); \
-    UniquePtr<ObjectContainerBase> *HandleDefinition< T >::GetAllottedContainerPointer() \
+    UniquePtr<IObjectContainer> *g_container_ptr_##T = AllotContainer< T >(); \
+    UniquePtr<IObjectContainer> *HandleDefinition< T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
 
 #define DEF_HANDLE_NS(ns, T, sz) \
-    UniquePtr<ObjectContainerBase> *g_container_ptr_##T = AllotContainer< ns::T >(); \
-    UniquePtr<ObjectContainerBase> *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
+    UniquePtr<IObjectContainer> *g_container_ptr_##T = AllotContainer< ns::T >(); \
+    UniquePtr<IObjectContainer> *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
@@ -26,13 +26,13 @@ namespace hyperion {
 #pragma region AnyHandle
 
 AnyHandle::AnyHandle(TypeID type_id, IDBase id)
-    : type_id(type_id),
-      index(id.Value())
+    : container(&ObjectPool::GetContainer(type_id)),
+      ptr(nullptr)
 {
-    if (type_id && index != 0) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+    if (id.IsValid()) {
+        ptr = container->GetObjectBytes(id.Value() - 1);
 
-        container.IncRefStrong(index - 1);
+        container->IncRefStrong(ptr);
     }
 }
 
@@ -42,19 +42,15 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
         return *this;
     }
 
-    if (type_id && index != 0) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-
-        container.DecRefStrong(index - 1);
+    if (IsValid()) {
+        container->DecRefStrong(ptr);
     }
 
-    type_id = other.type_id;
-    index = other.index;
+    container = other.container;
+    ptr = other.ptr;
 
-    if (type_id && index != 0) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-
-        container.IncRefStrong(index - 1);
+    if (IsValid()) {
+        container->IncRefStrong(ptr);
     }
 
     return *this;
@@ -66,39 +62,51 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
         return *this;
     }
 
-    if (type_id && index != 0) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-
-        container.DecRefStrong(index - 1);
+    if (IsValid()) {
+        container->DecRefStrong(ptr);
     }
 
-    type_id = other.type_id;
-    index = other.index;
+    container = other.container;
+    ptr = other.ptr;
 
-    other.type_id = TypeID::Void();
-    other.index = 0;
+    other.container = nullptr;
+    other.ptr = nullptr;
 
     return *this;
 }
 
 AnyHandle::~AnyHandle()
 {
-    if (type_id && index != 0) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-
-        container.DecRefStrong(index - 1);
+    if (IsValid()) {
+        container->DecRefStrong(ptr);
     }
+}
+
+AnyHandle::IDType AnyHandle::GetID() const
+{
+    if (!IsValid()) {
+        return IDType();
+    }
+
+    return IDType { container->GetObjectIndex(ptr) + 1 };
+}
+
+TypeID AnyHandle::GetTypeID() const
+{
+    if (!container) {
+        return TypeID::Void();
+    }
+
+    return container->GetObjectTypeID();
 }
 
 AnyRef AnyHandle::ToRef() const
 {
-    if (!type_id || index == 0) {
-        return AnyRef(type_id, nullptr);
+    if (!container) {
+        return AnyRef(TypeID::Void(), nullptr);
     }
 
-    ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
-
-    return AnyRef(type_id, container.GetObjectPointer(index - 1));
+    return container->GetObject(ptr);
 }
 
 #pragma endregion AnyHandle

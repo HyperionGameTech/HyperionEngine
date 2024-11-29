@@ -3,8 +3,6 @@
 #ifndef HYPERION_MEMORY_POOL_HPP
 #define HYPERION_MEMORY_POOL_HPP
 
-#include <core/Handle.hpp>
-
 #include <core/containers/HeapArray.hpp>
 #include <core/containers/LinkedList.hpp>
 
@@ -20,7 +18,7 @@
 namespace hyperion {
 namespace memory {
 
-template <class ElementType, uint32 NumElementsPerBlock = 16>
+template <class ElementType, uint32 NumElementsPerBlock = 16, void(*OnBlockAllocated)(void *pool, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
 protected:
@@ -35,15 +33,20 @@ protected:
         FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
 #endif
 
-        Block()
+        Block(MemoryPool *pool, uint32 block_index)
         {
-            if constexpr (IsPODType<ElementType>) {
-                // Default initialization for POD types - zero it out
-                Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+            // Allow overloading assignment of elements
+            if (OnBlockAllocated != nullptr) {
+                OnBlockAllocated(pool, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
             } else {
-                // For non-POD types, default construct each element
-                for (uint32 i = 0; i < num_elements_per_block; i++) {
-                    elements[i] = ElementType();
+                if constexpr (IsPODType<ElementType>) {
+                    // Default initialization for POD types - zero it out
+                    Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+                } else if constexpr (std::is_copy_assignable_v<ElementType> || std::is_move_assignable_v<ElementType>) {
+                    // For non-POD types, default assign each element
+                    for (uint32 i = 0; i < num_elements_per_block; i++) {
+                        elements[i] = ElementType();
+                    }
                 }
             }
         }
@@ -60,7 +63,7 @@ public:
           m_num_blocks(m_initial_num_blocks)
     {
         for (uint32 i = 0; i < m_initial_num_blocks; i++) {
-            m_blocks.EmplaceBack();
+            m_blocks.EmplaceBack(this, i);
         }
     }
 
@@ -86,9 +89,14 @@ public:
                 block.num_elements.Increment(1, MemoryOrder::RELEASE);
             } else {
                 // Add blocks until we can insert the element
+                uint32 current_block_index = m_blocks.Size();
+
                 while (index >= num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
-                    m_blocks.EmplaceBack();
+                    m_blocks.EmplaceBack(this, current_block_index);
+
                     m_num_blocks.Increment(1, MemoryOrder::RELEASE);
+
+                    ++current_block_index;
                 }
 
                 Block &block = m_blocks[block_index];

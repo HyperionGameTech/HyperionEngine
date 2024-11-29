@@ -15,21 +15,21 @@ namespace hyperion {
 
 using renderer::Platform;
 
-#pragma region RenderObjectContainerBase
+#pragma region RenderIObjectContainer
 
-renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView render_object_type_name)
+renderer::RenderIObjectContainer::RenderIObjectContainer(ANSIStringView render_object_type_name)
     : m_render_object_type_name(render_object_type_name),
       m_size(0)
 {
     HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Construct RenderObjectContainer for {}", m_render_object_type_name);
 }
 
-renderer::RenderObjectContainerBase::~RenderObjectContainerBase()
+renderer::RenderIObjectContainer::~RenderIObjectContainer()
 {
     HYP_LOG(RenderingBackend, LogLevel::DEBUG, "Destroy RenderObjectContainer for {}", m_render_object_type_name);
 }
 
-#pragma endregion RenderObjectContainerBase
+#pragma endregion RenderIObjectContainer
 
 #pragma region RenderObjectDeleter
 

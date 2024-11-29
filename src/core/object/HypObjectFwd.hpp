@@ -28,6 +28,8 @@ class IHypObject;
 template <class T>
 class HypObject;
 
+class IHypObjectInitializer;
+
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
 class HYP_API IHypObject
@@ -50,7 +52,7 @@ struct IsHypObject
 };
 
 template <class T>
-struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<IHypObject, T>>>
+struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<IHypObject, T> || (T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type>)>>
 {
     static constexpr bool value = true;
 };

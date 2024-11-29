@@ -11,7 +11,7 @@ ObjectPool::ObjectContainerHolder &ObjectPool::GetObjectContainerHolder()
     return holder;
 }
 
-UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
+UniquePtr<IObjectContainer> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
 {
     HYP_MT_CHECK_RW(object_container_map.data_race_detector);
 
@@ -33,7 +33,7 @@ UniquePtr<ObjectContainerBase> *ObjectPool::ObjectContainerHolder::AllotObjectCo
     return &object_container_map.map.Back().second;
 }
 
-ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID type_id)
+IObjectContainer &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID type_id)
 {
     HYP_MT_CHECK_READ(object_container_map.data_race_detector);
 
@@ -51,7 +51,7 @@ ObjectContainerBase &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeI
     return *it->second;
 }
 
-ObjectContainerBase *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
+IObjectContainer *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
 {
     HYP_MT_CHECK_READ(object_container_map.data_race_detector);
 

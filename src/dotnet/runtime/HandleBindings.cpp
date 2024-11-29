@@ -6,18 +6,17 @@ using namespace hyperion;
 
 extern "C" {
 
-HYP_EXPORT void Handle_Get(uint32 type_id_value, uint32 id_value, ValueStorage<HypData> *out_hyp_data)
+HYP_EXPORT void Handle_Get(uint32 type_id_value, ObjectBytesBase *ptr, ValueStorage<HypData> *out_hyp_data)
 {
     AssertThrow(out_hyp_data != nullptr);
+    AssertThrow(ptr != nullptr);
 
     const TypeID type_id { type_id_value };
 
-    ObjectContainerBase *container = ObjectPool::TryGetContainer(type_id);
+    IObjectContainer *container = ObjectPool::TryGetContainer(type_id);
     AssertThrow(container != nullptr);
 
-    void *ptr = container->GetObjectPointer(id_value - 1);
-
-    out_hyp_data->Construct(AnyRef(type_id, ptr));
+    out_hyp_data->Construct(container->GetObject(ptr));
 }
 
 HYP_EXPORT void Handle_Set(uint32 type_id_value, uint32 id_value, HypData *hyp_data)
@@ -26,7 +25,7 @@ HYP_EXPORT void Handle_Set(uint32 type_id_value, uint32 id_value, HypData *hyp_d
 
     // const TypeID type_id { type_id_value };
 
-    // ObjectContainerBase *container = ObjectPool::TryGetContainer(type_id);
+    // IObjectContainer *container = ObjectPool::TryGetContainer(type_id);
     // AssertThrow(container != nullptr);
 
     HYP_NOT_IMPLEMENTED_VOID();

@@ -37,14 +37,9 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
 
         if (hyp_class->UseHandles()) {
-            //ObjectContainerBase &container = ObjectPool::GetContainer(hyp_class->GetTypeID());
+            IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
             
-            ObjectContainerBase &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
-            
-            const uint32 index = container.NextIndex();
-            container.ConstructAtIndex(index);
-
-            *out_instance_ptr = container.GetObjectPointer(index);
+            *out_instance_ptr = container.ConstructAtIndex(container.NextIndex());
         } else if (hyp_class->UseRefCountedPtr()) {
             HypData value;
             
@@ -97,9 +92,10 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+        IObjectContainer &container = ObjectPool::GetContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
+        AssertThrow(hyp_object_ptr->GetID().IsValid());
 
         if (is_weak) {
             container.IncRefWeak(hyp_object_ptr->GetID().Value() - 1);
@@ -134,9 +130,10 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        ObjectContainerBase &container = ObjectPool::GetContainer(type_id);
+        IObjectContainer &container = ObjectPool::GetContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
+        AssertThrow(hyp_object_ptr->GetID().IsValid());
         
         if (is_weak) {
             container.DecRefWeak(hyp_object_ptr->GetID().Value() - 1);

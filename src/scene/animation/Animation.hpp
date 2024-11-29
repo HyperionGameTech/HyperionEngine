@@ -74,10 +74,10 @@ class Animation : public HypObject<Animation>
 public:
     HYP_API Animation();
     HYP_API Animation(const String &name);
-    Animation(const Animation &other)                   = default;
-    Animation &operator=(const Animation &other)        = default;
+    Animation(const Animation &other)                   = delete;
+    Animation &operator=(const Animation &other)        = delete;
     Animation(Animation &&other) noexcept               = default;
-    Animation &operator=(Animation &&other) noexcept    = default;
+    Animation &operator=(Animation &&other) noexcept    = delete;
     ~Animation()                                        = default;
 
     HYP_METHOD(Property="Name", Serialize=true)
