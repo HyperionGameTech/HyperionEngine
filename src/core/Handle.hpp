@@ -504,13 +504,17 @@ struct AnyHandle
     IObjectContainer    *container = nullptr;
     ObjectBytesBase     *ptr = nullptr;
 
+private:
     HYP_API AnyHandle(TypeID type_id, IDBase id);
 
+public:
     template <class T>
     explicit AnyHandle(ID<T> id)
         : AnyHandle(TypeID::ForType<T>(), IDBase { id.Value() })
     {
     }
+
+    HYP_API AnyHandle(IHypObject *hyp_object_ptr);
 
     template <class T>
     AnyHandle(const Handle<T> &handle)

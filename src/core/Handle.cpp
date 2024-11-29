@@ -36,6 +36,16 @@ AnyHandle::AnyHandle(TypeID type_id, IDBase id)
     }
 }
 
+AnyHandle::AnyHandle(IHypObject *hyp_object_ptr)
+    : container(nullptr),
+      ptr(nullptr)
+{
+    if (hyp_object_ptr != nullptr) {
+        container = hyp_object_ptr->GetObjectHeader_Internal()->container;
+        ptr = hyp_object_ptr->GetObjectHeader_Internal();
+    }
+}
+
 AnyHandle::AnyHandle(const AnyHandle &other)
     : container(other.container),
       ptr(other.ptr)

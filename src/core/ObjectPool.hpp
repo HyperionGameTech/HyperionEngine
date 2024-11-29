@@ -103,6 +103,8 @@ public:
 template <class T>
 struct ObjectBytes final : ObjectBytesBase
 {
+    static_assert(std::is_base_of_v<IHypObject, T>, "T must be a subclass of IHypObject");
+
     alignas(T) ubyte    bytes[sizeof(T)];
 
     ObjectBytes()
@@ -118,10 +120,17 @@ struct ObjectBytes final : ObjectBytesBase
     template <class... Args>
     T *Construct(Args &&... args)
     {
-        Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(bytes, std::forward<Args>(args)...);
-        Get().SetID(ID<T> { index + 1 });
+        T *ptr = reinterpret_cast<T *>(&bytes[0]);
 
-        return reinterpret_cast<T *>(&bytes[0]);
+        // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
+        HypObjectInitializerGuard<T> context { ptr };
+
+        Memory::Construct<T>(static_cast<void *>(ptr), std::forward<Args>(args)...);
+
+        // Set the object header to point to this
+        ptr->IHypObject::m_header = static_cast<ObjectBytesBase *>(this);
+
+        return ptr;
     }
 
     uint32 DecRefStrong()

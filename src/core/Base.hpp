@@ -79,7 +79,7 @@ public:
     virtual ~HypObject() override = default;
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
-        { return m_id; }
+        { return ID<InnerType>(IHypObject::GetID().Value()); }
 
     /*! \internal To be called when constructing the object */
     HYP_FORCE_INLINE void SetID(ID<InnerType> id)
@@ -112,11 +112,6 @@ public:
     }
 
 protected:
-    virtual IDBase GetID_Internal() const override
-    {
-        return m_id;
-    }
-
     void SetReady(bool is_ready)
     {
         if (is_ready) {

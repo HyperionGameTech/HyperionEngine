@@ -30,19 +30,32 @@ class HypObject;
 
 class IHypObjectInitializer;
 
+struct ObjectBytesBase;
+
+template <class T>
+struct ObjectBytes;
+
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
 class HYP_API IHypObject
 {
 public:
-    // Needs to be virtual so we can get ID
+    template <class T>
+    friend struct ObjectBytes;
+
     virtual ~IHypObject() = default;
 
+    HYP_FORCE_INLINE ObjectBytesBase *GetObjectHeader_Internal() const
+        { return m_header; }
+
+protected:
     HYP_FORCE_INLINE IDBase GetID() const
         { return GetID_Internal(); }
 
-protected:
-    virtual IDBase GetID_Internal() const = 0;
+private:
+    IDBase GetID_Internal() const;
+
+    ObjectBytesBase *m_header;
 };
 
 template <class T, class T2 = void>

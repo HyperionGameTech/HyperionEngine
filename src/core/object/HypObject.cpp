@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/object/HypObject.hpp>
+#include <core/ObjectPool.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -131,6 +132,15 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 }
 
 #pragma endregion HypObjectInitializerGuardBase
+
+#pragma region IHypObject
+
+IDBase IHypObject::GetID_Internal() const
+{
+    return IDBase { m_header->index + 1 };
+}
+
+#pragma endregion IHypObject
 
 #pragma region HypObjectPtr
 

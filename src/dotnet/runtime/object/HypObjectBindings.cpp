@@ -95,12 +95,11 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
         IObjectContainer &container = ObjectPool::GetContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
-        AssertThrow(hyp_object_ptr->GetID().IsValid());
 
         if (is_weak) {
-            container.IncRefWeak(hyp_object_ptr->GetID().Value() - 1);
+            container.IncRefWeak(hyp_object_ptr->GetObjectHeader_Internal());
         } else {
-            container.IncRefStrong(hyp_object_ptr->GetID().Value() - 1);
+            container.IncRefStrong(hyp_object_ptr->GetObjectHeader_Internal());
         }
 
         return nullptr;
@@ -133,12 +132,11 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
         IObjectContainer &container = ObjectPool::GetContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
-        AssertThrow(hyp_object_ptr->GetID().IsValid());
         
         if (is_weak) {
-            container.DecRefWeak(hyp_object_ptr->GetID().Value() - 1);
+            container.DecRefWeak(hyp_object_ptr->GetObjectHeader_Internal());
         } else {
-            container.DecRefStrong(hyp_object_ptr->GetID().Value() - 1);
+            container.DecRefStrong(hyp_object_ptr->GetObjectHeader_Internal());
         }
     } else if (hyp_class->UseRefCountedPtr()) {
         AssertThrow(control_block_ptr != nullptr);
