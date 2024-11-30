@@ -89,6 +89,8 @@ protected:
     virtual uint32 AcquireBufferIndex() const { return ~0u; }
     virtual void ReleaseBufferIndex(uint32 buffer_index) const { }
 
+    virtual Name GetTypeName() const = 0;
+
     /*! \brief Performs an operation on the render thread if the resources are initialized,
      *  otherwise executes it immediately on the calling thread. Initialization on the render thread will not begin until at least the end of the given proc,
      *  so it is safe to use this method on any thread.

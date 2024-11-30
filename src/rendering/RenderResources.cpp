@@ -76,6 +76,8 @@ void RenderResourcesBase::Claim()
             if (RC<RenderResourcesBase> render_resources = render_resources_weak.Lock()) {
                 {
                     HYP_NAMED_SCOPE("Initializing RenderResources - Initialization");
+
+                    HYP_LOG(RenderResources, LogLevel::INFO, "Initializing RenderResources of type {}", render_resources->GetTypeName());
                         
                     // Wait for pre-init to complete
                     render_resources->m_pre_init_semaphore.Acquire();
@@ -114,6 +116,8 @@ void RenderResourcesBase::Claim()
     };
 
     HYP_SCOPE;
+
+    HYP_LOG(RenderResources, LogLevel::INFO, "Claiming RenderResources of type {}", GetTypeName());
 
     m_init_semaphore.Produce(1, [this](bool is_signalled)
     {
@@ -168,6 +172,8 @@ void RenderResourcesBase::Unclaim()
     };
 
     HYP_SCOPE;
+
+    HYP_LOG(RenderResources, LogLevel::INFO, "Unclaiming RenderResources of type {}", GetTypeName());
 
     m_init_semaphore.Release(1, [this](bool is_signalled)
     {
@@ -384,6 +390,11 @@ protected:
     virtual void ReleaseBufferIndex(uint32 buffer_index) const override
     {
         // Do nothing
+    }
+
+    virtual Name GetTypeName() const override
+    {
+        return NAME("NullRenderResources");
     }
 };
 

@@ -113,6 +113,9 @@ protected:
     virtual uint32 AcquireBufferIndex() const override;
     virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
 
+    virtual Name GetTypeName() const override
+        { return NAME("MaterialRenderResources"); }
+
 private:
     void CreateDescriptorSets();
     void DestroyDescriptorSets();

@@ -127,6 +127,9 @@ protected:
     virtual void Destroy() override;
     virtual void Update() override;
 
+    virtual Name GetTypeName() const override
+        { return NAME("MeshRenderResources"); }
+
 private:
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
 
