@@ -32,6 +32,15 @@ void RenderState::UnbindCamera(Camera *camera)
     camera_bindings.Pop();
 }
 
+const TRenderResourcesHandle<CameraRenderResources> &RenderState::GetActiveCamera() const
+{
+    static const TRenderResourcesHandle<CameraRenderResources> empty;
+
+    return camera_bindings.Any()
+        ? camera_bindings.Top()
+        : empty;
+}
+
 void RenderState::BindLight(Light *light)
 {
     AssertThrow(light != nullptr);
@@ -66,6 +75,15 @@ void RenderState::UnbindLight(Light *light)
     if (it != array.End()) {
         array.Erase(it);
     }
+}
+
+const TRenderResourcesHandle<LightRenderResources> &RenderState::GetActiveLight() const
+{
+    static const TRenderResourcesHandle<LightRenderResources> empty;
+
+    return light_bindings.Any()
+        ? light_bindings.Top()
+        : empty;
 }
 
 void RenderState::SetActiveLight(LightRenderResources &light_render_resources)

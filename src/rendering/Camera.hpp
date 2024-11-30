@@ -30,7 +30,7 @@ struct alignas(256) CameraShaderData
     float       camera_near;
     float       camera_far;
     float       camera_fov;
-    float       _pad0;
+    uint32      id;
 };
 
 static_assert(sizeof(CameraShaderData) == 512);

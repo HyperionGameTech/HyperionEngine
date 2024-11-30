@@ -320,11 +320,9 @@ void FullScreenPass::Record(uint frame_index)
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-
-    if (active_camera != nullptr) {
-        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
-    }
+    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -342,7 +340,7 @@ void FullScreenPass::Record(uint frame_index)
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }

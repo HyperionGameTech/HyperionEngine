@@ -421,11 +421,9 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
 
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-
-    if (active_camera != nullptr) {
-        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
-    }
+    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     if (m_particle_spawners.GetItems().Empty()) {
         if (m_particle_spawners.HasUpdatesPending()) {
@@ -502,7 +500,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
                     {
                         {
                             { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
+                            { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                             { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                             { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                         }
@@ -540,18 +538,16 @@ void ParticleSystem::Render(Frame *frame)
 
     const uint frame_index = frame->GetFrameIndex();
 
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-
-    if (active_camera != nullptr) {
-        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
-    }
+    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
     ForEachInBatches(
         m_particle_spawners.GetItems(),
         num_async_rendering_command_buffers,
-        [this, &command_buffers_recorded_states, active_camera, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint index, uint batch_index) {
+        [this, &command_buffers_recorded_states, camera_index, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint index, uint batch_index) {
             const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -570,7 +566,7 @@ void ParticleSystem::Render(Frame *frame)
                                 NAME("Scene"),
                                 {
                                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
+                                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                                 }

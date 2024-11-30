@@ -152,8 +152,7 @@ struct RenderState
         }
     }
 
-    HYP_FORCE_INLINE const TRenderResourcesHandle<LightRenderResources> *GetActiveLight() const
-        { return light_bindings.Any() ? &light_bindings.Top() : nullptr; }
+    const TRenderResourcesHandle<LightRenderResources> &GetActiveLight() const;
 
     HYP_FORCE_INLINE void BindScene(const Scene *scene)
     {
@@ -186,10 +185,7 @@ struct RenderState
     void BindCamera(Camera *camera);
     void UnbindCamera(Camera *camera);
 
-    HYP_FORCE_INLINE const TRenderResourcesHandle<CameraRenderResources> *GetActiveCamera() const
-    {
-        return camera_bindings.Any() ? &camera_bindings.Top() : nullptr;
-    }
+    const TRenderResourcesHandle<CameraRenderResources> &GetActiveCamera() const;
 
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);
     void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);

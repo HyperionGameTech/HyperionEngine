@@ -99,12 +99,12 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
     Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
         if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
             continue;
         }
 
-        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity.ToIndex());
+        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity_id.Value());
 
         const uint32 render_proxy_version = mesh_component.proxy != nullptr
             ? mesh_component.proxy->version + 1
@@ -112,7 +112,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         // Update MeshComponent's proxy
         *mesh_component.proxy = RenderProxy {
-            Handle<Entity>(entity),
+            Handle<Entity>(entity_id),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,

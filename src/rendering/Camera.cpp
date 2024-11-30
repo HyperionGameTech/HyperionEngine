@@ -9,6 +9,9 @@
 
 #include <util/profiling/ProfileScope.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -37,11 +40,7 @@ void CameraRenderResources::Initialize()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_camera_weak.IsValid());
-
-    if (Handle<Camera> camera = m_camera_weak.Lock()) {
-        UpdateBufferData();
-    }
+    UpdateBufferData();
 }
 
 void CameraRenderResources::Destroy()
@@ -53,11 +52,7 @@ void CameraRenderResources::Update()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_camera_weak.IsValid());
-
-    if (Handle<Camera> camera = m_camera_weak.Lock()) {
-        UpdateBufferData();
-    }
+    UpdateBufferData();
 }
 
 uint32 CameraRenderResources::AcquireBufferIndex() const

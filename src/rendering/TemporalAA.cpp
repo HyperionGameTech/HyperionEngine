@@ -191,8 +191,8 @@ void TemporalAA::Render(Frame *frame)
 
     const auto &scene = g_engine->GetRenderState().GetScene().scene;
     
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-    AssertThrow(active_camera != nullptr);
+    const TRenderResourcesHandle<CameraRenderResources> &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    AssertThrow(camera_render_resources);
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
@@ -214,7 +214,7 @@ void TemporalAA::Render(Frame *frame)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
-    push_constants.camera_near_far = Vec2f { (*active_camera)->GetBufferData().camera_near, (*active_camera)->GetBufferData().camera_far };
+    push_constants.camera_near_far = Vec2f { camera_render_resources->GetBufferData().camera_near, camera_render_resources->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->Bind(command_buffer);

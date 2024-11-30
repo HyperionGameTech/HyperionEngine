@@ -348,4 +348,50 @@ void RenderResourcesBase::WaitForCompletion()
 
 #pragma endregion RenderResourcesBase
 
+class NullRenderResources final : public RenderResourcesBase
+{
+public:
+    NullRenderResources()                                       = default;
+    NullRenderResources(NullRenderResources &&other) noexcept   = default;
+    virtual ~NullRenderResources() override                     = default;
+
+protected:
+    virtual bool IsNull() const override
+    {
+        return true;
+    }
+
+    virtual void Initialize() override
+    {
+        // Do nothing
+    }
+
+    virtual void Destroy() override
+    {
+        // Do nothing
+    }
+
+    virtual void Update() override
+    {
+        // Do nothing
+    }
+
+    virtual uint32 AcquireBufferIndex() const override
+    {
+        return ~0u;
+    }
+
+    virtual void ReleaseBufferIndex(uint32 buffer_index) const override
+    {
+        // Do nothing
+    }
+};
+
+HYP_API RenderResourcesBase &GetNullRenderResources()
+{
+    static NullRenderResources empty;
+
+    return empty;
+}
+
 } // namespace hyperion

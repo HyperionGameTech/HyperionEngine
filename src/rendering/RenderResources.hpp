@@ -58,21 +58,18 @@ public:
 
     virtual ~RenderResourcesBase();
 
+    virtual bool IsNull() const
+        { return false; }
+
     void Claim();
     void Unclaim();
 
     /*! \brief Waits (blocking) until all operations on this RenderResources are complete and the RenderResources is no longer being used. */
     void WaitForCompletion();
 
+    /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
     HYP_FORCE_INLINE uint32 GetBufferIndex() const
-    {
-#ifdef HYP_DEBUG_MODE
-        // Allow render thread or task thread (under render thread) to call this method.
-        Threads::AssertOnThread(ThreadName::THREAD_RENDER | ThreadName::THREAD_TASK);
-#endif
-
-        return m_buffer_index;
-    }
+        { return m_buffer_index; }
 
 #ifdef HYP_DEBUG_MODE
     HYP_FORCE_INLINE uint32 GetUseCount() const
@@ -155,15 +152,13 @@ public:
     template <class... Args>
     T *Allocate(Args &&... args)
     {
-        const uint32 index = Base::AcquireIndex();
+        OwningRC<T> *element_ptr;
+        const uint32 index = Base::AcquireIndex(&element_ptr);
 
-        OwningRC<T> &element = Base::GetElement(index);
-        element = OwningRC<T>(std::forward<Args>(args)...);
-        element->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
+        *element_ptr = OwningRC<T>(std::forward<Args>(args)...);
+        (*element_ptr)->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
 
-        DebugLog(LogType::Debug, "Allocated RenderResources of type %s, total allocated pool size: %llu\n", TypeName<T>().Data(), Base::NumAllocatedElements());
-
-        return element.Get();
+        return element_ptr->Get();
     }
 
     void Free(T *ptr)
@@ -200,11 +195,15 @@ HYP_FORCE_INLINE static void FreeRenderResources(T *ptr)
     RenderResourcesMemoryPool<T>::GetInstance()->Free(ptr);
 }
 
+// Returns a render resources object that will return true for IsNull().
+// To be used as a placeholder.
+HYP_API RenderResourcesBase &GetNullRenderResources();
+
 class RenderResourcesHandle
 {
 public:
     RenderResourcesHandle()
-        : render_resources(nullptr)
+        : render_resources(&GetNullRenderResources())
     {
     }
 
@@ -217,7 +216,7 @@ public:
     RenderResourcesHandle(const RenderResourcesHandle &other)
         : render_resources(other.render_resources)
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Claim();
         }
     }
@@ -228,13 +227,13 @@ public:
             return *this;
         }
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
 
         render_resources = other.render_resources;
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Claim();
         }
 
@@ -244,7 +243,7 @@ public:
     RenderResourcesHandle(RenderResourcesHandle &&other) noexcept
         : render_resources(other.render_resources)
     {
-        other.render_resources = nullptr;
+        other.render_resources = &GetNullRenderResources();
     }
 
     RenderResourcesHandle &operator=(RenderResourcesHandle &&other) noexcept
@@ -253,37 +252,37 @@ public:
             return *this;
         }
 
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
 
         render_resources = other.render_resources;
-        other.render_resources = nullptr;
+        other.render_resources = &GetNullRenderResources();
 
         return *this;
     }
 
     ~RenderResourcesHandle()
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
         }
     }
 
     void Reset()
     {
-        if (render_resources != nullptr) {
+        if (!render_resources->IsNull()) {
             render_resources->Unclaim();
-        }
 
-        render_resources = nullptr;
+            render_resources = &GetNullRenderResources();
+        }
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return render_resources != nullptr; }
+        { return !render_resources->IsNull(); }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return !render_resources; }
+        { return render_resources->IsNull(); }
 
     HYP_FORCE_INLINE bool operator==(const RenderResourcesHandle &other) const
         { return render_resources == other.render_resources; }
@@ -348,10 +347,24 @@ public:
     ~TRenderResourcesHandle()   = default;
 
     HYP_FORCE_INLINE void Reset()
-        { handle.Reset();  }
+    {
+        handle.Reset();
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return bool(handle); }
+    {
+        // Check if the handle is not null and not the null render resources.
+        return bool(handle);
+    }
+
+    HYP_FORCE_INLINE operator RenderResourcesHandle &() &
+        { return handle; }
+
+    HYP_FORCE_INLINE operator const RenderResourcesHandle &() const &
+        { return handle; }
+
+    HYP_FORCE_INLINE operator RenderResourcesHandle &&() &&
+        { return std::move(handle); }
 
     HYP_FORCE_INLINE bool operator!() const
         { return !handle; }
@@ -363,10 +376,32 @@ public:
         { return handle != other.handle; }
 
     HYP_FORCE_INLINE T *operator->() const
-        { return static_cast<T *>(handle.operator->()); }
+    {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
+
+        RenderResourcesBase &ptr = *handle;
+
+        if (ptr.IsNull()) {
+            return nullptr;
+        }
+
+        // can safely cast to T since we know it's not null
+        return static_cast<T *>(&ptr);
+    }
 
     HYP_FORCE_INLINE T &operator*() const
-        { return static_cast<T &>(handle.operator*()); }
+    {
+        static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
+
+        RenderResourcesBase &ptr = *handle;
+
+        if (ptr.IsNull()) {
+            HYP_FAIL("Dereferenced null render resources handle");
+        }
+
+        // can safely cast to T since we know it's not null
+        return *static_cast<T *>(&ptr);
+    }
 
 private:
     RenderResourcesHandle   handle;

@@ -286,8 +286,8 @@ void TemporalBlending::Render(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-    const uint32 camera_index = active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0;
+    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources->GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     const FixedArray<Handle<Texture> *, 2> textures = {

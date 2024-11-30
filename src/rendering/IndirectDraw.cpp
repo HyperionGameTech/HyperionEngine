@@ -451,11 +451,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint frame_index = frame->GetFrameIndex();
 
-    const TRenderResourcesHandle<CameraRenderResources> *active_camera = g_engine->GetRenderState().GetActiveCamera();
-
-    if (active_camera != nullptr) {
-        AssertThrow((*active_camera)->GetBufferIndex() != ~0u);
-    }
+    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    AssertThrow(camera_index != ~0u);
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);
@@ -501,7 +499,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, active_camera != nullptr ? (*active_camera)->GetBufferIndex() : 0) },
+                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
                     { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                     { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }

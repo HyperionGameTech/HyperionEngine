@@ -1959,27 +1959,4 @@ using memory::ToWeakRefCountedPtr;
 
 } // namespace hyperion
 
-// Temp
-namespace hyperion {
-class Node;
-class Bone;
-#ifdef HYP_ENABLE_REF_TRACKING
-namespace memory {
-
-template <>
-struct EnableRefTrackingImpl<Node>
-{
-    static constexpr bool value = true;
-};
-
-template <>
-struct EnableRefTrackingImpl<Bone>
-{
-    static constexpr bool value = true;
-};
-} // namespace memory
-#endif
-
-} // namespace hyperion
-
 #endif

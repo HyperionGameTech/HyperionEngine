@@ -1207,7 +1207,6 @@ int UIObject::RemoveAllChildUIObjects()
 
         // num_removed = int(m_child_ui_objects.Size());
 
-        // temp testing
         for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
             HYP_LOG(UI, LogLevel::DEBUG, "Remove child {} from {} -- {} refs", child_ui_object->GetName(), GetName(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong());
         }

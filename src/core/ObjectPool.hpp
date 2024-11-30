@@ -74,12 +74,19 @@ struct HypObjectHeader
     AtomicVar<uint16>   ref_count_strong;
     AtomicVar<uint16>   ref_count_weak;
 
+#ifdef HYP_DEBUG_MODE
+    AtomicVar<bool>     has_value;
+#endif
+
     HypObjectHeader()
         : container(nullptr),
           index(~0u),
           ref_count_strong(0),
           ref_count_weak(0)
     {
+#ifdef HYP_DEBUG_MODE
+        has_value.Set(false, MemoryOrder::SEQUENTIAL);
+#endif
     }
 
     HYP_FORCE_INLINE bool IsNull() const
@@ -123,6 +130,10 @@ struct HypObjectMemory final : HypObjectHeader
     template <class... Args>
     T *Construct(Args &&... args)
     {
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(!has_value.Exchange(true, MemoryOrder::SEQUENTIAL));
+#endif
+
         T *ptr = reinterpret_cast<T *>(&bytes[0]);
 
         // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
@@ -141,16 +152,18 @@ struct HypObjectMemory final : HypObjectHeader
         uint16 count;
 
         if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
-            reinterpret_cast<T *>(bytes)->~T();
-
 #ifdef HYP_DEBUG_MODE
+            AssertThrow(has_value.Exchange(false, MemoryOrder::SEQUENTIAL));
+
             AssertThrow(container != nullptr);
             AssertThrow(index != ~0u);
 #endif
 
+            reinterpret_cast<T *>(bytes)->~T();
+
             if (ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0) {
                 // Free the slot for this
-                container->GetIDGenerator().FreeID(index);
+                container->GetIDGenerator().FreeID(index + 1);
             }
         }
 
@@ -169,7 +182,7 @@ struct HypObjectMemory final : HypObjectHeader
 
             if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0) {
                 // Free the slot for this
-                container->GetIDGenerator().FreeID(index);
+                container->GetIDGenerator().FreeID(index + 1);
             }
         }
 
@@ -201,15 +214,13 @@ static inline void ObjectContainer_OnBlockAllocated(void *ctx, HypObjectMemory<T
 template <class T>
 class ObjectContainer final : public IObjectContainer
 {
-    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, 128, ObjectContainer_OnBlockAllocated<T>>;
+    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, 2048, ObjectContainer_OnBlockAllocated<T>>;
 
     using HypObjectMemory = HypObjectMemory<T>;
 
 public:
-    static constexpr SizeType max_size = HandleDefinition<T>::max_size;
-
     ObjectContainer()
-        : m_pool(128, /* create_initial_blocks */ true, /* block_init_ctx */ this)
+        : m_pool(2048, /* create_initial_blocks */ true, /* block_init_ctx */ this)
     {
         // Initialize the default / null object
         m_default_object.container = this;
@@ -229,9 +240,8 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE HypObjectMemory *Allocate()
     {
-        const uint32 index = m_pool.AcquireIndex();
-
-        HypObjectMemory *element = &m_pool.GetElement(index);
+        HypObjectMemory *element;
+        uint32 index = m_pool.AcquireIndex(&element);
 
 #ifdef HYP_DEBUG_MODE
         AssertThrow(uintptr_t(element->container) == uintptr_t(this));

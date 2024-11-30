@@ -90,7 +90,7 @@ public:
     HYP_FORCE_INLINE const IDGenerator &GetIDGenerator() const
         { return m_id_generator; }
 
-    uint32 AcquireIndex()
+    uint32 AcquireIndex(ElementType **out_element_ptr = nullptr)
     {
         const uint32 index = m_id_generator.NextID() - 1;
 
@@ -99,12 +99,20 @@ public:
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
             block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+            if (out_element_ptr != nullptr) {
+                *out_element_ptr = &block.elements[index % num_elements_per_block];
+            }
         } else {
             Mutex::Guard guard(m_blocks_mutex);
 
             if (index < num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
                 Block &block = m_blocks[block_index];
                 block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+                if (out_element_ptr != nullptr) {
+                    *out_element_ptr = &block.elements[index % num_elements_per_block];
+                }
             } else {
                 // Add blocks until we can insert the element
                 uint32 current_block_index = m_blocks.Size();
@@ -119,6 +127,10 @@ public:
 
                 Block &block = m_blocks[block_index];
                 block.num_elements.Increment(1, MemoryOrder::RELEASE);
+
+                if (out_element_ptr != nullptr) {
+                    *out_element_ptr = &block.elements[index % num_elements_per_block];
+                }
             }
         }
 

@@ -162,8 +162,6 @@ HYP_API const HypClass *HypObjectPtr::GetHypClass(TypeID type_id) const
 
 #pragma endregion HypObjectPtr
 
-HYP_DISABLE_OPTIMIZATION;
-
 HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address)
 {
 #ifdef HYP_DEBUG_MODE
@@ -208,14 +206,10 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     }
 }
 
-HYP_ENABLE_OPTIMIZATION;
-
 HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, UniquePtr<dotnet::Object> &&managed_object)
 {
     AssertThrow(initializer != nullptr);
     AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class! Is HYP_CLASS() missing for the type?");
-
-    // AssertThrowMsg(!hyp_class->IsAbstract(), "Cannot directly create an instance of object with HypClass \"%s\" which is marked abstract!", hyp_class->GetName().LookupString());
 
     if (hyp_class->GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR) {
         // Hack to make EnableRefCountedPtr<Base> internally have TypeID of most derived class for a given instance.

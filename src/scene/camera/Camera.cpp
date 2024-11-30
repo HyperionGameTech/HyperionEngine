@@ -12,6 +12,9 @@
 
 #include <core/system/AppContext.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -157,8 +160,6 @@ void Camera::Init()
 
     m_render_resources = AllocateRenderResources<CameraRenderResources>(WeakHandleFromThis());
 
-    m_render_resources->Claim();
-
     UpdateMatrices();
 
     m_render_resources->SetBufferData(CameraShaderData {
@@ -170,8 +171,11 @@ void Camera::Init()
         .camera_direction   = Vec4f(m_direction, 1.0f),
         .camera_near        = m_near,
         .camera_far         = m_far,
-        .camera_fov         = m_fov
+        .camera_fov         = m_fov,
+        .id                 = GetID().Value()
     });
+
+    m_render_resources->Claim();
 
     DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 
@@ -345,10 +349,11 @@ void Camera::Update(GameCounter::TickUnit dt)
         .previous_view      = m_previous_view_matrix,
         .dimensions         = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 },
         .camera_position    = Vec4f(m_translation, 1.0f),
-        .camera_direction   = Vec4f(m_direction, 1.0f),
+        .camera_direction   = Vec4f(m_translation, 1.0f),
         .camera_near        = m_near,
         .camera_far         = m_far,
-        .camera_fov         = m_fov
+        .camera_fov         = m_fov,
+        .id                 = GetID().Value()
     });
 }
 

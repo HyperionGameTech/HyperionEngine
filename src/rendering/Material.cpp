@@ -27,61 +27,6 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
-{
-    WeakHandle<Material>                        material;
-    MaterialShaderData                          shader_data;
-    SizeType                                    num_bound_textures;
-    FixedArray<ID<Texture>, max_bound_textures> bound_texture_ids;
-
-    RENDER_COMMAND(UpdateMaterialRenderData)(
-        const WeakHandle<Material> &material,
-        const MaterialShaderData &shader_data,
-        SizeType num_bound_textures,
-        FixedArray<ID<Texture>, max_bound_textures> &&bound_texture_ids
-    ) : material(material),
-        shader_data(shader_data),
-        num_bound_textures(num_bound_textures),
-        bound_texture_ids(std::move(bound_texture_ids))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UpdateMaterialRenderData)() override = default;
-
-    virtual Result operator()() override
-    {
-        if (Handle<Material> material_locked = material.Lock()) {
-            shader_data.texture_usage = 0;
-
-            Memory::MemSet(shader_data.texture_index, 0, sizeof(shader_data.texture_index));
-
-            static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
-
-            if (num_bound_textures != 0) {
-                for (SizeType i = 0; i < bound_texture_ids.Size(); i++) {
-                    if (bound_texture_ids[i] != ID<Texture>::invalid) {
-                        if (use_bindless_textures) {
-                            shader_data.texture_index[i] = bound_texture_ids[i].ToIndex();
-                        } else {
-                            shader_data.texture_index[i] = i;
-                        }
-
-                        shader_data.texture_usage |= 1 << i;
-                    }
-                }
-            }
-
-            // temp
-            AssertThrow(material_locked->GetRenderResources().GetBufferIndex() != ~0u);
-            g_engine->GetRenderData()->materials->Set(material_locked->GetRenderResources().GetBufferIndex(), shader_data);
-
-            // g_engine->GetRenderData()->materials->Set(material.GetID().ToIndex(), shader_data);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 {
     WeakHandle<Material>    material;

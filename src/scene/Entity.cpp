@@ -13,7 +13,10 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(Entity, Scene);
 
-Entity::Entity() = default;
+Entity::Entity()
+{
+    HYP_LOG(Entity, LogLevel::DEBUG, "Creating Entity with ID #{}", GetID().Value());
+}
 
 Entity::~Entity()
 {
