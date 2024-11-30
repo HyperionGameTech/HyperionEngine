@@ -9,10 +9,10 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -31,6 +31,7 @@ class Skeleton;
 class Entity;
 class RenderCollector;
 class GPUBufferHolderBase;
+class IndirectRenderer;
 
 enum class RenderGroupFlags : uint32
 {

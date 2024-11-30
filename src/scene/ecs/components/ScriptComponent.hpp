@@ -3,8 +3,6 @@
 #ifndef HYPERION_ECS_SCRIPT_COMPONENT_HPP
 #define HYPERION_ECS_SCRIPT_COMPONENT_HPP
 
-#include <core/Handle.hpp>
-
 #include <core/utilities/EnumFlags.hpp>
 
 #include <dotnet/Assembly.hpp>

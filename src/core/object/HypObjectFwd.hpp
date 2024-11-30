@@ -30,10 +30,10 @@ class HypObject;
 
 class IHypObjectInitializer;
 
-struct ObjectBytesBase;
+struct HypObjectHeader;
 
 template <class T>
-struct ObjectBytes;
+struct HypObjectMemory;
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
@@ -41,11 +41,11 @@ class HYP_API IHypObject
 {
 public:
     template <class T>
-    friend struct ObjectBytes;
+    friend struct HypObjectMemory;
 
     virtual ~IHypObject() = default;
 
-    HYP_FORCE_INLINE ObjectBytesBase *GetObjectHeader_Internal() const
+    HYP_FORCE_INLINE HypObjectHeader *GetObjectHeader_Internal() const
         { return m_header; }
 
 protected:
@@ -55,7 +55,7 @@ protected:
 private:
     IDBase GetID_Internal() const;
 
-    ObjectBytesBase *m_header;
+    HypObjectHeader *m_header;
 };
 
 template <class T, class T2 = void>

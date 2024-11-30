@@ -5,11 +5,9 @@
 
 #include <core/Defines.hpp>
 #include <core/ID.hpp>
-#include <core/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <rendering/SafeDeleter.hpp>
 #include <rendering/EntityInstanceBatchHolderMap.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -22,15 +20,13 @@ class Engine;
 class Mesh;
 class Material;
 class Skeleton;
+class Entity;
 struct RenderProxy;
 struct DrawCommandData;
 class IndirectDrawState;
 class GPUBufferHolderBase;
 
 struct MeshInstanceData;
-
-extern HYP_API Handle<Engine>   g_engine;
-extern HYP_API SafeDeleter      *g_safe_deleter;
 
 extern HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap();
 

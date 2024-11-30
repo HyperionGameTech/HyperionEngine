@@ -3,8 +3,6 @@
 #ifndef HYPERION_BUFFERS_HPP
 #define HYPERION_BUFFERS_HPP
 
-#include <core/Handle.hpp>
-
 #include <core/memory/MemoryPool.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
@@ -40,10 +38,6 @@ using Device = platform::Device<Platform::CURRENT>;
 } // namespace hyperion::renderer
 
 namespace hyperion {
-
-class Engine;
-
-extern HYP_API Handle<Engine>   g_engine;
 
 using renderer::GPUBufferType;
 
@@ -263,8 +257,6 @@ public:
         : Base(initial_count)
     {
     }
-
-    virtual ~GPUBufferHolderMemoryPool() override = default;
 
     HYP_FORCE_INLINE void MarkDirty(uint32 index)
     {

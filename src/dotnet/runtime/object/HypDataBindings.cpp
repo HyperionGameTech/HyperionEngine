@@ -336,11 +336,9 @@ HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
 
     if (hyp_class->IsClassType()) {
         if (hyp_class->UseHandles()) {
-            IObjectContainer &container = ObjectPool::GetContainer(type_id);
-
             IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
 
-            *hyp_data = HypData(AnyHandle(type_id, hyp_object_ptr->GetID()));
+            *hyp_data = HypData(AnyHandle(hyp_object_ptr));
 
             return true;
         } else if (hyp_class->UseRefCountedPtr()) {

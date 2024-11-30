@@ -8,6 +8,7 @@
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/memory/Memory.hpp>
 
@@ -18,7 +19,7 @@
 namespace hyperion {
 namespace memory {
 
-template <class ElementType, uint32 NumElementsPerBlock = 16, void(*OnBlockAllocated)(void *pool, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
+template <class ElementType, uint32 NumElementsPerBlock = 16, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
 protected:
@@ -33,11 +34,11 @@ protected:
         FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
 #endif
 
-        Block(MemoryPool *pool, uint32 block_index)
+        Block(void *ctx, uint32 block_index)
         {
             // Allow overloading assignment of elements
             if (OnBlockAllocated != nullptr) {
-                OnBlockAllocated(pool, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
+                OnBlockAllocated(ctx, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
             } else {
                 if constexpr (IsPODType<ElementType>) {
                     // Default initialization for POD types - zero it out
@@ -55,24 +56,39 @@ protected:
             { return num_elements.Get(MemoryOrder::ACQUIRE) == 0; }
     };
 
-public:
-    static constexpr uint32 s_invalid_index = ~0u;
-
-    MemoryPool(uint32 initial_count = 16 * num_elements_per_block)
-        : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
-          m_num_blocks(m_initial_num_blocks)
+protected:
+    void CreateInitialBlocks()
     {
+        m_num_blocks.Set(m_initial_num_blocks, MemoryOrder::RELEASE);
+
         for (uint32 i = 0; i < m_initial_num_blocks; i++) {
-            m_blocks.EmplaceBack(this, i);
+            m_blocks.EmplaceBack(m_block_init_ctx, i);
         }
     }
 
-    virtual ~MemoryPool() = default;
+public:
+    static constexpr uint32 s_invalid_index = ~0u;
+
+    MemoryPool(uint32 initial_count = 16 * num_elements_per_block, bool create_initial_blocks = true, void *block_init_ctx = nullptr)
+        : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
+          m_num_blocks(0),
+          m_block_init_ctx(block_init_ctx)
+    {
+        if (create_initial_blocks) {
+            CreateInitialBlocks();
+        }
+    }
 
     HYP_FORCE_INLINE uint32 NumAllocatedElements() const
     {
         return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;
     }
+
+    HYP_FORCE_INLINE IDGenerator &GetIDGenerator()
+        { return m_id_generator; }
+
+    HYP_FORCE_INLINE const IDGenerator &GetIDGenerator() const
+        { return m_id_generator; }
 
     uint32 AcquireIndex()
     {
@@ -94,7 +110,7 @@ public:
                 uint32 current_block_index = m_blocks.Size();
 
                 while (index >= num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
-                    m_blocks.EmplaceBack(this, current_block_index);
+                    m_blocks.EmplaceBack(m_block_init_ctx, current_block_index);
 
                     m_num_blocks.Increment(1, MemoryOrder::RELEASE);
 
@@ -217,6 +233,8 @@ protected:
     AtomicVar<uint32>               m_num_blocks;
     // Needs to be locked when accessing blocks beyond initial_num_blocks or adding/removing blocks.
     Mutex                           m_blocks_mutex;
+
+    void                            *m_block_init_ctx;
 
     IDGenerator                     m_id_generator;
 };

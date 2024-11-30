@@ -437,7 +437,10 @@ Octree::InsertResult Octree::InsertInternal(const Handle<Entity> &entity, const 
     if (m_state != nullptr) {
         AssertThrowMsg(m_state->entity_to_octree.FindAs(entity) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
 
-        m_state->entity_to_octree[entity] = this;
+        m_state->entity_to_octree.Insert(entity.ToWeak(), this);
+
+        // debug check
+        AssertThrow(m_state->entity_to_octree.FindAs(entity.GetID())->second == this);
     }
 
     if (m_entity_manager) {
@@ -724,7 +727,10 @@ Octree::InsertResult Octree::Move(ID<Entity> id, const BoundingBox &aabb, bool a
         if (m_state != nullptr) {
             AssertThrowMsg(m_state->entity_to_octree.FindAs(id) == m_state->entity_to_octree.End(), "Entity must not already be in octree hierarchy.");
 
-            m_state->entity_to_octree[entity.ToWeak()] = this;
+            m_state->entity_to_octree.Insert(entity.ToWeak(), this);
+
+            // debug check
+            AssertThrow(m_state->entity_to_octree.FindAs(entity.GetID())->second == this);
         }
 
         if (m_entity_manager) {

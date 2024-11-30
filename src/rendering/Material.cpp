@@ -3,6 +3,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/Texture.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>

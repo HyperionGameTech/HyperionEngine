@@ -4,7 +4,6 @@
 #define HYPERION_TEXTURE_HPP
 
 #include <core/Base.hpp>
-#include <core/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

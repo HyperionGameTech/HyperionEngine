@@ -3,7 +3,6 @@
 #ifndef HYPERION_MATERIAL_HPP
 #define HYPERION_MATERIAL_HPP
 
-#include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderResources.hpp>
@@ -27,6 +26,8 @@
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+class Texture;
 
 struct MaterialShaderData
 {

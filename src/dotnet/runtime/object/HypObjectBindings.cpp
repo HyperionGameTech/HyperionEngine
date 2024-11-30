@@ -92,7 +92,7 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IObjectContainer &container = ObjectPool::GetContainer(type_id);
+        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
 
@@ -129,7 +129,7 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IObjectContainer &container = ObjectPool::GetContainer(type_id);
+        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(type_id);
 
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
         

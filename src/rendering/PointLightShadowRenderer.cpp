@@ -2,8 +2,10 @@
 
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/Light.hpp>
+#include <rendering/EnvProbe.hpp>
+
+#include <rendering/backend/RendererFeatures.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -89,7 +91,7 @@ void PointLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 void PointLightShadowRenderer::OnRender(Frame *frame)
 {
     HYP_SCOPE;
-    
+
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
     if (!m_env_probe.IsValid() || !m_light.IsValid()) {

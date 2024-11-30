@@ -9,8 +9,6 @@
 
 #include <core/containers/TypeMap.hpp>
 
-#include <rendering/Shader.hpp>
-
 #include <rendering/backend/RendererBuffer.hpp>
 
 namespace hyperion {

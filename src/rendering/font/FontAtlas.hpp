@@ -4,6 +4,7 @@
 #define HYPERION_FONTATLAS_HPP
 
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/containers/Array.hpp>
@@ -11,13 +12,14 @@
 
 #include <rendering/font/FontFace.hpp>
 #include <rendering/font/Glyph.hpp>
-#include <rendering/Texture.hpp>
 
 #include <util/json/JSON.hpp>
 
 #include <util/img/Bitmap.hpp>
 
 namespace hyperion {
+
+class Texture;
 
 struct HYP_API FontAtlasTextureSet
 {

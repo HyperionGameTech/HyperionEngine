@@ -19,18 +19,6 @@ struct WeakHandle;
 struct AnyHandle;
 
 template <class T>
-static inline ObjectContainer<T> &GetContainer(UniquePtr<IObjectContainer> &allotted_container)
-{
-    return ObjectPool::template GetContainer<T>(allotted_container);
-}
-
-template <class T>
-static inline UniquePtr<IObjectContainer> *AllotContainer()
-{
-    return ObjectPool::template AllotContainer<T>();
-}
-
-template <class T>
 HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< implementation_exists<T>, ObjectContainer<T> *, IObjectContainer * >
 {
     // If T is a defined type, we can use ObjectContainer<T> methods (ObjectContainer<T> is final, virtual calls can be optimized)
@@ -39,6 +27,23 @@ HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< implementatio
     } else {
         return Handle<T>::GetContainer_Internal();
     }
+}
+
+template <class T>
+static inline HypObjectHeader *GetDefaultHypObjectHeader()
+{
+    static struct DefaultHypObjectMemoryInitializer
+    {
+        HypObjectMemory<T>  value;
+
+        DefaultHypObjectMemoryInitializer()
+        {
+            value.container = GetContainer<T>();
+            value.index = ~0u;
+        }
+    } initializer;
+
+    return &initializer.value;
 }
 
 struct HandleBase
@@ -53,18 +58,21 @@ struct HandleBase
  *  \tparam T The type of object that the handle is referencing. 
 */
 template <class T>
-struct Handle : HandleBase
+struct Handle final : HandleBase
 {
     using IDType = ID<T>;
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 
 private:
-    explicit Handle(ObjectBytesBase *ptr)
+    explicit Handle(HypObjectHeader *ptr)
         : ptr(ptr)
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefStrong();
+        } else {
+            // don't allow invalid, set to null instead
+            ptr = nullptr;
         }
     }
 
@@ -80,7 +88,6 @@ public:
         {
             Initializer()
             {
-                //s_container = &(ObjectPool::template GetContainer<T>(*HandleDefinition<T>::GetAllottedContainerPointer()));
                 s_container = HandleDefinition<T>::GetAllottedContainerPointer()->Get();
                 AssertThrow(s_container != nullptr);
             }
@@ -91,14 +98,14 @@ public:
 
     static const Handle empty;
 
-    ObjectBytesBase *ptr;
+    HypObjectHeader *ptr;
 
     Handle() : ptr(nullptr) { }
 
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
-        : Handle(id.IsValid() ? GetContainer<T>()->GetObjectBytes(id.Value() - 1) : nullptr)
+        : Handle(id.IsValid() ? GetContainer<T>()->GetObjectHeader(id.Value() - 1) : nullptr)
     {
     }
 
@@ -111,8 +118,8 @@ public:
         }
     }
 
-    explicit Handle(ObjectBytes<T> *ptr)
-        : Handle(reinterpret_cast<ObjectBytesBase *>(ptr))
+    explicit Handle(HypObjectMemory<T> *ptr)
+        : Handle(static_cast<HypObjectHeader *>(ptr))
     {
     }
 
@@ -206,7 +213,7 @@ public:
      *  \param other The handle to compare to.
      *  \return True if the handle is less than the other handle. */
     HYP_FORCE_INLINE bool operator<(const Handle &other) const
-        { return ptr < other.ptr; }
+        { return IDType(*this) < IDType(other); }
     
     HYP_FORCE_INLINE bool operator==(const IDType &id) const
         { return IDType(*this) == id; }
@@ -240,7 +247,7 @@ public:
             return nullptr;
         }
 
-        return reinterpret_cast<ObjectBytes<T> *>(ptr)->GetPointer();
+        return static_cast<HypObjectMemory<T> *>(ptr)->GetPointer();
     }
     
     /*! \brief Reset the handle to an empty state.
@@ -269,8 +276,8 @@ public:
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
+        // Hashcode must be same as ID<T> hashcode
         HashCode hc;
-        hc.Add(GetTypeName().GetHashCode());
         hc.Add(IDType(*this));
 
         return hc;
@@ -278,7 +285,7 @@ public:
 };
 
 template <class T>
-struct WeakHandle
+struct WeakHandle final
 {
     using IDType = ID<T>;
 
@@ -286,7 +293,7 @@ struct WeakHandle
 
     static const WeakHandle empty;
 
-    ObjectBytesBase *ptr;
+    HypObjectHeader *ptr;
 
     WeakHandle()
         : ptr(nullptr)
@@ -296,7 +303,7 @@ struct WeakHandle
     /*! \brief Construct a WeakHandle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit WeakHandle(IDType id)
-        : ptr(id.IsValid() ? GetContainer<T>()->GetObjectBytes(id.Value() - 1) : nullptr)
+        : ptr(id.IsValid() ? GetContainer<T>()->GetObjectHeader(id.Value() - 1) : nullptr)
     {
         if (ptr != nullptr) {
             ptr->IncRefWeak();
@@ -415,7 +422,7 @@ struct WeakHandle
             return nullptr;
         }
 
-        return reinterpret_cast<ObjectBytes<T> *>(ptr)->GetPointer();
+        return static_cast<HypObjectMemory<T> *>(ptr)->GetPointer();
     }
     
     HYP_FORCE_INLINE bool operator!() const
@@ -440,7 +447,7 @@ struct WeakHandle
         { return ptr != other.ptr; }
 
     HYP_FORCE_INLINE bool operator<(const WeakHandle &other) const
-        { return ptr < other.ptr; }
+        { return IDType(*this) < IDType(other); }
     
     HYP_FORCE_INLINE bool operator==(const Handle<T> &other) const
         { return ptr == other.ptr; }
@@ -449,7 +456,7 @@ struct WeakHandle
         { return ptr != other.ptr; }
     
     HYP_FORCE_INLINE bool operator<(const Handle<T> &other) const
-        { return ptr < other.ptr; }
+        { return IDType(*this) < IDType(other); }
     
     HYP_FORCE_INLINE bool operator==(const IDType &id) const
         { return IDType(*this) == id; }
@@ -489,20 +496,19 @@ struct WeakHandle
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
+        // hashcode must be same as ID<T>
         HashCode hc;
-        hc.Add(GetTypeName().GetHashCode());
         hc.Add(IDType(*this));
 
         return hc;
     }
 };
 
-struct AnyHandle
+struct AnyHandle final
 {
     using IDType = IDBase;
 
-    IObjectContainer    *container = nullptr;
-    ObjectBytesBase     *ptr = nullptr;
+    HypObjectHeader *ptr;
 
 private:
     HYP_API AnyHandle(TypeID type_id, IDBase id);
@@ -514,7 +520,7 @@ public:
     {
     }
 
-    HYP_API AnyHandle(IHypObject *hyp_object_ptr);
+    HYP_API explicit AnyHandle(IHypObject *hyp_object_ptr);
 
     template <class T>
     AnyHandle(const Handle<T> &handle)
@@ -533,10 +539,8 @@ public:
     HYP_API AnyHandle &operator=(const AnyHandle &other);
 
     AnyHandle(AnyHandle &&other) noexcept
-        : container(other.container),
-          ptr(other.ptr)
+        : ptr(other.ptr)
     {
-        other.container = nullptr;
         other.ptr = nullptr;
     }
 
@@ -557,43 +561,35 @@ public:
         { return IsValid(); }
     
     HYP_FORCE_INLINE bool operator==(const AnyHandle &other) const
-        { return container == other.container && ptr == other.ptr; }
+        { return ptr == other.ptr; }
     
     HYP_FORCE_INLINE bool operator!=(const AnyHandle &other) const
-        { return container != other.container || ptr != other.ptr; }
+        { return ptr != other.ptr; }
+    
+    HYP_FORCE_INLINE bool operator<(const AnyHandle &other) const
+        { return GetID() < other.GetID(); }
     
     template <class T>
     HYP_FORCE_INLINE bool operator==(const Handle<T> &other) const
-        { return GetTypeID() == other.GetTypeID() && ptr == other.ptr; }
+        { return ptr == other.ptr; }
     
     template <class T>
     HYP_FORCE_INLINE bool operator!=(const Handle<T> &other) const
-        { return GetTypeID() != other.GetTypeID() || ptr != other.ptr; }
-    
-    /*! \brief Compare two handles by their index.
-     *  \param other The handle to compare to.
-     *  \return True if the handle is less than the other handle. */
-    HYP_FORCE_INLINE bool operator<(const AnyHandle &other) const
-        { return ptr < other.ptr; }
+        { return ptr != other.ptr; }
     
     HYP_FORCE_INLINE bool operator==(const IDBase &id) const
         { return GetID() == id; }
 
     HYP_FORCE_INLINE bool operator!=(const IDBase &id) const
         { return GetID() != id; }
-    
-    template <class T>
-    HYP_FORCE_INLINE bool operator==(const ID<T> &id) const
-        { return *this == IDBase(id) && TypeID::ForType<T>() == GetTypeID(); }
-    
-    template <class T>
-    HYP_FORCE_INLINE bool operator!=(const ID<T> &id) const
-        { return *this != IDBase(id) || TypeID::ForType<T>() != GetTypeID(); }
+
+    HYP_FORCE_INLINE bool operator<(const IDBase &id) const
+        { return GetID() < id; }
     
     /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
      *  \return True if the handle is valid. */
     HYP_FORCE_INLINE bool IsValid() const
-        { return container != nullptr && ptr != nullptr; }
+        { return ptr != nullptr && !ptr->IsNull(); }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
@@ -643,7 +639,7 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 {
     ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
 
-    ObjectBytes<T> *element = container.Allocate();
+    HypObjectMemory<T> *element = container.Allocate();
     element->Construct();
 
     return Handle<T>(element);
@@ -654,7 +650,7 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 {
     ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
 
-    ObjectBytes<T> *element = container.Allocate();
+    HypObjectMemory<T> *element = container.Allocate();
     element->Construct(std::forward<Args>(args)...);
 
     return Handle<T>(element);

@@ -12,7 +12,7 @@ namespace Hyperion
         internal static extern void Handle_Set(TypeID type_id, IntPtr ptr, [In] ref HypDataBuffer hypDataBuffer);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Handle<T> where T : HypObject
     {
         public static readonly Handle<T> Empty = new Handle<T>();

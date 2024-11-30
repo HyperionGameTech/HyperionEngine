@@ -519,7 +519,7 @@ void Scene::EnqueueRenderUpdates()
 
     PUSH_RENDER_COMMAND(
         UpdateSceneRenderData, 
-        m_id,
+        GetID(),
         m_root_node_proxy.GetWorldAABB(),
         m_world->GetGameState().game_time,
         m_fog_params,

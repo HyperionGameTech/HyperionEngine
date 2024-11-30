@@ -261,8 +261,10 @@ struct EntitySetView
         : entity_set(entity_set),
           m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
     {
-        for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
-            m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i]);
+        if constexpr (sizeof...(Components) != 0) {
+            for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
+                m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i]);
+            }
         }
     }
 
@@ -272,25 +274,27 @@ struct EntitySetView
     {
         static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
 
-        for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
-            auto component_infos_it = component_infos.FindIf([type_id = component_type_ids[i]](const ComponentInfo &info)
-            {
-                return info.type_id == type_id;
-            });
+        if constexpr (sizeof...(Components) != 0) {
+            for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
+                auto component_infos_it = component_infos.FindIf([type_id = component_type_ids[i]](const ComponentInfo &info)
+                {
+                    return info.type_id == type_id;
+                });
 
-            AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with type ID %u", component_type_ids[i].Value());
+                AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with type ID %u", component_type_ids[i].Value());
 
-            EnumFlags<DataAccessFlags> access_flags = DataAccessFlags::ACCESS_NONE;
+                EnumFlags<DataAccessFlags> access_flags = DataAccessFlags::ACCESS_NONE;
 
-            if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_READ) {
-                access_flags |= DataAccessFlags::ACCESS_READ;
+                if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_READ) {
+                    access_flags |= DataAccessFlags::ACCESS_READ;
+                }
+
+                if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_WRITE) {
+                    access_flags |= DataAccessFlags::ACCESS_WRITE;
+                }
+
+                m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i]);
             }
-
-            if (component_infos_it->rw_flags & COMPONENT_RW_FLAGS_WRITE) {
-                access_flags |= DataAccessFlags::ACCESS_WRITE;
-            }
-
-            m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i]);
         }
     }
 
@@ -301,8 +305,10 @@ struct EntitySetView
 
     ~EntitySetView()
     {
-        for (SizeType i = 0; i < m_component_data_access_scopes.Size(); i++) {
-            m_component_data_access_scopes[i].Destruct();
+        if constexpr (sizeof...(Components) != 0) {
+            for (SizeType i = 0; i < m_component_data_access_scopes.Size(); i++) {
+                m_component_data_access_scopes[i].Destruct();
+            }
         }
     }
 

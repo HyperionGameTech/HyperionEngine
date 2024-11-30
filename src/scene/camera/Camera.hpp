@@ -4,7 +4,6 @@
 #define HYPERION_CAMERA_HPP
 
 #include <core/Base.hpp>
-#include <core/Handle.hpp>
 
 #include <core/containers/Queue.hpp>
 

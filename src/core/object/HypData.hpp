@@ -646,6 +646,7 @@ struct HypDataHelper<AnyHandle>
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(value.GetTypeID());
 
         if (!marshal) {
+            HYP_BREAKPOINT;
             return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
         }
 
@@ -705,6 +706,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
         const fbom::FBOMMarshalerBase *marshal = fbom::FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
 
         if (!marshal) {
+            HYP_BREAKPOINT;
             return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, "No marshal defined for handle type" };
         }
 

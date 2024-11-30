@@ -3,7 +3,6 @@
 #ifndef HYPERION_ECS_ANIMATION_COMPONENT_HPP
 #define HYPERION_ECS_ANIMATION_COMPONENT_HPP
 
-#include <core/Handle.hpp>
 #include <scene/animation/Skeleton.hpp>
 
 #include <HashCode.hpp>

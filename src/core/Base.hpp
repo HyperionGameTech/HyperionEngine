@@ -67,11 +67,8 @@ public:
     HypObject &operator=(const HypObject &other)    = delete;
 
     HypObject(HypObject &&other) noexcept
-        : m_id(other.m_id),
-          m_init_state(other.m_init_state.Get(MemoryOrder::RELAXED))
+        : m_init_state(other.m_init_state.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE))
     {
-        other.m_id = ID<T> { };
-        other.m_init_state.Set(INIT_STATE_UNINITIALIZED, MemoryOrder::RELAXED);
     }
 
     HypObject &operator=(HypObject &&other) noexcept = delete;
@@ -80,10 +77,6 @@ public:
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
         { return ID<InnerType>(IHypObject::GetID().Value()); }
-
-    /*! \internal To be called when constructing the object */
-    HYP_FORCE_INLINE void SetID(ID<InnerType> id)
-        { m_id = id; }
 
     HYP_FORCE_INLINE bool IsInitCalled() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }
@@ -101,14 +94,18 @@ public:
 
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
     {
-        AssertThrowMsg(m_id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
-        return Handle<T>(m_id);
+        ID<InnerType> id = GetID();
+        AssertThrowMsg(id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
+
+        return Handle<T>(id);
     }
 
     HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
     {
-        AssertThrowMsg(m_id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
-        return WeakHandle<T>(m_id);
+        ID<InnerType> id = GetID();
+        AssertThrowMsg(id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
+
+        return WeakHandle<T>(id);
     }
 
 protected:
@@ -144,7 +141,6 @@ protected:
         m_delegate_handlers.PushBack(std::move(delegate_handler));
     }
     
-    ID<InnerType>               m_id;
     AtomicVar<uint16>           m_init_state;
     Array<DelegateHandler>      m_delegate_handlers;
 };

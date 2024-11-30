@@ -4,6 +4,7 @@
 #include <ui/UIStage.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/Texture.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderConfig.hpp>
@@ -13,6 +14,7 @@
 
 #include <scene/camera/OrthoCamera.hpp>
 
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 
@@ -184,88 +186,12 @@ static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &
     return aabb;
 }
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(UpdateUITextRenderData) : renderer::RenderCommand
-{
-    String                  text;
-    RC<UITextRenderData>    render_data;
-    Vec4f                   color;
-    Vec2i                   size;
-    Vec2i                   parent_bounds;
-    float                   text_size;
-    BoundingBox             aabb;
-    RC<FontAtlas>           font_atlas;
-    Handle<Texture>         font_atlas_texture;
-
-    RENDER_COMMAND(UpdateUITextRenderData)(const String &text, const RC<UITextRenderData> &render_data, Vec4f color, Vec2i size, Vec2i parent_bounds, float text_size, const BoundingBox &aabb, const RC<FontAtlas> &font_atlas, const Handle<Texture> &font_atlas_texture)
-        : text(text),
-          render_data(render_data),
-          color(color),
-          size(size),
-          parent_bounds(parent_bounds),
-          text_size(text_size),
-          aabb(aabb),
-          font_atlas(font_atlas),
-          font_atlas_texture(font_atlas_texture)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UpdateUITextRenderData)() override = default;
-
-    virtual renderer::Result operator()() override
-    {
-        if (!render_data) {
-            return { renderer::Result::RENDERER_ERR, "Cannot update UI text render data, invalid render data pointer set" };
-        }
-
-        if (!font_atlas) {
-            return { renderer::Result::RENDERER_ERR, "Cannot update UI text render data, invalid font atlas texture set" };
-        }
-
-        render_data->characters.Clear();
-
-        ForEachCharacter(*font_atlas, text, parent_bounds, text_size, [&](const FontAtlasCharacterIterator &iter)
-        {
-            Transform character_transform;
-            character_transform.SetScale(Vec3f(iter.glyph_dimensions.x, iter.glyph_dimensions.y, 1.0f));
-            character_transform.GetTranslation().y += iter.cell_dimensions.y - iter.glyph_dimensions.y;
-            character_transform.GetTranslation().y += iter.bearing_y;
-            character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f);
-            character_transform.UpdateMatrix();
-
-            UITextCharacter character { };
-            character.transform = character_transform.GetMatrix();
-            character.texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
-            character.texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
-
-            render_data->characters.PushBack(character);
-        });
-
-        render_data->color = color;
-        render_data->size = size;
-        render_data->aabb = aabb;
-        render_data->font_atlas = std::move(font_atlas);
-        render_data->font_atlas_texture = std::move(font_atlas_texture);
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region UIText
 
 UIText::UIText()
-    : UIObject(UIObjectType::TEXT),
-      m_render_data(MakeRefCountedPtr<UITextRenderData>())
+    : UIObject(UIObjectType::TEXT)
 {
     m_text_color = Color(Vec4f::One());
-}
-
-const RC<UITextRenderData> &UIText::GetRenderData() const
-{
-    return m_render_data;
 }
 
 void UIText::Init()

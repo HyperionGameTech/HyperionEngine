@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_SKY_COMPONENT_HPP
 #define HYPERION_ECS_SKY_COMPONENT_HPP
 
-#include <core/Handle.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <HashCode.hpp>
 

@@ -4,6 +4,7 @@
 #include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
+#include <rendering/Texture.hpp>
 
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>

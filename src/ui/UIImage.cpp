@@ -2,6 +2,11 @@
 
 #include <ui/UIImage.hpp>
 
+#include <rendering/Texture.hpp>
+#include <rendering/SafeDeleter.hpp>
+
+#include <Engine.hpp>
+
 namespace hyperion {
 
 UIImage::UIImage()

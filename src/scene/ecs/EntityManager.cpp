@@ -230,10 +230,10 @@ Handle<Entity> EntityManager::AddEntity()
         
     ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<Entity>(HandleDefinition<Entity>::GetAllottedContainerPointer());
     
-    ObjectBytes<Entity> *element = container.Allocate();
-    element->Construct();
+    HypObjectMemory<Entity> *memory = container.Allocate();
+    memory->Construct();
     
-    Handle<Entity> entity { element };
+    Handle<Entity> entity { memory };
 
     HYP_LOG(ECS, LogLevel::DEBUG, "Add entity #{} to entity manager {}", entity.GetID().Value(), (void *)this);
     GetEntityToEntityManagerMap().Add(entity.GetID(), this);

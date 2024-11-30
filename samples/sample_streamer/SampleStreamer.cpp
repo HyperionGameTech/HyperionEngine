@@ -8,6 +8,8 @@
 #include <rendering/backend/RendererImage.hpp>
 
 #include <Engine.hpp>
+
+#include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -21,8 +23,10 @@
 #include <scene/ecs/components/RigidBodyComponent.hpp>
 #include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
+
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
+
 #include <core/utilities/Pair.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/Array.hpp>

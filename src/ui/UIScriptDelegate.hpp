@@ -10,7 +10,6 @@
 
 #include <scene/Scene.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
-#include <scene/ecs/EntityManager.hpp>
 
 #include <Types.hpp>
 

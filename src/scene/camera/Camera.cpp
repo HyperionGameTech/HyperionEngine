@@ -125,6 +125,7 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
 Camera::~Camera()
 {
     if (m_render_resources != nullptr) {
+        m_render_resources->Unclaim();
         FreeRenderResources(m_render_resources);
     }
 
@@ -145,6 +146,7 @@ void Camera::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
         if (m_render_resources != nullptr) {
+            m_render_resources->Unclaim();
             FreeRenderResources(m_render_resources);
 
             m_render_resources = nullptr;
@@ -154,6 +156,8 @@ void Camera::Init()
     }));
 
     m_render_resources = AllocateRenderResources<CameraRenderResources>(WeakHandleFromThis());
+
+    m_render_resources->Claim();
 
     UpdateMatrices();
 
