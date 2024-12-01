@@ -18,23 +18,21 @@ namespace hyperion {
 
 #pragma region CameraRenderResources
 
-CameraRenderResources::CameraRenderResources(const WeakHandle<Camera> &camera_weak)
-    : m_camera_weak(camera_weak),
+CameraRenderResources::CameraRenderResources(Camera *camera)
+    : m_camera(camera),
       m_buffer_data { }
 {
 }
 
 CameraRenderResources::CameraRenderResources(CameraRenderResources &&other) noexcept
     : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
-      m_camera_weak(std::move(other.m_camera_weak)),
+      m_camera(other.m_camera),
       m_buffer_data(std::move(other.m_buffer_data))
 {
+    other.m_camera = nullptr;
 }
 
-CameraRenderResources::~CameraRenderResources()
-{
-    Destroy();
-}
+CameraRenderResources::~CameraRenderResources() = default;
 
 void CameraRenderResources::Initialize()
 {
@@ -90,28 +88,6 @@ void CameraRenderResources::SetBufferData(const CameraShaderData &buffer_data)
             SetNeedsUpdate();
         }
     });
-}
-
-// @TODO Refactor to not update the global buffer data, instead it should just update m_buffer_data and call SetNeedsUpdate
-void CameraRenderResources::ApplyJitter()
-{
-    HYP_SCOPE;
-
-    AssertThrow(m_buffer_index != ~0u);
-
-    Vec4f jitter = Vec4f::Zero();
-
-    const uint frame_counter = g_engine->GetRenderState().frame_counter + 1;
-
-    static const float jitter_scale = 0.25f;
-
-    if (m_buffer_data.projection[3][3] < MathUtil::epsilon_f) {
-        Matrix4::Jitter(frame_counter, m_buffer_data.dimensions.x, m_buffer_data.dimensions.y, jitter);
-
-        m_buffer_data.jitter = jitter * jitter_scale;
-
-        g_engine->GetRenderData()->cameras->Set(m_buffer_index, m_buffer_data);
-    }
 }
 
 #pragma endregion CameraRenderResources

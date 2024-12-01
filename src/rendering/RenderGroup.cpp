@@ -487,8 +487,8 @@ static HYP_FORCE_INLINE void RenderAll(
 
     const ID<Scene> scene_id = g_engine->GetRenderState().GetScene().id;
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    const uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     const uint frame_index = frame->GetFrameIndex();
@@ -650,8 +650,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     // AtomicVar<uint32> num_rendered_objects { 0u };
     
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    const uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    const uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     if (divided_draw_calls.Size() == 1) {

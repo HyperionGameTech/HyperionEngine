@@ -40,12 +40,12 @@ static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderDat
 class CameraRenderResources final : public RenderResourcesBase
 {
 public:
-    CameraRenderResources(const WeakHandle<Camera> &camera_weak);
+    CameraRenderResources(Camera *camera);
     CameraRenderResources(CameraRenderResources &&other) noexcept;
     virtual ~CameraRenderResources() override;
 
-    HYP_FORCE_INLINE const WeakHandle<Camera> &GetCamera() const
-        { return m_camera_weak; }
+    HYP_FORCE_INLINE Camera *GetCamera() const
+        { return m_camera; }
 
     void SetBufferData(const CameraShaderData &buffer_data);
 
@@ -69,7 +69,7 @@ protected:
 private:
     void UpdateBufferData();
 
-    WeakHandle<Camera>  m_camera_weak;
+    Camera              *m_camera;
     CameraShaderData    m_buffer_data;
 };
 

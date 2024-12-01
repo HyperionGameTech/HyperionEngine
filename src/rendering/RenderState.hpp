@@ -95,7 +95,7 @@ struct RenderBinding<Camera>
 struct RenderState
 {
     Stack<RenderBinding<Scene>>                                                             scene_bindings;
-    Stack<TRenderResourcesHandle<CameraRenderResources>>                                    camera_bindings;
+    Stack<CameraRenderResources *>                                                          camera_bindings;
     FixedArray<Array<TRenderResourcesHandle<LightRenderResources>>, uint32(LightType::MAX)> bound_lights;
     Stack<TRenderResourcesHandle<LightRenderResources>>                                     light_bindings;
     FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>                  bound_env_probes; // map to texture slot
@@ -185,7 +185,7 @@ struct RenderState
     void BindCamera(Camera *camera);
     void UnbindCamera(Camera *camera);
 
-    const TRenderResourcesHandle<CameraRenderResources> &GetActiveCamera() const;
+    const CameraRenderResources &GetActiveCamera() const;
 
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);
     void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);

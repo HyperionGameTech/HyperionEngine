@@ -18,7 +18,7 @@ void RenderState::BindCamera(Camera *camera)
     AssertThrow(camera != nullptr);
     AssertThrow(camera->IsReady());
     
-    camera_bindings.Push(TRenderResourcesHandle(camera->GetRenderResources()));
+    camera_bindings.Push(&camera->GetRenderResources());
 }
 
 void RenderState::UnbindCamera(Camera *camera)
@@ -27,17 +27,17 @@ void RenderState::UnbindCamera(Camera *camera)
     AssertThrow(camera->IsReady());
 
     AssertThrowMsg(camera_bindings.Any(), "No camera is currently bound!");
-    AssertThrowMsg(camera_bindings.Top()->GetCamera().GetUnsafe() == camera, "Camera is not currently bound!");
+    AssertThrowMsg(camera_bindings.Top()->GetCamera() == camera, "Camera is not currently bound!");
 
     camera_bindings.Pop();
 }
 
-const TRenderResourcesHandle<CameraRenderResources> &RenderState::GetActiveCamera() const
+const CameraRenderResources &RenderState::GetActiveCamera() const
 {
-    static const TRenderResourcesHandle<CameraRenderResources> empty;
+    static const CameraRenderResources empty { nullptr };
 
     return camera_bindings.Any()
-        ? camera_bindings.Top()
+        ? *camera_bindings.Top()
         : empty;
 }
 
@@ -50,7 +50,7 @@ void RenderState::BindLight(Light *light)
 
     auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
     {
-        return item->GetLight().GetUnsafe() == light;
+        return item->GetLight() == light;
     });
 
     if (it != array.End()) {
@@ -69,7 +69,7 @@ void RenderState::UnbindLight(Light *light)
 
     auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
     {
-        return item->GetLight().GetUnsafe() == light;
+        return item->GetLight() == light;
     });
 
     if (it != array.End()) {

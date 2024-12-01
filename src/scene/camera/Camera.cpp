@@ -158,7 +158,7 @@ void Camera::Init()
         SafeRelease(std::move(m_framebuffer));
     }));
 
-    m_render_resources = AllocateRenderResources<CameraRenderResources>(WeakHandleFromThis());
+    m_render_resources = AllocateRenderResources<CameraRenderResources>(this);
 
     UpdateMatrices();
 

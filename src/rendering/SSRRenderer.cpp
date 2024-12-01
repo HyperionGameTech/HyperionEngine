@@ -329,8 +329,8 @@ void SSRRenderer::Render(Frame *frame)
 
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();

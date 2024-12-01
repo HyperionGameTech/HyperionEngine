@@ -95,8 +95,6 @@ public:
     HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
         { return m_render_proxies; }
 
-    void ResetRenderGroup();
-
     void SetRenderGroup(const Handle<RenderGroup> &render_group);
 
     HYP_FORCE_INLINE const Handle<RenderGroup> &GetRenderGroup() const
@@ -106,7 +104,7 @@ public:
 class EntityDrawCollection
 {
 public:
-    void ClearProxyGroups(bool reset_render_groups = false);
+    void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
 
     FixedArray<FlatMap<RenderableAttributeSet, RenderProxyGroup>, PASS_TYPE_MAX> &GetProxyGroups();

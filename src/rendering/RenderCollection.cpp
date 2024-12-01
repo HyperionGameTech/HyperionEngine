@@ -329,11 +329,6 @@ typename RenderProxyEntityMap::Iterator RenderProxyGroup::RemoveRenderProxy(type
     return m_render_proxies.Erase(iterator);
 }
 
-void RenderProxyGroup::ResetRenderGroup()
-{
-    m_render_group.Reset();
-}
-
 void RenderProxyGroup::SetRenderGroup(const Handle<RenderGroup> &render_group)
 {
     m_render_group = render_group;
@@ -371,7 +366,7 @@ const RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type
     return m_proxy_lists[uint(thread_type)];
 }
 
-void EntityDrawCollection::ClearProxyGroups(bool reset_render_groups)
+void EntityDrawCollection::ClearProxyGroups()
 {
     HYP_SCOPE;
 
@@ -382,10 +377,6 @@ void EntityDrawCollection::ClearProxyGroups(bool reset_render_groups)
     for (auto &proxy_groups : GetProxyGroups()) {
         for (auto &it : proxy_groups) {
             it.second.ClearProxies();
-
-            if (reset_render_groups) {
-                it.second.ResetRenderGroup();
-            }
         }
     }
 }

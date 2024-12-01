@@ -103,7 +103,7 @@ struct MeshInstanceData
 class MeshRenderResources final : public RenderResourcesBase
 {
 public:
-    MeshRenderResources(const WeakHandle<Mesh> &mesh_weak);
+    MeshRenderResources(Mesh *mesh);
     MeshRenderResources(MeshRenderResources &&other) noexcept;
     virtual ~MeshRenderResources() override;
 
@@ -135,7 +135,7 @@ private:
 
     void UploadMeshData();
 
-    WeakHandle<Mesh>        m_mesh_weak;
+    Mesh                    *m_mesh;
 
     VertexAttributeSet      m_vertex_attributes;
     RC<StreamedMeshData>    m_streamed_mesh_data;

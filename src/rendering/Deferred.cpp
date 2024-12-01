@@ -383,8 +383,8 @@ void DeferredPass::Record(uint frame_index)
 
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
     
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
@@ -704,8 +704,8 @@ void EnvGridPass::Render(Frame *frame)
     const uint scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
     const uint env_grid_index = g_engine->GetRenderState().bound_env_grid.ToIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
@@ -1021,8 +1021,8 @@ void ReflectionProbePass::Render(Frame *frame)
 
     const uint32 scene_index = g_engine->GetRenderState().GetScene().id.ToIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     // Sky renders first
@@ -1428,8 +1428,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     
     const uint scene_index = g_engine->render_state.GetScene().id.ToIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     const bool is_render_environment_ready = environment && environment->IsReady();
@@ -1726,10 +1726,25 @@ void DeferredRenderer::ApplyCameraJitter()
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    const TRenderResourcesHandle<CameraRenderResources> &active_camera = g_engine->GetRenderState().GetActiveCamera();
+    static const float jitter_scale = 0.25f;
 
-    if (active_camera) {
-        active_camera->ApplyJitter();
+    const CameraRenderResources &active_camera = g_engine->GetRenderState().GetActiveCamera();
+
+    const uint32 camera_buffer_index = active_camera.GetBufferIndex();
+    AssertThrow(camera_buffer_index != ~0u);
+
+    Vec4f jitter = Vec4f::Zero();
+
+    const uint frame_counter = g_engine->GetRenderState().frame_counter + 1;
+
+    CameraShaderData &buffer_data = g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_buffer_index);
+
+    if (buffer_data.projection[3][3] < MathUtil::epsilon_f) {
+        Matrix4::Jitter(frame_counter, buffer_data.dimensions.x, buffer_data.dimensions.y, jitter);
+
+        buffer_data.jitter = jitter * jitter_scale;
+
+        g_engine->GetRenderData()->cameras->MarkDirty(camera_buffer_index);
     }
 }
 

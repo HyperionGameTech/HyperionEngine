@@ -94,7 +94,7 @@ enum class MaterialTextureKey : uint64
 class MaterialRenderResources final : public RenderResourcesBase
 {
 public:
-    MaterialRenderResources(const WeakHandle<Material> &material_weak);
+    MaterialRenderResources(Material *material);
     MaterialRenderResources(MaterialRenderResources &&other) noexcept;
     virtual ~MaterialRenderResources() override;
 
@@ -122,7 +122,7 @@ private:
 
     void UpdateBufferData();
 
-    WeakHandle<Material>                            m_material_weak;
+    Material                                        *m_material;
     FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
     Array<ID<Texture>>                              m_bound_texture_ids;
     MaterialShaderData                              m_buffer_data;

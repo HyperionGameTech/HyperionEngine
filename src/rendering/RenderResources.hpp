@@ -86,6 +86,7 @@ protected:
     virtual void Destroy() = 0;
     virtual void Update() = 0;
 
+    // @TODO: Refactor to also return a pointer directly to the buffer
     virtual uint32 AcquireBufferIndex() const { return ~0u; }
     virtual void ReleaseBufferIndex(uint32 buffer_index) const { }
 
@@ -102,6 +103,7 @@ protected:
 
     bool                            m_is_initialized;
     uint32                          m_buffer_index;
+    void                            *m_buffer_address;
 
 private:
     RenderResourcesMemoryPoolHandle m_pool_handle;

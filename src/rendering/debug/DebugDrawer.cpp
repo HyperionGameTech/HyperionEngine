@@ -212,8 +212,8 @@ void DebugDrawer::Render(Frame *frame)
 
     const uint frame_index = frame->GetFrameIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     GPUBufferRef &instance_buffer = m_instance_buffers[frame_index];

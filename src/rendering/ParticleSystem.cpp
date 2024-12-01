@@ -421,8 +421,8 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
     AssertReady();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     if (m_particle_spawners.GetItems().Empty()) {
@@ -538,8 +538,8 @@ void ParticleSystem::Render(Frame *frame)
 
     const uint frame_index = frame->GetFrameIndex();
 
-    const RenderResourcesHandle &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources->GetBufferIndex();
+    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
+    uint32 camera_index = camera_render_resources.GetBufferIndex();
     AssertThrow(camera_index != ~0u);
 
     FixedArray<uint, num_async_rendering_command_buffers> command_buffers_recorded_states { };
