@@ -14,7 +14,10 @@ HYP_EXPORT void Handle_Get(uint32 type_id_value, HypObjectHeader *header_ptr, Va
     IObjectContainer *container = header_ptr->container;
     AssertThrow(container != nullptr);
 
-    out_hyp_data->Construct(container->GetObject(header_ptr));
+    HypObjectBase *hyp_object_ptr = container->GetObject(header_ptr);
+    AssertThrow(hyp_object_ptr != nullptr);
+
+    out_hyp_data->Construct(AnyRef(container->GetObjectTypeID(), hyp_object_ptr));
 }
 
 HYP_EXPORT void Handle_Set(uint32 type_id_value, uint32 id_value, HypData *hyp_data)

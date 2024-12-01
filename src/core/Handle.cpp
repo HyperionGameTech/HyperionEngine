@@ -5,14 +5,14 @@
 namespace hyperion {
 
 #define DEF_HANDLE(T, sz) \
-    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< T >(), []() -> UniquePtr<IObjectContainer> { return MakeUnique<ObjectContainer< T >>(); }); \
+    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< T >()); \
     IObjectContainer *HandleDefinition< T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
 
 #define DEF_HANDLE_NS(ns, T, sz) \
-    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< ns::T >(), []() -> UniquePtr<IObjectContainer> { return MakeUnique<ObjectContainer< ns::T >>(); }); \
+    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< ns::T >()); \
     IObjectContainer *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region AnyHandle
 
-AnyHandle::AnyHandle(IHypObject *hyp_object_ptr)
+AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
     : ptr(nullptr)
 {
     if (hyp_object_ptr) {
@@ -126,7 +126,21 @@ AnyRef AnyHandle::ToRef() const
         return AnyRef(ptr->container->GetObjectTypeID(), nullptr);
     }
 
-    return ptr->container->GetObject(ptr);
+    return AnyRef(ptr->container->GetObjectTypeID(), ptr->container->GetObject(ptr));
+}
+
+HypObjectBase *AnyHandle::Release()
+{
+    if (!IsValid()) {
+        return nullptr;
+    }
+
+    HypObjectBase *hyp_object_ptr = ptr->Release();
+    AssertThrow(hyp_object_ptr != nullptr);
+
+    ptr = ptr->container->GetDefaultObjectHeader();
+
+    return hyp_object_ptr;
 }
 
 #pragma endregion AnyHandle

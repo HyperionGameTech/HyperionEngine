@@ -100,6 +100,8 @@ struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+#pragma region Engine
+
 const Handle<Engine> &Engine::GetInstance()
 {
     return g_engine;
@@ -584,7 +586,10 @@ void Engine::RenderDeferred(Frame *frame)
     m_deferred_renderer->Render(frame, render_state.GetScene().render_environment.Get());
 }
 
-// GlobalDescriptorSetManager
+#pragma endregion Engine
+
+#pragma region GlobalDescriptorSetManager
+
 GlobalDescriptorSetManager::GlobalDescriptorSetManager(Engine *engine)
 {
     Mutex::Guard guard(m_mutex);
@@ -721,5 +726,7 @@ DescriptorSetRef GlobalDescriptorSetManager::GetDescriptorSet(Name name) const
 
     return DescriptorSetRef { };
 }
+
+#pragma endregion GlobalDescriptorSetManager
 
 } // namespace hyperion

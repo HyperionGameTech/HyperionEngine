@@ -117,8 +117,6 @@ void RenderResourcesBase::Claim()
 
     HYP_SCOPE;
 
-    HYP_LOG(RenderResources, LogLevel::INFO, "Claiming RenderResources of type {}", GetTypeName());
-
     m_init_semaphore.Produce(1, [this](bool is_signalled)
     {
         AssertThrow(is_signalled);
@@ -172,8 +170,6 @@ void RenderResourcesBase::Unclaim()
     };
 
     HYP_SCOPE;
-
-    HYP_LOG(RenderResources, LogLevel::INFO, "Unclaiming RenderResources of type {}", GetTypeName());
 
     m_init_semaphore.Release(1, [this](bool is_signalled)
     {

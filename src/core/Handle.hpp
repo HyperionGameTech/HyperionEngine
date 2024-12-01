@@ -23,27 +23,13 @@ HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< implementatio
 {
     // If T is a defined type, we can use ObjectContainer<T> methods (ObjectContainer<T> is final, virtual calls can be optimized)
     if constexpr (implementation_exists<T>) {
-        return static_cast<ObjectContainer<T> *>(Handle<T>::GetContainer_Internal());
+        return static_cast<ObjectContainer<T> *>(&ObjectPool::GetObjectContainerHolder().GetOrCreate<T>());
     } else {
-        return Handle<T>::GetContainer_Internal();
+        static IObjectContainer *container = ObjectPool::GetObjectContainerHolder().TryGet(TypeID::ForType<T>());
+        AssertThrowMsg(container != nullptr, "Container is not initialized for type");
+
+        return container;
     }
-}
-
-template <class T>
-static inline HypObjectHeader *GetDefaultHypObjectHeader()
-{
-    static struct DefaultHypObjectMemoryInitializer
-    {
-        HypObjectMemory<T>  value;
-
-        DefaultHypObjectMemoryInitializer()
-        {
-            value.container = GetContainer<T>();
-            value.index = ~0u;
-        }
-    } initializer;
-
-    return &initializer.value;
 }
 
 struct HandleBase
@@ -79,22 +65,6 @@ private:
 public:
     friend struct AnyHandle;
     friend struct WeakHandle<T>;
-    
-    static IObjectContainer *s_container;
-
-    static IObjectContainer *GetContainer_Internal()
-    {
-        static struct Initializer
-        {
-            Initializer()
-            {
-                s_container = HandleDefinition<T>::GetAllottedContainerPointer();
-                AssertThrow(s_container != nullptr);
-            }
-        } initializer;
-
-        return s_container;
-    }
 
     static const Handle empty;
 
@@ -510,11 +480,10 @@ struct AnyHandle final
 
     HypObjectHeader *ptr;
 
-private:
-    HYP_API explicit AnyHandle(IHypObject *hyp_object_ptr);
-
 public:
-    template <class T, typename = std::enable_if_t<std::is_base_of_v<IHypObject, T>>>
+    HYP_API explicit AnyHandle(HypObjectBase *hyp_object_ptr);
+
+    template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T> && !std::is_same_v<HypObjectBase, T>>>
     explicit AnyHandle(T *ptr)
         : ptr(ptr != nullptr ? ptr->GetObjectHeader_Internal() : GetContainer<T>()->GetDefaultObjectHeader())
     {
@@ -536,7 +505,7 @@ public:
 
     template <class T>
     AnyHandle(Handle<T> &&handle)
-        : handle(handle.ptr)
+        : ptr(handle.ptr)
     {
         if (!handle.IsValid()) {
             ptr = GetContainer<T>()->GetDefaultObjectHeader();
@@ -631,6 +600,12 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *TryGet() const
         { return ToRef().TryGet<T>(); }
+
+    /*! \brief Releases the current reference and sets the handle to null.
+     *  The underlying object is not destroyed if the reference count reaches zero.
+     *  \note That in order to free the object, a new Handle must be created and assigned to the returned pointer, or the memory will leak as that slot will not be reused.
+     *  \return The pointer to the object that was being referenced. */
+    HYP_NODISCARD HYP_API HypObjectBase *Release();
 };
 
 template <class T>
@@ -638,12 +613,6 @@ const Handle<T> Handle<T>::empty = { };
 
 template <class T>
 const WeakHandle<T> WeakHandle<T>::empty = { };
-
-template <class T>
-IObjectContainer *Handle<T>::s_container = nullptr;
-
-//template <class T>
-//IObjectContainer *WeakHandle<T>::s_container = nullptr;
 
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()

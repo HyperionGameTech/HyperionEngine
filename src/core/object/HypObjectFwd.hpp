@@ -23,7 +23,7 @@ class Object;
 } // namespace dotnet
 
 class HypClass;
-class IHypObject;
+class HypObjectBase;
 
 template <class T>
 class HypObject;
@@ -37,13 +37,17 @@ struct HypObjectMemory;
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
-class HYP_API IHypObject
+/*! \brief A base class for all HypObject classes that use memory pooling. */
+class HYP_API HypObjectBase
 {
 public:
     template <class T>
     friend struct HypObjectMemory;
 
-    virtual ~IHypObject() = default;
+    virtual ~HypObjectBase() = default;
+
+    TypeID GetTypeID() const;
+    const HypClass *InstanceClass() const;
 
     HYP_FORCE_INLINE HypObjectHeader *GetObjectHeader_Internal() const
         { return m_header; }
@@ -55,6 +59,7 @@ protected:
 private:
     IDBase GetID_Internal() const;
 
+    // Pointer to the header of the object, holding container, index and ref counts
     HypObjectHeader *m_header;
 };
 
@@ -64,8 +69,11 @@ struct IsHypObject
     static constexpr bool value = false;
 };
 
+/*! \brief A type trait to determine if a type is a HypObject (has a HypClass associated with it).
+ *  \note A type is considered a HypObject if it is derived from HypObjectBase or if it has HYP_OBJECT_BODY(...) in the class body.
+ *  \tparam T The type to check. */
 template <class T>
-struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<IHypObject, T> || (T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type>)>>
+struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type>)>>
 {
     static constexpr bool value = true;
 };

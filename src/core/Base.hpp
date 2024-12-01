@@ -46,7 +46,7 @@ struct ComponentInitInfo
 };
 
 template <class T>
-class HypObject : public IHypObject
+class HypObject : public HypObjectBase
 {
     using InnerType = T;
 
@@ -76,7 +76,7 @@ public:
     virtual ~HypObject() override = default;
 
     HYP_FORCE_INLINE ID<InnerType> GetID() const
-        { return ID<InnerType>(IHypObject::GetID().Value()); }
+        { return ID<InnerType>(HypObjectBase::GetID().Value()); }
 
     HYP_FORCE_INLINE bool IsInitCalled() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }

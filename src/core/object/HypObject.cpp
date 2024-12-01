@@ -133,14 +133,24 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
 #pragma endregion HypObjectInitializerGuardBase
 
-#pragma region IHypObject
+#pragma region HypObjectBase
 
-IDBase IHypObject::GetID_Internal() const
+TypeID HypObjectBase::GetTypeID() const
+{
+    return m_header->container->GetObjectTypeID();
+}
+
+const HypClass *HypObjectBase::InstanceClass() const
+{
+    return m_header->container->GetObjectClass();
+}
+
+IDBase HypObjectBase::GetID_Internal() const
 {
     return IDBase { m_header->index + 1 };
 }
 
-#pragma endregion IHypObject
+#pragma endregion HypObjectBase
 
 #pragma region HypObjectPtr
 

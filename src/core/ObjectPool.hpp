@@ -39,6 +39,8 @@ class IObjectContainer;
 
 struct HypObjectHeader;
 
+class HypClass;
+
 class IObjectContainer
 {
 public:
@@ -52,12 +54,14 @@ public:
     virtual void DecRefWeak(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountStrong(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountWeak(HypObjectHeader *) = 0;
+    virtual HypObjectBase *Release(HypObjectHeader *) = 0;
 
-    virtual AnyRef GetObject(HypObjectHeader *) = 0;
+    virtual HypObjectBase *GetObject(HypObjectHeader *) = 0;
     virtual HypObjectHeader *GetObjectHeader(uint32 index) = 0;
     virtual HypObjectHeader *GetDefaultObjectHeader() = 0;
     virtual uint32 GetObjectIndex(const HypObjectHeader *ptr) = 0;
     virtual TypeID GetObjectTypeID() const = 0;
+    virtual const HypClass *GetObjectClass() const = 0;
 
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
 
@@ -109,14 +113,17 @@ struct HypObjectHeader
 
     HYP_FORCE_INLINE void DecRefWeak()
         { container->DecRefWeak(this); }
+
+    HYP_FORCE_INLINE HypObjectBase *Release()
+        { return container->Release(this); }
 };
 
-/*! \brief Memory storage for T where T is a subclass of IHypObject.
+/*! \brief Memory storage for T where T is a subclass of HypObjectBase.
  *  Derives from HypObjectHeader to store reference counts and other information at the start of the memory. */
 template <class T>
 struct HypObjectMemory final : HypObjectHeader
 {
-    static_assert(std::is_base_of_v<IHypObject, T>, "T must be a subclass of IHypObject");
+    static_assert(std::is_base_of_v<HypObjectBase, T>, "T must be a subclass of HypObjectBase");
 
     alignas(T) ubyte    bytes[sizeof(T)];
 
@@ -140,7 +147,7 @@ struct HypObjectMemory final : HypObjectHeader
         HypObjectInitializerGuard<T> context { ptr };
 
         // Set the object header to point to this
-        ptr->IHypObject::m_header = static_cast<HypObjectHeader *>(this);
+        ptr->HypObjectBase::m_header = static_cast<HypObjectHeader *>(this);
 
         Memory::Construct<T>(static_cast<void *>(ptr), std::forward<Args>(args)...);
 
@@ -181,12 +188,33 @@ struct HypObjectMemory final : HypObjectHeader
 #endif
 
             if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0) {
+#ifdef HYP_DEBUG_MODE
+                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
+#endif
+
                 // Free the slot for this
                 container->GetIDGenerator().FreeID(index + 1);
             }
         }
 
         return uint32(count) - 1;
+    }
+
+    T *Release()
+    {
+        T *ptr = reinterpret_cast<T *>(bytes);
+        uint16 count;
+
+        if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+#ifdef HYP_DEBUG_MODE
+            AssertThrow(has_value.Get(MemoryOrder::SEQUENTIAL));
+
+            AssertThrow(container != nullptr);
+            AssertThrow(index != ~0u);
+#endif
+        }
+
+        return ptr;
     }
 
     HYP_FORCE_INLINE T &Get()
@@ -283,13 +311,18 @@ public:
         return static_cast<HypObjectMemory *>(ptr)->GetRefCountWeak();
     }
 
-    virtual AnyRef GetObject(HypObjectHeader *ptr) override
+    virtual HypObjectBase *Release(HypObjectHeader *ptr) override
+    {
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::Release();
+    }
+
+    virtual HypObjectBase *GetObject(HypObjectHeader *ptr) override
     {
         if (!ptr) {
-            return AnyRef(TypeID::ForType<T>(), nullptr);
+            return nullptr;
         }
 
-        return AnyRef(TypeID::ForType<T>(), static_cast<HypObjectMemory *>(ptr)->GetPointer());
+        return static_cast<HypObjectMemory *>(ptr)->GetPointer();
     }
 
     virtual HypObjectHeader *GetObjectHeader(uint32 index) override
@@ -316,6 +349,13 @@ public:
         static const TypeID type_id = TypeID::ForType<T>();
 
         return type_id;
+    }
+
+    virtual const HypClass *GetObjectClass() const override
+    {
+        static const HypClass *hyp_class = GetClass(TypeID::ForType<T>());
+
+        return hyp_class;
     }
 
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) override
@@ -385,8 +425,7 @@ public:
             return container;
         }
         
-        // Calls the callback function to allocate the ObjectContainer (if needed)
-        HYP_API IObjectContainer &Add(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void));
+        HYP_API IObjectContainer &Add(TypeID type_id);
 
         HYP_API IObjectContainer &Get(TypeID type_id);
         HYP_API IObjectContainer *TryGet(TypeID type_id);
@@ -402,6 +441,10 @@ public:
             });
 
             if (it != m_map.End()) {
+                if (it->second == nullptr) {
+                    it->second = create_fn();
+                }
+
                 return *it->second;
             }
 

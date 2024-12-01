@@ -11,7 +11,7 @@ ObjectPool::ObjectContainerMap &ObjectPool::GetObjectContainerHolder()
     return holder;
 }
 
-IObjectContainer &ObjectPool::ObjectContainerMap::Add(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void))
+IObjectContainer &ObjectPool::ObjectContainerMap::Add(TypeID type_id)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -25,12 +25,9 @@ IObjectContainer &ObjectPool::ObjectContainerMap::Add(TypeID type_id, UniquePtr<
         return *it->second;
     }
 
-    UniquePtr<IObjectContainer> container = create_fn();
-    AssertThrow(container != nullptr);
-
     m_map.PushBack({
         type_id,
-        std::move(container)
+        nullptr
     });
 
     return *m_map.Back().second;

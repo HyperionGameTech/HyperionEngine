@@ -36,17 +36,22 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         // Suppress default managed object creation
         HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
 
-        if (hyp_class->UseHandles()) {
-            IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(hyp_class->GetTypeID());
-            
-            *out_instance_ptr = container.ConstructAtIndex(container.NextIndex());
-        } else if (hyp_class->UseRefCountedPtr()) {
-            HypData value;
-            
-            // Set allow_abstract to true so we can use classes marked as "Abstract"
-            // allowing the managed class to override methods of an abstract class
-            hyp_class->CreateInstance(value, /* allow_abstract */ true);
+        HypData value;
+        
+        // Set allow_abstract to true so we can use classes marked as "Abstract"
+        // allowing the managed class to override methods of an abstract class
+        hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
+        if (hyp_class->UseHandles()) {
+            // IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(hyp_class->GetTypeID());
+            
+            // *out_instance_ptr = container.ConstructAtIndex(container.NextIndex());
+
+            AnyHandle handle = std::move(value.Get<AnyHandle>());
+            AssertThrow(handle.IsValid());
+
+            *out_instance_ptr = handle.Release();
+        } else if (hyp_class->UseRefCountedPtr()) {
             RC<void> rc = std::move(value.Get<RC<void>>());
             AssertThrow(rc != nullptr);
 
@@ -92,7 +97,7 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
 
         if (is_weak) {
             hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
@@ -127,7 +132,7 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
         
         if (is_weak) {
             hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
