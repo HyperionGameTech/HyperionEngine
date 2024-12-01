@@ -11,9 +11,7 @@ HYP_EXPORT void Handle_Get(uint32 type_id_value, HypObjectHeader *header_ptr, Va
     AssertThrow(out_hyp_data != nullptr);
     AssertThrow(header_ptr != nullptr);
 
-    const TypeID type_id { type_id_value };
-
-    IObjectContainer *container = ObjectPool::GetObjectContainerHolder().TryGetObjectContainer(type_id);
+    IObjectContainer *container = header_ptr->container;
     AssertThrow(container != nullptr);
 
     out_hyp_data->Construct(container->GetObject(header_ptr));

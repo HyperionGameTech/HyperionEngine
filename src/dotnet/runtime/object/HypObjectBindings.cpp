@@ -37,7 +37,7 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
 
         if (hyp_class->UseHandles()) {
-            IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(hyp_class->GetTypeID());
+            IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(hyp_class->GetTypeID());
             
             *out_instance_ptr = container.ConstructAtIndex(container.NextIndex());
         } else if (hyp_class->UseRefCountedPtr()) {
@@ -92,14 +92,12 @@ HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_addres
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(type_id);
-
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
 
         if (is_weak) {
-            container.IncRefWeak(hyp_object_ptr->GetObjectHeader_Internal());
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
         } else {
-            container.IncRefStrong(hyp_object_ptr->GetObjectHeader_Internal());
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefStrong();
         }
 
         return nullptr;
@@ -129,14 +127,12 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->UseHandles()) {
-        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(type_id);
-
         IHypObject *hyp_object_ptr = static_cast<IHypObject *>(native_address);
         
         if (is_weak) {
-            container.DecRefWeak(hyp_object_ptr->GetObjectHeader_Internal());
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
         } else {
-            container.DecRefStrong(hyp_object_ptr->GetObjectHeader_Internal());
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefStrong();
         }
     } else if (hyp_class->UseRefCountedPtr()) {
         AssertThrow(control_block_ptr != nullptr);

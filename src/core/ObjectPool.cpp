@@ -4,45 +4,48 @@
 
 namespace hyperion {
 
-ObjectPool::ObjectContainerHolder &ObjectPool::GetObjectContainerHolder()
+ObjectPool::ObjectContainerMap &ObjectPool::GetObjectContainerHolder()
 {
-    static ObjectPool::ObjectContainerHolder holder { };
+    static ObjectPool::ObjectContainerMap holder { };
 
     return holder;
 }
 
-UniquePtr<IObjectContainer> *ObjectPool::ObjectContainerHolder::AllotObjectContainer(TypeID type_id)
+IObjectContainer &ObjectPool::ObjectContainerMap::Add(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void))
 {
-    HYP_MT_CHECK_RW(object_container_map.data_race_detector);
+    Mutex::Guard guard(m_mutex);
 
-    auto it = object_container_map.map.FindIf([type_id](const auto &element)
+    auto it = m_map.FindIf([type_id](const auto &element)
     {
         return element.first == type_id;
     });
 
     // Already allocated
-    if (it != object_container_map.map.End()) {
-        return &it->second;
+    if (it != m_map.End()) {
+        return *it->second;
     }
 
-    object_container_map.map.PushBack({
+    UniquePtr<IObjectContainer> container = create_fn();
+    AssertThrow(container != nullptr);
+
+    m_map.PushBack({
         type_id,
-        nullptr
+        std::move(container)
     });
 
-    return &object_container_map.map.Back().second;
+    return *m_map.Back().second;
 }
 
-IObjectContainer &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID type_id)
+IObjectContainer &ObjectPool::ObjectContainerMap::Get(TypeID type_id)
 {
-    HYP_MT_CHECK_READ(object_container_map.data_race_detector);
+    Mutex::Guard guard(m_mutex);
 
-    const auto it = object_container_map.map.FindIf([type_id](const auto &element)
+    const auto it = m_map.FindIf([type_id](const auto &element)
     {
         return element.first == type_id;
     });
 
-    if (it == object_container_map.map.End()) {
+    if (it == m_map.End()) {
         HYP_FAIL("No object container for TypeID: %u", type_id.Value());
     }
 
@@ -51,16 +54,16 @@ IObjectContainer &ObjectPool::ObjectContainerHolder::GetObjectContainer(TypeID t
     return *it->second;
 }
 
-IObjectContainer *ObjectPool::ObjectContainerHolder::TryGetObjectContainer(TypeID type_id)
+IObjectContainer *ObjectPool::ObjectContainerMap::TryGet(TypeID type_id)
 {
-    HYP_MT_CHECK_READ(object_container_map.data_race_detector);
+    Mutex::Guard guard(m_mutex);
 
-    const auto it = object_container_map.map.FindIf([type_id](const auto &element)
+    const auto it = m_map.FindIf([type_id](const auto &element)
     {
         return element.first == type_id;
     });
 
-    if (it == object_container_map.map.End()) {
+    if (it == m_map.End()) {
         return nullptr;
     }
 

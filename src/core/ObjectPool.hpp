@@ -358,69 +358,61 @@ private:
 class ObjectPool
 {
 public:
-    struct ObjectContainerMap
+    class ObjectContainerMap
     {
         // Maps type ID to object container
-        // Use a linked list so that iterators are never invalidated.
-        LinkedList<Pair<TypeID, UniquePtr<IObjectContainer>>>   map;
+        // Use a linked list so that references are never invalidated.
+        LinkedList<Pair<TypeID, UniquePtr<IObjectContainer>>>   m_map;
+        Mutex                                                   m_mutex;
 
-#ifdef HYP_ENABLE_MT_CHECK
-        DataRaceDetector                                        data_race_detector;
-#endif
-
+    public:
         ObjectContainerMap()                                            = default;
         ObjectContainerMap(const ObjectContainerMap &)                  = delete;
         ObjectContainerMap &operator=(const ObjectContainerMap &)       = delete;
         ObjectContainerMap(ObjectContainerMap &&) noexcept              = delete;
         ObjectContainerMap &operator=(ObjectContainerMap &&) noexcept   = delete;
         ~ObjectContainerMap()                                           = default;
-    };
 
-    struct ObjectContainerHolder
-    {
         template <class T>
-        struct ObjectContainerDeclaration
+        ObjectContainer<T> &GetOrCreate()
         {
-            ObjectContainerDeclaration(UniquePtr<IObjectContainer> *allotted_container)
+            // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
+            static ObjectContainer<T> &container = static_cast<ObjectContainer<T> &>(GetOrCreate(TypeID::ForType<T>(), []() -> UniquePtr<IObjectContainer>
             {
-                AssertThrowMsg(allotted_container != nullptr, "Allotted container pointer was null!");
+                return MakeUnique<ObjectContainer<T>>();
+            }));
 
-                if (*allotted_container != nullptr) {
-                    // Already allocated
-                    return;
-                }
-
-                (*allotted_container) = MakeUnique<ObjectContainer<T>>();
-            }
-
-            ObjectContainerDeclaration(const ObjectContainerDeclaration &)                  = delete;
-            ObjectContainerDeclaration &operator=(const ObjectContainerDeclaration &)       = delete;
-            ObjectContainerDeclaration(ObjectContainerDeclaration &&) noexcept              = delete;
-            ObjectContainerDeclaration &operator=(ObjectContainerDeclaration &&) noexcept   = delete;
-            ~ObjectContainerDeclaration()                                                   = default;
-        };
-
-        ObjectContainerMap object_container_map;
-        
-        template <class T>
-        ObjectContainer<T> &GetObjectContainer(UniquePtr<IObjectContainer> *allotted_container)
-        {
-            static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
-
-            static ObjectContainerDeclaration<T> object_container_declaration(allotted_container);
-            // static ObjectContainer<T> *container = dynamic_cast<ObjectContainer<T> *>((*allotted_container).Get());
-
-            return *static_cast<ObjectContainer<T> *>((*allotted_container).Get());
+            return container;
         }
         
         // Calls the callback function to allocate the ObjectContainer (if needed)
-        HYP_API UniquePtr<IObjectContainer> *AllotObjectContainer(TypeID type_id);
+        HYP_API IObjectContainer &Add(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void));
 
-        HYP_API IObjectContainer &GetObjectContainer(TypeID type_id);
-        HYP_API IObjectContainer *TryGetObjectContainer(TypeID type_id);
+        HYP_API IObjectContainer &Get(TypeID type_id);
+        HYP_API IObjectContainer *TryGet(TypeID type_id);
+
+    private:
+        IObjectContainer &GetOrCreate(TypeID type_id, UniquePtr<IObjectContainer>(*create_fn)(void))
+        {
+            Mutex::Guard guard(m_mutex);
+
+            auto it = m_map.FindIf([type_id](const auto &element)
+            {
+                return element.first == type_id;
+            });
+
+            if (it != m_map.End()) {
+                return *it->second;
+            }
+
+            UniquePtr<IObjectContainer> container = create_fn();
+            AssertThrow(container != nullptr);
+
+            return *m_map.EmplaceBack(type_id, std::move(container)).second;
+        }
     };
 
-    HYP_API static ObjectContainerHolder &GetObjectContainerHolder();
+    HYP_API static ObjectContainerMap &GetObjectContainerHolder();
 };
 
 } // namespace hyperion

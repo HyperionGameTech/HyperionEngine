@@ -88,7 +88,7 @@ public:
         {
             Initializer()
             {
-                s_container = HandleDefinition<T>::GetAllottedContainerPointer()->Get();
+                s_container = HandleDefinition<T>::GetAllottedContainerPointer();
                 AssertThrow(s_container != nullptr);
             }
         } initializer;
@@ -511,39 +511,50 @@ struct AnyHandle final
     HypObjectHeader *ptr;
 
 private:
-    HYP_API AnyHandle(TypeID type_id, IDBase id);
+    HYP_API explicit AnyHandle(IHypObject *hyp_object_ptr);
 
 public:
-    template <class T>
-    explicit AnyHandle(ID<T> id)
-        : AnyHandle(TypeID::ForType<T>(), IDBase { id.Value() })
+    template <class T, typename = std::enable_if_t<std::is_base_of_v<IHypObject, T>>>
+    explicit AnyHandle(T *ptr)
+        : ptr(ptr != nullptr ? ptr->GetObjectHeader_Internal() : GetContainer<T>()->GetDefaultObjectHeader())
     {
+        if (IsValid()) {
+            this->ptr->IncRefStrong();
+        }
     }
-
-    HYP_API explicit AnyHandle(IHypObject *hyp_object_ptr);
 
     template <class T>
     AnyHandle(const Handle<T> &handle)
-        : AnyHandle(TypeID::ForType<T>(), handle.GetID())
+        : ptr(handle.ptr)
     {
+        if (handle.IsValid()) {
+            ptr->IncRefStrong();
+        } else {
+            ptr = GetContainer<T>()->GetDefaultObjectHeader();
+        }
     }
 
     template <class T>
     AnyHandle(Handle<T> &&handle)
-        : AnyHandle(TypeID::ForType<T>(), ID<T>(handle))
+        : handle(handle.ptr)
     {
+        if (!handle.IsValid()) {
+            ptr = GetContainer<T>()->GetDefaultObjectHeader();
+        }
+
         handle.ptr = nullptr;
+    }
+
+    template <class T>
+    explicit AnyHandle(ID<T> id)
+        : AnyHandle(Handle<T>(id))
+    {
     }
 
     HYP_API AnyHandle(const AnyHandle &other);
     HYP_API AnyHandle &operator=(const AnyHandle &other);
 
-    AnyHandle(AnyHandle &&other) noexcept
-        : ptr(other.ptr)
-    {
-        other.ptr = nullptr;
-    }
-
+    HYP_API AnyHandle(AnyHandle &&other) noexcept;
     HYP_API AnyHandle &operator=(AnyHandle &&other) noexcept;
 
     HYP_API ~AnyHandle();
@@ -637,7 +648,7 @@ IObjectContainer *Handle<T>::s_container = nullptr;
 template <class T>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 {
-    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
+    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetOrCreate<T>();
 
     HypObjectMemory<T> *element = container.Allocate();
     element->Construct();
@@ -648,7 +659,7 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
 template <class T, class... Args>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args &&... args)
 {
-    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer<T>(HandleDefinition<T>::GetAllottedContainerPointer());
+    ObjectContainer<T> &container = ObjectPool::GetObjectContainerHolder().GetOrCreate<T>();
 
     HypObjectMemory<T> *element = container.Allocate();
     element->Construct(std::forward<Args>(args)...);
@@ -675,15 +686,14 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
 #define DEF_HANDLE(T, _max_size) \
     class T; \
     \
-    extern UniquePtr<IObjectContainer> *g_container_ptr_##T; \
+    extern IObjectContainer *g_container_ptr_##T; \
     \
     template <> \
     struct HandleDefinition< T > \
     { \
         static constexpr const char *class_name = HYP_STR(T); \
-        static constexpr SizeType max_size = (_max_size); \
         \
-        HYP_API static UniquePtr<IObjectContainer> *GetAllottedContainerPointer(); \
+        HYP_API static IObjectContainer *GetAllottedContainerPointer(); \
     };
 
 #define DEF_HANDLE_NS(ns, T, _max_size) \
@@ -691,15 +701,14 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
     class T; \
     } \
     \
-    extern UniquePtr<IObjectContainer> *g_container_ptr_##T; \
+    extern IObjectContainer *g_container_ptr_##T; \
     \
     template <> \
     struct HandleDefinition< ns::T > \
     { \
         static constexpr const char *class_name = HYP_STR(ns) "::" HYP_STR(T); \
-        static constexpr SizeType max_size = (_max_size); \
         \
-        HYP_API static UniquePtr<IObjectContainer> *GetAllottedContainerPointer(); \
+        HYP_API static IObjectContainer *GetAllottedContainerPointer(); \
     };
 
 #include <core/inl/HandleDefinitions.inl>

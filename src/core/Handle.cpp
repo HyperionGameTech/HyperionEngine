@@ -5,15 +5,15 @@
 namespace hyperion {
 
 #define DEF_HANDLE(T, sz) \
-    UniquePtr<IObjectContainer> *g_container_ptr_##T = ObjectPool::GetObjectContainerHolder().AllotObjectContainer(TypeID::ForType< T >()); \
-    UniquePtr<IObjectContainer> *HandleDefinition< T >::GetAllottedContainerPointer() \
+    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< T >(), []() -> UniquePtr<IObjectContainer> { return MakeUnique<ObjectContainer< T >>(); }); \
+    IObjectContainer *HandleDefinition< T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
 
 #define DEF_HANDLE_NS(ns, T, sz) \
-    UniquePtr<IObjectContainer> *g_container_ptr_##T = ObjectPool::GetObjectContainerHolder().AllotObjectContainer(TypeID::ForType< ns::T >()); \
-    UniquePtr<IObjectContainer> *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
+    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< ns::T >(), []() -> UniquePtr<IObjectContainer> { return MakeUnique<ObjectContainer< ns::T >>(); }); \
+    IObjectContainer *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
@@ -24,23 +24,6 @@ namespace hyperion {
 #undef DEF_HANDLE_NS
 
 #pragma region AnyHandle
-
-AnyHandle::AnyHandle(TypeID type_id, IDBase id)
-    : ptr(nullptr)
-{
-    if (type_id) {
-        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().GetObjectContainer(type_id);
-
-        if (id.IsValid()) {
-            ptr = container.GetObjectHeader(id.Value() - 1);
-            AssertThrow(ptr != nullptr);
-
-            ptr->IncRefStrong();
-        } else {
-            ptr = container.GetDefaultObjectHeader();
-        }
-    }
-}
 
 AnyHandle::AnyHandle(IHypObject *hyp_object_ptr)
     : ptr(nullptr)
@@ -79,6 +62,15 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
     return *this;
 }
 
+AnyHandle::AnyHandle(AnyHandle &&other) noexcept
+    : ptr(other.ptr)
+{
+    if (other.IsValid()) {
+        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(other.GetTypeID());
+        other.ptr = container.GetDefaultObjectHeader();
+    }
+}
+
 AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
 {
     if (this == &other) {
@@ -89,8 +81,12 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
         ptr->DecRefStrong();
     }
 
+    if (other.IsValid()) {
+        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(other.GetTypeID());
+        other.ptr = container.GetDefaultObjectHeader();
+    }
+
     ptr = other.ptr;
-    other.ptr = nullptr;
 
     return *this;
 }
