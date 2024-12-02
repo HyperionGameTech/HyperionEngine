@@ -53,18 +53,9 @@ void CameraRenderResources::Update()
     UpdateBufferData();
 }
 
-uint32 CameraRenderResources::AcquireBufferIndex() const
+GPUBufferHolderBase *CameraRenderResources::GetGPUBufferHolder() const
 {
-    HYP_SCOPE;
-
-    return g_engine->GetRenderData()->cameras->AcquireIndex();
-}
-
-void CameraRenderResources::ReleaseBufferIndex(uint32 buffer_index) const
-{
-    HYP_SCOPE;
-
-    g_engine->GetRenderData()->cameras->ReleaseIndex(buffer_index);
+    return g_engine->GetRenderData()->cameras.Get();
 }
 
 void CameraRenderResources::UpdateBufferData()

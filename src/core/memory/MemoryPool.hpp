@@ -19,7 +19,7 @@
 namespace hyperion {
 namespace memory {
 
-template <class ElementType, uint32 NumElementsPerBlock = 16, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
+template <class ElementType, uint32 NumElementsPerBlock = 2048, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
 protected:

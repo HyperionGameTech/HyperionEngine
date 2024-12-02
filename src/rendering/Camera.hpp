@@ -60,8 +60,7 @@ protected:
     virtual void Destroy() override;
     virtual void Update() override;
 
-    virtual uint32 AcquireBufferIndex() const override;
-    virtual void ReleaseBufferIndex(uint32 buffer_index) const override;
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
         { return NAME("CameraRenderResources"); }

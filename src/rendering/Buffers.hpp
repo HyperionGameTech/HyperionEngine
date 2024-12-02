@@ -200,13 +200,24 @@ static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowSha
 class GPUBufferHolderBase
 {
 protected:
-    GPUBufferHolderBase(TypeID struct_type_id)
-        : m_struct_type_id(struct_type_id)
+    template <class T>
+    GPUBufferHolderBase(TypeWrapper<T>)
+        : m_struct_type_id(TypeID::ForType<T>()),
+          m_struct_size(sizeof(T))
     {
     }
 
 public:
     virtual ~GPUBufferHolderBase();
+
+    HYP_FORCE_INLINE TypeID GetStructTypeID() const
+        { return m_struct_type_id; }
+
+    HYP_FORCE_INLINE SizeType GetStructSize() const
+        { return m_struct_size; }
+
+    HYP_FORCE_INLINE SizeType GetGPUBufferOffset(uint32 element_index) const
+        { return m_struct_size * element_index; }
 
     virtual uint32 Count() const = 0;
 
@@ -236,6 +247,13 @@ public:
         Set_Internal(index, &value);
     }
 
+    HYP_FORCE_INLINE void Set(uint32 index, const void *ptr, SizeType size)
+    {
+        AssertThrowMsg(size == m_struct_size, "Size does not match the expected size! Size = %llu, Expected = %llu", size, m_struct_size);
+
+        Set_Internal(index, ptr);
+    }
+
 protected:
     void CreateBuffers(SizeType count, SizeType size, SizeType alignment = 0);
 
@@ -243,6 +261,8 @@ protected:
     virtual void Set_Internal(uint32 index, const void *ptr) = 0;
 
     TypeID                                          m_struct_type_id;
+    SizeType                                        m_struct_size;
+
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_buffers;
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
@@ -343,7 +363,7 @@ class GPUBufferHolder final : public GPUBufferHolderBase
 {
 public:
     GPUBufferHolder(uint32 count)
-        : GPUBufferHolderBase(TypeID::ForType<StructType>()),
+        : GPUBufferHolderBase(TypeWrapper<StructType> { }),
           m_pool(count)
     {
         for (uint32 frame_index = 0; frame_index < m_buffers.Size(); frame_index++) {

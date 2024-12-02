@@ -86,18 +86,9 @@ void LightRenderResources::Update()
     UpdateBufferData();
 }
 
-uint32 LightRenderResources::AcquireBufferIndex() const
+GPUBufferHolderBase *LightRenderResources::GetGPUBufferHolder() const
 {
-    HYP_SCOPE;
-
-    return g_engine->GetRenderData()->lights->AcquireIndex();
-}
-
-void LightRenderResources::ReleaseBufferIndex(uint32 buffer_index) const
-{
-    HYP_SCOPE;
-
-    g_engine->GetRenderData()->lights->ReleaseIndex(buffer_index);
+    return g_engine->GetRenderData()->lights.Get();
 }
 
 void LightRenderResources::UpdateBufferData()

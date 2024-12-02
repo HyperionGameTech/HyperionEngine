@@ -116,18 +116,9 @@ void MaterialRenderResources::Update()
     }
 }
 
-uint32 MaterialRenderResources::AcquireBufferIndex() const
+GPUBufferHolderBase *MaterialRenderResources::GetGPUBufferHolder() const
 {
-    HYP_SCOPE;
-
-    return g_engine->GetRenderData()->materials->AcquireIndex();
-}
-
-void MaterialRenderResources::ReleaseBufferIndex(uint32 buffer_index) const
-{
-    HYP_SCOPE;
-
-    g_engine->GetRenderData()->materials->ReleaseIndex(buffer_index);
+    return g_engine->GetRenderData()->materials.Get();
 }
 
 void MaterialRenderResources::CreateDescriptorSets()

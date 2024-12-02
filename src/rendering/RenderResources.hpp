@@ -24,6 +24,8 @@ class RenderResourcesMemoryPool;
 
 class IRenderResourcesMemoryPool;
 
+class GPUBufferHolderBase;
+
 struct RenderResourcesMemoryPoolHandle
 {
     uint32  index = ~0u;
@@ -38,7 +40,7 @@ struct RenderResourcesMemoryPoolHandle
 // Represents the objects an engine object (e.g Material) uses while it is currently being rendered.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
-class RenderResourcesBase : public EnableRefCountedPtrFromThis<RenderResourcesBase>
+class RenderResourcesBase
 {
     using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using InitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
@@ -86,9 +88,7 @@ protected:
     virtual void Destroy() = 0;
     virtual void Update() = 0;
 
-    // @TODO: Refactor to also return a pointer directly to the buffer
-    virtual uint32 AcquireBufferIndex() const { return ~0u; }
-    virtual void ReleaseBufferIndex(uint32 buffer_index) const { }
+    virtual GPUBufferHolderBase *GetGPUBufferHolder() const { return nullptr; }
 
     virtual Name GetTypeName() const = 0;
 
@@ -103,9 +103,11 @@ protected:
 
     bool                            m_is_initialized;
     uint32                          m_buffer_index;
-    void                            *m_buffer_address;
 
 private:
+    void AcquireBufferIndex();
+    void ReleaseBufferIndex();
+
     RenderResourcesMemoryPoolHandle m_pool_handle;
 
     AtomicVar<int16>                m_ref_count;
@@ -129,12 +131,12 @@ public:
 extern HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID type_id, UniquePtr<IRenderResourcesMemoryPool>(*create_fn)(void));
 
 template <class T>
-class RenderResourcesMemoryPool final : private MemoryPool<OwningRC<T>, 128>, public IRenderResourcesMemoryPool
+class RenderResourcesMemoryPool final : private MemoryPool<ValueStorage<T>>, public IRenderResourcesMemoryPool
 {
 public:
     static_assert(std::is_base_of_v<RenderResourcesBase, T>, "T must be a subclass of RenderResourcesBase");
 
-    using Base = MemoryPool<OwningRC<T>, 128>;
+    using Base = MemoryPool<ValueStorage<T>>;
 
     static RenderResourcesMemoryPool<T> *GetInstance()
     {
@@ -147,7 +149,7 @@ public:
     }
 
     RenderResourcesMemoryPool()
-        : Base(/* initial_count */ 128)
+        : Base()
     {
     }
 
@@ -156,13 +158,13 @@ public:
     template <class... Args>
     T *Allocate(Args &&... args)
     {
-        OwningRC<T> *element_ptr;
-        const uint32 index = Base::AcquireIndex(&element_ptr);
+        ValueStorage<T> *element;
+        const uint32 index = Base::AcquireIndex(&element);
 
-        *element_ptr = OwningRC<T>(std::forward<Args>(args)...);
-        (*element_ptr)->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
+        T *ptr = element->Construct(std::forward<Args>(args)...);
+        ptr->m_pool_handle = RenderResourcesMemoryPoolHandle { index };
 
-        return element_ptr->Get();
+        return ptr;
     }
 
     void Free(T *ptr)
@@ -176,8 +178,8 @@ public:
         AssertThrow(pool_handle);
 
         // Invoke the destructor
-        OwningRC<T> &element = Base::GetElement(pool_handle.index);
-        element.Reset();
+        ValueStorage<T> &element = Base::GetElement(pool_handle.index);
+        element.Destruct();
 
         Base::ReleaseIndex(pool_handle.index);
     }
