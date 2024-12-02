@@ -23,10 +23,28 @@
 #include <Types.hpp>
 #include <HashCode.hpp>
 
-#define HYP_SHADER_DATA_OFFSET(cls, index) \
-    (uint32((index) * sizeof(cls ## ShaderData)))
-
 namespace hyperion {
+
+template <class T>
+struct ShaderDataOffset
+{
+    static_assert(IsPODType<T>, "T must be POD to use with ShaderDataOffset");
+
+    constexpr ShaderDataOffset(uint32 index)
+        : index(index)
+    {
+    }
+
+    constexpr HYP_FORCE_INLINE operator uint32() const
+    {
+        AssertDebugMsg(index != ~0u, "Index was ~0u when converting to uint32");
+
+        return uint32(sizeof(T) * index);
+    }
+
+    uint32  index;
+};
+
 namespace renderer {
 
 struct DescriptorSetDeclaration;

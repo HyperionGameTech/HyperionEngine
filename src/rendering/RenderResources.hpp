@@ -103,6 +103,7 @@ protected:
 
     bool                            m_is_initialized;
     uint32                          m_buffer_index;
+    void                            *m_buffer_address;
 
 private:
     void AcquireBufferIndex();

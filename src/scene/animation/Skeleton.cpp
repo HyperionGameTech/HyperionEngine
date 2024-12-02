@@ -19,32 +19,6 @@ namespace hyperion {
 
 using renderer::Result;
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
-{
-    ID<Skeleton> id;
-    SkeletonBoneData bone_data;
-
-    RENDER_COMMAND(UpdateSkeletonRenderData)(ID<Skeleton> id, const SkeletonBoneData &bone_data)
-        : id(id),
-          bone_data(bone_data)
-    {
-    }
-
-    virtual Result operator()() override
-    {
-        SkeletonShaderData shader_data;
-        Memory::MemCpy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(ArraySize(shader_data.bones), bone_data.matrices->Size()));
-
-        g_engine->GetRenderData()->skeletons->Set(id.ToIndex(), shader_data);
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 Skeleton::Skeleton()
     : HypObject(),
       m_root_bone(nullptr),
@@ -64,6 +38,12 @@ Skeleton::Skeleton(const RC<Bone> &root_bone)
 
 Skeleton::~Skeleton()
 {
+    if (m_render_resources != nullptr) {
+        FreeRenderResources(m_render_resources);
+
+        m_render_resources = nullptr;
+    }
+
     if (m_root_bone) {
         m_root_bone->SetSkeleton(nullptr);
     }
@@ -78,6 +58,17 @@ void Skeleton::Init()
     }
 
     HypObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
+    {
+        if (m_render_resources != nullptr) {
+            FreeRenderResources(m_render_resources);
+
+            m_render_resources = nullptr;
+        }
+    }));
+
+    m_render_resources = AllocateRenderResources<SkeletonRenderResources>(this);
 
     m_mutation_state |= DataMutationState::DIRTY;
     
@@ -95,7 +86,8 @@ void Skeleton::Update(GameCounter::TickUnit)
     const SizeType num_bones = MathUtil::Min(SkeletonShaderData::max_bones, NumBones());
 
     if (num_bones != 0) {
-        m_bone_data.SetMatrix(0, static_cast<Bone *>(m_root_bone.Get())->GetBoneMatrix());
+        SkeletonShaderData shader_data { };
+        shader_data.bones[0] = m_root_bone->GetBoneMatrix();
 
         for (SizeType i = 1; i < num_bones; i++) {
             if (Node *descendent = m_root_bone->GetDescendants()[i - 1]) {
@@ -107,11 +99,11 @@ void Skeleton::Update(GameCounter::TickUnit)
                     continue;
                 }
 
-                m_bone_data.SetMatrix(i, static_cast<const Bone *>(descendent)->GetBoneMatrix());
+                shader_data.bones[i] = static_cast<const Bone *>(descendent)->GetBoneMatrix();
             }
         }
 
-        PUSH_RENDER_COMMAND(UpdateSkeletonRenderData, GetID(), m_bone_data);
+        m_render_resources->SetBufferData(shader_data);
     }
     
     m_mutation_state = DataMutationState::CLEAN;

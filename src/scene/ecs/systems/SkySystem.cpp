@@ -5,6 +5,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/Material.hpp>
 #include <rendering/render_components/sky/SkydomeRenderer.hpp>
 
 #include <util/MeshBuilder.hpp>

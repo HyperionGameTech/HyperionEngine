@@ -77,8 +77,6 @@ void MaterialRenderResources::Update()
     
     const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
-    UpdateBufferData();
-
     auto SetMaterialTexture = [](const Handle<Material> &material, uint32 texture_index, const Handle<Texture> &texture)
     {
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -141,7 +139,7 @@ void MaterialRenderResources::CreateDescriptorSets()
         }
     }
 
-    g_engine->GetMaterialDescriptorSetManager().AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
+    m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager().AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
 }
 
 void MaterialRenderResources::DestroyDescriptorSets()
@@ -151,6 +149,7 @@ void MaterialRenderResources::DestroyDescriptorSets()
     AssertThrow(m_material != nullptr);
     
     g_engine->GetMaterialDescriptorSetManager().RemoveMaterial(m_material->GetID());
+    m_descriptor_sets = { };
 }
 
 void MaterialRenderResources::UpdateBufferData()
@@ -178,7 +177,9 @@ void MaterialRenderResources::UpdateBufferData()
         }
     }
 
-    g_engine->GetRenderData()->materials->Set(m_buffer_index, m_buffer_data);
+    *static_cast<MaterialShaderData *>(m_buffer_address) = m_buffer_data;
+
+    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
@@ -190,7 +191,7 @@ void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const H
         m_textures.Set(texture_key, texture);
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
         }
     });
 }
@@ -204,21 +205,7 @@ void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Tex
         m_textures = std::move(textures);
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
-        }
-    });
-}
-
-void MaterialRenderResources::SetBufferData(const MaterialShaderData &buffer_data)
-{
-    HYP_SCOPE;
-
-    Execute([this, buffer_data]()
-    {
-        m_buffer_data = buffer_data;
-
-        if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
         }
     });
 }
@@ -232,7 +219,21 @@ void MaterialRenderResources::SetBoundTextureIDs(const Array<ID<Texture>> &bound
         m_bound_texture_ids = bound_texture_ids;
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
+        }
+    });
+}
+
+void MaterialRenderResources::SetBufferData(const MaterialShaderData &buffer_data)
+{
+    HYP_SCOPE;
+
+    Execute([this, buffer_data]()
+    {
+        m_buffer_data = buffer_data;
+
+        if (m_is_initialized) {
+            UpdateBufferData();
         }
     });
 }
@@ -395,6 +396,8 @@ void Material::EnqueueRenderUpdates()
         }
     }
 
+    m_render_resources->SetBoundTextureIDs(bound_texture_ids);
+
     MaterialShaderData buffer_data {
         .albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO),
         .packed_params = Vec4u(
@@ -415,7 +418,6 @@ void Material::EnqueueRenderUpdates()
     };
 
     m_render_resources->SetBufferData(buffer_data);
-    m_render_resources->SetBoundTextureIDs(bound_texture_ids);
 
     m_mutation_state = DataMutationState::CLEAN;
 }
@@ -812,10 +814,10 @@ const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Materi
     return it->second[frame_index];
 }
 
-void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material)
+FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material)
 {
     if (!material.IsValid()) {
-        return;
+        return { };
     }
 
     const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
@@ -839,25 +841,25 @@ void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material)
             HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
         }
 
-        m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
+        m_material_descriptor_sets.Insert(material, descriptor_sets);
+    } else {
+        Mutex::Guard guard(m_pending_mutex);
 
-        return;
+        m_pending_addition.PushBack({
+            material,
+            descriptor_sets
+        });
+
+        m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
     }
 
-    Mutex::Guard guard(m_pending_mutex);
-
-    m_pending_addition.PushBack({
-        material,
-        std::move(descriptor_sets)
-    });
-
-    m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
+    return descriptor_sets;
 }
 
-void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
+FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
 {
     if (!material.IsValid()) {
-        return;
+        return { };
     }
 
     const renderer::DescriptorSetDeclaration *declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
@@ -891,19 +893,19 @@ void MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material,
             HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
         }
 
-        m_material_descriptor_sets.Insert(material, std::move(descriptor_sets));
+        m_material_descriptor_sets.Insert(material, descriptor_sets);
+    } else {
+        Mutex::Guard guard(m_pending_mutex);
 
-        return;
+        m_pending_addition.PushBack({
+            material,
+            std::move(descriptor_sets)
+        });
+
+        m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
     }
 
-    Mutex::Guard guard(m_pending_mutex);
-
-    m_pending_addition.PushBack({
-        material,
-        std::move(descriptor_sets)
-    });
-
-    m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
+    return descriptor_sets;
 }
 
 void MaterialDescriptorSetManager::EnqueueRemoveMaterial(const WeakHandle<Material> &material)

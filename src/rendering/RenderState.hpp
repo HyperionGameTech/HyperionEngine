@@ -11,6 +11,7 @@
 #include <rendering/Light.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderResources.hpp>
+#include <rendering/EnvProbe.hpp>
 
 #include <scene/Scene.hpp>
 

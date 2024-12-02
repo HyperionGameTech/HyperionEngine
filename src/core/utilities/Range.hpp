@@ -33,40 +33,31 @@ public:
     Range &operator=(Range &&other)         = default;
     ~Range()                                = default;
 
-    HYP_FORCE_INLINE
-    explicit operator bool() const
+    HYP_FORCE_INLINE explicit operator bool() const
         { return Distance() > 0; }
 
-    HYP_FORCE_INLINE
-    T GetStart() const
+    HYP_FORCE_INLINE T GetStart() const
         { return m_start; }
 
-    HYP_FORCE_INLINE
-    void SetStart(T start)
+    HYP_FORCE_INLINE void SetStart(T start)
         { m_start = start; }
 
-    HYP_FORCE_INLINE
-    T GetEnd() const
+    HYP_FORCE_INLINE T GetEnd() const
         { return m_end; }
 
-    HYP_FORCE_INLINE
-    void SetEnd(T end)
+    HYP_FORCE_INLINE void SetEnd(T end)
         { m_end = end; }
 
-    HYP_FORCE_INLINE
-    int64 Distance() const
+    HYP_FORCE_INLINE int64 Distance() const
         { return int64(m_end) - int64(m_start); }
 
-    HYP_FORCE_INLINE
-    int64 Step() const
+    HYP_FORCE_INLINE int64 Step() const
         { return MathUtil::Sign(Distance()); }
 
-    HYP_FORCE_INLINE
-    bool Includes(const T &value) const
+    HYP_FORCE_INLINE bool Includes(const T &value) const
         { return value >= m_start && value < m_end; }
 
-    HYP_FORCE_INLINE
-    Range operator|(const Range &other) const
+    HYP_FORCE_INLINE Range operator|(const Range &other) const
     {
         return {
             MathUtil::Min(m_start, other.m_start),
@@ -74,8 +65,7 @@ public:
         };
     }
 
-    HYP_FORCE_INLINE
-    Range &operator|=(const Range &other)
+    HYP_FORCE_INLINE Range &operator|=(const Range &other)
     {
         m_start = MathUtil::Min(m_start, other.m_start);
         m_end = MathUtil::Max(m_end, other.m_end);
@@ -83,8 +73,7 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    Range operator&(const Range &other) const
+    HYP_FORCE_INLINE Range operator&(const Range &other) const
     {
         return {
             MathUtil::Max(m_start, other.m_start),
@@ -92,8 +81,7 @@ public:
         };
     }
 
-    HYP_FORCE_INLINE
-    Range &operator&=(const Range &other)
+    HYP_FORCE_INLINE Range &operator&=(const Range &other)
     {
         m_start = MathUtil::Max(m_start, other.m_start);
         m_end = MathUtil::Min(m_end, other.m_end);
@@ -101,16 +89,13 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    bool operator<(const Range &other) const
+    HYP_FORCE_INLINE bool operator<(const Range &other) const
         { return Distance() < other.Distance(); }
 
-    HYP_FORCE_INLINE
-    bool operator>(const Range &other) const
+    HYP_FORCE_INLINE bool operator>(const Range &other) const
         { return Distance() > other.Distance(); }
 
-    HYP_FORCE_INLINE
-    bool operator==(const Range &other) const
+    HYP_FORCE_INLINE bool operator==(const Range &other) const
     {
         if (this == &other) {
             return true;
@@ -120,19 +105,16 @@ public:
             && m_end == other.m_end;
     }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const Range &other) const
+    HYP_FORCE_INLINE bool operator!=(const Range &other) const
         { return !operator==(other); }
 
-    HYP_FORCE_INLINE
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         m_start = MathUtil::MaxSafeValue<T>();
         m_end = MathUtil::MinSafeValue<T>();
     }
 
-    HYP_FORCE_INLINE
-    bool Valid() const
+    HYP_FORCE_INLINE bool Valid() const
         { return m_start != MathUtil::MaxSafeValue<T>() || m_end != MathUtil::MinSafeValue<T>(); }
 
     HYP_DEF_STL_BEGIN_END(

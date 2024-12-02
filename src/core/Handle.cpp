@@ -4,14 +4,14 @@
 
 namespace hyperion {
 
-#define DEF_HANDLE(T, sz) \
+#define DEF_HANDLE(T) \
     IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< T >()); \
     IObjectContainer *HandleDefinition< T >::GetAllottedContainerPointer() \
     { \
         return g_container_ptr_##T; \
     }
 
-#define DEF_HANDLE_NS(ns, T, sz) \
+#define DEF_HANDLE_NS(ns, T) \
     IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< ns::T >()); \
     IObjectContainer *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
     { \
@@ -26,17 +26,17 @@ namespace hyperion {
 #pragma region AnyHandle
 
 AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
-    : ptr(nullptr)
+    : type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void()),
+      ptr(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal() : nullptr)
 {
-    if (hyp_object_ptr) {
-        ptr = hyp_object_ptr->GetObjectHeader_Internal();
-
+    if (IsValid()) {
         ptr->IncRefStrong();
     }
 }
 
 AnyHandle::AnyHandle(const AnyHandle &other)
-    : ptr(other.ptr)
+    : type_id(other.type_id),
+      ptr(other.ptr)
 {
     if (IsValid()) {
         ptr->IncRefStrong();
@@ -54,6 +54,7 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
     }
 
     ptr = other.ptr;
+    type_id = other.type_id;
 
     if (IsValid()) {
         ptr->IncRefStrong();
@@ -63,12 +64,10 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
 }
 
 AnyHandle::AnyHandle(AnyHandle &&other) noexcept
-    : ptr(other.ptr)
+    : type_id(other.type_id),
+      ptr(other.ptr)
 {
-    if (other.IsValid()) {
-        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(other.GetTypeID());
-        other.ptr = container.GetDefaultObjectHeader();
-    }
+    other.ptr = nullptr;
 }
 
 AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
@@ -81,12 +80,10 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
         ptr->DecRefStrong();
     }
 
-    if (other.IsValid()) {
-        IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(other.GetTypeID());
-        other.ptr = container.GetDefaultObjectHeader();
-    }
-
     ptr = other.ptr;
+    type_id = other.type_id;
+
+    other.ptr = nullptr;
 
     return *this;
 }
@@ -107,26 +104,22 @@ AnyHandle::IDType AnyHandle::GetID() const
     return IDType { ptr->index + 1 };
 }
 
-TypeID AnyHandle::GetTypeID() const
-{
-    if (ptr == nullptr) {
-        return TypeID::Void();
-    }
-
-    return ptr->container->GetObjectTypeID();
-}
-
 AnyRef AnyHandle::ToRef() const
 {
-    if (ptr == nullptr) {
-        return AnyRef(TypeID::Void(), nullptr);
+    if (!IsValid()) {
+        return AnyRef(type_id, nullptr);
     }
 
-    if (ptr->IsNull()) {
-        return AnyRef(ptr->container->GetObjectTypeID(), nullptr);
+    return AnyRef(type_id, ptr->container->GetObject(ptr));
+}
+
+void AnyHandle::Reset()
+{
+    if (IsValid()) {
+        ptr->DecRefStrong();
     }
 
-    return AnyRef(ptr->container->GetObjectTypeID(), ptr->container->GetObject(ptr));
+    ptr = nullptr;
 }
 
 HypObjectBase *AnyHandle::Release()
@@ -138,7 +131,7 @@ HypObjectBase *AnyHandle::Release()
     HypObjectBase *hyp_object_ptr = ptr->Release();
     AssertThrow(hyp_object_ptr != nullptr);
 
-    ptr = ptr->container->GetDefaultObjectHeader();
+    ptr = nullptr;
 
     return hyp_object_ptr;
 }

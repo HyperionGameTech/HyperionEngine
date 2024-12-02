@@ -12,13 +12,13 @@
 #include <core/Base.hpp>
 #include <core/Name.hpp>
 
+#include <core/utilities/DataMutationState.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/EnvProbe.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

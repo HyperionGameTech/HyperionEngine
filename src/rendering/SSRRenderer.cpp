@@ -358,8 +358,8 @@ void SSRRenderer::Render(Frame *frame)
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                 }
             }
         }
@@ -384,8 +384,8 @@ void SSRRenderer::Render(Frame *frame)
             {
                 NAME("Scene"),
                 {
-                    { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                    { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                 }
             }
         }

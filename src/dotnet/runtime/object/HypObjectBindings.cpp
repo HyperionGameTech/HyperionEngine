@@ -43,10 +43,6 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
         if (hyp_class->UseHandles()) {
-            // IObjectContainer &container = ObjectPool::GetObjectContainerHolder().Get(hyp_class->GetTypeID());
-            
-            // *out_instance_ptr = container.ConstructAtIndex(container.NextIndex());
-
             AnyHandle handle = std::move(value.Get<AnyHandle>());
             AssertThrow(handle.IsValid());
 
@@ -67,8 +63,6 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     // make it WEAK_REFERENCE since we don't want to release the object on destructor call,
     // as it is managed by the .NET runtime
 
-    // @FIXME: Don't use hyp_class->GetManagedClass(), instead, take Class* passed into the function
-    // this will allow C# derived classes to be used
     UniquePtr<dotnet::Object> managed_object = MakeUnique<dotnet::Object>(class_object_ptr, *object_reference, ObjectFlags::WEAK_REFERENCE);
     initializer->SetManagedObject(managed_object.Release());
 }

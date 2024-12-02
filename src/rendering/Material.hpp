@@ -98,12 +98,16 @@ public:
     MaterialRenderResources(MaterialRenderResources &&other) noexcept;
     virtual ~MaterialRenderResources() override;
 
+    /*! \note Only call this method from the render thread or task initiated by the render thread */
+    HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight> &GetDescriptorSets() const
+        { return m_descriptor_sets; }
+
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures);
 
-    void SetBufferData(const MaterialShaderData &buffer_data);
-
     void SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids);
+
+    void SetBufferData(const MaterialShaderData &buffer_data);
 
 protected:
     virtual void Initialize() override;
@@ -121,10 +125,11 @@ private:
 
     void UpdateBufferData();
 
-    Material                                        *m_material;
-    FlatMap<MaterialTextureKey, Handle<Texture>>    m_textures;
-    Array<ID<Texture>>                              m_bound_texture_ids;
-    MaterialShaderData                              m_buffer_data;
+    Material                                            *m_material;
+    FlatMap<MaterialTextureKey, Handle<Texture>>        m_textures;
+    Array<ID<Texture>>                                  m_bound_texture_ids;
+    MaterialShaderData                                  m_buffer_data;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
 };
 
 HYP_CLASS()
@@ -756,7 +761,7 @@ public:
      *  be created on the next call to Update.
      *  \param material The material to add
      */
-    void AddMaterial(const Handle<Material> &material);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
@@ -766,7 +771,7 @@ public:
      *  \param material The material to add
      *  \param textures The textures to add to the material
      */
-    void AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
      *  for the material from the manager. Usable from any thread.

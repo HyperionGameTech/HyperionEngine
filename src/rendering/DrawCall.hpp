@@ -34,10 +34,11 @@ static constexpr uint32 max_entities_per_instance_batch = 60;
 
 struct alignas(16) EntityInstanceBatch
 {
+    uint32  batch_index;
     uint32  num_entities;
     uint32  _pad0;
     uint32  _pad1;
-    uint32  _pad2;
+
     uint32  indices[max_entities_per_instance_batch];
     Matrix4 transforms[max_entities_per_instance_batch];
 };
@@ -88,18 +89,16 @@ struct DrawCallID
 
 struct DrawCall
 {
-    DrawCallID      id;
-    uint32          batch_index = ~0u;
-    uint32          draw_command_index = 0;
+    DrawCallID          id;
+    EntityInstanceBatch *batch = nullptr;
+    uint32              draw_command_index = 0;
 
-    uint32          material_buffer_index = ~0u;
+    Mesh                *mesh = nullptr;
+    Material            *material = nullptr;
+    Skeleton            *skeleton = nullptr;
 
-    Mesh            *mesh = nullptr;
-    ID<Material>    material_id;
-    ID<Skeleton>    skeleton_id;
-
-    uint32          entity_id_count = 0;
-    ID<Entity>      entity_ids[max_entities_per_instance_batch];
+    uint32              entity_id_count = 0;
+    ID<Entity>          entity_ids[max_entities_per_instance_batch];
 };
 
 class IDrawCallCollectionImpl
@@ -110,8 +109,8 @@ public:
     virtual SizeType GetBatchSizeOf() const = 0;
     virtual EntityInstanceBatch &GetBatch(SizeType index) const = 0;
     virtual uint32 GetNumBatches() const = 0;
-    virtual uint32 AcquireBatchIndex() const = 0;
-    virtual void ReleaseBatchIndex(uint32 batch_index) const = 0;
+    virtual EntityInstanceBatch *AcquireBatch() const = 0;
+    virtual void ReleaseBatch(EntityInstanceBatch *batch) const = 0;
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const = 0;
 };
 
@@ -140,8 +139,8 @@ public:
     HYP_FORCE_INLINE const Array<DrawCall, 4096> &GetDrawCalls() const
         { return m_draw_calls; }
 
-    void PushDrawCallToBatch(uint32 batch_index, DrawCallID id, const RenderProxy &render_proxy);
-    uint32 TakeDrawCallBatchIndex(DrawCallID id);
+    void PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCallID id, const RenderProxy &render_proxy);
+    EntityInstanceBatch *TakeDrawCallBatch(DrawCallID id);
     void ResetDrawCalls();
 
 protected:
@@ -188,16 +187,19 @@ public:
         return m_entity_instance_batches->Count();
     }
 
-    virtual uint32 AcquireBatchIndex() const override
+    virtual EntityInstanceBatch *AcquireBatch() const override
     {
-        uint32 index = m_entity_instance_batches->AcquireIndex();
-        AssertThrow(index < m_entity_instance_batches->Count());
-        return index;
+        EntityInstanceBatchType *batch;
+        const uint32 batch_index = m_entity_instance_batches->AcquireIndex(&batch);
+
+        batch->batch_index = batch_index;
+
+        return batch;
     }
 
-    virtual void ReleaseBatchIndex(uint32 batch_index) const override
+    virtual void ReleaseBatch(EntityInstanceBatch *batch) const override
     {
-        m_entity_instance_batches->ReleaseIndex(batch_index);
+        m_entity_instance_batches->ReleaseIndex(batch->batch_index);
     }
 
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const override

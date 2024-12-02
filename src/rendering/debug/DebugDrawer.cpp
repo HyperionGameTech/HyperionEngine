@@ -288,16 +288,16 @@ void DebugDrawer::Render(Frame *frame)
                 {
                     NAME("DebugDrawerDescriptorSet"),
                     {
-                        { NAME("ImmediateDrawsBuffer"), HYP_SHADER_DATA_OFFSET(ImmediateDraw, 0) }
+                        { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) }
                     }
                 },
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
                 },
                 {
@@ -322,16 +322,16 @@ void DebugDrawer::Render(Frame *frame)
                 {
                     NAME("DebugDrawerDescriptorSet"),
                     {
-                        { NAME("ImmediateDrawsBuffer"), HYP_SHADER_DATA_OFFSET(ImmediateDraw, 0) }
+                        { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) }
                     }
                 },
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
                 },
                 {
@@ -356,7 +356,7 @@ void DebugDrawer::Render(Frame *frame)
             proxy.GetCommandBuffer(frame),
             proxy.GetGraphicsPipeline(),
             {
-                { NAME("ImmediateDrawsBuffer"), HYP_SHADER_DATA_OFFSET(ImmediateDraw, index) }
+                { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(index) }
             },
             debug_drawer_descriptor_set_index
         );

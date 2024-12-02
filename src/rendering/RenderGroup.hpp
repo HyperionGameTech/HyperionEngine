@@ -96,6 +96,16 @@ public:
     HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
         { return m_flags; }
 
+    void ClearProxies();
+
+    void AddRenderProxy(const RenderProxy &render_proxy);
+
+    bool RemoveRenderProxy(ID<Entity> entity);
+    typename RenderProxyEntityMap::Iterator RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator);
+
+    HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
+        { return m_render_proxies; }
+
     void SetDrawCallCollectionImpl(IDrawCallCollectionImpl *draw_call_collection_impl);
 
     /*! \brief Collect drawable objects, then run the culling compute shader
@@ -152,6 +162,8 @@ private:
     uint                                                m_command_buffer_index = 0u;
 
     DrawCallCollection                                  m_draw_state;
+
+    RenderProxyEntityMap                                m_render_proxies;
 };
 
 } // namespace hyperion

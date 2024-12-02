@@ -13,6 +13,7 @@
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Texture.hpp>
 
 #include <asset/Assets.hpp>
 

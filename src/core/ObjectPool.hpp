@@ -45,8 +45,6 @@ class IObjectContainer
 {
 public:
     virtual ~IObjectContainer() = default;
-
-    virtual uint32 NextIndex() = 0;
     
     virtual void IncRefStrong(HypObjectHeader *) = 0;
     virtual void IncRefWeak(HypObjectHeader *) = 0;
@@ -260,11 +258,6 @@ public:
     ObjectContainer(ObjectContainer &&other) noexcept               = delete;
     ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
     virtual ~ObjectContainer() override                             = default;
-
-    virtual uint32 NextIndex() override
-    {
-        return m_pool.AcquireIndex();
-    }
 
     HYP_NODISCARD HYP_FORCE_INLINE HypObjectMemory *Allocate()
     {

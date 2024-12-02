@@ -69,7 +69,6 @@ void LightRenderResources::Initialize()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_light != nullptr);
     UpdateBufferData();
 }
 
@@ -81,9 +80,6 @@ void LightRenderResources::Destroy()
 void LightRenderResources::Update()
 {
     HYP_SCOPE;
-
-    AssertThrow(m_light != nullptr);
-    UpdateBufferData();
 }
 
 GPUBufferHolderBase *LightRenderResources::GetGPUBufferHolder() const
@@ -95,14 +91,14 @@ void LightRenderResources::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_buffer_index != ~0u);
-
     // override material buffer index
     m_buffer_data.material_index = m_material_render_resources_handle
         ? m_material_render_resources_handle->GetBufferIndex()
         : ~0u;
 
-    g_engine->GetRenderData()->lights->Set(m_buffer_index, m_buffer_data);
+    *static_cast<LightShaderData *>(m_buffer_address) = m_buffer_data;
+
+    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void LightRenderResources::SetMaterial(const Handle<Material> &material)
@@ -134,7 +130,7 @@ void LightRenderResources::SetBufferData(const LightShaderData &buffer_data)
         m_buffer_data = buffer_data;
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
         }
     });
 }

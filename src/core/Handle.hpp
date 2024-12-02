@@ -5,8 +5,11 @@
 
 #include <core/ID.hpp>
 #include <core/ObjectPool.hpp>
+
 #include <core/object/HypObjectFwd.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/NotNullPtr.hpp>
 
 namespace hyperion {
 
@@ -18,11 +21,15 @@ struct WeakHandle;
 
 struct AnyHandle;
 
-template <class T>
-HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< implementation_exists<T>, ObjectContainer<T> *, IObjectContainer * >
+template <class T, bool AllowIncomplete = true>
+HYP_FORCE_INLINE static auto GetContainer() -> std::conditional_t< !AllowIncomplete || implementation_exists<T>, ObjectContainer<T> *, IObjectContainer * >
 {
+    if constexpr (!AllowIncomplete) {
+        static_assert(implementation_exists<T>, "Cannot use incomplete type for Handle here");
+    }
+
     // If T is a defined type, we can use ObjectContainer<T> methods (ObjectContainer<T> is final, virtual calls can be optimized)
-    if constexpr (implementation_exists<T>) {
+    if constexpr (!AllowIncomplete || implementation_exists<T>) {
         return static_cast<ObjectContainer<T> *>(&ObjectPool::GetObjectContainerHolder().GetOrCreate<T>());
     } else {
         static IObjectContainer *container = ObjectPool::GetObjectContainerHolder().TryGet(TypeID::ForType<T>());
@@ -75,7 +82,7 @@ public:
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
-        : Handle(id.IsValid() ? GetContainer<T>()->GetObjectHeader(id.Value() - 1) : nullptr)
+        : Handle(id.IsValid() ? GetContainer<T, false>()->GetObjectHeader(id.Value() - 1) : nullptr)
     {
     }
 
@@ -273,7 +280,7 @@ struct WeakHandle final
     /*! \brief Construct a WeakHandle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit WeakHandle(IDType id)
-        : ptr(id.IsValid() ? GetContainer<T>()->GetObjectHeader(id.Value() - 1) : nullptr)
+        : ptr(id.IsValid() ? GetContainer<T, false>()->GetObjectHeader(id.Value() - 1) : nullptr)
     {
         if (ptr != nullptr) {
             ptr->IncRefWeak();
@@ -478,6 +485,7 @@ struct AnyHandle final
 {
     using IDType = IDBase;
 
+    TypeID          type_id;
     HypObjectHeader *ptr;
 
 public:
@@ -485,32 +493,29 @@ public:
 
     template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T> && !std::is_same_v<HypObjectBase, T>>>
     explicit AnyHandle(T *ptr)
-        : ptr(ptr != nullptr ? ptr->GetObjectHeader_Internal() : GetContainer<T>()->GetDefaultObjectHeader())
+        : type_id(TypeID::ForType<T>()),
+          ptr(ptr != nullptr ? ptr->GetObjectHeader_Internal() : nullptr)
     {
         if (IsValid()) {
-            this->ptr->IncRefStrong();
+            ptr->IncRefStrong();
         }
     }
 
     template <class T>
     AnyHandle(const Handle<T> &handle)
-        : ptr(handle.ptr)
+        : type_id(TypeID::ForType<T>()),
+          ptr(handle.ptr)
     {
         if (handle.IsValid()) {
             ptr->IncRefStrong();
-        } else {
-            ptr = GetContainer<T>()->GetDefaultObjectHeader();
         }
     }
 
     template <class T>
     AnyHandle(Handle<T> &&handle)
-        : ptr(handle.ptr)
+        : type_id(TypeID::ForType<T>()),
+          ptr(handle.ptr)
     {
-        if (!handle.IsValid()) {
-            ptr = GetContainer<T>()->GetDefaultObjectHeader();
-        }
-
         handle.ptr = nullptr;
     }
 
@@ -566,10 +571,8 @@ public:
     HYP_FORCE_INLINE bool operator<(const IDBase &id) const
         { return GetID() < id; }
     
-    /*! \brief Check if the handle is valid. A handle is valid if its index is greater than 0.
-     *  \return True if the handle is valid. */
     HYP_FORCE_INLINE bool IsValid() const
-        { return ptr != nullptr && !ptr->IsNull(); }
+        { return type_id != TypeID::Void() && ptr != nullptr && !ptr->IsNull(); }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
@@ -577,17 +580,16 @@ public:
     
     /*! \brief Get the TypeID for this handle type
      *  \return The TypeID for the handle */
-    HYP_API TypeID GetTypeID() const;
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+        { return type_id; }
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const
-        { return GetTypeID() == TypeID::ForType<T>(); }
+        { return type_id == TypeID::ForType<T>(); }
 
     template <class T>
     HYP_NODISCARD Handle<T> Cast() const
     {
-        const TypeID type_id = GetTypeID();
-
         if (!type_id || type_id != TypeID::ForType<T>()) {
             return { };
         }
@@ -600,6 +602,8 @@ public:
     template <class T>
     HYP_FORCE_INLINE T *TryGet() const
         { return ToRef().TryGet<T>(); }
+
+    HYP_API void Reset();
 
     /*! \brief Releases the current reference and sets the handle to null.
      *  The underlying object is not destroyed if the reference count reaches zero.
@@ -652,7 +656,7 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
     return true;
 }
 
-#define DEF_HANDLE(T, _max_size) \
+#define DEF_HANDLE(T) \
     class T; \
     \
     extern IObjectContainer *g_container_ptr_##T; \
@@ -665,7 +669,7 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
         HYP_API static IObjectContainer *GetAllottedContainerPointer(); \
     };
 
-#define DEF_HANDLE_NS(ns, T, _max_size) \
+#define DEF_HANDLE_NS(ns, T) \
     namespace ns { \
     class T; \
     } \

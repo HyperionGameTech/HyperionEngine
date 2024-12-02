@@ -16,15 +16,6 @@
 
 #include <core/object/HypObjectFwd.hpp>
 
-#ifdef HYP_ENABLE_REF_TRACKING
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/system/StackDump.hpp>
-
-#define HYP_REF_TRACKING_GETSTACKTRACE() "" //hyperion::sys::StackDump(1).ToString()
-#endif
-
 #include <core/system/Debug.hpp>
 
 #include <Types.hpp>
@@ -54,30 +45,11 @@ class WeakRefCountedPtr;
 template <class CountType>
 class EnableRefCountedPtrFromThisBase;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-template <class CountType, bool EnableRefTracking = false>
-#else
 template <class CountType>
-#endif
 class WeakRefCountedPtrBase;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-template <class CountType, bool EnableRefTracking = false>
-#else
 template <class CountType>
-#endif
 class RefCountedPtrBase;
-
-#ifdef HYP_ENABLE_REF_TRACKING
-
-// Specialize this struct to enable ref tracking for a specific type.
-template <class T>
-struct EnableRefTrackingImpl
-{
-    static constexpr bool value = true;
-};
-
-#endif
 
 #ifndef HYP_DEBUG_MODE
     #define EnsureUninitialized()
@@ -85,22 +57,6 @@ struct EnableRefTrackingImpl
 
 namespace detail {
 
-
-#ifdef HYP_ENABLE_REF_TRACKING
-struct RefTrackData
-{
-    void        *addr;
-    String      stack_trace;
-    int         count;
-
-    RefTrackData(void *addr, const String &stack_trace)
-        : addr(addr),
-          stack_trace(stack_trace),
-          count(0)
-    {
-    }
-};
-#endif
 
 template <class CountType>
 struct RefCountData
@@ -110,79 +66,6 @@ struct RefCountData
     CountType   strong_count;
     CountType   weak_count;
     void        (*dtor)(void *);
-
-#ifdef HYP_ENABLE_REF_TRACKING
-    Mutex                           ref_track_data_mutex;
-    FlatMap<void *, RefTrackData>   ref_track_data;
-
-    template <class... Args>
-    void AddRefTrackData(void *addr, Args &&... args)
-    {
-        // if (!HasValue()) {
-        //     // skip early for nullptr
-        //     return;
-        // }
-
-        Mutex::Guard guard(ref_track_data_mutex);
-
-        ref_track_data.Set(addr, RefTrackData { addr, std::forward<Args>(args)... });
-    }
-
-    void RemoveRefTrackData(void *addr)
-    {
-        // if (!HasValue()) {
-        //     // skip early for nullptr
-        //     return;
-        // }
-
-        Mutex::Guard guard(ref_track_data_mutex);
-
-        auto it = ref_track_data.Find(addr);
-
-        AssertThrow(it != ref_track_data.End());
-        AssertThrowMsg(it->second.count == 0, "RefTrackData count is not zero! Got: %d", it->second.count);
-
-        ref_track_data.Erase(it);
-    }
-
-    void IncRefTrackDataCount(void *addr)
-    {
-        // if (!HasValue()) {
-        //     // skip early for nullptr
-        //     return;
-        // }
-
-        Mutex::Guard guard(ref_track_data_mutex);
-
-        auto it = ref_track_data.Find(addr);
-        AssertThrow(it != ref_track_data.End());
-
-        it->second.count++;
-    }
-
-    void DecRefTrackDataCount(void *addr)
-    {
-        // if (!HasValue()) {
-        //     // skip early for nullptr
-        //     return;
-        // }
-
-        Mutex::Guard guard(ref_track_data_mutex);
-
-        auto it = ref_track_data.Find(addr);
-        AssertThrow(it != ref_track_data.End());
-
-        AssertThrow(--it->second.count >= 0);
-    }
-
-    template <class FunctionType>
-    void GetRefTrackData(FunctionType &&function)
-    {
-        Mutex::Guard guard(ref_track_data_mutex);
-
-        function(ref_track_data);
-    }
-#endif
 
     RefCountData()
     {
@@ -337,18 +220,11 @@ struct RefCountData
     #undef EnsureUninitialized
 #endif
 
-#ifdef HYP_ENABLE_REF_TRACKING
-template <class CountType, bool EnableRefTracking>
-#else
+
 template <class CountType>
-#endif
 class RefCountedPtrBase
 {
-#ifdef HYP_ENABLE_REF_TRACKING
-    friend class WeakRefCountedPtrBase<CountType, EnableRefTracking>;
-#else
     friend class WeakRefCountedPtrBase<CountType>;
-#endif
 
 public:
     using RefCountDataType = detail::RefCountData<CountType>;
@@ -367,16 +243,6 @@ protected:
     RefCountedPtrBase(const RefCountedPtrBase &other)
         : m_ref(other.m_ref)
     {
-#ifdef HYP_ENABLE_REF_TRACKING
-        AssertThrow(&other != this);
-
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            }
-        }
-#endif
-
         IncRefCount();
     }
 
@@ -390,14 +256,6 @@ protected:
 
         m_ref = other.m_ref;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            }
-        }
-#endif
-
         IncRefCount();
 
         return *this;
@@ -406,20 +264,6 @@ protected:
     RefCountedPtrBase(RefCountedPtrBase &&other) noexcept
         : m_ref(other.m_ref)
     {
-#ifdef HYP_ENABLE_REF_TRACKING
-        AssertThrow(&other != this);
-
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->DecRefTrackDataCount(&other);
-                m_ref->RemoveRefTrackData(&other);
-                
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-                m_ref->IncRefTrackDataCount(this);
-            }
-        }
-#endif
-
         // NOTE: Cast away constness -- modifying empty_ref_count_data or dereferencing its value (always nullptr) shouldn't happen anyway.
         other.m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
     }
@@ -431,18 +275,6 @@ protected:
         }
 
         DecRefCount();
-
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (other.m_ref->HasValue()) {
-                other.m_ref->DecRefTrackDataCount(&other);
-                other.m_ref->RemoveRefTrackData(&other);
-
-                other.m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-                other.m_ref->IncRefTrackDataCount(this);
-            }
-        }
-#endif
 
         m_ref = other.m_ref;
 
@@ -485,19 +317,7 @@ public:
     {
         RefCountedPtr<T, CountType> rc;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->DecRefTrackDataCount(this);
-                m_ref->RemoveRefTrackData(this);
-                
-                m_ref->AddRefTrackData(&rc, HYP_REF_TRACKING_GETSTACKTRACE());
-                m_ref->IncRefTrackDataCount(&rc);
-            }
-        }
-#endif  
-
-        std::swap(rc.m_ref, m_ref);
+        Swap(rc.m_ref, m_ref);
 
         return rc;
     }
@@ -532,13 +352,6 @@ public:
             if (m_ref->IncRefCount_Strong() == 1) {
                 m_ref->template Init<TyN>(ptr);
             }
-
-#ifdef HYP_ENABLE_REF_TRACKING
-            if constexpr (EnableRefTracking) {
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-                m_ref->IncRefTrackDataCount(this);
-            }
-#endif
         }
     }
     
@@ -558,14 +371,6 @@ public:
 
         m_ref = ref;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            }
-        }
-#endif
-
         if (inc_ref) {
             IncRefCount();
         }
@@ -574,15 +379,6 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE void *Release_Internal()
     {
         void *ptr = m_ref->value;
-
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->DecRefTrackDataCount(this);
-                m_ref->RemoveRefTrackData(this);
-            }
-        }
-#endif
 
         if (m_ref->HasValue()) {
             if (m_ref->DecRefCount_Strong() == 0u) {
@@ -601,13 +397,6 @@ protected:
     explicit RefCountedPtrBase(RefCountDataType *ref)
         : m_ref(ref)
     {
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            }
-        }
-#endif
     }
     
     HYP_FORCE_INLINE void IncRefCount()
@@ -620,26 +409,11 @@ protected:
             return;
         }
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            m_ref->IncRefTrackDataCount(this);
-        }
-#endif
-
         m_ref->IncRefCount_Strong();
     }
     
     void DecRefCount()
     {
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTracking) {
-            if (m_ref->HasValue()) {
-                m_ref->DecRefTrackDataCount(this);
-                m_ref->RemoveRefTrackData(this);
-            }
-        }
-#endif
-
         if (m_ref->HasValue()) {
             if (m_ref->DecRefCount_Strong() == 0u) {
                 m_ref->Destruct();
@@ -656,30 +430,15 @@ protected:
     NotNullPtr<RefCountDataType>    m_ref;
 };
 
-#ifdef HYP_ENABLE_REF_TRACKING
-template <class CountType, bool EnableRefTracking>
-const typename RefCountedPtrBase<CountType, EnableRefTracking>::RefCountDataType RefCountedPtrBase<CountType, EnableRefTracking>::empty_ref_count_data = { };
-#else
 template <class CountType>
 const typename RefCountedPtrBase<CountType>::RefCountDataType RefCountedPtrBase<CountType>::empty_ref_count_data = { };
-#endif
 
-#ifdef HYP_ENABLE_REF_TRACKING
-template <class CountType, bool EnableRefTracking>
-#else
 template <class CountType>
-#endif
 class WeakRefCountedPtrBase
 {
-#ifdef HYP_ENABLE_REF_TRACKING
-    friend class RefCountedPtrBase<CountType, EnableRefTracking>;
-
-    using Base = RefCountedPtrBase<CountType, EnableRefTracking>;
-#else
     friend class RefCountedPtrBase<CountType>;
 
     using Base = RefCountedPtrBase<CountType>;
-#endif
 
 public:
     using RefCountDataType = detail::RefCountData<CountType>;
@@ -824,22 +583,13 @@ protected:
 /*! \brief A simple ref counted pointer class.
     Not atomic by default, but using AtomicRefCountedPtr allows it to be. */
 template <class T, class CountType>
-class RefCountedPtr
-#ifdef HYP_ENABLE_REF_TRACKING
-    : public RefCountedPtrBase<CountType, EnableRefTrackingImpl<T>::value>
-#else
-    : public RefCountedPtrBase<CountType>
-#endif
+class RefCountedPtr : public RefCountedPtrBase<CountType>
 {
     friend class WeakRefCountedPtr<std::remove_const_t<T>, CountType>;
     friend class WeakRefCountedPtr<std::add_const_t<T>, CountType>;
 
 protected:
-#ifdef HYP_ENABLE_REF_TRACKING
-    using Base = RefCountedPtrBase<CountType, EnableRefTrackingImpl<T>::value>;
-#else
     using Base = RefCountedPtrBase<CountType>;
-#endif
 
     /*! \brief Takes ownership of ptr. Do not delete the pointer passed to this,
         as it will be automatically deleted when this object's ref count reaches zero. */
@@ -1098,22 +848,12 @@ public:
 
 // void pointer specialization -- just uses base class, but with Set() and Reset()
 template <class CountType>
-class RefCountedPtr<void, CountType>
-#ifdef HYP_ENABLE_REF_TRACKING
-    : public RefCountedPtrBase<CountType, EnableRefTrackingImpl<void>::value>
-#else
-    : public RefCountedPtrBase<CountType>
-#endif
+class RefCountedPtr<void, CountType> : public RefCountedPtrBase<CountType>
 {
     friend class WeakRefCountedPtr<void, CountType>;
 
 protected:
-
-#ifdef HYP_ENABLE_REF_TRACKING
-    using Base = RefCountedPtrBase<CountType, EnableRefTrackingImpl<void>::value>;
-#else
     using Base = RefCountedPtrBase<CountType>;
-#endif
 
 public:
     RefCountedPtr()
@@ -1267,21 +1007,13 @@ public:
 
 // weak ref counters
 template <class T, class CountType = std::atomic<uint>>
-class WeakRefCountedPtr
-#ifdef HYP_ENABLE_REF_TRACKING
-    : public WeakRefCountedPtrBase<CountType, EnableRefTrackingImpl<T>::value>
-#else
-    : public WeakRefCountedPtrBase<CountType>
-#endif
+class WeakRefCountedPtr : public WeakRefCountedPtrBase<CountType>
 {
     friend class RefCountedPtr<T, CountType>;
 
 protected:
-#ifdef HYP_ENABLE_REF_TRACKING
-    using Base = WeakRefCountedPtrBase<CountType, EnableRefTrackingImpl<T>::value>;
-#else
+
     using Base = WeakRefCountedPtrBase<CountType>;
-#endif
 
 public:
     WeakRefCountedPtr()
@@ -1376,12 +1108,6 @@ public:
         rc.SetRefCountData_Internal(Base::m_ref, false /* inc_ref */);
 
         if (Base::m_ref->HasValue()) {
-#ifdef HYP_ENABLE_REF_TRACKING
-        if constexpr (EnableRefTrackingImpl<T>::value) {
-            Base::m_ref->IncRefTrackDataCount(&rc);
-        }
-#endif
-
             Base::m_ref->IncRefCount_Strong();
         }
 
@@ -1392,23 +1118,13 @@ public:
 // Weak<void> specialization
 // Cannot be locked directly; must be cast to another type using `Cast<T>()` first.
 template <class CountType>
-class WeakRefCountedPtr<void, CountType>
-#ifdef HYP_ENABLE_REF_TRACKING
-    : public WeakRefCountedPtrBase<CountType, EnableRefTrackingImpl<void>::value>
-#else
-    : public WeakRefCountedPtrBase<CountType>
-#endif
+class WeakRefCountedPtr<void, CountType> : public WeakRefCountedPtrBase<CountType>
 {
     friend class RefCountedPtr<void, CountType>;
 
 protected:
-
-#ifdef HYP_ENABLE_REF_TRACKING
-    using Base = WeakRefCountedPtrBase<CountType, EnableRefTrackingImpl<void>::value>;
-#else
     using Base = WeakRefCountedPtrBase<CountType>;
-#endif
-
+    
 public:
     WeakRefCountedPtr()
         : Base()
@@ -1485,12 +1201,6 @@ class EnableRefCountedPtrFromThisBase
 {
     friend struct detail::RefCountData<CountType>;
 
-#ifdef HYP_ENABLE_REF_TRACKING
-    friend class RefCountedPtrBase<CountType, true>;
-    friend class RefCountedPtrBase<CountType, false>;
-#else
-    friend class RefCountedPtrBase<CountType>;
-#endif
     
 protected:
     EnableRefCountedPtrFromThisBase() = default;
@@ -1538,11 +1248,6 @@ public:
                 Memory::Construct<T>(m_value.GetPointer());
             }
 
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
-
             GetRefCountData_Internal()->IncRefCount_Strong();
             
             m_is_initialized = true;
@@ -1559,11 +1264,6 @@ public:
             Memory::Construct<T>(m_value.GetPointer(), std::forward<Arg0>(arg0), std::forward<Args>(args)...);
         }
 
-#ifdef HYP_ENABLE_REF_TRACKING
-        GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-        GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
-
         GetRefCountData_Internal()->IncRefCount_Strong();
     }
 
@@ -1576,11 +1276,6 @@ public:
             } else {
                 Memory::Construct<T>(m_value.GetPointer(), other.m_value.Get());
             }
-
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
 
             GetRefCountData_Internal()->IncRefCount_Strong();
         }
@@ -1605,11 +1300,6 @@ public:
         }
 
         if (m_is_initialized) {
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->DecRefTrackDataCount(this);
-            GetRefCountData_Internal()->RemoveRefTrackData(this);
-#endif
-
             GetRefCountData_Internal()->DecRefCount_Strong();
             
             Memory::Destruct<T>(m_value.GetPointer());
@@ -1621,11 +1311,6 @@ public:
             } else {
                 Memory::Construct<T>(m_value.GetPointer(), other.m_value.Get());
             }
-
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
 
             GetRefCountData_Internal()->IncRefCount_Strong();
         }
@@ -1645,11 +1330,6 @@ public:
             } else {
                 Memory::Construct<T>(m_value.GetPointer(), std::move(other.m_value.Get()));
             }
-
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
 
             GetRefCountData_Internal()->IncRefCount_Strong();
         }
@@ -1675,11 +1355,6 @@ public:
         }
 
         if (m_is_initialized) {
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->DecRefTrackDataCount(this);
-            GetRefCountData_Internal()->RemoveRefTrackData(this);
-#endif
-
             GetRefCountData_Internal()->DecRefCount_Strong();
             
             Memory::Destruct<T>(m_value.GetPointer());
@@ -1691,11 +1366,6 @@ public:
             } else {
                 Memory::Construct<T>(m_value.GetPointer(), std::move(other.m_value.Get()));
             }
-
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->AddRefTrackData(this, HYP_REF_TRACKING_GETSTACKTRACE());
-            GetRefCountData_Internal()->IncRefTrackDataCount(this);
-#endif
 
             GetRefCountData_Internal()->IncRefCount_Strong();
         }
@@ -1710,11 +1380,6 @@ public:
     ~OwningRefCountedPtr()
     {
         if (m_is_initialized) {
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->DecRefTrackDataCount(this);
-            GetRefCountData_Internal()->RemoveRefTrackData(this);
-#endif
-
             GetRefCountData_Internal()->DecRefCount_Strong();
             
             Memory::Destruct<T>(m_value.GetPointer());
@@ -1796,11 +1461,6 @@ public:
     void Reset()
     {
         if (m_is_initialized) {
-#ifdef HYP_ENABLE_REF_TRACKING
-            GetRefCountData_Internal()->DecRefTrackDataCount(this);
-            GetRefCountData_Internal()->RemoveRefTrackData(this);
-#endif
-
             GetRefCountData_Internal()->DecRefCount_Strong();
             
             Memory::Destruct<T>(m_value.GetPointer());

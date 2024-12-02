@@ -6,15 +6,14 @@
 #include <core/Handle.hpp>
 #include <core/utilities/UserData.hpp>
 
-#include <scene/animation/Skeleton.hpp>
-
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderProxy.hpp>
 
 namespace hyperion {
 
-struct RenderProxy;
+class Mesh;
+class Material;
+class Skeleton;
 
 using MeshComponentFlags = uint32;
 

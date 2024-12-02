@@ -25,6 +25,7 @@ namespace hyperion {
 class Engine;
 class Bone;
 class Animation;
+class SkeletonRenderResources;
 
 struct SkeletonBoneData
 {
@@ -70,14 +71,17 @@ public:
     Skeleton &operator=(const Skeleton &other)  = delete;
     ~Skeleton();
 
+    HYP_FORCE_INLINE SkeletonRenderResources &GetRenderResources() const
+        { return *m_render_resources; }
+
     /*! \brief Get the mutation state of this skeleton.
      *  \returns The mutation state of this skeleton. */
-    DataMutationState GetMutationState() const
+    HYP_FORCE_INLINE DataMutationState GetMutationState() const
         { return m_mutation_state; }
 
     /*! \brief Set the mutation state of this skeleton. To be called by the Bone class.
      *  \note This is not intended to be called by the user. */
-    void SetMutationState(DataMutationState state)
+    HYP_FORCE_INLINE void SetMutationState(DataMutationState state)
         { m_mutation_state = state; }
 
     /*! \brief Look up a bone with the given name/tag. If no root bone was set,
@@ -159,6 +163,8 @@ private:
     Array<Handle<Animation>>    m_animations;
 
     mutable DataMutationState   m_mutation_state;
+
+    SkeletonRenderResources     *m_render_resources;
 };
 
 } // namespace hyperion

@@ -3,8 +3,8 @@
 #ifndef HYPERION_MEMORY_POOL_HPP
 #define HYPERION_MEMORY_POOL_HPP
 
-#include <core/containers/HeapArray.hpp>
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/FixedArray.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>

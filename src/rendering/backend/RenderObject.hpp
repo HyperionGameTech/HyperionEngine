@@ -44,11 +44,11 @@ struct RenderObjectDefinition;
 template <class T, PlatformType PLATFORM>
 constexpr bool has_render_object_defined = implementation_exists<RenderObjectDefinition<T, PLATFORM>>;
 
-class HYP_API RenderIObjectContainer
+class HYP_API RenderObjectContainerBase
 {
 protected:
-    RenderIObjectContainer(ANSIStringView render_object_type_name);
-    ~RenderIObjectContainer();
+    RenderObjectContainerBase(ANSIStringView render_object_type_name);
+    ~RenderObjectContainerBase();
 
 public:
     HYP_FORCE_INLINE ANSIStringView GetRenderObjectTypeName() const
@@ -60,7 +60,7 @@ protected:
 };
 
 template <class T, PlatformType PLATFORM>
-class RenderObjectContainer : public RenderIObjectContainer
+class RenderObjectContainer final : public RenderObjectContainerBase
 {
 public:
     static constexpr SizeType max_size = RenderObjectDefinition<T, PLATFORM>::max_size;
@@ -154,7 +154,7 @@ public:
     };
 
     RenderObjectContainer()
-        : RenderIObjectContainer(TypeNameHelper<T, true>::value)
+        : RenderObjectContainerBase(TypeNameHelper<T, true>::value)
     {
     }
 

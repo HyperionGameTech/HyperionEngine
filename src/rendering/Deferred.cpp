@@ -462,18 +462,18 @@ void DeferredPass::Record(uint frame_index)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("LightsBuffer"), HYP_SHADER_DATA_OFFSET(Light, light_render_resources.GetBufferIndex()) },
-                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) },
-                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, shadow_probe_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("LightsBuffer"), ShaderDataOffset<LightShaderData>(light_render_resources.GetBufferIndex()) },
+                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) },
+                                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
                             },
                             scene_descriptor_set_index
                         );
                     
                     // Bind material descriptor set (for area lights)
                     if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_render_resources.GetMaterial().IsValid()) {
-                        const DescriptorSetRef &material_descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(light_render_resources.GetMaterial().GetID(), frame_index);
+                        const DescriptorSetRef &material_descriptor_set = light_render_resources.GetMaterial()->GetRenderResources().GetDescriptorSets()[frame_index];
                         AssertThrow(material_descriptor_set != nullptr);
 
                         material_descriptor_set->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
@@ -727,9 +727,9 @@ void EnvGridPass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
                             }
                         }
                     }
@@ -775,9 +775,9 @@ void EnvGridPass::Render(Frame *frame)
                     cmd,
                     m_render_group->GetPipeline(),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, env_grid_index) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
                     },
                     scene_descriptor_set_index
                 );
@@ -1072,8 +1072,8 @@ void ReflectionProbePass::Render(Frame *frame)
                         {
                             NAME("Scene"),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                             }
                         }
                     }
@@ -1141,9 +1141,9 @@ void ReflectionProbePass::Render(Frame *frame)
                             cmd,
                             render_group->GetPipeline(),
                             {
-                                { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                                { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                                { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, env_probe_id.ToIndex()) }
+                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_id.ToIndex()) }
                             },
                             scene_descriptor_set_index
                         );
@@ -1654,10 +1654,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, scene_index) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) },
-                        { NAME("EnvGridsBuffer"), HYP_SHADER_DATA_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), HYP_SHADER_DATA_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                     }
                 }
             }

@@ -8,7 +8,6 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/containers/Array.hpp>
-#include <core/containers/Stack.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -20,9 +19,10 @@
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
 
+#include <rendering/Material.hpp>
+
 #include <math/Color.hpp>
 #include <math/BlendVar.hpp>
-#include <math/MathUtil.hpp>
 
 #include <Types.hpp>
 

@@ -49,8 +49,6 @@ void CameraRenderResources::Destroy()
 void CameraRenderResources::Update()
 {
     HYP_SCOPE;
-
-    UpdateBufferData();
 }
 
 GPUBufferHolderBase *CameraRenderResources::GetGPUBufferHolder() const
@@ -62,9 +60,9 @@ void CameraRenderResources::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    AssertThrow(m_buffer_index != ~0u);
+    *static_cast<CameraShaderData *>(m_buffer_address) = m_buffer_data;
 
-    g_engine->GetRenderData()->cameras->Set(m_buffer_index, m_buffer_data);
+    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void CameraRenderResources::SetBufferData(const CameraShaderData &buffer_data)
@@ -76,7 +74,7 @@ void CameraRenderResources::SetBufferData(const CameraShaderData &buffer_data)
         m_buffer_data = buffer_data;
 
         if (m_is_initialized) {
-            SetNeedsUpdate();
+            UpdateBufferData();
         }
     });
 }

@@ -186,8 +186,8 @@ void HBAO::Render(Frame *frame)
                 {
                     NAME("Scene"),
                     {
-                        { NAME("ScenesBuffer"), HYP_SHADER_DATA_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                        { NAME("CamerasBuffer"), HYP_SHADER_DATA_OFFSET(Camera, camera_index) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) }
                     }
                 }
             }

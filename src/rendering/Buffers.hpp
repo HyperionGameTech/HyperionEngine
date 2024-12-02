@@ -225,10 +225,9 @@ public:
         { return m_buffers[frame_index]; }
 
     virtual void MarkDirty(uint32 index) = 0;
-    virtual void ResetElement(uint32 index) = 0;
     virtual void UpdateBuffer(Device *device, uint32 frame_index) = 0;
 
-    virtual uint32 AcquireIndex() = 0;
+    virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
 
     template <class T>
@@ -274,7 +273,7 @@ public:
     using Base = MemoryPool<StructType>;
 
     GPUBufferHolderMemoryPool(uint32 initial_count = 16 * Base::num_elements_per_block)
-        : Base(initial_count)
+        : Base(initial_count, /* create_initial_blocks */ true, /* block_init_ctx */ nullptr)
     {
     }
 
@@ -394,14 +393,21 @@ public:
         m_pool.MarkDirty(index);
     }
 
-    virtual void ResetElement(uint32 index) override
+    HYP_FORCE_INLINE uint32 AcquireIndex(StructType **out_element_ptr)
     {
-        Set(index, { });
+        return m_pool.AcquireIndex(out_element_ptr);
     }
 
-    virtual uint32 AcquireIndex() override
+    virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) override
     {
-        return m_pool.AcquireIndex();
+        StructType *element_ptr;
+        const uint32 index = m_pool.AcquireIndex(&element_ptr);
+
+        if (out_element_ptr != nullptr) {
+            *out_element_ptr = element_ptr;
+        }
+
+        return index;
     }
 
     virtual void ReleaseIndex(uint32 batch_index) override

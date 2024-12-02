@@ -42,6 +42,7 @@ HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID 
 RenderResourcesBase::RenderResourcesBase()
     : m_is_initialized(false),
       m_buffer_index(~0u),
+      m_buffer_address(nullptr),
       m_ref_count(0),
       m_update_counter(0)
 {
@@ -50,11 +51,13 @@ RenderResourcesBase::RenderResourcesBase()
 RenderResourcesBase::RenderResourcesBase(RenderResourcesBase &&other) noexcept
     : m_is_initialized(other.m_is_initialized),
       m_buffer_index(other.m_buffer_index),
+      m_buffer_address(other.m_buffer_address),
       m_ref_count(other.m_ref_count.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
     other.m_is_initialized = false;
     other.m_buffer_index = ~0u;
+    other.m_buffer_address = nullptr;
 }
 
 RenderResourcesBase::~RenderResourcesBase()
@@ -348,7 +351,7 @@ void RenderResourcesBase::AcquireBufferIndex()
         return;
     }
 
-    m_buffer_index = holder->AcquireIndex();
+    m_buffer_index = holder->AcquireIndex(&m_buffer_address);
 }
 
 void RenderResourcesBase::ReleaseBufferIndex()
@@ -356,13 +359,16 @@ void RenderResourcesBase::ReleaseBufferIndex()
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-    
+
     AssertThrow(m_buffer_index != ~0u);
 
     GPUBufferHolderBase *holder = GetGPUBufferHolder();
     AssertThrow(holder != nullptr);
 
     holder->ReleaseIndex(m_buffer_index);
+
+    m_buffer_index = ~0u;
+    m_buffer_address = nullptr;
 }
 
 #pragma endregion RenderResourcesBase

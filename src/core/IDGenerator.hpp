@@ -2,14 +2,16 @@
 #ifndef HYPERION_CORE_ID_CREATOR_HPP
 #define HYPERION_CORE_ID_CREATOR_HPP
 
-#include <core/containers/Queue.hpp>
+#include <core/Defines.hpp>
+
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+
+#include <core/containers/Queue.hpp>
 #include <core/containers/TypeMap.hpp>
-#include <core/ID.hpp>
+
 #include <Constants.hpp>
 #include <Types.hpp>
-#include <core/Defines.hpp>
 
 #include <mutex>
 #include <atomic>
