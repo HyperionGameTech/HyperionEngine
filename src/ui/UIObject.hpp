@@ -616,14 +616,6 @@ public:
     HYP_FORCE_INLINE bool AffectsParentSize() const
         { return m_affects_parent_size; }
 
-    /*! \brief Returns whether or not this UIObject type acts as a container for other objects. 
-     *  Container types can have objects that sit outside and move independently of this object itself,
-     *  and is useful for things like tab views, panels that scroll, etc. However, it comes with the added cost
-     *  of more bookkeeping and more RenderGroup creation for rendering. See \ref{CollectObjects} and \ref{UIRenderer::OnUpdate} for example. */
-    HYP_METHOD()
-    virtual bool IsContainer() const
-        { return false; }
-
     /*! \brief Get the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \return The border radius of the UI object */
@@ -853,6 +845,11 @@ public:
     void SetNodeTag(Name key, const NodeTag &tag);
     bool HasNodeTag(Name key) const;
     bool RemoveNodeTag(Name key);
+
+    /*! \brief The default event handler result which is combined with the results of bound event handlers, if the result is equal to OK.
+     *  E.g UIButton could return OK if the button was clicked, and the default event handler result could be set to STOP_BUBBLING so that the event does not propagate to objects behind it. */
+    virtual UIEventHandlerResult GetDefaultEventHandlerResult() const
+        {  return UIEventHandlerResult(); }
 
     virtual void UpdatePosition(bool update_children = true);
     virtual void UpdateSize(bool update_children = true);
@@ -1093,12 +1090,6 @@ protected:
     EnumFlags<UIObjectUpdateType>   m_locked_updates;
 
 private:
-    /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
-     *  \param proc The function to call for each collected UIObject.
-     *  \param out_deferred_child_objects Array to push child objects to, in the case that its parent type is not a container type (IsContainer() returns false)
-     *  \param only_visible If true, skips objects with computed visibility as non-visible */
-    void CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool only_visible = true) const;
-
     void ComputeOffsetPosition();
 
     void UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags);

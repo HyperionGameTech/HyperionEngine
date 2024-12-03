@@ -65,6 +65,8 @@ public:
     {
         AssertThrow(m_ui_object != nullptr);
 
+        const UIEventHandlerResult default_result = m_ui_object->GetDefaultEventHandlerResult();
+
         if (!m_ui_object->GetEntity().IsValid()) {
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid entity"));
         }
@@ -77,7 +79,7 @@ public:
 
         if (!script_component) {
             // No script component, do not call.
-            return UIEventHandlerResult::OK;
+            return default_result;
         }
 
         if (!script_component->object) {
@@ -95,10 +97,16 @@ public:
                     // // Stubbed method, do not bother calling it
                     HYP_LOG(UI, LogLevel::INFO, "Stubbed method {} for UI object with name: {}", m_method_name, m_ui_object->GetName());
 
-                    return UIEventHandlerResult::OK;
+                    return default_result;
                 }
 
-                return script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr, std::forward<Args>(args)...);
+                UIEventHandlerResult result = script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr, std::forward<Args>(args)...);
+
+                if (result == UIEventHandlerResult::OK) {
+                    return result | default_result;
+                }
+
+                return result;
             }
 
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Unknown error; method missing on class"));

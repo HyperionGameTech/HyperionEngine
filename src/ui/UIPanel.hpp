@@ -49,9 +49,6 @@ public:
             && GetActualInnerSize()[orientation_index] > GetActualSize()[orientation_index];
     }
 
-    virtual bool IsContainer() const override
-        { return true; }
-
     virtual void Init() override;
 
 protected:

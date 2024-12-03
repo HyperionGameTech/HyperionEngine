@@ -76,8 +76,8 @@ public:
     HYP_FORCE_INLINE const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
-    virtual bool IsContainer() const override
-        { return false; }
+    virtual UIEventHandlerResult GetDefaultEventHandlerResult() const override
+        {  return UIEventHandlerResult(UIEventHandlerResult::STOP_BUBBLING); }
 
     virtual void Init() override;
 

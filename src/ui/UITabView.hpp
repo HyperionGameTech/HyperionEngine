@@ -31,9 +31,6 @@ public:
     HYP_FORCE_INLINE const RC<UIPanel> &GetContents() const
         { return m_contents; }
 
-    virtual bool IsContainer() const override
-        { return false; }
-
     virtual void Init() override;
 
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;

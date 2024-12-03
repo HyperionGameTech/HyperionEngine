@@ -36,6 +36,9 @@ public:
     HYP_FORCE_INLINE const RC<UIText> &GetTextElement() const
         { return m_text_element; }
 
+    virtual UIEventHandlerResult GetDefaultEventHandlerResult() const override
+        {  return UIEventHandlerResult(UIEventHandlerResult::STOP_BUBBLING); }
+
     virtual void Init() override;
 
 protected:

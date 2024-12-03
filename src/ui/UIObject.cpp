@@ -2252,7 +2252,7 @@ bool UIObject::RemoveNodeTag(Name key)
     return false;
 }
 
-void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> &out_deferred_child_objects, bool only_visible) const
+void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible) const
 {
     HYP_SCOPE;
 
@@ -2322,18 +2322,6 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, Array<UIObject *> 
     // for (const Pair<Node *, UIObject *> &it : children) {
     //     it.second->CollectObjects(proc, out_deferred_child_objects, only_visible);
     // }
-}
-
-void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible) const
-{
-    HYP_SCOPE;
-    
-    Array<UIObject *> deferred_child_objects;
-    CollectObjects(proc, deferred_child_objects, only_visible);
-
-    for (UIObject *child_object : deferred_child_objects) {
-        child_object->CollectObjects(proc, only_visible);
-    }
 }
 
 void UIObject::CollectObjects(Array<UIObject *> &out_objects, bool only_visible) const

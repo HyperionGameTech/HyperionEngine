@@ -199,9 +199,6 @@ public:
      *  thread than the one specified. This method is not thread-safe. */
     void SetOwnerThreadID(ThreadID thread_id);
 
-    virtual bool IsContainer() const override
-        { return true; }
-
     virtual void Init() override;
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
 
