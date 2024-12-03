@@ -427,7 +427,6 @@ Mesh::~Mesh()
         m_always_claimed_render_resources_handle.Reset();
 
         if (m_render_resources != nullptr) {
-            HYP_LOG(Mesh, LogLevel::DEBUG, "Releasing render resources for mesh {}, current use count = {}", GetID().Value(), m_render_resources->GetUseCount());
             FreeRenderResources(m_render_resources);
         }
     }

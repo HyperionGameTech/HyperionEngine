@@ -127,7 +127,7 @@ RenderGroup::RenderGroup()
     : HypObject(),
       m_flags(RenderGroupFlags::NONE),
       m_pipeline(MakeRenderObject<GraphicsPipeline>()),
-      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
+      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches), this)
 {
 }
 
@@ -140,7 +140,7 @@ RenderGroup::RenderGroup(
     m_shader(shader),
     m_pipeline(MakeRenderObject<GraphicsPipeline>()),
     m_renderable_attributes(renderable_attributes),
-    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
+    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches), this)
 {
     if (m_shader != nullptr) {
         m_pipeline->SetShader(m_shader);
@@ -157,7 +157,7 @@ RenderGroup::RenderGroup(
     m_pipeline(MakeRenderObject<GraphicsPipeline>(ShaderRef::unset, descriptor_table)),
     m_shader(shader),
     m_renderable_attributes(renderable_attributes),
-    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches))
+    m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(max_entity_instance_batches), this)
 {
     if (m_shader != nullptr) {
         m_pipeline->SetShader(m_shader);
@@ -359,16 +359,27 @@ void RenderGroup::CreateGraphicsPipeline()
 
 void RenderGroup::ClearProxies()
 {
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     m_render_proxies.Clear();
 }
 
 void RenderGroup::AddRenderProxy(const RenderProxy &render_proxy)
 {
-    m_render_proxies.Insert(Pair<ID<Entity>, RenderProxy> { render_proxy.entity.GetID(), render_proxy });
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+    AssertDebug(render_proxy.mesh.IsValid());
+    AssertDebug(render_proxy.mesh->IsReady());
+
+    AssertDebug(render_proxy.material.IsValid());
+
+    m_render_proxies.Set(render_proxy.entity.GetID(), render_proxy);
 }
 
 bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
 {
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     const auto it = m_render_proxies.Find(entity);
 
     if (it == m_render_proxies.End()) {
@@ -382,6 +393,8 @@ bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
 
 typename RenderProxyEntityMap::Iterator RenderGroup::RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator)
 {
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
     return m_render_proxies.Erase(iterator);
 }
 
@@ -391,10 +404,10 @@ void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl *draw_call_c
 
     AssertThrowMsg(!IsInitCalled(), "Cannot use SetDrawCallCollectionImpl() after Init() has been called on RenderGroup; graphics pipeline will have been already created");
 
-    m_draw_state = DrawCallCollection(draw_call_collection_impl);
+    m_draw_state = DrawCallCollection(draw_call_collection_impl, this);
 }
 
-void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
+void RenderGroup::CollectDrawCalls()
 {
     HYP_SCOPE;
 
@@ -412,13 +425,13 @@ void RenderGroup::CollectDrawCalls(const RenderProxyEntityMap &render_proxies)
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    for (const auto &it : render_proxies) {
+    for (const auto &it : m_render_proxies) {
         const RenderProxy &render_proxy = it.second;
 
-#ifdef HYP_DEBUG_MODE
-        AssertThrow(render_proxy.mesh.IsValid());
-        AssertThrow(render_proxy.material.IsValid());
-#endif
+        AssertDebug(render_proxy.material.IsValid());
+
+        AssertDebug(render_proxy.mesh.IsValid());
+        AssertDebugMsg(render_proxy.mesh->IsReady(), "Mesh #%u is not ready", render_proxy.mesh->GetID().Value());
 
         DrawCallID draw_call_id;
 

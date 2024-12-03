@@ -111,9 +111,8 @@ public:
     /*! \brief Collect drawable objects, then run the culling compute shader
      *  to mark any occluded objects as such. Must be used with indirect rendering.
      *  If nullptr is provided for cull_data, no occlusion culling will happen.
-     *  \param render_proxies The render proxies to collect draw calls from.
      */
-    void CollectDrawCalls(const RenderProxyEntityMap &render_proxies);
+    void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(Frame *frame);

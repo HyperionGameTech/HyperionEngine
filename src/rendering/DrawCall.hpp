@@ -5,6 +5,7 @@
 
 #include <core/Defines.hpp>
 #include <core/ID.hpp>
+#include <core/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -21,6 +22,7 @@ class Mesh;
 class Material;
 class Skeleton;
 class Entity;
+class RenderGroup;
 struct RenderProxy;
 struct DrawCommandData;
 class IndirectDrawState;
@@ -117,8 +119,9 @@ public:
 class DrawCallCollection
 {
 public:
-    DrawCallCollection(IDrawCallCollectionImpl *impl)
-        : m_impl(impl)
+    DrawCallCollection(IDrawCallCollectionImpl *impl, RenderGroup *render_group)
+        : m_impl(impl),
+          m_render_group(render_group)
     {
     }
 
@@ -132,6 +135,9 @@ public:
 
     HYP_FORCE_INLINE IDrawCallCollectionImpl *GetImpl() const
         { return m_impl; }
+
+    HYP_FORCE_INLINE RenderGroup *GetRenderGroup() const
+        { return m_render_group; }
 
     HYP_FORCE_INLINE Array<DrawCall, 4096> &GetDrawCalls()
         { return m_draw_calls; }
@@ -152,6 +158,8 @@ private:
     uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_data_offset);
 
     IDrawCallCollectionImpl             *m_impl;
+
+    RenderGroup                         *m_render_group;
 
     Array<DrawCall, 4096>               m_draw_calls;
 

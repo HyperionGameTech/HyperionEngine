@@ -171,11 +171,11 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             
             attributes.SetDrawableLayer(pair.second);
 
-            RenderProxyGroup &render_proxy_group = collection->GetProxyGroups()[pass_type][attributes];
+            Handle<RenderGroup> &render_group = collection->GetProxyGroups()[pass_type][attributes];
 
-            if (!render_proxy_group.GetRenderGroup().IsValid()) {
+            if (!render_group.IsValid()) {
                 // Create RenderGroup
-                Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+                render_group = CreateObject<RenderGroup>(
                     g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                     attributes,
                     RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
@@ -203,11 +203,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 #endif
 
                 InitObject(render_group);
-
-                render_proxy_group.SetRenderGroup(render_group);
             }
 
-            render_proxy_group.AddRenderProxy(*proxy);
+            render_group->AddRenderProxy(*proxy);
         }
 
         collection->RemoveEmptyProxyGroups();
@@ -221,9 +219,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         bool removed = false;
 
-        for (auto &proxy_groups : collection->GetProxyGroups()) {
-            for (auto &it : proxy_groups) {
-                removed |= it.second.RemoveRenderProxy(entity);
+        for (auto &render_groups_by_attributes : collection->GetProxyGroups()) {
+            for (auto &it : render_groups_by_attributes) {
+                removed |= it.second->RemoveRenderProxy(entity);
             }
         }
 
@@ -378,12 +376,12 @@ void UIRenderCollector::CollectDrawCalls(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
 
     Array<IteratorType> iterators;
 
-    for (auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
-        for (auto &it : proxy_groups) {
+    for (auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+        for (auto &it : render_groups_by_attributes) {
             const RenderableAttributeSet &attributes = it.first;
 
             if (attributes.GetMaterialAttributes().bucket != BUCKET_UI) {
@@ -399,12 +397,10 @@ void UIRenderCollector::CollectDrawCalls(Frame *frame)
         iterators,
         [this](IteratorType it, uint, uint)
         {
-            RenderProxyGroup &proxy_group = it->second;
-
-            const Handle<RenderGroup> &render_group = proxy_group.GetRenderGroup();
+            Handle<RenderGroup> &render_group = it->second;
             AssertThrow(render_group.IsValid());
 
-            render_group->CollectDrawCalls(proxy_group.GetRenderProxies());
+            render_group->CollectDrawCalls();
         }
     );
 }
@@ -429,11 +425,11 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame) const
 
     g_engine->GetRenderState().BindCamera(m_camera.Get());
 
-    using IteratorType = FlatMap<RenderableAttributeSet, RenderProxyGroup>::ConstIterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto &proxy_groups : m_draw_collection->GetProxyGroups()) {
-        for (const auto &it : proxy_groups) {
+    for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+        for (const auto &it : render_groups_by_attributes) {
             iterators.PushBack(&it);
         }
     }
@@ -453,15 +449,15 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame) const
         const auto &it = *iterators[index];
 
         const RenderableAttributeSet &attributes = it.first;
-        const RenderProxyGroup &proxy_group = it.second;
+        const Handle<RenderGroup> &render_group = it.second;
 
         if (attributes.GetMaterialAttributes().bucket != BUCKET_UI) {
             continue;
         }
 
-        AssertThrow(proxy_group.GetRenderGroup().IsValid());
+        AssertThrow(render_group.IsValid());
 
-        proxy_group.GetRenderGroup()->PerformRendering(frame);
+        render_group->PerformRendering(frame);
     }
 
     g_engine->GetRenderState().UnbindCamera(m_camera.Get());

@@ -51,8 +51,7 @@ DrawCallCollection::~DrawCallCollection()
 
 void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCallID id, const RenderProxy &render_proxy)
 {
-    AssertThrow(render_proxy.mesh.IsValid());
-
+    // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
     auto index_map_it = m_index_map.Find(uint64(id));
 
     if (index_map_it == m_index_map.End()) {
@@ -144,7 +143,7 @@ void DrawCallCollection::ResetDrawCalls()
     GPUBufferHolderBase *entity_instance_batches = m_impl->GetEntityInstanceBatchHolder();
     AssertDebug(entity_instance_batches != nullptr);
 
-    for (const DrawCall &draw_call : m_draw_calls) {
+    for (DrawCall &draw_call : m_draw_calls) {
         if (draw_call.batch != nullptr) {
             const uint32 batch_index = draw_call.batch->batch_index;
             AssertDebug(batch_index != ~0u);
@@ -152,6 +151,8 @@ void DrawCallCollection::ResetDrawCalls()
             *draw_call.batch = EntityInstanceBatch { batch_index };
 
             m_impl->ReleaseBatch(draw_call.batch);
+
+            draw_call.batch = nullptr;
         }
     }
 

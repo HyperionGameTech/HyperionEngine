@@ -73,8 +73,8 @@ struct HypObjectHeader
 {
     IObjectContainer    *container;
     uint32              index;
-    AtomicVar<uint16>   ref_count_strong;
-    AtomicVar<uint16>   ref_count_weak;
+    AtomicVar<uint32>   ref_count_strong;
+    AtomicVar<uint32>   ref_count_weak;
 
 #ifdef HYP_DEBUG_MODE
     AtomicVar<bool>     has_value;
@@ -91,20 +91,40 @@ struct HypObjectHeader
 #endif
     }
 
+    HypObjectHeader(const HypObjectHeader &)                = delete;
+    HypObjectHeader &operator=(const HypObjectHeader &)     = delete;
+    HypObjectHeader(HypObjectHeader &&) noexcept            = delete;
+    HypObjectHeader &operator=(HypObjectHeader &&) noexcept = delete;
+    ~HypObjectHeader()                                      = default;
+
     HYP_FORCE_INLINE bool IsNull() const
         { return index == ~0u; }
 
     HYP_FORCE_INLINE uint32 GetRefCountStrong() const
-        { return uint32(ref_count_strong.Get(MemoryOrder::ACQUIRE)); }
+        { return ref_count_strong.Get(MemoryOrder::ACQUIRE); }
 
     HYP_FORCE_INLINE uint32 GetRefCountWeak() const
-        { return uint32(ref_count_weak.Get(MemoryOrder::ACQUIRE)); }
+        { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
 
     HYP_FORCE_INLINE void IncRefStrong()
-        { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
+    {
+#ifdef HYP_DEBUG_MODE
+        uint32 count = ref_count_strong.Increment(1, MemoryOrder::RELAXED);
+        AssertThrow(count < UINT32_MAX);
+#else
+        ref_count_strong.Increment(1, MemoryOrder::RELAXED)
+#endif
+    }
 
     HYP_FORCE_INLINE void IncRefWeak()
-        { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
+    {
+#ifdef HYP_DEBUG_MODE
+        uint32 count = ref_count_weak.Increment(1, MemoryOrder::RELAXED);
+        AssertThrow(count < UINT32_MAX);
+#else
+        ref_count_weak.Increment(1, MemoryOrder::RELAXED);
+#endif
+    }
 
     HYP_FORCE_INLINE void DecRefStrong()
         { container->DecRefStrong(this); }
@@ -154,7 +174,7 @@ struct HypObjectMemory final : HypObjectHeader
 
     uint32 DecRefStrong()
     {
-        uint16 count;
+        uint32 count;
 
         if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
 #ifdef HYP_DEBUG_MODE
@@ -172,12 +192,14 @@ struct HypObjectMemory final : HypObjectHeader
             }
         }
 
-        return uint32(count) - 1;
+        AssertDebug(count != 0);
+
+        return count - 1;
     }
 
     uint32 DecRefWeak()
     {
-        uint16 count;
+        uint32 count;
 
         if ((count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
 #ifdef HYP_DEBUG_MODE
@@ -195,22 +217,24 @@ struct HypObjectMemory final : HypObjectHeader
             }
         }
 
-        return uint32(count) - 1;
+        AssertDebug(count != 0);
+
+        return count - 1;
     }
 
     T *Release()
     {
         T *ptr = reinterpret_cast<T *>(bytes);
-        uint16 count;
 
-        if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
 #ifdef HYP_DEBUG_MODE
-            AssertThrow(has_value.Get(MemoryOrder::SEQUENTIAL));
+        AssertThrow(has_value.Get(MemoryOrder::SEQUENTIAL));
 
-            AssertThrow(container != nullptr);
-            AssertThrow(index != ~0u);
+        AssertThrow(container != nullptr);
+        AssertThrow(index != ~0u);
 #endif
-        }
+
+        const uint32 count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+        AssertDebug(count != 0);
 
         return ptr;
     }

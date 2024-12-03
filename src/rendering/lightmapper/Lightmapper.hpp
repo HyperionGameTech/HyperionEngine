@@ -145,7 +145,7 @@ struct LightmapJobParams
     LightmapTraceMode                                   trace_mode;
     Handle<Scene>                                       scene;
     Span<LightmapElement>                               elements_view;
-    HashMap<ID<Entity>, LightmapElement *>              *all_elements_map;
+    HashMap<Handle<Entity>, LightmapElement *>          *all_elements_map;
     Variant<LightmapJobCPUParams, LightmapJobGPUParams> params;
 };
 
@@ -168,9 +168,6 @@ public:
 
     HYP_FORCE_INLINE const UUID &GetUUID() const
         { return m_uuid; }
-    
-    HYP_FORCE_INLINE LightmapUVMap &GetUVMap()
-        { return m_uv_map; }
 
     HYP_FORCE_INLINE const LightmapUVMap &GetUVMap() const
         { return m_uv_map; }
@@ -226,9 +223,9 @@ private:
      *  \param rays The rays to trace.    
      */
     void TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type);
-
-    void BuildUVMap();
     void TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayload &out_payload);
+
+    Optional<LightmapUVMap> BuildUVMap();
 
     HYP_FORCE_INLINE LightmapTopLevelAccelerationStructure *GetAccelerationStructure() const
     {
@@ -285,6 +282,8 @@ private:
 
     void AddJob(UniquePtr<LightmapJob> &&job)
     {
+        Mutex::Guard guard(m_queue_mutex);
+        
         m_queue.Push(std::move(job));
 
         m_num_jobs.Increment(1, MemoryOrder::RELEASE);
@@ -292,18 +291,19 @@ private:
 
     void HandleCompletedJob(LightmapJob *job);
 
-    LightmapTraceMode                       m_trace_mode;
+    LightmapTraceMode                           m_trace_mode;
 
-    Handle<Scene>                           m_scene;
+    Handle<Scene>                               m_scene;
 
-    RC<LightmapPathTracer>                  m_path_tracer_radiance;
-    RC<LightmapPathTracer>                  m_path_tracer_irradiance;
+    RC<LightmapPathTracer>                      m_path_tracer_radiance;
+    RC<LightmapPathTracer>                      m_path_tracer_irradiance;
 
-    Queue<UniquePtr<LightmapJob>>           m_queue;
-    AtomicVar<uint>                         m_num_jobs;
+    Queue<UniquePtr<LightmapJob>>               m_queue;
+    Mutex                                       m_queue_mutex;
+    AtomicVar<uint>                             m_num_jobs;
 
-    Array<LightmapElement>                  m_lightmap_elements;
-    HashMap<ID<Entity>, LightmapElement *>  m_all_elements_map;
+    Array<LightmapElement>                      m_lightmap_elements;
+    HashMap<Handle<Entity>, LightmapElement *>  m_all_elements_map;
 };
 
 } // namespace hyperion

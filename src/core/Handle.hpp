@@ -65,7 +65,7 @@ private:
             ptr->IncRefStrong();
         } else {
             // don't allow invalid, set to null instead
-            ptr = nullptr;
+            this->ptr = nullptr;
         }
     }
 
@@ -88,11 +88,8 @@ public:
 
     template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
     explicit Handle(TPointerType *ptr)
-        : HandleBase()
+        : Handle(ptr != nullptr ? ptr->GetObjectHeader_Internal() : nullptr)
     {
-        if (ptr != nullptr) {
-            *this = ptr->HandleFromThis();
-        }
     }
 
     explicit Handle(HypObjectMemory<T> *ptr)
