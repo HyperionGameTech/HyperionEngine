@@ -41,10 +41,10 @@ public:
     HYP_FORCE_INLINE StreamedDataRef<StreamedTextureData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<StreamedTextureData>() }; }
 
-    virtual bool IsNull() const override;
-    virtual bool IsInMemory() const override;
-
 protected:
+    virtual bool IsNull_Internal() const override;
+    virtual bool IsInMemory_Internal() const override;
+    
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
     

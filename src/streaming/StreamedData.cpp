@@ -112,6 +112,20 @@ StreamedData::StreamedData(StreamedDataState initial_state)
     }
 }
 
+bool StreamedData::IsInMemory() const
+{
+    m_loading_semaphore.Acquire();
+    
+    return IsInMemory_Internal();
+}
+
+bool StreamedData::IsNull() const
+{
+    m_loading_semaphore.Acquire();
+
+    return IsNull_Internal();
+}
+
 const ByteBuffer &StreamedData::Load() const
 {
     if (IsInMemory()) {
@@ -119,8 +133,14 @@ const ByteBuffer &StreamedData::Load() const
     }
 
     HYP_NAMED_SCOPE("Load streamed data");
+
+    m_loading_semaphore.Produce(1);
     
-    return Load_Internal();
+    const ByteBuffer &buffer = Load_Internal();
+
+    m_loading_semaphore.Release(1);
+
+    return buffer;
 }
 
 void StreamedData::Unpage()
@@ -131,7 +151,11 @@ void StreamedData::Unpage()
 
     HYP_NAMED_SCOPE("Unpage streamed data");
 
+    m_loading_semaphore.Produce(1);
+
     Unpage_Internal();
+
+    m_loading_semaphore.Release(1);
 }
 
 const ByteBuffer &StreamedData::GetByteBuffer() const
@@ -145,12 +169,12 @@ const ByteBuffer &StreamedData::GetByteBuffer() const
 
 #pragma region NullStreamedData
 
-bool NullStreamedData::IsNull() const
+bool NullStreamedData::IsNull_Internal() const
 {
     return true;
 }
 
-bool NullStreamedData::IsInMemory() const
+bool NullStreamedData::IsInMemory_Internal() const
 {
     return false;
 }
@@ -244,12 +268,12 @@ MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) no
     return *this;
 }
 
-bool MemoryStreamedData::IsNull() const
+bool MemoryStreamedData::IsNull_Internal() const
 {
     return false;
 }
 
-bool MemoryStreamedData::IsInMemory() const
+bool MemoryStreamedData::IsInMemory_Internal() const
 {
     return m_byte_buffer.HasValue();
 }

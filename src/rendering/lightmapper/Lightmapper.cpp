@@ -837,26 +837,38 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         }
 
         // Convert UV to world space
+        AssertThrow(streamed_mesh_data_refs->second->IsInMemory());
         const MeshData &mesh_data = streamed_mesh_data_refs->second->GetMeshData();
 
         AssertThrowMsg(
             uv.triangle_index * 3 + 2 < mesh_data.indices.Size(),
-            "Triangle index (%u) out of range of mesh indices",
-            uv.triangle_index
+            "Triangle index (%u) out of range of mesh indices. Num Indices: %u",
+            uv.triangle_index,
+            mesh->NumIndices()
         );
 
         const Matrix4 normal_matrix = uv.transform.Inverted().Transpose();
 
+        const uint32 triangle_indices[3] = {
+            mesh_data.indices[uv.triangle_index * 3 + 0],
+            mesh_data.indices[uv.triangle_index * 3 + 1],
+            mesh_data.indices[uv.triangle_index * 3 + 2]
+        };
+
+        AssertThrow(triangle_indices[0] < mesh_data.vertices.Size());
+        AssertThrow(triangle_indices[1] < mesh_data.vertices.Size());
+        AssertThrow(triangle_indices[2] < mesh_data.vertices.Size());
+
         const Vec3f vertex_positions[3] = {
-            uv.transform * mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 0]].position,
-            uv.transform * mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 1]].position,
-            uv.transform * mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 2]].position
+            uv.transform * mesh_data.vertices[triangle_indices[0]].position,
+            uv.transform * mesh_data.vertices[triangle_indices[1]].position,
+            uv.transform * mesh_data.vertices[triangle_indices[2]].position
         };
 
         const Vec3f vertex_normals[3] = {
-            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 0]].normal, 0.0f)).GetXYZ(),
-            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 1]].normal, 0.0f)).GetXYZ(),
-            (Vec4f(mesh_data.vertices[mesh_data.indices[uv.triangle_index * 3 + 2]].normal, 0.0f)).GetXYZ()
+            (Vec4f(mesh_data.vertices[triangle_indices[0]].normal, 0.0f)).GetXYZ(),
+            (Vec4f(mesh_data.vertices[triangle_indices[1]].normal, 0.0f)).GetXYZ(),
+            (Vec4f(mesh_data.vertices[triangle_indices[2]].normal, 0.0f)).GetXYZ()
         };
 
         const Vec3f position = vertex_positions[0] * uv.barycentric_coords.x
@@ -1420,8 +1432,6 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             });
         }        
     }
-
-    Mutex::Guard guard(m_queue_mutex);
 
     m_queue.Pop();
     m_num_jobs.Decrement(1, MemoryOrder::RELEASE);

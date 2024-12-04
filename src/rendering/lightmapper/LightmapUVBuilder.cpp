@@ -112,7 +112,6 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
     }
 }
 
-
 LightmapUVBuilder::Result LightmapUVBuilder::Build()
 {
     if (!m_params.elements) {

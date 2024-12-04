@@ -66,7 +66,7 @@ struct AtomicSemaphoreImpl
 
     ~AtomicSemaphoreImpl()                                                  = default;
 
-    void Acquire()
+    void Acquire() const
     {
         if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
             while (value.Get(MemoryOrder::SEQUENTIAL) > 0) {
@@ -158,9 +158,9 @@ struct ConditionVarSemaphoreImpl
 
     static_assert(std::is_signed_v<CounterType>, "CounterType must be a signed type as value can go below 0");
 
-    mutable std::mutex      mutex;
-    std::condition_variable cv;
-    CounterType             value;
+    mutable std::mutex              mutex;
+    mutable std::condition_variable cv;
+    CounterType                     value;
 
     ConditionVarSemaphoreImpl(CounterType initial_value)
         : value(initial_value)
@@ -179,7 +179,7 @@ struct ConditionVarSemaphoreImpl
 
     ~ConditionVarSemaphoreImpl()                                                        = default;
 
-    void Acquire()
+    void Acquire() const
     {
         std::unique_lock<std::mutex> lock(mutex);
 
@@ -312,7 +312,7 @@ public:
     Semaphore &operator=(Semaphore &&other) noexcept    = delete;
     ~Semaphore()                                        = default;
 
-    HYP_FORCE_INLINE void Acquire()
+    HYP_FORCE_INLINE void Acquire() const
         { m_impl.Acquire(); }
 
     HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void, bool> if_signal_state_changed_proc)

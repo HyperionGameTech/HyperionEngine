@@ -11,6 +11,7 @@
 #include <core/functional/Proc.hpp>
 
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Semaphore.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 
@@ -24,6 +25,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
+// @TODO Abstract RenderResources into IResource and RenderResource, and change StreamedData to StreamingResource (implementing IResource)
+// so it can use memory pooling and a unified interface
 class StreamedData;
 
 enum class StreamedDataState : uint32
@@ -111,6 +114,8 @@ class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
 {
     HYP_OBJECT_BODY(StreamedData);
 
+    using LoadingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+
 protected:
     StreamedData(StreamedDataState initial_state);
 
@@ -124,18 +129,23 @@ public:
     StreamedData &operator=(StreamedData &&) noexcept   = delete;
     virtual ~StreamedData()                             = default;
 
-    virtual bool IsNull() const = 0;
-    virtual bool IsInMemory() const = 0;
+    bool IsInMemory() const;
+    bool IsNull() const;
 
     void Unpage();
     const ByteBuffer &Load() const;
 
 protected:
+    virtual bool IsInMemory_Internal() const = 0;
+    virtual bool IsNull_Internal() const = 0;
+
     virtual const ByteBuffer &Load_Internal() const = 0;
     virtual void Unpage_Internal() = 0;
+
     virtual const ByteBuffer &GetByteBuffer() const;
 
-    mutable AtomicVar<int>  m_use_count { 0 };
+    mutable AtomicVar<int>      m_use_count { 0 };
+    mutable LoadingSemaphore    m_loading_semaphore;
 };
 
 HYP_CLASS()
@@ -150,10 +160,10 @@ public:
     StreamedDataRef<NullStreamedData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<NullStreamedData>() }; }
 
-    virtual bool IsNull() const override;
-    virtual bool IsInMemory() const override;
-
 protected:
+    virtual bool IsNull_Internal() const override;
+    virtual bool IsInMemory_Internal() const override;
+
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
 };
@@ -180,12 +190,13 @@ public:
     StreamedDataRef<MemoryStreamedData> AcquireRef()
         { return { RefCountedPtrFromThis().CastUnsafe<MemoryStreamedData>() }; }
 
-    virtual bool IsNull() const override;
-    virtual bool IsInMemory() const override;
-
 protected:
+    virtual bool IsNull_Internal() const override;
+    virtual bool IsInMemory_Internal() const override;
+
     virtual const ByteBuffer &Load_Internal() const override;
     virtual void Unpage_Internal() override;
+
     virtual const ByteBuffer &GetByteBuffer() const override;
     
     HashCode                            m_hash_code;
