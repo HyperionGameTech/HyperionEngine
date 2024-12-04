@@ -35,7 +35,7 @@ void UIWindow::Init()
     UIPanel::Init();
 
     { // create title bar
-        m_title_bar = GetStage()->CreateUIObject<UIPanel>(NAME("TitleBar"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
+        m_title_bar = CreateUIObject<UIPanel>(NAME("TitleBar"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
         m_title_bar->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
         m_title_bar->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
         m_title_bar->SetBorderRadius(5);
@@ -43,7 +43,7 @@ void UIWindow::Init()
         m_title_bar->SetPadding(Vec2i { 5, 5 });
         m_title_bar->SetBackgroundColor(Vec4f { 0.4f, 0.4f, 0.4f, 1.0f });
 
-        RC<UIText> title_bar_text = GetStage()->CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        RC<UIText> title_bar_text = CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         title_bar_text->SetParentAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetOriginAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -79,7 +79,7 @@ void UIWindow::Init()
         UIPanel::AddChildUIObject(m_title_bar);
     }
 
-    m_content = GetStage()->CreateUIObject<UIPanel>(NAME("Content"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::FILL }));
+    m_content = CreateUIObject<UIPanel>(NAME("Content"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::FILL }));
     m_content->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     m_content->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     m_content->SetBorderRadius(5);

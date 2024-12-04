@@ -12,7 +12,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorActionStack::EditorActionStack()
-    : m_current_action_index(0)
+    : m_current_action_index(-1)
 {
 }
 
@@ -20,7 +20,7 @@ EditorActionStack::EditorActionStack(EditorActionStack &&other) noexcept
     : m_actions(Move(other.m_actions)),
       m_current_action_index(other.m_current_action_index)
 {
-    other.m_current_action_index = 0;
+    other.m_current_action_index = -1;
 }
 
 EditorActionStack &EditorActionStack::operator=(EditorActionStack &&other) noexcept
@@ -28,7 +28,7 @@ EditorActionStack &EditorActionStack::operator=(EditorActionStack &&other) noexc
     m_actions = Move(other.m_actions);
     m_current_action_index = other.m_current_action_index;
 
-    other.m_current_action_index = 0;
+    other.m_current_action_index = -1;
 
     return *this;
 }
@@ -37,12 +37,12 @@ EditorActionStack::~EditorActionStack() = default;
 
 bool EditorActionStack::CanUndo() const
 {
-    return m_current_action_index > 0;
+    return m_current_action_index >= 0;
 }
 
 bool EditorActionStack::CanRedo() const
 {
-    return m_current_action_index < m_actions.Size();
+    return m_current_action_index + 1 < m_actions.Size();
 }
 
 void EditorActionStack::Push(const RC<IEditorAction> &action)
@@ -53,11 +53,13 @@ void EditorActionStack::Push(const RC<IEditorAction> &action)
 
     action->Execute();
 
-    if (m_current_action_index < m_actions.Size()) {
-        m_actions.Resize(m_current_action_index);
+    // Chop off any actions that were undone
+    if (m_current_action_index + 1 < m_actions.Size()) {
+        m_actions.Resize(m_current_action_index + 1);
     }
 
     m_actions.PushBack(action);
+    m_current_action_index = int(m_actions.Size()) - 1;
 
     OnAfterActionPush(action.Get());
 }
@@ -68,12 +70,12 @@ void EditorActionStack::Undo()
         return;
     }
 
-    IEditorAction *action = m_actions[m_current_action_index - 1].Get();
+    IEditorAction *action = m_actions[m_current_action_index].Get();
 
     OnBeforeActionPop(action);
 
     action->Revert();
-
+    
     --m_current_action_index;
 
     OnAfterActionPop(action);
@@ -85,7 +87,7 @@ void EditorActionStack::Redo()
         return;
     }
 
-    IEditorAction *action = m_actions[m_current_action_index].Get();
+    IEditorAction *action = m_actions[m_current_action_index + 1].Get();
 
     OnBeforeActionPush(action);
 

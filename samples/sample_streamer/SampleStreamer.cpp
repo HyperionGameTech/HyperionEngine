@@ -692,23 +692,6 @@ void SampleStreamer::Init()
             }
         }
     }
-
-    // auto my_button_entity = GetUIStage()->GetScene()->GetEntityManager()->AddEntity();
-    // GetUIStage()->GetScene()->GetEntityManager()->AddComponent<UIComponent>(my_button_entity, {
-    //     .type = UI_COMPONENT_TYPE_BUTTON,
-    //     .name = HYP_NAME(MyButton),
-    //     .bounds = {
-    //         .position = Vector2(0.0f, 0.0f),
-    //         .size = Vector2(100.0f, 50.0f)
-    //     }
-    // });
-
-
-    // auto ui_text = GetUIStage()->CreateUIObject<UIText>(HYP_NAME(Sample_Text2), Vec2i { 25, 25 }, Vec2i { 100, 30 });
-    // ui_text->SetText("Hello, world!");
-    // ui_text->SetDepth(1);
-    // ui_text->UpdatePosition();
-    // ui_text->UpdateSize();
 }
 
 void SampleStreamer::Teardown()

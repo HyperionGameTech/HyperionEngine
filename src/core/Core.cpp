@@ -56,4 +56,21 @@ bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID typ
     return false;
 }
 
+bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class)
+{
+    if (!hyp_class || !instance_hyp_class) {
+        return false;
+    }
+
+    while (instance_hyp_class != nullptr) {
+        if (instance_hyp_class == hyp_class) {
+            return true;
+        }
+
+        instance_hyp_class = instance_hyp_class->GetParent();
+    }
+
+    return false;
+}
+
 } // namespace hyperion

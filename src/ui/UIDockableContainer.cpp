@@ -35,7 +35,7 @@ UIDockableContainer::UIDockableContainer()
 void UIDockableContainer::Init()
 {
     for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
-        m_dockable_items[i] = GetStage()->CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
+        m_dockable_items[i] = CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
     }
 
     UIPanel::Init();

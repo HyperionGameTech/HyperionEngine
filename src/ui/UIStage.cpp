@@ -42,8 +42,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIStage::UIStage(ThreadID owner_thread_id)
-    : UIObject(UIObjectType::STAGE),
-      m_owner_thread_id(owner_thread_id),
+    : UIObject(UIObjectType::STAGE, owner_thread_id),
       m_surface_size { 1000, 1000 }
 {
     SetName(NAME("Stage"));
@@ -555,13 +554,14 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
+                    HYP_LOG(UI, LogLevel::DEBUG, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}, Depth: {}",
                         GetClass(ui_object.GetTypeID())->GetName(),
                         ui_object->GetName(),
                         ui_object->GetText(),
                         ui_object->GetActualSize(),
                         ui_object->GetActualInnerSize(),
-                        ui_object->GetActualSizeClamped());
+                        ui_object->GetActualSizeClamped(),
+                        ui_object->GetComputedDepth());
 
                     // MeshComponent *mesh_component = ui_object->GetNode()->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ui_object->GetEntity());
                     // AssertThrow(mesh_component != nullptr);
@@ -620,8 +620,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
 
-        UIObject *focused_object = nullptr;
-
         Array<RC<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results)) {
@@ -629,6 +627,16 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 const RC<UIObject> &ui_object = *it;
+
+                HYP_LOG(UI, LogLevel::DEBUG, "\tMOUSE DOWN Ray hit: {}", ui_object->GetName());
+            }
+
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+                const RC<UIObject> &ui_object = *it;
+
+                if (!first_hit) {
+                    first_hit = ui_object.Get();
+                }
                 
                 // if (first_hit != nullptr) {
                 //     // We don't want to check the current object if it's not a child of the first hit object,
@@ -640,13 +648,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 //     first_hit = ui_object;
                 // }
 
-                if (focused_object == nullptr && ui_object->AcceptsFocus()) {
-                    ui_object->Focus();
-
-                    focused_object = ui_object.Get();
-                }
-
-                auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.Find(ui_object);
+                auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.FindAs(ui_object);
 
                 if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End()) {
                     if ((mouse_button_pressed_states_it->second.mouse_buttons & event.GetMouseButtons()) == event.GetMouseButtons()) {
@@ -679,6 +681,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     break;
                 }
             }
+        
+            if (first_hit != nullptr && first_hit->AcceptsFocus()) {
+                first_hit->Focus();
+            }
         }
 
         break;
@@ -691,15 +697,26 @@ UIEventHandlerResult UIStage::OnInputEvent(
         for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
             const RC<UIObject> &ui_object = *it;
 
-            if (m_mouse_button_pressed_states.Contains(ui_object)) {
+            bool is_clicked = false;
 
-                // HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
-                //     GetClass(ui_object.GetTypeID())->GetName(),
-                //     ui_object->GetName(),
-                //     ui_object->GetText(),
-                //     ui_object->GetActualSize(),
-                //     ui_object->GetActualInnerSize(),
-                //     ui_object->GetActualSizeClamped());
+            if (m_mouse_button_pressed_states.Contains(ui_object)) {
+                is_clicked = true;
+            }
+
+            HYP_LOG(UI, LogLevel::DEBUG, "\tMOUSE UP Ray hit: {}\t Click: {}", ui_object->GetName(), is_clicked);
+        }
+
+        for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
+            const RC<UIObject> &ui_object = *it;
+
+            if (m_mouse_button_pressed_states.Contains(ui_object)) {
+                HYP_LOG(UI, LogLevel::DEBUG, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
+                    GetClass(ui_object.GetTypeID())->GetName(),
+                    ui_object->GetName(),
+                    ui_object->GetText(),
+                    ui_object->GetActualSize(),
+                    ui_object->GetActualInnerSize(),
+                    ui_object->GetActualSizeClamped());
 
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
                     .input_manager      = input_manager,

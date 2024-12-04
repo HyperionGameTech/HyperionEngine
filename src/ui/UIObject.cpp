@@ -115,8 +115,9 @@ Handle<Mesh> UIObject::GetQuadMesh()
 // OR: Rather than using Weak<UIObject> at all, we just store the raw UIObject pointer on UIComponent,
 // and the destructor for UIObject will set it to nullptr.
 
-UIObject::UIObject(UIObjectType type)
+UIObject::UIObject(UIObjectType type, ThreadID owner_thread_id)
     : m_type(type),
+      m_owner_thread_id(owner_thread_id.IsValid() ? owner_thread_id : Threads::CurrentThreadID()),
       m_stage(nullptr),
       m_is_init(false),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
@@ -141,21 +142,21 @@ UIObject::UIObject(UIObjectType type)
       m_deferred_updates(UIObjectUpdateType::NONE),
       m_locked_updates(UIObjectUpdateType::NONE)
 {
-    OnInit.Bind(UIScriptDelegate< > { this, "OnInit", /* allow_nested */ false }).Detach();
-    OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", /* allow_nested */ false }).Detach();
-    OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", /* allow_nested */ false }).Detach();
-    OnMouseDown.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDown", /* allow_nested */ false }).Detach();
-    OnMouseUp.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseUp", /* allow_nested */ false }).Detach();
-    OnMouseDrag.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDrag", /* allow_nested */ false }).Detach();
-    OnMouseHover.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseHover", /* allow_nested */ false }).Detach();
-    OnMouseLeave.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseLeave", /* allow_nested */ false }).Detach();
-    OnMouseMove.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseMove", /* allow_nested */ false }).Detach();
-    OnGainFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnGainFocus", /* allow_nested */ false }).Detach();
-    OnLoseFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnLoseFocus", /* allow_nested */ false }).Detach();
-    OnScroll.Bind(UIScriptDelegate<MouseEvent> { this, "OnScroll", /* allow_nested */ false }).Detach();
-    OnClick.Bind(UIScriptDelegate<MouseEvent> { this, "OnClick", /* allow_nested */ false }).Detach();
-    OnKeyDown.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyDown", /* allow_nested */ false }).Detach();
-    OnKeyUp.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyUp", /* allow_nested */ false }).Detach();
+    OnInit.Bind(UIScriptDelegate< > { this, "OnInit", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseDown.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDown", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseUp.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseUp", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseDrag.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDrag", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseHover.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseHover", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseLeave.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseLeave", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnMouseMove.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseMove", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE}).Detach();
+    OnGainFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnGainFocus", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnLoseFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnLoseFocus", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnScroll.Bind(UIScriptDelegate<MouseEvent> { this, "OnScroll", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnClick.Bind(UIScriptDelegate<MouseEvent> { this, "OnClick", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnKeyDown.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyDown", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnKeyUp.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyUp", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
 }
 
 UIObject::UIObject()
@@ -321,6 +322,19 @@ void UIObject::OnRemoved_Internal()
     }
 
     OnRemoved();
+}
+
+UIStage *UIObject::GetStage() const
+{
+    if (m_stage != nullptr) {
+        return m_stage;
+    }
+
+    if (IsInstanceOf<UIStage>()) {
+        return const_cast<UIStage *>(static_cast<const UIStage *>(this));
+    }
+
+    return nullptr;
 }
 
 void UIObject::SetStage(UIStage *stage)
@@ -2096,15 +2110,20 @@ ScriptComponent *UIObject::GetScriptComponent(bool deep) const
 {
     HYP_SCOPE;
 
-    Node *node = m_node_proxy.Get();
+    const UIObject *current_ui_object = this;
+    RC<UIObject> parent_ui_object;
 
-    while (node != nullptr) {
-        Scene *scene = node->GetScene();
-        const Handle<Entity> &entity = node->GetEntity();
+    while (current_ui_object != nullptr) {
+        Node *node = current_ui_object->GetNode().Get();
 
-        if (entity.IsValid() && scene != nullptr) {
-            if (ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity)) {
-                return script_component;
+        if (node != nullptr) {
+            Scene *scene = node->GetScene();
+            const Handle<Entity> &entity = node->GetEntity();
+
+            if (entity.IsValid() && scene != nullptr) {
+                if (ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity)) {
+                    return script_component;
+                }
             }
         }
 
@@ -2112,7 +2131,8 @@ ScriptComponent *UIObject::GetScriptComponent(bool deep) const
             return nullptr;
         }
 
-        node = node->GetParent();
+        parent_ui_object = current_ui_object->m_spawn_parent.Lock();
+        current_ui_object = parent_ui_object.Get();
     }
 
     return nullptr;

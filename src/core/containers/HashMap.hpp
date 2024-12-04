@@ -456,6 +456,9 @@ public:
         return ConstIterator(this, it);
     }
 
+    Iterator FindByHash(HashCode hash_code);
+    ConstIterator FindByHash(HashCode hash_code) const;
+
     template <class TFindAsType>
     HYP_FORCE_INLINE bool Contains(const TFindAsType &key) const
         { return FindAs<TFindAsType>(key) != End(); }
@@ -463,10 +466,10 @@ public:
     Iterator Erase(ConstIterator iter);
     bool Erase(const KeyType &key);
 
-    void Set(const KeyType &key, const ValueType &value);
-    void Set(const KeyType &key, ValueType &&value);
-    void Set(KeyType &&key, const ValueType &value);
-    void Set(KeyType &&key, ValueType &&value);
+    InsertResult Set(const KeyType &key, const ValueType &value);
+    InsertResult Set(const KeyType &key, ValueType &&value);
+    InsertResult Set(KeyType &&key, const ValueType &value);
+    InsertResult Set(KeyType &&key, ValueType &&value);
 
     InsertResult Insert(const KeyType &key, const ValueType &value);
     InsertResult Insert(const KeyType &key, ValueType &&value);
@@ -534,7 +537,7 @@ private:
     HYP_FORCE_INLINE const detail::HashBucket<KeyType, ValueType> *GetBucketForHash(HashCode::ValueType hash) const
         { return &m_buckets[hash % m_buckets.Size()]; }
 
-    void Set_Internal(Pair<KeyType, ValueType> &&pair);
+    InsertResult Set_Internal(Pair<KeyType, ValueType> &&pair);
     InsertResult Insert_Internal(Pair<KeyType, ValueType> &&pair);
 
     Array<detail::HashBucket<KeyType, ValueType>, initial_bucket_size * sizeof(detail::HashBucket<KeyType, ValueType>)> m_buckets;
@@ -710,6 +713,34 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) const -> ConstIterato
 }
 
 template <class KeyType, class ValueType>
+auto HashMap<KeyType, ValueType>::FindByHash(HashCode hash_code) -> Iterator
+{
+    detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code.Value());
+
+    typename detail::HashBucket<KeyType, ValueType>::Iterator it = bucket->Find(hash_code.Value());
+
+    if (it == bucket->End()) {
+        return End();
+    }
+
+    return Iterator(this, it);
+}
+
+template <class KeyType, class ValueType>
+auto HashMap<KeyType, ValueType>::FindByHash(HashCode hash_code) const -> ConstIterator
+{
+    const detail::HashBucket<KeyType, ValueType> *bucket = GetBucketForHash(hash_code.Value());
+
+    const typename detail::HashBucket<KeyType, ValueType>::ConstIterator it = bucket->Find(hash_code.Value());
+
+    if (it == bucket->End()) {
+        return End();
+    }
+
+    return ConstIterator(this, it);
+}
+
+template <class KeyType, class ValueType>
 auto HashMap<KeyType, ValueType>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End()) {
@@ -758,7 +789,7 @@ bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::Set_Internal(Pair<KeyType, ValueType> &&pair)
+auto HashMap<KeyType, ValueType>::Set_Internal(Pair<KeyType, ValueType> &&pair) -> InsertResult
 {
     const HashCode::ValueType hash_code = HashCode::GetHashCode(pair.first).Value();
 
@@ -766,10 +797,14 @@ void HashMap<KeyType, ValueType>::Set_Internal(Pair<KeyType, ValueType> &&pair)
 
     auto it = bucket->Find(hash_code);
 
+    Iterator insert_it(this, it);
+
     if (it != bucket->End()) {
         *it = std::move(pair);
+
+        return InsertResult { insert_it, false };
     } else {
-        bucket->Push(new detail::HashElement<KeyType, ValueType> {
+        insert_it.bucket_iter = bucket->Push(new detail::HashElement<KeyType, ValueType> {
             nullptr,
             hash_code,
             std::move(pair)
@@ -778,6 +813,8 @@ void HashMap<KeyType, ValueType>::Set_Internal(Pair<KeyType, ValueType> &&pair)
         m_size++;
 
         CheckAndRebuildBuckets();
+
+        return InsertResult { insert_it, true };
     }
 }
 
@@ -811,36 +848,36 @@ auto HashMap<KeyType, ValueType>::Insert_Internal(Pair<KeyType, ValueType> &&pai
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::Set(const KeyType &key, const ValueType &value)
+auto HashMap<KeyType, ValueType>::Set(const KeyType &key, const ValueType &value) -> InsertResult
 {
-    Set_Internal(Pair<KeyType, ValueType> {
+    return Set_Internal(Pair<KeyType, ValueType> {
         key,
         value
     });
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::Set(const KeyType &key, ValueType &&value)
+auto HashMap<KeyType, ValueType>::Set(const KeyType &key, ValueType &&value) -> InsertResult
 {
-    Set_Internal(Pair<KeyType, ValueType> {
+    return Set_Internal(Pair<KeyType, ValueType> {
         key,
         std::move(value)
     });
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::Set(KeyType &&key, const ValueType &value)
+auto HashMap<KeyType, ValueType>::Set(KeyType &&key, const ValueType &value) -> InsertResult
 {
-    Set_Internal(Pair<KeyType, ValueType> {
+    return Set_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         value
     });
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::Set(KeyType &&key, ValueType &&value)
+auto HashMap<KeyType, ValueType>::Set(KeyType &&key, ValueType &&value) -> InsertResult
 {
-    Set_Internal(Pair<KeyType, ValueType> {
+    return Set_Internal(Pair<KeyType, ValueType> {
         std::move(key),
         std::move(value)
     });

@@ -35,19 +35,19 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 class HypDataUIDataSourceElementFactory : public UIDataSourceElementFactory<HypData, HypDataUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const HypData &value) const
+    RC<UIObject> Create(UIObject *parent, const HypData &value) const
     {
         const HypClass *hyp_class = GetClass(value.GetTypeID());
         AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
 
         if (value.IsNull()) {
-            RC<UIText> empty_value_text = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            RC<UIText> empty_value_text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             empty_value_text->SetText("Object is null");
 
             return empty_value_text;
         }
 
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         HashMap<String, HypProperty *> properties_by_name;
 
@@ -72,7 +72,7 @@ public:
 
             RC<UIGridColumn> column = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
 
             HypData getter_result = it.second->Get(value);
@@ -85,7 +85,7 @@ public:
                 continue;
             }
 
-            RC<UIObject> element = factory->CreateUIObject(stage, getter_result);
+            RC<UIObject> element = factory->CreateUIObject(parent, getter_result);
             AssertThrow(element != nullptr);
 
             HYP_LOG(Editor, LogLevel::DEBUG, "Element for attribute \"{}\": {}\tsize: {}", it.first, GetClass(element.GetTypeID())->GetName(), element->GetActualSize());
@@ -111,9 +111,9 @@ template <int StringType>
 class StringUIDataSourceElementFactory : public UIDataSourceElementFactory<containers::detail::String<StringType>, StringUIDataSourceElementFactory<StringType>>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const containers::detail::String<StringType> &value) const
+    RC<UIObject> Create(UIObject *parent, const containers::detail::String<StringType> &value) const
     {
-        RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+        RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         textbox->SetText(value.ToUTF8());
         
         return textbox;
@@ -134,19 +134,19 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::WIDE_CHAR>,
 class Vec3fUIDataSourceElementFactory : public UIDataSourceElementFactory<Vec3f, Vec3fUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const Vec3f &value) const
+    RC<UIObject> Create(UIObject *parent, const Vec3f &value) const
     {
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         RC<UIGridRow> row = grid->AddRow();
 
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("Vec3fPanel_X"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("Vec3fPanel_X"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
             
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("Vec3fPanel_X_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Vec3fPanel_X_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.x));
             panel->AddChildUIObject(textbox); 
 
@@ -156,10 +156,10 @@ public:
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("Vec3fPanel_Y"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("Vec3fPanel_Y"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("Vec3fPanel_Y_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Vec3fPanel_Y_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.y));
             panel->AddChildUIObject(textbox);
 
@@ -169,10 +169,10 @@ public:
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("Vec3fPanel_Z"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("Vec3fPanel_Z"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("Vec3fPanel_Z_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Vec3fPanel_Z_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.z));
             panel->AddChildUIObject(textbox);
 
@@ -204,16 +204,16 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIDataSourceElementFactory);
 class Uint32UIDataSourceElementFactory : public UIDataSourceElementFactory<uint32, Uint32UIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const uint32 &value) const
+    RC<UIObject> Create(UIObject *parent, const uint32 &value) const
     {
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         RC<UIGridRow> row = grid->AddRow();
 
         {
             RC<UIGridColumn> col = row->AddColumn();
             
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value));
 
             col->AddChildUIObject(textbox);
@@ -235,19 +235,19 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIDataSourceElementFactory);
 class QuaternionUIDataSourceElementFactory : public UIDataSourceElementFactory<Quaternion, QuaternionUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const Quaternion &value) const
+    RC<UIObject> Create(UIObject *parent, const Quaternion &value) const
     {
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         RC<UIGridRow> row = grid->AddRow();
 
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Roll"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Roll"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
             
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Roll_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Roll_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.Roll()));
             panel->AddChildUIObject(textbox); 
 
@@ -257,10 +257,10 @@ public:
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Pitch"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Pitch"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Pitch_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Pitch_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.Pitch()));
             panel->AddChildUIObject(textbox);
 
@@ -270,10 +270,10 @@ public:
         {
             RC<UIGridColumn> col = row->AddColumn();
 
-            RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Yaw"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Yaw"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
 
-            RC<UITextbox> textbox = stage->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Yaw_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
+            RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Yaw_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.Yaw()));
             panel->AddChildUIObject(textbox);
 
@@ -304,17 +304,17 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Quaternion, QuaternionUIDataSourceElementFactory);
 class TransformUIDataSourceElementFactory : public UIDataSourceElementFactory<Transform, TransformUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const Transform &value) const
+    RC<UIObject> Create(UIObject *parent, const Transform &value) const
     {
         const HypClass *hyp_class = GetClass<Transform>();
 
-        RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         {
             RC<UIGridRow> translation_header_row = grid->AddRow();
             RC<UIGridColumn> translation_header_column = translation_header_row->AddColumn();
 
-            RC<UIText> translation_header = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            RC<UIText> translation_header = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             translation_header->SetText("Translation");
             translation_header_column->AddChildUIObject(translation_header);
 
@@ -322,7 +322,7 @@ public:
             RC<UIGridColumn> translation_value_column = translation_value_row->AddColumn();
             
             if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Vec3f>()) {
-                RC<UIObject> translation_element = factory->CreateUIObject(stage, HypData(value.GetTranslation()));
+                RC<UIObject> translation_element = factory->CreateUIObject(parent, HypData(value.GetTranslation()));
                 translation_value_column->AddChildUIObject(translation_element);
             }
         }
@@ -331,7 +331,7 @@ public:
             RC<UIGridRow> rotation_header_row = grid->AddRow();
             RC<UIGridColumn> rotation_header_column = rotation_header_row->AddColumn();
 
-            RC<UIText> rotation_header = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            RC<UIText> rotation_header = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             rotation_header->SetText("Rotation");
             rotation_header_column->AddChildUIObject(rotation_header);
 
@@ -339,7 +339,7 @@ public:
             RC<UIGridColumn> rotation_value_column = rotation_value_row->AddColumn();
             
             if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Quaternion>()) {
-                RC<UIObject> rotation_element = factory->CreateUIObject(stage, HypData(value.GetRotation()));
+                RC<UIObject> rotation_element = factory->CreateUIObject(parent, HypData(value.GetRotation()));
                 rotation_value_column->AddChildUIObject(rotation_element);
             }
         }
@@ -348,7 +348,7 @@ public:
             RC<UIGridRow> scale_header_row = grid->AddRow();
             RC<UIGridColumn> scale_header_column = scale_header_row->AddColumn();
 
-            RC<UIText> scale_header = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            RC<UIText> scale_header = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             scale_header->SetText("Scale");
             scale_header_column->AddChildUIObject(scale_header);
 
@@ -356,7 +356,7 @@ public:
             RC<UIGridColumn> scale_value_column = scale_value_row->AddColumn();
             
             if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Vec3f>()) {
-                RC<UIObject> scale_element = factory->CreateUIObject(stage, HypData(value.GetScale()));
+                RC<UIObject> scale_element = factory->CreateUIObject(parent, HypData(value.GetScale()));
                 scale_value_column->AddChildUIObject(scale_element);
             }
         }
@@ -387,7 +387,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIDataSourceElementFactory);
 class EditorWeakNodeFactory : public UIDataSourceElementFactory<Weak<Node>, EditorWeakNodeFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const Weak<Node> &value) const
+    RC<UIObject> Create(UIObject *parent, const Weak<Node> &value) const
     {
         String node_name = "Invalid";
         UUID node_uuid = UUID::Invalid();
@@ -399,7 +399,7 @@ public:
             node_uuid = UUID();
         }
 
-        RC<UIText> text = stage->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("Node_") + node_uuid.ToString()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        RC<UIText> text = parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("Node_") + node_uuid.ToString()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         text->SetText(node_name);
         
         return text;
@@ -424,21 +424,21 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
 class EntityUIDataSourceElementFactory : public UIDataSourceElementFactory<Handle<Entity>, EntityUIDataSourceElementFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const Handle<Entity> &entity) const
+    RC<UIObject> Create(UIObject *parent, const Handle<Entity> &entity) const
     {
         const EditorNodePropertyRef *context = GetContext<EditorNodePropertyRef>();
         AssertThrow(context != nullptr);
 
         if (!entity.IsValid()) {
-            RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
             RC<UIGridRow> row = grid->AddRow();
             RC<UIGridColumn> column = row->AddColumn();
 
-            RC<UIButton> add_entity_button = stage->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIButton> add_entity_button = parent->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             add_entity_button->SetText("Add Entity");
 
-            add_entity_button->OnClick.Bind([world = Handle<World>(stage->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
+            add_entity_button->OnClick.Bind([world = Handle<World>(parent->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
             {
                 HYP_LOG(Editor, LogLevel::DEBUG, "Add Entity clicked");
 
@@ -503,7 +503,7 @@ public:
                 return nullptr;
             }
 
-            RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
             for (const auto &it : *all_components) {
                 const TypeID component_type_id = it.first;
@@ -543,7 +543,7 @@ public:
                 RC<UIGridRow> header_row = grid->AddRow();
                 RC<UIGridColumn> header_column = header_row->AddColumn();
 
-                RC<UIText> component_header = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                RC<UIText> component_header = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
 
                 Optional<String> component_header_text_opt;
                 Optional<String> component_description_opt;
@@ -570,7 +570,7 @@ public:
                     RC<UIGridRow> description_row = grid->AddRow();
                     RC<UIGridColumn> description_column = description_row->AddColumn();
 
-                    RC<UIText> component_description = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                    RC<UIText> component_description = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                     component_description->SetTextSize(10);
                     component_description->SetText(*component_description_opt);
 
@@ -580,9 +580,9 @@ public:
                 RC<UIGridRow> content_row = grid->AddRow();
                 RC<UIGridColumn> content_column = content_row->AddColumn();
 
-                RC<UIPanel> component_content = stage->CreateUIObject<UIPanel>(Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+                RC<UIPanel> component_content = parent->CreateUIObject<UIPanel>(Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                RC<UIObject> element = factory->CreateUIObject(stage, component_hyp_data);
+                RC<UIObject> element = factory->CreateUIObject(parent, component_hyp_data);
                 AssertThrow(element != nullptr);
 
                 component_content->AddChildUIObject(element);
@@ -593,18 +593,18 @@ public:
             return grid;
         };
 
-        RC<UIGrid> components_grid_container = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIGrid> components_grid_container = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         
         RC<UIGridRow> components_grid_container_header_row = components_grid_container->AddRow();
         RC<UIGridColumn> components_grid_container_header_column = components_grid_container_header_row->AddColumn();
 
-        RC<UIText> components_grid_container_header_text = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+        RC<UIText> components_grid_container_header_text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
         components_grid_container_header_text->SetText("Components");
         components_grid_container_header_column->AddChildUIObject(components_grid_container_header_text);
 
-        RC<UIButton> add_component_button = stage->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        RC<UIButton> add_component_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         add_component_button->SetText("Add Component");
-        add_component_button->OnClick.Bind([stage_weak = stage->WeakRefCountedPtrFromThis()](...)
+        add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
         {
             HYP_LOG(Editor, LogLevel::DEBUG, "Add Component clicked");
 
@@ -625,20 +625,20 @@ public:
 
                 return UIEventHandlerResult::ERR;
 
-                // RC<UIWindow> window = stage->CreateUIObject<UIWindow>(Vec2i { 0, 0 }, UIObjectSize(Vec2i { 250, 500 }));
+                // RC<UIWindow> window = parent->CreateUIObject<UIWindow>(Vec2i { 0, 0 }, UIObjectSize(Vec2i { 250, 500 }));
                 // window->SetOriginAlignment(UIObjectAlignment::CENTER);
                 // window->SetParentAlignment(UIObjectAlignment::CENTER);
                 // window->SetText("Add Component");
 
-                // RC<UIGrid> window_content_grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                // RC<UIGrid> window_content_grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 // RC<UIGridRow> window_content_grid_row = window_content_grid->AddRow();
                 // RC<UIGridColumn> window_content_grid_column = window_content_grid_row->AddColumn();
 
-                // RC<UIGrid> window_footer_grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                // RC<UIGrid> window_footer_grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
 
                 // RC<UIGridRow> window_footer_grid_row = window_footer_grid->AddRow();
 
-                // RC<UIButton> add_button = stage->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                // RC<UIButton> add_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 // add_button->SetText("Add");
                 // add_button->OnClick.Bind([window_weak = window.ToWeak()](...)
                 // {
@@ -648,7 +648,7 @@ public:
                 // }).Detach();
                 // window_footer_grid_row->AddColumn()->AddChildUIObject(add_button);
 
-                // RC<UIButton> cancel_button = stage->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                // RC<UIButton> cancel_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 // cancel_button->SetText("Cancel");
                 // cancel_button->OnClick.Bind([window_weak = window.ToWeak()](...)
                 // {
@@ -711,7 +711,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIDataSourceElementFactory);
 class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
 {
 public:
-    RC<UIObject> Create(UIStage *stage, const EditorNodePropertyRef &value) const
+    RC<UIObject> Create(UIObject *parent, const EditorNodePropertyRef &value) const
     {
         RC<Node> node_rc = value.node.Lock();
         
@@ -730,15 +730,15 @@ public:
         }
 
         // Create panel
-        RC<UIPanel> panel = stage->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
         {
-            RC<UIGrid> grid = stage->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
             RC<UIGridRow> header_row = grid->AddRow();
             RC<UIGridColumn> header_column = header_row->AddColumn();
 
-            RC<UIText> component_header = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            RC<UIText> component_header = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
 
             component_header->SetText(value.title);
             component_header->SetTextSize(12);
@@ -748,7 +748,7 @@ public:
                 RC<UIGridRow> description_row = grid->AddRow();
                 RC<UIGridColumn> description_column = description_row->AddColumn();
 
-                RC<UIText> component_description = stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                RC<UIText> component_description = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 component_description->SetTextSize(10);
                 component_description->SetText(*value.description);
 
@@ -762,9 +762,9 @@ public:
         }
 
         {
-            RC<UIPanel> content = stage->CreateUIObject<UIPanel>(NAME("PropertyPanel_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIPanel> content = parent->CreateUIObject<UIPanel>(NAME("PropertyPanel_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-            if (RC<UIObject> element = factory->CreateUIObject(stage, value.property->Get(HypData(node_rc)), ConstAnyRef(&value))) {
+            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node_rc)), ConstAnyRef(&value))) {
                 content->AddChildUIObject(element);
             }
 
@@ -787,7 +787,7 @@ public:
         
         content->RemoveAllChildUIObjects();
 
-        RC<UIObject> element = factory->CreateUIObject(ui_object->GetStage(), value.property->Get(HypData(node_rc)), ConstAnyRef(&value));
+        RC<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), ConstAnyRef(&value));
         AssertThrow(element != nullptr);
 
         content->AddChildUIObject(element);

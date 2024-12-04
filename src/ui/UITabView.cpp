@@ -23,7 +23,7 @@ void UITab::Init()
 {
     UIObject::Init();
 
-    RC<UIText> title_element = GetStage()->CreateUIObject<UIText>(NAME("TabTitle"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    RC<UIText> title_element = CreateUIObject<UIText>(NAME("TabTitle"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     title_element->SetParentAlignment(UIObjectAlignment::CENTER);
     title_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     title_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -34,7 +34,7 @@ void UITab::Init()
 
     m_title_element = title_element;
 
-    m_contents = GetStage()->CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+    m_contents = CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
     m_contents->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     m_contents->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -109,7 +109,7 @@ void UITabView::Init()
 
     UIPanel::Init();
 
-    m_container = GetStage()->CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
+    m_container = CreateUIObject<UIPanel>(NAME("TabContents"), Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
     m_container->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
     m_container->SetBorderRadius(5);
     m_container->SetPadding({ 5, 5 });
@@ -243,7 +243,7 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
 {
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    RC<UITab> tab = GetStage()->CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+    RC<UITab> tab = CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
     tab->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     tab->SetText(title);

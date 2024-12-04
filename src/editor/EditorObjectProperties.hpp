@@ -31,7 +31,7 @@ public:
 
     const HypClass *GetClass() const;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIObject *parent) const = 0;
 
 private:
     TypeID  m_type_id;
@@ -49,104 +49,8 @@ public:
     {
     }
 
-    RC<UIObject> CreateUIObject(UIStage *stage) const override;
+    RC<UIObject> CreateUIObject(UIObject *parent) const override;
 };
-
-// template <>
-// class EditorObjectProperties<Vec2i> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec2i>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec2u> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec2u>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec3f> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec3f>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec3i> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec3i>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec3u> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec3u>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec4f> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec4f>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec4i> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec4i>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
-
-// template <>
-// class EditorObjectProperties<Vec4u> : public EditorObjectPropertiesBase
-// {
-// public:
-//     EditorObjectProperties()
-//         : EditorObjectPropertiesBase(TypeID::ForType<Vec4u>())
-//     {
-//     }
-
-//     RC<UIObject> CreateUIObject(UIStage *stage) const override;
-// };
 
 } // namespace hyperion
 

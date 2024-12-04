@@ -429,7 +429,7 @@ protected:
         AFTER_CHILDREN
     };
 
-    UIObject(UIObjectType type);
+    UIObject(UIObjectType type, ThreadID owner_thread_id = ThreadID::Invalid());
 
 public:
     friend class UIRenderer;
@@ -458,8 +458,7 @@ public:
         { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : Handle<Entity>::empty; }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE UIStage *GetStage() const
-        { return m_stage; }
+    UIStage *GetStage() const;
 
     HYP_METHOD()
     void SetStage(UIStage *stage);
@@ -754,6 +753,11 @@ public:
         }).template CastUnsafe<T>();
     }
 
+    /*! \brief The UIObject that this was spawned from. Not necessarily the parent UIObject that this is attached to in the graph.
+     *  \returns A weak reference to the UIObject that this was spawned from. */
+    HYP_FORCE_INLINE const Weak<UIObject> &GetSpawnParent() const
+        { return m_spawn_parent; }
+
     virtual void AddChildUIObject(const RC<UIObject> &ui_object);
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
@@ -930,6 +934,67 @@ public:
     /*! \internal */
     void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, UIObject *> proc, bool deep = true) const;
 
+    /*! \brief Spawn a new UIObject of type T. The object will not be attached to the current UIStage.
+     *  The object will not be named. To name the object, use the other CreateUIObject overload.
+     * 
+     *  \tparam T The type of UI object to create. Must be a derived class of UIObject.
+     *  \param position The position of the UI object.
+     *  \param size The size of the UI object.
+     *  \return A handle to the created UI object. */
+    template <class T>
+    HYP_NODISCARD RC<T> CreateUIObject(
+        Vec2i position,
+        UIObjectSize size
+    )
+    {
+        return CreateUIObject<T>(Name::Invalid(), position, size);
+    }
+
+    /*! \brief Spawn a new UIObject of type T. The object will not be attached to the current UIStage.
+     *  The object will not be named. To name the object, use the other CreateUIObject overload.
+     * 
+     *  \tparam T The type of UI object to create. Must be a derived class of UIObject.
+     *  \param name The name of the UI object.
+     *  \param position The position of the UI object.
+     *  \param size The size of the UI object.
+     *  \return A handle to the created UI object. */
+    template <class T>
+    HYP_NODISCARD RC<T> CreateUIObject(
+        Name name,
+        Vec2i position,
+        UIObjectSize size
+    )
+    {
+        Threads::AssertOnThread(m_owner_thread_id);
+
+        // AssertThrow(IsInit());
+        AssertThrow(GetNode().IsValid());
+
+        if (!name.IsValid()) {
+            name = CreateNameFromDynamicString(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
+        }
+
+        NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
+        
+        // if (attach_to_root) {
+        //     node_proxy = GetNode()->AddChild(node_proxy);
+        // }
+        
+        // Set it to ignore parent scale so size of the UI object is not affected by the parent
+        node_proxy->SetFlags(node_proxy->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+
+        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node_proxy, false /* init */);
+
+        ui_object->SetPosition(position);
+        ui_object->SetSize(size);
+        ui_object->Init();
+
+        RC<T> result = ui_object.Cast<T>();
+        AssertThrow(result != nullptr);
+
+        return result;
+    }
+
     // Events
     Delegate<UIEventHandlerResult>                          OnInit;
     Delegate<UIEventHandlerResult>                          OnAttached;
@@ -1034,8 +1099,11 @@ protected:
     virtual bool Repaint_Internal();
 
     UIStage                         *m_stage;
+    Weak<UIObject>                  m_spawn_parent;
 
     Name                            m_name;
+
+    ThreadID                        m_owner_thread_id;
 
     Vec2i                           m_position;
     Vec2f                           m_offset_position;
@@ -1090,6 +1158,32 @@ protected:
     EnumFlags<UIObjectUpdateType>   m_locked_updates;
 
 private:
+    template <class T>
+    RC<UIObject> CreateUIObjectInternal(Name name, NodeProxy &node_proxy, bool init = false)
+    {
+        AssertThrow(node_proxy.IsValid());
+
+        static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
+
+        RC<UIObject> ui_object = MakeRefCountedPtr<T>();
+        AssertThrow(ui_object.GetTypeID() == TypeID::ForType<T>());
+
+        UIStage *stage = GetStage();
+
+        ui_object->m_spawn_parent = WeakRefCountedPtrFromThis();
+        ui_object->m_stage = stage;
+
+        ui_object->SetNodeProxy(node_proxy);
+        ui_object->SetName(name);
+
+        if (init) {
+            ui_object->Init();
+            ui_object->SetStage_Internal(stage);
+        }
+
+        return ui_object;
+    }
+
     void ComputeOffsetPosition();
 
     void UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags);

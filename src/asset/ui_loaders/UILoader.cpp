@@ -49,11 +49,11 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 #define UI_OBJECT_CREATE_FUNCTION(name) \
     { \
         String(HYP_STR(name)).ToUpper(), \
-        [](UIStage *stage, Name name, Vec2i position, UIObjectSize size) -> Pair<RC<UIObject>, const HypClass *> \
-            { return { stage->CreateUIObject<UI##name>(name, position, size, false), GetClass<UI##name>() }; } \
+        [](UIObject *parent, Name name, Vec2i position, UIObjectSize size) -> Pair<RC<UIObject>, const HypClass *> \
+            { return { parent->CreateUIObject<UI##name>(name, position, size), GetClass<UI##name>() }; } \
     }
 
-static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass *>(UIStage *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
+static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass *>(UIObject *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
     UI_OBJECT_CREATE_FUNCTION(Panel),
@@ -386,6 +386,14 @@ public:
 
     virtual void Begin(const String &name, const xml::AttributeMap &attributes) override
     {
+        UIObject *parent = LastObject();
+
+        if (parent == nullptr) {
+            parent = m_ui_stage;
+        }
+
+        AssertThrow(parent != nullptr);
+
         const String node_name_upper = name.ToUpper();
 
         const auto node_create_functions_it = g_node_create_functions.Find(node_name_upper);
@@ -413,7 +421,7 @@ public:
                 }
             }
 
-            Pair<RC<UIObject>, const HypClass *> create_result = node_create_functions_it->second(m_ui_stage, ui_object_name, position, size);
+            Pair<RC<UIObject>, const HypClass *> create_result = node_create_functions_it->second(parent, ui_object_name, position, size);
 
             const RC<UIObject> &ui_object = create_result.first;
             const HypClass *hyp_class = create_result.second;
@@ -502,7 +510,7 @@ public:
                     if (get_delegate_functions_it != g_get_delegate_functions.End()) {
                         Delegate<UIEventHandlerResult> *delegate = get_delegate_functions_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< > { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                        delegate->Bind(UIScriptDelegate< > { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
                     }
 
                     if (found) {
@@ -514,7 +522,7 @@ public:
                     if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End()) {
                         Delegate<UIEventHandlerResult, const MouseEvent &> *delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate<MouseEvent> { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                        delegate->Bind(UIScriptDelegate<MouseEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
                         found = true;
                     }
@@ -528,7 +536,7 @@ public:
                     if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End()) {
                         Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, /* allow_nested */ true }).Detach();
+                        delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
                     }
 
                     if (found) {

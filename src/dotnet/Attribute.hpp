@@ -34,11 +34,22 @@ public:
     ~AttributeSet()                                         = default;
 
     HYP_FORCE_INLINE bool HasAttribute(UTF8StringView name) const
-        { return m_values_by_name.Contains(name); }
+        { return GetAttribute(name) != nullptr; }
 
     HYP_FORCE_INLINE Attribute *GetAttribute(UTF8StringView name) const
     {
         const auto it = m_values_by_name.FindAs(name);
+
+        if (it == m_values_by_name.End()) {
+            return nullptr;
+        }
+
+        return it->second;
+    }
+
+    HYP_FORCE_INLINE Attribute *GetAttributeByHash(HashCode hash_code) const
+    {
+        const auto it = m_values_by_name.FindByHash(hash_code);
 
         if (it == m_values_by_name.End()) {
             return nullptr;

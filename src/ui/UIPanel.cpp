@@ -89,7 +89,7 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
             return;
         }
 
-        RC<UIPanel> new_scrollbar = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, scrollbar_size);
+        RC<UIPanel> new_scrollbar = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, scrollbar_size);
         new_scrollbar->SetAffectsParentSize(false);
         new_scrollbar->SetIsPositionAbsolute(true);
         new_scrollbar->SetIsScrollEnabled(UIObjectScrollbarOrientation::ALL, false);
@@ -240,7 +240,7 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
     if (thumb) {
         thumb->SetSize(thumb_size);
     } else {
-        thumb = GetStage()->CreateUIObject<UIButton>(NAME("ScrollbarThumb"), Vec2i { 0, 0 }, thumb_size);
+        thumb = CreateUIObject<UIButton>(NAME("ScrollbarThumb"), Vec2i { 0, 0 }, thumb_size);
 
         thumb->OnMouseDown.Bind([this, orientation, thumb_weak = thumb.ToWeak()](const MouseEvent &event_data) -> UIEventHandlerResult
         {

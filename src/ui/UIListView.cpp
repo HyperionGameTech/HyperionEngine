@@ -30,7 +30,7 @@ void UIListViewItem::Init()
 {
     UIObject::Init();
 
-    m_inner_element = GetStage()->CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    m_inner_element = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
     // Expand / collapse subitems when selected
     m_inner_element->OnClick.Bind([this](...)
@@ -56,7 +56,7 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
     
     if (ui_object->GetType() == UIObjectType::LIST_VIEW_ITEM) {
         if (!m_expanded_element) {
-            m_expanded_element = GetStage()->CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
+            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
             m_expanded_element->SetIsVisible(m_is_expanded);
 
             UIObject::AddChildUIObject(m_expanded_element);
@@ -180,7 +180,7 @@ void UIListView::AddChildUIObject(const RC<UIObject> &ui_object)
 
         UIObject::AddChildUIObject(ui_object);
     } else {
-        RC<UIListViewItem> list_view_item = GetStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         list_view_item->AddChildUIObject(ui_object);
 
         m_list_view_items.PushBack(list_view_item);
@@ -379,7 +379,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
     });
 
-    RC<UIListViewItem> list_view_item = GetStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view_item->GetNode()->AddTag(NAME("DataSourceElementUUID"), NodeTag(element->GetUUID()));
     list_view_item->SetDataSourceElementUUID(element->GetUUID());
     

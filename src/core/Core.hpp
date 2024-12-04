@@ -66,6 +66,7 @@ HYP_API const HypEnum *GetEnum(TypeID type_id);
 HYP_API const HypEnum *GetEnum(WeakName type_name);
 
 HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
+HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
 
 } // namespace hyperion
 

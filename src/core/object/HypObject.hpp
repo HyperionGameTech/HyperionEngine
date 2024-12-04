@@ -179,11 +179,25 @@ private:
         HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
             { return m_hyp_object_initializer_ptr->GetManagedObject(); } \
         \
-        HYP_FORCE_INLINE const HypClass *InstanceClass() \
+        HYP_FORCE_INLINE const HypClass *InstanceClass() const \
             { return m_hyp_object_initializer_ptr->GetClass(); } \
         \
         HYP_FORCE_INLINE static const HypClass *Class() \
             { return HypObjectInitializer<T>::GetClass_Static(); } \
+        \
+        template <class TOther> \
+        HYP_FORCE_INLINE bool IsInstanceOf() const \
+        { \
+            if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>) { \
+                return true; \
+            } else { \
+                const HypClass *other_hyp_class = GetClass<TOther>(); \
+                if (!other_hyp_class) { \
+                    return false; \
+                } \
+                return IsInstanceOfHypClass(other_hyp_class, InstanceClass()); \
+            } \
+        } \
         \
     private:
 

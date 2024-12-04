@@ -844,6 +844,11 @@ public:
     {
         return WeakRefCountedPtr<T, CountType>(*this);
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Base::m_ref.Get());
+    }
 };
 
 // void pointer specialization -- just uses base class, but with Set() and Reset()
@@ -1003,6 +1008,11 @@ public:
     {
         return WeakRefCountedPtr<void, CountType>(*this);
     }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Base::m_ref.Get());
+    }
 };
 
 // weak ref counters
@@ -1096,7 +1106,6 @@ public:
         return reinterpret_cast<const WeakRefCountedPtr<Ty, CountType> &>(*this);
     }
 
-
     /*! \brief Gets a pointer to the value held by the reference counted pointer.
      *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
     HYP_FORCE_INLINE T *GetUnsafe() const
@@ -1112,6 +1121,11 @@ public:
         }
 
         return rc;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Base::m_ref.Get());
     }
 };
 
@@ -1194,6 +1208,11 @@ public:
      *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
     HYP_FORCE_INLINE void *GetUnsafe() const
         { return Base::m_ref->value; }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(Base::m_ref.Get());
+    }
 };
 
 template <class CountType>
@@ -1201,7 +1220,6 @@ class EnableRefCountedPtrFromThisBase
 {
     friend struct detail::RefCountData<CountType>;
 
-    
 protected:
     EnableRefCountedPtrFromThisBase() = default;
 

@@ -27,7 +27,7 @@ void UIMenuItem::Init()
 {
     UIObject::Init();
 
-    RC<UIText> text_element = GetStage()->CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    RC<UIText> text_element = CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -36,7 +36,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(text_element);
 
-    RC<UIPanel> drop_down_menu = GetStage()->CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDownMenu", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    RC<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDownMenu", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     // drop_down_menu->SetAcceptsFocus(false);
     drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -139,58 +139,15 @@ void UIMenuItem::UpdateDropDownMenu()
 
     Vec2i offset = { 0, 0 };
 
-    for (const RC<UIMenuItem> &drop_down_menu_item : m_menu_items) {
-        // const Name drop_down_menu_item_name = CreateNameFromDynamicString(ANSIString(m_name.LookupString()) + "_" + ANSIString(item.name.LookupString()));
+    for (const RC<UIMenuItem> &menu_item : m_menu_items) {
+        menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        menu_item->SetPosition(offset);
 
-        // RC<UIButton> drop_down_menu_item = m_drop_down_menu->FindChildUIObject(drop_down_menu_item_name).Cast<UIButton>();
+        m_drop_down_menu->AddChildUIObject(menu_item);
 
-        // if (drop_down_menu_item != nullptr) {
-        //     offset += { 0, drop_down_menu_item->GetActualSize().y };
-
-        //     continue;
-        // }
-
-        // drop_down_menu_item = GetStage()->CreateUIObject<UIButton>(drop_down_menu_item_name, offset, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 30, UIObjectSize::PIXEL }));
-        // // drop_down_menu_item->SetAcceptsFocus(false);
-        // drop_down_menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
-        // drop_down_menu_item->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-        // drop_down_menu_item->SetBorderFlags(UIObjectBorderFlags::NONE);
-        // drop_down_menu_item->SetBorderRadius(0);
-        // drop_down_menu_item->SetBackgroundColor(Vec4f::Zero()); // transparent
-        // drop_down_menu_item->SetText(item.text);
-
-        // drop_down_menu_item->OnClick.Bind([this, name = item.name](const MouseEvent &data) -> UIEventHandlerResult
-        // {
-        //     HYP_LOG(UI, LogLevel::DEBUG, "OnClick item with name {}", name);
-
-        //     DropDownMenuItem *item_ptr = GetDropDownMenuItem(name);
-
-        //     if (item_ptr == nullptr) {
-        //         HYP_LOG(UI, LogLevel::WARNING, "Could not find drop down menu item with name {}", name);
-
-        //         return UIEventHandlerResult::ERR;
-        //     }
-
-        //     if (!item_ptr->action.IsValid()) {
-        //         return UIEventHandlerResult::OK;
-        //     }
-
-        //     item_ptr->action();
-
-        //     return UIEventHandlerResult::OK; // bubble up to container so it can close
-        // }).Detach();
-
-        // drop_down_menu_item->GetTextElement()->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
-        // drop_down_menu_item->GetTextElement()->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-
-        drop_down_menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        drop_down_menu_item->SetPosition(offset);
-
-        m_drop_down_menu->AddChildUIObject(drop_down_menu_item);
-
-        HYP_LOG(UI, LogLevel::DEBUG, "Menu item {} size: {}", drop_down_menu_item->GetName(), drop_down_menu_item->GetActualSize());
+        HYP_LOG(UI, LogLevel::DEBUG, "Menu item {} size: {}", menu_item->GetName(), menu_item->GetActualSize());
         
-        offset += { 0, drop_down_menu_item->GetActualSize().y };
+        offset += { 0, menu_item->GetActualSize().y };
     }
 
     m_drop_down_menu->UpdateSize();
@@ -236,7 +193,7 @@ void UIMenuBar::Init()
 
     UIPanel::Init();
 
-    m_container = GetStage()->CreateUIObject<UIPanel>(NAME("MenuItemContents"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 250, UIObjectSize::PIXEL }));
+    m_container = CreateUIObject<UIPanel>(NAME("MenuItemContents"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 250, UIObjectSize::PIXEL }));
     m_container->SetIsVisible(false);
     m_container->SetBorderFlags(UIObjectBorderFlags::NONE);
     m_container->SetBorderRadius(0);
@@ -447,7 +404,7 @@ void UIMenuBar::UpdateSize_Internal(bool update_children)
 
 RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
 {
-    RC<UIMenuItem> menu_item = GetStage()->CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    RC<UIMenuItem> menu_item = CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
     menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetText(text);

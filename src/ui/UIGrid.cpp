@@ -133,11 +133,7 @@ RC<UIGridColumn> UIGridRow::AddColumn()
 {
     HYP_SCOPE;
 
-    if (GetStage() == nullptr) {
-        return nullptr;
-    }
-
-    const RC<UIGridColumn> column = GetStage()->CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    const RC<UIGridColumn> column = CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     UIObject::AddChildUIObject(column);
 
     m_columns.PushBack(column);
@@ -245,7 +241,7 @@ void UIGrid::SetNumRows(uint32 num_rows)
         const SizeType num_rows_to_add = num_rows - current_num_rows;
 
         for (SizeType i = 0; i < num_rows_to_add; i++) {
-            RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
@@ -257,9 +253,7 @@ void UIGrid::SetNumRows(uint32 num_rows)
 
 RC<UIGridRow> UIGrid::AddRow()
 {
-    AssertThrow(GetStage() != nullptr);
-
-    const RC<UIGridRow> row = GetStage()->CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    const RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     row->SetNumColumns(m_num_columns);
     
     UIObject::AddChildUIObject(row);

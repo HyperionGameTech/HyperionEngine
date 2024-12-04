@@ -46,8 +46,8 @@ class HYP_API IUIDataSourceElementFactory
 public:
     virtual ~IUIDataSourceElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value) const = 0;
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value, ConstAnyRef context) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, ConstAnyRef context) const = 0;
 
     virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const = 0;
     virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, ConstAnyRef context) const = 0;
@@ -59,12 +59,12 @@ class HYP_API UIDataSourceElementFactory : public IUIDataSourceElementFactory
 public:
     virtual ~UIDataSourceElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value) const override final
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value) const override final
     {
-        return CreateUIObject(stage, value, ConstAnyRef::Empty());
+        return CreateUIObject(parent, value, ConstAnyRef::Empty());
     }
 
-    virtual RC<UIObject> CreateUIObject(UIStage *stage, const HypData &value, ConstAnyRef context) const override final
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, ConstAnyRef context) const override final
     {
         Derived factory_instance;
         static_cast<UIDataSourceElementFactory &>(factory_instance).m_context = context;
@@ -72,9 +72,9 @@ public:
         RC<UIObject> result;
 
         if constexpr (std::is_same_v<HypData, T>) {
-            return factory_instance.Create(stage, value);
+            return factory_instance.Create(parent, value);
         } else {
-            return factory_instance.Create(stage, value.Get<T>());
+            return factory_instance.Create(parent, value.Get<T>());
         }
     }
 
