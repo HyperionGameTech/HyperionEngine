@@ -83,7 +83,8 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
 
     LightmapTraceMode trace_mode;
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()
+        && g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.gpu").ToBool(true)) {
         // trace on GPU if the card supports ray tracing
         trace_mode = LIGHTMAP_TRACE_MODE_GPU;
     } else {

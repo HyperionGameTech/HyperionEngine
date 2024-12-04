@@ -634,8 +634,6 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
 
 LightmapJob::LightmapJob(LightmapJobParams &&params)
     : m_params(std::move(params)),
-      m_is_started { false },
-      m_is_ready { false },
       m_texel_index(0)
 {
 }
@@ -656,74 +654,29 @@ LightmapJob::~LightmapJob()
 
 void LightmapJob::Start()
 {
-    if (IsStarted()) {
-        return;
-    }
+    m_running_semaphore.Produce(1, [this](bool)
+    {
+        if (!m_uv_map.HasValue()) {
+            // No elements to process
+            if (!m_params.elements_view) {
+                m_uv_map = LightmapUVMap { };
 
-    m_is_started.Set(true, MemoryOrder::RELAXED);
+                return;
+            }
 
-    if (Optional<LightmapUVMap> uv_map_opt = BuildUVMap()) {
-        m_uv_map = std::move(*uv_map_opt);
-    } else {
-        HYP_LOG(Lightmap, LogLevel::ERR, "Failed to build UV map for lightmap job {}", m_uuid);
+            HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
 
-        // Mark as ready to prevent further processing
-        m_is_ready.Set(true, MemoryOrder::RELAXED);
-        
-        return;
-    }
-
-    // Flatten texel indices, grouped by mesh IDs
-    m_texel_indices.Reserve(m_uv_map.uvs.Size());
-
-    for (const auto &it : m_uv_map.mesh_to_uv_indices) {
-        for (uint i = 0; i < it.second.Size(); i++) {
-             m_texel_indices.PushBack(it.second[i]);
+            m_build_uv_map_task = TaskSystem::GetInstance().Enqueue([this]() -> Optional<LightmapUVMap>
+            {
+                return BuildUVMap();
+            });
         }
-    }
-
-    m_is_ready.Set(true, MemoryOrder::RELAXED);
-}
-
-bool LightmapJob::IsStarted() const
-{
-    return m_is_started.Get(MemoryOrder::RELAXED);
+    });
 }
 
 bool LightmapJob::IsCompleted() const
 {
-    if (!IsReady() || !IsStarted()) {
-        return false;
-    }
-
-    if (!m_params.elements_view) {
-        return true;
-    }
-
-    if (m_current_rays.Any()) {
-        return false;
-    }
-    
-    if (m_current_tasks.Any() && !m_current_tasks.Every([](const Task<void> &task) { return task.IsCompleted(); })) {
-        return false;
-    }
-
-    if (m_params.trace_mode == LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU) {
-        // Ensure there are no rays remaining to be integrated
-        Mutex::Guard guard(m_previous_frame_rays_mutex);
-
-        for (uint i = 0; i < max_frames_in_flight; i++) {
-            if (m_previous_frame_rays[i].Any()) {
-                return false;
-            }
-        }
-    }
-
-    if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
-        return true;
-    }
-
-    return false;
+    return !m_running_semaphore.IsInSignalState();
 }
 
 Optional<LightmapUVMap> LightmapJob::BuildUVMap()
@@ -737,8 +690,47 @@ Optional<LightmapUVMap> LightmapJob::BuildUVMap()
     return { };
 }
 
-void LightmapJob::Update()
+void LightmapJob::Process()
 {
+    AssertThrow(IsRunning());
+
+    HYP_LOG(Lightmap, LogLevel::INFO, "Processing lightmap job {}", m_uuid);
+
+    if (!m_uv_map.HasValue()) {
+        // wait for uv map to finish building
+        
+        // If uv map is not valid, it must have a task that is building it
+        AssertThrow(m_build_uv_map_task.IsValid());
+
+        if (!m_build_uv_map_task.IsCompleted()) {
+            HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Waiting on UV map to finish building", m_uuid);
+
+            return;
+        } else {
+            m_uv_map = std::move(m_build_uv_map_task.Await());
+
+            if (m_uv_map.HasValue()) {
+                // Flatten texel indices, grouped by mesh IDs
+                m_texel_indices.Reserve(m_uv_map->uvs.Size());
+
+                for (const auto &it : m_uv_map->mesh_to_uv_indices) {
+                    for (uint i = 0; i < it.second.Size(); i++) {
+                        m_texel_indices.PushBack(it.second[i]);
+                    }
+                }
+            } else {
+                HYP_LOG(Lightmap, LogLevel::ERR, "Failed to build UV map for lightmap job {}", m_uuid);
+
+                // Mark as ready to stop further processing
+                m_running_semaphore.Release(1);
+                
+                return;
+            }
+        }
+
+        return;
+    }
+
     HYP_LOG(Lightmap, LogLevel::INFO, "Processing lightmap job {} ({} current tasks, {} current rays)",
         m_uuid, m_current_tasks.Size(), m_current_rays.Size());
 
@@ -759,37 +751,59 @@ void LightmapJob::Update()
     
     m_current_rays.Clear();
 
+    if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
+        m_running_semaphore.Release(1);
+
+        return;
+    }
+
     switch (m_params.trace_mode) {
     case LightmapTraceMode::LIGHTMAP_TRACE_MODE_CPU:
         GatherRays(max_ray_hits_cpu, m_current_rays);
 
+        HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Found {} rays", m_uuid, m_current_rays.Size());
+
         if (m_current_rays.Empty()) {
+            m_running_semaphore.Release(1);
+
             return;
         }
 
         TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_IRRADIANCE);
         TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_RADIANCE);
 
+        HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Found {} more tasks", m_uuid, m_current_tasks.Size());
+
+        if (m_current_tasks.Empty()) {
+            m_running_semaphore.Release(1);
+
+            return;
+        }
+
         break;
     case LightmapTraceMode::LIGHTMAP_TRACE_MODE_GPU:
+    {
+        { // Check if we can stop
+            Mutex::Guard guard(m_previous_frame_rays_mutex);
+
+            if (m_previous_frame_rays.Empty()) {
+                m_running_semaphore.Release(1);
+
+                return;
+            }
+        }
+
         GatherRays(max_ray_hits_gpu, m_current_rays);
 
         PUSH_RENDER_COMMAND(LightmapTraceRaysOnGPU, this, std::move(m_current_rays));
 
         break;
     }
+    }
 }
 
 void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
 {
-    if (!IsReady()) {
-        return;
-    }
-
-    if (IsCompleted()) {
-        return;
-    }
-
     HYP_LOG(Lightmap, LogLevel::INFO, "Gathering rays for lightmap job {}", m_uuid);
 
     Optional<Pair<ID<Mesh>, StreamedDataRef<StreamedMeshData>>> streamed_mesh_data_refs { };
@@ -806,13 +820,13 @@ void LightmapJob::GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays)
         const uint uv_index = m_texel_indices[m_texel_index % m_texel_indices.Size()];
         
         AssertThrowMsg(
-            uv_index < m_uv_map.uvs.Size(),
+            uv_index < m_uv_map->uvs.Size(),
             "UV index (%llu) out of range of UV map (size: %llu)",
             uv_index,
-            m_uv_map.uvs.Size()
+            m_uv_map->uvs.Size()
         );
 
-        const LightmapUV &uv = m_uv_map.uvs[uv_index];
+        const LightmapUV &uv = m_uv_map->uvs[uv_index];
 
         const Handle<Mesh> &mesh = uv.mesh;
 
@@ -899,7 +913,7 @@ void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *h
         const LightmapRay &ray = rays[i];
         const LightmapHit &hit = hits[i];
 
-        LightmapUVMap &uv_map = m_uv_map;
+        LightmapUVMap &uv_map = GetUVMap();
 
         AssertThrowMsg(
             ray.texel_index < uv_map.uvs.Size(),
@@ -1163,7 +1177,7 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
 
 void Lightmapper::PerformLightmapping()
 {
-    static constexpr uint ideal_triangles_per_job = 10000;
+    const uint32 ideal_triangles_per_job = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.ideal_triangles_per_job").ToUInt32(8192);
 
     AssertThrowMsg(m_num_jobs.Get(MemoryOrder::ACQUIRE) == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
 
@@ -1220,7 +1234,7 @@ void Lightmapper::PerformLightmapping()
 
     UniquePtr<LightmapTopLevelAccelerationStructure> acceleration_structure;
 
-    uint num_triangles = 0;
+    uint32 num_triangles = 0;
 
     SizeType start_index;
     SizeType end_index;
@@ -1282,24 +1296,21 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
 
     HYP_LOG(Lightmap, LogLevel::INFO, "Processing {} lightmap jobs...", num_jobs);
 
-    // Trace lightmap on CPU
     Mutex::Guard guard(m_queue_mutex);
 
     AssertThrow(!m_queue.Empty());
     LightmapJob *job = m_queue.Front().Get();
 
-    if (job->IsCompleted()) {
-        HandleCompletedJob(job);
-
-        return;
-    }
-
     // Start job if not started
-    if (!job->IsStarted()) {
+    if (!job->IsRunning()) {
         job->Start();
     }
 
-    job->Update();
+    job->Process();
+
+    if (job->IsCompleted()) {
+        HandleCompletedJob(job);
+    }
 }
 
 void Lightmapper::HandleCompletedJob(LightmapJob *job)

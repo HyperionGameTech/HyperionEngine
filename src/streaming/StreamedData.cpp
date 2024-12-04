@@ -72,10 +72,7 @@ void StreamedDataRefBase::LoadStreamedData()
     }
 
     m_owner->m_use_count.Increment(1, MemoryOrder::RELAXED);
-
-    if (!m_owner->IsInMemory()) {
-        (void)m_owner->Load();
-    }
+    (void)m_owner->Load();
 }
 
 void StreamedDataRefBase::UnpageStreamedData()
@@ -115,32 +112,46 @@ StreamedData::StreamedData(StreamedDataState initial_state)
 bool StreamedData::IsInMemory() const
 {
     m_loading_semaphore.Acquire();
-    
-    return IsInMemory_Internal();
+    m_pre_init_semaphore.Produce(1);
+
+    bool result = IsInMemory_Internal();
+
+    m_pre_init_semaphore.Release(1);
+
+    return result;
 }
 
 bool StreamedData::IsNull() const
 {
     m_loading_semaphore.Acquire();
+    m_pre_init_semaphore.Produce(1);
 
-    return IsNull_Internal();
+    bool result = IsNull_Internal();
+
+    m_pre_init_semaphore.Release(1);
+
+    return result;
 }
 
 const ByteBuffer &StreamedData::Load() const
 {
-    if (IsInMemory()) {
-        return GetByteBuffer();
-    }
-
     HYP_NAMED_SCOPE("Load streamed data");
 
-    m_loading_semaphore.Produce(1);
-    
-    const ByteBuffer &buffer = Load_Internal();
+    m_pre_init_semaphore.Acquire();
+    m_loading_semaphore.Acquire();
+
+    const ByteBuffer *buffer_ptr = &GetByteBuffer();
+
+    m_loading_semaphore.Produce(1, [this, &buffer_ptr]()
+    {
+        buffer_ptr = &Load_Internal();
+    });
 
     m_loading_semaphore.Release(1);
 
-    return buffer;
+    AssertDebug(buffer_ptr != nullptr);
+
+    return *buffer_ptr;
 }
 
 void StreamedData::Unpage()
@@ -151,9 +162,13 @@ void StreamedData::Unpage()
 
     HYP_NAMED_SCOPE("Unpage streamed data");
 
-    m_loading_semaphore.Produce(1);
-
-    Unpage_Internal();
+    m_pre_init_semaphore.Acquire();
+    m_loading_semaphore.Acquire();
+    
+    m_loading_semaphore.Produce(1, [this]()
+    {
+        Unpage_Internal();
+    });
 
     m_loading_semaphore.Release(1);
 }

@@ -114,6 +114,7 @@ class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
 {
     HYP_OBJECT_BODY(StreamedData);
 
+    using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using LoadingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
@@ -145,6 +146,7 @@ protected:
     virtual const ByteBuffer &GetByteBuffer() const;
 
     mutable AtomicVar<int>      m_use_count { 0 };
+    mutable PreInitSemaphore    m_pre_init_semaphore;
     mutable LoadingSemaphore    m_loading_semaphore;
 };
 

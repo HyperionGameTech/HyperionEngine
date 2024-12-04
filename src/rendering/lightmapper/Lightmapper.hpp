@@ -12,6 +12,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Task.hpp>
+#include <core/threading/Semaphore.hpp>
 
 #include <core/utilities/Span.hpp>
 #include <core/utilities/UUID.hpp>
@@ -169,8 +170,11 @@ public:
     HYP_FORCE_INLINE const UUID &GetUUID() const
         { return m_uuid; }
 
+    HYP_FORCE_INLINE LightmapUVMap &GetUVMap()
+        { return *m_uv_map; }
+
     HYP_FORCE_INLINE const LightmapUVMap &GetUVMap() const
-        { return m_uv_map; }
+        { return *m_uv_map; }
 
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_params.scene.Get(); }
@@ -200,7 +204,7 @@ public:
 
     void Start();
 
-    void Update();
+    void Process();
 
     void GatherRays(uint max_ray_hits, Array<LightmapRay> &out_rays);
 
@@ -212,11 +216,9 @@ public:
     void IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint num_hits, LightmapShadingType shading_type);
     
     bool IsCompleted() const;
-    
-    bool IsStarted() const;
 
-    HYP_FORCE_INLINE bool IsReady() const
-        { return m_is_ready.Get(MemoryOrder::RELAXED); }
+    HYP_FORCE_INLINE bool IsRunning() const
+        { return m_running_semaphore.IsInSignalState(); }
 
 private:
     /*! \brief Trace rays on the CPU.
@@ -240,8 +242,6 @@ private:
 
     UUID                                                    m_uuid;
 
-    LightmapUVMap                                           m_uv_map;
-
     Array<uint>                                             m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
 
     Array<LightmapRay>                                      m_current_rays;
@@ -249,10 +249,11 @@ private:
     FixedArray<Array<LightmapRay>, max_frames_in_flight>    m_previous_frame_rays;
     mutable Mutex                                           m_previous_frame_rays_mutex;
 
+    Optional<LightmapUVMap>                                 m_uv_map;
+    Task<Optional<LightmapUVMap>>                           m_build_uv_map_task;
     Array<Task<void>>                                       m_current_tasks;
 
-    AtomicVar<bool>                                         m_is_ready;
-    AtomicVar<bool>                                         m_is_started;
+    Semaphore<int32>                                        m_running_semaphore;
     uint                                                    m_texel_index;
 };
 

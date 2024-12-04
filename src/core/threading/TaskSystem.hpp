@@ -390,11 +390,15 @@ public:
         const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
-            tasks.PushBack(Enqueue([batch_index, items_per_batch, num_items, _cb = std::forward<CallbackFunction>(cb)]() mutable -> void
-            {
-                const uint32 offset_index = batch_index * items_per_batch;
-                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+            const uint32 offset_index = batch_index * items_per_batch;
+            const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
+            if (offset_index >= max_index) {
+                continue;
+            }
+
+            tasks.PushBack(Enqueue([batch_index, offset_index, max_index, _cb = std::forward<CallbackFunction>(cb)]() mutable -> void
+            {
                 for (uint32 i = offset_index; i < max_index; i++) {
                     _cb(i, batch_index);
                 }

@@ -459,7 +459,12 @@ public:
         return m_inner.Get<JSONNumber>();
     }
 
-    HYP_FORCE_INLINE JSONNumber ToNumber() const
+    /*! \brief Convert the JSON value to a number. If the value is undefined, the default value is returned.
+     *
+     *  \param default_value The default value to return if the value is not a number. (Default: 0.0)
+     *  \return The number value.
+     */
+    HYP_FORCE_INLINE JSONNumber ToNumber(JSONNumber default_value = 0.0) const
     {
         if (IsNumber()) {
             return AsNumber();
@@ -470,7 +475,7 @@ public:
         }
 
         if (IsUndefined()) {
-            return JSONNumber(NAN);
+            return default_value;
         }
 
         if (IsBool()) {
@@ -478,41 +483,41 @@ public:
         }
 
         if (IsString()) {
-            return StringUtil::Parse<JSONNumber>(AsString().Data(), 0.0);
+            return StringUtil::Parse<JSONNumber>(AsString().Data(), default_value);
         }
 
-        return JSONNumber(0.0);
+        return default_value;
     }
 
-    HYP_FORCE_INLINE int32 ToInt8() const
-        { return static_cast<int8>(ToNumber()); }
+    HYP_FORCE_INLINE int8 ToInt8(int8 default_value = 0) const
+        { return static_cast<int8>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE int32 ToInt16() const
-        { return static_cast<int16>(ToNumber()); }
+    HYP_FORCE_INLINE int16 ToInt16(int16 default_value = 0) const
+        { return static_cast<int16>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE int32 ToInt32() const
-        { return static_cast<int32>(ToNumber()); }
+    HYP_FORCE_INLINE int32 ToInt32(int32 default_value = 0) const
+        { return static_cast<int32>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE int64 ToInt64() const
-        { return static_cast<int64>(ToNumber()); }
+    HYP_FORCE_INLINE int64 ToInt64(int64 default_value = 0) const
+        { return static_cast<int64>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE uint32 ToUInt8() const
-        { return static_cast<uint8>(ToNumber()); }
+    HYP_FORCE_INLINE uint8 ToUInt8(uint8 default_value = 0) const
+        { return static_cast<uint8>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE uint32 ToUInt16() const
-        { return static_cast<uint16>(ToNumber()); }
+    HYP_FORCE_INLINE uint16 ToUInt16(uint16 default_value = 0) const
+        { return static_cast<uint16>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE uint32 ToUInt32() const
-        { return static_cast<uint32>(ToNumber()); }
+    HYP_FORCE_INLINE uint32 ToUInt32(uint32 default_value = 0) const
+        { return static_cast<uint32>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE uint64 ToUInt64() const
-        { return static_cast<uint64>(ToNumber()); }
+    HYP_FORCE_INLINE uint64 ToUInt64(uint64 default_value =0 ) const
+        { return static_cast<uint64>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE float ToFloat() const
-        { return static_cast<float>(ToNumber()); }
+    HYP_FORCE_INLINE float ToFloat(float default_value = 0.0f) const
+        { return static_cast<float>(ToNumber(default_value)); }
 
-    HYP_FORCE_INLINE double ToDouble() const
-        { return ToNumber(); }
+    HYP_FORCE_INLINE double ToDouble(double default_value = 0.0) const
+        { return ToNumber(default_value); }
     
     HYP_FORCE_INLINE JSONBool &AsBool()
     {
@@ -528,14 +533,19 @@ public:
         return m_inner.Get<JSONBool>();
     }
 
-    HYP_FORCE_INLINE JSONBool ToBool() const
+    /*! \brief Convert the JSON value to a boolean. If the value is undefined, the default value is returned.
+     *
+     *  \param default_value The default value to return if the value is not a boolean. (Default: false)
+     *  \return The boolean value.
+     */
+    HYP_FORCE_INLINE JSONBool ToBool(JSONBool default_value = false) const
     {
         if (IsBool()) {
             return AsBool();
         }
 
         if (IsUndefined()) {
-            return JSONBool(false);
+            return default_value;
         }
 
         if (IsNull()) {
@@ -558,7 +568,7 @@ public:
             return JSONBool(true);
         }
 
-        return JSONBool(false);
+        return default_value;
     }
 
     HYP_FORCE_INLINE JSONArray &AsArray()
