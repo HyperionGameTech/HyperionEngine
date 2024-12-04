@@ -39,7 +39,7 @@ Skeleton::Skeleton(const RC<Bone> &root_bone)
 Skeleton::~Skeleton()
 {
     if (m_render_resources != nullptr) {
-        FreeRenderResources(m_render_resources);
+        FreeResource(m_render_resources);
 
         m_render_resources = nullptr;
     }
@@ -62,13 +62,13 @@ void Skeleton::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
         if (m_render_resources != nullptr) {
-            FreeRenderResources(m_render_resources);
+            FreeResource(m_render_resources);
 
             m_render_resources = nullptr;
         }
     }));
 
-    m_render_resources = AllocateRenderResources<SkeletonRenderResources>(this);
+    m_render_resources = AllocateResource<SkeletonRenderResources>(this);
 
     m_mutation_state |= DataMutationState::DIRTY;
     

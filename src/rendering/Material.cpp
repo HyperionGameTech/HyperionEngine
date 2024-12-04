@@ -317,7 +317,7 @@ Material::Material(
 Material::~Material()
 {
     if (m_render_resources != nullptr) {
-        FreeRenderResources(m_render_resources);
+        FreeResource(m_render_resources);
     }
 
     SetReady(false);
@@ -337,7 +337,7 @@ void Material::Init()
 
     HypObject::Init();
 
-    m_render_resources = AllocateRenderResources<MaterialRenderResources>(this);
+    m_render_resources = AllocateResource<MaterialRenderResources>(this);
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {

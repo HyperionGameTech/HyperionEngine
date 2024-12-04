@@ -14,6 +14,7 @@
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/memory/MemoryPool.hpp>
+#include <core/Name.hpp>
 
 #include <Types.hpp>
 
@@ -40,6 +41,8 @@ class IResource
 {
 public:
     virtual ~IResource() = default;
+
+    virtual Name GetTypeName() const = 0;
 
     virtual bool IsNull() const = 0;
 
@@ -241,7 +244,7 @@ public:
     TResourceHandle()   = default;
 
     TResourceHandle(T &resource)
-        : handle(resoruce)
+        : handle(resource)
     {
         static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
     }

@@ -97,8 +97,8 @@ struct RenderState
 {
     Stack<RenderBinding<Scene>>                                                             scene_bindings;
     Stack<CameraRenderResources *>                                                          camera_bindings;
-    FixedArray<Array<TRenderResourcesHandle<LightRenderResources>>, uint32(LightType::MAX)> bound_lights;
-    Stack<TRenderResourcesHandle<LightRenderResources>>                                     light_bindings;
+    FixedArray<Array<TResourceHandle<LightRenderResources>>, uint32(LightType::MAX)> bound_lights;
+    Stack<TResourceHandle<LightRenderResources>>                                     light_bindings;
     FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint>>, ENV_PROBE_TYPE_MAX>                  bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                                     env_probe_bindings;
@@ -153,7 +153,7 @@ struct RenderState
         }
     }
 
-    const TRenderResourcesHandle<LightRenderResources> &GetActiveLight() const;
+    const TResourceHandle<LightRenderResources> &GetActiveLight() const;
 
     HYP_FORCE_INLINE void BindScene(const Scene *scene)
     {

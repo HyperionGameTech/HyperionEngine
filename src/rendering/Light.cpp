@@ -110,9 +110,9 @@ void LightRenderResources::SetMaterial(const Handle<Material> &material)
         m_material = material;
 
         if (m_material.IsValid()) {
-            m_material_render_resources_handle = RenderResourcesHandle(m_material->GetRenderResources());
+            m_material_render_resources_handle = TResourceHandle<MaterialRenderResources>(m_material->GetRenderResources());
         } else {
-            m_material_render_resources_handle = RenderResourcesHandle();
+            m_material_render_resources_handle = TResourceHandle<MaterialRenderResources>();
         }
 
         if (m_is_initialized) {
@@ -219,7 +219,7 @@ Light::Light(
 Light::~Light()
 {
     if (m_render_resources != nullptr) {
-        FreeRenderResources(m_render_resources);
+        FreeResource(m_render_resources);
     }
     
     // If material is set for this Light, defer its deletion for a few frames
@@ -236,7 +236,7 @@ void Light::Init()
 
     HypObject::Init();
 
-    m_render_resources = AllocateRenderResources<LightRenderResources>(this);
+    m_render_resources = AllocateResource<LightRenderResources>(this);
 
     if (m_material.IsValid()) {
         InitObject(m_material);

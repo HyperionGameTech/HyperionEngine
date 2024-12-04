@@ -405,7 +405,7 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
     }
 
     if (m_render_resources != nullptr) {
-        FreeRenderResources(m_render_resources);
+        FreeResource(m_render_resources);
     }
 
     m_mesh_attributes = other.m_mesh_attributes;
@@ -427,7 +427,7 @@ Mesh::~Mesh()
         m_always_claimed_render_resources_handle.Reset();
 
         if (m_render_resources != nullptr) {
-            FreeRenderResources(m_render_resources);
+            FreeResource(m_render_resources);
         }
     }
 }
@@ -443,7 +443,7 @@ void Mesh::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
         if (m_render_resources != nullptr) {
-            FreeRenderResources(m_render_resources);
+            FreeResource(m_render_resources);
 
             m_render_resources = nullptr;
         }
@@ -451,7 +451,7 @@ void Mesh::Init()
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    m_render_resources = AllocateRenderResources<MeshRenderResources>(this);
+    m_render_resources = AllocateResource<MeshRenderResources>(this);
 
     {
         HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");

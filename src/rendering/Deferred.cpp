@@ -443,7 +443,7 @@ void DeferredPass::Record(uint frame_index)
 
                 const auto &lights = g_engine->GetRenderState().bound_lights[uint32(light_type)]; 
 
-                for (const TRenderResourcesHandle<LightRenderResources> &it : lights) {
+                for (const TResourceHandle<LightRenderResources> &it : lights) {
                     LightRenderResources &light_render_resources = *it;
                     AssertThrow(light_render_resources.GetBufferIndex() != ~0u);
 

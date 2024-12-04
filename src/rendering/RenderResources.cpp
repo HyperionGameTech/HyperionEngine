@@ -17,26 +17,6 @@ namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(RenderResources, Rendering);
 
-#pragma region Memory Pool
-
-static TypeMap<UniquePtr<IRenderResourcesMemoryPool>> g_render_resources_memory_pools;
-static Mutex g_render_resources_memory_pools_mutex;
-
-HYP_API IRenderResourcesMemoryPool *GetOrCreateRenderResourcesMemoryPool(TypeID type_id, UniquePtr<IRenderResourcesMemoryPool>(*create_fn)(void))
-{
-    Mutex::Guard guard(g_render_resources_memory_pools_mutex);
-
-    auto it = g_render_resources_memory_pools.Find(type_id);
-
-    if (it == g_render_resources_memory_pools.End()) {
-        it = g_render_resources_memory_pools.Set(type_id, create_fn()).first;
-    }
-
-    return it->second.Get();
-}
-
-#pragma endregion Memory Pool
-
 #pragma region RenderResourcesBase
 
 RenderResourcesBase::RenderResourcesBase()
@@ -372,51 +352,5 @@ void RenderResourcesBase::ReleaseBufferIndex()
 }
 
 #pragma endregion RenderResourcesBase
-
-class NullRenderResources final : public RenderResourcesBase
-{
-public:
-    NullRenderResources()                                       = default;
-    NullRenderResources(NullRenderResources &&other) noexcept   = default;
-    virtual ~NullRenderResources() override                     = default;
-
-protected:
-    virtual bool IsNull() const override
-    {
-        return true;
-    }
-
-    virtual void Initialize() override
-    {
-        // Do nothing
-    }
-
-    virtual void Destroy() override
-    {
-        // Do nothing
-    }
-
-    virtual void Update() override
-    {
-        // Do nothing
-    }
-
-    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override
-    {
-        return nullptr;
-    }
-
-    virtual Name GetTypeName() const override
-    {
-        return NAME("NullRenderResources");
-    }
-};
-
-HYP_API RenderResourcesBase &GetNullRenderResources()
-{
-    static NullRenderResources empty;
-
-    return empty;
-}
 
 } // namespace hyperion

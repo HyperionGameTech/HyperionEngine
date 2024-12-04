@@ -48,15 +48,15 @@ void RenderState::BindLight(Light *light)
 
     auto &array = bound_lights[uint32(light->GetLightType())];
 
-    auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
+    auto it = array.FindIf([light](const TResourceHandle<LightRenderResources> &item)
     {
         return item->GetLight() == light;
     });
 
     if (it != array.End()) {
-        *it = TRenderResourcesHandle(light->GetRenderResources());
+        *it = TResourceHandle(light->GetRenderResources());
     } else {
-        array.PushBack(TRenderResourcesHandle(light->GetRenderResources()));
+        array.PushBack(TResourceHandle(light->GetRenderResources()));
     }
 }
 
@@ -67,7 +67,7 @@ void RenderState::UnbindLight(Light *light)
 
     auto &array = bound_lights[uint32(light->GetLightType())];
 
-    auto it = array.FindIf([light](const TRenderResourcesHandle<LightRenderResources> &item)
+    auto it = array.FindIf([light](const TResourceHandle<LightRenderResources> &item)
     {
         return item->GetLight() == light;
     });
@@ -77,9 +77,9 @@ void RenderState::UnbindLight(Light *light)
     }
 }
 
-const TRenderResourcesHandle<LightRenderResources> &RenderState::GetActiveLight() const
+const TResourceHandle<LightRenderResources> &RenderState::GetActiveLight() const
 {
-    static const TRenderResourcesHandle<LightRenderResources> empty;
+    static const TResourceHandle<LightRenderResources> empty;
 
     return light_bindings.Any()
         ? light_bindings.Top()
@@ -88,7 +88,7 @@ const TRenderResourcesHandle<LightRenderResources> &RenderState::GetActiveLight(
 
 void RenderState::SetActiveLight(LightRenderResources &light_render_resources)
 {
-    light_bindings.Push(TRenderResourcesHandle(light_render_resources));
+    light_bindings.Push(TResourceHandle(light_render_resources));
 }
 
 void RenderState::BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)

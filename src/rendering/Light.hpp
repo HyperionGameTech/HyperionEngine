@@ -107,11 +107,11 @@ protected:
 private:
     void UpdateBufferData();
 
-    Light                   *m_light;
-    Bitset                  m_visibility_bits;
-    Handle<Material>        m_material;
-    RenderResourcesHandle   m_material_render_resources_handle;
-    LightShaderData         m_buffer_data;
+    Light                                       *m_light;
+    Bitset                                      m_visibility_bits;
+    Handle<Material>                            m_material;
+    TResourceHandle<MaterialRenderResources>    m_material_render_resources_handle;
+    LightShaderData                             m_buffer_data;
 };
 
 HYP_CLASS()

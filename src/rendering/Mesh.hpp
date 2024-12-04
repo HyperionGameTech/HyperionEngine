@@ -213,7 +213,7 @@ public:
         HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resources_handle");
 
         if (enabled) {
-            m_always_claimed_render_resources_handle = RenderResourcesHandle(*m_render_resources);
+            m_always_claimed_render_resources_handle = ResourceHandle(*m_render_resources);
         } else {
             m_always_claimed_render_resources_handle.Reset();
         }
@@ -233,7 +233,7 @@ private:
     DataRaceDetector        m_data_race_detector;
 
     MeshRenderResources     *m_render_resources;
-    RenderResourcesHandle   m_always_claimed_render_resources_handle;
+    ResourceHandle          m_always_claimed_render_resources_handle;
 };
 
 } // namespace hyperion

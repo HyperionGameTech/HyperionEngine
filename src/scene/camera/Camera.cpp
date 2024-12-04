@@ -129,7 +129,7 @@ Camera::~Camera()
 {
     if (m_render_resources != nullptr) {
         m_render_resources->Unclaim();
-        FreeRenderResources(m_render_resources);
+        FreeResource(m_render_resources);
     }
 
     SafeRelease(std::move(m_framebuffer));
@@ -150,7 +150,7 @@ void Camera::Init()
     {
         if (m_render_resources != nullptr) {
             m_render_resources->Unclaim();
-            FreeRenderResources(m_render_resources);
+            FreeResource(m_render_resources);
 
             m_render_resources = nullptr;
         }
@@ -158,7 +158,7 @@ void Camera::Init()
         SafeRelease(std::move(m_framebuffer));
     }));
 
-    m_render_resources = AllocateRenderResources<CameraRenderResources>(this);
+    m_render_resources = AllocateResource<CameraRenderResources>(this);
 
     UpdateMatrices();
 
