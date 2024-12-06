@@ -393,7 +393,7 @@ void UIRenderCollector::CollectDrawCalls(Frame *frame)
     }
 
     TaskSystem::GetInstance().ParallelForEach(
-        TaskThreadPoolName::THREAD_POOL_RENDER,
+        TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
         iterators,
         [this](IteratorType it, uint, uint)
         {

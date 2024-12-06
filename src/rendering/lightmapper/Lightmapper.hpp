@@ -35,6 +35,7 @@ namespace hyperion {
 static constexpr int max_bounces_cpu = 2;
 
 struct LightmapHitsBuffer;
+class LightmapTaskThreadPool;
 
 enum LightmapTraceMode
 {
@@ -221,6 +222,8 @@ public:
         { return m_running_semaphore.IsInSignalState(); }
 
 private:
+    void Stop();
+
     /*! \brief Trace rays on the CPU.
      *  \param rays The rays to trace.    
      */
@@ -252,6 +255,7 @@ private:
     Optional<LightmapUVMap>                                 m_uv_map;
     Task<Optional<LightmapUVMap>>                           m_build_uv_map_task;
     Array<Task<void>>                                       m_current_tasks;
+    UniquePtr<LightmapTaskThreadPool>                       m_task_thread_pool;
 
     Semaphore<int32>                                        m_running_semaphore;
     uint                                                    m_texel_index;

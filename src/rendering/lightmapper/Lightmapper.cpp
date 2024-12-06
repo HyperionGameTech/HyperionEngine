@@ -16,6 +16,7 @@
 #include <scene/ecs/components/BLASComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
+#include <core/threading/TaskThread.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -630,11 +631,42 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
 
 #pragma endregion LightmapPathTracer
 
+#pragma region LightmapJobThread
+
+class LightmapTaskThread : public TaskThread
+{
+public:
+    LightmapTaskThread(ThreadID id)
+        : TaskThread(id)
+    {
+    }
+
+    virtual ~LightmapTaskThread() override = default;
+};
+
+#pragma endregion LightmapJobThread
+
+#pragma region LightmapTaskThreadPool
+
+class LightmapTaskThreadPool : public TaskThreadPool
+{
+public:
+    LightmapTaskThreadPool()
+    {
+        CreateThreads<LightmapTaskThread>(NAME("Lightmapper"), 4);
+    }
+
+    virtual ~LightmapTaskThreadPool() override = default;
+};
+
+#pragma endregion LightmapTaskThreadPool
+
 #pragma region LightmapJob
 
 LightmapJob::LightmapJob(LightmapJobParams &&params)
     : m_params(std::move(params)),
-      m_texel_index(0)
+      m_texel_index(0),
+      m_task_thread_pool(MakeUnique<LightmapTaskThreadPool>())
 {
 }
 
@@ -670,6 +702,16 @@ void LightmapJob::Start()
             {
                 return BuildUVMap();
             });
+        }
+    });
+}
+
+void LightmapJob::Stop()
+{
+    m_running_semaphore.Release(1, [this](bool)
+    {
+        if (m_task_thread_pool->IsRunning()) {
+            m_task_thread_pool->Stop();
         }
     });
 }
@@ -718,11 +760,14 @@ void LightmapJob::Process()
                         m_texel_indices.PushBack(it.second[i]);
                     }
                 }
+
+                // start our thread pool for tracing rays
+                m_task_thread_pool->Start();
             } else {
                 HYP_LOG(Lightmap, LogLevel::ERR, "Failed to build UV map for lightmap job {}", m_uuid);
 
                 // Mark as ready to stop further processing
-                m_running_semaphore.Release(1);
+                Stop();
                 
                 return;
             }
@@ -752,7 +797,7 @@ void LightmapJob::Process()
     m_current_rays.Clear();
 
     if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
-        m_running_semaphore.Release(1);
+        Stop();
 
         return;
     }
@@ -764,7 +809,7 @@ void LightmapJob::Process()
         HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Found {} rays", m_uuid, m_current_rays.Size());
 
         if (m_current_rays.Empty()) {
-            m_running_semaphore.Release(1);
+            Stop();
 
             return;
         }
@@ -775,7 +820,7 @@ void LightmapJob::Process()
         HYP_LOG(Lightmap, LogLevel::INFO, "Lightmap job {}: Found {} more tasks", m_uuid, m_current_tasks.Size());
 
         if (m_current_tasks.Empty()) {
-            m_running_semaphore.Release(1);
+            Stop();
 
             return;
         }
@@ -787,7 +832,7 @@ void LightmapJob::Process()
             Mutex::Guard guard(m_previous_frame_rays_mutex);
 
             if (m_previous_frame_rays.Empty()) {
-                m_running_semaphore.Release(1);
+                Stop();
 
                 return;
             }
@@ -1005,7 +1050,7 @@ void LightmapJob::TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayl
 
 void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type)
 {
-    m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(rays, [this, shading_type](const LightmapRay &first_ray, uint index, uint batch_index)
+    m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_task_thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint index, uint batch_index)
     {
         uint32 seed = (uint32)rand();//index * m_texel_index;
 

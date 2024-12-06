@@ -92,7 +92,7 @@ static inline void ParallelForEach(Container &container, Lambda &&lambda)
  *  Number of batches will depend upon the thread pool selected's number of workers. */
 template <class Container, class Lambda>
 HYP_FORCE_INLINE
-static inline void ParallelForEach(Container &container, TaskThreadPoolName pool, Lambda &&lambda)
+static inline void ParallelForEach(Container &container, TaskThreadPool &pool, Lambda &&lambda)
 {
     TaskSystem::GetInstance().ParallelForEach(
         pool,
@@ -104,7 +104,7 @@ static inline void ParallelForEach(Container &container, TaskThreadPoolName pool
 /*! \brief Perform a parallel foreach within the given task thread pool \ref{pool} and using \ref{num_batches} batches. */
 template <class Container, class Lambda>
 HYP_FORCE_INLINE
-static inline void ParallelForEach(Container &container, uint num_batches, TaskThreadPoolName pool, Lambda &&lambda)
+static inline void ParallelForEach(Container &container, uint num_batches, TaskThreadPool &pool, Lambda &&lambda)
 {
     TaskSystem::GetInstance().ParallelForEach(
         pool,

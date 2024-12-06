@@ -2,8 +2,13 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/object/HypClass.hpp>
+#include <core/object/HypData.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <core/utilities/Format.hpp>
 
 namespace hyperion {
 
@@ -20,6 +25,154 @@ static const FlatMap<TaskThreadPoolName, TaskThreadPoolInfo> g_thread_pool_info 
     { TaskThreadPoolName::THREAD_POOL_RENDER,   { 4u, ThreadPriorityValue::HIGHEST } }
 };
 
+
+#pragma region TaskThreadPool
+
+TaskThreadPool::TaskThreadPool()
+    : m_thread_mask(0)
+{
+}
+
+TaskThreadPool::TaskThreadPool(Array<UniquePtr<TaskThread>> &&threads)
+    : m_threads(std::move(threads)),
+      m_thread_mask(0)
+{
+    for (const UniquePtr<TaskThread> &thread : threads) {
+        AssertThrow(thread != nullptr);
+
+        m_thread_mask |= thread->GetID().GetMask();
+    }
+}
+
+TaskThreadPool::~TaskThreadPool()
+{
+    for (auto &it : m_threads) {
+        AssertThrow(it != nullptr);
+        AssertThrowMsg(!it->IsRunning(), "TaskThreadPool::Stop() must be called before TaskThreadPool is destroyed");
+        
+        if (it->CanJoin()) {
+            it->Join();
+        }
+    }
+}
+
+bool TaskThreadPool::IsRunning() const
+{
+    if (m_threads.Empty()) {
+        return false;
+    }
+
+    for (auto &it : m_threads) {
+        AssertThrow(it != nullptr);
+        
+        if (it->IsRunning()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void TaskThreadPool::Start()
+{
+    AssertThrow(m_threads.Any());
+
+    for (auto &it : m_threads) {
+        AssertThrow(it != nullptr);
+        AssertThrow(it->Start());
+    }
+}
+
+void TaskThreadPool::Stop()
+{
+    for (auto &it : m_threads) {
+        AssertThrow(it != nullptr);
+        it->Stop();
+    }
+}
+
+void TaskThreadPool::Stop(Array<TaskThread *> &out_task_threads)
+{
+    for (auto &it : m_threads) {
+        AssertThrow(it != nullptr);
+        it->Stop();
+
+        out_task_threads.PushBack(it.Get());
+    }
+}
+
+TaskThread *TaskThreadPool::GetNextTaskThread()
+{
+    static constexpr uint32 max_spins = 40;
+
+    const uint32 num_threads_in_pool = uint32(m_threads.Size());
+
+    const ThreadID current_thread_id = Threads::CurrentThreadID();
+    const bool is_on_task_thread = m_thread_mask & current_thread_id;
+
+    IThread *current_thread_object = Threads::CurrentThreadObject();
+
+    uint32 cycle = m_cycle.Get(MemoryOrder::RELAXED) % num_threads_in_pool;
+    uint32 num_spins = 0;
+
+    TaskThread *task_thread = nullptr;
+    
+    // if we are currently on a task thread we need to move to the next task thread in the pool
+    // if we selected the current task thread. otherwise we will have a deadlock.
+    // this does require that there are > 1 task thread in the pool.
+    do {
+        do {
+            task_thread = m_threads[cycle].Get();
+
+            cycle = (cycle + 1) % num_threads_in_pool;
+            m_cycle.Increment(1, MemoryOrder::RELAXED);
+
+            ++num_spins;
+            
+            if (num_spins >= max_spins) {
+                if (is_on_task_thread) {
+                    return static_cast<TaskThread *>(current_thread_object);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+                }
+
+                HYP_LOG(Tasks, LogLevel::WARNING, "Maximum spins reached in GetNextTaskThread -- all task threads busy");
+
+                return task_thread;
+            }
+        } while (task_thread->GetID() == current_thread_id
+            || (current_thread_object != nullptr && current_thread_object->GetScheduler()->HasWorkAssignedFromThread(task_thread->GetID())));
+    } while (!task_thread->IsRunning() && !task_thread->IsFree());
+
+    return task_thread;
+}
+
+ThreadID TaskThreadPool::CreateTaskThreadID(Name base_name, uint32 thread_index)
+{
+    return ThreadID::CreateDynamicThreadID(CreateNameFromDynamicString(HYP_FORMAT("{}_{}", base_name, thread_index)));
+}
+
+#pragma endregion TaskThreadPool
+
+#pragma region GenericTaskThreadPool
+
+GenericTaskThreadPool::GenericTaskThreadPool(const Array<Pair<ThreadID, ThreadPriorityValue>> &thread_ids)
+    : TaskThreadPool()
+{
+    m_threads.Resize(thread_ids.Size());
+
+    for (SizeType i = 0; i < thread_ids.Size(); i++) {
+        const Pair<ThreadID, ThreadPriorityValue> &pair = thread_ids[i];
+
+        m_threads[i] = MakeUnique<TaskThread>(pair.first, pair.second);
+        m_thread_mask |= pair.first;
+    }
+}
+
+GenericTaskThreadPool::~GenericTaskThreadPool() = default;
+
+#pragma endregion GenericTaskThreadPool
+
+#pragma region TaskSystem
+
 TaskSystem &TaskSystem::GetInstance()
 {
     static TaskSystem instance;
@@ -30,6 +183,8 @@ TaskSystem &TaskSystem::GetInstance()
 TaskSystem::TaskSystem()
 {
     ThreadMask mask = THREAD_TASK_0;
+
+    m_pools.Reserve(THREAD_POOL_MAX);
 
     for (uint32 i = 0; i < THREAD_POOL_MAX; i++) {
         const TaskThreadPoolName pool_name { i };
@@ -44,15 +199,18 @@ TaskSystem::TaskSystem()
 
         const TaskThreadPoolInfo &task_thread_pool_info = thread_pool_info_it->second;
 
-        TaskThreadPool &pool = m_pools[i];
-        pool.threads.Resize(task_thread_pool_info.num_task_threads);
+        Array<Pair<ThreadID, ThreadPriorityValue>> thread_ids;
+        thread_ids.Resize(task_thread_pool_info.num_task_threads);
 
-        for (auto &it : pool.threads) {
+        for (auto &pair : thread_ids) {
             AssertThrow(THREAD_TASK & mask);
 
-            it = MakeUnique<TaskThread>(Threads::GetStaticThreadID(ThreadName(mask)), task_thread_pool_info.priority);
+            pair = { Threads::GetStaticThreadID(ThreadName(mask)), task_thread_pool_info.priority };
             mask <<= 1;
         }
+
+        // Create new GenericTaskThreadPool
+        m_pools.PushBack(MakeUnique<GenericTaskThreadPool>(thread_ids));
     }
 }
 
@@ -60,11 +218,8 @@ void TaskSystem::Start()
 {
     AssertThrowMsg(!IsRunning(), "TaskSystem::Start() has already been called");
 
-    for (auto &pool : m_pools) {
-        for (auto &it : pool.threads) {
-            AssertThrow(it != nullptr);
-            AssertThrow(it->Start());
-        }
+    for (const UniquePtr<TaskThreadPool> &pool : m_pools) {
+        pool->Start();
     }
 
     m_running.Set(true, MemoryOrder::RELAXED);
@@ -78,13 +233,8 @@ void TaskSystem::Stop()
 
     Array<TaskThread *> task_threads;
 
-    for (auto &pool : m_pools) {
-        for (auto &it : pool.threads) {
-            AssertThrow(it != nullptr);
-            it->Stop();
-
-            task_threads.PushBack(it.Get());
-        }
+    for (const UniquePtr<TaskThreadPool> &pool : m_pools) {
+        pool->Stop(task_threads);
     }
 
     while (task_threads.Any()) {
@@ -118,14 +268,16 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         return batch;
     }
 
-    TaskThreadPool &pool = GetPool(batch->pool);
+    TaskThreadPool *pool = batch->pool != nullptr
+        ? batch->pool
+        : m_pools[uint(TaskThreadPoolName::THREAD_POOL_GENERIC)].Get();
 
 #ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     HYP_MT_CHECK_RW(batch->data_race_detector);
 #endif
 
     for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it) {
-        TaskThread *task_thread = GetNextTaskThread(pool);
+        TaskThread *task_thread = pool->GetNextTaskThread();
         AssertThrow(task_thread != nullptr);
 
         const TaskID task_id = task_thread->GetScheduler()->EnqueueTaskExecutor(
@@ -166,47 +318,10 @@ Array<bool> TaskSystem::DequeueBatch(TaskBatch *batch)
 
 TaskThread *TaskSystem::GetNextTaskThread(TaskThreadPool &pool)
 {
-    static constexpr uint32 max_spins = 40;
-
-    const uint32 num_threads_in_pool = uint32(pool.threads.Size());
-
-    const ThreadID current_thread_id = Threads::CurrentThreadID();
-    const bool is_on_task_thread = current_thread_id & THREAD_TASK;
-
-    IThread *current_thread_object = Threads::CurrentThreadObject();
-
-    uint32 cycle = pool.cycle.Get(MemoryOrder::RELAXED) % num_threads_in_pool;
-    uint32 num_spins = 0;
-
-    TaskThread *task_thread = nullptr;
-    
-    // if we are currently on a task thread we need to move to the next task thread in the pool
-    // if we selected the current task thread. otherwise we will have a deadlock.
-    // this does require that there are > 1 task thread in the pool.
-    do {
-        do {
-            task_thread = pool.threads[cycle].Get();
-
-            cycle = (cycle + 1) % num_threads_in_pool;
-            pool.cycle.Increment(1, MemoryOrder::RELAXED);
-
-            ++num_spins;
-            
-            if (num_spins >= max_spins) {
-                if (is_on_task_thread) {
-                    return static_cast<TaskThread *>(current_thread_object);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-                }
-
-                HYP_LOG(Tasks, LogLevel::WARNING, "Maximum spins reached in GetNextTaskThread -- all task threads busy");
-
-                return task_thread;
-            }
-        } while (task_thread->GetID() == current_thread_id
-            || (current_thread_object != nullptr && current_thread_object->GetScheduler()->HasWorkAssignedFromThread(task_thread->GetID())));
-    } while (!task_thread->IsRunning() && !task_thread->IsFree());
-
-    return task_thread;
+    return pool.GetNextTaskThread();
 }
+
+#pragma endregion TaskSystem
 
 } // namespace threading
 } // namespace hyperion

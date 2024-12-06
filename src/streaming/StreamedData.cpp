@@ -304,7 +304,7 @@ void MemoryStreamedData::Unpage_Internal()
     {
         auto &data_store = GetDataStore<StaticString("streaming"), DSF_RW>();
         data_store.Write(String::ToString(hash_code.Value()), byte_buffer);
-    }, TaskEnqueueFlags::FIRE_AND_FORGET);
+    }, TaskThreadPoolName::THREAD_POOL_GENERIC, TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_byte_buffer.Unset();
 }

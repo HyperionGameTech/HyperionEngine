@@ -460,7 +460,7 @@ void RenderCollector::CollectDrawCalls(
 
     if (do_parallel_collection && iterators.Size() > 1) {
         TaskSystem::GetInstance().ParallelForEach(
-            TaskThreadPoolName::THREAD_POOL_RENDER,
+            TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
             iterators,
             [this](IteratorType it, uint, uint)
             {

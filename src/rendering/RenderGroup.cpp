@@ -541,8 +541,10 @@ static HYP_FORCE_INLINE void RenderAll(
 
     const uint frame_index = frame->GetFrameIndex();
 
+    TaskThreadPool &pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
     const uint num_batches = use_parallel_rendering
-        ? MathUtil::Min(uint(TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
+        ? MathUtil::Min(pool.NumThreads(), num_async_rendering_command_buffers)
         : 1u;
 
     const uint global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
@@ -672,7 +674,9 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     const uint frame_index = frame->GetFrameIndex();
 
-    const uint num_batches = MathUtil::Min(uint(TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers);
+    TaskThreadPool &pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
+    const uint num_batches = MathUtil::Min(pool.NumThreads(), num_async_rendering_command_buffers);
     
     GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
 
@@ -716,7 +720,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     // HYP_LOG(Rendering, LogLevel::DEBUG, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
 
-    ParallelForEach(divided_draw_calls, num_batches, TaskThreadPoolName::THREAD_POOL_RENDER,
+    ParallelForEach(divided_draw_calls, num_batches, pool,
         [&](Span<const DrawCall> draw_calls, uint index, uint)
         {
             if (!draw_calls) {
