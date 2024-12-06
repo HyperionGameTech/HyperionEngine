@@ -11,7 +11,6 @@
 namespace hyperion {
 
 const RenderBinding<Scene> RenderBinding<Scene>::empty = { };
-const RenderBinding<Camera> RenderBinding<Camera>::empty = { };
 
 void RenderState::BindCamera(Camera *camera)
 {

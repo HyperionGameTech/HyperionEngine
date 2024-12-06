@@ -66,6 +66,20 @@ namespace Hyperion
 
         [Hyperion.ScriptMethodStub]
         [UIEvent(AllowNested = false)]
+        public virtual UIEventHandlerResult OnChildAttached(UIObject child)
+        {
+            return UIEventHandlerResult.Ok;
+        }
+
+        [Hyperion.ScriptMethodStub]
+        [UIEvent(AllowNested = false)]
+        public virtual UIEventHandlerResult OnChildRemoved(UIObject child)
+        {
+            return UIEventHandlerResult.Ok;
+        }
+
+        [Hyperion.ScriptMethodStub]
+        [UIEvent(AllowNested = false)]
         public virtual UIEventHandlerResult OnMouseDown(MouseEvent mouseEvent)
         {
             return UIEventHandlerResult.Ok;

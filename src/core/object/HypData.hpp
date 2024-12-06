@@ -381,30 +381,30 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
         return std::is_fundamental_v<OtherT>;
     }
 
-    constexpr T Get(T value) const
+    HYP_FORCE_INLINE constexpr T Get(T value) const
     {
         return value;
     }
 
     template <class OtherT, typename = std::enable_if_t< !std::is_same_v<OtherT, T> > >
-    constexpr T Get(OtherT value) const
+    HYP_FORCE_INLINE constexpr T Get(OtherT value) const
     {
         return static_cast<T>(value);
     }
 
-    void Set(HypData &hyp_data, T value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, T value) const
     {
         hyp_data.value.Set<T>(value);
     }
 
-    static fbom::FBOMResult Serialize(const HypData &data, fbom::FBOMData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(const HypData &data, fbom::FBOMData &out)
     {
         out = fbom::FBOMData(data.value.Get<T>());
 
         return fbom::FBOMResult::FBOM_OK;
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         T value;
 
@@ -424,24 +424,40 @@ struct HypDataHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>> {};
 template <class T>
 struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std::underlying_type_t<T>>
 {
-    using ConvertibleFrom = Tuple<std::underlying_type_t<T>>;
+    HYP_FORCE_INLINE bool Is(T value) const
+    {
+        // should never be hit
+        HYP_NOT_IMPLEMENTED();
+    }
 
-    HYP_FORCE_INLINE bool Is(const std::underlying_type_t<T> &value) const
+    HYP_FORCE_INLINE constexpr bool Is(std::underlying_type_t<T>) const
     {
         return true;
     }
 
-    constexpr T Get(T value) const
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<OtherT, T> && !std::is_same_v<OtherT, std::underlying_type_t<T> > > >
+    HYP_FORCE_INLINE constexpr bool Is(OtherT value) const
+    {
+        return std::is_fundamental_v<OtherT>;
+    }
+
+    HYP_FORCE_INLINE constexpr T Get(T value) const
     {
         return value;
     }
 
-    constexpr T Get(std::underlying_type_t<T> value) const
+    HYP_FORCE_INLINE constexpr T Get(std::underlying_type<T> value) const
     {
         return static_cast<T>(value);
     }
 
-    void Set(HypData &hyp_data, T value) const
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<OtherT, T> && !std::is_same_v<OtherT, std::underlying_type<T> > > >
+    HYP_FORCE_INLINE constexpr T Get(OtherT value) const
+    {
+        return static_cast<T>(value);
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, T value) const
     {
         HypDataHelper<std::underlying_type_t<T>>::Set(hyp_data, static_cast<std::underlying_type_t<T>>(value));
     }
@@ -460,17 +476,17 @@ struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::Underl
         return true;
     }
 
-    constexpr EnumFlags<T> Get(EnumFlags<T> value) const
+    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(EnumFlags<T> value) const
     {
         return value;
     }
 
-    constexpr EnumFlags<T> Get(typename EnumFlags<T>::UnderlyingType value) const
+    HYP_FORCE_INLINE constexpr EnumFlags<T> Get(typename EnumFlags<T>::UnderlyingType value) const
     {
         return static_cast<EnumFlags<T>>(value);
     }
 
-    void Set(HypData &hyp_data, EnumFlags<T> value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, EnumFlags<T> value) const
     {
         HypDataHelper<typename EnumFlags<T>::UnderlyingType>::Set(hyp_data, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
     }
@@ -491,29 +507,29 @@ struct HypDataHelper<IDBase>
         HYP_NOT_IMPLEMENTED();
     }
 
-    constexpr IDBase &Get(IDBase &value) const
+    HYP_FORCE_INLINE constexpr IDBase &Get(IDBase &value) const
     {
         return value;
     }
 
-    const IDBase &Get(const IDBase &value) const
+    HYP_FORCE_INLINE const IDBase &Get(const IDBase &value) const
     {
         return value;
     }
 
-    void Set(HypData &hyp_data, const IDBase &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const IDBase &value) const
     {
         hyp_data.value.Set<IDBase>(value);
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         out_data = fbom::FBOMData::FromStruct<IDBase>(hyp_data.Get<IDBase>());
 
         return fbom::FBOMResult::FBOM_OK;
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         IDBase value;
         
@@ -545,62 +561,21 @@ struct HypDataHelper<ID<T>> : HypDataHelper<IDBase>
         return value.GetTypeID() == TypeID::ForType<T>();
     }
 
-    ID<T> Get(IDBase value) const
+    HYP_FORCE_INLINE ID<T> Get(IDBase value) const
     {
         return ID<T>(value);
     }
 
-    ID<T> Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE ID<T> Get(const AnyHandle &value) const
     {
         return ID<T>(value.GetID());
     }
 
-    void Set(HypData &hyp_data, const ID<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const ID<T> &value) const
     {
         HypDataHelper<IDBase>::Set(hyp_data, static_cast<const IDBase &>(value));
     }
 };
-
-// template <>
-// struct HypDataHelperDecl<ID<Entity>> {};
-
-// template <>
-// struct HypDataHelper<ID<Entity>> : HypDataHelper<IDBase>
-// {
-//     using ConvertibleFrom = Tuple<>;
-
-//     HYP_FORCE_INLINE bool Is(const IDBase &value) const
-//     {
-//         return true; // can't do anything more to check as IDBase doesn't hold type info.
-//     }
-
-//     ID<Entity> &Get(IDBase &value) const
-//     {
-//         return static_cast<ID<Entity> &>(value);
-//     }
-
-//     const ID<Entity> &Get(const IDBase &value) const
-//     {
-//         return static_cast<const ID<Entity> &>(value);
-//     }
-
-//     void Set(HypData &hyp_data, const ID<Entity> &value) const
-//     {
-//         HypDataHelper<IDBase>::Set(hyp_data, static_cast<const IDBase &>(value));
-//     }
-
-//     static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
-//     {
-//         ID<Entity> entity = static_cast<ID<Entity>>(hyp_data.Get<IDBase>());
-        
-//         return HypDataMarshalHelper::Serialize<ID<Entity>>(entity, out_data);
-//     }
-
-//     static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
-//     {
-//         return HypDataMarshalHelper::Deserialize<ID<Entity>>(data, out);
-//     }
-// };
 
 template <>
 struct HypDataHelperDecl<AnyHandle> {};
@@ -617,22 +592,22 @@ struct HypDataHelper<AnyHandle>
         HYP_NOT_IMPLEMENTED();
     }
 
-    AnyHandle &Get(AnyHandle &value) const
+    HYP_FORCE_INLINE AnyHandle &Get(AnyHandle &value) const
     {
         return value;
     }
 
-    const AnyHandle &Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE const AnyHandle &Get(const AnyHandle &value) const
     {
         return value;
     }
 
-    void Set(HypData &hyp_data, const AnyHandle &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const AnyHandle &value) const
     {
         hyp_data.value.Set<AnyHandle>(value);
     }
 
-    void Set(HypData &hyp_data, AnyHandle &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, AnyHandle &&value) const
     {
         hyp_data.value.Set<AnyHandle>(std::move(value));
     }
@@ -684,17 +659,17 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
         return value.GetTypeID() == TypeID::ForType<T>();
     }
 
-    Handle<T> Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE Handle<T> Get(const AnyHandle &value) const
     {
         return value.Cast<T>();
     }
 
-    void Set(HypData &hyp_data, const Handle<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Handle<T> &value) const
     {
         HypDataHelper<AnyHandle>::Set(hyp_data, AnyHandle(value));
     }
 
-    void Set(HypData &hyp_data, Handle<T> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Handle<T> &&value) const
     {
         HypDataHelper<AnyHandle>::Set(hyp_data, AnyHandle(std::move(value)));
     }
@@ -745,22 +720,22 @@ struct HypDataHelper<RC<void>>
         HYP_NOT_IMPLEMENTED();
     }
 
-    RC<void> &Get(RC<void> &value) const
+    HYP_FORCE_INLINE RC<void> &Get(RC<void> &value) const
     {
         return value;
     }
 
-    const RC<void> &Get(const RC<void> &value) const
+    HYP_FORCE_INLINE const RC<void> &Get(const RC<void> &value) const
     {
         return value;
     }
 
-    void Set(HypData &hyp_data, const RC<void> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const RC<void> &value) const
     {
         hyp_data.value.Set<RC<void>>(value);
     }
 
-    void Set(HypData &hyp_data, RC<void> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, RC<void> &&value) const
     {
         hyp_data.value.Set<RC<void>>(std::move(value));
     }
@@ -809,17 +784,17 @@ struct HypDataHelper<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDataHel
         return value.Is<T>();
     }
 
-    RC<T> Get(const RC<void> &value) const
+    HYP_FORCE_INLINE RC<T> Get(const RC<void> &value) const
     {
         return value.template Cast<T>();
     }
 
-    void Set(HypData &hyp_data, const RC<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const RC<T> &value) const
     {
         HypDataHelper<RC<void>>::Set(hyp_data, value);
     }
 
-    void Set(HypData &hyp_data, RC<T> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, RC<T> &&value) const
     {
         HypDataHelper<RC<void>>::Set(hyp_data, std::move(value));
     }
@@ -877,17 +852,17 @@ struct HypDataHelper<AnyRef>
         HYP_NOT_IMPLEMENTED();
     }
 
-    const AnyRef &Get(const AnyRef &value) const
+    HYP_FORCE_INLINE const AnyRef &Get(const AnyRef &value) const
     {
         return value;
     }
 
-    void Set(HypData &hyp_data, const AnyRef &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const AnyRef &value) const
     {
         Set(hyp_data, AnyRef(value));
     }
 
-    void Set(HypData &hyp_data, AnyRef &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, AnyRef &&value) const
     {
         hyp_data.value.Set<AnyRef>(std::move(value));
     }
@@ -953,7 +928,7 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
         return value.Is<T>();
     }
 
-    T *Get(const AnyRef &value) const
+    HYP_FORCE_INLINE T *Get(const AnyRef &value) const
     {
         AssertThrow(value.Is<T>());
 
@@ -967,21 +942,21 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
     //     return value.Get<T>();
     // }
 
-    T *Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE T *Get(const AnyHandle &value) const
     {
         AssertThrow(value.Is<T>());
 
         return value.TryGet<T>();
     }
 
-    T *Get(const RC<void> &value) const
+    HYP_FORCE_INLINE T *Get(const RC<void> &value) const
     {
         AssertThrow(value.Is<T>());
 
         return value.CastUnsafe<T>();
     }
 
-    void Set(HypData &hyp_data, T *value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, T *value) const
     {
         HypDataHelper<AnyRef>::Set(hyp_data, AnyRef(TypeID::ForType<T>(), value));
     }
@@ -1022,27 +997,27 @@ struct HypDataHelperDecl<const T *, std::enable_if_t< !std::is_same_v<T *, void 
 template <class T>
 struct HypDataHelper<const T *, std::enable_if_t< !std::is_same_v<T *, void *> >> : HypDataHelper<T *>
 {
-    const T *Get(const ConstAnyRef &value) const
+    HYP_FORCE_INLINE const T *Get(const ConstAnyRef &value) const
     {
         return HypDataHelper<T *>::Get(AnyRef(value.GetTypeID(), const_cast<void *>(value.GetPointer())));
     }
 
-    const T *Get(const AnyRef &value) const
+    HYP_FORCE_INLINE const T *Get(const AnyRef &value) const
     {
         return HypDataHelper<T *>::Get(value);
     }
 
-    const T *Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE const T *Get(const AnyHandle &value) const
     {
         return HypDataHelper<T *>::Get(value);
     }
 
-    const T *Get(const RC<void> &value) const
+    HYP_FORCE_INLINE const T *Get(const RC<void> &value) const
     {
         return HypDataHelper<T *>::Get(value);
     }
 
-    void Set(HypData &hyp_data, const T *value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const T *value) const
     {
         HypDataHelper<T *>::Set(hyp_data, const_cast<T *>(value));
     }
@@ -1063,17 +1038,17 @@ struct HypDataHelper<Any>
         HYP_NOT_IMPLEMENTED();
     }
 
-    Any &Get(Any &value) const
+    HYP_FORCE_INLINE Any &Get(Any &value) const
     {
         return value;
     }
 
-    const Any &Get(const Any &value) const
+    HYP_FORCE_INLINE const Any &Get(const Any &value) const
     {
         return value;
     }
 
-    void Set(HypData &hyp_data, Any &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Any &&value) const
     {
         hyp_data.value.Set<Any>(std::move(value));
     }
@@ -1124,27 +1099,27 @@ struct HypDataHelper<containers::detail::String<StringType>> : HypDataHelper<Any
         return value.Is<containers::detail::String<StringType>>();
     }
 
-    containers::detail::String<StringType> &Get(Any &value) const
+    HYP_FORCE_INLINE containers::detail::String<StringType> &Get(Any &value) const
     {
         return value.Get<containers::detail::String<StringType>>();
     }
 
-    const containers::detail::String<StringType> &Get(const Any &value) const
+    HYP_FORCE_INLINE const containers::detail::String<StringType> &Get(const Any &value) const
     {
         return value.Get<containers::detail::String<StringType>>();
     }
 
-    void Set(HypData &hyp_data, const containers::detail::String<StringType> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const containers::detail::String<StringType> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<containers::detail::String<StringType>>(value));
     }
 
-    void Set(HypData &hyp_data, containers::detail::String<StringType> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, containers::detail::String<StringType> &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<containers::detail::String<StringType>>(std::move(value)));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1159,7 +1134,7 @@ struct HypDataHelper<containers::detail::String<StringType>> : HypDataHelper<Any
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize string - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         containers::detail::String<StringType> result;
 
@@ -1186,12 +1161,12 @@ struct HypDataHelper<utilities::detail::StringView<StringType>> : HypDataHelper<
         return HypDataHelper<containers::detail::String<StringType>>::Is(value);
     }
 
-    utilities::detail::StringView<StringType> Get(const Any &value) const
+    HYP_FORCE_INLINE utilities::detail::StringView<StringType> Get(const Any &value) const
     {
         return HypDataHelper<containers::detail::String<StringType>>::Get(value);
     }
 
-    void Set(HypData &hyp_data, const utilities::detail::StringView<StringType> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const utilities::detail::StringView<StringType> &value) const
     {
         HypDataHelper<containers::detail::String<StringType>>::Set(hyp_data, value);
     }
@@ -1220,7 +1195,7 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<ANSIString>(value.LookupString()));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1235,7 +1210,7 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize name string - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         ANSIString result;
 
@@ -1248,8 +1223,6 @@ struct HypDataHelper<Name> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_OK };
     }
 };
-
-
 
 template <>
 struct HypDataHelperDecl<WeakName> {};
@@ -1272,17 +1245,17 @@ struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v
         return value.Is<Array<T, NumInlineBytes>>();
     }
 
-    Array<T, NumInlineBytes> &Get(const Any &value) const
+    HYP_FORCE_INLINE Array<T, NumInlineBytes> &Get(const Any &value) const
     {
         return value.Get<Array<T, NumInlineBytes>>();
     }
 
-    void Set(HypData &hyp_data, const Array<T, NumInlineBytes> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Array<T, NumInlineBytes> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(value));
     }
 
-    void Set(HypData &hyp_data, Array<T, NumInlineBytes> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Array<T, NumInlineBytes> &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(std::move(value)));
     }
@@ -1366,17 +1339,17 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         return value.Is<FixedArray<T, Size>>();
     }
 
-    FixedArray<T, Size> &Get(const Any &value) const
+    HYP_FORCE_INLINE FixedArray<T, Size> &Get(const Any &value) const
     {
         return value.Get<FixedArray<T, Size>>();
     }
     
-    void Set(HypData &hyp_data, const FixedArray<T, Size> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const FixedArray<T, Size> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<FixedArray<T, Size>>(value));
     }
 
-    void Set(HypData &hyp_data, FixedArray<T, Size> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, FixedArray<T, Size> &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<FixedArray<T, Size>>(std::move(value)));
     }
@@ -1459,12 +1432,12 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         return value.Is<FixedArray<T, Size>>();
     }
 
-    FixedArray<T, Size> &Get(const Any &value) const
+    HYP_FORCE_INLINE FixedArray<T, Size> &Get(const Any &value) const
     {
         return value.Get<FixedArray<T, Size>>();
     }
 
-    void Set(HypData &hyp_data, const T (&value)[Size]) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const T (&value)[Size]) const
     {
         HypDataHelper<FixedArray<T, Size>>::Set(hyp_data, MakeFixedArray(value));
     }
@@ -1483,17 +1456,17 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
         return value.Is<Pair<K, V>>();
     }
 
-    Pair<K, V> &Get(const Any &value) const
+    HYP_FORCE_INLINE Pair<K, V> &Get(const Any &value) const
     {
         return value.Get<Pair<K, V>>();
     }
     
-    void Set(HypData &hyp_data, const Pair<K, V> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Pair<K, V> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Pair<K, V>>(value));
     }
 
-    void Set(HypData &hyp_data, Pair<K, V> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Pair<K, V> &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Pair<K, V>>(std::move(value)));
     }
@@ -1570,17 +1543,17 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<Any>
         return value.Is<HashMap<K, V>>();
     }
 
-    HashMap<K, V> &Get(const Any &value) const
+    HYP_FORCE_INLINE HashMap<K, V> &Get(const Any &value) const
     {
         return value.Get<HashMap<K, V>>();
     }
 
-    void Set(HypData &hyp_data, const HashMap<K, V> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const HashMap<K, V> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<HashMap<K, V>>(value));
     }
 
-    void Set(HypData &hyp_data, HashMap<K, V> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, HashMap<K, V> &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<HashMap<K, V>>(std::move(value)));
     }
@@ -1683,22 +1656,22 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec2<T>>();
     }
 
-    math::detail::Vec2<T> &Get(Any &value) const
+    HYP_FORCE_INLINE math::detail::Vec2<T> &Get(Any &value) const
     {
         return value.Get<math::detail::Vec2<T>>();
     }
 
-    const math::detail::Vec2<T> &Get(const Any &value) const
+    HYP_FORCE_INLINE const math::detail::Vec2<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec2<T>>();
     }
 
-    void Set(HypData &hyp_data, const math::detail::Vec2<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const math::detail::Vec2<T> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<math::detail::Vec2<T>>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1713,7 +1686,7 @@ struct HypDataHelper<math::detail::Vec2<T>> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Vector type - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         math::detail::Vec2<T> result;
 
@@ -1740,22 +1713,22 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec3<T>>();
     }
 
-    math::detail::Vec3<T> &Get(Any &value) const
+    HYP_FORCE_INLINE math::detail::Vec3<T> &Get(Any &value) const
     {
         return value.Get<math::detail::Vec3<T>>();
     }
 
-    const math::detail::Vec3<T> &Get(const Any &value) const
+    HYP_FORCE_INLINE const math::detail::Vec3<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec3<T>>();
     }
 
-    void Set(HypData &hyp_data, const math::detail::Vec3<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const math::detail::Vec3<T> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<math::detail::Vec3<T>>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1770,7 +1743,7 @@ struct HypDataHelper<math::detail::Vec3<T>> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Vector type - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -1799,22 +1772,22 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         return value.Is<math::detail::Vec4<T>>();
     }
 
-    math::detail::Vec4<T> &Get(Any &value) const
+    HYP_FORCE_INLINE math::detail::Vec4<T> &Get(Any &value) const
     {
         return value.Get<math::detail::Vec4<T>>();
     }
 
-    const math::detail::Vec4<T> &Get(const Any &value) const
+    HYP_FORCE_INLINE const math::detail::Vec4<T> &Get(const Any &value) const
     {
         return value.Get<math::detail::Vec4<T>>();
     }
 
-    void Set(HypData &hyp_data, const math::detail::Vec4<T> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const math::detail::Vec4<T> &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<math::detail::Vec4<T>>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1829,7 +1802,7 @@ struct HypDataHelper<math::detail::Vec4<T>> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Vector type - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -1858,22 +1831,22 @@ struct HypDataHelper<Matrix3> : HypDataHelper<Any>
         return value.Is<Matrix3>();
     }
 
-    Matrix3 &Get(Any &value) const
+    HYP_FORCE_INLINE Matrix3 &Get(Any &value) const
     {
         return value.Get<Matrix3>();
     }
 
-    const Matrix3 &Get(const Any &value) const
+    HYP_FORCE_INLINE const Matrix3 &Get(const Any &value) const
     {
         return value.Get<Matrix3>();
     }
 
-    void Set(HypData &hyp_data, const Matrix3 &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Matrix3 &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Matrix3>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1888,7 +1861,7 @@ struct HypDataHelper<Matrix3> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Matrix3 - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -1917,22 +1890,22 @@ struct HypDataHelper<Matrix4> : HypDataHelper<Any>
         return value.Is<Matrix4>();
     }
 
-    Matrix4 &Get(Any &value) const
+    HYP_FORCE_INLINE Matrix4 &Get(Any &value) const
     {
         return value.Get<Matrix4>();
     }
 
-    const Matrix4 &Get(const Any &value) const
+    HYP_FORCE_INLINE const Matrix4 &Get(const Any &value) const
     {
         return value.Get<Matrix4>();
     }
 
-    void Set(HypData &hyp_data, const Matrix4 &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Matrix4 &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Matrix4>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -1947,7 +1920,7 @@ struct HypDataHelper<Matrix4> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Matrix4 - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -1976,22 +1949,22 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
         return value.Is<Quaternion>();
     }
 
-    Quaternion &Get(Any &value) const
+    HYP_FORCE_INLINE Quaternion &Get(Any &value) const
     {
         return value.Get<Quaternion>();
     }
 
-    const Quaternion &Get(const Any &value) const
+    HYP_FORCE_INLINE const Quaternion &Get(const Any &value) const
     {
         return value.Get<Quaternion>();
     }
 
-    void Set(HypData &hyp_data, const Quaternion &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Quaternion &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<Quaternion>(value));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -2006,7 +1979,7 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize Quaternion - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -2035,22 +2008,22 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
         return value.Is<ByteBuffer>();
     }
 
-    ByteBuffer &Get(const Any &value) const
+    HYP_FORCE_INLINE ByteBuffer &Get(const Any &value) const
     {
         return value.Get<ByteBuffer>();
     }
 
-    void Set(HypData &hyp_data, const ByteBuffer &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const ByteBuffer &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<ByteBuffer>(value));
     }
 
-    void Set(HypData &hyp_data, ByteBuffer &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, ByteBuffer &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<ByteBuffer>(std::move(value)));
     }
 
-    static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(HypData &&hyp_data, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
         
@@ -2065,7 +2038,7 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
         return { fbom::FBOMResult::FBOM_ERR, "Failed to serialize ByteBuffer - HypData is not expected type" };
     }
 
-    static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(const fbom::FBOMData &data, HypData &out)
     {
         HYP_SCOPE;
         
@@ -2116,22 +2089,22 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
         return value.Is<T>();
     }
 
-    T &Get(const Any &value) const
+    HYP_FORCE_INLINE T &Get(const Any &value) const
     {
         return value.Get<T>();
     }
 
-    T &Get(T *value) const
+    HYP_FORCE_INLINE T &Get(T *value) const
     {
         return *value;
     }
 
-    T &Get(const AnyRef &value) const
+    HYP_FORCE_INLINE T &Get(const AnyRef &value) const
     {
         return value.Get<T>();
     }
 
-    T &Get(const AnyHandle &value) const
+    HYP_FORCE_INLINE T &Get(const AnyHandle &value) const
     {
         if constexpr (has_opaque_handle_defined<T>) {
             return *value.Cast<T>().Get();
@@ -2140,17 +2113,17 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
         }
     }
 
-    T &Get(const RC<void> &value) const
+    HYP_FORCE_INLINE T &Get(const RC<void> &value) const
     {
         return *value.Cast<T>();
     }
 
-    void Set(HypData &hyp_data, const T &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const T &value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<T>(value));
     }
 
-    void Set(HypData &hyp_data, T &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, T &&value) const
     {
         HypDataHelper<Any>::Set(hyp_data, Any::Construct<T>(std::move(value)));
     }

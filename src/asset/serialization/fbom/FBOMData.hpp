@@ -44,6 +44,10 @@
 
 namespace hyperion {
 
+namespace json {
+class JSONValue;
+} // namespace json
+
 struct HypData;
 
 enum class FBOMDataFlags
@@ -59,6 +63,95 @@ namespace fbom {
 class FBOMObject;
 class FBOMArray;
 struct FBOMDeserializedObject;
+
+template <class FBOMData, class T, class FBOMTypeClass, class T2 = void>
+struct FBOMDataTypeOps;
+
+template <class FBOMData, class T, class FBOMTypeClass>
+struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t< std::is_fundamental_v<T> || IsPODType<T> > >
+{
+    const FBOMData  &target;
+
+    HYP_FORCE_INLINE bool Is() const
+        { return target.GetType().Is(FBOMTypeClass(), /* allow_unbounded */ true); }
+
+    HYP_FORCE_INLINE FBOMResult Read(T *out) const
+    {
+        const TypeID type_id = target.GetType().GetNativeTypeID();
+
+        auto ReadAsType = [this, &out, &type_id]<class TReadAsType>(TypeWrapper<TReadAsType>) -> bool
+        {
+            if (type_id == TypeID::ForType<TReadAsType>()) {
+                TReadAsType value;
+                target.ReadBytes(target.GetType().size, &value);
+
+                *out = static_cast<T>(value);
+
+                return true;
+            }
+
+            return false;
+        };
+
+        if (Is()) {
+            target.ReadBytes(FBOMTypeClass().size, out);
+
+            FBOM_RETURN_OK;
+        }
+
+        // Allow implicit conversion between numeric types
+        if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
+            if (target.GetType().IsNumeric()) {
+                AssertThrowMsg(type_id != TypeID::Void(), "Type must have a valid native TypeID if it is numeric");
+
+                if (ReadAsType(TypeWrapper<uint8> { }) || ReadAsType(TypeWrapper<uint16> { }) || ReadAsType(TypeWrapper<uint32> { }) || ReadAsType(TypeWrapper<uint64> { })
+                    || ReadAsType(TypeWrapper<int8> { }) || ReadAsType(TypeWrapper<int16> { }) || ReadAsType(TypeWrapper<int32> { }) || ReadAsType(TypeWrapper<int64> { })
+                    || ReadAsType(TypeWrapper<float> { }) || ReadAsType(TypeWrapper<double> { }))
+                {
+                    FBOM_RETURN_OK;
+                }
+            }
+        }
+
+        return FBOMResult { FBOMResult::FBOM_ERR, "Type mismatch" };
+    }
+
+    /*! \brief Read with static_cast to result type */
+    template <class TOther>
+    FBOMResult Read(TOther *out) const
+    {
+        static_assert(sizeof(T) == sizeof(TOther), "sizeof(T) must match sizeof(TOther)");
+
+        if constexpr (std::is_enum_v<TOther>) {
+            static_assert(std::is_convertible_v<T, std::underlying_type_t<TOther>>, "T must be convertible to underlying type of TOther");
+        } else {
+            static_assert(std::is_convertible_v<T, TOther>, "T must be convertible to TOther");
+        }
+
+        T read_value;
+
+        if (FBOMResult err = Read(&read_value)) {
+            return err;
+        }
+
+        *out = static_cast<TOther>(read_value);
+
+        FBOM_RETURN_OK;
+    }
+
+    static FBOMData From(const T &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        static_assert(std::is_standard_layout_v<T>, "Type must be standard layout");
+
+        FBOMTypeClass type;
+        AssertThrowMsg(sizeof(T) == type.size, "sizeof(T) must be equal to FBOMTypeClass::size");
+
+        FBOMData data { type, flags };
+        data.SetBytes(sizeof(T), &value);
+        
+        return data;
+    }
+};
 
 class HYP_API FBOMData final : public IFBOMSerializable
 {
@@ -105,40 +198,18 @@ public:
     void SetBytes(SizeType count, const void *data);
 
 #define FBOM_TYPE_FUNCTIONS(type_name, c_type) \
-    bool Is##type_name() const { return type.Is(FBOM##type_name(), /* allow_unbounded */ true); } \
-    FBOMResult Read(c_type *out) const \
-    { \
-        FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
-        ReadBytes(FBOM##type_name().size, out); \
-        FBOM_RETURN_OK; \
-    } \
-    /*! \brief Read with static_cast to result type */ \
+    bool Is##type_name() const { return FBOMDataTypeOps<FBOMData, c_type, FBOM##type_name> { *this }.Is(); } \
+    \
+    FBOMResult Read(c_type *out) const { return FBOMDataTypeOps<FBOMData, c_type, FBOM##type_name> { *this }.Read(out); } \
+    \
     template <class T> \
-    FBOMResult Read##type_name(T *out) const \
-    { \
-        static_assert(sizeof(T) == sizeof(c_type), "sizeof(T) must match sizeof " #c_type "!"); \
-        if constexpr (std::is_enum_v<T>) { \
-            static_assert(std::is_same_v<std::underlying_type_t<T>, c_type>, "Underlying type of enum T must be " #c_type "!"); \
-        } else { \
-            static_assert(std::is_convertible_v<c_type, T>, "T must be convertible to " #c_type "!"); \
-        } \
-        c_type read_value; \
-        FBOM_ASSERT(Is##type_name(), "Type mismatch (expected " #c_type ")"); \
-        ReadBytes(FBOM##type_name().size, &read_value); \
-        *out = static_cast<T>(read_value); \
-        FBOM_RETURN_OK; \
-    } \
+    FBOMResult Read##type_name(T *out) const { return FBOMDataTypeOps<FBOMData, c_type, FBOM##type_name> { *this }.Read(out); } \
+    \
     static FBOMData From##type_name(const c_type &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
     { \
-        static_assert(std::is_standard_layout_v<c_type>, "Type " #c_type " must be standard layout"); \
-        \
-        FBOM##type_name type; \
-        AssertThrowMsg(sizeof(c_type) == type.size, "sizeof(" #c_type ") must be equal to FBOM" #type_name "::size"); \
-        \
-        FBOMData data { type, flags }; \
-        data.SetBytes(sizeof(c_type), &value); \
-        return data; \
+        return FBOMDataTypeOps<FBOMData, c_type, FBOM##type_name>::From(value, flags); \
     } \
+    \
     explicit FBOMData(const c_type &value, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE) \
         : type(FBOM##type_name()), \
           m_flags(flags) \
@@ -201,27 +272,33 @@ public:
         FBOM_RETURN_OK;
     }
     
-    template <int string_type>
-    HYP_FORCE_INLINE static FBOMData FromString(const StringView<string_type> &str)
+    template <int TStringType>
+    HYP_FORCE_INLINE static FBOMData FromString(const StringView<TStringType> &str)
     {
-        static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
+        static_assert(TStringType == int(StringType::ANSI) || TStringType == int(StringType::UTF8), "String type must be ANSI or UTF8");
 
         return FBOMData(FBOMString(), ByteBuffer(str.Size(), str.Data()));
     }
     
-    template <int string_type>
-    HYP_FORCE_INLINE static FBOMData FromString(const containers::detail::String<string_type> &str)
+    template <int TStringType>
+    HYP_FORCE_INLINE static FBOMData FromString(const containers::detail::String<TStringType> &str)
     {
-        return FromString(StringView<string_type>(str));
+        return FromString(StringView<TStringType>(str));
     }
 
-    template <int string_type>
-    explicit FBOMData(const StringView<string_type> &str) : FBOMData(FromString(str)) { }
+    template <int TStringType>
+    explicit FBOMData(const StringView<TStringType> &str) : FBOMData(FromString(str)) { }
 
-    template <int string_type>
-    explicit FBOMData(const containers::detail::String<string_type> &str) : FBOMData(FromString(str)) { }
+    template <int TStringType>
+    explicit FBOMData(const containers::detail::String<TStringType> &str) : FBOMData(FromString(str)) { }
 
 #pragma endregion String
+
+#pragma region JSON
+    static FBOMData FromJSON(const json::JSONValue &json_value);
+
+    explicit FBOMData(const json::JSONValue &json_value);
+#pragma endregion JSON
 
 #pragma region ByteBuffer
     HYP_FORCE_INLINE bool IsByteBuffer() const

@@ -145,6 +145,8 @@ UIObject::UIObject(UIObjectType type, ThreadID owner_thread_id)
     OnInit.Bind(UIScriptDelegate< > { this, "OnInit", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
     OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
     OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnChildAttached.Bind(UIScriptDelegate< UIObject * > { this, "OnChildAttached", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnChildRemoved.Bind(UIScriptDelegate< UIObject * > { this, "OnChildRemoved", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
     OnMouseDown.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDown", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
     OnMouseUp.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseUp", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
     OnMouseDrag.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDrag", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
@@ -911,8 +913,14 @@ Color UIObject::GetTextColor() const
     HYP_SCOPE;
 
     if (uint32(m_text_color) == 0) {
-        if (const UIObject *parent = GetParentUIObject()) {
-            return parent->GetTextColor();
+
+        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
+        {
+            return uint32(parent->m_text_color) != 0;
+        });
+
+        if (spawn_parent != nullptr) {
+            return spawn_parent->m_text_color;
         }
     }
 
@@ -939,10 +947,13 @@ float UIObject::GetTextSize() const
     HYP_SCOPE;
 
     if (m_text_size <= 0.0f) {
-        UIObject *parent = GetParentUIObject();
+        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
+        {
+            return parent->m_text_size > 0.0f;
+        });
 
-        if (parent != nullptr) {
-            return parent->GetTextSize();
+        if (spawn_parent != nullptr) {
+            return spawn_parent->m_text_size;
         }
 
         return 16.0f; // default font size
@@ -1141,6 +1152,8 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
 
     m_child_ui_objects.PushBack(ui_object);
     ui_object->OnAttached_Internal(this);
+
+    OnChildAttached(ui_object.Get());
 }
 
 bool UIObject::RemoveChildUIObject(UIObject *ui_object)
@@ -1170,6 +1183,8 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
                     AssertThrow(child_node->Remove());
 
                     ui_object->OnRemoved_Internal();
+
+                    OnChildRemoved(ui_object);
 
                     auto it = m_child_ui_objects.FindAs(ui_object);
 
@@ -1634,6 +1649,23 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool, UIObjec
         }
 
         parent_node = parent_node->GetParent();
+    }
+
+    return nullptr;
+}
+
+RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool, UIObject *> &proc) const
+{
+    HYP_SCOPE;
+
+    RC<UIObject> parent_ui_object = m_spawn_parent.Lock();
+
+    while (parent_ui_object != nullptr) {
+        if (proc(parent_ui_object.Get())) {
+            return parent_ui_object;
+        }
+
+        parent_ui_object = parent_ui_object->m_spawn_parent.Lock();
     }
 
     return nullptr;

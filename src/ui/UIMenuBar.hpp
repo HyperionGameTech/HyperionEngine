@@ -5,11 +5,22 @@
 
 #include <ui/UIPanel.hpp>
 
+#include <core/Handle.hpp>
+
 #include <core/containers/Array.hpp>
 
 namespace hyperion {
 
 class UIText;
+class UIImage;
+class Texture;
+
+HYP_ENUM()
+enum class UIMenuBarDropDirection : uint32
+{
+    DOWN, //! Default: Drop down menu opens below the menu item
+    UP    //! Drop down menu opens above the menu item
+};
 
 #pragma region DropDownMenuItem
 
@@ -43,31 +54,21 @@ public:
      */
     virtual void SetText(const String &text) override;
 
-    /*! \brief Adds a DropDownMenuItem to the menu item.
+    void SetIconTexture(const Handle<Texture> &texture);
+
+    /*! \brief Gets the icon element of the menu item.
      *
-     * \param item The DropDownMenuItem to add.
+     *  \return The icon element of the menu item.
      */
-    void AddDropDownMenuItem(RC<UIMenuItem> &&item);
+    HYP_FORCE_INLINE const RC<UIImage> &GetIconElement() const
+        { return m_icon_element; }
 
-    /*! \brief Gets the list of DropDownMenuItems.
-     * 
-     * \return The array of DropDownMenuItems.
-     */
-    HYP_FORCE_INLINE const Array<RC<UIMenuItem>> &GetDropDownMenuItems() const
-        { return m_menu_items; }
-
-    /*! \brief Sets the list of DropDownMenuItems.
-     * 
-     * \param items The array of DropDownMenuItems.
-     */
-    void SetDropDownMenuItems(Array<RC<UIMenuItem>> &&items);
-
-    /*! \brief Get a dropdown menu item by name.
+    /*! \brief Gets the text element of the menu item.
      *
-     * \param name The name of the dropdown menu item.
-     * \return The dropdown menu item, or nullptr if it was not found.
+     *  \return The text element of the menu item.
      */
-    RC<UIMenuItem> GetDropDownMenuItem(Name name) const;
+    HYP_FORCE_INLINE const RC<UIText> &GetTextElement() const
+        { return m_text_element; }
 
     /*! \brief Gets the drop down menu element.
      * 
@@ -89,10 +90,11 @@ protected:
 private:
     void UpdateDropDownMenu();
 
-    Array<RC<UIMenuItem>>   m_menu_items;
+    Array<RC<UIObject>> m_menu_items;
 
-    RC<UIText>              m_text_element;
-    RC<UIPanel>             m_drop_down_menu;
+    RC<UIText>          m_text_element;
+    RC<UIImage>         m_icon_element;
+    RC<UIPanel>         m_drop_down_menu;
 };
 
 #pragma endregion UIMenuItem
@@ -114,6 +116,13 @@ public:
 
     virtual void Init() override;
 
+    HYP_METHOD(Property="DropDirection", XMLAttribute="direction")
+    HYP_FORCE_INLINE UIMenuBarDropDirection GetDropDirection() const
+        { return m_drop_direction; }
+
+    HYP_METHOD(Property="DropDirection", XMLAttribute="direction")
+    void SetDropDirection(UIMenuBarDropDirection drop_direction);
+
     /*! \brief Gets the index of the selected menu item.
      * 
      * \return The index of the selected menu item.
@@ -125,6 +134,7 @@ public:
      * 
      * \param index The index of the menu item to select.
      */
+    HYP_METHOD()
     void SetSelectedMenuItemIndex(uint32 index);
 
     /*! \brief Gets the menu items in the menu bar.
@@ -140,6 +150,7 @@ public:
      * \param text The text of the menu item.
      * \return The menu item that was added.
      */
+    HYP_METHOD()
     RC<UIMenuItem> AddMenuItem(Name name, const String &text);
 
     /*! \brief Gets a menu item by name. Returns nullptr if the menu item was not found.
@@ -147,6 +158,7 @@ public:
      * \param name The name of the menu item to get.
      * \return The menu item, or nullptr if the menu item was not found.
      */
+    HYP_METHOD()
     RC<UIMenuItem> GetMenuItem(Name name) const;
 
     /*! \brief Gets the index of a menu item by name. Returns ~0u if the menu item was not found.
@@ -154,6 +166,7 @@ public:
      * \param name The name of the menu item to get the index of.
      * \return The index of the menu item, or ~0u if the menu item was not found.
      */
+    HYP_METHOD()
     uint32 GetMenuItemIndex(Name name) const;
 
     /*! \brief Removes a menu item by name.
@@ -161,6 +174,7 @@ public:
      * \param name The name of the menu item to remove.
      * \return True if the menu item was removed, false otherwise.
      */
+    HYP_METHOD()
     bool RemoveMenuItem(Name name);
 
     // overloads to allow adding a UIMenuItem
@@ -174,6 +188,10 @@ protected:
 
 private:
     void UpdateMenuItemSizes();
+
+    Vec2i GetDropDownMenuPosition(UIMenuItem *menu_item) const;
+
+    UIMenuBarDropDirection  m_drop_direction;
 
     Array<RC<UIMenuItem>>   m_menu_items;
 

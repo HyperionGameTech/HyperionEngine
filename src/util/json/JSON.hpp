@@ -240,7 +240,15 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
 class HYP_API JSONValue
 {
 private:
-    using InnerType = Variant<JSONString, JSONNumber, JSONBool, JSONArrayRef, JSONObjectRef, JSONNull, JSONUndefined>;
+    using InnerType = Variant<
+        JSONString,
+        JSONNumber,
+        JSONBool,
+        JSONArrayRef,
+        JSONObjectRef,
+        JSONNull,
+        JSONUndefined
+    >;
 
 public:
     JSONValue()

@@ -3,6 +3,7 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorDelegates.hpp>
 #include <editor/EditorCamera.hpp>
+#include <editor/EditorTask.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -22,6 +23,11 @@
 #include <ui/UIImage.hpp>
 #include <ui/UIEvent.hpp>
 #include <ui/UIListView.hpp>
+#include <ui/UIWindow.hpp>
+#include <ui/UIGrid.hpp>
+#include <ui/UIText.hpp>
+#include <ui/UIButton.hpp>
+#include <ui/UIMenuBar.hpp>
 #include <ui/UIDataSource.hpp>
 
 #include <input/InputManager.hpp>
@@ -29,6 +35,8 @@
 #include <core/system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+
+#include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -55,6 +63,78 @@
 namespace hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(Editor);
+
+#pragma region RunningEditorTask
+
+RC<UIObject> RunningEditorTask::CreateUIObject(UIStage *ui_stage) const
+{
+    AssertThrow(ui_stage != nullptr);
+
+    RC<UIPanel> panel = ui_stage->CreateUIObject<UIPanel>(NAME("EditorTaskPanel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::FILL }));
+    panel->SetBackgroundColor(Color(0xFF0000FF)); // testing
+
+    RC<UIText> task_title = ui_stage->CreateUIObject<UIText>(NAME("Task_Title"), Vec2i::Zero(), UIObjectSize(UIObjectSize::AUTO));
+    task_title->SetTextSize(16.0f);
+    task_title->SetText(m_task->InstanceClass()->GetName().LookupString());
+    panel->AddChildUIObject(task_title);
+
+    return panel;
+}
+
+#pragma endregion RunningEditorTask
+
+#pragma region GenerateLightmapsEditorTask
+
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<World> &world, const Handle<Scene> &scene)
+    : m_world(world),
+      m_scene(scene),
+      m_task(nullptr)
+{
+    AssertThrow(m_world.IsValid());
+    AssertThrow(m_scene.IsValid());
+}
+
+void GenerateLightmapsEditorTask::Process()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    HYP_LOG(Editor, LogLevel::INFO, "Generating lightmaps");
+
+    LightmapperSubsystem *lightmapper_subsystem = m_world->GetSubsystem<LightmapperSubsystem>();
+    
+    if (!lightmapper_subsystem) {
+        lightmapper_subsystem = m_world->AddSubsystem<LightmapperSubsystem>();
+    }
+
+    m_task = lightmapper_subsystem->GenerateLightmaps(m_scene);
+}
+
+void GenerateLightmapsEditorTask::Cancel_Impl()
+{
+    if (m_task != nullptr) {
+        m_task->Cancel();
+    }
+}
+
+bool GenerateLightmapsEditorTask::IsCompleted_Impl() const
+{
+    return m_task == nullptr || m_task->IsCompleted();
+}
+
+void GenerateLightmapsEditorTask::Tick_Impl(float delta)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    if (m_task != nullptr) {
+        if (m_task->IsCompleted()) {
+            m_task = nullptr;
+        }
+    }
+}
+
+#pragma endregion GenerateLightmapsEditorTask
 
 #pragma region EditorSubsystem
 
@@ -109,6 +189,7 @@ void EditorSubsystem::Update(GameCounter::TickUnit delta)
     m_editor_delegates->Update();
 
     UpdateCamera(delta);
+    UpdateTasks(delta);
 }
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene> &scene)
@@ -255,13 +336,15 @@ void EditorSubsystem::CreateEditorUI()
             {
                 HYP_LOG(Editor, LogLevel::INFO, "Generate lightmaps clicked!");
 
-                LightmapperSubsystem *lightmapper_subsystem = GetWorld()->GetSubsystem<LightmapperSubsystem>();
+                AddTask(MakeRefCountedPtr<GenerateLightmapsEditorTask>(GetWorld()->HandleFromThis(), m_scene));
 
-                if (!lightmapper_subsystem) {
-                    lightmapper_subsystem = GetWorld()->AddSubsystem<LightmapperSubsystem>();
-                }
+                // LightmapperSubsystem *lightmapper_subsystem = GetWorld()->GetSubsystem<LightmapperSubsystem>();
 
-                lightmapper_subsystem->GenerateLightmaps(m_scene);
+                // if (!lightmapper_subsystem) {
+                //     lightmapper_subsystem = GetWorld()->AddSubsystem<LightmapperSubsystem>();
+                // }
+
+                // Task<void> *generate_lightmaps_task = lightmapper_subsystem->GenerateLightmaps(m_scene);
 
                 return UIEventHandlerResult::OK;
             }).Detach();
@@ -647,6 +730,93 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
     return atlas;
 }
 
+void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
+{
+    if (!task) {
+        return;
+    }
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    const ThreadType thread_type = task->GetRunnableThreadType();
+
+    // @TODO Auto remove tasks that aren't on the game thread when they have completed
+
+    RunningEditorTask &running_task = m_tasks_by_thread_type[thread_type].EmplaceBack(task);
+
+    RC<UIMenuItem> tasks_menu_item = m_ui_stage->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
+    AssertThrow(tasks_menu_item != nullptr);
+
+    if (UIObjectSpawnContext context { tasks_menu_item }) {
+        RC<UIGrid> task_grid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+        task_grid->SetNumColumns(12);
+
+        RC<UIGridRow> task_grid_row = task_grid->AddRow();
+        task_grid_row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+
+        RC<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
+        task_grid_column_left->SetColumnSize(8);
+        task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(m_ui_stage));
+
+        RC<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
+        task_grid_column_right->SetColumnSize(4);
+
+        RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        cancel_button->SetText("Cancel");
+        cancel_button->OnClick.Bind([task_weak = task.ToWeak()](...)
+        {
+            if (RC<IEditorTask> task = task_weak.Lock()) {
+                task->Cancel();
+            }
+
+            return UIEventHandlerResult::OK;
+        }).Detach();
+        task_grid_column_right->AddChildUIObject(cancel_button);
+
+        running_task.m_ui_object = task_grid;
+
+        tasks_menu_item->AddChildUIObject(task_grid);
+
+        // testing
+        Handle<Texture> dummy_icon_texture;
+
+        if (auto dummy_icon_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png")) {
+            dummy_icon_texture = dummy_icon_texture_asset.Result();
+        }
+
+        tasks_menu_item->SetIconTexture(dummy_icon_texture);
+    }
+
+    // For long running tasks, enqueues the task in the scheduler
+    task->Commit();
+
+    // auto CreateTaskUIObject = [](const RC<UIObject> &parent, const HypClass *task_hyp_class) -> RC<UIObject>
+    // {
+    //     AssertThrow(parent != nullptr);
+    //     AssertThrow(task_hyp_class != nullptr);
+
+    //     return parent->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize({ 400, UIObjectSize::PIXEL }, { 300, UIObjectSize::PIXEL }));
+    // };
+
+    // const RC<UIObject> &ui_object = task->GetUIObject();
+
+    // if (!ui_object) {
+    //     if (Threads::IsOnThread(ThreadName::THREAD_GAME)) {
+    //         Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler()->Enqueue([this, task, CreateTaskUIObject]()
+    //         {
+    //             task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
+    //         });
+    //     } else {
+    //         task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
+    //     }
+    // }
+
+    // Mutex::Guard guard(m_tasks_mutex);
+
+    // m_tasks.Insert(UUID(), task);
+    // m_num_tasks.Increment(1, MemoryOrder::RELAXED);
+}
+
 void EditorSubsystem::SetFocusedNode(const NodeProxy &focused_node)
 {
     const NodeProxy previous_focused_node = m_focused_node;
@@ -696,6 +866,33 @@ void EditorSubsystem::UpdateCamera(GameCounter::TickUnit delta)
     }
 
     m_camera->SetNextTranslation(translation);
+}
+
+void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
+{
+    for (uint32 thread_type_index = 0; thread_type_index < m_tasks_by_thread_type.Size(); thread_type_index++) {
+        auto &tasks = m_tasks_by_thread_type[thread_type_index];
+
+        for (auto it = tasks.Begin(); it != tasks.End();) {
+            auto &task = it->GetTask();
+
+            // Can only tick tasks that run on the game thread
+            if (task->GetRunnableThreadType() == ThreadType::THREAD_TYPE_GAME) {
+                task->Tick(delta);
+            }
+
+            if (task->IsCompleted()) {
+                // Remove the UIObject for the task from this stage
+                if (const RC<UIObject> &task_ui_object = it->GetUIObject()) {
+                    task_ui_object->RemoveFromParent();
+                }
+
+                it = tasks.Erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 }
 
 #endif

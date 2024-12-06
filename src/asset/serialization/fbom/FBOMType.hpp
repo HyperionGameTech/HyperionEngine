@@ -28,6 +28,7 @@ enum class FBOMTypeFlags : uint8
     NONE        = 0x0,
     CONTAINER   = 0x2, // uses marshal class to serialize/deserialize after reading the object
     PLACEHOLDER = 0x4, // a placeholder type that is used to represent an unknown type
+    NUMERIC     = 0x8, // a numeric type, able to be converted between different numeric types
 
     DEFAULT     = 0x0
 };
@@ -76,6 +77,9 @@ public:
 
     HYP_FORCE_INLINE bool UsesMarshal() const
         { return HasAnyFlagsSet(FBOMTypeFlags::CONTAINER, false); }
+
+    HYP_FORCE_INLINE bool IsNumeric() const
+        { return HasAnyFlagsSet(FBOMTypeFlags::NUMERIC, false); }
 
     HYP_FORCE_INLINE bool operator==(const FBOMType &other) const
     {

@@ -103,7 +103,7 @@ public:
             }
         };
 
-        if (m_attributes["serialize"]) {
+        if (m_attributes["serialize"] || m_attributes["xmlattribute"]) {
             m_serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {

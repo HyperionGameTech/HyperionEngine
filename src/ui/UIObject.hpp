@@ -413,6 +413,58 @@ struct UILockedUpdatesScope;
 
 #pragma endregion UILockedUpdatesScope
 
+#pragma region UIObjectSpawnContext
+
+template <class UIObjectType>
+struct UIObjectSpawnContext
+{
+    UIObjectType    *spawn_parent = nullptr;
+
+    UIObjectSpawnContext(UIObjectType *spawn_parent)
+        : spawn_parent(spawn_parent)
+    {
+        static_assert(std::is_base_of_v<UIObject, UIObjectType>, "UIObjectType must be a subclass of UIObject");
+
+        AssertThrow(spawn_parent != nullptr);
+    }
+
+    UIObjectSpawnContext(const RC<UIObjectType> &spawn_parent)
+        : spawn_parent(spawn_parent.Get())
+    {
+        static_assert(std::is_base_of_v<UIObject, UIObjectType>, "UIObjectType must be a subclass of UIObject");
+
+        AssertThrow(spawn_parent != nullptr);
+    }
+
+    UIObjectSpawnContext(const UIObjectSpawnContext &other)                 = delete;
+    UIObjectSpawnContext &operator=(const UIObjectSpawnContext &other)      = delete;
+    UIObjectSpawnContext(UIObjectSpawnContext &&other) noexcept             = delete;
+    UIObjectSpawnContext &operator=(UIObjectSpawnContext &&other) noexcept  = delete;
+
+    ~UIObjectSpawnContext()                                                 = default;
+
+    template <class T>
+    RC<T> CreateUIObject(Vec2i position, UIObjectSize size)
+    {
+        static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
+
+        return spawn_parent->template CreateUIObject<T>(position, size);
+    }
+
+    template <class T>
+    RC<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
+    {
+        static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
+
+        return spawn_parent->template CreateUIObject<T>(name, position, size);
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return spawn_parent != nullptr; }
+};
+
+#pragma endregion UIObjectSpawnContext
+
 #pragma region UIObject
 
 struct UIObjectID : UniqueID { };
@@ -747,9 +799,20 @@ public:
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
-        return GetClosestParentUIObject_Proc([](const RC<UIObject> &parent) -> bool
+        return GetClosestParentUIObject_Proc([](const UIObject *parent) -> bool
         {
-            return parent.Is<T>();
+            return parent->IsInstanceOf<T>();
+        }).template CastUnsafe<T>();
+    }
+
+    template <class T>
+    RC<T> GetClosestSpawnParent() const
+    {
+        static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
+
+        return GetClosestSpawnParent_Proc([](const UIObject *parent) -> bool
+        {
+            return parent->IsInstanceOf<T>();
         }).template CastUnsafe<T>();
     }
 
@@ -999,6 +1062,8 @@ public:
     Delegate<UIEventHandlerResult>                          OnInit;
     Delegate<UIEventHandlerResult>                          OnAttached;
     Delegate<UIEventHandlerResult>                          OnRemoved;
+    Delegate<UIEventHandlerResult, UIObject *>              OnChildAttached;
+    Delegate<UIEventHandlerResult, UIObject *>              OnChildRemoved;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseUp;
     Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDrag;
@@ -1014,6 +1079,7 @@ public:
 
 protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
+    RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool, UIObject *> &proc) const;
 
     HYP_FORCE_INLINE bool UseAutoSizing() const
     {

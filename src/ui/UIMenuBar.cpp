@@ -3,6 +3,7 @@
 #include <ui/UIMenuBar.hpp>
 #include <ui/UIText.hpp>
 #include <ui/UIButton.hpp>
+#include <ui/UIImage.hpp>
 
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
@@ -27,6 +28,17 @@ void UIMenuItem::Init()
 {
     UIObject::Init();
 
+    RC<UIMenuBar> menu_bar = GetClosestSpawnParent<UIMenuBar>();
+    AssertThrow(menu_bar != nullptr);
+
+    RC<UIImage> icon_element = CreateUIObject<UIImage>(NAME("MenuItemIcon"), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
+    icon_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    icon_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+    icon_element->SetIsVisible(false);
+    m_icon_element = icon_element;
+
+    UIObject::AddChildUIObject(m_icon_element);
+
     RC<UIText> text_element = CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -34,7 +46,7 @@ void UIMenuItem::Init()
     text_element->SetText(m_text);
     m_text_element = text_element;
 
-    UIObject::AddChildUIObject(text_element);
+    UIObject::AddChildUIObject(m_text_element);
 
     RC<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDownMenu", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     // drop_down_menu->SetAcceptsFocus(false);
@@ -48,13 +60,7 @@ void UIMenuItem::Init()
 
 void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
 {
-    if (ui_object->GetType() != UIObjectType::MENU_ITEM) {
-        HYP_LOG(UI, LogLevel::WARNING, "UIMenuItem::AddChildUIObject() called with a UIObject that is not a UIMenuItem");
-
-        return;
-    }
-
-    auto it = m_menu_items.FindIf([ui_object](const RC<UIMenuItem> &item)
+    auto it = m_menu_items.FindIf([ui_object](const RC<UIObject> &item)
     {
         return item.Get() == ui_object;
     });
@@ -65,7 +71,7 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    m_menu_items.PushBack(ui_object.Cast<UIMenuItem>());
+    m_menu_items.PushBack(ui_object);
 
     UpdateDropDownMenu();
 
@@ -76,20 +82,35 @@ bool UIMenuItem::RemoveChildUIObject(UIObject *ui_object)
 {
     return m_drop_down_menu->RemoveChildUIObject(ui_object);
 
-    auto it = m_menu_items.FindIf([ui_object](const RC<UIMenuItem> &item)
-    {
-        return item.Get() == ui_object;
-    });
+    // auto it = m_menu_items.FindIf([ui_object](const RC<UIObject> &item)
+    // {
+    //     return item.Get() == ui_object;
+    // });
 
-    if (it == m_menu_items.End()) {
-        return UIObject::RemoveChildUIObject(ui_object);
+    // if (it == m_menu_items.End()) {
+    //     return UIObject::RemoveChildUIObject(ui_object);
+    // }
+
+    // m_menu_items.Erase(it);
+
+    // UpdateDropDownMenu();
+
+    // return true;
+}
+
+void UIMenuItem::SetIconTexture(const Handle<Texture> &texture)
+{
+    m_icon_element->SetTexture(texture);
+    
+    if (texture.IsValid()) {
+        m_icon_element->SetIsVisible(true);
+
+        m_text_element->SetPosition(Vec2i { m_icon_element->GetActualSize().x + 5, 0 });
+    } else {
+        m_icon_element->SetIsVisible(false);
+
+        m_text_element->SetPosition(Vec2i { 0, 0 });
     }
-
-    m_menu_items.Erase(it);
-
-    UpdateDropDownMenu();
-
-    return true;
 }
 
 void UIMenuItem::SetText(const String &text)
@@ -101,30 +122,6 @@ void UIMenuItem::SetText(const String &text)
     }
 
     UpdateSize();
-}
-
-void UIMenuItem::AddDropDownMenuItem(RC<UIMenuItem> &&item)
-{
-    // m_menu_items.PushBack(std::move(item));
-    
-    // UpdateDropDownMenu();
-}
-
-void UIMenuItem::SetDropDownMenuItems(Array<RC<UIMenuItem>> &&items)
-{
-    // m_menu_items = std::move(items);
-
-    // UpdateDropDownMenu();
-}
-
-RC<UIMenuItem> UIMenuItem::GetDropDownMenuItem(Name name) const
-{
-    const auto it = m_menu_items.FindIf([name](const RC<UIMenuItem> &item)
-    {
-        return item->GetName() == name;
-    });
-
-    return it != m_menu_items.End() ? *it : nullptr;
 }
 
 void UIMenuItem::UpdateDropDownMenu()
@@ -139,7 +136,7 @@ void UIMenuItem::UpdateDropDownMenu()
 
     Vec2i offset = { 0, 0 };
 
-    for (const RC<UIMenuItem> &menu_item : m_menu_items) {
+    for (const RC<UIObject> &menu_item : m_menu_items) {
         menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         menu_item->SetPosition(offset);
 
@@ -181,6 +178,7 @@ void UIMenuItem::OnFontAtlasUpdate_Internal()
 
 UIMenuBar::UIMenuBar()
     : UIPanel(UIObjectType::MENU_BAR),
+      m_drop_direction(UIMenuBarDropDirection::DOWN),
       m_selected_menu_item_index(~0u)
 {
     SetBorderRadius(0);
@@ -197,8 +195,8 @@ void UIMenuBar::Init()
     m_container->SetIsVisible(false);
     m_container->SetBorderFlags(UIObjectBorderFlags::NONE);
     m_container->SetBorderRadius(0);
-    // m_container->SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
-    m_container->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+    m_container->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
+    m_container->SetOriginAlignment(m_drop_direction == UIMenuBarDropDirection::DOWN ? UIObjectAlignment::TOP_LEFT : UIObjectAlignment::BOTTOM_LEFT);
     m_container->SetPadding({ 1, 1 });
     m_container->SetDepth(100);
 
@@ -235,6 +233,28 @@ void UIMenuBar::OnRemoved_Internal()
 
     if (m_container != nullptr) {
         m_container->RemoveFromParent();
+    }
+}
+
+void UIMenuBar::SetDropDirection(UIMenuBarDropDirection drop_direction)
+{
+    m_drop_direction = drop_direction;
+
+    if (m_container != nullptr) {
+        if (m_drop_direction == UIMenuBarDropDirection::DOWN) {
+            m_container->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
+        } else {
+            m_container->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
+        }
+
+        if (m_selected_menu_item_index != ~0u) {
+            const RC<UIMenuItem> &selected_menu_item = m_menu_items[m_selected_menu_item_index];
+            AssertThrow(selected_menu_item != nullptr);
+
+            const Vec2i drop_down_menu_position = GetDropDownMenuPosition(selected_menu_item.Get());
+
+            m_container->SetPosition(drop_down_menu_position);
+        }
     }
 }
 
@@ -284,7 +304,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
-    m_container->SetPosition({ menu_item->GetPosition().x, menu_item->GetPosition().y + menu_item->GetActualSize().y });
+    m_container->SetPosition(GetDropDownMenuPosition(menu_item.Get()));
     m_container->SetIsVisible(true);
     m_container->Focus();
 }
@@ -350,6 +370,8 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 
             if (GetSelectedMenuItemIndex() == menu_item_index) {
                 SetSelectedMenuItemIndex(~0u);
+
+                m_container->Blur();
             } else {
                 SetSelectedMenuItemIndex(menu_item_index);
             }
@@ -469,6 +491,18 @@ void UIMenuBar::UpdateMenuItemSizes()
         m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
         offset.x += m_menu_items[i]->GetActualSize().x;
+    }
+}
+
+Vec2i UIMenuBar::GetDropDownMenuPosition(UIMenuItem *menu_item) const
+{
+    AssertThrow(menu_item != nullptr);
+    Vec2f absolute_position = menu_item->GetAbsolutePosition();
+
+    if (m_drop_direction == UIMenuBarDropDirection::DOWN) {
+        return Vec2i { int(absolute_position.x), int(absolute_position.y + menu_item->GetActualSize().y) };
+    } else {
+        return Vec2i { int(absolute_position.x), int(absolute_position.y) };
     }
 }
 

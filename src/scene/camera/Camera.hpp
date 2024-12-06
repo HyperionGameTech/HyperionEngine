@@ -78,8 +78,6 @@ struct CameraCommand
     };
 };
 
-struct RENDER_COMMAND(UpdateCameraDrawProxy);
-
 class Camera;
 
 HYP_CLASS(Abstract)
@@ -144,24 +142,6 @@ class OrthoCameraController;
 class FirstPersonCameraController;
 class FollowCameraController;
 
-struct CameraDrawProxy
-{
-    Matrix4     view;
-    Matrix4     projection;
-    Matrix4     previous_view;
-    Vec3f       position;
-    Vec3f       direction;
-    Vec3f       up;
-    Vec2u       dimensions;
-    float       clip_near;
-    float       clip_far;
-    float       fov;
-    Frustum     frustum;
-
-    uint64      visibility_bitmask;
-    uint16      visibility_nonce;
-};
-
 HYP_CLASS()
 class HYP_API Camera : public HypObject<Camera>
 {
@@ -175,8 +155,6 @@ public:
     friend class OrthoCameraController;
     friend class FirstPersonCameraController;
     friend class FollowCameraController;
-
-    friend struct RENDER_COMMAND(UpdateCameraDrawProxy);
 
     Camera();
     Camera(int width, int height);

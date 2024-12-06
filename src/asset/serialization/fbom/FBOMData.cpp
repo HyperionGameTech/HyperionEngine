@@ -14,6 +14,8 @@
 
 #include <core/memory/Memory.hpp>
 
+#include <util/json/JSON.hpp>
+
 #include <sstream>
 
 namespace hyperion::fbom {
@@ -224,6 +226,67 @@ void FBOMData::SetBytes(SizeType count, const void *data)
 
     bytes.SetSize(count);
     bytes.SetData(count, data);
+}
+
+FBOMData FBOMData::FromJSON(const json::JSONValue &json_value)
+{
+    if (json_value.IsNumber()) {
+        const bool is_integer = MathUtil::Floor<double, double>(json_value.AsNumber()) == json_value.AsNumber();
+
+        if (is_integer) {
+            return FBOMData::FromInt64(int64(json_value.AsNumber()));
+        } else {
+            return FBOMData::FromDouble(json_value.AsNumber());
+        }
+    }
+
+    if (json_value.IsString()) {
+        return FBOMData::FromString(json_value.AsString().ToUTF8());
+    }
+
+    if (json_value.IsBool()) {
+        return FBOMData::FromBool(json_value.AsBool());
+    }
+
+    if (json_value.IsArray()) {
+        FBOMArray array { fbom::FBOMUnset() };
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Any()) {
+            Array<FBOMData> elements;
+            elements.Reserve(json_array.Size());
+
+            for (const json::JSONValue &element : json_array) {
+                elements.EmplaceBack(FBOMData::FromJSON(element));
+            }
+
+            array = fbom::FBOMArray(elements[0].GetType(), std::move(elements));
+        }
+
+        return FBOMData::FromArray(std::move(array));
+    }
+
+    if (json_value.IsObject()) {
+        FBOMObject object;
+
+        const json::JSONObject &json_object = json_value.AsObject();
+
+        if (json_object.Any()) {
+            for (const Pair<json::JSONString, json::JSONValue> &pair : json_object) {
+                object.SetProperty(ANSIString(pair.first), FBOMData::FromJSON(pair.second));
+            }
+        }
+
+        return FBOMData::FromObject(std::move(object));
+    }
+
+    return FBOMData();
+}
+
+FBOMData::FBOMData(const json::JSONValue &json_value)
+    : FBOMData(FromJSON(json_value))
+{
 }
 
 FBOMResult FBOMData::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const

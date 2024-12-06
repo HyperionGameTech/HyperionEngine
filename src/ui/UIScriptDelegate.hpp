@@ -55,7 +55,6 @@ public:
           m_method_name(method_name),
           m_flags(flags)
     {
-        HYP_LOG(UI, LogLevel::DEBUG, "Creating UIScriptDelegate for method {} on UI object with name: {}", m_method_name, m_ui_object->GetName());
     }
 
     UIScriptDelegate(const UIScriptDelegate &other)                 = delete;

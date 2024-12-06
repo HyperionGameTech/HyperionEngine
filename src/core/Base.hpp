@@ -93,20 +93,10 @@ public:
     }
 
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
-    {
-        ID<InnerType> id = GetID();
-        AssertThrowMsg(id.IsValid(), "Cannot use HandleFromThis() before ID is set!");
-
-        return Handle<T>(id);
-    }
+        { return Handle<T>(GetObjectHeader_Internal()); }
 
     HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
-    {
-        ID<InnerType> id = GetID();
-        AssertThrowMsg(id.IsValid(), "Cannot use WeakHandleFromThis() before ID is set!");
-
-        return WeakHandle<T>(id);
-    }
+        { return WeakHandle<T>(GetObjectHeader_Internal());  }
 
 protected:
     void SetReady(bool is_ready)

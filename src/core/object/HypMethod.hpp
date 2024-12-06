@@ -44,8 +44,9 @@ decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData **args, std::index_se
         const bool condition = args[Index]->Is< NormalizedType< typename TupleElement< Index, ArgTypes... >::Type > >(/* strict */ false);
 
         if (!condition) {
-            HYP_FAIL("Invalid argument at index %u: Expected %s",
-                Index, TypeName< NormalizedType< typename TupleElement< Index, ArgTypes... >::Type > >().Data());
+            HYP_FAIL("Invalid argument at index %u: Expected %s, Got TypeID %u",
+                Index, TypeName< NormalizedType< typename TupleElement< Index, ArgTypes... >::Type > >().Data(),
+                args[Index]->GetTypeID().Value());
         }
 
         return condition;
@@ -205,7 +206,7 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(m_params);
 
-        if (m_attributes["serialize"]) {
+        if (m_attributes["serialize"] || m_attributes["xmlattribute"]) {
             m_serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
@@ -285,7 +286,7 @@ public:
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         detail::InitHypMethodParams_Tuple< ReturnType, TargetType, Tuple<ArgTypes...> >{}(m_params);
 
-        if (m_attributes["serialize"]) {
+        if (m_attributes["serialize"] || m_attributes["xmlattribute"]) {
             m_serialize_proc = [mem_fn](Span<HypData> args) -> fbom::FBOMData
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);

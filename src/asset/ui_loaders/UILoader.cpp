@@ -2,6 +2,8 @@
 
 #include <asset/ui_loaders/UILoader.hpp>
 
+#include <asset/serialization/fbom/FBOM.hpp>
+
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 
@@ -86,6 +88,20 @@ static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult> 
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
+};
+
+#undef UI_OBJECT_GET_DELEGATE_FUNCTION
+
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
+    { \
+        String(HYP_STR(name)).ToUpper(), \
+        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, UIObject *> * \
+            { return &ui_object->name; } \
+    }
+
+static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, UIObject *> *(UIObject *)> > g_get_delegate_functions_children {
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildAttached),
+    UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildRemoved)
 };
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
@@ -317,53 +333,18 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
     return { };
 }
 
-static bool ParseHypData(const String &str, HypData &out_hyp_data)
+static json::ParseResult ParseJSON(const String &str, fbom::FBOMData &out_data)
 {
     // Read string as JSON
     json::ParseResult parse_result = json::JSON::Parse(str);
 
     if (!parse_result.ok) {
-        HYP_LOG(Assets, LogLevel::ERR, "Failed to parse JSON string \"{}\": {}", str, parse_result.message);
-
-        return false;
+        return parse_result;
     }
 
-    // Convert JSON to HypData
+    out_data = fbom::FBOMData::FromJSON(parse_result.value);
 
-    const json::JSONValue &json_value = parse_result.value;
-
-    if (json_value.IsNull() || json_value.IsUndefined()) {
-        out_hyp_data = HypData();
-
-        return true;
-    }
-
-    if (json_value.IsBool()) {
-        out_hyp_data = HypData(json_value.AsBool());
-
-        return true;
-    }
-
-    if (json_value.IsString()) {
-        out_hyp_data = HypData(json_value.AsString().ToUTF8());
-
-        return true;
-    }
-
-    if (json_value.IsNumber()) {
-        const bool is_integer = json::JSONNumber(MathUtil::Floor(json_value.AsNumber())) != json_value.AsNumber();
-
-        if (is_integer) {
-            out_hyp_data = HypData(int(json_value.AsNumber()));
-        } else {
-            out_hyp_data = HypData(double(json_value.AsNumber()));
-        }
-
-        return true;
-    }
-
-    // Arrays and objects are not supported
-    return false;
+    return parse_result;
 }
 
 class UISAXHandler : public xml::SAXHandler
@@ -511,6 +492,22 @@ public:
                         Delegate<UIEventHandlerResult> *delegate = get_delegate_functions_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate< > { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
+
+                        found = true;
+                    }
+
+                    if (found) {
+                        continue;
+                    }
+
+                    const auto get_delegate_functions_children_it = g_get_delegate_functions_children.Find(attribute_name_upper);
+
+                    if (get_delegate_functions_children_it != g_get_delegate_functions_children.End()) {
+                        Delegate<UIEventHandlerResult, UIObject *> *delegate = get_delegate_functions_children_it->second(ui_object.Get());
+
+                        delegate->Bind(UIScriptDelegate<UIObject *> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
+
+                        found = true;
                     }
 
                     if (found) {
@@ -537,6 +534,8 @@ public:
                         Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
+
+                        found = true;
                     }
 
                     if (found) {
@@ -559,21 +558,26 @@ public:
                         });
 
                         if (member_it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End()) {
-                            FixedArray<HypData, 2> target_and_value;
+                            HypProperty *hyp_property = dynamic_cast<HypProperty *>(&*member_it);
 
-                            target_and_value[0] = HypData(ui_object);
-
-                            if (!ParseHypData(attribute.second, target_and_value[1])) {
-                                HYP_LOG(Assets, LogLevel::ERR, "Failed to parse JSON or JSON could not be converted to HypData: {}", attribute.second);
+                            if (!hyp_property || !hyp_property->CanDeserialize()) {
+                                HYP_LOG(Assets, LogLevel::ERR, "Cannot set HypClass property: {}", member_it->GetName());
 
                                 continue;
                             }
 
-                            if (HypProperty *property = dynamic_cast<HypProperty *>(&*member_it); property && property->CanSet()) {
-                                property->Set(target_and_value[0], target_and_value[1]);
-                            } else {
-                                HYP_LOG(Assets, LogLevel::ERR, "Failed to set HypClass property: {}", member_it->GetName());
+                            fbom::FBOMData data;
+                            json::ParseResult json_parse_result = ParseJSON(attribute.second, data);
+
+                            if (!json_parse_result.ok) {
+                                HYP_LOG(Assets, LogLevel::ERR, "Failed to parse JSON \"{}\": {}", attribute.second, json_parse_result.message);
+
+                                continue;
                             }
+
+                            HypData target_value { ui_object };
+
+                            hyp_property->Deserialize(target_value, data);
 
                             continue;
                         }

@@ -57,7 +57,16 @@ struct Handle final : HandleBase
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 
-private:
+public:
+    friend struct AnyHandle;
+    friend struct WeakHandle<T>;
+
+    static const Handle empty;
+
+    HypObjectHeader *ptr;
+
+    Handle() : ptr(nullptr) { }
+    
     explicit Handle(HypObjectHeader *ptr)
         : ptr(ptr)
     {
@@ -69,16 +78,6 @@ private:
         }
     }
 
-public:
-    friend struct AnyHandle;
-    friend struct WeakHandle<T>;
-
-    static const Handle empty;
-
-    HypObjectHeader *ptr;
-
-    Handle() : ptr(nullptr) { }
-
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
@@ -87,7 +86,7 @@ public:
     }
 
     template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
-    explicit Handle(TPointerType *ptr)
+    explicit Handle(const TPointerType *ptr)
         : Handle(ptr != nullptr ? ptr->GetObjectHeader_Internal() : nullptr)
     {
     }
@@ -272,6 +271,17 @@ struct WeakHandle final
     WeakHandle()
         : ptr(nullptr)
     {
+    }
+    
+    explicit WeakHandle(HypObjectHeader *ptr)
+        : ptr(ptr)
+    {
+        if (ptr != nullptr && !ptr->IsNull()) {
+            ptr->IncRefWeak();
+        } else {
+            // don't allow invalid, set to null instead
+            this->ptr = nullptr;
+        }
     }
 
     /*! \brief Construct a WeakHandle from the given ID.

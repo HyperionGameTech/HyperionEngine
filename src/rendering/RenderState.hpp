@@ -81,18 +81,6 @@ struct RenderBinding<Scene>
         { return bool(id); }
 };
 
-template <>
-struct RenderBinding<Camera>
-{
-    static const RenderBinding empty;
-
-    ID<Camera>      id;
-    CameraDrawProxy camera;
-
-    HYP_FORCE_INLINE explicit operator bool() const
-        { return bool(id); }
-};
-
 struct RenderState
 {
     Stack<RenderBinding<Scene>>                                                             scene_bindings;
