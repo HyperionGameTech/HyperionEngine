@@ -653,7 +653,12 @@ class LightmapTaskThreadPool : public TaskThreadPool
 public:
     LightmapTaskThreadPool()
     {
-        CreateThreads<LightmapTaskThread>(NAME("Lightmapper"), 4);
+        uint32 num_threads = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.threads").ToUInt32(4);
+        num_threads = MathUtil::Clamp(num_threads, 1u, 128u);
+
+        HYP_LOG(Lightmap, LogLevel::INFO, "Tracing lightmap rays using {} threads", num_threads);
+
+        CreateThreads<LightmapTaskThread>(NAME("LightmapperTracingThread"), num_threads);
     }
 
     virtual ~LightmapTaskThreadPool() override = default;
