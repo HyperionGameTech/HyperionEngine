@@ -319,7 +319,7 @@ class CodegenClassBuilder:
             self.metadata.get(hyp_class.name).update({ "last_modified": hyp_class.last_modified })
 
 class HypMemberDefinition:
-    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'str | None'=None, method_args: 'list[tuple[str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
+    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'str | None'=None, method_args: 'list[tuple[str, str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
         self.member_type = member_type
         self.name = name
         self.attributes = attributes
@@ -368,7 +368,7 @@ class HypMemberDefinition:
         raise Exception('Member is not a method')
             
     @property
-    def args(self):
+    def args(self) -> 'list[tuple[str, str, str]]':
         if self.is_method:
             if self.method_args is None:
                 return []
@@ -582,7 +582,7 @@ class HypClassDefinition:
 
                         return_type = state.class_builder.map_type_with_context(member.return_type)
 
-                        args: 'list[tuple[str, str]]' = []
+                        args: 'list[tuple[str, str, str]]' = []
 
                         for param in member.parameters:
                             param_type = state.class_builder.map_type_with_context(param.type)
@@ -592,7 +592,7 @@ class HypClassDefinition:
                                 state.add_error(f'Error: Missing name for parameter {param_type}')
                                 continue
 
-                            args.append((param_type, param_name))
+                            args.append((param_type, param_name, param.type.format_decl(param.name)))
 
                         # if isinstance(return_type, Reference):
                         #     return_type = return_type.ref_to

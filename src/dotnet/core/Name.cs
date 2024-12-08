@@ -11,7 +11,7 @@ namespace Hyperion
     {
         internal ulong hashCode;
 
-        internal static object nameCacheLock = new object();
+        [ThreadStatic]
         internal static Dictionary<string, Name> nameCache = new Dictionary<string, Name>();
 
         public Name(ulong hashCode)
@@ -22,23 +22,17 @@ namespace Hyperion
         public Name(string nameString, bool weak = false)
         {
             // try to find the name in the cache
-            lock (nameCacheLock)
+            if (nameCache.TryGetValue(nameString, out Name cachedName))
             {
-                if (nameCache.TryGetValue(nameString, out Name cachedName))
-                {
-                    this = cachedName;
-                    return;
-                }
+                this = cachedName;
+                return;
             }
 
             // if the name is not in the cache, create a new one
             Name_FromString(nameString, weak, out this);
 
             // add the name to the cache
-            lock (nameCacheLock)
-            {
-                nameCache[nameString] = this;
-            }
+            nameCache[nameString] = this;
         }
 
         public bool Equals(Name other)

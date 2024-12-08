@@ -168,6 +168,7 @@ public:
     }
 
     HYP_API hyperion::Array<FilePath> GetAllFilesInDirectory() const;
+    HYP_API hyperion::Array<FilePath> GetSubdirectories() const;
 
     HYP_API SizeType DirectorySize() const;
     HYP_API SizeType FileSize() const;

@@ -108,6 +108,23 @@ hyperion::Array<FilePath> FilePath::GetAllFilesInDirectory() const
     return files;
 }
 
+hyperion::Array<FilePath> FilePath::GetSubdirectories() const
+{
+    hyperion::Array<FilePath> directories;
+
+    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
+        if (entry.is_directory()) {
+#ifdef HYP_WINDOWS
+            directories.PushBack(WideString(entry.path().c_str()).ToUTF8());
+#else
+            directories.PushBack(entry.path().c_str());
+#endif
+        }
+    }
+
+    return directories;
+}
+
 SizeType FilePath::DirectorySize() const
 {
     SizeType size = 0;

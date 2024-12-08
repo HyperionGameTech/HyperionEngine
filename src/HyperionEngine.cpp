@@ -39,7 +39,11 @@ HYP_API void InitializeEngine(const FilePath &base_path)
     dotnet::DotNetSystem::GetInstance().Initialize(base_path);
 
     g_engine = CreateObject<Engine>();
+    InitObject(g_engine);
+
     g_asset_manager = CreateObject<AssetManager>();
+    InitObject(g_asset_manager);
+
     g_shader_manager = new ShaderManagerSystem;
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;

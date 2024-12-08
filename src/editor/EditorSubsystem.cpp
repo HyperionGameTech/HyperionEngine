@@ -170,6 +170,20 @@ void EditorSubsystem::Initialize()
 
     CreateEditorUI();
     CreateHighlightNode();
+
+    if (Handle<AssetCollector> base_asset_collector = g_asset_manager->GetBaseAssetCollector()) {
+        base_asset_collector->StartWatching();
+    }
+
+    g_asset_manager->OnAssetCollectorAdded.Bind([](const Handle<AssetCollector> &asset_collector)
+    {
+        asset_collector->StartWatching();
+    });
+
+    g_asset_manager->OnAssetCollectorRemoved.Bind([](const Handle<AssetCollector> &asset_collector)
+    {
+        asset_collector->StopWatching();
+    });
 }
 
 void EditorSubsystem::Shutdown()
@@ -494,42 +508,42 @@ void EditorSubsystem::InitSceneOutline()
        }
     });
 
-    //m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
-    //{
-    //    AssertThrow(node != nullptr);
+    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")), 1 }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    {
+       AssertThrow(node != nullptr);
 
-    //    RC<UIListView> list_view = list_view_weak.Lock();
+       RC<UIListView> list_view = list_view_weak.Lock();
 
-    //    if (!list_view) {
-    //        return;
-    //    }
+       if (!list_view) {
+           return;
+       }
 
-    //    if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-    //        const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+       if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+           const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
 
-    //        if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
-    //            if (!data_source_element) {
-    //                return;
-    //            }
+           if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
+               if (!data_source_element) {
+                   return;
+               }
 
-    //            data_source->Remove(node->GetUUID());
-    //        } else {
-    //            if (data_source_element) {
-    //                return;
-    //            }
+               data_source->Remove(node->GetUUID());
+           } else {
+               if (data_source_element) {
+                   return;
+               }
 
-    //            Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
+               Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
 
-    //            UUID parent_node_uuid = UUID::Invalid();
+               UUID parent_node_uuid = UUID::Invalid();
 
-    //            if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
-    //                parent_node_uuid = parent_node->GetUUID();
-    //            }
+               if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
+                   parent_node_uuid = parent_node->GetUUID();
+               }
 
-    //            data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
-    //        }
-    //    }
-    //});
+               data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
+           }
+       }
+    });
 
     m_scene->GetRoot()->GetDelegates()->OnChildAdded.Bind([this, list_view_weak = list_view.ToWeak()](Node *node, bool)
     {

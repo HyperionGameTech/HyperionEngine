@@ -14,6 +14,17 @@
 
 #include <type_traits>
 
+namespace hyperion {
+namespace filesystem {
+
+class FilePath;
+
+} // namespace filesystem
+
+using filesystem::FilePath;
+
+} // namespace hyperion
+
 namespace hyperion::dotnet {
 
 class Object;
@@ -34,6 +45,7 @@ struct DefaultTransformArgument
 
 template <class T> struct TransformArgument<T, std::enable_if_t< std::is_arithmetic_v<T> > > : DefaultTransformArgument<T> { };
 template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v<T> && IsPODType<T> > > : DefaultTransformArgument<T> { };
+template <class T> struct TransformArgument<T, std::enable_if_t< std::is_enum_v<T> > > : DefaultTransformArgument<T> { };
 
 template <> struct TransformArgument<void *> : DefaultTransformArgument<void *> { };
 template <> struct TransformArgument<char *> : DefaultTransformArgument<char *> { };
@@ -127,6 +139,12 @@ struct TransformArgument<ANSIStringView>
     {
         return value.Data();
     }
+};
+
+template <>
+struct TransformArgument<FilePath>
+{
+    HYP_API const char *operator()(const FilePath &value) const;
 };
 
 } // namespace detail

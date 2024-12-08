@@ -19,6 +19,7 @@ DEF_HANDLE(ParticleSystem)
 DEF_HANDLE(ParticleSpawner)
 DEF_HANDLE(InputManager)
 DEF_HANDLE(AssetManager)
+DEF_HANDLE(AssetCollector)
 DEF_HANDLE_NS(physics, RigidBody)
 
 DEF_HANDLE(GaussianSplattingInstance)

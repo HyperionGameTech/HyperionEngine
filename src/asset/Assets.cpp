@@ -39,6 +39,49 @@
 
 namespace hyperion {
 
+#pragma region AssetCollector
+
+AssetCollector::~AssetCollector()
+{
+    if (IsWatching()) {
+        StopWatching();
+    }
+}
+
+void AssetCollector::Init()
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    HypObject::Init();
+
+    if (!m_base_path.Any()) {
+        m_base_path = FilePath::Current();
+    }
+
+    if (!m_base_path.IsDirectory()) {
+        m_base_path = m_base_path.BasePath();
+    }
+
+    if (!m_base_path.Exists()) {
+        m_base_path.MkDir();
+    }
+
+    SetReady(true);
+}
+
+void AssetCollector::NotifyAssetChanged(const FilePath &path, AssetChangeType change_type)
+{
+    AssertReady();
+
+    OnAssetChanged(path, change_type);
+}
+
+#pragma endregion AssetCollector
+
+#pragma region AssetManager
+
 const Handle<AssetManager> &AssetManager::GetInstance()
 {
     return g_asset_manager;
@@ -48,7 +91,103 @@ AssetManager::AssetManager()
     : m_asset_cache(MakeUnique<AssetCache>()),
       m_num_pending_batches { 0 }
 {
-    RegisterDefaultLoaders();
+}
+
+FilePath AssetManager::GetBasePath() const
+{
+    Mutex::Guard guard(m_asset_collectors_mutex);
+
+    if (Handle<AssetCollector> asset_collector = m_base_asset_collector.Lock()) {
+        return asset_collector->GetBasePath();
+    }
+
+    return FilePath::Current();
+}
+
+Handle<AssetCollector> AssetManager::GetBaseAssetCollector() const
+{
+    Mutex::Guard guard(m_asset_collectors_mutex);
+
+    return m_base_asset_collector.Lock();
+}
+
+void AssetManager::SetBasePath(const FilePath &base_path)
+{
+    Mutex::Guard guard(m_asset_collectors_mutex);
+
+    Handle<AssetCollector> asset_collector;
+
+    auto asset_collectors_it = m_asset_collectors.FindIf([base_path](const Handle<AssetCollector> &asset_collector)
+    {
+        return asset_collector->GetBasePath() == base_path;
+    });
+
+    if (asset_collectors_it != m_asset_collectors.End()) {
+        asset_collector = *asset_collectors_it;
+    } else {
+        asset_collector = CreateObject<AssetCollector>(base_path);
+
+        m_asset_collectors.PushBack(asset_collector);
+
+        OnAssetCollectorAdded(asset_collector);
+    }
+
+    if (m_base_asset_collector == asset_collector) {
+        return;
+    }
+
+    m_base_asset_collector = asset_collector;
+
+    OnBaseAssetCollectorChanged(asset_collector);
+}
+
+void AssetManager::AddAssetCollector(const Handle<AssetCollector> &asset_collector)
+{
+    if (!asset_collector.IsValid()) {
+        return;
+    }
+
+    {
+        Mutex::Guard guard(m_asset_collectors_mutex);
+
+        if (m_asset_collectors.Contains(asset_collector)) {
+            return;
+        }
+
+        m_asset_collectors.PushBack(asset_collector);
+    }
+
+    OnAssetCollectorAdded(asset_collector);
+}
+
+void AssetManager::RemoveAssetCollector(const Handle<AssetCollector> &asset_collector)
+{
+    if (!asset_collector.IsValid()) {
+        return;
+    }
+
+    {
+        Mutex::Guard guard(m_asset_collectors_mutex);
+        
+        if (!m_asset_collectors.Erase(asset_collector)) {
+            return;
+        }
+    }
+
+    OnAssetCollectorRemoved(asset_collector);
+}
+
+const Handle<AssetCollector> &AssetManager::FindAssetCollector(ProcRef<bool, const Handle<AssetCollector> &> proc) const
+{
+    Mutex::Guard guard(m_asset_collectors_mutex);
+
+    for (const Handle<AssetCollector> &asset_collector : m_asset_collectors) {
+        if (proc(asset_collector)) {
+            return asset_collector;
+        }
+    }
+
+    return Handle<AssetCollector>::empty;
 }
 
 RC<AssetBatch> AssetManager::CreateBatch()
@@ -123,6 +262,17 @@ const AssetLoaderDefinition *AssetManager::GetLoader(const FilePath &path, TypeI
     return nullptr;
 }
 
+void AssetManager::Init()
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    HypObject::Init();
+
+    RegisterDefaultLoaders();
+}
+
 void AssetManager::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
@@ -183,5 +333,7 @@ void AssetManager::AddPendingBatch(const RC<AssetBatch> &batch)
     m_pending_batches.PushBack(batch);
     m_num_pending_batches.Increment(1, MemoryOrder::RELEASE);
 }
+
+#pragma endregion AssetManager
 
 } // namespace hyperion

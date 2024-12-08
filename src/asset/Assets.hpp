@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_ASSETS_HPP
 #define HYPERION_ASSETS_HPP
 
@@ -10,6 +11,8 @@
 #include <core/Base.hpp>
 
 #include <core/object/HypObject.hpp>
+
+#include <core/functional/Delegate.hpp>
 
 #include <core/Defines.hpp>
 
@@ -73,6 +76,61 @@ struct AssetLoaderDefinition
     }
 };
 
+HYP_ENUM()
+enum class AssetChangeType : uint32
+{
+    CHANGED = 0,
+    CREATED = 1,
+    DELETED = 2,
+    RENAMED = 3
+};
+
+HYP_CLASS()
+class AssetCollector : public HypObject<AssetCollector>
+{
+    HYP_OBJECT_BODY(AssetCollector);
+
+public:
+    // Necessary for script bindings
+    AssetCollector() = default;
+
+    AssetCollector(const FilePath &base_path)
+        : m_base_path(base_path)
+    {
+    }
+
+    HYP_API ~AssetCollector();
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const FilePath &GetBasePath() const
+        { return m_base_path; }
+
+    HYP_METHOD()
+    HYP_API void NotifyAssetChanged(const FilePath &path, AssetChangeType change_type);
+
+    HYP_API void Init();
+
+    HYP_METHOD(Scriptable)
+    bool IsWatching() const;
+
+    HYP_METHOD(Scriptable)
+    void StartWatching();
+
+    HYP_METHOD(Scriptable)
+    void StopWatching();
+
+    HYP_METHOD(Scriptable)
+    void OnAssetChanged(const FilePath &path, AssetChangeType change_type);
+
+private:
+    bool IsWatching_Impl() const { return false; }
+    void StartWatching_Impl() { }
+    void StopWatching_Impl() { }
+    void OnAssetChanged_Impl(const FilePath &path, AssetChangeType change_type) { }
+
+    FilePath                                            m_base_path;
+};
+
 HYP_CLASS()
 class AssetManager : public HypObject<AssetManager>
 {
@@ -96,12 +154,21 @@ public:
     ~AssetManager()                                         = default;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const FilePath &GetBasePath() const
-        { return m_base_path; }
+    FilePath GetBasePath() const;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetBasePath(const FilePath &base_path)
-        { m_base_path = base_path; }
+    void SetBasePath(const FilePath &base_path);
+
+    HYP_METHOD()
+    Handle<AssetCollector> GetBaseAssetCollector() const;
+
+    HYP_METHOD()
+    void AddAssetCollector(const Handle<AssetCollector> &asset_collector);
+
+    HYP_METHOD()
+    void RemoveAssetCollector(const Handle<AssetCollector> &asset_collector);
+
+    const Handle<AssetCollector> &FindAssetCollector(ProcRef<bool, const Handle<AssetCollector> &>) const;
 
     template <class Loader, class ResultType, class... Formats>
     void Register(Formats &&... formats)
@@ -167,10 +234,15 @@ public:
     HYP_FORCE_INLINE AssetCache *GetAssetCache() const
         { return m_asset_cache.Get(); }
 
-    HYP_API void Update(GameCounter::TickUnit delta);
+    void Init();
+    void Update(GameCounter::TickUnit delta);
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { HYP_NOT_IMPLEMENTED(); }
+    
+    Delegate<void, const Handle<AssetCollector> &>  OnAssetCollectorAdded;
+    Delegate<void, const Handle<AssetCollector> &>  OnAssetCollectorRemoved;
+    Delegate<void, const Handle<AssetCollector> &>  OnBaseAssetCollectorChanged;
 
 private:
     /*! \internal Called from AssetBatch on LoadAsync() */
@@ -201,7 +273,9 @@ private:
 
     UniquePtr<AssetCache>               m_asset_cache;
 
-    FilePath                            m_base_path;
+    Array<Handle<AssetCollector>>       m_asset_collectors;
+    WeakHandle<AssetCollector>          m_base_asset_collector;
+    mutable Mutex                       m_asset_collectors_mutex;
 
     Array<AssetLoaderDefinition>        m_loaders;
     TypeMap<ProcessAssetFunctorFactory> m_functor_factories;

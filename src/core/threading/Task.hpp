@@ -934,7 +934,60 @@ struct TaskAwaitAll_Impl<Task<void>>
 {
     void operator()(Span<Task<void>> tasks) const
     {
-        HYP_NOT_IMPLEMENTED_VOID();
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<void> &task = tasks[i];
+
+            AssertThrow(task.IsValid());
+        }
+
+        Bitset completion_states;
+        Bitset bound_states;
+
+        //debug
+        Array<int> called_states;
+        called_states.Resize(tasks.Size());
+
+        Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(tasks.Size());
+
+        while ((completion_states | bound_states).Count() != tasks.Size()) {
+            for (SizeType i = 0; i < tasks.Size(); ++i) {
+                if (completion_states.Test(i) || bound_states.Test(i)) {
+                    continue;
+                }
+
+                Task<void> &task = tasks[i];
+
+                if (task.IsCompleted()) {
+                    completion_states.Set(i, true);
+
+                    semaphore.Release(1);
+
+                    continue;
+                }
+
+                // @TODO : What if task finished right before callback was set?
+
+                task.GetTaskExecutor()->SetCallback([&semaphore, &completion_states, &called_states, &tasks, task_index = i]()
+                {
+                    AssertThrow(called_states[task_index] == 0);
+
+                    called_states[task_index] = 1;
+                    DebugLog(LogType::Debug, "Call OnCompleted for task index %u (executor ptr: %p)\n", task_index, tasks[task_index].GetTaskExecutor());
+                    semaphore.Release(1);
+                });
+
+                bound_states.Set(i, true);
+            }
+        }
+
+        semaphore.Acquire();
+
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<void> &task = tasks[i];
+            AssertThrow(task.IsCompleted());
+            
+            task.Await();
+        }
     }
 };
 

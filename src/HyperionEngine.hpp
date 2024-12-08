@@ -14,7 +14,7 @@ class FilePath;
 
 using filesystem::FilePath;
 
-class game;
+class Game;
 
 HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game);
 

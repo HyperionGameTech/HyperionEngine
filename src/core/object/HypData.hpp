@@ -44,6 +44,12 @@ class NodeProxy;
 
 class Entity;
 
+namespace filesystem {
+class FilePath;
+} // namespace filesystem
+
+using filesystem::FilePath;
+
 template <class T, class T2 = void>
 struct HypDataHelper;
 
@@ -1169,6 +1175,28 @@ struct HypDataHelper<utilities::detail::StringView<StringType>> : HypDataHelper<
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const utilities::detail::StringView<StringType> &value) const
     {
         HypDataHelper<containers::detail::String<StringType>>::Set(hyp_data, value);
+    }
+};
+
+template <>
+struct HypDataHelperDecl<FilePath> {};
+
+template <>
+struct HypDataHelper<FilePath> : HypDataHelper<String>
+{
+    HYP_FORCE_INLINE FilePath Get(const Any &value) const
+    {
+        return value.Get<String>();
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const FilePath &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<String>(value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, FilePath &&value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<String>(std::move(value)));
     }
 };
 

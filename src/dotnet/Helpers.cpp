@@ -3,6 +3,8 @@
 #include <dotnet/Helpers.hpp>
 #include <dotnet/Object.hpp>
 
+#include <core/filesystem/FilePath.hpp>
+
 namespace hyperion::dotnet {
 
 namespace detail {
@@ -10,6 +12,11 @@ namespace detail {
 void *TransformArgument<Object *>::operator()(Object *value) const
 {
     return value->GetObjectReference().ptr;
+}
+
+const char *TransformArgument<FilePath>::operator()(const FilePath &value) const
+{
+    return value.Data();
 }
 
 } // namespace detail

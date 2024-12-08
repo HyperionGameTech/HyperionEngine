@@ -31,7 +31,7 @@ ${start_macro_names[hyp_class.class_type]}(${hyp_class.name}${(f", NAME(\"{hyp_c
         % elif member.member_type == HypMemberType.METHOD:
             <% s += f"HypMethod(NAME(HYP_STR({member.name})), &Type::{member.name}{', ' + attributes if len(member.attributes) > 0 else ''})" %> \
         % elif member.member_type == HypMemberType.PROPERTY:
-            <% property_args = ', '.join(member.args) %> \
+            <% property_args = ', '.join([f"{arg_name}" for arg_type, arg_name, cpp_decl in member.args]) if len(member.args) > 0 else "" %> \
             <% s += f"HypProperty(NAME(HYP_STR({member.name})), {property_args})" %> \
         % elif member.member_type == HypMemberType.ENUMERATOR:
             <% s += f"HypProperty(NAME(HYP_STR({to_pascal_case(member.name)})), HypPropertyGetter(static_cast<Type(*)(void)>([](void) {{ return Type::{member.name}; }})))" %> \
@@ -48,8 +48,8 @@ ${end_macro_names[hyp_class.class_type]}
 #pragma region ${hyp_class.name} Scriptable Methods
     % for member in hyp_class.members:
         % if member.is_method and member.has_attribute("Scriptable"):
-            <% method_args_string_sig = ', '.join([f"{arg_type} {arg_name}" for arg_type, arg_name in member.args]) if len(member.args) > 0 else "" %> \
-            <% method_args_string_call = ', '.join([f"{arg_name}" for arg_type, arg_name in member.args]) if len(member.args) > 0 else "" %> \
+            <% method_args_string_sig = ', '.join([f"{cpp_decl}" for arg_type, arg_name, cpp_decl in member.args]) if len(member.args) > 0 else "" %> \
+            <% method_args_string_call = ', '.join([f"{arg_name}" for arg_type, arg_name, cpp_decl in member.args]) if len(member.args) > 0 else "" %> \
 
             % if member.method_return_type == "void":
 ${f"void {hyp_class.name}::{member.name}({method_args_string_sig})" + (" const" if member.is_const_method else "")}
