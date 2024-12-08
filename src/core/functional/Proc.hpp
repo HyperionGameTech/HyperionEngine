@@ -21,15 +21,27 @@ namespace hyperion {
 namespace functional {
 namespace detail {
 
+template <class ReturnType>
+struct ProcDefaultReturn
+{
+    static_assert(!std::is_void_v<ReturnType>, "ProcDefaultReturn should not be used with void return types");
+    static_assert(std::is_default_constructible_v<ReturnType>, "ProcDefaultReturn requires a default constructible type");
+
+    static ReturnType Get()
+        { return ReturnType(); }
+};
+
 template <class MemoryType, class ReturnType, class... Args>
 struct ProcFunctorInternal
 {
+    static ReturnType(*const s_invalid_invoke_fn)(void *, Args &...);
+
     Variant<MemoryType, void *> memory;
     ReturnType                  (*invoke_fn)(void *, Args &...);
     void                        (*delete_fn)(void *);
 
     ProcFunctorInternal()
-        : invoke_fn(nullptr),
+        : invoke_fn(s_invalid_invoke_fn),
           delete_fn(nullptr)
     {
     }
@@ -42,7 +54,7 @@ struct ProcFunctorInternal
         memory = std::move(other.memory);
 
         invoke_fn = other.invoke_fn;
-        other.invoke_fn = nullptr;
+        other.invoke_fn = s_invalid_invoke_fn;
 
         delete_fn = other.delete_fn;
         other.delete_fn = nullptr;
@@ -61,7 +73,7 @@ struct ProcFunctorInternal
         memory = std::move(other.memory);
 
         invoke_fn = other.invoke_fn;
-        other.invoke_fn = nullptr;
+        other.invoke_fn = s_invalid_invoke_fn;
 
         delete_fn = other.delete_fn;
         other.delete_fn = nullptr;
@@ -96,8 +108,16 @@ struct ProcFunctorInternal
         }
 
         memory.Reset();
-        invoke_fn = nullptr;
+        invoke_fn = s_invalid_invoke_fn;
         delete_fn = nullptr;
+    }
+};
+
+template <class MemoryType, class ReturnType, class... Args>
+ReturnType(*const ProcFunctorInternal<MemoryType, ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &...) = [](void *, Args &...) -> ReturnType
+{
+    if constexpr (!std::is_same_v<void, ReturnType>) {
+        return ProcDefaultReturn<ReturnType>::Get();
     }
 };
 
@@ -136,7 +156,22 @@ class ProcRefBase { };
 } // namespace detail
 
 template <class ReturnType, class... Args>
+class Proc;
+
+template <class ReturnType, class... Args>
 class ProcRef;
+
+template <class T>
+struct IsProc
+{
+    static constexpr bool value = false;
+};
+
+template <class ReturnType, class... Args>
+struct IsProc<Proc<ReturnType, Args...>>
+{
+    static constexpr bool value = true;
+};
 
 // non-copyable std::function alternative,
 // with inline storage so no heap allocation occurs.
@@ -192,7 +227,18 @@ public:
 
     /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
      *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
-    template <class Func>
+    Proc(Proc *fn)
+        : Proc()
+    {
+        if (fn != nullptr && fn->IsValid()) {
+            functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<Proc>;
+            functor.memory.template Set<void *>(reinterpret_cast<void *>(fn));
+        }
+    }
+
+    /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
+     *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
+    template <class Func, typename = std::enable_if_t<!IsProc<Func>::value>>
     Proc(Func *fn)
         : Proc()
     {
@@ -327,7 +373,9 @@ private:
 template <class ReturnType, class... Args>
 ReturnType(*const ProcRef<ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &...) = [](void *, Args &...) -> ReturnType
 {
-    HYP_FAIL("Cannot invoke ProcRef that is in invalid state");
+    if constexpr (!std::is_same_v<void, ReturnType>) {
+        return detail::ProcDefaultReturn<ReturnType>::Get();
+    }
 };
 
 } // namespace functional

@@ -139,7 +139,7 @@ TaskThread *TaskThreadPool::GetNextTaskThread()
                 return task_thread;
             }
         } while (task_thread->GetID() == current_thread_id
-            || (current_thread_object != nullptr && current_thread_object->GetScheduler()->HasWorkAssignedFromThread(task_thread->GetID())));
+            || (current_thread_object != nullptr && current_thread_object->GetScheduler().HasWorkAssignedFromThread(task_thread->GetID())));
     } while (!task_thread->IsRunning() && !task_thread->IsFree());
 
     return task_thread;
@@ -280,7 +280,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         TaskThread *task_thread = pool->GetNextTaskThread();
         AssertThrow(task_thread != nullptr);
 
-        const TaskID task_id = task_thread->GetScheduler()->EnqueueTaskExecutor(
+        const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(
             &(*it),
             &batch->semaphore,
             next_batch != nullptr
@@ -288,7 +288,7 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
                 : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr)
         );
 
-        batch->task_refs.EmplaceBack(task_id, task_thread->GetScheduler());
+        batch->task_refs.EmplaceBack(task_id, &task_thread->GetScheduler());
     }
 
     return batch;

@@ -211,7 +211,7 @@ public:
     {
         TaskThread *task_thread = GetNextTaskThread();
 
-        return task_thread->GetScheduler()->Enqueue(std::forward<TaskFunction>(fn), flags);
+        return task_thread->GetScheduler().Enqueue(std::forward<TaskFunction>(fn), flags);
     }
 
     TaskThread *GetNextTaskThread();

@@ -111,7 +111,7 @@ public:
     virtual const ThreadID &GetID() const = 0;
 
     /*! \brief Get the scheduler that this thread is associated with. */
-    virtual Scheduler *GetScheduler() = 0;
+    virtual Scheduler &GetScheduler() = 0;
 
     /*! \brief Get the priority of this thread. */
     virtual ThreadPriorityValue GetPriority() const = 0;
@@ -139,8 +139,8 @@ public:
     virtual ThreadPriorityValue GetPriority() const override final
         { return m_priority; }
 
-    virtual Scheduler *GetScheduler() override final
-        { return &m_scheduler; }
+    virtual Scheduler &GetScheduler() override final
+        { return m_scheduler; }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);

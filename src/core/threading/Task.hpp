@@ -13,7 +13,6 @@
 #include <core/threading/Semaphore.hpp>
 
 #include <core/functional/Proc.hpp>
-#include <core/functional/Delegate.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/Util.hpp>
@@ -92,7 +91,9 @@ public:
 
     virtual bool IsCompleted() const = 0;
 
-    virtual Delegate<void> &GetOnCompleteDelegate() = 0;
+    virtual Proc<void> &GetCallback() = 0;
+    virtual const Proc<void> &GetCallback() const = 0;
+    virtual void SetCallback(Proc<void> &&callback) = 0;
 };
 
 class TaskExecutorBase : public ITaskExecutor
@@ -115,7 +116,7 @@ public:
           m_initiator_thread_id(other.m_initiator_thread_id),
           m_assigned_scheduler(other.m_assigned_scheduler),
           m_semaphore(std::move(other.m_semaphore)),
-          OnComplete(std::move(other.OnComplete))
+          m_callback(std::move(other.m_callback))
     {
         other.m_id = {};
         other.m_initiator_thread_id = {};
@@ -176,17 +177,23 @@ public:
 
     virtual void Execute() = 0;
 
-    virtual Delegate<void> &GetOnCompleteDelegate() override final
-        { return OnComplete; }
+    virtual Proc<void> &GetCallback() override final
+        { return m_callback; }
 
-    /*! \brief Not called if task is part of a TaskBatch. */
-    Delegate<void>  OnComplete;
+    virtual const Proc<void> &GetCallback() const override final
+        { return m_callback; }
+
+    virtual void SetCallback(Proc<void> &&callback) override final
+        { m_callback = std::move(callback); }
 
 protected:
     TaskID          m_id;
     ThreadID        m_initiator_thread_id;
     SchedulerBase   *m_assigned_scheduler;
     TaskSemaphore   m_semaphore;
+
+    /*! \brief Not called if task is part of a TaskBatch. */
+    Proc<void>      m_callback;
 };
 
 template <class ReturnType>
@@ -338,9 +345,13 @@ public:
 
         Base::m_result_value.Set(std::move(value));
 
+        const Proc<void> &callback = Base::GetCallback();
+
         Base::GetSemaphore().Release(1);
 
-        Base::OnComplete();
+        if (callback) {
+            callback();
+        }
     }
 
     void Fulfill(const ReturnType &value)
@@ -349,9 +360,13 @@ public:
         
         Base::m_result_value.Set(value);
 
+        const Proc<void> &callback = Base::GetCallback();
+
         Base::GetSemaphore().Release(1);
-        
-        Base::OnComplete();
+
+        if (callback) {
+            callback();
+        }
     }
 
 protected:
@@ -396,9 +411,13 @@ public:
     {
         AssertThrow(!Base::IsCompleted());
 
+        const Proc<void> &callback = Base::GetCallback();
+
         Base::GetSemaphore().Release(1);
         
-        Base::OnComplete();
+        if (callback)  {
+            callback();
+        }
     }
 
 protected:
@@ -879,9 +898,9 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
                     continue;
                 }
 
-                // @TODO : What if task finished right before delegate handler was bound?
+                // @TODO : What if task finished right before callback was set?
 
-                task.GetTaskExecutor()->GetOnCompleteDelegate().Bind([&semaphore, &completion_states, &called_states, &tasks, task_index = i]()
+                task.GetTaskExecutor()->SetCallback([&semaphore, &completion_states, &called_states, &tasks, task_index = i]()
                 {
                     AssertThrow(called_states[task_index] == 0);
 

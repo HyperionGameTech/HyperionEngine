@@ -14,7 +14,9 @@ class FilePath;
 
 using filesystem::FilePath;
 
-HYP_API void InitializeAppContext(const RC<AppContext> &app_context);
+class game;
+
+HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game);
 
 HYP_API void InitializeEngine(const FilePath &base_path);
 HYP_API void DestroyEngine();

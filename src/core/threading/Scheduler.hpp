@@ -10,6 +10,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
+#include <core/threading/SchedulerFwd.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/Thread.hpp>
@@ -215,7 +216,7 @@ public:
         scheduled_task.owns_executor = (flags & TaskEnqueueFlags::FIRE_AND_FORGET);
         scheduled_task.semaphore = &executor->GetSemaphore();
         scheduled_task.task_executed = &m_task_executed;
-        scheduled_task.callback = &executor->GetOnCompleteDelegate();
+        scheduled_task.callback = &executor->GetCallback();
 
         Enqueue_Internal(std::move(scheduled_task));
 

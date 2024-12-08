@@ -9,8 +9,6 @@
 
 #include <HyperionEngine.hpp>
 
-#define HYP_LOG_FRAMES_PER_SECOND
-
 namespace hyperion {
 namespace sys {
 
@@ -26,57 +24,15 @@ void App::Launch(Game *game, const CommandLineArguments &arguments)
 {
     hyperion::InitializeEngine(FilePath(arguments.GetCommand()).BasePath());
 
-    m_app_context = InitAppContext(arguments);
-
-    game->SetAppContext(m_app_context);
-
-    Engine::GetInstance()->InitializeGame(game);
-
-    RunMainLoop(game);
+    m_app_context = InitAppContext(game, arguments);
 
     hyperion::DestroyEngine();
 }
 
-void App::RunMainLoop(Game *game)
+RC<AppContext> App::InitAppContext(Game *game, const CommandLineArguments &arguments)
 {
-    SystemEvent event;
+    AssertThrow(game != nullptr);
 
-#ifdef HYP_LOG_FRAMES_PER_SECOND
-    uint32 num_frames = 0;
-    float delta_time_accum = 0.0f;
-
-    GameCounter counter;
-#endif
-
-    while (Engine::GetInstance()->IsRenderLoopActive()) {
-        // input manager stuff
-        while (m_app_context->PollEvent(event)) {
-            game->PushEvent(std::move(event));
-        }
-
-#ifdef HYP_LOG_FRAMES_PER_SECOND
-        counter.NextTick();
-        delta_time_accum += counter.delta;
-        num_frames++;
-
-        if (delta_time_accum >= 1.0f) {
-            DebugLog(
-                LogType::Debug,
-                "Render FPS: %f\n",
-                1.0f / (delta_time_accum / float(num_frames))
-            );
-
-            delta_time_accum = 0.0f;
-            num_frames = 0;
-        }
-#endif
-
-        Engine::GetInstance()->RenderNextFrame(game);
-    }
-}
-
-RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
-{
     RC<AppContext> app_context;
 
 #ifdef HYP_SDL
@@ -84,6 +40,8 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
 #else
     #error "No AppContext implementation for this platform!"
 #endif
+
+    app_context->SetGame(game);
 
     const CommandLineArguments &app_context_arguments = app_context->GetArguments();
 
@@ -111,7 +69,7 @@ RC<AppContext> App::InitAppContext(const CommandLineArguments &arguments)
         }));
     }
 
-    hyperion::InitializeAppContext(app_context);
+    hyperion::InitializeAppContext(app_context, game);
 
     return app_context;
 }

@@ -22,7 +22,7 @@ void TickableEditorTask::Commit()
         IThread *game_thread = Threads::GetThread(ThreadName::THREAD_GAME);
         AssertThrow(game_thread != nullptr);
 
-        game_thread->GetScheduler()->Enqueue([weak_this = WeakRefCountedPtrFromThis()]()
+        game_thread->GetScheduler().Enqueue([weak_this = WeakRefCountedPtrFromThis()]()
         {
             if (RC<IEditorTask> task = weak_this.Lock().CastUnsafe<TickableEditorTask>()) {
                 task->Process();

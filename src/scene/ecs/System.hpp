@@ -16,6 +16,7 @@
 namespace hyperion {
 
 class EntityManager;
+class Scene;
 
 class HYP_API SystemBase
 {
@@ -143,6 +144,9 @@ protected:
 
     HYP_FORCE_INLINE EntityManager &GetEntityManager()
         { return m_entity_manager; }
+
+    Scene *GetScene() const;
+    World *GetWorld() const;
 
     EntityManager               &m_entity_manager;
 

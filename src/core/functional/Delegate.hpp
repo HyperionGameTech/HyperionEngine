@@ -9,6 +9,9 @@
 #include <core/containers/FlatMap.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/Threads.hpp>
+#include <core/threading/Task.hpp>
+#include <core/threading/Scheduler.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -104,14 +107,23 @@ struct DelegateHandlerData
         { return id < other.id; }
 };
 
-template <class ReturnType>
-struct DelegateDefaultReturn
+template <class ProcType>
+struct DelegateHandlerProc
 {
-    static_assert(!std::is_void_v<ReturnType>, "DelegateDefaultReturn should not be used with void return types");
-    static_assert(std::is_default_constructible_v<ReturnType>, "DelegateDefaultReturn requires a default constructible type");
+    RC<ProcType>    proc;
+    ThreadID        calling_thread_id = ThreadID::Invalid();
 
-    static ReturnType Get()
-        { return ReturnType(); }
+    IThread *GetCallingThread() const
+    {
+        if (!calling_thread_id.IsValid()) {
+            return nullptr;
+        }
+
+        IThread *thread = Threads::GetThread(calling_thread_id);
+        AssertThrow(thread != nullptr);
+
+        return thread;
+    }
 };
 
 } // namespace detail
@@ -139,16 +151,13 @@ public:
 
     ~DelegateHandler()                                              = default;
 
-    HYP_FORCE_INLINE
-    bool operator==(const DelegateHandler &other) const
+    HYP_FORCE_INLINE bool operator==(const DelegateHandler &other) const
         { return m_data == other.m_data; }
 
-    HYP_FORCE_INLINE
-    bool operator!=(const DelegateHandler &other) const
+    HYP_FORCE_INLINE bool operator!=(const DelegateHandler &other) const
         { return m_data != other.m_data; }
 
-    HYP_FORCE_INLINE
-    bool operator<(const DelegateHandler &other) const
+    HYP_FORCE_INLINE bool operator<(const DelegateHandler &other) const
     {
         if (!IsValid()) {
             return false;
@@ -319,13 +328,26 @@ public:
 #endif
     }
 
-    /*! \brief Bind a Proc<> to the Delegate.
-     * \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
+    /*! \brief Bind a Proc<> to the Delegate. The bound function will always be called on the thread that Bind() is called from if \ref{force_current_thread} is set to true.
+     *  \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
      *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
      *
-     * \param proc The Proc to bind.
-     * \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
-    DelegateHandler Bind(ProcType &&proc)
+     *  \param proc The Proc to bind.
+     *  \param require_current_thread Should the delegate handler function be called on the current thread?
+     *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
+    DelegateHandler Bind(ProcType &&proc, bool require_current_thread = false)
+    {
+        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID::Invalid());
+    }
+
+    /*! \brief Bind a Proc<> to the Delegate.
+     *  \note The handler will be removed when the last reference to the returned DelegateHandler is removed.
+     *  This makes it easy to manage resource cleanup, as you can store the DelegateHandler as a class member and when the object is destroyed, the handler will be removed from the Delegate.
+     *
+     *  \param proc The Proc to bind.
+     *  \param calling_thread_id The thread to call the bound function on.
+     *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
+    DelegateHandler Bind(ProcType &&proc, ThreadID calling_thread_id)
     {
 #ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
@@ -333,7 +355,7 @@ public:
 
         const uint32 id = m_id_counter++;
 
-        m_procs.Insert({ id, MakeRefCountedPtr<ProcType>(std::move(proc)) });
+        m_procs.Insert({ id, detail::DelegateHandlerProc<ProcType> { MakeRefCountedPtr<ProcType>(std::move(proc)), calling_thread_id } });
 
 #ifdef HYP_DELEGATE_THREAD_SAFE
         m_num_procs.Increment(1, MemoryOrder::RELEASE);
@@ -440,7 +462,7 @@ public:
     }
 
     /*! \brief Broadcast a message to all bound handlers.
-     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
@@ -450,7 +472,7 @@ public:
         if (!AnyBound()) {
             // If no handlers are bound, return a default constructed object or void
             if constexpr (!std::is_void_v<ReturnType>) {
-                return detail::DelegateDefaultReturn<ReturnType>::Get();
+                return detail::ProcDefaultReturn<ReturnType>::Get();
             } else {
                 return;
             }
@@ -460,7 +482,7 @@ public:
         //  - use same array, but just set the procs as invalid when removed
         //  - then, when broadcasting, just skip the invalid procs
         //  - after broadcasting, remove the invalid procs from the array
-        Array<RC<ProcType>> procs_array;
+        Array<detail::DelegateHandlerProc<ProcType>> procs_array;
 
         {
 #ifdef HYP_DELEGATE_THREAD_SAFE
@@ -474,23 +496,56 @@ public:
             }
         }
 
+        const ThreadID current_thread_id = Threads::CurrentThreadID();
+
+        Array<Task<void>> tasks;
+
         ValueStorage<ReturnType> result_storage;
 
         const auto begin = procs_array.Begin();
         const auto end = procs_array.End();
 
         for (auto it = begin; it != end;) {
+            auto current = it;
+
             if constexpr (!std::is_void_v<ReturnType>) {
-                auto current = it;
                 ++it;
                 
                 if (it == end) {
-                    result_storage.Construct((**current)(args...));
+                    if (current->calling_thread_id.IsValid() && current->calling_thread_id != current_thread_id) {
+                        tasks.PushBack(current->GetCallingThread()->GetScheduler().Enqueue([&result_storage, &proc = *current->proc, args_tuple = std::tie(args...)]()
+                        {
+                            result_storage.Construct(std::apply([&proc]<class... OtherArgs>(OtherArgs &&... args)
+                            {
+                                return proc(std::forward<OtherArgs>(args)...);
+                            }, std::move(args_tuple)));
+                        }));
+                    } else {
+                        result_storage.Construct((*current->proc)(args...));
+                    }
+                    
+                } else {
+                    (*current->proc)(args...);
                 }
             } else {
-                (**it)(args...);
+                if (current->calling_thread_id.IsValid() && current->calling_thread_id != current_thread_id) {
+                    tasks.PushBack(current->GetCallingThread()->GetScheduler().Enqueue([&proc = *current->proc, args_tuple = std::tie(args...)]()
+                    {
+                        std::apply([&proc]<class... OtherArgs>(OtherArgs &&... args)
+                        {
+                            return proc(std::forward<OtherArgs>(args)...);
+                        }, std::move(args_tuple));
+                    }));
+                } else {
+                    (*current->proc)(args...);
+                }
+
                 ++it;
             }
+        }
+
+        if (tasks.Any()) {
+            AwaitAll(tasks.ToSpan());
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {
@@ -499,7 +554,7 @@ public:
     }
 
     /*! \brief Call operator overload - alias method for Broadcast().
-     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::DelegateDefaultReturn} struct.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
@@ -545,17 +600,17 @@ private:
         ));
     }
 
-    FlatMap<uint32, RC<ProcType>>   m_procs;
+    FlatMap<uint32, detail::DelegateHandlerProc<ProcType>>  m_procs;
 
 #ifdef HYP_DELEGATE_THREAD_SAFE
-    AtomicVar<uint32>               m_num_procs;
-    Mutex                           m_mutex;
+    AtomicVar<uint32>                                       m_num_procs;
+    Mutex                                                   m_mutex;
 #endif
 
-    uint32                          m_id_counter;
+    uint32                                                  m_id_counter;
 
-    Array<DelegateHandler>          m_detached_handlers;
-    Mutex                           m_detached_handlers_mutex;
+    Array<DelegateHandler>                                  m_detached_handlers;
+    Mutex                                                   m_detached_handlers_mutex;
 };
 } // namespace functional
 

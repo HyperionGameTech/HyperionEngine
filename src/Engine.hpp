@@ -52,6 +52,7 @@ class DebugDrawer;
 class DeferredRenderer;
 class FinalPass;
 class PlaceholderData;
+class RenderThread;
 
 extern Handle<Engine>       g_engine;
 extern Handle<AssetManager> g_asset_manager;
@@ -219,11 +220,10 @@ public:
     HYP_FORCE_INLINE bool IsShuttingDown() const
         { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 
-    HYP_FORCE_INLINE bool IsRenderLoopActive() const
-        { return m_is_render_loop_active; }
+    bool IsRenderLoopActive() const;
 
     HYP_API void Initialize(const RC<AppContext> &app_context);
-    HYP_API bool InitializeGame(Game *game);
+
     HYP_API void RenderNextFrame(Game *game);
     HYP_API void RequestStop();
 
@@ -245,6 +245,8 @@ private:
     void FindTextureFormatDefaults();
 
     RC<AppContext>                                          m_app_context;
+
+    UniquePtr<RenderThread>                                 m_render_thread;
     
     UniquePtr<Instance>                                     m_instance;
 
@@ -279,7 +281,6 @@ private:
     EngineDelegates                                         m_delegates;
 
     AtomicVar<bool>                                         m_is_shutting_down { false };
-    bool                                                    m_is_render_loop_active { false };
     bool                                                    m_is_initialized;
 };
 

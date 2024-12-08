@@ -66,7 +66,7 @@ WebSocket::WebSocket(const String &url)
 #if defined(HYP_CURL) && HYP_CURL
     m_thread->Start(this);
 
-    m_thread->GetScheduler()->Enqueue([this]()
+    m_thread->GetScheduler().Enqueue([this]()
     {
         HYP_SCOPE;
 

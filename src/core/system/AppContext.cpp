@@ -220,7 +220,8 @@ bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 #pragma region AppContext
 
 AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
-    : m_configuration("app")
+    : m_configuration("app"),
+      m_game(nullptr)
 {
     m_input_manager = CreateObject<InputManager>();
 
@@ -238,7 +239,7 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
         json::JSONString config_args_string = config_args.ToString();
         Array<String> config_args_string_split = config_args_string.Split(' ');
 
-        ArgParse arg_parse(g_default_arg_parse_definitions);
+        ArgParse arg_parse { g_default_arg_parse_definitions };
         ArgParse::ParseResult parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
 
         if (parse_result) { 
@@ -254,6 +255,16 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
 }
 
 AppContext::~AppContext() = default;
+
+Game *AppContext::GetGame() const
+{
+    return m_game;
+}
+
+void AppContext::SetGame(Game *game)
+{
+    m_game = game;
+}
 
 const CommandLineArguments &AppContext::GetArguments() const
 {

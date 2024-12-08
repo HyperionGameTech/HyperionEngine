@@ -109,6 +109,10 @@ public:
         { return m_app_context; }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene> &GetScene() const
+        { return m_scene; }
+
+    HYP_METHOD()
     HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
 

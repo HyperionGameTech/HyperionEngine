@@ -205,7 +205,21 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
     }
 
     template <SizeType Size>
+    constexpr Span(Type (&ary)[Size])
+        : first(&ary[0]),
+          last(&ary[Size])
+    {
+    }
+
+    template <SizeType Size>
     constexpr Span(const Type (&ary)[Size])
+        : first(&ary[0]),
+          last(&ary[Size])
+    {
+    }
+
+    template <SizeType Size>
+    constexpr Span(Type (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {

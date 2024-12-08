@@ -289,34 +289,34 @@ struct Tuple_Impl< TupleIndices< Indices ... >, Types... > : TupleLeaf< Indices,
 
     template <SizeType... Indices_, class... Types_>
     constexpr Tuple_Impl(std::integer_sequence< SizeType, Indices_... >, Types_ &&... values)
-        : TupleLeaf< Indices_, Types >(std::forward< Types_ >(values))...
+        : TupleLeaf< Indices, Types >(std::forward< Types_ >(values))...
     {
     }
 
     template <SizeType... Indices_, class... Types_>
     constexpr Tuple_Impl(const Tuple_Impl< TupleIndices< Indices_ ... >, Types_... > &other)
-        : TupleLeaf< Indices_, Types >(static_cast< const TupleLeaf< Indices_, Types_ > & >(other))...
+        : TupleLeaf< Indices, Types >(static_cast< const TupleLeaf< Indices_, Types_ > & >(other))...
     {
     }
 
     template <SizeType... Indices_, class... Types_>
     Tuple_Impl &operator=(const Tuple_Impl< TupleIndices< Indices_ ... >, Types_... > &other)
     {
-        (TupleLeaf< Indices_, Types >::operator=(static_cast< const TupleLeaf< Indices_, Types_ > & >(other)), ...);
+        (TupleLeaf< Indices, Types >::operator=(static_cast< const TupleLeaf< Indices_, Types_ > & >(other)), ...);
 
         return *this;
     }
 
     template <SizeType... Indices_, class... Types_>
     constexpr Tuple_Impl(Tuple_Impl< TupleIndices< Indices_ ... >, Types_... > &&other) noexcept
-        : TupleLeaf< Indices_, Types >(static_cast< TupleLeaf< Indices_, Types_ > && >(std::move(other)))...
+        : TupleLeaf< Indices, Types >(static_cast< TupleLeaf< Indices_, Types_ > && >(std::move(other)))...
     {
     }
 
     template <SizeType... Indices_, class... Types_>
     Tuple_Impl &operator=(Tuple_Impl< TupleIndices< Indices_ ... >, Types_... > &&other) noexcept
     {
-        (TupleLeaf< Indices_, Types >::operator=(static_cast< TupleLeaf< Indices_, Types_ > && >(std::move(other))), ...);
+        (TupleLeaf< Indices, Types >::operator=(static_cast< TupleLeaf< Indices_, Types_ > && >(std::move(other))), ...);
 
         return *this;
     }
@@ -409,6 +409,36 @@ constexpr Tuple< Types &&... > ForwardAsTuple(Types &&... values)
 
 #pragma endregion ForwardAsTuple
 
+#pragma region Apply
+
+namespace detail {
+
+template <class FunctionType, class... Types, SizeType... Indices>
+constexpr auto Apply_Impl(FunctionType &&function, const Tuple<Types...> &args, hyperion::utilities::detail::TupleIndices< Indices... >)
+{
+    return function(args.template GetElement< Indices >()...);
+}
+
+template <class FunctionType, class... Types, SizeType... Indices>
+constexpr auto Apply_Impl(FunctionType &&function, Tuple<Types...> &&args, hyperion::utilities::detail::TupleIndices< Indices... >)
+{
+    return function(args.template GetElement< Indices >()...);
+}
+
+} // namespace detail
+
+template <class FunctionType, class TupleType>
+constexpr auto Apply(FunctionType &&function, TupleType &&args_tuple)
+{
+    return detail::Apply_Impl(
+        std::forward<FunctionType>(function),
+        std::forward<TupleType>(args_tuple),
+        typename TupleType::Indices { }
+    );
+}
+
+#pragma endregion Apply
+
 } // namespace helpers
 
 template <std::size_t Index, class... Types>
@@ -455,12 +485,15 @@ class Tuple
 public:
     static constexpr SizeType size = sizeof...(Types);
 
+    using Indices = typename hyperion::utilities::detail::MakeTupleIndices< sizeof...(Types) >::Type;
+
     constexpr Tuple() = default;
 
     template <class... Types_>
     constexpr Tuple(Types_ &&... values)
         : impl(std::index_sequence_for< Types_... >(), std::forward< Types_ >(values)...)
     {
+        static_assert(sizeof...(Types_) == sizeof...(Types), "Incorrect number of tuple args provided!");
     }
 
     constexpr Tuple(const Tuple &other)
@@ -565,6 +598,7 @@ using utilities::helpers::MakeTuple;
 using utilities::helpers::ConcatTuples;
 using utilities::helpers::Tie;
 using utilities::helpers::ForwardAsTuple;
+using utilities::helpers::Apply;
 
 } // namespace hyperion
 

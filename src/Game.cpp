@@ -63,7 +63,7 @@ void Game::Init_Internal()
 
     m_scene->SetName(NAME("Scene_Main"));
 
-    m_game_thread->GetScheduler()->Enqueue([this]() -> void
+    m_game_thread->GetScheduler().Enqueue([this]() -> void
     {
         Vec2i window_size;
 
@@ -205,7 +205,7 @@ void Game::PushEvent(SystemEvent &&event)
     }
 
     if (m_game_thread->IsRunning()) {
-        m_game_thread->GetScheduler()->Enqueue([this, event = std::move(event)]() mutable -> void
+        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)]() mutable -> void
         {
             HandleEvent(std::move(event));
         }, TaskEnqueueFlags::FIRE_AND_FORGET);

@@ -473,26 +473,26 @@ void EditorSubsystem::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
-    //m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Name")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
-    //{
-    //    HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
+    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot().Get(), { Node::Class()->GetProperty(NAME("Name")), 1 }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
+    {
+       HYP_LOG(Editor, LogLevel::DEBUG, "Property changed for Node {}: {}", node->GetName(), property->GetName());
 
-    //    // Update name in list view
-    //    // @TODO: Ensure game thread
+       // Update name in list view
+       // @TODO: Ensure game thread
 
-    //    RC<UIListView> list_view = list_view_weak.Lock();
+       RC<UIListView> list_view = list_view_weak.Lock();
 
-    //    if (!list_view) {
-    //        return;
-    //    }
+       if (!list_view) {
+           return;
+       }
 
-    //    if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-    //        const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
-    //        AssertThrow(data_source_element != nullptr);
+       if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+           const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+           AssertThrow(data_source_element != nullptr);
 
-    //        data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
-    //    }
-    //});
+           data_source->Set(node->GetUUID(), HypData(node->WeakRefCountedPtrFromThis()));
+       }
+    });
 
     //m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot(), { Node::Class()->GetProperty(NAME("Flags")) }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     //{
@@ -802,7 +802,7 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
 
     // if (!ui_object) {
     //     if (Threads::IsOnThread(ThreadName::THREAD_GAME)) {
-    //         Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler()->Enqueue([this, task, CreateTaskUIObject]()
+    //         Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler().Enqueue([this, task, CreateTaskUIObject]()
     //         {
     //             task->SetUIObject(CreateTaskUIObject(GetUIStage(), task->InstanceClass()));
     //         });

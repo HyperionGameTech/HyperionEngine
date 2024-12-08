@@ -82,7 +82,7 @@ void SkydomeRenderer::OnRemoved()
     m_camera.Reset();
     m_cubemap.Reset();
 
-    Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler()->Enqueue([scene = std::move(m_virtual_scene)]()
+    Threads::GetThread(ThreadName::THREAD_GAME)->GetScheduler().Enqueue([scene = std::move(m_virtual_scene)]()
     {
         g_engine->GetWorld()->RemoveScene(scene);
     }, TaskEnqueueFlags::FIRE_AND_FORGET);

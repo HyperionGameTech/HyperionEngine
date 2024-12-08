@@ -30,9 +30,12 @@
 #include <audio/AudioManager.hpp>
 
 #include <core/system/StackDump.hpp>
+#include <core/system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
+
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -47,6 +50,8 @@
 
 #include <Game.hpp>
 
+#define HYP_LOG_FRAMES_PER_SECOND
+
 namespace hyperion {
 
 using renderer::FillMode;
@@ -60,6 +65,96 @@ SafeDeleter             *g_safe_deleter = nullptr;
 
 /* \brief Should the swapchain be rebuilt on the next frame? */
 static bool g_should_recreate_swapchain = false;
+
+class RenderThread final : public Thread<Scheduler>
+{
+public:
+    RenderThread(const RC<AppContext> &app_context)
+        : Thread(ThreadName::THREAD_RENDER, ThreadPriorityValue::HIGHEST),
+          m_app_context(app_context),
+          m_is_running(false)
+    {
+    }
+
+    // Overrides Start() to not create a thread object. Runs the render loop on the main thread.
+    bool Start()
+    {
+        AssertThrow(m_is_running.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+
+        // Must be current thread
+        Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+
+        SetCurrentThreadObject(this);
+        m_scheduler.SetOwnerThread(GetID());
+
+        (*this)();
+
+        return true;
+    }
+
+    void Stop()
+    {
+        m_is_running.Set(false, MemoryOrder::RELEASE);
+    }
+
+    HYP_FORCE_INLINE bool IsRunning() const
+        { return m_is_running.Get(MemoryOrder::ACQUIRE); }
+
+private:
+    virtual void operator()() override
+    {
+        AssertThrow(m_app_context != nullptr);
+        AssertThrow(m_app_context->GetGame() != nullptr);
+
+        SystemEvent event;
+
+#ifdef HYP_LOG_FRAMES_PER_SECOND
+        uint32 num_frames = 0;
+        float delta_time_accum = 0.0f;
+
+        GameCounter counter;
+#endif
+    
+        Queue<Scheduler::ScheduledTask> tasks;
+
+        while (m_is_running.Get(MemoryOrder::RELAXED)) {
+            // input manager stuff
+            while (m_app_context->PollEvent(event)) {
+                m_app_context->GetGame()->PushEvent(std::move(event));
+            }
+
+#ifdef HYP_LOG_FRAMES_PER_SECOND
+            counter.NextTick();
+            delta_time_accum += counter.delta;
+            num_frames++;
+
+            if (delta_time_accum >= 1.0f) {
+                DebugLog(
+                    LogType::Debug,
+                    "Render FPS: %f\n",
+                    1.0f / (delta_time_accum / float(num_frames))
+                );
+
+                delta_time_accum = 0.0f;
+                num_frames = 0;
+            }
+#endif
+
+            if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
+                m_scheduler.AcceptAll(tasks);
+
+                while (tasks.Any()) {
+                    tasks.Pop().Execute();
+                }
+            }
+
+            g_engine->RenderNextFrame(m_app_context->GetGame());
+        }
+    }
+
+    RC<AppContext>  m_app_context;
+    AtomicVar<bool> m_is_running;
+};
 
 #pragma region Render commands
 
@@ -117,17 +212,6 @@ Engine::~Engine()
     AssertThrowMsg(m_instance == nullptr, "Engine instance must be destroyed before Engine object is destroyed");
 }
 
-HYP_API bool Engine::InitializeGame(Game *game)
-{
-    AssertThrow(game != nullptr);
-
-    Threads::AssertOnThread(ThreadName::THREAD_MAIN, "Must be on main thread to initialize game instance");
-
-    game->Init_Internal();
-
-    return true;
-}
-
 void Engine::FindTextureFormatDefaults()
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
@@ -177,14 +261,19 @@ void Engine::FindTextureFormatDefaults()
 HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     AssertThrow(!m_is_initialized);
+    m_is_initialized = true;
 
-    Threads::SetCurrentThreadPriority(ThreadPriorityValue::HIGHEST);
+    HYP_DEFER({
+        m_is_initialized = false;
+    });
 
     AssertThrow(app_context != nullptr);
     m_app_context = app_context;
+
+    m_render_thread = MakeUnique<RenderThread>(m_app_context);
 
     m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i new_window_size)
     {
@@ -363,24 +452,34 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     
     HYP_SYNC_RENDER();
 
-    m_is_render_loop_active = true;
-    m_is_initialized = true;
+    AssertThrowMsg(m_app_context->GetGame() != nullptr, "Game not set on AppContext!");
+    m_app_context->GetGame()->Init_Internal();
+
+    // RenderThread::Start() is blocking, runs until exit
+    AssertThrowMsg(m_render_thread->Start(), "Failed to start render thread!");
+}
+
+bool Engine::IsRenderLoopActive() const
+{
+    return m_render_thread != nullptr
+        && m_render_thread->IsRunning();
 }
 
 void Engine::RequestStop()
 {
-    m_is_render_loop_active = false;
-    //m_stop_requested.Set(true, MemoryOrder::RELAXED);
+    if (m_render_thread != nullptr) {
+        if (m_render_thread->IsRunning()) {
+            m_render_thread->Stop();
+        }
+    }
 }
 
 void Engine::FinalizeStop()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     m_is_shutting_down.Set(true, MemoryOrder::SEQUENTIAL);
-    m_is_render_loop_active = false;
 
     HYP_LOG(Engine, LogLevel::INFO, "Stopping all engine processes");
 
@@ -433,19 +532,15 @@ void Engine::FinalizeStop()
     RemoveAllEnqueuedRenderObjectsNow<renderer::Platform::CURRENT>(/* force */true);
 
     HYPERION_ASSERT_RESULT(m_instance->GetDevice()->Wait());
-
     HYPERION_ASSERT_RESULT(m_instance->Destroy());
+
+    m_render_thread->Join();
+    m_render_thread.Reset();
 }
 
 HYP_API void Engine::RenderNextFrame(Game *game)
 {
     HYP_PROFILE_BEGIN;
-
-    // if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
-    //     FinalizeStop();
-
-    //     return;
-    // }
 
     Result frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
         GetGPUInstance()->GetDevice(),
@@ -455,7 +550,6 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     if (!frame_result) {
         m_crash_handler.HandleGPUCrash(frame_result);
 
-        m_is_render_loop_active = false;
         RequestStop();
 
         return;

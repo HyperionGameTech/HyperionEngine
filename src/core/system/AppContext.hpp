@@ -33,6 +33,8 @@
 
 namespace hyperion {
 
+class Game;
+
 namespace renderer {
 namespace platform {
 
@@ -166,6 +168,9 @@ public:
     HYP_FORCE_INLINE const Handle<InputManager> &GetInputManager() const
         { return m_input_manager; }
 
+    void SetGame(Game *game);
+    Game *GetGame() const;
+
     virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent &event) = 0;
 
@@ -185,6 +190,7 @@ protected:
     ANSIString                      m_name;
     UniquePtr<CommandLineArguments> m_arguments;
     ConfigurationTable              m_configuration;
+    Game                            *m_game;
 };
 
 HYP_CLASS()

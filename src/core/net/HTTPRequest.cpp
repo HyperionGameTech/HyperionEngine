@@ -159,7 +159,7 @@ Task<HTTPResponse> HTTPRequest::Send()
 {
     HYP_SCOPE;
     
-    return g_engine->GetNetRequestThread()->GetScheduler()->Enqueue([url = m_url, content_type = m_content_type, body = m_body, method = m_method]() -> HTTPResponse
+    return g_engine->GetNetRequestThread()->GetScheduler().Enqueue([url = m_url, content_type = m_content_type, body = m_body, method = m_method]() -> HTTPResponse
     {
         HYP_SCOPE;
     

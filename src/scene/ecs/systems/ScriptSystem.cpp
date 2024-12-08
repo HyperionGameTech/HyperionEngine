@@ -106,7 +106,8 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 
                     script_component.object->InvokeMethod<void>(
                         before_init_method_ptr,
-                        GetEntityManager().GetScene()
+                        GetWorld(),
+                        GetScene()
                     );
 
                     script_component.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;

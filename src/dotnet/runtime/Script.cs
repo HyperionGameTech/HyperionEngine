@@ -5,8 +5,17 @@ namespace Hyperion
 {
     public abstract class Script
     {
+        private World? world;
         private Scene? scene;
         private Entity entity;
+
+        protected World World
+        {
+            get
+            {
+                return world!;
+            }
+        }
 
         protected Scene Scene
         {
@@ -29,11 +38,10 @@ namespace Hyperion
         /// Sets up handles used by the Script instance.
         /// </summary>
         /// <param name="scene">Native handle to the scene</param>
-        internal void BeforeInit(Scene scene)
+        internal void BeforeInit(World world, Scene scene)
         {
+            this.world = world;
             this.scene = scene;
-
-            Logger.Log(LogType.Info, "{0} BeforeInit: this.scene = {1}", GetType().Name, this.scene);
         }
 
         public virtual void Init(Entity entity)

@@ -30,7 +30,7 @@ public:
     virtual void Launch(Game *game, const CommandLineArguments &arguments) final;
 
 protected:
-    virtual RC<AppContext> InitAppContext(const CommandLineArguments &arguments);
+    virtual RC<AppContext> InitAppContext(Game *game, const CommandLineArguments &arguments);
 
 private:
     void RunMainLoop(Game *game);

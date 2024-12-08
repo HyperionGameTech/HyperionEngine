@@ -14,10 +14,17 @@
 
 #include <core/system/MessageBox.hpp>
 
+#include <Game.hpp>
+
 namespace hyperion {
 
-HYP_API void InitializeAppContext(const RC<AppContext> &app_context)
+HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game)
 {
+    AssertThrow(app_context != nullptr);
+
+    AssertThrow(game != nullptr);
+    game->SetAppContext(app_context);
+
     Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
     AssertThrowMsg(g_engine.IsValid(), "Engine is null!");
