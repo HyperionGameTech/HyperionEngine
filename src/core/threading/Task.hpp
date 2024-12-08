@@ -953,15 +953,6 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
     }
 };
 
-template <>
-struct TaskAwaitAll_Impl<Task<void>>
-{
-    void operator()(Span<Task<void>> tasks) const
-    {
-        HYP_NOT_IMPLEMENTED_VOID();
-    }
-};
-
 } // namespace detail
 
 template <class TaskType>

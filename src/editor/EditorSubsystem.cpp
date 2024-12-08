@@ -247,14 +247,24 @@ void EditorSubsystem::Initialize()
 
     CreateHighlightNode();
 
-    if (Handle<AssetCollector> base_asset_collector = g_asset_manager->GetBaseAssetCollector()) {
-        base_asset_collector->StartWatching();
-    }
-
     g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript &script)
     {
         DebugLog(LogType::Debug, "Script state changed: now is %u\n", script.state);
     }).Detach();
+
+    if (Handle<AssetCollector> base_asset_collector = g_asset_manager->GetBaseAssetCollector()) {
+        base_asset_collector->StartWatching();
+    }
+
+    g_asset_manager->OnAssetCollectorAdded.Bind([](const Handle<AssetCollector> &asset_collector)
+    {
+        asset_collector->StartWatching();
+    });
+
+    g_asset_manager->OnAssetCollectorRemoved.Bind([](const Handle<AssetCollector> &asset_collector)
+    {
+        asset_collector->StopWatching();
+    });
 }
 
 void EditorSubsystem::Shutdown()
