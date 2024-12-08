@@ -608,4 +608,5 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
+add_subdirectory(buildtool)
 add_subdirectory(samples)

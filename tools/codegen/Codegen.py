@@ -371,7 +371,7 @@ class HypMemberDefinition:
         return self.member_type == HypMemberType.CONSTANT
             
     @property
-    def args(self):
+    def args(self) -> 'list[tuple[str, str, str]]':
         if self.is_method:
             if self.method_args is None:
                 return []
