@@ -553,10 +553,6 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
 
     const uint frame_index = frame->GetFrameIndex();
     const uint previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
-
-    const CameraRenderResources &camera_render_resources = g_engine->GetRenderState().GetActiveCamera();
-    uint32 camera_index = camera_render_resources.GetBufferIndex();
-    AssertThrow(camera_index != ~0u);
     
     /*m_hits_buffers[previous_frame_index]->Read(
         g_engine->GetGPUDevice(),
@@ -604,7 +600,6 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState().GetScene().id.ToIndex()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState().bound_env_grid.ToIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()) }
                 }

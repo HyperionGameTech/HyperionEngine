@@ -6,6 +6,7 @@
 #include <core/ID.hpp>
 #include <core/Name.hpp>
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/StaticString.hpp>
@@ -24,12 +25,6 @@
 namespace hyperion {
 
 class HypClass;
-
-template <class T>
-struct Handle;
-
-template <class T>
-struct WeakHandle;
 
 namespace dotnet {
 class Object;

@@ -54,6 +54,12 @@ void Game::Init_Internal()
     m_game_thread = MakeUnique<GameThread>();
 
     AssertThrowMsg(m_app_context != nullptr, "No valid Application instance was provided to Game constructor!");
+    
+    Vec2i window_size;
+
+    if (m_app_context->GetMainWindow()) {
+        window_size = m_app_context->GetMainWindow()->GetDimensions();
+    }
 
     m_scene = CreateObject<Scene>(
         Handle<Camera>(),
@@ -63,14 +69,14 @@ void Game::Init_Internal()
 
     m_scene->SetName(NAME("Scene_Main"));
 
+    m_scene->SetCamera(CreateObject<Camera>(
+        70.0f,
+        window_size.x, window_size.y,
+        0.01f, 30000.0f
+    ));
+
     m_game_thread->GetScheduler().Enqueue([this]() -> void
     {
-        Vec2i window_size;
-
-        if (m_app_context->GetMainWindow()) {
-            window_size = m_app_context->GetMainWindow()->GetDimensions();
-        }
-
         if (m_managed_game_info.HasValue()) {
             if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
                 if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
@@ -78,12 +84,6 @@ void Game::Init_Internal()
                 }
             }
         }
-
-        m_scene->SetCamera(CreateObject<Camera>(
-            70.0f,
-            window_size.x, window_size.y,
-            0.01f, 30000.0f
-        ));
 
         m_scene->SetIsAudioListener(true);
 
@@ -296,9 +296,7 @@ void Game::OnFrameBegin(Frame *frame)
     g_engine->GetRenderState().AdvanceFrameCounter();
     g_engine->GetRenderState().BindScene(m_scene.Get());
 
-    if (m_scene.IsValid() && m_scene->GetCamera()) {
-        g_engine->GetRenderState().BindCamera(m_scene->GetCamera().Get());
-    }
+    g_engine->GetRenderState().BindCamera(m_scene->GetCamera().Get());
 }
 
 void Game::OnFrameEnd(Frame *frame)
@@ -307,9 +305,7 @@ void Game::OnFrameEnd(Frame *frame)
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
-    if (m_scene.IsValid() && m_scene->GetCamera()) {
-        g_engine->GetRenderState().UnbindCamera(m_scene->GetCamera().Get());
-    }
+    g_engine->GetRenderState().UnbindCamera(m_scene->GetCamera().Get());
 
     g_engine->GetRenderState().UnbindScene();
 }

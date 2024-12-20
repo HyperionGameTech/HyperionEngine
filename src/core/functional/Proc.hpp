@@ -31,6 +31,13 @@ struct ProcDefaultReturn
         { return ReturnType(); }
 };
 
+template <>
+struct ProcDefaultReturn<void>
+{
+    static void Get()
+        { }
+};
+
 template <class MemoryType, class ReturnType, class... Args>
 struct ProcFunctorInternal
 {

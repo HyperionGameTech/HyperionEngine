@@ -129,6 +129,7 @@ EntityInstanceBatch *DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
 
             EntityInstanceBatch *batch = draw_call.batch;
 
+            // Reset the draw call so it no longer has a batch associated and doesn't get used again
             draw_call = DrawCall { };
 
             return batch;

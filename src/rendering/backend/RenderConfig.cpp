@@ -13,7 +13,7 @@ namespace renderer {
 
 bool RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()
 {
-    return !IsBindlessSupported();
+    return true;//!IsBindlessSupported();
 }
 
 bool RenderConfig::IsBindlessSupported()

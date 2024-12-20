@@ -31,6 +31,8 @@ Object::~Object()
 
 void *Object::InvokeMethod_Internal(const Method *method_ptr, void **args_vptr, void *return_value_vptr)
 {
+    AssertThrow(method_ptr != nullptr);
+
     m_class_ptr->EnsureLoaded();
 
     return m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->GetGuid(), m_object_reference.guid, args_vptr, return_value_vptr);

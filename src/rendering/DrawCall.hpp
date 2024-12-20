@@ -73,6 +73,12 @@ struct DrawCallID
     {
     }
 
+    DrawCallID(const DrawCallID &other)                 = default;
+    DrawCallID &operator=(const DrawCallID &other)      = default;
+    DrawCallID(DrawCallID &&other) noexcept             = default;
+    DrawCallID &operator=(DrawCallID &&other) noexcept  = default;
+    ~DrawCallID()                                       = default;
+
     HYP_FORCE_INLINE constexpr operator uint64() const
         { return value; }
 

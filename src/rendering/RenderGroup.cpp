@@ -415,8 +415,6 @@ void RenderGroup::CollectDrawCalls()
 
     AssertReady();
 
-    const bool unique_per_material = renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial();
-
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
         m_indirect_renderer->GetDrawState().ResetDrawState();
     }
@@ -428,20 +426,10 @@ void RenderGroup::CollectDrawCalls()
     for (const auto &it : m_render_proxies) {
         const RenderProxy &render_proxy = it.second;
 
-        AssertDebug(render_proxy.material.IsValid());
-
-        AssertDebug(render_proxy.mesh.IsValid());
-        AssertDebugMsg(render_proxy.mesh->IsReady(), "Mesh #%u is not ready", render_proxy.mesh->GetID().Value());
-
         DrawCallID draw_call_id;
+        AssertThrow(render_proxy.GetDrawCallID(draw_call_id));
 
-        if (unique_per_material) {
-            // @TODO: Rather than using Material ID we could use hashcode of the material,
-            // so that we can use the same material with different IDs
-            draw_call_id = DrawCallID(render_proxy.mesh.GetID(), render_proxy.material.GetID());
-        } else {
-            draw_call_id = DrawCallID(render_proxy.mesh.GetID());
-        }
+        AssertDebugMsg(render_proxy.mesh->IsReady(), "Mesh #%u is not ready", render_proxy.mesh->GetID().Value());
 
         EntityInstanceBatch *batch = nullptr;
 

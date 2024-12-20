@@ -2,6 +2,9 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/Skeleton.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/DrawCall.hpp>
+
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <scene/Entity.hpp>
 
@@ -43,6 +46,23 @@ void RenderProxy::UnclaimRenderResources() const
     if (skeleton.IsValid()) {
         skeleton->GetRenderResources().Unclaim();
     }
+}
+
+bool RenderProxy::GetDrawCallID(DrawCallID &out_draw_call_id) const
+{
+    static const bool unique_per_material = renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial();
+
+    if (!mesh.IsValid() || !material.IsValid()) {
+        return false;
+    }
+    
+    if (unique_per_material) {
+        out_draw_call_id = DrawCallID(mesh.GetID(), material.GetID());
+    } else {
+        out_draw_call_id = DrawCallID(mesh.GetID());
+    }
+
+    return true;
 }
 
 #pragma endregion RenderProxy

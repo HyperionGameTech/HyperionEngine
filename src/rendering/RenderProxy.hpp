@@ -21,6 +21,7 @@ class Entity;
 class Mesh;
 class Material;
 class Skeleton;
+struct DrawCallID;
 
 HYP_STRUCT(Size=104)
 struct MeshInstanceData
@@ -103,6 +104,8 @@ struct RenderProxy
 
     HYP_FORCE_INLINE uint32 NumInstances() const
         { return MathUtil::Max(instance_data.NumInstances(), 1); }
+
+    bool GetDrawCallID(DrawCallID &out_draw_call_id) const;
 
     void ClaimRenderResources() const;
     void UnclaimRenderResources() const;

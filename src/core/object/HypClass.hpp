@@ -34,10 +34,10 @@ namespace fbom {
 class FBOMData;
 } // namespace fbom
 
-struct HypMember;
-struct HypProperty;
-struct HypMethod;
-struct HypField;
+class HypMember;
+class HypProperty;
+class HypMethod;
+class HypField;
 
 class IHypObjectInitializer;
 
@@ -50,7 +50,7 @@ enum class HypClassSerializationMode : uint8
 
     USE_MARSHAL_CLASS           = 0x80, // Use Marshal class as override
 
-    DEFAULT = MEMBERWISE | USE_MARSHAL_CLASS
+    DEFAULT                     = MEMBERWISE | USE_MARSHAL_CLASS
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)

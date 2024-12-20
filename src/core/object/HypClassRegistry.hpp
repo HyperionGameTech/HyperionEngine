@@ -27,8 +27,7 @@ class Object;
 
 class HypClass;
 class HypEnum;
-
-struct HypMember;
+class HypMember;
 
 template <class T>
 class HypClassInstance;

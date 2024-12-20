@@ -85,7 +85,7 @@ namespace editor {
 #pragma region HyperionEditor
 
 HyperionEditor::HyperionEditor()
-    : Game(ManagedGameInfo { "GameName.dll", "TestGame1" })
+    : Game()
 {
 }
 
@@ -96,43 +96,6 @@ HyperionEditor::~HyperionEditor()
 void HyperionEditor::Init()
 {
     Game::Init();
-
-#if 0
-#if 1
-    const HypClass *cls = GetClass<LightComponent>();
-    HYP_LOG(Editor, LogLevel::INFO, "my class: {}", cls->GetName());
-
-    LightComponent light_component;
-    light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
-
-    if (HypProperty *property = cls->GetProperty("Light")) {
-        // property->Set(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
-
-        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->Get(light_component).ToString());
-
-        if (const HypClass *light_class = property->GetHypClass()) {
-            AssertThrow(property->GetTypeID() == TypeID::ForType<Light>());
-            HYP_LOG(Editor, LogLevel::INFO, "light_class: {}", light_class->GetName());
-            HypProperty *light_radius_property = light_class->GetProperty("radius");
-            AssertThrow(light_radius_property != nullptr);
-
-            light_radius_property->Set(property->Get(light_component), 123.4f);
-        }
-
-        HYP_LOG(Editor, LogLevel::INFO, "LightComponent Light: {}", property->Get<Handle<Light>>(light_component)->GetRadius());
-    }
-#endif
-
-    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // }
-
-    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, LogLevel::INFO, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // }
-
-    HYP_BREAKPOINT;
-#endif
 
     g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
         GetAppContext(),
@@ -386,13 +349,6 @@ void HyperionEditor::Init()
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
 
-    GetScene()->GetEntityManager()->AddComponent<ScriptComponent>(root_entity, ScriptComponent {
-        {
-            .assembly_path  = "GameName.dll",
-            .class_name     = "FizzBuzzTest"
-        }
-    });
-
     batch->OnComplete.Bind([this](AssetMap &results)
     {
 #if 1
@@ -425,12 +381,26 @@ void HyperionEditor::Init()
         }
 
         GetScene()->GetRoot()->AddChild(node);
+
+        Handle<Texture> dummy_texture;
+
+        if (auto dummy_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
+            dummy_texture = dummy_texture_asset.Result();
+        }
+
+        AssertThrow(InitObject(dummy_texture));
         
         for (auto &node : node.GetChildren()) {
             if (auto child_entity = node.GetEntity()) {
                 // Add BLASComponent
 
                 m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, BLASComponent { });
+
+                if (MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(child_entity)) {
+                    if (mesh_component->material.IsValid()) {
+                        mesh_component->material->SetTexture(MaterialTextureKey::ALBEDO_MAP, dummy_texture);
+                    }
+                }
             }
         }
 #endif

@@ -62,13 +62,24 @@ namespace Hyperion
         {
             // Get the max updated timestamp of all the files in the directory
 
+            Logger.Log(LogType.Debug, "Here1 : {0}", scriptDirectory);
+
             string[] files = System.IO.Directory.GetFiles(scriptDirectory, "*.cs", System.IO.SearchOption.AllDirectories);
+
+            Logger.Log(LogType.Debug, "files:");
+
+            for (int i = 0; i < files.Length; i++)
+            {
+                Logger.Log(LogType.Debug, "  files: {0}", files[i]);
+            }
 
             long maxTimestamp = 0;
 
             foreach (string file in files)
             {
                 long timestamp = System.IO.File.GetLastWriteTime(file).ToFileTime();
+
+                Logger.Log(LogType.Debug, "file {0} timestamp {1}", file, timestamp);
 
                 if (timestamp > maxTimestamp)
                 {
@@ -77,7 +88,14 @@ namespace Hyperion
             }
 
             // Try to find the DLL in the output directory
-            string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, $"{moduleName}.dll", System.IO.SearchOption.AllDirectories);
+            string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, "*.dll", System.IO.SearchOption.AllDirectories);
+
+            Logger.Log(LogType.Debug, "dlls:");
+
+            for (int i = 0; i < dlls.Length; i++)
+            {
+                Logger.Log(LogType.Debug, "  DLL: {0}", dlls[i]);
+            }
 
             if (dlls.Length == 0)
             {
@@ -92,6 +110,8 @@ namespace Hyperion
                     return true;
                 }
             }
+
+            Logger.Log(LogType.Debug, "Here2 : {0}", moduleName);
 
             return false;
         }
@@ -166,6 +186,8 @@ namespace Hyperion
         {
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
             hotReloadVersion = -1;
+
+            Logger.Log(LogType.Debug, "Here : {0} {1}", moduleName, scriptDirectory);
 
             if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
             {

@@ -220,7 +220,7 @@ public:
     HYP_FORCE_INLINE bool IsShuttingDown() const
         { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 
-    bool IsRenderLoopActive() const;
+    HYP_API bool IsRenderLoopActive() const;
 
     HYP_API void Initialize(const RC<AppContext> &app_context);
 
