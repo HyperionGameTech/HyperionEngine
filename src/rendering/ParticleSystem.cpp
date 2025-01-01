@@ -112,10 +112,10 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 
 struct RENDER_COMMAND(DestroyParticleSystem) : renderer::RenderCommand
 {
-    ThreadSafeContainer<ParticleSpawner>    *spawners;
+    ThreadSafeContainer<Handle<ParticleSpawner>>    *spawners;
 
     RENDER_COMMAND(DestroyParticleSystem)(
-        ThreadSafeContainer<ParticleSpawner> *spawners
+        ThreadSafeContainer<Handle<ParticleSpawner>> *spawners
     ) : spawners(spawners)
     {
     }

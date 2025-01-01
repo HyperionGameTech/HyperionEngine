@@ -221,7 +221,7 @@ void HyperionEditor::Init()
     //     });
     // }
 
-    { // test terrain
+    if (false) { // test terrain
         if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
             world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
         } else {
@@ -396,11 +396,11 @@ void HyperionEditor::Init()
 
                 m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, BLASComponent { });
 
-                if (MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(child_entity)) {
+                /*if (MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(child_entity)) {
                     if (mesh_component->material.IsValid()) {
                         mesh_component->material->SetTexture(MaterialTextureKey::ALBEDO_MAP, dummy_texture);
                     }
-                }
+                }*/
             }
         }
 #endif

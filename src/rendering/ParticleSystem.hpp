@@ -91,10 +91,10 @@ public:
     ParticleSystem &operator=(const ParticleSystem &other)  = delete;
     ~ParticleSystem();
 
-    HYP_FORCE_INLINE ThreadSafeContainer<ParticleSpawner> &GetParticleSpawners()
+    HYP_FORCE_INLINE ThreadSafeContainer<Handle<ParticleSpawner>> &GetParticleSpawners()
         { return m_particle_spawners; }
 
-    HYP_FORCE_INLINE const ThreadSafeContainer<ParticleSpawner> &GetParticleSpawners() const
+    HYP_FORCE_INLINE const ThreadSafeContainer<Handle<ParticleSpawner>> &GetParticleSpawners() const
         { return m_particle_spawners; }
 
     void Init();
@@ -117,7 +117,7 @@ private:
     // for async command buffer recording. size will never change once created
     FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> m_command_buffers;
 
-    ThreadSafeContainer<ParticleSpawner>                                                                m_particle_spawners;
+    ThreadSafeContainer<Handle<ParticleSpawner>>                                                        m_particle_spawners;
 
     uint32                                                                                              m_counter;
 };

@@ -180,8 +180,8 @@ private:
     AtomicVar<RenderEnvironmentUpdates>             m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
     mutable Mutex                                   m_render_components_mutex;
-    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components; // only touch from render thread!
-    Array<RC<RenderComponentBase>>                  m_enabled_render_components;
+    TypeMap<FlatMap<Name, RC<RenderComponentBase>>> m_render_components;
+    Array<RC<RenderComponentBase>>                  m_enabled_render_components; // only touch from render thread!
     uint32                                          m_current_enabled_render_components_mask;
     uint32                                          m_next_enabled_render_components_mask;
 

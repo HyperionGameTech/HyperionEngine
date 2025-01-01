@@ -299,8 +299,11 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         if (list_view_item) {
             // If the item is selected, deselect it
-            if (RC<UIListViewItem> selected_item = m_selected_item.Lock(); list_view_item == selected_item.Get()) {
-                selected_item->SetIsSelectedItem(false);
+            RC<UIListViewItem> selected_item_locked = m_selected_item.Lock();
+
+            if (selected_item_locked == list_view_item) {
+                selected_item_locked->SetIsSelectedItem(false);
+
                 m_selected_item.Reset();
 
                 OnSelectedItemChange(nullptr);

@@ -2,7 +2,6 @@
 #ifndef HYPERION_THREAD_SAFE_CONTAINER_HPP
 #define HYPERION_THREAD_SAFE_CONTAINER_HPP
 
-#include <core/Handle.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/containers/Array.hpp>
 #include <core/containers/TypeMap.hpp>
@@ -20,69 +19,58 @@ template <class T>
 class ThreadSafeContainer
 {
 public:
-    using Iterator = typename Array<Handle<T>>::Iterator;
-    using ConstIterator = typename Array<Handle<T>>::ConstIterator;
+    using Iterator = typename Array<T>::Iterator;
+    using ConstIterator = typename Array<T>::ConstIterator;
 
     ThreadSafeContainer(ThreadName owner_thread)
         : m_owner_thread(owner_thread)
     {
     }
 
-    ThreadSafeContainer(const ThreadSafeContainer &other) = delete;
-    ThreadSafeContainer &operator=(const ThreadSafeContainer &other) = delete;
-    ThreadSafeContainer(ThreadSafeContainer &&other) noexcept = delete;
-    ThreadSafeContainer &operator=(ThreadSafeContainer &&other) noexcept = delete;
+    ThreadSafeContainer(const ThreadSafeContainer &other)                   = delete;
+    ThreadSafeContainer &operator=(const ThreadSafeContainer &other)        = delete;
+    ThreadSafeContainer(ThreadSafeContainer &&other) noexcept               = delete;
+    ThreadSafeContainer &operator=(ThreadSafeContainer &&other) noexcept    = delete;
 
     ~ThreadSafeContainer()
     {
         Clear(false);
     }
 
-    void Add(const Handle<T> &item)
+    void Add(const T &item)
     {
-        if (!item) {
-            return;
-        }
-
         std::lock_guard guard(m_update_mutex);
 
-        m_items_pending_removal.Erase(item->GetID());
+        m_items_pending_removal.Erase(&item);
         m_items_pending_addition.PushBack(item);
 
         m_updates_pending.store(true);
     }
 
-    void Add(Handle<T> &&item)
+    void Add(T &&item)
     {
-        if (!item) {
-            return;
-        }
-
         std::lock_guard guard(m_update_mutex);
 
-        m_items_pending_removal.Erase(item->GetID());
+        m_items_pending_removal.Erase(&item);
         m_items_pending_addition.PushBack(std::move(item));
 
         m_updates_pending.store(true);
     }
 
-    void Remove(ID<T> id)
+    void Remove(const T &element)
     {
-        if (!id) {
-            return;
-        }
-
         std::lock_guard guard(m_update_mutex);
 
-        auto it = m_items_pending_addition.FindIf([&id](const auto &item) {
-            return item->GetID() == id;
+        auto it = m_items_pending_addition.FindIf([&element](const auto &item)
+        {
+            return item == element;
         });
 
         if (it != m_items_pending_addition.End()) {
             m_items_pending_addition.Erase(it);
         }
 
-        m_items_pending_removal.PushBack(id);
+        m_items_pending_removal.PushBack(&element);
 
         m_updates_pending.store(true);
     }
@@ -98,8 +86,8 @@ public:
 
         m_update_mutex.lock();
 
-        auto pending_removal = std::move(m_items_pending_removal);
-        auto pending_addition = std::move(m_items_pending_addition);
+        Array<const T *> pending_removal = std::move(m_items_pending_removal);
+        Array<T> pending_addition = std::move(m_items_pending_addition);
 
         m_updates_pending.store(false);
 
@@ -110,11 +98,11 @@ public:
         // will be cleared, we've taken all items and will work off them here.
 
         while (pending_removal.Any()) {
-            auto front = pending_removal.PopFront();
+            const T *front = pending_removal.PopFront();
 
-            auto it = m_owned_items.FindIf([&front](const auto &item)
+            auto it = m_owned_items.FindIf([front](const auto &item)
             {
-                return item->GetID() == front;
+                return &item == front;
             });
 
             if (it != m_owned_items.End()) {
@@ -123,13 +111,11 @@ public:
         }
 
         while (pending_addition.Any()) {
-            auto front = pending_addition.PopFront();
+            T front = pending_addition.PopFront();
 
             auto it = m_owned_items.Find(front);
 
             if (it == m_owned_items.End()) {
-                InitObject(front);
-
                 m_owned_items.PushBack(std::move(front));
             }
         }
@@ -152,11 +138,11 @@ public:
     }
 
     /*! \note Only use from the owner thread! */
-    Array<Handle<T>> &GetItems()
+    Array<T> &GetItems()
         { return m_owned_items; }
     
     /*! \note Only use from the owner thread! */
-    const Array<Handle<T>> &GetItems() const
+    const Array<T> &GetItems() const
         { return m_owned_items; }
 
     /*! \note Only iterate it on the owner thread! */
@@ -164,9 +150,9 @@ public:
 
 private:
     ThreadName          m_owner_thread;
-    Array<Handle<T>>    m_owned_items;
-    Array<Handle<T>>    m_items_pending_addition;
-    Array<ID<T>>        m_items_pending_removal;
+    Array<T>            m_owned_items;
+    Array<T>            m_items_pending_addition;
+    Array<const T *>    m_items_pending_removal;
     std::atomic_bool    m_updates_pending;
     std::mutex          m_update_mutex;
 };
