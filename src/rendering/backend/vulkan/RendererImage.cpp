@@ -122,7 +122,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     const uint32 num_faces = self->NumFaces();
 
     if (extent.Volume() == 0) {
-        return RendererError { "Invalid image extent - width*height*depth cannot equal zero" };
+        return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
     }
 
     VkFormat vk_format = helpers::ToVkFormat(format);
@@ -592,7 +592,7 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(
 )
 {
     if (m_platform_impl.handle == VK_NULL_HANDLE) {
-        return RendererError { "Cannot generate mipmaps on uninitialized image" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot generate mipmaps on uninitialized image");
     }
 
     const auto num_faces = NumFaces();

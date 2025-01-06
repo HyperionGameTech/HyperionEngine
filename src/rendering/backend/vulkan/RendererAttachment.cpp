@@ -115,7 +115,7 @@ RendererResult Attachment<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
     AssertThrow(m_image != nullptr);
 
     if (!m_image->IsCreated()) {
-        return RendererError { "Image is expected to be initialized before initializing attachment" };
+        return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }
 
     return m_image_view->Create(device, m_image);

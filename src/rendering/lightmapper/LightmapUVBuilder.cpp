@@ -115,7 +115,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 Result<LightmapUVMap> LightmapUVBuilder::Build()
 {
     if (!m_params.elements) {
-        return HYP_MAKE_ERROR("No elements to build lightmap");
+        return HYP_MAKE_ERROR(Error, "No elements to build lightmap");
     }
 
     LightmapUVMap uv_map;
@@ -145,7 +145,7 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
 
             DebugLog(LogType::Error, "Error adding mesh: %s\n", xatlas::StringForEnum(error));
 
-            return HYP_MAKE_ERROR("Error adding mesh");
+            return HYP_MAKE_ERROR(Error, "Error adding mesh");
         }
 
         xatlas::AddMeshJoin(atlas);
@@ -274,7 +274,7 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
 
     return std::move(uv_map);
 #else
-    return HYP_MAKE_ERROR("No method to build lightmap");
+    return HYP_MAKE_ERROR(Error, "No method to build lightmap");
 #endif
 }
 

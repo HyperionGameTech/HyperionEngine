@@ -53,7 +53,7 @@ Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const 
             return json::JSONValue(json::JSONString(str));
         }
 
-        return HYP_MAKE_ERROR("Failed to parse argument");
+        return HYP_MAKE_ERROR(Error, "Failed to parse argument");
     }
 
     switch (type) {
@@ -71,18 +71,18 @@ Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const 
         const Array<String> *enum_values = definition.enum_values.TryGet();
 
         if (!enum_values) {
-            return HYP_MAKE_ERROR("Internal error parsing enum argument");
+            return HYP_MAKE_ERROR(Error, "Internal error parsing enum argument");
         }
 
         if (!enum_values->Contains(string_value)) {
-            return HYP_MAKE_ERROR("Not a valid value for argument");
+            return HYP_MAKE_ERROR(Error, "Not a valid value for argument");
         }
 
         return json::JSONValue(string_value);
     }
     }
 
-    return HYP_MAKE_ERROR("Invalid argument");
+    return HYP_MAKE_ERROR(Error, "Invalid argument");
 }
 
 #pragma endregion CommandLineArguments
@@ -251,7 +251,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         } else if (arg.StartsWith("-")) {
             arg = arg.Substr(1);
         } else {
-            return HYP_MAKE_ERROR("Invalid argument");
+            return HYP_MAKE_ERROR(Error, "Invalid argument");
         }
 
         const auto it = m_definitions.Find(arg);
@@ -282,7 +282,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         }
 
         if (i + 1 >= args.Size()) {
-            return HYP_MAKE_ERROR("Missing value for argument");
+            return HYP_MAKE_ERROR(Error, "Missing value for argument");
         }
 
         Result<CommandLineArgumentValue> parsed_value = CommandLineArguments::ParseArgumentValue(*it, args[++i]);
@@ -306,7 +306,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         }
 
         if (def.flags & CommandLineArgumentFlags::REQUIRED) {
-            return HYP_MAKE_ERROR("Missing required argument");
+            return HYP_MAKE_ERROR(Error, "Missing required argument");
         }
     }
 

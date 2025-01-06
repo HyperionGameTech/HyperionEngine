@@ -100,7 +100,7 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
 
     if (m_min_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP) {
         if (!device->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats) {
-            return RendererError { "Device does not support min/max sampler formats" };
+            return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
 
         reduction_info.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
@@ -108,7 +108,7 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
     }
 
     if (vkCreateSampler(device->GetDevice(), &sampler_info, nullptr, &m_platform_impl.handle) != VK_SUCCESS) {
-        return RendererError { "Failed to create sampler!" };
+        return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
 
     HYPERION_RETURN_OK;

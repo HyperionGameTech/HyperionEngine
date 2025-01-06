@@ -121,7 +121,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     }
     
     if (used_layouts.Size() > max_set_layouts) {
-        return RendererError { "Device max bound descriptor sets exceeded" };
+        return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
     }
 
     layout_info.setLayoutCount = uint32(used_layouts.Size());
@@ -137,17 +137,17 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     VkComputePipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 
     if (!m_shader) {
-        return RendererError { "Compute shader not provided to pipeline" };
+        return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
     const Array<VkPipelineShaderStageCreateInfo> &stages = m_shader->GetPlatformImpl().vk_shader_stages;
 
     if (stages.Size() == 0) {
-        return RendererError { "Compute pipelines must have at least one shader stage" };
+        return HYP_MAKE_ERROR(RendererError, "Compute pipelines must have at least one shader stage");
     }
 
     if (stages.Size() > 1) {
-        return RendererError { "Compute pipelines must have only one shader stage" };
+        return HYP_MAKE_ERROR(RendererError, "Compute pipelines must have only one shader stage");
     }
 
     pipeline_info.stage = stages.Front();

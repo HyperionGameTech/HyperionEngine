@@ -117,11 +117,11 @@ template <>
 RendererResult Shader<Platform::VULKAN>::AttachSubShaders()
 {
     if (!m_compiled_shader) {
-        return RendererError { "No compiled shader attached" };
+        return HYP_MAKE_ERROR(RendererError, "No compiled shader attached");
     }
 
     if (!m_compiled_shader->IsValid()) {
-        return RendererError { "Attached compiled shader is in invalid state" };
+        return HYP_MAKE_ERROR(RendererError, "Attached compiled shader is in invalid state");
     }
 
     for (SizeType index = 0; index < m_compiled_shader->modules.Size(); index++) {
@@ -180,7 +180,7 @@ RendererResult Shader<Platform::VULKAN>::CreateShaderGroups()
 
             break;
         default:
-            return RendererError { "Unimplemented shader group type" };
+            return HYP_MAKE_ERROR(RendererError, "Unimplemented shader group type");
         }
     }
 

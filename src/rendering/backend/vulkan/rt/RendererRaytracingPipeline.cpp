@@ -35,7 +35,7 @@ RaytracingPipeline<Platform::VULKAN>::~RaytracingPipeline() = default;
 RendererResult RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     if (!device->GetFeatures().IsRaytracingSupported()) {
-        return RendererError { "Raytracing is not supported on this device" };
+        return HYP_MAKE_ERROR(RendererError, "Raytracing is not supported on this device");
     }
 
     AssertThrow(m_shader != nullptr);
@@ -57,7 +57,7 @@ RendererResult RaytracingPipeline<Platform::VULKAN>::Create(Device<Platform::VUL
             max_set_layouts
         );
 
-        return RendererError { "Device max bound descriptor sets exceeded" };
+        return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
     }
 
     layout_info.setLayoutCount = uint32(used_layouts.Size());
@@ -297,7 +297,7 @@ RendererResult RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEnt
     AssertThrow(properties.shaderGroupHandleSize != 0);
 
     if (num_shaders == 0) {
-        return RendererError { "Creating shader binding table entry with zero shader count" };
+        return HYP_MAKE_ERROR(RendererError, "Creating shader binding table entry with zero shader count");
     }
 
     RendererResult result;

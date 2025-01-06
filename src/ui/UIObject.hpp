@@ -90,27 +90,26 @@ struct alignas(8) UIEventHandlerResult
 
     UIEventHandlerResult()
         : value(OK),
-          message(nullptr)
+          static_message(nullptr)
     {
     }
 
     UIEventHandlerResult(uint32 value)
         : value(value),
-          message(nullptr)
+          static_message(nullptr)
     {
     }
 
-    template <class StaticMessageType>
-    UIEventHandlerResult(uint32 value, StaticMessageType)
+    UIEventHandlerResult(uint32 value, const StaticMessage &static_message)
         : value(value),
-          message(StaticMessageType::value.Data())
+          static_message(&static_message)
     {
     }
 
     UIEventHandlerResult &operator=(uint32 value)
     {
         this->value = value;
-        this->message = nullptr;
+        static_message = nullptr;
 
         return *this;
     }
@@ -161,17 +160,26 @@ struct alignas(8) UIEventHandlerResult
     HYP_FORCE_INLINE UIEventHandlerResult operator~() const
         { return UIEventHandlerResult(~value); }
 
-    HYP_FORCE_INLINE Optional<ANSIStringView> GetMessage() const
+    HYP_FORCE_INLINE Optional<UTF8StringView> GetMessage() const
     {
-        if (!message) {
+        if (!static_message) {
             return { };
         }
 
-        return ANSIStringView(message);
+        return static_message->message;
     }
 
-    uint32      value;
-    const char  *message;
+    HYP_FORCE_INLINE Optional<ANSIStringView> GetFunctionName() const
+    {
+        if (!static_message) {
+            return { };
+        }
+
+        return static_message->current_function;
+    }
+
+    uint32              value;
+    const StaticMessage *static_message;
 };
 
 static_assert(sizeof(UIEventHandlerResult) == 16, "sizeof(UIEventHandlerResult) must match C# struct size");

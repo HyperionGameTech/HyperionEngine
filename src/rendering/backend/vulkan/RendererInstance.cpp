@@ -297,7 +297,7 @@ RendererResult Instance<Platform::VULKAN>::Initialize(const AppContext &app_cont
     Array<const char *> extension_names;
 
     if (!app_context.GetVkExtensions(extension_names)) {
-        return RendererError { "Failed to load Vulkan extensions." };
+        return HYP_MAKE_ERROR(RendererError, "Failed to load Vulkan extensions.");
     }
     
     extension_names.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -424,7 +424,7 @@ RendererResult Instance<Platform::VULKAN>::CreateDevice(VkPhysicalDevice physica
 RendererResult Instance<Platform::VULKAN>::CreateSwapchain()
 {
     if (m_surface == VK_NULL_HANDLE) {
-        return RendererError { "Surface not created before initializing swapchain" };
+        return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
     }
 
     m_swapchain->GetPlatformImpl().surface = m_surface;
@@ -440,7 +440,7 @@ RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
     }
 
     if (m_surface == VK_NULL_HANDLE) {
-        return RendererError { "Surface not created before initializing swapchain" };
+        return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
     }
 
     m_swapchain = MakeRenderObject<Swapchain<Platform::VULKAN>>();

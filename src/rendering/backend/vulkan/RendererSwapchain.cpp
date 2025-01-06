@@ -19,7 +19,7 @@ static const VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHME
 RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     if (surface == VK_NULL_HANDLE) {
-        return RendererError { "Cannot initialize swapchain without a surface" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
     RetrieveSupportDetails(device);

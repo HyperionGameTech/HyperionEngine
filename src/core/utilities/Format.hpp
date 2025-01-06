@@ -571,9 +571,6 @@ constexpr auto FormatString_ProcessTuple(Tuple< Ts... > &&tup)
 
 struct FormatTransformer
 {
-    static constexpr char delimiter = '%';
-    static constexpr uint32 balance_bracket_options = containers::helpers::BALANCE_BRACKETS_NONE;
-
     template <auto Str>
     static constexpr auto Transform()
     {

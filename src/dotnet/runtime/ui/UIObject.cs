@@ -46,12 +46,12 @@ namespace Hyperion
         private uint code;
 
         [FieldOffset(8)]
-        private IntPtr message;
+        private IntPtr staticMessage;
 
         public UIEventHandlerResult(uint code)
         {
             this.code = code;
-            this.message = IntPtr.Zero;
+            this.staticMessage = IntPtr.Zero;
         }
 
         public uint Code
@@ -66,7 +66,39 @@ namespace Hyperion
         {
             get
             {
-                return Marshal.PtrToStringAnsi(message);
+                if (staticMessage == IntPtr.Zero)
+                {
+                    return string.Empty;
+                }
+                
+                IntPtr stringPtr = UIEventHandlerResult_GetMessage(ref this);
+
+                if (stringPtr == IntPtr.Zero)
+                {
+                    return string.Empty;
+                }
+
+                return Marshal.PtrToStringUTF8(stringPtr);
+            }
+        }
+
+        public string FunctionName
+        {
+            get
+            {
+                if (staticMessage == IntPtr.Zero)
+                {
+                    return string.Empty;
+                }
+                
+                IntPtr stringPtr = UIEventHandlerResult_GetFunctionName(ref this);
+
+                if (stringPtr == IntPtr.Zero)
+                {
+                    return string.Empty;
+                }
+
+                return Marshal.PtrToStringAnsi(stringPtr);
             }
         }
 
@@ -104,6 +136,12 @@ namespace Hyperion
 
             return false;
         }
+
+        [DllImport("hyperion", EntryPoint="UIEventHandlerResult_GetMessage")]
+        private static extern IntPtr UIEventHandlerResult_GetMessage(ref UIEventHandlerResult result);
+
+        [DllImport("hyperion", EntryPoint="UIEventHandlerResult_GetFunctionName")]
+        private static extern IntPtr UIEventHandlerResult_GetFunctionName(ref UIEventHandlerResult result);
     }
 
     public enum UIObjectAlignment : uint

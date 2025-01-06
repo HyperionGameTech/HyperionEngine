@@ -106,7 +106,7 @@ template <>
 RendererResult AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance)
 {
     if (IsCreated()) {
-        return RendererError { "Cannot initialize acceleration geometry that has already been initialized" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot initialize acceleration geometry that has already been initialized");
     }
 
     if (m_material.IsValid()) {
@@ -114,11 +114,11 @@ RendererResult AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::V
     }
 
     if (!device->GetFeatures().IsRaytracingSupported()) {
-        return RendererError { "Device does not support raytracing" };
+        return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
 
     if (m_packed_vertices.Empty() || m_packed_indices.Empty()) {
-        return RendererError { "An acceleration geometry must have nonzero vertex count, index count, and vertex size." };
+        return HYP_MAKE_ERROR(RendererError, "An acceleration geometry must have nonzero vertex count, index count, and vertex size.");
     }
 
     // some assertions to prevent gpu faults
@@ -221,7 +221,7 @@ template <>
 RendererResult AccelerationGeometry<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     if (!IsCreated()) {
-        return RendererError { "Cannot destroy acceleration geometry that has not been initialized" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot destroy acceleration geometry that has not been initialized");
     }
 
     if (m_material.IsValid()) {
@@ -301,11 +301,11 @@ RendererResult AccelerationStructure<Platform::VULKAN>::CreateAccelerationStruct
     }
 
     if (!instance->GetDevice()->GetFeatures().IsRaytracingSupported()) {
-        return RendererError { "Device does not support raytracing" };
+        return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
 
     if (geometries.empty()) {
-        return RendererError { "Geometries empty" };
+        return HYP_MAKE_ERROR(RendererError, "Geometries empty");
     }
 
     RendererResult result;
@@ -1034,14 +1034,14 @@ RendererResult BottomLevelAccelerationStructure<Platform::VULKAN>::Create(Device
     std::vector<uint32> primitive_counts(m_geometries.Size());
 
     if (m_geometries.Empty()) {
-        return RendererError { "Cannot create BLAS with zero geometries" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot create BLAS with zero geometries");
     }
 
     for (SizeType i = 0; i < m_geometries.Size(); i++) {
         const AccelerationGeometryRef<Platform::VULKAN> &geometry = m_geometries[i];
 
         if (geometry->GetPackedIndices().Size() % 3 != 0) {
-            return RendererError { "Invalid triangle mesh!" };
+            return HYP_MAKE_ERROR(RendererError, "Invalid triangle mesh!");
         }
 
         if (!geometry->IsCreated()) {
@@ -1055,7 +1055,7 @@ RendererResult BottomLevelAccelerationStructure<Platform::VULKAN>::Create(Device
             if (primitive_counts[i] == 0) {
                 HYPERION_IGNORE_ERRORS(Destroy(device));
 
-                return RendererError { "Cannot create BLAS -- geometry has zero indices" };
+                return HYP_MAKE_ERROR(RendererError, "Cannot create BLAS -- geometry has zero indices");
             }
         } else {
             HYPERION_IGNORE_ERRORS(Destroy(device));
@@ -1121,7 +1121,7 @@ RendererResult BottomLevelAccelerationStructure<Platform::VULKAN>::Rebuild(Insta
         AssertThrow(geometry != nullptr);
 
         if (!geometry->GetPackedIndices().Empty()) {
-            return RendererError { "No mesh data set on geometry!" };
+            return HYP_MAKE_ERROR(RendererError, "No mesh data set on geometry!");
         }
 
         geometries[i] = geometry->m_geometry;

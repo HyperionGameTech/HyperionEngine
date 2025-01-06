@@ -254,7 +254,7 @@ RendererResult Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap 
         }
 
         if (any_required) {
-            return RendererError { "Device does not support required extensions" };
+            return HYP_MAKE_ERROR(RendererError, "Device does not support required extensions");
         }
     }
 
@@ -262,11 +262,11 @@ RendererResult Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap 
     const bool swapchains_available = swapchain_support.formats.Any() && swapchain_support.present_modes.Any();
 
     if (!m_queue_family_indices.IsComplete()) {
-        return RendererError { "Device not supported -- indices setup was not complete." };
+        return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
     }
 
     if (!swapchains_available) {
-        return RendererError { "Device not supported -- swapchains not available." };
+        return HYP_MAKE_ERROR(RendererError, "Device not supported -- swapchains not available.");
     }
 
     HYPERION_RETURN_OK;

@@ -83,7 +83,7 @@ RendererResult CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *
 
     if (m_type == COMMAND_BUFFER_SECONDARY) {
         if (render_pass == nullptr) {
-            return RendererError { "Render pass not provided for secondary command buffer!" };
+            return HYP_MAKE_ERROR(RendererError, "Render pass not provided for secondary command buffer!");
         }
 
         inheritance_info.renderPass = render_pass->GetHandle();

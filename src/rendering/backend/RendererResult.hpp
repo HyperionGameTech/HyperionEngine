@@ -21,8 +21,8 @@ public:
     {
     }
 
-    RendererError(UTF8StringView message, int error_code = 0)
-        : Error(message),
+    RendererError(const StaticMessage &static_message, int error_code = 0)
+        : Error(static_message),
           m_error_code(error_code)
     {
     }

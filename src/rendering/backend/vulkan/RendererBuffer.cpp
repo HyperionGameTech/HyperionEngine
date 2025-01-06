@@ -392,8 +392,8 @@ RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
     const auto &heap = memory_properties.memoryHeaps[heap_index];
 
     if (heap.size < size) {
-        return RendererError { "Heap size is less than requested size. "
-            "Maybe the wrong memory type has been requested, or the device is out of memory." };
+        return HYP_MAKE_ERROR(RendererError, "Heap size is less than requested size. "
+            "Maybe the wrong memory type has been requested, or the device is out of memory.");
     }
 
     return result;
@@ -687,7 +687,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
         AssertThrowMsg(false, "Creating empty gpu buffer will result in errors!");
 #endif
 
-        return RendererError { "Creating empty gpu buffer will result in errors! \n" };
+        return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
     }
 
     const auto create_info = m_platform_impl.GetBufferCreateInfo(device);

@@ -325,24 +325,6 @@ HYP_FORCE_INLINE IteratorType FindIf(IteratorType _begin, IteratorType _end, Pre
 
 #pragma endregion Algorithms
 
-#pragma region StaticMessage
-
-template <auto StaticString>
-struct StaticMessage
-{
-    static constexpr auto value = StaticString;
-};
-
-template <auto StaticString>
-constexpr HYP_FORCE_INLINE StaticMessage<StaticString> MakeStaticMessage()
-{
-    return StaticMessage<StaticString> { };
-}
-
-#define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str)>()
-
-#pragma endregion StaticMessage
-
 } // namespace hyperion
 
 #endif

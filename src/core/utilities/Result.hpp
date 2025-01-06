@@ -7,7 +7,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/StringView.hpp>
 
-#include <core/Util.hpp>
+#include <core/utilities/StaticMessage.hpp>
 
 #include <core/system/Debug.hpp>
 
@@ -24,27 +24,25 @@ public:
     virtual ~IError() = default;
 
     virtual UTF8StringView GetMessage() const = 0;
+    virtual ANSIStringView GetFunctionName() const = 0;
 };
 
 class Error : public IError
 {
 protected:
     Error()
-        : m_current_function("<unknown>")
+        : m_static_message {"", "<unknown>" }
     {
     }
 
     Error(UTF8StringView message)
-        : m_message(message),
-          m_current_function("<unknown>")
+        : m_static_message { message, "<unknown>" }
     {
     }
 
 public:
-    template <auto MessageStaticString, auto CurrentFunctionStaticString>
-    Error(StaticMessage<MessageStaticString> message, StaticMessage<CurrentFunctionStaticString> current_function)
-        : m_message(message.value.Data()),
-          m_current_function(current_function.value.Data())
+    Error(const StaticMessage &static_message)
+        : m_static_message { static_message }
     {
     }
 
@@ -52,15 +50,19 @@ public:
 
     virtual UTF8StringView GetMessage() const override
     {
-        return m_message;
+        return m_static_message.message;
     }
 
-private:
-    UTF8StringView  m_message;
-    UTF8StringView  m_current_function;
+    virtual ANSIStringView GetFunctionName() const override
+    {
+        return m_static_message.current_function;
+    }
+
+protected:
+    StaticMessage   m_static_message;
 };
 
-#define HYP_MAKE_ERROR(message) Error(HYP_STATIC_MESSAGE(message), HYP_STATIC_MESSAGE(HYP_PRETTY_FUNCTION_NAME))
+#define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(message), ##__VA_ARGS__)
 
 /*! \brief A class that represents a result that can either be a value or an error.
  *  The value and error types are specified by the template parameters.

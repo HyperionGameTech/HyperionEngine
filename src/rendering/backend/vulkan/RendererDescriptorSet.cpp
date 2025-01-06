@@ -783,7 +783,7 @@ RendererResult DescriptorSetManager<Platform::VULKAN>::CreateDescriptorSet(Devic
     );
 
     if (vk_result != VK_SUCCESS) {
-        return RendererError { "Failed to allocate descriptor set", int(vk_result) };
+        return HYP_MAKE_ERROR(RendererError, "Failed to allocate descriptor set", int(vk_result));
     }
 
     return RendererResult { };

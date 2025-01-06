@@ -285,7 +285,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         break;
     default:
-        return RendererError { "Invalid value for face cull mode!" };
+        return HYP_MAKE_ERROR(RendererError, "Invalid value for face cull mode!");
     }
 
     switch (m_fill_mode) {
@@ -361,14 +361,14 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
     
     if (!m_descriptor_table.IsValid()) {
-        return RendererError { "No descriptor table set for pipeline" };
+        return HYP_MAKE_ERROR(RendererError, "No descriptor table set for pipeline");
     }
     
     Array<VkDescriptorSetLayout> used_layouts = Pipeline<Platform::VULKAN>::m_platform_impl.GetDescriptorSetLayouts();
 
     for (VkDescriptorSetLayout vk_descriptor_set_layout : used_layouts) {
         if (vk_descriptor_set_layout == VK_NULL_HANDLE) {
-            return RendererError { "Null descriptor set layout in pipeline" };
+            return HYP_MAKE_ERROR(RendererError, "Null descriptor set layout in pipeline");
         }
     }
     
@@ -380,7 +380,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
             max_set_layouts
         );
 
-        return RendererError { "Device max bound descriptor sets exceeded" };
+        return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
     }
 
     layout_info.setLayoutCount = uint32(used_layouts.Size());
@@ -475,11 +475,11 @@ template <>
 RendererResult GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     if (!m_shader.IsValid()) {
-        return RendererError { "Cannot create a graphics pipeline with no shader" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
     if (m_framebuffers.Empty()) {
-        return RendererError { "Cannot create a graphics pipeline with no framebuffers" };
+        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no framebuffers");
     }
 
     RendererResult rebuild_result = Rebuild(device);

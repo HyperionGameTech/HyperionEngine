@@ -201,11 +201,11 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
                 Frame frame = Frame::TemporaryFrame(command_buffer, frame_index);
 
                 if (!ResizeIndirectDrawCommandsBuffer(&frame, IndirectDrawState::initial_count, indirect_buffers[frame_index], staging_buffers[frame_index])) {
-                    return RendererError { "Failed to create indirect draw commands buffer!" };
+                    return HYP_MAKE_ERROR(RendererError, "Failed to create indirect draw commands buffer!");
                 }
 
                 if (!ResizeInstancesBuffer(&frame, IndirectDrawState::initial_count, instance_buffers[frame_index], staging_buffers[frame_index])) {
-                    return RendererError { "Failed to create instances buffer!" };
+                    return HYP_MAKE_ERROR(RendererError, "Failed to create instances buffer!");
                 }
             }
 
