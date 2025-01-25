@@ -22,35 +22,37 @@ FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(CameraController *c
 
 bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
 {
+    static constexpr float speed = 15.0f;
+
     HYP_SCOPE;
 
-    Camera *camera = m_controller->GetCamera();
+    // Camera *camera = m_controller->GetCamera();
 
-    if (evt.key_code == KeyCode::KEY_W || evt.key_code == KeyCode::KEY_S || evt.key_code == KeyCode::KEY_A || evt.key_code == KeyCode::KEY_D) {
-        CameraController *camera_controller = camera->GetCameraController();
+    // if (evt.key_code == KeyCode::KEY_W || evt.key_code == KeyCode::KEY_S || evt.key_code == KeyCode::KEY_A || evt.key_code == KeyCode::KEY_D) {
+    //     CameraController *camera_controller = camera->GetCameraController();
 
-        Vec3f translation = camera->GetTranslation();
+    //     Vec3f translation = camera->GetTranslation();
 
-        const Vec3f direction = camera->GetDirection();
-        const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
+    //     const Vec3f direction = camera->GetDirection();
+    //     const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
 
-        if (evt.key_code == KeyCode::KEY_W) {
-            translation += direction * 0.01f;
-        }
-        if (evt.key_code == KeyCode::KEY_S) {
-            translation -= direction * 0.01f;
-        }
-        if (evt.key_code == KeyCode::KEY_A) {
-            translation += dir_cross_y * 0.01f;
-        }
-        if (evt.key_code == KeyCode::KEY_D) {
-            translation -= dir_cross_y * 0.01f;
-        }
+    //     if (evt.key_code == KeyCode::KEY_W) {
+    //         translation += direction * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_S) {
+    //         translation -= direction * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_A) {
+    //         translation -= dir_cross_y * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_D) {
+    //         translation += dir_cross_y * 0.01f * speed;
+    //     }
 
-        camera_controller->SetNextTranslation(translation);
+    //     camera->SetNextTranslation(translation);
 
-        return true;
-    }
+    //     return true;
+    // }
 
     return false;
 }

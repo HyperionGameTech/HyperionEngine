@@ -226,7 +226,7 @@ void UIObject::Update(GameCounter::TickUnit delta)
             child->Update_Internal(delta);
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ true);
 }
 
@@ -432,7 +432,7 @@ void UIObject::UpdatePosition(bool update_children)
         {
             child->UpdatePosition(true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
 
@@ -513,16 +513,16 @@ void UIObject::UpdateSize(bool update_children)
         ForEachParentUIObject([](UIObject *parent)
         {
             if (!parent->UseAutoSizing()) {
-                return UIObjectIterationResult::STOP;
+                return IterationResult::STOP;
             }
 
             parent->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, /* update_children */ false);
 
             if (!parent->AffectsParentSize()) {
-                return UIObjectIterationResult::STOP;
+                return IterationResult::STOP;
             }
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         });
     }
 
@@ -557,7 +557,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
                 child->UpdateSize_Internal(/* update_children */ true);
             }
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, false);
     }
 
@@ -594,7 +594,7 @@ void UIObject::UpdateSize_Internal(bool update_children)
             child->UpdatePosition(false);
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ false);
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
@@ -632,7 +632,7 @@ void UIObject::UpdateClampedSize(bool update_children)
         {
             child->UpdateClampedSize(true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
 }
@@ -735,7 +735,7 @@ void UIObject::UpdateComputedDepth(bool update_children)
         {
             ui_object->UpdateComputedDepth(/* update_children */ true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, false);
     }
 }
@@ -805,7 +805,7 @@ void UIObject::Blur(bool blur_children)
         {
             child->Blur(false);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         });
     }
 
@@ -1057,7 +1057,7 @@ void UIObject::UpdateComputedVisibility(bool update_children)
         {
             child->UpdateComputedVisibility(true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
 }
@@ -1083,10 +1083,10 @@ bool UIObject::HasFocus(bool include_children) const
         if (child->HasFocus(false)) {
             has_focus = true;
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     });
 
     return has_focus;
@@ -1314,10 +1314,10 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
         if (child->GetName() == name) {
             found_object = child->RefCountedPtrFromThis();
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, deep);
 
     return found_object;
@@ -1334,10 +1334,10 @@ RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool, UIObject *> predicate, bo
         if (predicate(child)) {
             found_object = child->RefCountedPtrFromThis();
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, deep);
 
     return found_object;
@@ -1805,7 +1805,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
                     child->UpdatePosition(/* update_children */ false);
                 }
 
-                return UIObjectIterationResult::CONTINUE;
+                return IterationResult::CONTINUE;
             }, false);
         }
     }
@@ -1887,7 +1887,7 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
     //         {
     //             object->UpdatePosition(/* update_children */ false);
 
-    //             return UIObjectIterationResult::CONTINUE;
+    //             return IterationResult::CONTINUE;
     //         }, false);
     //     }
     // }
@@ -1985,7 +1985,7 @@ void UIObject::UpdateMeshData(bool update_children)
             // Do not update children in the next call; ForEachChildUIObject runs for all descendants
             child->UpdateMeshData(true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
 
@@ -2061,7 +2061,7 @@ void UIObject::UpdateMaterial(bool update_children)
         {
             child->UpdateMaterial(true);
 
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
 
@@ -2225,12 +2225,12 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
         if (current_index == index) {
             child_object_ptr = child;
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
         ++current_index;
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ false);
 
     return child_object_ptr ? child_object_ptr->RefCountedPtrFromThis() : nullptr;
@@ -2400,7 +2400,7 @@ Array<UIObject *> UIObject::GetChildUIObjects(bool deep) const
     {
         child_objects.PushBack(child);
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, deep);
 
     return child_objects;
@@ -2418,7 +2418,7 @@ Array<UIObject *> UIObject::FilterChildUIObjects(ProcRef<bool, UIObject *> predi
             child_objects.PushBack(child);
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, deep);
 
     return child_objects;
@@ -2448,10 +2448,10 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
                 continue;
             }
 
-            const UIObjectIterationResult iteration_result = lambda(child.Get());
+            const IterationResult iteration_result = lambda(child.Get());
 
             // stop iterating if stop was set to true
-            if (iteration_result == UIObjectIterationResult::STOP) {
+            if (iteration_result == IterationResult::STOP) {
                 return;
             }
         }
@@ -2473,10 +2473,10 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
 
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(child->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object);
+                    const IterationResult iteration_result = lambda(ui_component->ui_object);
 
                     // stop iterating if stop was set to true
-                    if (iteration_result == UIObjectIterationResult::STOP) {
+                    if (iteration_result == IterationResult::STOP) {
                         return;
                     }
 
@@ -2492,7 +2492,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
     }
 }
 
-void UIObject::ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, UIObject *> proc, bool deep) const
+void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult, UIObject *> proc, bool deep) const
 {
     ForEachChildUIObject(proc, deep);
 }
@@ -2520,10 +2520,10 @@ void UIObject::ForEachParentUIObject(Lambda &&lambda) const
         if (parent_node->GetEntity().IsValid()) {
             if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
                 if (ui_component->ui_object != nullptr) {
-                    const UIObjectIterationResult iteration_result = lambda(ui_component->ui_object);
+                    const IterationResult iteration_result = lambda(ui_component->ui_object);
 
                     // stop iterating if stop was set to true
-                    if (iteration_result == UIObjectIterationResult::STOP) {
+                    if (iteration_result == IterationResult::STOP) {
                         return;
                     }
                 }
@@ -2541,12 +2541,12 @@ void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
     ForEachChildUIObject([this, stage](UIObject *ui_object)
     {
         if (ui_object == this) {
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }
 
         ui_object->SetStage_Internal(stage);
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ false);
 }
 
@@ -2571,7 +2571,7 @@ void UIObject::OnFontAtlasUpdate()
     {
         child->OnFontAtlasUpdate_Internal();
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ true);
 }
 
@@ -2583,7 +2583,7 @@ void UIObject::OnTextSizeUpdate()
     {
         child->OnTextSizeUpdate_Internal();
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ true);
 }
 
@@ -2596,7 +2596,7 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
     {
         child->UpdatePosition(/* update_children */ false);
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, /* deep */ false);
 
 

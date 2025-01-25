@@ -734,7 +734,7 @@ static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
 
 static void ForEachPermutation(
     const ShaderProperties &versions,
-    Proc<void, const ShaderProperties &> callback,
+    const ProcRef<void, const ShaderProperties &> &callback,
     bool parallel
 )
 {

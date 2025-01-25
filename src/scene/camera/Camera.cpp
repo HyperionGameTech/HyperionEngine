@@ -63,7 +63,7 @@ void CameraController::OnActivated()
 
 void CameraController::OnDeactivated()
 {
-    // Do nothing
+    SetIsMouseLockRequested(false);
 }
 
 void CameraController::PushCommand(const CameraCommand &command)
@@ -218,7 +218,6 @@ Camera::~Camera()
     SafeRelease(std::move(m_framebuffer));
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void Camera::Init()
 {
     if (IsInitCalled()) {
@@ -306,18 +305,20 @@ void Camera::Init()
 
     SetReady(true);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void Camera::AddCameraController(const RC<CameraController> &camera_controller)
 {
     HYP_SCOPE;
+
+    if (!camera_controller || camera_controller->IsInstanceOf<NullCameraController>()) {
+        return;
+    }
+
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    AssertThrow(camera_controller != nullptr);
-    AssertThrowMsg(camera_controller->InstanceClass() != NullCameraController::Class(),
-        "Cannot add NullCameraController instance");
-
-    AssertThrow(!m_camera_controllers.Contains(camera_controller));
+    if (m_camera_controllers.Contains(camera_controller)) {
+        return;
+    }
 
     if (HasActiveCameraController()) {
         if (const RC<CameraController> &current_camera_controller = GetCameraController()) {
@@ -335,6 +336,49 @@ void Camera::AddCameraController(const RC<CameraController> &camera_controller)
     UpdateViewMatrix();
     UpdateProjectionMatrix();
     UpdateViewProjectionMatrix();
+}
+
+bool Camera::RemoveCameraController(const RC<CameraController> &camera_controller)
+{
+    HYP_SCOPE;
+
+    if (!camera_controller || camera_controller->IsInstanceOf<NullCameraController>()) {
+        return false;
+    }
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    auto it = m_camera_controllers.Find(camera_controller);
+
+    if (it == m_camera_controllers.End()) {
+        return false;
+    }
+
+    bool should_activate_camera_controller = false;
+
+    if (camera_controller == GetCameraController()) {
+        camera_controller->OnDeactivated();
+
+        should_activate_camera_controller = true;
+    }
+    
+    camera_controller->OnRemoved();
+
+    m_camera_controllers.Erase(it);
+
+    if (should_activate_camera_controller && HasActiveCameraController()) {
+        if (const RC<CameraController> &current_camera_controller = GetCameraController()) {
+            current_camera_controller->OnActivated();
+        }
+    }
+
+    UpdateMouseLocked();
+
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    UpdateViewProjectionMatrix();
+
+    return true;
 }
 
 void Camera::SetFramebuffer(const FramebufferRef &framebuffer)
@@ -588,24 +632,22 @@ void Camera::UpdateMouseLocked()
 {
     HYP_SCOPE;
 
-    if (!HasActiveCameraController()) {
-        return;
+    bool should_lock_mouse = false;
+
+    if (const RC<CameraController> &camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>()) {
+        if (camera_controller->IsMouseLockAllowed() && camera_controller->IsMouseLockRequested()) {
+            should_lock_mouse = true;
+        }
     }
 
-    if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
-        if (const RC<CameraController> &camera_controller = GetCameraController()) {
-            if (!camera_controller->IsMouseLockAllowed()) {
-                return;
-            }
-
-            if (camera_controller->IsMouseLockRequested()) {
-                if (!camera_controller->m_mouse_lock_scope) {
-                    camera_controller->m_mouse_lock_scope = app_context->GetInputManager()->AcquireMouseLock();
-                }
-            } else {
-                camera_controller->m_mouse_lock_scope.Reset();
+    if (should_lock_mouse) {
+        if (!m_mouse_lock_scope) {
+            if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
+                m_mouse_lock_scope = app_context->GetInputManager()->AcquireMouseLock();
             }
         }
+    } else {
+        m_mouse_lock_scope.Reset();
     }
 }
 

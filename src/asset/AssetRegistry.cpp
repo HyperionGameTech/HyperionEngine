@@ -57,7 +57,7 @@ AssetRegistry::AssetRegistry()
             AssertThrowMsg(parent_package_it != m_packages.End(), "No package with name '%s' found", Name(parent_package_name).LookupString());
 
             package->m_parent_package = *parent_package_it;
-            
+
             (*parent_package_it)->m_subpackages.Insert(std::move(package));
 
             return;

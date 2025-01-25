@@ -581,6 +581,8 @@ void ParticleSystem::Render(Frame *frame)
             );
 
             command_buffers_recorded_states[batch_index] = 1u;
+
+            return IterationResult::CONTINUE;
         }
     );
 

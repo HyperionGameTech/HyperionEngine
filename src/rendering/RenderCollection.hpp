@@ -83,8 +83,11 @@ public:
     FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups();
     const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups() const;
 
-    RenderProxyList &GetProxyList(ThreadType);
-    const RenderProxyList &GetProxyList(ThreadType) const;
+    HYP_FORCE_INLINE RenderProxyList &GetProxyList(ThreadType thread_type)
+        { return m_proxy_lists[uint32(thread_type)]; }
+
+    HYP_FORCE_INLINE const RenderProxyList &GetProxyList(ThreadType thread_type) const
+        { return m_proxy_lists[uint32(thread_type)]; }
 
     uint32 NumRenderGroups() const;
 

@@ -491,6 +491,7 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Add(ui_image->OnKeyDown.Bind([this](const KeyboardEvent &event)
         {
             HYP_LOG(Editor, Info, "KeyDown: {}", (uint32)event.key_code);
+            
             // On escape press, stop simulating if we're currently simulating
             if (event.key_code == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating()) {
                 GetWorld()->StopSimulating();
@@ -805,7 +806,8 @@ void EditorSubsystem::InitDebugOverlays()
     m_debug_overlay_ui_object = GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
     m_debug_overlay_ui_object->SetDepth(1);
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-    m_debug_overlay_ui_object->SetAcceptsFocus(false);
+
+    m_debug_overlay_ui_object->OnKeyDown.RemoveAll();
 
     for (const RC<EditorDebugOverlayBase> &debug_overlay : m_debug_overlays) {
         debug_overlay->Initialize(m_debug_overlay_ui_object.Get());
@@ -816,7 +818,7 @@ void EditorSubsystem::InitDebugOverlays()
     }
 
     if (RC<UIImage> scene_image = GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>()) {
-        // scene_image->AddChildUIObject(m_debug_overlay_ui_object);
+        scene_image->AddChildUIObject(m_debug_overlay_ui_object);
     }
 }
 
@@ -1127,34 +1129,6 @@ void EditorSubsystem::UpdateCamera(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    static constexpr float speed = 15.0f;
-
-    if (!m_editor_camera_enabled) {
-        return;
-    }
-
-    Vec3f translation = m_camera->GetTranslation();
-
-    const Vec3f direction = m_camera->GetDirection();
-    const Vec3f dir_cross_y = direction.Cross(m_camera->GetUpVector());
-
-    InputManager *input_manager = m_app_context->GetInputManager().Get();
-    AssertThrow(input_manager != nullptr);
-
-    if (input_manager->IsKeyDown(KeyCode::KEY_W)) {
-        translation += direction * delta * speed;
-    }
-    if (input_manager->IsKeyDown(KeyCode::KEY_S)) {
-        translation -= direction * delta * speed;
-    }
-    if (input_manager->IsKeyDown(KeyCode::KEY_A)) {
-        translation -= dir_cross_y * delta * speed;
-    }
-    if (input_manager->IsKeyDown(KeyCode::KEY_D)) {
-        translation += dir_cross_y * delta * speed;
-    }
-
-    m_camera->SetNextTranslation(translation);
 }
 
 void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)

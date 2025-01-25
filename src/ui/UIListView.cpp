@@ -352,16 +352,16 @@ UIListViewItem *UIListView::FindListViewItem(const UIObject *parent_object, cons
         if (object->IsInstanceOf<UIListViewItem>() && object->GetDataSourceElementUUID() == data_source_element_uuid) {
             result_ptr = static_cast<UIListViewItem *>(object);
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
         if (UIListViewItem *result = FindListViewItem(object, data_source_element_uuid)) {
             result_ptr = result;
 
-            return UIObjectIterationResult::STOP;
+            return IterationResult::STOP;
         }
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, false);
 
     return result_ptr;

@@ -17,6 +17,8 @@
 
 #include <core/system/Time.hpp>
 
+#include <core/Name.hpp>
+
 namespace hyperion {
 
 class Scene;
@@ -30,6 +32,7 @@ class HYP_API EditorProject : public EnableRefCountedPtrFromThis<EditorProject>
 
 public:
     EditorProject();
+    EditorProject(Name name);
     ~EditorProject();
 
     HYP_METHOD(Property="UUID", Serialize=true)
@@ -40,6 +43,14 @@ public:
     HYP_METHOD(Property="UUID", Serialize=true)
     HYP_FORCE_INLINE void SetUUID(const UUID &uuid)
         { m_uuid = uuid; }
+
+    HYP_METHOD(Property="Name", Serialize=true)
+    HYP_FORCE_INLINE Name GetName() const
+        { return m_name; }
+
+    HYP_METHOD(Property="Name", Serialize=true)
+    HYP_FORCE_INLINE void SetName(Name name)
+        { m_name = name; }
 
     HYP_METHOD(Property="Scene", Serialize=true)
     HYP_FORCE_INLINE const Handle<Scene> &GetScene() const
@@ -59,14 +70,9 @@ public:
     HYP_FORCE_INLINE void SetLastSavedTime(Time last_saved_time)
         { m_last_saved_time = last_saved_time; }
 
-    HYP_METHOD(Property="AssetRegistry", Serialize=true)
+    HYP_METHOD(Property="AssetRegistry")
     HYP_FORCE_INLINE const Handle<AssetRegistry> &GetAssetRegistry() const
         { return m_asset_registry; }
-
-    /*! \internal Serialization only */
-    HYP_METHOD(Property="AssetRegistry", Serialize=true)
-    HYP_FORCE_INLINE void SetAssetRegistry(const Handle<AssetRegistry> &asset_registry)
-        { m_asset_registry = asset_registry; }
 
     HYP_METHOD()
     bool IsSaved() const;
@@ -74,11 +80,16 @@ public:
     Result<void> Save();
     Result<void> Save(const FilePath &filepath);
 
+    static Result<RC<EditorProject>> Load(const FilePath &filepath);
+
     HYP_METHOD()
     void Close();
 
 private:
     UUID                            m_uuid;
+
+    Name                            m_name;
+
     Time                            m_last_saved_time;
 
     FilePath                        m_filepath;

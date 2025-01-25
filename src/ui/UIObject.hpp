@@ -15,6 +15,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/UUID.hpp>
 
+#include <core/util/ForEach.hpp>
+
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
@@ -222,13 +224,6 @@ enum class UIObjectBorderFlags : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectBorderFlags)
-
-HYP_ENUM()
-enum class UIObjectIterationResult : uint8
-{
-    CONTINUE = 0,
-    STOP
-};
 
 HYP_ENUM()
 enum class UIObjectUpdateType : uint32
@@ -1019,7 +1014,7 @@ public:
         { m_data_source_element_uuid = data_source_element_uuid; }
 
     /*! \internal */
-    void ForEachChildUIObject_Proc(ProcRef<UIObjectIterationResult, UIObject *> proc, bool deep = true) const;
+    void ForEachChildUIObject_Proc(ProcRef<IterationResult, UIObject *> proc, bool deep = true) const;
 
     /*! \brief Spawn a new UIObject with the given HypClass \ref{hyp_class}. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.

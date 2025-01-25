@@ -172,8 +172,6 @@ protected:
 
 private:
     void OnAdded(Camera *camera);
-
-    InputMouseLockScope     m_mouse_lock_scope;
 };
 
 HYP_CLASS()
@@ -265,6 +263,9 @@ public:
 
     HYP_METHOD()
     void AddCameraController(const RC<CameraController> &camera_controller);
+
+    HYP_METHOD()
+    bool RemoveCameraController(const RC<CameraController> &camera_controller);
 
     void SetToPerspectiveProjection(
         float fov, float _near, float _far
@@ -526,6 +527,8 @@ private:
     Matrix4                     m_previous_view_matrix;
 
     CameraRenderResources       *m_render_resources;
+
+    InputMouseLockScope         m_mouse_lock_scope;
 };
 
 } // namespace hyperion

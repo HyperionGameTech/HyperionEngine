@@ -81,11 +81,6 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
 
 Scene *UIStage::GetScene() const
 {
-    /*// UIStage parenting - GetScene() returns parent stages' scene
-    if (m_stage != nullptr) {
-        return m_stage->GetScene();
-    }*/
-
     if (Scene *ui_object_scene = UIObject::GetScene()) {
         return ui_object_scene;
     }
@@ -525,8 +520,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             first_hit = nullptr;
 
-            // HYP_LOG(UI, Debug, "Ray test results: {}", ray_test_results.Size());
-
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
                 if (const RC<UIObject> &ui_object = *it) {
                     if (first_hit != nullptr) {
@@ -556,16 +549,16 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Node AABB: {}, USes autosizing: {}, Size clamped: {}, Depth: {}",
-                        GetClass(ui_object.GetTypeID())->GetName(),
-                        ui_object->GetName(),
-                        ui_object->GetText(),
-                        ui_object->GetActualSize(),
-                        ui_object->GetActualInnerSize(),
-                        ui_object->GetNode()->GetWorldAABB().GetExtent(),
-                        ui_object->UseAutoSizing(),
-                        ui_object->GetActualSizeClamped(),
-                        ui_object->GetComputedDepth());
+                    // HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Node AABB: {}, USes autosizing: {}, Size clamped: {}, Depth: {}",
+                    //     GetClass(ui_object.GetTypeID())->GetName(),
+                    //     ui_object->GetName(),
+                    //     ui_object->GetText(),
+                    //     ui_object->GetActualSize(),
+                    //     ui_object->GetActualInnerSize(),
+                    //     ui_object->GetNode()->GetWorldAABB().GetExtent(),
+                    //     ui_object->UseAutoSizing(),
+                    //     ui_object->GetActualSizeClamped(),
+                    //     ui_object->GetComputedDepth());
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
@@ -579,11 +572,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (ray_test_results_it == ray_test_results.End()) {
                 if (RC<UIObject> ui_object = it->Lock()) {
-                    // HYP_LOG(UI, Debug, "Mouse leave on {}: {}, Material ID: {}",
-                    //     ::hyperion::GetClass(ui_object.GetTypeID())->GetName(),
-                    //     ui_object->GetName(),
-                    //     ui_object->GetMaterial()->GetID().Value());
-
                     ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     ui_object->OnMouseLeave(MouseEvent {
@@ -687,22 +675,12 @@ UIEventHandlerResult UIStage::OnInputEvent(
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
                 is_clicked = true;
             }
-
-            HYP_LOG(UI, Debug, "\tMOUSE UP Ray hit: {}\t Click: {}", ui_object->GetName(), is_clicked);
         }
 
         for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
             const RC<UIObject> &ui_object = *it;
 
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
-                HYP_LOG(UI, Debug, "Mouse click on {}: {}, Text: {}, Size: {}, Inner size: {}, Size clamped: {}",
-                    GetClass(ui_object.GetTypeID())->GetName(),
-                    ui_object->GetName(),
-                    ui_object->GetText(),
-                    ui_object->GetActualSize(),
-                    ui_object->GetActualInnerSize(),
-                    ui_object->GetActualSizeClamped());
-
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
@@ -792,13 +770,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
     {
         const KeyCode key_code = event.GetNormalizedKeyCode();
 
-        HYP_LOG(UI, Debug, "OnKeyDown: {}, m_focused_object = {} for stage {}", uint32(key_code), m_focused_object != nullptr ? *m_focused_object->GetName() : "<none>", (void *)this);
-
         RC<UIObject> ui_object = m_focused_object;
 
         while (ui_object != nullptr) {
-            HYP_LOG(UI, Debug, "OnKeyDown for {}", ui_object->GetName());
-
             event_handler_result |= ui_object->OnKeyDown(KeyboardEvent {
                 .input_manager  = input_manager,
                 .key_code       = key_code

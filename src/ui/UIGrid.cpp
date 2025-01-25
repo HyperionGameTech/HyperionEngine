@@ -210,12 +210,12 @@ void UIGrid::SetNumColumns(int num_columns)
     ForEachChildUIObject_Proc([this](UIObject *ui_object)
     {
         if (ui_object->GetType() != UIObjectType::GRID_ROW) {
-            return UIObjectIterationResult::CONTINUE;
+            return IterationResult::CONTINUE;
         }
 
         static_cast<UIGridRow *>(ui_object)->SetNumColumns(m_num_columns);
 
-        return UIObjectIterationResult::CONTINUE;
+        return IterationResult::CONTINUE;
     }, false);
 }
 

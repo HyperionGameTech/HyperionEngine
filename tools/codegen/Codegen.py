@@ -494,8 +494,6 @@ class HypClassDefinition:
 
                 property_args = [x.strip() for x in match.group(2).split(',')[1:]]
 
-                print("Property args:", property_args)
-
                 self.members.append(HypMemberDefinition(member_type, property_name, attributes=[], property_args=property_args))
             else:
                 remaining_content = self.content[match.end(0):]
@@ -576,8 +574,6 @@ class HypClassDefinition:
                         member = parsed_data.namespace.classes[0].methods[0]
 
                         member_name = member.name.segments[-1].name
-
-                        print(f"Method {member_name} - {member}")
 
                         is_const_method = member.const
 

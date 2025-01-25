@@ -53,7 +53,7 @@ public:
 
     void SetMode(EditorCameraControllerMode mode);
 
-    virtual void UpdateLogic(double dt) override;
+    virtual void UpdateLogic(double delta) override;
 
 protected:
     virtual void OnActivated() override;

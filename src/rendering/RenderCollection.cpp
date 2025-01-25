@@ -282,20 +282,6 @@ const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE
     return m_proxy_groups;
 }
 
-RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type)
-{
-    AssertThrowMsg(uint32(thread_type) <= ThreadType::THREAD_TYPE_RENDER, "Invalid thread for calling method");
-
-    return m_proxy_lists[uint32(thread_type)];
-}
-
-const RenderProxyList &EntityDrawCollection::GetProxyList(ThreadType thread_type) const
-{
-    AssertThrowMsg(uint32(thread_type) <= ThreadType::THREAD_TYPE_RENDER, "Invalid thread for calling method");
-
-    return m_proxy_lists[uint32(thread_type)];
-}
-
 void EntityDrawCollection::ClearProxyGroups()
 {
     HYP_SCOPE;

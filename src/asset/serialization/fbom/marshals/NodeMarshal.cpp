@@ -77,8 +77,6 @@ public:
         }
 
         NodeProxy node;
-        
-        const HypClass *node_hyp_class = Node::Class();
 
         switch (node_type) {
         case Node::Type::NODE:
@@ -87,14 +85,12 @@ public:
         case Node::Type::BONE:
             node = NodeProxy(MakeRefCountedPtr<Bone>());
 
-            node_hyp_class = Bone::Class();
-
             break;
         default:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
         }
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, node_hyp_class, AnyRef(*node))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(in, node->InstanceClass(), AnyRef(*node))) {
             return err;
         }
         

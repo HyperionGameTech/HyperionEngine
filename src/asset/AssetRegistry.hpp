@@ -23,6 +23,8 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
+#include <core/util/ForEach.hpp>
+
 #include <asset/AssetLoader.hpp>
 
 #include <Constants.hpp>
@@ -124,6 +126,10 @@ public:
     /*! \internal Serialization only */
     void SetPackages(const AssetPackageSet &packages);
 
+    template <class Callback>
+    void ForEachPackage(Callback &&callback) const
+        { ForEach(m_packages, m_mutex, std::forward<Callback>(callback)); }
+
     void RegisterAsset(const UTF8StringView &path, AnyHandle &&object);
 
     HYP_METHOD()
@@ -140,7 +146,7 @@ private:
     const Handle<AssetPackage> &GetPackageFromPath_Internal(const UTF8StringView &path, bool create_if_not_exist);
 
     AssetPackageSet m_packages;
-    Mutex           m_mutex;
+    mutable Mutex   m_mutex;
 };
 
 } // namespace hyperion

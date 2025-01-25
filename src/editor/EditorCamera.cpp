@@ -5,9 +5,17 @@
 #include <input/InputManager.hpp>
 #include <input/InputHandler.hpp>
 
+#include <core/logging/Logger.hpp>
+
+#include <core/system/AppContext.hpp>
+
 #include <util/profiling/ProfileScope.hpp>
 
+#include <Engine.hpp>
+
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Camera);
 
 #pragma region EditorCameraInputHandler
 
@@ -19,6 +27,8 @@ EditorCameraInputHandler::EditorCameraInputHandler(CameraController *controller)
 
 bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
 {
+    static constexpr float speed = 15.0f;
+
     HYP_SCOPE;
 
     Camera *camera = m_controller->GetCamera();
@@ -32,19 +42,19 @@ bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
         const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
 
         if (evt.key_code == KeyCode::KEY_W) {
-            translation += direction * 0.01f;
+            translation += direction * 0.01f * speed;
         }
         if (evt.key_code == KeyCode::KEY_S) {
-            translation -= direction * 0.01f;
+            translation -= direction * 0.01f * speed;
         }
         if (evt.key_code == KeyCode::KEY_A) {
-            translation += dir_cross_y * 0.01f;
+            translation -= dir_cross_y * 0.01f * speed;
         }
         if (evt.key_code == KeyCode::KEY_D) {
-            translation -= dir_cross_y * 0.01f;
+            translation += dir_cross_y * 0.01f * speed;
         }
 
-        camera_controller->SetNextTranslation(translation);
+        camera->SetNextTranslation(translation);
 
         return true;
     }
@@ -166,11 +176,37 @@ void EditorCameraController::SetMode(EditorCameraControllerMode mode)
     m_mode = mode;
 }
 
-void EditorCameraController::UpdateLogic(double dt)
+void EditorCameraController::UpdateLogic(double delta)
 {
     HYP_SCOPE;
 
-    FirstPersonCameraController::UpdateLogic(dt);
+    FirstPersonCameraController::UpdateLogic(delta);
+
+    static constexpr float speed = 15.0f;
+
+    Vec3f translation = m_camera->GetTranslation();
+
+    const Vec3f direction = m_camera->GetDirection();
+    const Vec3f dir_cross_y = direction.Cross(m_camera->GetUpVector());
+
+    InputManager *input_manager = g_engine->GetAppContext()->GetInputManager().Get();
+    AssertThrow(input_manager != nullptr);
+
+    if (input_manager->IsKeyDown(KeyCode::KEY_W)) {
+        translation += direction * delta * speed;
+    }
+    if (input_manager->IsKeyDown(KeyCode::KEY_S)) {
+        translation -= direction * delta * speed;
+    }
+    if (input_manager->IsKeyDown(KeyCode::KEY_A)) {
+        translation -= dir_cross_y * delta * speed;
+    }
+    if (input_manager->IsKeyDown(KeyCode::KEY_D)) {
+        translation += dir_cross_y * delta * speed;
+    }
+
+    m_camera->SetNextTranslation(translation);
+
 }
 
 void EditorCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)

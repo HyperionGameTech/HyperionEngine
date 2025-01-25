@@ -21,12 +21,10 @@ renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView re
     : m_render_object_type_name(render_object_type_name),
       m_size(0)
 {
-    HYP_LOG(RenderingBackend, Debug, "Construct RenderObjectContainer for {}", m_render_object_type_name);
 }
 
 renderer::RenderObjectContainerBase::~RenderObjectContainerBase()
 {
-    HYP_LOG(RenderingBackend, Debug, "Destroy RenderObjectContainer for {}", m_render_object_type_name);
 }
 
 #pragma endregion RenderObjectContainerBase

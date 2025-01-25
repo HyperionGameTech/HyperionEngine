@@ -3,7 +3,6 @@
 #ifndef HYPERION_UTIL_FOREACH_HPP
 #define HYPERION_UTIL_FOREACH_HPP
 
-#include <core/containers/Array.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -14,20 +13,63 @@
 
 namespace hyperion {
 
+enum class IterationResult : uint8
+{
+    CONTINUE = 0,
+    STOP
+};
+
+/*! \brief Execute a callback for each item in the container.
+ *  Callback is called with the item as an argument and should return a IterationResult.
+ *
+ *  \param container The container to iterate over.
+ *  \param callback The function to call for each item.
+ */
+template <class Container, class Callback>
+static inline void ForEach(Container &&container, Callback &&callback)
+{
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        IterationResult result = callback(*it);
+
+        if (result == IterationResult::STOP) {
+            break;
+        }
+    }
+}
+
+/*! \brief Execute a callback for each item in the container, locking the mutex before iterating.
+ *  Callback is called with the item as an argument and should return a IterationResult.
+ *
+ *  \param container The container to iterate over.
+ *  \param mutex The mutex to lock before iterating.
+ *  \param callback The function to call for each item.
+ */
+template <class Container, class Mutex, class Callback>
+static inline void ForEach(Container &&container, Mutex &mutex, Callback &&callback)
+{
+    typename Mutex::Guard guard(mutex);
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        IterationResult result = callback(*it);
+
+        if (result == IterationResult::STOP) {
+            break;
+        }
+    }
+}
 
 /*! \brief Execute a lambda for each item in the container, in \ref{num_batches} batches.
  *  Container must be a contiguous container.
- *  Lambda is called with the item, the index of the item, and the batch index.
+ *  Callback is called with the item, the index of the item, and the batch index and should return a IterationResult.
  *
  *  \param container The container to iterate over.
  *  \param num_batches The number of batches to split the container into.
- *  \param lambda The lambda to call for each item.
+ *  \param callback The function to call for each item.
  */
-template <class Container, class Lambda>
-HYP_FORCE_INLINE
-static inline void ForEachInBatches(Container &container, uint32 num_batches, Lambda &&lambda)
+template <class Container, class Callback>
+static inline void ForEachInBatches(Container &&container, uint32 num_batches, Callback &&callback)
 {
-    static_assert(Container::is_contiguous, "Container must be contiguous to use ForEachInBatches");
+    static_assert(NormalizedType<Container>::is_contiguous, "Container must be contiguous to use ForEachInBatches");
 
     const uint32 num_items = container.Size();
     const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
@@ -39,78 +81,46 @@ static inline void ForEachInBatches(Container &container, uint32 num_batches, La
         const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
         for (uint32 i = offset_index; i < max_index; ++i) {
-            lambda(*(data_ptr + i), i, batch_index);
-        }
-    }
-}
+            IterationResult result = callback(*(data_ptr + i), i, batch_index);
 
-/*! \brief Call a lambda for each permutation of items in the container.
- *  Container must be a contiguous container.
- *  Lambda is called with an Array of indices into the container.
- *
- *  \param container The container to iterate over.
- *  \param lambda The lambda to call for each permutation.
- */
-template <class Container, class Lambda>
-static inline void ForEachPermutation(Container &container, Lambda &&lambda)
-{
-    Array<uint32> indices;
-
-    for (uint32 i = 0; i < uint32(container.Size()); i++) {
-        const uint32 num_combinations = (1u << i);
-
-        for (uint32 k = 0; k < num_combinations; k++) {
-            indices.Clear();
-
-            for (uint32 j = 0; j < i; j++) {
-                if ((k & (1u << j)) != (1u << j)) {
-                    continue;
-                }
-                
-                indices.PushBack(j);
+            if (result == IterationResult::STOP) {
+                break;
             }
-            
-            indices.PushBack(i);
-
-            lambda(indices);
         }
     }
 }
 
 /*! \brief Perform a parallel foreach with in the default pool (THREAD_POOL_GENERIC). */
-template <class Container, class Lambda>
-HYP_FORCE_INLINE
-static inline void ParallelForEach(Container &container, Lambda &&lambda)
+template <class Container, class Callback>
+HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, Callback &&callback)
 {
     TaskSystem::GetInstance().ParallelForEach(
-        container,
-        std::forward<Lambda>(lambda)
+        std::forward<Container>(container),
+        std::forward<Callback>(callback)
     );
 }
 
 /*! \brief Perform a parallel foreach within the given task thread pool \ref{pool}.
  *  Number of batches will depend upon the thread pool selected's number of workers. */
-template <class Container, class Lambda>
-HYP_FORCE_INLINE
-static inline void ParallelForEach(Container &container, TaskThreadPool &pool, Lambda &&lambda)
+template <class Container, class Callback>
+HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, TaskThreadPool &pool, Callback &&callback)
 {
     TaskSystem::GetInstance().ParallelForEach(
         pool,
-        container,
-        std::forward<Lambda>(lambda)
+        std::forward<Container>(container),
+        std::forward<Callback>(callback)
     );
 }
 
 /*! \brief Perform a parallel foreach within the given task thread pool \ref{pool} and using \ref{num_batches} batches. */
-template <class Container, class Lambda>
-HYP_FORCE_INLINE
-static inline void ParallelForEach(Container &container, uint32 num_batches, TaskThreadPool &pool, Lambda &&lambda)
+template <class Container, class Callback>
+HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, uint32 num_batches, TaskThreadPool &pool, Callback &&callback)
 {
     TaskSystem::GetInstance().ParallelForEach(
         pool,
         num_batches,
-        container,
-        std::forward<Lambda>(lambda)
+        std::forward<Container>(container),
+        std::forward<Callback>(callback)
     );
 }
 

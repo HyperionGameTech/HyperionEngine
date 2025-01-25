@@ -42,25 +42,25 @@ struct FBOMDeserializedObject
 
     ~FBOMDeserializedObject()                                                   = default;
 
-    template <class T>
-    HYP_FORCE_INLINE void Set(const typename SerializationWrapper<T>::Type &value)
-    {
-        if (!ptr) {
-            ptr = MakeUnique<HypData>();
-        }
+    // template <class T>
+    // HYP_FORCE_INLINE void Set(const typename SerializationWrapper<T>::Type &value)
+    // {
+    //     if (!ptr) {
+    //         ptr = MakeUnique<HypData>();
+    //     }
 
-        return ptr->Set<typename SerializationWrapper<T>::Type>(value);
-    }
+    //     return ptr->Set<typename SerializationWrapper<T>::Type>(value);
+    // }
 
-    template <class T>
-    HYP_FORCE_INLINE void Set(typename SerializationWrapper<T>::Type &&value)
-    {
-        if (!ptr) {
-            ptr = MakeUnique<HypData>();
-        }
+    // template <class T>
+    // HYP_FORCE_INLINE void Set(typename SerializationWrapper<T>::Type &&value)
+    // {
+    //     if (!ptr) {
+    //         ptr = MakeUnique<HypData>();
+    //     }
 
-        return ptr->Set<typename SerializationWrapper<T>::Type>(std::move(value));
-    }
+    //     return ptr->Set<typename SerializationWrapper<T>::Type>(std::move(value));
+    // }
 
     /*! \brief Extracts the value held inside */
     template <class T>
