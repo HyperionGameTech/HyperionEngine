@@ -498,6 +498,8 @@ struct AnyHandle final
     TypeID          type_id;
 
 public:
+    static const AnyHandle empty;
+
     HYP_API explicit AnyHandle(HypObjectBase *hyp_object_ptr);
 
     AnyHandle()

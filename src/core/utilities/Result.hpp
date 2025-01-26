@@ -23,6 +23,8 @@ class IError
 public:
     virtual ~IError() = default;
 
+    virtual operator bool() const = 0;
+
     virtual UTF8StringView GetMessage() const = 0;
     virtual ANSIStringView GetFunctionName() const = 0;
 };
@@ -48,6 +50,11 @@ public:
 
     virtual ~Error() override = default;
 
+    virtual operator bool() const override
+    {
+        return true;
+    }
+
     virtual UTF8StringView GetMessage() const override
     {
         return m_static_message.message;
@@ -60,6 +67,27 @@ public:
 
 protected:
     StaticMessage   m_static_message;
+};
+
+template <class ErrorType>
+class NullError final : public ErrorType
+{
+public:
+    static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
+
+    static const NullError<ErrorType> &GetInstance()
+    {
+        static const NullError<ErrorType> instance;
+
+        return instance;
+    }
+
+    virtual ~NullError() override = default;
+
+    virtual operator bool() const override
+    {
+        return false;
+    }
 };
 
 #define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(message), ##__VA_ARGS__)
@@ -153,18 +181,13 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE ErrorType &GetError()
-    {
-        AssertThrowMsg(HasError(), "Result does not contain an error");
-
-        return m_value.template GetUnchecked<ErrorType>();
-    }
-
     HYP_FORCE_INLINE const ErrorType &GetError() const
     {
-        AssertThrowMsg(HasError(), "Result does not contain an error");
-
-        return m_value.template GetUnchecked<ErrorType>();
+        if (HasError()) {
+            return m_value.template GetUnchecked<ErrorType>();
+        } else {
+            return NullError<ErrorType>::GetInstance();
+        }
     }
 
     HYP_FORCE_INLINE T &operator*()
@@ -254,18 +277,13 @@ public:
     HYP_FORCE_INLINE bool HasError() const
         { return m_error.HasValue(); }
 
-    HYP_FORCE_INLINE ErrorType &GetError()
-    {
-        AssertThrowMsg(HasError(), "Result does not contain an error");
-
-        return m_error.Get();
-    }
-
     HYP_FORCE_INLINE const ErrorType &GetError() const
     {
-        AssertThrowMsg(HasError(), "Result does not contain an error");
-
-        return m_error.Get();
+        if (HasError()) {
+            return m_error.Get();
+        } else {
+            return NullError<ErrorType>::GetInstance();
+        }
     }
 
     HYP_FORCE_INLINE bool operator==(const Result &other) const

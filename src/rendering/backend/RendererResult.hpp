@@ -12,7 +12,7 @@
 namespace hyperion {
 namespace renderer {
 
-class RendererError final : public Error
+class RendererError : public Error
 {
 public:
     RendererError()
@@ -28,6 +28,11 @@ public:
     }
 
     virtual ~RendererError() override = default;
+
+    virtual operator bool() const override
+    {
+        return true;
+    }
 
     HYP_FORCE_INLINE int GetErrorCode() const
         { return m_error_code; }

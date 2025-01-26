@@ -22,6 +22,44 @@ HYP_API WeakName AssetPackage_KeyByFunction(const Handle<AssetPackage> &package)
     return package->GetName();
 }
 
+HYP_API WeakName AssetObject_KeyByFunction(const Handle<AssetObject> &asset_object)
+{
+    if (!asset_object.IsValid()) {
+        return { };
+    }
+
+    return asset_object->GetName();
+}
+
+#pragma region AssetObject
+
+AssetObject::AssetObject()
+    : AssetObject(Name::Invalid())
+{
+}
+
+AssetObject::AssetObject(Name name)
+    : AssetObject(name, AnyHandle { })
+{
+}
+
+AssetObject::AssetObject(Name name, AnyHandle &&value)
+    : m_name(name),
+      m_value(std::move(value))
+{
+}
+
+void AssetObject::Init()
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    HypObject::Init();
+}
+
+#pragma endregion AssetObject
+
 #pragma region AssetPackage
 
 AssetPackage::AssetPackage()
@@ -33,6 +71,19 @@ AssetPackage::AssetPackage(Name name)
 {
 }
 
+void AssetPackage::SetAssetObjects(const AssetObjectSet &asset_objects)
+{
+    Mutex::Guard guard(m_mutex);
+
+    m_asset_objects = asset_objects;
+
+    if (IsInitCalled()) {
+        for (const Handle<AssetObject> &asset_object : m_asset_objects) {
+            InitObject(asset_object);
+        }
+    }
+}
+
 void AssetPackage::Init()
 {
     if (IsInitCalled()) {
@@ -40,6 +91,14 @@ void AssetPackage::Init()
     }
 
     HypObject::Init();
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        for (const Handle<AssetObject> &asset_object : m_asset_objects) {
+            InitObject(asset_object);
+        }
+    }
 }
 
 #pragma endregion AssetPackage
@@ -62,6 +121,13 @@ AssetRegistry::AssetRegistry()
 
             return;
         }
+
+        // temp
+        package->SetAssetObjects({
+            CreateObject<AssetObject>(NAME("TestAsset1"), AnyHandle { }),
+            CreateObject<AssetObject>(NAME("TestAsset2"), AnyHandle { }),
+            CreateObject<AssetObject>(NAME("TestAsset3"), AnyHandle { })
+        });
 
         m_packages.Insert(std::move(package));
     };
@@ -129,50 +195,52 @@ void AssetRegistry::RegisterAsset(const UTF8StringView &path, AnyHandle &&object
 
     String asset_name;
 
-    if (path_string_split.Any()) {
-        // Remove the actual asset name from the path
-        asset_name = path_string_split.PopBack();
-    }
-
     path_string = String::Join(path_string_split, '/');
 
     Mutex::Guard guard1(m_mutex);
-    const Handle<AssetPackage> &asset_package = GetPackageFromPath_Internal(path_string, /* create_if_not_exist */ true);
+    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path_string, /* create_if_not_exist */ true, asset_name);
 
     Mutex::Guard guard2(asset_package->m_mutex);
-    asset_package->m_assets.PushBack({ std::move(asset_name), std::move(object) });
+
+    Handle<AssetObject> asset_object = CreateObject<AssetObject>(CreateNameFromDynamicString(asset_name));
+    asset_object->SetObject(std::move(object));
+    InitObject(asset_object);
+
+    asset_package->m_asset_objects.Insert({ std::move(asset_object) });
 }
 
-AnyHandle AssetRegistry::GetAsset(const UTF8StringView &path)
+const AnyHandle &AssetRegistry::GetAsset(const UTF8StringView &path)
 {
     Mutex::Guard guard1(m_mutex);
-    const Handle<AssetPackage> &asset_package = GetPackageFromPath_Internal(path, /* create_if_not_exist */ false);
 
-    if (!asset_package) {
-        return AnyHandle { };
+    String asset_name;
+
+    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path, /* create_if_not_exist */ false, asset_name);
+
+    if (!asset_package.IsValid()) {
+        return AnyHandle::empty;
     }
 
     Mutex::Guard guard2(asset_package->m_mutex);
-    auto it = asset_package->m_assets.FindIf([path](const Pair<String, AnyHandle> &pair)
-    {
-        return pair.first == path;
-    });
+    auto it = asset_package->m_asset_objects.Find(WeakName(asset_name.Data()));
 
-    if (it == asset_package->m_assets.End()) {
-        return AnyHandle { };
+    if (it == asset_package->m_asset_objects.End()) {
+        return AnyHandle::empty;
     }
 
-    return it->second;
+    return (*it)->GetObject();
 }
 
 Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView &path)
 {
     Mutex::Guard guard(m_mutex);
 
-    return GetPackageFromPath_Internal(path, /* create_if_not_exist */ false);
+    String asset_name;
+
+    return GetPackageFromPath_Internal(path, /* create_if_not_exist */ false, asset_name);
 }
 
-const Handle<AssetPackage> &AssetRegistry::GetPackageFromPath_Internal(const UTF8StringView &path, bool create_if_not_exist)
+Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8StringView &path, bool create_if_not_exist, String &out_asset_name)
 {
     HYP_SCOPE;
 
@@ -220,7 +288,9 @@ const Handle<AssetPackage> &AssetRegistry::GetPackageFromPath_Internal(const UTF
         current_string.Append(*it);
     }
 
-    return GetSubpackage(current_package, current_string);
+    out_asset_name = std::move(current_string);
+
+    return current_package;//GetSubpackage(current_package, current_string);
 }
 
 #pragma endregion AssetRegistry

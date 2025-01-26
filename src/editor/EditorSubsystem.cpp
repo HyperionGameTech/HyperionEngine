@@ -490,8 +490,6 @@ void EditorSubsystem::InitViewport()
 
         m_delegate_handlers.Add(ui_image->OnKeyDown.Bind([this](const KeyboardEvent &event)
         {
-            HYP_LOG(Editor, Info, "KeyDown: {}", (uint32)event.key_code);
-            
             // On escape press, stop simulating if we're currently simulating
             if (event.key_code == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating()) {
                 GetWorld()->StopSimulating();
@@ -846,6 +844,15 @@ void EditorSubsystem::InitContentBrowser()
 
         SetSelectedPackage(Handle<AssetPackage>::empty);
     }));
+
+    m_content_browser_contents = GetUIStage()->FindChildUIObject("ContentBrowser_Contents").Cast<UIGrid>();
+    AssertThrow(m_content_browser_contents != nullptr);
+    m_content_browser_contents->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<AssetObject> { }));
+    m_content_browser_contents->SetIsVisible(false);
+
+    m_content_browser_contents_empty = GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
+    AssertThrow(m_content_browser_contents_empty != nullptr);
+    m_content_browser_contents_empty->SetIsVisible(true);
 }
 
 void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage> &package, bool nested)
@@ -876,6 +883,27 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage> &package)
     }
 
     m_selected_package = package;
+
+    m_content_browser_contents->GetDataSource()->Clear();
+
+    if (package.IsValid()) {
+        package->ForEachAssetObject([&](const Handle<AssetObject> &asset_object)
+        {
+            m_content_browser_contents->GetDataSource()->Push(asset_object->GetUUID(), HypData(asset_object));
+
+            return IterationResult::CONTINUE;
+        });
+    }
+
+    HYP_LOG(Editor, Debug, "Num assets in package: {}", m_content_browser_contents->GetDataSource()->Size());
+
+    if (m_content_browser_contents->GetDataSource()->Size() == 0) {
+        m_content_browser_contents->SetIsVisible(false);
+        m_content_browser_contents_empty->SetIsVisible(true);
+    } else {
+        m_content_browser_contents->SetIsVisible(true);
+        m_content_browser_contents_empty->SetIsVisible(false);
+    }
 }
 
 RC<FontAtlas> EditorSubsystem::CreateFontAtlas()

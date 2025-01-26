@@ -25,6 +25,8 @@ namespace hyperion {
 
 #pragma region AnyHandle
 
+const AnyHandle AnyHandle::empty = { };
+
 AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
     : type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void()),
       ptr(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal() : nullptr)

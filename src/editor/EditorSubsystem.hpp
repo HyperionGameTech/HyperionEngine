@@ -31,6 +31,7 @@ class InputManager;
 class UIStage;
 class UIObject;
 class UIListView;
+class UIGrid;
 class FontAtlas;
 class EditorDelegates;
 class EditorSubsystem;
@@ -206,6 +207,9 @@ private:
 
     RC<UIListView>                                                      m_content_browser_directory_list;
     Handle<AssetPackage>                                                m_selected_package;
+
+    RC<UIGrid>                                                          m_content_browser_contents;
+    RC<UIObject>                                                        m_content_browser_contents_empty;
 
     DelegateHandlerSet                                                  m_delegate_handlers;
 };

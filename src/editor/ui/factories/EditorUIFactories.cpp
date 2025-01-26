@@ -817,4 +817,25 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIDataSourceElementFactory);
 
+class AssetObjectUIDataSourceElementFactory : public UIDataSourceElementFactory<AssetObject, AssetObjectUIDataSourceElementFactory>
+{
+public:
+    RC<UIObject> Create(UIObject *parent, const AssetObject &value) const
+    {
+        RC<UIText> text = parent->CreateUIObject<UIText>();
+        text->SetText(value.GetName().LookupString());
+
+        parent->SetNodeTag(NodeTag(NAME("AssetObject"), value.HandleFromThis()));
+
+        return text;
+    }
+
+    void Update(UIObject *ui_object, const AssetObject &value) const
+    {
+        ui_object->SetText(value.GetName().LookupString());
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(AssetObject, AssetObjectUIDataSourceElementFactory);
+
 } // namespace hyperion

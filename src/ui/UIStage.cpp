@@ -549,16 +549,16 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    // HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Node AABB: {}, USes autosizing: {}, Size clamped: {}, Depth: {}",
-                    //     GetClass(ui_object.GetTypeID())->GetName(),
-                    //     ui_object->GetName(),
-                    //     ui_object->GetText(),
-                    //     ui_object->GetActualSize(),
-                    //     ui_object->GetActualInnerSize(),
-                    //     ui_object->GetNode()->GetWorldAABB().GetExtent(),
-                    //     ui_object->UseAutoSizing(),
-                    //     ui_object->GetActualSizeClamped(),
-                    //     ui_object->GetComputedDepth());
+                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
+                        GetClass(ui_object.GetTypeID())->GetName(),
+                        ui_object->GetName(),
+                        ui_object->GetText(),
+                        ui_object->GetActualSize(),
+                        ui_object->GetActualInnerSize(),
+                        ui_object->GetNode()->GetWorldAABB().GetExtent(),
+                        ui_object->HasChildUIObjects(),
+                        ui_object->GetActualSizeClamped(),
+                        ui_object->GetComputedDepth());
 
                     if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                         break;
