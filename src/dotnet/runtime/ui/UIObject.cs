@@ -220,20 +220,15 @@ namespace Hyperion
             ApplyDefaultFlags();
         }
 
-        private void ApplyDefaultFlagMask(uint mask)
+        private void ApplyDefaultFlags()
         {
             for (int i = 0; i < 2; i++)
             {
-                if ((flags[i] & mask) == 0)
+                if (flags[i] == 0)
                 {
-                    flags[i] |= (((uint)UIObjectSizeFlags.Default) & mask);
+                    flags[i] |= (uint)UIObjectSizeFlags.Default;
                 }
             }
-        }
-
-        private void ApplyDefaultFlags()
-        {
-            ApplyDefaultFlagMask((uint)UIObjectSizeFlags.Pixel | (uint)UIObjectSizeFlags.Percent | (uint)UIObjectSizeFlags.Fill);
         }
     }
 
@@ -242,6 +237,21 @@ namespace Hyperion
     {
         public UIObject()
         {
+        }
+
+        public T Spawn<T>() where T : UIObject
+        {
+            return Spawn<T>(Name.Invalid);
+        }
+
+        public T Spawn<T>(Name name) where T : UIObject
+        {
+            return Spawn<T>(name, new Vec2i(0, 0));
+        }
+
+        public T Spawn<T>(Name name, Vec2i position) where T : UIObject
+        {
+            return Spawn<T>(name, position, new UIObjectSize(UIObjectSizeFlags.Auto));
         }
 
         public T Spawn<T>(Name name, Vec2i position, UIObjectSize size) where T : UIObject
@@ -253,7 +263,43 @@ namespace Hyperion
             return (T)hypData.GetValue();
         }
 
+        public UIObject? Find(Name name)
+        {
+            HypDataBuffer hypDataBuffer;
+
+            if (!UIObject_Find(NativeAddress, HypClass.GetClass(typeof(UIObject)).Address, ref name, out hypDataBuffer))
+            {
+                return null;
+            }
+
+            UIObject? result = (UIObject?)hypDataBuffer.GetValue();
+
+            hypDataBuffer.Destruct();
+
+            return result;
+        }
+
+        public T? Find<T>(Name name) where T : UIObject
+        {
+            HypDataBuffer hypDataBuffer;
+
+            if (!UIObject_Find(NativeAddress, HypClass.GetClass(typeof(T)).Address, ref name, out hypDataBuffer))
+            {
+                return null;
+            }
+
+            T? result = (T?)hypDataBuffer.GetValue();
+
+            hypDataBuffer.Destruct();
+
+            return result;
+        }
+
         [DllImport("hyperion", EntryPoint="UIObject_Spawn")]
         private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr hypClassPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out HypDataBuffer outHypData);
+
+        [DllImport("hyperion", EntryPoint="UIObject_Find")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr hypClassPtr, [In] ref Name name, [Out] out HypDataBuffer outHypData);
     }
 }

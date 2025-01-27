@@ -46,7 +46,7 @@ RenderResourcesBase::~RenderResourcesBase()
     AssertThrowMsg(m_completion_semaphore.IsInSignalState(), "RenderResources destroyed while still in use, was WaitForCompletion() called?");
 }
 
-void RenderResourcesBase::Claim()
+int RenderResourcesBase::Claim()
 {
     struct RENDER_COMMAND(InitializeRenderResources) : renderer::RenderCommand
     {
@@ -101,7 +101,7 @@ void RenderResourcesBase::Claim()
 
     HYP_SCOPE;
 
-    m_init_semaphore.Produce(1, [this](bool is_signalled)
+    return m_init_semaphore.Produce(1, [this](bool is_signalled)
     {
         AssertThrow(is_signalled);
 
@@ -111,7 +111,7 @@ void RenderResourcesBase::Claim()
     });
 }
 
-void RenderResourcesBase::Unclaim()
+int RenderResourcesBase::Unclaim()
 {
     struct RENDER_COMMAND(DestroyRenderResources) : renderer::RenderCommand
     {
@@ -148,7 +148,7 @@ void RenderResourcesBase::Unclaim()
 
     HYP_SCOPE;
 
-    m_init_semaphore.Release(1, [this](bool is_signalled)
+    return m_init_semaphore.Release(1, [this](bool is_signalled)
     {
         // Must be put into non-initialized state to destroy
         AssertThrow(!is_signalled);

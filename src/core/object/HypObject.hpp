@@ -180,6 +180,13 @@ private:
             } \
         } \
         \
+        HYP_FORCE_INLINE bool IsInstanceOf(const HypClass *other_hyp_class) const \
+        { \
+            if (!other_hyp_class) { \
+                return false; \
+            } \
+            return IsInstanceOfHypClass(other_hyp_class, InstanceClass()); \
+        } \
     private:
 
 } // namespace hyperion

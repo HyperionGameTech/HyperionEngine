@@ -348,13 +348,16 @@ public:
         const Method *method_ptr = &method_object;
 
         if constexpr (sizeof...(args) != 0) {
-            HypData args_hyp_data[] = { HypData(std::forward<Args>(args))... };
+            HypData *args_array = (HypData *)StackAlloc(sizeof(HypData) * sizeof...(args));
+            const HypData *args_array_ptr[sizeof...(args)];
+
+            FillArgs_HypData(std::make_index_sequence<sizeof...(args)>(), args_array, args_array_ptr, std::forward<Args>(args)...);
 
             if constexpr (std::is_void_v<ReturnType>) {
-                InvokeStaticMethod_Internal(method_ptr, &args_hyp_data[0], nullptr);
+                InvokeStaticMethod_Internal(method_ptr, &args_array_ptr[0], nullptr);
             } else {
                 HypData return_hyp_data;
-                InvokeStaticMethod_Internal(method_ptr, &args_hyp_data[0], &return_hyp_data);
+                InvokeStaticMethod_Internal(method_ptr, &args_array_ptr[0], &return_hyp_data);
 
                 if (return_hyp_data.IsNull()) {
                     return ReturnType();
@@ -379,7 +382,7 @@ public:
     }
 
 private:
-    void InvokeStaticMethod_Internal(const Method *method_ptr, HypData *args_hyp_data, HypData *out_return_hyp_data);
+    void InvokeStaticMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data);
 
     String                          m_name;
     uint32                          m_size;

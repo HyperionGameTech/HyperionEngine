@@ -290,7 +290,7 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8String
 
     out_asset_name = std::move(current_string);
 
-    return current_package;//GetSubpackage(current_package, current_string);
+    return current_package;
 }
 
 #pragma endregion AssetRegistry

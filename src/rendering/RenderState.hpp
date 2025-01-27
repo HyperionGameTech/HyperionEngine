@@ -96,7 +96,7 @@ public:
     Array<CameraRenderResources *>                                                          camera_bindings;
     FixedArray<Array<TResourceHandle<LightRenderResources>>, uint32(LightType::MAX)>        bound_lights;
     Stack<TResourceHandle<LightRenderResources>>                                            light_bindings;
-    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>                  bound_env_probes; // map to texture slot
+    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>                bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                                     env_probe_bindings;
     uint32                                                                                  frame_counter = ~0u;

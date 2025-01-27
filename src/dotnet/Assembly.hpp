@@ -24,7 +24,7 @@ class ClassHolder
 public:
     friend class Assembly;
 
-    using InvokeMethodFunction = void(*)(ManagedGuid, ManagedGuid, HypData *, HypData *);
+    using InvokeMethodFunction = void(*)(ManagedGuid, ManagedGuid, const HypData **, HypData *);
 
     ClassHolder(Assembly *owner_assembly);
     ClassHolder(const ClassHolder &)                = delete;

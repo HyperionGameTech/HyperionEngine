@@ -291,6 +291,9 @@ public:
     HYP_FORCE_INLINE bool IsAbstract() const
         { return m_flags & HypClassFlags::ABSTRACT; }
 
+    HYP_FORCE_INLINE bool IsDynamic() const
+        { return m_flags & HypClassFlags::DYNAMIC; }
+
     bool CanSerialize() const;
 
     HYP_FORCE_INLINE EnumFlags<HypClassSerializationMode> GetSerializationMode() const

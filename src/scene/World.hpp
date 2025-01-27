@@ -162,7 +162,12 @@ public:
     void StopSimulating();
 
     void AddScene(const Handle<Scene> &scene);
-    void RemoveScene(const WeakHandle<Scene> &scene);
+    bool RemoveScene(const WeakHandle<Scene> &scene);
+
+    /*! \brief Get the number of Scenes in the World. Must be called on the game thread.
+     *  \return The number of Scenes in the World. */
+    HYP_METHOD()
+    bool HasScene(ID<Scene> scene_id) const;
 
     /*! \brief Find a Scene by its Name property. If no Scene with the given name exists, an empty handle is returned. Must be called on the game thread.
      *  \param name The name of the Scene to find.

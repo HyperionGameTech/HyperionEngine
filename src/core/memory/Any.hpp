@@ -311,6 +311,16 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator ConstAnyRef() const
         { return ConstAnyRef(m_type_id, m_ptr); }
 
+    static Any FromVoidPointer(TypeID type_id, void *ptr, DeleteFunction dtor)
+    {
+        Any result;
+        result.m_type_id = type_id;
+        result.m_ptr = ptr;
+        result.m_dtor = dtor;
+
+        return result;
+    }
+
 protected:
     TypeID          m_type_id;
     void            *m_ptr;

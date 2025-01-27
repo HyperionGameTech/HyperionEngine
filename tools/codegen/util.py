@@ -47,6 +47,8 @@ CXX_TO_CSHARP_TYPE_MAPPING = {
     'Name': ('Name', False),
     'WeakName': ('Name', False),
     'AnyHandle': ('object', True),
+    'AnyRef': ('object', True),
+    'ConstAnyRef': ('object', True),
 }
 
 ### Parse a c++ member function declaration (may contain body)

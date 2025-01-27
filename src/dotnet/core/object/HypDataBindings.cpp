@@ -43,6 +43,15 @@ HYP_EXPORT void HypData_GetTypeID(const HypData *hyp_data, TypeID *out_type_id)
     *out_type_id = hyp_data->GetTypeID();
 }
 
+HYP_EXPORT const void *HypData_GetPointer(const HypData *hyp_data)
+{
+    if (!hyp_data) {
+        return nullptr;
+    }
+
+    return hyp_data->ToRef().GetPointer();
+}
+
 HYP_EXPORT int8 HypData_IsNull(const HypData *hyp_data)
 {
     if (!hyp_data) {
@@ -291,15 +300,6 @@ HYP_EXPORT int8 HypData_SetName(HypData *hyp_data, Name name_value)
     return true;
 }
 
-HYP_EXPORT int8 HypData_IsHypObject(const HypData *hyp_data)
-{
-    if (!hyp_data) {
-        return false;
-    }
-
-    return GetClass(hyp_data->GetTypeID()) != nullptr;
-}
-
 HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, dotnet::ObjectReference *out_object_reference)
 {
     if (!hyp_data || !out_object_reference) {
@@ -315,8 +315,10 @@ HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, dotnet::ObjectRefe
     const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
 
     if (!hyp_class) {
-        HYP_LOG(Object, Error, "No HypClass defined for TypeID {}", hyp_data->GetTypeID().Value());
+        return false;
+    }
 
+    if (!hyp_class->IsClassType()) {
         return false;
     }
 
@@ -372,21 +374,6 @@ HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
     return false;
 }
 
-HYP_EXPORT int8 HypData_IsHypStruct(const HypData *hyp_data)
-{
-    if (!hyp_data) {
-        return false;
-    }
-
-    const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
-
-    if (!hyp_class) {
-        return false;
-    }
-
-    return hyp_class->IsStructType();
-}
-
 HYP_EXPORT int8 HypData_GetHypStruct(const HypData *hyp_data, dotnet::ObjectReference *out_object_reference)
 {
     if (!hyp_data || !out_object_reference) {
@@ -398,6 +385,8 @@ HYP_EXPORT int8 HypData_GetHypStruct(const HypData *hyp_data, dotnet::ObjectRefe
     if (!ref.HasValue()) {
         return false;
     }
+
+    // @TODO Implement for dynamic struct types
 
     const HypClass *hyp_class = GetClass(hyp_data->GetTypeID());
 

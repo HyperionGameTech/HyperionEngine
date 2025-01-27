@@ -762,27 +762,29 @@ public:
     /*! \brief Gets the text to render.
      * 
      * \return The text to render. */
-    HYP_METHOD()
+    HYP_METHOD(Property="Text")
     HYP_FORCE_INLINE const String &GetText() const
         { return m_text; }
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Text")
     virtual void SetText(const String &text);
 
-    HYP_METHOD()
+    HYP_METHOD(Property="TextSize")
     float GetTextSize() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="TextSize")
     void SetTextSize(float text_size); 
 
     /*! \brief Check if the UI object is set to visible or not. This does not include computed visibility.
      *  \returns True if the object is visible, false otherwise. */
+    HYP_METHOD(Property="IsVisible")
     bool IsVisible() const;
 
     /*! \brief Set the visibility of the UI object.
      *  \details The visibility of the UI object determines whether the object is rendered in the UI scene.
      *  Can be used to hide the object without removing it from the scene.
      *  \param is_visible Whether to set the object as visible or not. */
+    HYP_METHOD(Property="IsVisible")
     void SetIsVisible(bool is_visible);
 
     /*! \brief Get the computed visibility of the UI object.

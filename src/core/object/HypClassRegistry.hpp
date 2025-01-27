@@ -46,7 +46,8 @@ enum class HypClassFlags : uint32
     STRUCT_TYPE = 0x2,
     ENUM_TYPE   = 0x4,
     ABSTRACT    = 0x8,
-    POD_TYPE    = 0x10
+    POD_TYPE    = 0x10,
+    DYNAMIC     = 0x20 // Dynamic classes are not registered in the class registry
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassFlags)

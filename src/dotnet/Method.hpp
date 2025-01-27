@@ -8,6 +8,8 @@
 
 #include <core/utilities/StringView.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <dotnet/Attribute.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
@@ -15,6 +17,25 @@
 #include <Types.hpp>
 
 namespace hyperion::dotnet {
+
+// Conditionally construct or reference existing HypData
+template <class T>
+const HypData *SetArg_HypData(HypData *arr, SizeType index, T &&arg)
+{
+    if constexpr (is_hypdata_v<T>) {
+        return &arg;
+    } else {
+        new (&arr[index]) HypData(std::forward<T>(arg));
+        return &arr[index];
+    }
+}
+
+// Expand over each argument to fill args_array and args_array_ptr
+template <class... Args, SizeType... Indices>
+void FillArgs_HypData(std::index_sequence<Indices...>, HypData *arr, const HypData *(&array_ptr)[sizeof...(Args)], Args &&... args)
+{
+    ((array_ptr[Indices] = SetArg_HypData(arr, Indices, std::forward<Args>(args))), ...);
+}
 
 class Method
 {

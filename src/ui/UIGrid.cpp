@@ -412,7 +412,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
     {
         HYP_NAMED_SCOPE("Add element from data source to grid view");
 
-        AddChildUIObject(data_source_ptr->GetElementFactory()->CreateUIObject(this, element->GetValue()));
+        AddChildUIObject(data_source_ptr->GetElementFactory()->CreateUIObject(this, element->GetValue(), { }));
     });
 
     m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)

@@ -11,7 +11,10 @@ namespace Hyperion
         None = 0x0,
         ClassType = 0x1,
         StructType = 0x2,
-        EnumType = 0x4
+        EnumType = 0x4,
+        Abstract = 0x8,
+        PODType = 0x10,
+        Dynamic = 0x20
     }
 
     public struct HypClass
@@ -104,6 +107,30 @@ namespace Hyperion
             get
             {
                 return (Flags & HypClassFlags.EnumType) != 0;
+            }
+        }
+
+        public bool IsAbstract
+        {
+            get
+            {
+                return (Flags & HypClassFlags.Abstract) != 0;
+            }
+        }
+
+        public bool IsPODType
+        {
+            get
+            {
+                return (Flags & HypClassFlags.PODType) != 0;
+            }
+        }
+
+        public bool IsDynamic
+        {
+            get
+            {
+                return (Flags & HypClassFlags.Dynamic) != 0;
             }
         }
 
@@ -326,7 +353,7 @@ namespace Hyperion
                 throw new InvalidOperationException($"Type {type.Name} is not a HypObject");
             }
 
-            return ((HypClassBinding)hypClassBindingAttribute).HypClass;
+            return ((HypClassBinding)hypClassBindingAttribute).GetClass(type);
         }
 
         public static HypClass? TryGetClass<T>()
@@ -343,7 +370,7 @@ namespace Hyperion
                 return null;
             }
 
-            return hypClassBindingAttribute.HypClass;
+            return hypClassBindingAttribute.GetClass(type);
         }
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]

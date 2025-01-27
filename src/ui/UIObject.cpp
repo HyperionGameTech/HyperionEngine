@@ -2429,18 +2429,6 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
 {
     HYP_SCOPE;
     
-    const Scene *scene = GetScene();
-
-    if (!scene) {
-        return;
-    }
-
-    const NodeProxy &node = GetNode();
-
-    if (!node) {
-        return;
-    }
-
     if (!deep) {
         // If not deep, iterate using the child UI objects list - more efficient this way
         for (const RC<UIObject> &child : m_child_ui_objects) {
@@ -2459,32 +2447,18 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
         return;
     }
 
-    // breadth-first search for all UIComponents in nested children
-    Queue<const Node *> queue;
-    queue.Push(node.Get());
+    Queue<const UIObject *> queue;
+    queue.Push(this);
 
     while (queue.Any()) {
-        const Node *parent = queue.Pop();
+        const UIObject *parent = queue.Pop();
 
-        for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child || !child->GetEntity().IsValid()) {
-                continue;
-            }
+        for (const RC<UIObject> &child : parent->m_child_ui_objects) {
+            const IterationResult iteration_result = lambda(child.Get());
 
-            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(child->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
-                    const IterationResult iteration_result = lambda(ui_component->ui_object);
-
-                    // stop iterating if stop was set to true
-                    if (iteration_result == IterationResult::STOP) {
-                        return;
-                    }
-
-                    if (!deep) {
-                        // Do not continue searching for more children below this node
-                        continue;
-                    }
-                }
+            // stop iterating if stop was set to true
+            if (iteration_result == IterationResult::STOP) {
+                return;
             }
 
             queue.Push(child.Get());

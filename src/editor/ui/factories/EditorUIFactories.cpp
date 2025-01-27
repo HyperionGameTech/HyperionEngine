@@ -33,7 +33,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-class HypDataUIDataSourceElementFactory : public UIDataSourceElementFactory<HypData, HypDataUIDataSourceElementFactory>
+class HypDataUIElementFactory : public UIElementFactory<HypData, HypDataUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const HypData &value) const
@@ -78,7 +78,7 @@ public:
 
             HypData getter_result = it.second->Get(value);
             
-            IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(getter_result.GetTypeID());
+            UIElementFactoryBase *factory = GetEditorUIElementFactory(getter_result.GetTypeID());
             
             if (!factory) {
                 HYP_LOG(Editor, Warning, "No factory registered for TypeID {} when creating UI element for attribute \"{}\"", getter_result.GetTypeID().Value(), it.first);
@@ -86,7 +86,7 @@ public:
                 continue;
             }
 
-            RC<UIObject> element = factory->CreateUIObject(parent, getter_result);
+            RC<UIObject> element = factory->CreateUIObject(parent, getter_result, { });
             AssertThrow(element != nullptr);
 
             HYP_LOG(Editor, Debug, "Element for attribute \"{}\": {}\tsize: {}", it.first, GetClass(element.GetTypeID())->GetName(), element->GetActualSize());
@@ -104,11 +104,11 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIElementFactory);
 
 
 template <int StringType>
-class StringUIDataSourceElementFactory : public UIDataSourceElementFactory<containers::detail::String<StringType>, StringUIDataSourceElementFactory<StringType>>
+class StringUIElementFactory : public UIElementFactory<containers::detail::String<StringType>, StringUIElementFactory<StringType>>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const containers::detail::String<StringType> &value) const
@@ -125,13 +125,13 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::ANSI>, StringUIDataSourceElementFactory<StringType::ANSI>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF8>, StringUIDataSourceElementFactory<StringType::UTF8>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF16>, StringUIDataSourceElementFactory<StringType::UTF16>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF32>, StringUIDataSourceElementFactory<StringType::UTF32>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::WIDE_CHAR>, StringUIDataSourceElementFactory<StringType::WIDE_CHAR>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::ANSI>, StringUIElementFactory<StringType::ANSI>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF8>, StringUIElementFactory<StringType::UTF8>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF16>, StringUIElementFactory<StringType::UTF16>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF32>, StringUIElementFactory<StringType::UTF32>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::WIDE_CHAR>, StringUIElementFactory<StringType::WIDE_CHAR>);
 
-class Vec3fUIDataSourceElementFactory : public UIDataSourceElementFactory<Vec3f, Vec3fUIDataSourceElementFactory>
+class Vec3fUIElementFactory : public UIElementFactory<Vec3f, Vec3fUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const Vec3f &value) const
@@ -198,10 +198,10 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIElementFactory);
 
 
-class Uint32UIDataSourceElementFactory : public UIDataSourceElementFactory<uint32, Uint32UIDataSourceElementFactory>
+class Uint32UIElementFactory : public UIElementFactory<uint32, Uint32UIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const uint32 &value) const
@@ -230,9 +230,9 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIElementFactory);
 
-class QuaternionUIDataSourceElementFactory : public UIDataSourceElementFactory<Quaternion, QuaternionUIDataSourceElementFactory>
+class QuaternionUIElementFactory : public UIElementFactory<Quaternion, QuaternionUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const Quaternion &value) const
@@ -299,9 +299,9 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(Quaternion, QuaternionUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(Quaternion, QuaternionUIElementFactory);
 
-class TransformUIDataSourceElementFactory : public UIDataSourceElementFactory<Transform, TransformUIDataSourceElementFactory>
+class TransformUIElementFactory : public UIElementFactory<Transform, TransformUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const Transform &value) const
@@ -321,8 +321,8 @@ public:
             RC<UIGridRow> translation_value_row = grid->AddRow();
             RC<UIGridColumn> translation_value_column = translation_value_row->AddColumn();
             
-            if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Vec3f>()) {
-                RC<UIObject> translation_element = factory->CreateUIObject(parent, HypData(value.GetTranslation()));
+            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Vec3f>()) {
+                RC<UIObject> translation_element = factory->CreateUIObject(parent, HypData(value.GetTranslation()), { });
                 translation_value_column->AddChildUIObject(translation_element);
             }
         }
@@ -338,8 +338,8 @@ public:
             RC<UIGridRow> rotation_value_row = grid->AddRow();
             RC<UIGridColumn> rotation_value_column = rotation_value_row->AddColumn();
             
-            if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Quaternion>()) {
-                RC<UIObject> rotation_element = factory->CreateUIObject(parent, HypData(value.GetRotation()));
+            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Quaternion>()) {
+                RC<UIObject> rotation_element = factory->CreateUIObject(parent, HypData(value.GetRotation()), { });
                 rotation_value_column->AddChildUIObject(rotation_element);
             }
         }
@@ -355,8 +355,8 @@ public:
             RC<UIGridRow> scale_value_row = grid->AddRow();
             RC<UIGridColumn> scale_value_column = scale_value_row->AddColumn();
             
-            if (IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory<Vec3f>()) {
-                RC<UIObject> scale_element = factory->CreateUIObject(parent, HypData(value.GetScale()));
+            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Vec3f>()) {
+                RC<UIObject> scale_element = factory->CreateUIObject(parent, HypData(value.GetScale()), { });
                 scale_value_column->AddChildUIObject(scale_element);
             }
         }
@@ -382,9 +382,9 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIElementFactory);
 
-class EditorWeakNodeFactory : public UIDataSourceElementFactory<Weak<Node>, EditorWeakNodeFactory>
+class EditorWeakNodeFactory : public UIElementFactory<Weak<Node>, EditorWeakNodeFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const Weak<Node> &value) const
@@ -421,7 +421,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
 
-class EntityUIDataSourceElementFactory : public UIDataSourceElementFactory<Handle<Entity>, EntityUIDataSourceElementFactory>
+class EntityUIElementFactory : public UIElementFactory<Handle<Entity>, EntityUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const Handle<Entity> &entity) const
@@ -521,7 +521,7 @@ public:
                     continue;
                 }
 
-                IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(component_type_id);
+                UIElementFactoryBase *factory = GetEditorUIElementFactory(component_type_id);
 
                 if (!factory) {
                     HYP_LOG(Editor, Error, "No editor UI component factory registered for component of type \"{}\"", component_interface->GetTypeName());
@@ -582,7 +582,7 @@ public:
 
                 RC<UIPanel> component_content = parent->CreateUIObject<UIPanel>(Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                RC<UIObject> element = factory->CreateUIObject(parent, component_hyp_data);
+                RC<UIObject> element = factory->CreateUIObject(parent, component_hyp_data, { });
                 AssertThrow(element != nullptr);
 
                 component_content->AddChildUIObject(element);
@@ -706,9 +706,9 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIElementFactory);
 
-class EditorNodePropertyFactory : public UIDataSourceElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
+class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const EditorNodePropertyRef &value) const
@@ -721,7 +721,7 @@ public:
             return nullptr;
         }
 
-        IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(value.property->GetTypeID());
+        UIElementFactoryBase *factory = GetEditorUIElementFactory(value.property->GetTypeID());
 
         if (!factory) {
             HYP_LOG(Editor, Error, "No factory registered for TypeID {} when creating UI element for property \"{}\"", value.property->GetTypeID().Value(), value.title);
@@ -764,7 +764,7 @@ public:
         {
             RC<UIPanel> content = parent->CreateUIObject<UIPanel>(NAME("PropertyPanel_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node_rc)), ConstAnyRef(&value))) {
+            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef &>(value)))) {
                 content->AddChildUIObject(element);
             }
 
@@ -779,7 +779,7 @@ public:
         RC<Node> node_rc = value.node.Lock();
         AssertThrow(node_rc != nullptr);
 
-        IUIDataSourceElementFactory *factory = GetEditorUIDataSourceElementFactory(value.property->GetTypeID());
+        UIElementFactoryBase *factory = GetEditorUIElementFactory(value.property->GetTypeID());
         AssertThrow(factory != nullptr);
 
         RC<UIPanel> content = ui_object->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();
@@ -787,7 +787,7 @@ public:
         
         content->RemoveAllChildUIObjects();
 
-        RC<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), ConstAnyRef(&value));
+        RC<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef &>(value)));
         AssertThrow(element != nullptr);
 
         content->AddChildUIObject(element);
@@ -796,7 +796,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(EditorNodePropertyRef, EditorNodePropertyFactory);
 
-class AssetPackageUIDataSourceElementFactory : public UIDataSourceElementFactory<AssetPackage, AssetPackageUIDataSourceElementFactory>
+class AssetPackageUIElementFactory : public UIElementFactory<AssetPackage, AssetPackageUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const AssetPackage &value) const
@@ -815,9 +815,9 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIElementFactory);
 
-class AssetObjectUIDataSourceElementFactory : public UIDataSourceElementFactory<AssetObject, AssetObjectUIDataSourceElementFactory>
+class AssetObjectUIElementFactory : public UIElementFactory<AssetObject, AssetObjectUIElementFactory>
 {
 public:
     RC<UIObject> Create(UIObject *parent, const AssetObject &value) const
@@ -836,6 +836,6 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(AssetObject, AssetObjectUIDataSourceElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(AssetObject, AssetObjectUIElementFactory);
 
 } // namespace hyperion

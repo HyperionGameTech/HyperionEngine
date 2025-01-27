@@ -110,7 +110,7 @@ struct AtomicSemaphoreImpl
         return current_value;
     }
 
-    void Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
     {
         CounterType previous_value = value.Increment(delta, MemoryOrder::SEQUENTIAL);
         CounterType current_value = previous_value + delta;
@@ -123,9 +123,11 @@ struct AtomicSemaphoreImpl
                 if_signal_state_changed_proc(should_signal_after);
             }
         }
+
+        return current_value;
     }
 
-    void Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
         CounterType previous_value = value.Increment(delta, MemoryOrder::SEQUENTIAL);
         CounterType current_value = previous_value + delta;
@@ -133,6 +135,8 @@ struct AtomicSemaphoreImpl
         if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(current_value)) {
             if_signalled_proc();
         }
+
+        return current_value;
     }
 
     CounterType GetValue() const
@@ -233,7 +237,7 @@ struct ConditionVarSemaphoreImpl
         return previous_value - delta;
     }
 
-    void Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -250,9 +254,11 @@ struct ConditionVarSemaphoreImpl
         }
 
         cv.notify_all();
+
+        return value;
     }
 
-    void Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -264,6 +270,8 @@ struct ConditionVarSemaphoreImpl
         }
 
         cv.notify_all();
+
+        return value;
     }
 
     CounterType GetValue() const
@@ -324,14 +332,14 @@ public:
     HYP_FORCE_INLINE CounterType Release(CounterType delta = 1)
         { return m_impl.Release(delta, ProcRef<void>(nullptr)); }
 
-    HYP_FORCE_INLINE void Produce(CounterType increment, ProcRef<void, bool> if_signal_state_changed_proc)
-        { m_impl.Produce(increment, if_signal_state_changed_proc); }
+    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void, bool> if_signal_state_changed_proc)
+        { return m_impl.Produce(increment, if_signal_state_changed_proc); }
 
-    HYP_FORCE_INLINE void Produce(CounterType increment, ProcRef<void> if_signalled_proc)
-        { m_impl.Produce(increment, if_signalled_proc); }
+    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void> if_signalled_proc)
+        { return m_impl.Produce(increment, if_signalled_proc); }
 
-    HYP_FORCE_INLINE void Produce(CounterType increment = 1)
-        { m_impl.Produce(increment, ProcRef<void>(nullptr)); }
+    HYP_FORCE_INLINE CounterType Produce(CounterType increment = 1)
+        { return m_impl.Produce(increment, ProcRef<void>(nullptr)); }
 
     HYP_FORCE_INLINE CounterType GetValue() const
         { return m_impl.GetValue(); }

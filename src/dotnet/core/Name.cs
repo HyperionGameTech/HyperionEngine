@@ -11,6 +11,8 @@ namespace Hyperion
     public struct Name
     {
         internal static ConcurrentDictionary<string, Name> nameCache = new ConcurrentDictionary<string, Name>();
+        
+        public static readonly Name Invalid = new Name(0);
 
         [FieldOffset(0)]
         internal ulong hashCode;
@@ -32,8 +34,11 @@ namespace Hyperion
             // if the name is not in the cache, create a new one
             Name_FromString(nameString, weak, out this);
 
-            // add the name to the cache
-            nameCache[nameString] = this;
+            if (!weak)
+            {
+                // add the name to the cache
+                nameCache[nameString] = this;
+            }
         }
 
         public bool Equals(Name other)

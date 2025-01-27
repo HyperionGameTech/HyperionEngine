@@ -401,7 +401,7 @@ void World::AddScene(const Handle<Scene> &scene)
     m_scenes.PushBack(scene);
 }
 
-void World::RemoveScene(const WeakHandle<Scene> &scene_weak)
+bool World::RemoveScene(const WeakHandle<Scene> &scene_weak)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
@@ -409,26 +409,38 @@ void World::RemoveScene(const WeakHandle<Scene> &scene_weak)
     typename Array<Handle<Scene>>::Iterator it = m_scenes.FindAs(scene_weak);
     
     if (it == m_scenes.End()) {
-        return;
+        return false;
     }
 
     Handle<Scene> scene = *it;
+    m_scenes.Erase(it);
 
-    if (!scene.IsValid()) {
-        return;
-    }
+    if (scene.IsValid()) {
+        scene->SetWorld(nullptr);
 
-    if (IsInitCalled()) {
-        for (auto &it : m_subsystems) {
-            it.second->OnSceneDetached(scene);
+        if (IsInitCalled()) {
+            for (auto &it : m_subsystems) {
+                it.second->OnSceneDetached(scene);
+            }
+
+            Task<bool> task = m_render_resources->RemoveScene(scene->GetID());
+            return task.Await();
         }
-
-        m_scenes.Erase(it);
-
-        m_render_resources->RemoveScene(scene_weak);
     }
 
-    scene->SetWorld(nullptr);
+    return true;
+}
+
+bool World::HasScene(ID<Scene> scene_id) const
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_GAME);
+
+    return m_scenes.FindIf([scene_id](const Handle<Scene> &scene)
+    {
+        return scene.GetID() == scene_id;
+    }) != m_scenes.End();
 }
 
 const Handle<Scene> &World::GetSceneByName(Name name) const

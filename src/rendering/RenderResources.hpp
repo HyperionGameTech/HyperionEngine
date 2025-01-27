@@ -44,8 +44,8 @@ public:
     virtual bool IsNull() const override
         { return false; }
 
-    virtual void Claim() override final;
-    virtual void Unclaim() override final;
+    virtual int Claim() override final;
+    virtual int Unclaim() override final;
 
     /*! \brief Waits (blocking) until all operations on this RenderResources are complete and the RenderResources is no longer being used. */
     virtual void WaitForCompletion() override final;

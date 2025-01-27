@@ -86,7 +86,7 @@ namespace Hyperion
         }
     }
 
-    internal class AssemblyInstance
+    public class AssemblyInstance
     {
         private string basePath;
         private Guid guid;
@@ -340,7 +340,7 @@ namespace Hyperion
         }
     }
 
-    internal class AssemblyCache
+    public class AssemblyCache
     {
         private static AssemblyCache? instance = null;
 
@@ -365,6 +365,18 @@ namespace Hyperion
             {
                 return assemblies;
             }
+        }
+
+        public AssemblyInstance? GetCurrentAssemblyInstance()
+        {
+            Assembly? assembly = Assembly.GetCallingAssembly();
+
+            if (assembly == null)
+            {
+                return null;
+            }
+
+            return Get(assembly);
         }
 
         public AssemblyInstance? Get(Guid guid)

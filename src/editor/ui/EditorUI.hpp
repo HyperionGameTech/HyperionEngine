@@ -25,14 +25,14 @@ struct EditorNodePropertyRef
     HypProperty         *property = nullptr;
 };
 
-class IUIDataSourceElementFactory;
+class UIElementFactoryBase;
 
-HYP_API IUIDataSourceElementFactory *GetEditorUIDataSourceElementFactory(TypeID type_id);
+HYP_API UIElementFactoryBase *GetEditorUIElementFactory(TypeID type_id);
 
 template <class T>
-static IUIDataSourceElementFactory *GetEditorUIDataSourceElementFactory()
+static UIElementFactoryBase *GetEditorUIElementFactory()
 {
-    return GetEditorUIDataSourceElementFactory(TypeID::ForType<T>());
+    return GetEditorUIElementFactory(TypeID::ForType<T>());
 }
 
 } // namespace hyperion

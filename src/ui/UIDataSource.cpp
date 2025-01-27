@@ -4,50 +4,55 @@
 
 namespace hyperion {
 
-#pragma region UIDataSourceElementFactoryRegistry
+#pragma region UIElementFactoryRegistry
 
-UIDataSourceElementFactoryRegistry &UIDataSourceElementFactoryRegistry::GetInstance()
+UIElementFactoryRegistry &UIElementFactoryRegistry::GetInstance()
 {
-    static UIDataSourceElementFactoryRegistry instance { };
+    static UIElementFactoryRegistry instance { };
 
     return instance;
 }
 
-IUIDataSourceElementFactory *UIDataSourceElementFactoryRegistry::GetFactory(TypeID type_id) const
+UIElementFactoryBase *UIElementFactoryRegistry::GetFactory(TypeID type_id)
 {
-    const auto it = m_element_factories.Find(type_id);
+    auto it = m_element_factories.Find(type_id);
 
     if (it == m_element_factories.End()) {
         return nullptr;
     }
 
-    return it->second;
+    FactoryInstance &factory_instance = it->second;
+
+    if (!factory_instance.factory_instance) {
+        factory_instance.factory_instance = factory_instance.make_factory_function();
+    }
+
+    return factory_instance.factory_instance.Get();
 }
 
-void UIDataSourceElementFactoryRegistry::RegisterFactory(TypeID type_id, IUIDataSourceElementFactory *element_factory)
+void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, RC<UIElementFactoryBase>(*make_factory_function)(void))
 {
-    m_element_factories.Set(type_id, element_factory);
+    m_element_factories.Set(type_id, FactoryInstance { make_factory_function, nullptr });
 }
 
-#pragma endregion UIDataSourceElementFactoryRegistry
+#pragma endregion UIElementFactoryRegistry
 
-#pragma region UIDataSourceElementFactoryRegistrationBase
+#pragma region UIElementFactoryRegistrationBase
 
 namespace detail {
     
-UIDataSourceElementFactoryRegistrationBase::UIDataSourceElementFactoryRegistrationBase(TypeID type_id, IUIDataSourceElementFactory *element_factory)
-    : element_factory(element_factory)
+UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_id, RC<UIElementFactoryBase>(*make_factory_function)(void))
+    : make_factory_function(make_factory_function)
 {
-    UIDataSourceElementFactoryRegistry::GetInstance().RegisterFactory(type_id, element_factory);
+    UIElementFactoryRegistry::GetInstance().RegisterFactory(type_id, make_factory_function);
 }
 
-UIDataSourceElementFactoryRegistrationBase::~UIDataSourceElementFactoryRegistrationBase()
+UIElementFactoryRegistrationBase::~UIElementFactoryRegistrationBase()
 {
-    delete element_factory;
 }
 
 } // namespace detail
 
-#pragma endregion UIDataSourceElementFactoryRegistrationBase
+#pragma endregion UIElementFactoryRegistrationBase
 
 } // namespace hyperion

@@ -46,4 +46,29 @@ HYP_EXPORT void UIObject_Spawn(UIObject *spawn_parent, const HypClass *hyp_class
     *out_hyp_data = HypData(std::move(ui_object));
 }
 
+HYP_EXPORT bool UIObject_Find(UIObject *parent, const HypClass *hyp_class, Name *name, HypData *out_hyp_data)
+{
+    AssertThrow(parent != nullptr);
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(name != nullptr);
+    AssertThrow(out_hyp_data != nullptr);
+
+    if (hyp_class != UIObject::Class() && !hyp_class->HasParent(UIObject::Class())) {
+        return false;
+    }
+
+    RC<UIObject> ui_object = parent->FindChildUIObject([hyp_class, name](UIObject *ui_object)
+    {
+        return ui_object->IsInstanceOf(hyp_class) && ui_object->GetName() == *name;
+    });
+
+    if (!ui_object) {
+        return false;
+    }
+
+    *out_hyp_data = HypData(std::move(ui_object));
+
+    return true;
+}
+
 } // extern "C"

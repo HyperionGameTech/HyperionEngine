@@ -82,13 +82,13 @@ bool Class::HasParentClass(const Class *parent_class) const
     return false;
 }
 
-void Class::InvokeStaticMethod_Internal(const Method *method_ptr, HypData *args_hyp_data, HypData *out_return_hyp_data)
+void Class::InvokeStaticMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
 {
     EnsureLoaded();
     
     AssertThrowMsg(m_class_holder->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set");
 
-    m_class_holder->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, args_hyp_data, out_return_hyp_data);
+    m_class_holder->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, &args_hyp_data[0], out_return_hyp_data);
 }
 
 } // namespace hyperion::dotnet

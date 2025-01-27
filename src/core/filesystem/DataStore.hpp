@@ -107,8 +107,8 @@ protected:
     virtual bool IsNull() const override
         { return false; }
 
-    virtual void Claim() override;
-    virtual void Unclaim() override;
+    virtual int Claim() override;
+    virtual int Unclaim() override;
 
     virtual void WaitForCompletion() override;
 

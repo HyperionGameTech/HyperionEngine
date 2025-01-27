@@ -47,9 +47,9 @@ DataStoreBase::DataStoreBase(const String &prefix, DataStoreOptions options)
 {
 }
 
-void DataStoreBase::Claim()
+int DataStoreBase::Claim()
 {
-    m_init_semaphore.Produce(1, [this](bool)
+    return m_init_semaphore.Produce(1, [this](bool)
     {
         if (m_options.flags & DSF_WRITE) {
             AssertThrowMsg(MakeDirectory(), "Failed to create directory for data store at path %s", GetDirectory().Data());
@@ -57,9 +57,9 @@ void DataStoreBase::Claim()
     });
 }
 
-void DataStoreBase::Unclaim()
+int DataStoreBase::Unclaim()
 {
-    m_init_semaphore.Release(1, [this](bool)
+    return m_init_semaphore.Release(1, [this](bool)
     {
         m_shutdown_semaphore.Produce(1);
 

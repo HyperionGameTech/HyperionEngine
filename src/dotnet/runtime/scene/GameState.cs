@@ -17,6 +17,10 @@ namespace Hyperion
         public float deltaTime;
         public float gameTime;
 
+        public GameState()
+        {
+        }
+
         public GameStateMode Mode
         {
             get { return mode; }

@@ -7,21 +7,30 @@ namespace Hyperion
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false)]
     public class HypClassBinding : Attribute
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
+        public bool IsDynamic { get; set; }
 
-        public HypClass HypClass
+        public HypClass GetClass(Type type)
         {
-            get
+            HypClass? hypClass;
+
+            if (IsDynamic)
             {
-                HypClass? hypClass = HypClass.GetClass(Name);
-
-                if (hypClass == null || !((HypClass)hypClass).IsValid)
-                {
-                    throw new Exception("Failed to load HypClass: " + Name);
-                }
-
-                return (HypClass)hypClass;
+                hypClass = DynamicHypStruct.GetOrCreate(type).HypClass;
             }
+            else
+            {
+                string typeName = Name ?? type.Name;
+
+                hypClass = HypClass.GetClass(typeName);
+            }
+
+            if (hypClass == null || !((HypClass)hypClass).IsValid)
+            {
+                throw new Exception("Failed to load HypClass for type " + type.Name);
+            }
+
+            return (HypClass)hypClass;
         }
 
         public static HypClassBinding? ForType(Type type, bool inheritance = false) 

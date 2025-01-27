@@ -91,9 +91,11 @@ struct IsHypObject
  *  \note A type is considered a HypObject if it is derived from HypObjectBase or if it has HYP_OBJECT_BODY(...) in the class body.
  *  \tparam T The type to check. */
 template <class T>
-struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object && std::is_same_v<T, typename T::HypObjectData::Type>)>>
+struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object /*&& std::is_same_v<T, typename T::HypObjectData::Type>*/)>>
 {
     static constexpr bool value = true;
+
+    using Type = std::conditional_t<std::is_base_of_v<HypObjectBase, T>, T, typename T::HypObjectData::Type>;
 };
 
 enum class HypObjectInitializerFlags : uint32
@@ -150,11 +152,10 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 
     static const HypClass *GetClassAndEnsureValid()
     {
-        static const HypClass *hyp_class = GetClass(TypeID::ForType<T>());
+        using HypObjectType = typename IsHypObject<T>::Type;
+        static const HypClass *hyp_class = GetClass(TypeID::ForType<HypObjectType>());
 
-        if constexpr (IsHypObject<T>::value) {
-            AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s -- is the \"HYP_CLASS\" macro missing above the class definition?", TypeNameWithoutNamespace<T>().Data());
-        }
+        AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s -- is the \"HYP_CLASS\" macro missing above the class definition?", TypeNameWithoutNamespace<HypObjectType>().Data());
 
         return hyp_class;
     }
@@ -178,7 +179,7 @@ public:
     template <class T, typename = std::enable_if_t< IsHypObject<T>::value > >
     HypObjectPtr(T *ptr)
         : m_ptr(ptr),
-          m_hyp_class(GetHypClass(TypeID::ForType<T>()))
+          m_hyp_class(GetHypClass(TypeID::ForType<typename IsHypObject<T>::Type>()))
     {
     }
 

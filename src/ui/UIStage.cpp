@@ -286,6 +286,7 @@ void UIStage::OnRemoved_Internal()
 
     // Re-set scene root to be our node proxy
     m_scene->SetRoot(m_node_proxy);
+    m_scene->RemoveFromWorld();
 
     OnRemoved();
 }

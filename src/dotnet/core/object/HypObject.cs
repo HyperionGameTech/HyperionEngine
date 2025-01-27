@@ -33,7 +33,7 @@ namespace Hyperion
                     throw new Exception("Failed to get HypClassBinding attribute for type " + type.Name);
                 }
 
-                HypClass hypClass = attribute.HypClass;
+                HypClass hypClass = attribute.GetClass(type);
 
                 if (hypClass == HypClass.Invalid)
                 {

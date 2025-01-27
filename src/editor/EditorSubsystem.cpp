@@ -853,6 +853,33 @@ void EditorSubsystem::InitContentBrowser()
     m_content_browser_contents_empty = GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
     AssertThrow(m_content_browser_contents_empty != nullptr);
     m_content_browser_contents_empty->SetIsVisible(true);
+
+    RC<UIObject> import_button = GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
+    AssertThrow(import_button != nullptr);
+
+    m_delegate_handlers.Remove(NAME("ImportClicked"));
+    m_delegate_handlers.Add(NAME("ImportClicked"), import_button->OnClick.Bind([this, stage_weak = GetUIStage().ToWeak()](...)
+    {
+        HYP_LOG(Editor, Debug, "Import button clicked!");
+
+        if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
+            auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/FileBrowserDialog.ui.xml");
+                    
+            if (loaded_ui_asset.IsOK()) {
+                auto loaded_ui = loaded_ui_asset.Result();
+
+                if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog")) {
+                    stage->AddChildUIObject(file_browser_dialog);
+            
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
+            HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.result.message);
+        }
+
+        return UIEventHandlerResult::ERR;
+    }));
 }
 
 void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage> &package, bool nested)

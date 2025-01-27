@@ -360,6 +360,8 @@ void RenderCollector::SetCamera(const Handle<Camera> &camera)
 
     if (InitObject(m_camera)) {
         m_camera_resource_handle = m_camera->GetRenderResources();
+    } else {
+        m_camera_resource_handle.Reset();
     }
 }
 

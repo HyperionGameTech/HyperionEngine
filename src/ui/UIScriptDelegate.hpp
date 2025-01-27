@@ -107,10 +107,10 @@ public:
                     }
                 }
 
-                // Stubbed method, do not call
-                if (method_ptr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
-                    return default_result;
-                }
+                // // Stubbed method, do not call
+                // if (method_ptr->GetAttributes().GetAttribute("ScriptMethodStub") != nullptr) {
+                //     return default_result;
+                // }
 
                 UIEventHandlerResult result = script_component->object.InvokeMethod<UIEventHandlerResult>(method_ptr, std::forward<Args>(args)...);
 

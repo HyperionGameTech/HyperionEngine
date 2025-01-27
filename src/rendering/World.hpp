@@ -14,6 +14,7 @@
 #include <core/containers/Array.hpp>
 
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Task.hpp>
 
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
@@ -86,7 +87,7 @@ public:
         { return m_render_collector_container.GetRenderCollectorForScene(scene_id); }
 
     void AddScene(const Handle<Scene> &scene);
-    void RemoveScene(const WeakHandle<Scene> &scene_weak);
+    Task<bool> RemoveScene(ID<Scene> scene_id);
 
     void PreRender(renderer::Frame *frame);
     void PostRender(renderer::Frame *frame);

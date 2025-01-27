@@ -46,8 +46,8 @@ public:
 
     virtual bool IsNull() const = 0;
 
-    virtual void Claim() = 0;
-    virtual void Unclaim() = 0;
+    virtual int Claim() = 0;
+    virtual int Unclaim() = 0;
 
     virtual void WaitForCompletion() = 0;
 

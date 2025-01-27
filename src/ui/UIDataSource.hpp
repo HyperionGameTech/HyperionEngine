@@ -12,8 +12,11 @@
 
 #include <core/utilities/Pair.hpp>
 #include <core/utilities/UUID.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
+
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/object/HypData.hpp>
 #include <core/object/HypObject.hpp>
@@ -27,83 +30,109 @@ class UIObject;
 class UIStage;
 class World;
 
-class IUIDataSourceElementFactory;
+class UIElementFactoryBase;
 
-class HYP_API UIDataSourceElementFactoryRegistry
+class HYP_API UIElementFactoryRegistry
 {
-public:
-    static UIDataSourceElementFactoryRegistry &GetInstance();
+    struct FactoryInstance
+    {
+        RC<UIElementFactoryBase> (*make_factory_function)(void);
+        RC<UIElementFactoryBase> factory_instance;
+    };
 
-    IUIDataSourceElementFactory *GetFactory(TypeID type_id) const;
-    void RegisterFactory(TypeID type_id, IUIDataSourceElementFactory *element_factory);
+public:
+    static UIElementFactoryRegistry &GetInstance();
+
+    UIElementFactoryBase *GetFactory(TypeID type_id);
+    void RegisterFactory(TypeID type_id, RC<UIElementFactoryBase>(*make_factory_function)(void));
 
 private:
-    TypeMap<IUIDataSourceElementFactory *>  m_element_factories;
+    TypeMap<FactoryInstance>    m_element_factories;
 };
 
-class HYP_API IUIDataSourceElementFactory
+HYP_CLASS(Abstract)
+class HYP_API UIElementFactoryBase : public EnableRefCountedPtrFromThis<UIElementFactoryBase>
 {
+    HYP_OBJECT_BODY(UIElementFactoryBase);
+
 public:
-    virtual ~IUIDataSourceElementFactory() = default;
+    UIElementFactoryBase()           = default;
+    virtual ~UIElementFactoryBase()  = default;
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value) const = 0;
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, ConstAnyRef context) const = 0;
+    HYP_METHOD(Scriptable)
+    RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const;
 
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const = 0;
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, ConstAnyRef context) const = 0;
+    HYP_METHOD(Scriptable)
+    void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const;
+
+protected:
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, AnyRef context) const
+        { HYP_PURE_VIRTUAL(); }
+
+    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, AnyRef context) const
+        { HYP_PURE_VIRTUAL(); }
 };
 
 template <class T, class Derived>
-class HYP_API UIDataSourceElementFactory : public IUIDataSourceElementFactory
+class HYP_API UIElementFactory : public UIElementFactoryBase
 {
 public:
-    virtual ~UIDataSourceElementFactory() = default;
+    virtual ~UIElementFactory() = default;
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value) const override final
+protected:
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, AnyRef context) const override final
     {
-        return CreateUIObject(parent, value, ConstAnyRef::Empty());
-    }
+        HYP_MT_CHECK_RW(m_context_data_race_detector);
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, ConstAnyRef context) const override final
-    {
-        Derived factory_instance;
-        static_cast<UIDataSourceElementFactory &>(factory_instance).m_context = context;
+        m_context = context;
+
+        HYP_DEFER({
+            m_context = AnyRef();
+        });
 
         RC<UIObject> result;
 
         if constexpr (std::is_same_v<HypData, T>) {
-            return factory_instance.Create(parent, value);
+            return GetDerived().Create(parent, value);
         } else {
-            return factory_instance.Create(parent, value.Get<T>());
+            return GetDerived().Create(parent, value.Get<T>());
         }
     }
 
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value) const override final
+    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, AnyRef context) const override final
     {
-        return UpdateUIObject(ui_object, value, ConstAnyRef::Empty());
-    }
+        HYP_MT_CHECK_RW(m_context_data_race_detector);
 
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, ConstAnyRef context) const override final
-    {
-        Derived factory_instance;
-        static_cast<UIDataSourceElementFactory &>(factory_instance).m_context = context;
+        m_context = context;
+
+        HYP_DEFER({
+            m_context = AnyRef();
+        });
 
         if constexpr (std::is_same_v<HypData, T>) {
-            return factory_instance.Update(ui_object, value);
+            return GetDerived().Update(ui_object, value);
         } else {
-            return factory_instance.Update(ui_object, value.Get<T>());
+            return GetDerived().Update(ui_object, value.Get<T>());
         }
     }
 
-protected:
     template <class ContextType>
     const ContextType *GetContext() const
     {
+        HYP_MT_CHECK_READ(m_context_data_race_detector);
+
         return m_context.TryGet<ContextType>();
     }
 
 private:
-    ConstAnyRef m_context;
+    HYP_FORCE_INLINE Derived &GetDerived()
+        { return static_cast<Derived &>(*this); }
+
+    HYP_FORCE_INLINE const Derived &GetDerived() const
+        { return static_cast<const Derived &>(*this); }
+
+    mutable AnyRef      m_context;
+    DataRaceDetector    m_context_data_race_detector;
 };
 
 class HYP_API UIDataSourceElement
@@ -166,7 +195,7 @@ class HYP_API UIDataSourceBase : public EnableRefCountedPtrFromThis<UIDataSource
     HYP_OBJECT_BODY(UIDataSourceBase);
 
 protected:
-    UIDataSourceBase(IUIDataSourceElementFactory *element_factory)
+    UIDataSourceBase(UIElementFactoryBase *element_factory)
         : m_element_factory(element_factory)
     {
         // AssertThrowMsg(element_factory != nullptr, "No element factory registered for the data source; unable to create UIObjects");
@@ -179,7 +208,7 @@ public:
     UIDataSourceBase &operator=(UIDataSourceBase &&other) noexcept  = delete;
     virtual ~UIDataSourceBase()                                     = default;
 
-    HYP_FORCE_INLINE IUIDataSourceElementFactory *GetElementFactory() const
+    HYP_FORCE_INLINE UIElementFactoryBase *GetElementFactory() const
         { return m_element_factory; }
 
     virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid = UUID::Invalid()) = 0;
@@ -196,7 +225,10 @@ public:
         return const_cast<UIDataSourceBase *>(this)->FindWithPredicate(predicate);
     }
 
-    virtual SizeType Size() const = 0;
+    HYP_METHOD()
+    virtual int Size() const = 0;
+
+    HYP_METHOD()
     virtual void Clear() = 0;
 
     virtual Array<Pair<UIDataSourceElement *, UIDataSourceElement *>> GetValues() = 0;
@@ -214,7 +246,7 @@ public:
     Delegate<void, UIDataSourceBase *, UIDataSourceElement *, UIDataSourceElement *>    OnElementUpdate;
 
 protected:
-    IUIDataSourceElementFactory                                                         *m_element_factory;
+    UIElementFactoryBase                                                         *m_element_factory;
 };
 
 HYP_CLASS()
@@ -238,7 +270,7 @@ public:
 
     template <class T>
     UIDataSource(TypeWrapper<T>)
-        : UIDataSourceBase(UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
+        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
           m_element_type_id(TypeID::ForType<T>())
     {
     }
@@ -394,11 +426,13 @@ public:
         return nullptr;
     }
 
-    virtual SizeType Size() const override
+    HYP_METHOD()
+    virtual int Size() const override
     {
-        return m_values.Size();
+        return int(m_values.Size());
     }
 
+    HYP_METHOD()
     virtual void Clear() override
     {
         // @TODO check if delegate has any functions bound,
@@ -424,6 +458,13 @@ public:
         return values;
     }
 
+    /*! \internal */
+    void SetElementTypeIDAndFactory(TypeID element_type_id, UIElementFactoryBase *element_factory)
+    {
+        m_element_factory = element_factory;
+        m_element_type_id = element_type_id;
+    }
+
 private:
     TypeID                      m_element_type_id;
     Forest<UIDataSourceElement> m_values;
@@ -431,20 +472,20 @@ private:
 
 namespace detail {
 
-struct HYP_API UIDataSourceElementFactoryRegistrationBase
+struct HYP_API UIElementFactoryRegistrationBase
 {
 protected:
-    IUIDataSourceElementFactory *element_factory;
+    RC<UIElementFactoryBase>(*make_factory_function)(void);
 
-    UIDataSourceElementFactoryRegistrationBase(TypeID type_id, IUIDataSourceElementFactory *element_factory);
-    ~UIDataSourceElementFactoryRegistrationBase();
+    UIElementFactoryRegistrationBase(TypeID type_id, RC<UIElementFactoryBase>(*make_factory_function)(void));
+    ~UIElementFactoryRegistrationBase();
 };
 
 template <class T>
-struct UIDataSourceElementFactoryRegistration : public UIDataSourceElementFactoryRegistrationBase
+struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
 {
-    UIDataSourceElementFactoryRegistration(IUIDataSourceElementFactory *element_factory)
-        : UIDataSourceElementFactoryRegistrationBase(TypeID::ForType<T>(), element_factory)
+    UIElementFactoryRegistration(RC<UIElementFactoryBase>(*make_factory_function)(void))
+        : UIElementFactoryRegistrationBase(TypeID::ForType<T>(), make_factory_function)
     {
     }
 };
@@ -453,6 +494,6 @@ struct UIDataSourceElementFactoryRegistration : public UIDataSourceElementFactor
 } // namespace hyperion
 
 #define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory) \
-    static ::hyperion::detail::UIDataSourceElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) { new Factory() }
+    static ::hyperion::detail::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) { []() -> RC<UIElementFactoryBase> { return MakeRefCountedPtr<Factory>(); } }
 
 #endif

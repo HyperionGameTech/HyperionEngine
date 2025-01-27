@@ -7,6 +7,8 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct UUID
     {
+        public static readonly UUID Invalid = new UUID(0, 0);
+
         private ulong data0;
         private ulong data1;
 

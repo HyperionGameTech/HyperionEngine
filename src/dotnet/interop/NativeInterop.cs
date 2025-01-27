@@ -300,14 +300,22 @@ namespace Hyperion
             {
                 if (attr.GetType().Name == "HypClassBinding")
                 {
-                    string hypClassName = (string)attr.GetType().GetProperty("Name").GetValue(attr);
+                    bool isDynamic = (bool)attr.GetType().GetProperty("IsDynamic").GetValue(attr);
+
+                    if (isDynamic)
+                    {
+                        // Skip dynamic classes
+                        continue;
+                    }
+
+                    string? hypClassName = (string?)attr.GetType().GetProperty("Name").GetValue(attr);
 
                     if (hypClassName == null || hypClassName.Length == 0)
                     {
                         hypClassName = typeName;
                     }
 
-                    hypClassPtr = HypClass_GetClassByName(hypClassName);
+                    hypClassPtr = HypClass_GetClassByName((string)hypClassName);
 
                     if (hypClassPtr == IntPtr.Zero)
                     {
@@ -385,6 +393,8 @@ namespace Hyperion
             // Add new object, free object delegates
             managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
+                Logger.Log(LogType.Debug, "Creating new object of type: {0}", type.Name);
+                
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
 
@@ -492,11 +502,11 @@ namespace Hyperion
             {
                 // params is stored as HypData*, 
                 IntPtr paramAddress = argsHypDataPtr + paramsOffset;
-                paramsOffset += sizeof(HypDataBuffer);
+                paramsOffset += sizeof(IntPtr);
 
                 try
                 {
-                    parameters[i] = (object)((HypDataBuffer*)paramAddress)->GetValue();
+                    parameters[i] = (object)(*(HypDataBuffer**)paramAddress)->GetValue();
                 }
                 catch (Exception ex)
                 {
@@ -572,7 +582,7 @@ namespace Hyperion
                 throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
             }
 
-            object? value = ((HypDataBuffer*)argsHypDataPtr)->GetValue();
+            object? value = (*(HypDataBuffer**)argsHypDataPtr)->GetValue();
 
             propertyInfo.SetValue((object)thisObject, value);
         }

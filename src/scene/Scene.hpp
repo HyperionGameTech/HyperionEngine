@@ -159,18 +159,7 @@ public:
     /*! \brief Set the root node of this Scene, discarding the current.
      *  \internal For internal use only. Should not be called from user code. */
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
-    HYP_FORCE_INLINE void SetRoot(NodeProxy root)
-    {
-        if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
-            m_root_node_proxy->SetScene(nullptr);
-        }
-
-        m_root_node_proxy = std::move(root);
-
-        if (m_root_node_proxy.IsValid()) {
-            m_root_node_proxy->SetScene(this);
-        }
-    }
+    void SetRoot(const NodeProxy &root);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const RC<EntityManager> &GetEntityManager() const

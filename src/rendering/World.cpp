@@ -83,25 +83,32 @@ void WorldRenderResources::AddScene(const Handle<Scene> &scene)
     });          
 }
 
-void WorldRenderResources::RemoveScene(const WeakHandle<Scene> &scene_weak)
+Task<bool> WorldRenderResources::RemoveScene(ID<Scene> scene_id)
 {
     HYP_SCOPE;
 
-    Execute([this, scene_weak]()
+    Task<bool> task;
+    auto task_executor = task.Initialize();
+
+    Execute([this, scene_id, task_executor]()
     {
-        if (Handle<Scene> scene = scene_weak.Lock()) {
-            m_render_collector_container.RemoveScene(scene.GetID());
+        m_render_collector_container.RemoveScene(scene_id);
 
-            auto bound_scenes_it = m_bound_scenes.FindIf([&scene](const TResourceHandle<SceneRenderResources> &item)
-            {
-                return item == scene->GetRenderResources();
-            });
+        auto bound_scenes_it = m_bound_scenes.FindIf([&scene_id](const TResourceHandle<SceneRenderResources> &item)
+        {
+            return item->GetScene()->GetID() == scene_id;
+        });
 
-            if (bound_scenes_it != m_bound_scenes.End()) {
-                m_bound_scenes.Erase(bound_scenes_it);
-            }
+        if (bound_scenes_it != m_bound_scenes.End()) {
+            m_bound_scenes.Erase(bound_scenes_it);
+
+            task_executor->Fulfill(true);
+        } else {
+            task_executor->Fulfill(false);
         }
     });
+
+    return task;
 }
 
 void WorldRenderResources::Initialize()
@@ -139,7 +146,7 @@ void WorldRenderResources::PreRender(renderer::Frame *frame)
         RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
 
         if (const Handle<Camera> &camera = render_collector->GetCamera()) {
-            m_bound_cameras.PushBack(TResourceHandle(camera->GetRenderResources()));
+            m_bound_cameras.PushBack(TResourceHandle<CameraRenderResources>(camera->GetRenderResources()));
         }
     }
 }

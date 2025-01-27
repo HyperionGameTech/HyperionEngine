@@ -43,14 +43,14 @@ public:
         return true;
     }
 
-    virtual void Claim() override
+    virtual int Claim() override
     {
-        // Do nothing
+        return 0;
     }
 
-    virtual void Unclaim() override
+    virtual int Unclaim() override
     {
-        // Do nothing
+        return 0;
     }
 
     virtual void WaitForCompletion() override

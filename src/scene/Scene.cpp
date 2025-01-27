@@ -243,6 +243,10 @@ void Scene::SetWorld(World *world)
         return;
     }
 
+    if (m_world != nullptr && m_world->HasScene(GetID())) {
+        m_world->RemoveScene(WeakHandleFromThis());
+    }
+
     // When world is changed, entity manager needs all systems to have this change reflected
     m_entity_manager->SetWorld(world);
 
@@ -504,6 +508,7 @@ void Scene::EnqueueRenderUpdates()
 bool Scene::CreateTLAS()
 {
     HYP_SCOPE;
+
     AssertThrowMsg(!IsNonWorldScene(), "Can only create TLAS for world scenes");
     AssertIsInitCalled();
 
@@ -531,9 +536,27 @@ bool Scene::CreateTLAS()
     return true;
 }
 
+void Scene::SetRoot(const NodeProxy &root)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(m_owner_thread_id);
+
+    if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
+        m_root_node_proxy->SetScene(nullptr);
+    }
+
+    m_root_node_proxy = root;
+
+    if (m_root_node_proxy.IsValid()) {
+        m_root_node_proxy->SetScene(this);
+    }
+}
+
 bool Scene::AddToWorld(World *world)
 {
     HYP_SCOPE;
+    
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
     AssertReady();

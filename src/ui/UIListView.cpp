@@ -318,13 +318,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         if (const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID())) {
             if (RC<UIObject> ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
-                data_source->GetElementFactory()->UpdateUIObject(
-                    ui_object.Get(),
-                    element->GetValue()
-                );
-
-                // temp; sanity check
-                AssertThrow(FindListViewItem(element->GetUUID()) != nullptr);
+                data_source->GetElementFactory()->UpdateUIObject(ui_object.Get(), element->GetValue(), { });
             } else {
                 HYP_LOG(UI, Error, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
             }
@@ -406,7 +400,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
     }).Detach();
 
     // create UIObject for the element and add it to the list view
-    list_view_item->AddChildUIObject(data_source->GetElementFactory()->CreateUIObject(list_view_item, element->GetValue()));
+    list_view_item->AddChildUIObject(data_source->GetElementFactory()->CreateUIObject(list_view_item, element->GetValue(), { }));
 
     if (parent) {
         // Child element - Find the parent

@@ -73,7 +73,7 @@ void Object::Reset()
     m_object_flags = ObjectFlags::NONE;
 }
 
-void Object::InvokeMethod_Internal(const Method *method_ptr, HypData *args_hyp_data, HypData *out_return_hyp_data)
+void Object::InvokeMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
 {
     AssertThrow(IsValid());
 

@@ -2538,6 +2538,9 @@ struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleFrom...>>
 
 static_assert(sizeof(HypData) == 32, "sizeof(HypData) must match C# struct size");
 
+template <class T>
+constexpr bool is_hypdata_v = std::is_same_v<NormalizedType<T>, HypData>;
+
 } // namespace hyperion
 
 #endif

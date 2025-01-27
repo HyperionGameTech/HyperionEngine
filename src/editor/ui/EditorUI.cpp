@@ -12,13 +12,13 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API IUIDataSourceElementFactory *GetEditorUIDataSourceElementFactory(TypeID type_id)
+HYP_API UIElementFactoryBase *GetEditorUIElementFactory(TypeID type_id)
 {
-    IUIDataSourceElementFactory *factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(type_id);
+    UIElementFactoryBase *factory = UIElementFactoryRegistry::GetInstance().GetFactory(type_id);
         
     if (!factory) {
         if (const HypClass *hyp_class = GetClass(type_id)) {
-            factory = UIDataSourceElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<HypData>());
+            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<HypData>());
         }
 
         if (!factory) {
