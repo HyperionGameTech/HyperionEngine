@@ -3,11 +3,6 @@
 #ifndef HYPERION_DOTNET_METHOD_HPP
 #define HYPERION_DOTNET_METHOD_HPP
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
-
-#include <core/utilities/StringView.hpp>
-
 #include <core/object/HypData.hpp>
 
 #include <dotnet/Attribute.hpp>
@@ -15,6 +10,8 @@
 #include <dotnet/interop/ManagedGuid.hpp>
 
 #include <Types.hpp>
+
+#include <type_traits>
 
 namespace hyperion::dotnet {
 

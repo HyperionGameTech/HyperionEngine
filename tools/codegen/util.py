@@ -1,7 +1,7 @@
 import re
 import os
 
-from cxxheaderparser.cxxheaderparser.types import Reference, Pointer, FundamentalSpecifier
+from cxxheaderparser.cxxheaderparser.types import Reference, Pointer, Array, FundamentalSpecifier
 
 class HypAttributeType:
     NIL = 0
@@ -92,9 +92,15 @@ def map_type(type_object):
     
     if isinstance(type_object, Pointer):
         return 'IntPtr'
+    
+    if isinstance(type_object, Reference):
+        return map_type(type_object.ref_to)
+    
+    if isinstance(type_object, Array):
+        return f'{map_type(type_object.array_of)}[]'
 
     last_segment = type_object.typename.segments[-1]
-    name = last_segment.name
+    name: str = last_segment.name
 
     # Check if the type is in the dict for 1:1 mapping
     if name in CXX_TO_CSHARP_TYPE_MAPPING:

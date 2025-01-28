@@ -3,21 +3,12 @@
 #ifndef HYPERION_DOTNET_OBJECT_HPP
 #define HYPERION_DOTNET_OBJECT_HPP
 
-#include <core/memory/UniquePtr.hpp>
-
-#include <core/containers/String.hpp>
-
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
-
-#include <core/object/HypData.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
 
-#include <core/ID.hpp>
-
-#include <dotnet/Helpers.hpp>
 #include <dotnet/Method.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
 
