@@ -2,13 +2,16 @@ namespace Hyperion
 {
     public class Assert
     {
-        public static void Throw(bool condition, string message, params object[] args)
+        public static void Throw(bool condition, string? message = null, params object[] args)
         {
             if (!condition)
             {
-                string formattedMessage = string.Format(message, args);
+                if (message == null || ((string)message).Length == 0)
+                {
+                    throw new Exception("Assertion failed");
+                }
 
-                Logger.Log(LogType.Error, "Assertion failed: {0}", formattedMessage);
+                string formattedMessage = string.Format((string)message, args ?? Array.Empty<object>());
 
                 throw new Exception(formattedMessage);
             }

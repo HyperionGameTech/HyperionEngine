@@ -28,6 +28,10 @@
 
 namespace hyperion {
 
+namespace dotnet {
+class Object;
+} // namespace dotnet
+
 namespace functional {
 
 class DelegateHandler;
@@ -304,11 +308,11 @@ public:
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class... Args>
-class Delegate final : public IDelegate
+class Delegate : public virtual IDelegate
 {
+public:
     using ProcType = Proc<ReturnType, Args...>;
 
-public:
     Delegate()
         : m_id_counter(0)
 #ifdef HYP_DELEGATE_THREAD_SAFE
@@ -624,7 +628,7 @@ public:
     HYP_FORCE_INLINE ReturnType operator()(ArgTypes &&... args) const
         { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
-private:
+protected:
     HYP_FORCE_INLINE uint32 NextID()
         { return m_id_counter++; }
 
@@ -674,6 +678,7 @@ private:
     Array<DelegateHandler>                                  m_detached_handlers;
     Mutex                                                   m_detached_handlers_mutex;
 };
+
 } // namespace functional
 
 using functional::IDelegate;

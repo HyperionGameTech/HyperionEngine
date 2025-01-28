@@ -9,7 +9,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -1101,23 +1101,56 @@ public:
     }
 
     // Events
-    Delegate<UIEventHandlerResult>                          OnInit;
-    Delegate<UIEventHandlerResult>                          OnAttached;
-    Delegate<UIEventHandlerResult>                          OnRemoved;
-    Delegate<UIEventHandlerResult, UIObject *>              OnChildAttached;
-    Delegate<UIEventHandlerResult, UIObject *>              OnChildRemoved;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDown;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseUp;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseDrag;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseHover;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseLeave;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnMouseMove;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnGainFocus;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnLoseFocus;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnScroll;
-    Delegate<UIEventHandlerResult, const MouseEvent &>      OnClick;
-    Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyDown;
-    Delegate<UIEventHandlerResult, const KeyboardEvent &>   OnKeyUp;
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnInit;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnAttached;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnRemoved;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, UIObject *>            OnChildAttached;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, UIObject *>            OnChildRemoved;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseDown;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseUp;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseDrag;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseHover;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseLeave;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnMouseMove;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnGainFocus;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnLoseFocus;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnScroll;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const MouseEvent &>    OnClick;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent &> OnKeyDown;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent &> OnKeyUp;
 
 protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;

@@ -6,6 +6,7 @@ import json
 from mako.template import Template
 
 from cxxheaderparser.cxxheaderparser.simple import parse_string as parse_cxx_header, ParsedData
+from cxxheaderparser.cxxheaderparser.types import Type, DecoratedType, Pointer, Reference, Array, FundamentalSpecifier, NameSpecifier
 from cxxheaderparser.cxxheaderparser.preprocessor import make_gcc_preprocessor, make_msvc_preprocessor
 from cxxheaderparser.cxxheaderparser.options import ParserOptions
 
@@ -141,8 +142,8 @@ class CodegenClassBuilder:
     def get_hyp_class(self, class_name: str) -> 'HypClassDefinition | None':
         return next((x for x in self.hyp_classes if x.name == class_name), None)
 
-    def map_type_with_context(self, typename: str):
-        map_type_result = map_type(typename)
+    def map_type_with_context(self, type: DecoratedType) -> str:
+        map_type_result: str = map_type(type)
 
         # try to find a class matching that name
         hyp_class = self.get_hyp_class(map_type_result)
@@ -151,6 +152,20 @@ class CodegenClassBuilder:
             return hyp_class.name
             
         return map_type_result
+
+    def map_template_args_with_context(self, type: DecoratedType) -> 'list[str]':
+        if not isinstance(type, Type):
+            return []
+
+        last_segment = type.typename.segments[-1]
+
+        if not isinstance(last_segment, NameSpecifier):
+            return []
+
+        if not last_segment.specialization:
+            return []
+        
+        return [self.map_type_with_context(x.arg) for x in last_segment.specialization.args]
 
     def build_hyp_classes(self):
         for file, last_modified in self.header_files:
@@ -320,23 +335,20 @@ class CodegenClassBuilder:
             self.metadata.get(hyp_class.name).update({ "last_modified": hyp_class.last_modified })
 
 class HypMemberDefinition:
-    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], method_return_type: 'tuple[str, str] | None'=None, method_args: 'list[tuple[str, str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
+    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], return_type: 'tuple[str, str, list[str]] | None'=None, method_args: 'list[tuple[str, str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
         self.member_type = member_type
         self.name = name
         self.attributes = attributes
-        self.method_return_type = method_return_type
+        self.return_type = return_type if return_type is not None else ('void', 'void', [])
         self.method_args = method_args
         self.is_const_method = is_const_method
         self.property_args = property_args
 
         if self.is_method:
-            if self.method_return_type is None:
-                raise Exception('Method return type is required')
-            
             if self.method_args is None:
                 raise Exception('Method arguments are required')
         else:
-            if self.method_return_type is not None or self.method_args is not None:
+            if self.method_args is not None:
                 raise Exception('Method return type and arguments are only allowed for methods')
             
         if self.property_args is not None and not self.is_property:
@@ -357,16 +369,6 @@ class HypMemberDefinition:
     @property
     def is_constant(self):
         return self.member_type == HypMemberType.CONSTANT
-    
-    @property
-    def return_type(self) -> 'tuple[str, str]':
-        if self.is_method:
-            if self.method_return_type is None:
-                return ('void', 'void')
-            
-            return self.method_return_type
-        
-        raise Exception('Member is not a method')
             
     @property
     def args(self):
@@ -548,14 +550,6 @@ class HypClassDefinition:
 
                 if match.group(1) == 'FIELD':
                     member_type = HypMemberType.FIELD
-
-                    member_name = parse_cxx_field_name(member_content)
-
-                    if not member_name:
-                        state.add_error(f'Error: Failed to parse field name for {member_content}')
-                        continue
-
-                    self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args))
                 elif match.group(1) == 'METHOD':
                     member_type = HypMemberType.METHOD
 
@@ -568,16 +562,19 @@ class HypClassDefinition:
                     
                     if member_type == HypMemberType.FIELD:
                         member = parsed_data.namespace.classes[0].fields[0]
+                        member_name = parse_cxx_field_name(member_content)
+                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.type), member.type.format(), state.class_builder.map_template_args_with_context(member.type))
 
-                        # TODO
+                        if not member_name:
+                            state.add_error(f'Error: Failed to parse field name for {member_content}')
+                            continue
+
+                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, return_type=return_type))
                     elif member_type == HypMemberType.METHOD:
                         member = parsed_data.namespace.classes[0].methods[0]
-
                         member_name = member.name.segments[-1].name
-
                         is_const_method = member.const
-
-                        return_type: 'tuple[str, str]' = (state.class_builder.map_type_with_context(member.return_type), member.return_type.format())
+                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.return_type), member.return_type.format(), state.class_builder.map_template_args_with_context(member.return_type))
 
                         args: 'list[tuple[str, str, str]]' = []
 
@@ -591,7 +588,7 @@ class HypClassDefinition:
 
                             args.append((param_type, param_name, param.type.format_decl(param.name)))
 
-                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, method_return_type=return_type, method_args=args, is_const_method=is_const_method))
+                        self.members.append(HypMemberDefinition(member_type, member_name, attributes=inner_args, return_type=return_type, method_args=args, is_const_method=is_const_method))
                     else:
                         raise Exception(f'Invalid member type {member_type}')
                 

@@ -619,7 +619,7 @@ namespace Hyperion
             // ManagedClass must be registered for the given object's type.
             if (!ManagedClass_FindByTypeHash(classHolderPtr, type.GetHashCode(), out outClassObjectPtr))
             {
-                throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
+                throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
             }
 
             Guid objectGuid = Guid.NewGuid();
