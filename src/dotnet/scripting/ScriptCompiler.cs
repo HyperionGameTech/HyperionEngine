@@ -210,6 +210,7 @@ namespace Hyperion
                         + "<TargetFramework>net8.0</TargetFramework>\n"
                         + "<ImplicitUsings>enable</ImplicitUsings>\n"
                         + "<Nullable>enable</Nullable>\n"
+                        + "<AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n"
                         + "<EnableDynamicLoading>true</EnableDynamicLoading>\n"
                         + $"<AssemblyName>{moduleName}</AssemblyName>\n"
                     + "</PropertyGroup>\n"

@@ -242,6 +242,33 @@ namespace Hyperion
             return new HypField(fieldPtr);
         }
 
+        public IEnumerable<HypConstant> Constants
+        {
+            get
+            {
+                IntPtr constantsPtr;
+                uint count = HypClass_GetConstants(ptr, out constantsPtr);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IntPtr constantPtr = Marshal.ReadIntPtr(constantsPtr, i * IntPtr.Size);
+                    yield return new HypConstant(constantPtr);
+                }
+            }
+        }
+
+        public HypConstant? GetConstant(Name name)
+        {
+            IntPtr constantPtr = HypClass_GetConstant(ptr, ref name);
+
+            if (constantPtr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            return new HypConstant(constantPtr);
+        }
+
         public void ValidateType(Type type)
         {
             if (!IsValid)
@@ -411,5 +438,11 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetField")]
         private static extern IntPtr HypClass_GetField([In] IntPtr hypClassPtr, [In] ref Name name);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetConstants")]
+        private static extern uint HypClass_GetConstants([In] IntPtr hypClassPtr, [Out] out IntPtr outConstantsPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetConstant")]
+        private static extern IntPtr HypClass_GetConstant([In] IntPtr hypClassPtr, [In] ref Name name);
     }
 }
