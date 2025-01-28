@@ -676,36 +676,38 @@ public:
     /*! \brief Set whether the UI object affects the size of its parent.
      *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
      *  \param affects_parent_size Whether the UI object affects the size of its parent */
-    HYP_METHOD()
+    HYP_METHOD(Property="AffectsParentSize")
     void SetAffectsParentSize(bool affects_parent_size);
 
     /*! \brief Check if the UI object affects the size of its parent.
      *  \details If true, the size of the parent object will be include the size of this object when calculating the parent's size.
      *  \return True if the UI object affects the size of its parent, false otherwise */
-    HYP_METHOD()
+    HYP_METHOD(Property="AffectsParentSize")
     HYP_FORCE_INLINE bool AffectsParentSize() const
         { return m_affects_parent_size; }
 
     /*! \brief Get the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \return The border radius of the UI object */
-    HYP_METHOD()
+    HYP_METHOD(Property="BorderRadius")
     HYP_FORCE_INLINE uint32 GetBorderRadius() const
         { return m_border_radius; }
 
     /*! \brief Set the border radius of the UI object
      *  \details The border radius of the UI object is used to create rounded corners for the object's border.
      *  \param border_radius The border radius of the UI object */
-    HYP_METHOD()
+    HYP_METHOD(Property="BorderRadius")
     void SetBorderRadius(uint32 border_radius);
 
     /*! \brief Get the border flags of the UI object
      *  \details The border flags of the UI object are used to determine which borders of the object should be rounded, if the border radius is set to a non-zero value.
      *  \example To display a border radius the top left and right corners of the object, set the border flags to \code{UOB_TOP | UOB_LEFT | UOB_RIGHT}.
      *  \return The border flags of the UI object */
+    HYP_METHOD(Property="BorderFlags")
     HYP_FORCE_INLINE EnumFlags<UIObjectBorderFlags> GetBorderFlags() const
         { return m_border_flags; }
 
+    HYP_METHOD(Property="BorderFlags")
     void SetBorderFlags(EnumFlags<UIObjectBorderFlags> border_flags);
 
     UIObjectAlignment GetOriginAlignment() const;

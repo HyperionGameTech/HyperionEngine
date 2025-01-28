@@ -166,6 +166,30 @@ HYP_EXPORT uint32 HypClass_GetFields(const HypClass *hyp_class, const void **out
     return (uint32)hyp_class->GetFields().Size();
 }
 
+HYP_EXPORT HypConstant *HypClass_GetConstant(const HypClass *hyp_class, const Name *name)
+{
+    if (!hyp_class || !name) {
+        return nullptr;
+    }
+
+    return hyp_class->GetConstant(*name);
+}
+
+HYP_EXPORT uint32 HypClass_GetConstants(const HypClass *hyp_class, const void **out_constants)
+{
+    if (!hyp_class || !out_constants) {
+        return 0;
+    }
+
+    if (hyp_class->GetConstants().Empty()) {
+        return 0;
+    }
+
+    *out_constants = hyp_class->GetConstants().Begin();
+
+    return (uint32)hyp_class->GetConstants().Size();
+}
+
 #pragma endregion HypClass
 
 } // extern "C"

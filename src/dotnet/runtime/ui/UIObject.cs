@@ -166,6 +166,18 @@ namespace Hyperion
         Default = Pixel
     }
 
+    [HypClassBinding(Name="UIObjectBorderFlags")]
+    [Flags]
+    public enum UIObjectBorderFlags : uint
+    {
+        None = 0x0,
+        Top = 0x1,
+        Left = 0x2,
+        Bottom = 0x4,
+        Right = 0x8,
+        All = Top | Left | Bottom | Right
+    }
+
     [HypClassBinding(Name="UIObjectSize")]
     [StructLayout(LayoutKind.Sequential, Size=16)]
     public unsafe struct UIObjectSize
