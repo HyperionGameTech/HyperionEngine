@@ -35,6 +35,7 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${HYPERION_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/buildtool/src
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 

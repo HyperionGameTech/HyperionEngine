@@ -23,6 +23,8 @@
 
 namespace hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(Tasks);
+
 enum class TaskEnqueueFlags : uint32
 {
     NONE            = 0x0,
@@ -786,8 +788,6 @@ public:
 #ifdef HYP_DEBUG_MODE
                 HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
 #else
-                HYP_LOG(Tasks, Warning, "Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-
                 Base::Await_Internal();
 #endif
             }
@@ -850,8 +850,6 @@ protected:
 #ifdef HYP_DEBUG_MODE
                 HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
 #else
-                HYP_LOG(Tasks, Warning, "Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-
                 Base::Await_Internal();
 #endif
             }
@@ -949,6 +947,68 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
             }
 
             return results;
+        }
+    }
+};
+
+template <>
+struct TaskAwaitAll_Impl<Task<void>>
+{
+    void operator()(Span<Task<void>> tasks) const
+    {
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<void> &task = tasks[i];
+
+            AssertThrow(task.IsValid());
+        }
+
+        Bitset completion_states;
+        Bitset bound_states;
+
+        //debug
+        Array<int> called_states;
+        called_states.Resize(tasks.Size());
+
+        Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(tasks.Size());
+
+        while ((completion_states | bound_states).Count() != tasks.Size()) {
+            for (SizeType i = 0; i < tasks.Size(); ++i) {
+                if (completion_states.Test(i) || bound_states.Test(i)) {
+                    continue;
+                }
+
+                Task<void> &task = tasks[i];
+
+                if (task.IsCompleted()) {
+                    completion_states.Set(i, true);
+
+                    semaphore.Release(1);
+
+                    continue;
+                }
+
+                // @TODO : What if task finished right before callback was set?
+
+                task.GetTaskExecutor()->GetCallbackChain().Add([&semaphore, &completion_states, &called_states, &tasks, task_index = i]()
+                {
+                    AssertThrow(called_states[task_index] == 0);
+
+                    called_states[task_index] = 1;
+                    DebugLog(LogType::Debug, "Call OnCompleted for task index %u (executor ptr: %p)\n", task_index, tasks[task_index].GetTaskExecutor());
+                    semaphore.Release(1);
+                });
+
+                bound_states.Set(i, true);
+            }
+        }
+
+        semaphore.Acquire();
+
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<void> &task = tasks[i];
+            AssertThrow(task.IsCompleted());
+            
+            task.Await();
         }
     }
 };

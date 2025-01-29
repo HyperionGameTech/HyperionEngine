@@ -98,7 +98,7 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
     lightmapper->OnComplete.Bind([executor = task.Initialize()]()
     {
         executor->Fulfill();
-    });
+    }).Detach();
 
     lightmapper->PerformLightmapping();
 

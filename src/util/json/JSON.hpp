@@ -13,7 +13,12 @@
 #include <util/StringUtil.hpp>
 
 namespace hyperion {
+
+class BufferedReader;
+
 namespace json {
+
+class SourceFile;
 
 template <class JSONValueType>
 struct JSONSubscriptWrapper;
@@ -666,6 +671,8 @@ class HYP_API JSON
 {
 public:
     static ParseResult Parse(const String &json_string);
+    static ParseResult Parse(BufferedReader &reader);
+    static ParseResult Parse(const SourceFile &source_file);
 };
 
 } // namespace json

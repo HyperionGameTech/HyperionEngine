@@ -32,11 +32,19 @@ public:
 class FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
-    FileBufferedReaderSource(const FilePath &filepath)
-        : m_file(nullptr)
+    /*! \brief Takes ownership of the file pointer to use for reading */
+    FileBufferedReaderSource(FILE *file, void(*close_func)(FILE *) = nullptr)
+        : m_file(file),
+          m_close_func(close_func)
     {
-        if ((m_file = fopen(filepath.Data(), "rb")))
-        {
+    }
+
+    /*! \brief Opens the file at the given path for reading */
+    FileBufferedReaderSource(const FilePath &filepath)
+        : m_file(nullptr),
+          m_close_func(nullptr)
+    {
+        if ((m_file = fopen(filepath.Data(), "rb"))) {
             fseek(m_file, 0, SEEK_END);
 
             m_size = ftell(m_file);
@@ -47,9 +55,12 @@ public:
 
     virtual ~FileBufferedReaderSource() override
     {
-        if (m_file)
-        {
-            fclose(m_file);
+        if (m_file) {
+            if (m_close_func) {
+                m_close_func(m_file);
+            } else {
+                fclose(m_file);
+            }
         }
     }
 
@@ -61,8 +72,7 @@ public:
 
     virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) override
     {
-        if (!m_file)
-        {
+        if (!m_file) {
             return 0;
         }
 
@@ -73,6 +83,7 @@ public:
 private:
     SizeType    m_size;
     FILE        *m_file;
+    void        (*m_close_func)(FILE *);
 };
 
 class MemoryBufferedReaderSource : public BufferedReaderSource

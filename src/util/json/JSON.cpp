@@ -7,6 +7,8 @@
 
 #include <math/MathUtil.hpp>
 
+#include <asset/BufferedByteReader.hpp>
+
 namespace hyperion {
 namespace json {
 
@@ -1020,6 +1022,14 @@ HashCode JSONValue::GetHashCode() const
 
 #pragma region JSON
 
+ParseResult JSON::Parse(BufferedReader &reader)
+{
+    SourceFile source_file("<input>", reader.Max());
+    source_file.ReadIntoBuffer(reader.ReadBytes());
+
+    return Parse(source_file);
+}
+
 ParseResult JSON::Parse(const String &json_string)
 {
     SourceFile source_file("<input>", json_string.Size());
@@ -1027,6 +1037,11 @@ ParseResult JSON::Parse(const String &json_string)
     ByteBuffer temp(json_string.Size(), json_string.Data());
     source_file.ReadIntoBuffer(temp);
 
+    return Parse(source_file);
+}
+
+ParseResult JSON::Parse(const SourceFile &source_file)
+{
     // use the lexer and parser on this file buffer
     TokenStream token_stream(TokenStreamInfo { "<input>" });
 

@@ -5,7 +5,7 @@
 
 namespace hyperion::json {
 
-SourceStream::SourceStream(SourceFile *file)
+SourceStream::SourceStream(const SourceFile *file)
     : m_file(file),
       m_position(0)
 {
