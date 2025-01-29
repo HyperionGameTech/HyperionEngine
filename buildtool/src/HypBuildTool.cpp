@@ -1,4 +1,4 @@
-#include <core/system/ArgParse.hpp>
+#include <core/system/CommandLine.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -11,8 +11,15 @@
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/Mutex.hpp>
 
+#include <core/memory/UniquePtr.hpp>
+
+#include <driver/Driver.hpp>
+#include <driver/clang/ClangDriver.hpp>
+
+#include <analyzer/Analyzer.hpp>
 
 namespace hyperion {
+
 HYP_DEFINE_LOG_CHANNEL(BuildTool);
 
 namespace buildtool {
@@ -42,9 +49,14 @@ public:
 class HypBuildTool
 {
 public:
-    HypBuildTool(const FilePath &working_directory)
-        : m_working_directory(working_directory)
+    HypBuildTool(UniquePtr<IDriver> &&driver, const FilePath &working_directory, const FilePath &source_directory)
+        : m_driver(std::move(driver))
     {
+        m_analyzer.SetWorkingDirectory(working_directory);
+        m_analyzer.SetSourceDirectory(source_directory);
+        m_analyzer.SetGlobalDefines(GetGlobalDefines());
+        m_analyzer.SetIncludePaths(GetIncludePaths());
+
         m_thread_pool.Start();
     }
 
@@ -55,57 +67,120 @@ public:
 
     void Run()
     {
-        Task<void> task = ParseHeaders();
-        WaitWhileTaskRunning(task);
+        FindModules();
+
+        Task process_modules = ProcessModules();
+        WaitWhileTaskRunning(process_modules);
+
+        if (m_analyzer.GetState().HasErrors()) {
+            for (const AnalyzerError &error : m_analyzer.GetState().errors) {
+                HYP_LOG(BuildTool, Error, "Error in module {}: {}", error.GetPath(), error.GetMessage());
+            }
+
+            return;
+        }
     }
 
 private:
-    Task<void> ParseHeaders()
+    HashMap<String, String> GetGlobalDefines() const
     {
-        HYP_LOG(BuildTool, LogLevel::INFO, "Parsing headers...");
-
-        return TaskSystem::GetInstance().Enqueue([this]()
-        {
-            Array<FilePath> files;
-            Mutex mutex;
-
-            Proc<void, const FilePath &> IterateFilesAndSubdirectories;
-
-            IterateFilesAndSubdirectories = [&](const FilePath &dir)
-            {
-                Array<FilePath> local_files = dir.GetAllFilesInDirectory();
-                Array<FilePath> local_subdirectories = dir.GetSubdirectories();
-                Array<Task<void>> local_subtasks;
-
-                HYP_LOG(BuildTool, LogLevel::INFO, "On worker thread {}: {}: Discovered {} files, {} subdirectories",
-                    ThreadID::Current().name, dir, local_files.Size(), local_subdirectories.Size());
-
-                {
-                    Mutex::Guard guard(mutex);
-                    files.Concat(local_files);
-                }
-
-                if (local_subdirectories.Empty()) {
-                    return;
-                }
-
-                for (const FilePath &subdirectory : local_subdirectories) {
-                    local_subtasks.PushBack(m_thread_pool.Enqueue([&IterateFilesAndSubdirectories, subdirectory]()
-                    {
-                        IterateFilesAndSubdirectories(subdirectory);
-                    }));
-                }
-
-                AwaitAll(local_subtasks.ToSpan());
-            };
-
-            IterateFilesAndSubdirectories(m_working_directory);
-
-            HYP_LOG(BuildTool, LogLevel::INFO, "Found {} total files", files.Size());
-        });
+        return {
+            { "HYP_BUILDTOOL", "1" },
+            { "HYP_CLASS(...)", "" },
+            { "HYP_STRUCT(...)", "" },
+            { "HYP_ENUM(...)", "" },
+            { "HYP_FIELD(...)", "" },
+            { "HYP_METHOD(...)", "" },
+            { "HYP_PROPERTY(...)", "" },
+            { "HYP_CONSTANT(...)", "" },
+            { "HYP_OBJECT_BODY(...)", "" },
+            { "HYP_API", "" },
+            { "HYP_FORCE_INLINE", "inline" },
+            { "HYP_VULKAN", "1" }
+        };
     }
 
-    void WaitWhileTaskRunning(Task<void> &task)
+    HashSet<String> GetIncludePaths() const
+    {
+        const FilePath &working_directory = m_analyzer.GetWorkingDirectory();
+
+        return {
+            working_directory / "src",
+            working_directory / "include"
+        };
+    }
+
+    void FindModules()
+    {
+        HYP_LOG(BuildTool, Info, "Finding modules...");
+
+        Proc<void, const FilePath &> IterateFilesAndSubdirectories;
+
+        IterateFilesAndSubdirectories = [&](const FilePath &dir)
+        {
+            Array<Module *> local_modules;
+            
+            for (const FilePath &file : dir.GetAllFilesInDirectory()) {
+                if (file.EndsWith(".hpp")) {
+                    local_modules.PushBack(m_analyzer.AddModule(file));
+                }
+            }
+
+            Array<FilePath> local_subdirectories = dir.GetSubdirectories();
+
+            HYP_LOG(BuildTool, Info, "On worker thread {}: {}: Discovered {} modules, {} subdirectories",
+                ThreadID::Current().name, dir, local_modules.Size(), local_subdirectories.Size());
+
+            if (local_subdirectories.Empty()) {
+                return;
+            }
+
+            for (const FilePath &subdirectory : local_subdirectories) {
+                IterateFilesAndSubdirectories(subdirectory);
+            }
+        };
+
+        IterateFilesAndSubdirectories(m_analyzer.GetSourceDirectory());
+
+        HYP_LOG(BuildTool, Info, "Found {} total modules", m_analyzer.GetModules().Size());
+    }
+
+    Task<void> ProcessModules()
+    {
+        HYP_LOG(BuildTool, Info, "Processing modules...");
+
+        Task<void> task;
+
+        TaskBatch *batch = new TaskBatch();
+        batch->pool = &m_thread_pool;
+        batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
+        {
+            task_executor->Fulfill();
+
+            delete batch;
+        }).Detach();
+
+        for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
+            batch->AddTask([this, mod = mod.Get()]()
+            {
+                HYP_LOG(BuildTool, Info, "Processing module: {}", mod->GetPath());
+
+                auto result = m_driver->ProcessModule(m_analyzer, *mod);
+
+                if (result.HasError()) {
+                    m_analyzer.AddError(result.GetError());
+
+                    return;
+                }
+            });
+        }
+
+        TaskSystem::GetInstance().EnqueueBatch(batch);
+
+        return task;
+    }
+
+    void WaitWhileTaskRunning(const Task<void> &task)
     {
         Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
@@ -123,39 +198,40 @@ private:
         std::puts("");
     }
 
-    FilePath            m_working_directory;
     WorkerThreadPool    m_thread_pool;
+    UniquePtr<IDriver>  m_driver;
+    Analyzer            m_analyzer;
 };
 
 } // namespace buildtool
 } // namespace hyperion
 
 using namespace hyperion;
+using namespace buildtool;
 
 int main(int argc, char **argv)
 {
-    ArgParse arg_parse;
-    arg_parse.Add("WorkingDirectory", "w", ArgFlags::NONE, CommandLineArgumentType::STRING, FilePath::Current().BasePath());
-    arg_parse.Add("Mode", "m", ArgFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"));
+    CommandLineParser arg_parse {
+        CommandLineArgumentDefinitions()
+            .Add("WorkingDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("SourceDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"))
+    };
 
     if (auto parse_result = arg_parse.Parse(argc, argv)) {
         TaskSystem::GetInstance().Start();
 
         buildtool::HypBuildTool build_tool {
-            FilePath(parse_result.result["WorkingDirectory"].AsString())
+            MakeUnique<ClangDriver>(),
+            FilePath(parse_result.GetValue()["WorkingDirectory"].AsString()),
+            FilePath(parse_result.GetValue()["SourceDirectory"].AsString())
         };
+        
         build_tool.Run();
 
         TaskSystem::GetInstance().Stop();
     } else {
-        HYP_LOG(
-            BuildTool,
-            LogLevel::ERR,
-            "Failed to parse arguments!\n\t{}",
-            parse_result.message.HasValue()
-                ? *parse_result.message
-                : String("<no message>")
-        );
+        HYP_LOG(BuildTool, Error, "Failed to parse arguments!\n\t{}", parse_result.GetError().GetMessage());
 
         return 1;
     }

@@ -28,6 +28,8 @@ void TaskThread::Stop()
     m_stop_requested.Set(true, MemoryOrder::RELAXED);
 
     m_scheduler.RequestStop();
+    
+    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 void TaskThread::operator()()

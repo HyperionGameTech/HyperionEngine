@@ -733,6 +733,7 @@ static inline void DeferCreate(RefType ref, Args &&... args)
     using T##Ref = T##Ref##_VULKAN; \
     using T##WeakRef = T##WeakRef##_VULKAN
 #elif HYP_WEBGPU
+#define DEF_CURRENT_PLATFORM_RENDER_OBJECT(T) \
     using T = T##_WEBGPU; \
     using T##Ref = T##Ref##_WEBGPU; \
     using T##WeakRef = T##WeakRef##_WEBGPU

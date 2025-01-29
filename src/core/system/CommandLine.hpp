@@ -218,6 +218,7 @@ private:
 using sys::CommandLineParser;
 using sys::CommandLineArguments;
 using sys::CommandLineArgumentValue;
+using sys::CommandLineArgumentDefinitions;
 
 } // namespace hyperion
 

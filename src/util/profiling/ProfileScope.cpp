@@ -403,7 +403,7 @@ public:
 
         m_root_entry.SaveDiff();
 
-        if (g_engine->GetAppContext()->GetArguments()["Profile"]) {
+        if (g_engine.IsValid() && g_engine->GetAppContext() != nullptr && g_engine->GetAppContext()->GetArguments()["Profile"]) {
             m_queue.PushBack(m_root_entry.ToJSON());
             
             if (m_queue.Size() >= 100) {

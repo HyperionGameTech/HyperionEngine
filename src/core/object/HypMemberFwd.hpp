@@ -13,6 +13,9 @@
 
 namespace hyperion {
 
+class HypClassAttributeSet;
+class HypClassAttributeValue;
+
 enum class HypMemberType : uint8
 {
     NONE                = 0x0,
