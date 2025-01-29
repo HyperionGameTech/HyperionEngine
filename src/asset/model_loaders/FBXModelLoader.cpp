@@ -3,7 +3,10 @@
 #include <asset/model_loaders/FBXModelLoader.hpp>
 
 #include <scene/Entity.hpp>
+
 #include <scene/animation/Bone.hpp>
+#include <scene/animation/Skeleton.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/AnimationComponent.hpp>
@@ -17,6 +20,7 @@
 #include <util/fs/FsUtil.hpp>
 
 #include <core/memory/Memory.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>

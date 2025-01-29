@@ -7,8 +7,11 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
+
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+
+#include <core/Handle.hpp>
 
 #include <math/Transform.hpp>
 #include <math/Color.hpp>
@@ -16,8 +19,6 @@
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 
-#include <rendering/Shader.hpp>
-#include <rendering/Mesh.hpp>
 #include <rendering/Buffers.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -29,6 +30,8 @@ namespace hyperion {
 
 class Engine;
 class DebugDrawer;
+class RenderGroup;
+class Mesh;
 
 enum class DebugDrawShape : uint32
 {

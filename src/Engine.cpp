@@ -14,6 +14,9 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/World.hpp>
 #include <rendering/Scene.hpp>
+#include <rendering/SafeDeleter.hpp>
+#include <rendering/ShaderManager.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -30,6 +33,8 @@
 #include <util/fs/FsUtil.hpp>
 
 #include <audio/AudioManager.hpp>
+
+#include <scene/World.hpp>
 
 #include <core/system/StackDump.hpp>
 #include <core/system/SystemEvent.hpp>
@@ -59,14 +64,14 @@ namespace hyperion {
 using renderer::FillMode;
 using renderer::GPUBufferType;
 
-Handle<Engine>          g_engine = { };
-Handle<AssetManager>    g_asset_manager { };
-ShaderManagerSystem     *g_shader_manager = nullptr;
-MaterialCache           *g_material_system = nullptr;
-SafeDeleter             *g_safe_deleter = nullptr;
-
 /* \brief Should the swapchain be rebuilt on the next frame? */
 static bool g_should_recreate_swapchain = false;
+
+Handle<Engine> g_engine = { };
+Handle<AssetManager> g_asset_manager { };
+ShaderManager *g_shader_manager = nullptr;
+MaterialCache *g_material_system = nullptr;
+SafeDeleter *g_safe_deleter = nullptr;
 
 class RenderThread final : public Thread<Scheduler>
 {
@@ -439,7 +444,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Create(m_instance->GetDevice()));
 
-    m_material_descriptor_set_manager.Initialize();
+    m_material_descriptor_set_manager = MakeUnique<MaterialDescriptorSetManager>();
+    m_material_descriptor_set_manager->Initialize();
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
@@ -515,6 +521,8 @@ void Engine::FinalizeStop()
 
         HYP_LOG(Tasks, Info, "Task system stopped");
     }
+
+    m_material_descriptor_set_manager.Reset();
 
     m_deferred_renderer->Destroy();
     m_deferred_renderer.Reset();
@@ -647,9 +655,8 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     // Add/remove pending descriptor sets before flushing render commands or updating buffers and descriptor sets.
     // otherwise we'll have an issue when render commands expect the descriptor sets to be there.
-    m_material_descriptor_set_manager.UpdatePendingDescriptorSets(frame);
-
-    m_material_descriptor_set_manager.Update(frame);
+    m_material_descriptor_set_manager->UpdatePendingDescriptorSets(frame);
+    m_material_descriptor_set_manager->Update(frame);
 
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame->GetFrameIndex()));
 

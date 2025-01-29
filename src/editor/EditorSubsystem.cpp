@@ -9,6 +9,7 @@
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -19,6 +20,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+
 #include <asset/serialization/fbom/FBOMReader.hpp>
 #include <asset/serialization/fbom/FBOMWriter.hpp>
 
@@ -45,8 +47,9 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <rendering/UIRenderer.hpp>
 #include <rendering/Scene.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/subsystems/ScreenCapture.hpp>
 

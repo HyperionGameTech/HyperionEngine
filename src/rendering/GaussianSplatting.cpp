@@ -1,8 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <rendering/GaussianSplatting.hpp>
 
-#include <scene/camera/OrthoCamera.hpp>
-
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
@@ -10,11 +8,14 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Scene.hpp>
 #include <rendering/Camera.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/camera/OrthoCamera.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

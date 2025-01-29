@@ -5,16 +5,14 @@
 
 #include <Config.hpp>
 
-#include <rendering/ShaderManager.hpp>
 #include <rendering/DefaultFormats.hpp>
-#include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderState.hpp>
-
-#include <scene/World.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderCommand.hpp>
+
+#include <core/Handle.hpp>
+#include <core/Base.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -25,8 +23,6 @@
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
 #include <Types.hpp>
-
-#include <mutex>
 
 namespace hyperion {
 
@@ -54,10 +50,15 @@ class DeferredRenderer;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;
+class SafeDeleter;
+class ShaderManager;
+class RenderState;
+class MaterialCache;
+class MaterialDescriptorSetManager;
 
 extern Handle<Engine> g_engine;
 extern Handle<AssetManager> g_asset_manager;
-extern ShaderManagerSystem *g_shader_manager;
+extern ShaderManager *g_shader_manager;
 extern MaterialCache *g_material_system;
 extern SafeDeleter *g_safe_deleter;
 
@@ -197,11 +198,8 @@ public:
     HYP_FORCE_INLINE const DescriptorTableRef &GetGlobalDescriptorTable() const
         { return m_global_descriptor_table; }
     
-    HYP_FORCE_INLINE MaterialDescriptorSetManager &GetMaterialDescriptorSetManager()
-        { return m_material_descriptor_set_manager; }
-    
-    HYP_FORCE_INLINE const MaterialDescriptorSetManager &GetMaterialDescriptorSetManager() const
-        { return m_material_descriptor_set_manager; }
+    HYP_FORCE_INLINE MaterialDescriptorSetManager *GetMaterialDescriptorSetManager()
+        { return m_material_descriptor_set_manager.Get(); }
 
     HYP_FORCE_INLINE net::NetRequestThread *GetNetRequestThread() const
         { return m_net_request_thread.Get(); }
@@ -249,7 +247,7 @@ private:
 
     DescriptorTableRef                                      m_global_descriptor_table;
 
-    MaterialDescriptorSetManager                            m_material_descriptor_set_manager;
+    UniquePtr<MaterialDescriptorSetManager>                 m_material_descriptor_set_manager;
 
     HashMap<TextureFormatDefault, InternalFormat>           m_texture_format_defaults;
 

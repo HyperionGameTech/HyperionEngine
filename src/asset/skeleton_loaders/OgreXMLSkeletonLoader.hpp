@@ -5,8 +5,6 @@
 
 #include <asset/Assets.hpp>
 
-#include <scene/animation/Skeleton.hpp>
-
 #include <math/Quaternion.hpp>
 
 #include <Types.hpp>

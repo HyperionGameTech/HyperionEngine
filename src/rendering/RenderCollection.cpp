@@ -19,6 +19,8 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/Camera.hpp>
+#include <rendering/RenderState.hpp>
+
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RenderConfig.hpp>

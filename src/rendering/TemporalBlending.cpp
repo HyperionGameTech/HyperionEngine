@@ -6,6 +6,8 @@
 #include <rendering/Camera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
+#include <rendering/RenderState.hpp>
+#include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 

@@ -24,6 +24,7 @@
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/Scene.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererImage.hpp>

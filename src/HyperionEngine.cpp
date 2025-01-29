@@ -9,10 +9,11 @@
 #include <scene/ecs/ComponentInterface.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
-
 #include <core/threading/Threads.hpp>
-
 #include <core/system/MessageBox.hpp>
+
+#include <rendering/SafeDeleter.hpp>
+#include <rendering/Material.hpp>
 
 #include <Game.hpp>
 
@@ -44,7 +45,7 @@ HYP_API void InitializeEngine(const FilePath &base_path)
     g_asset_manager = CreateObject<AssetManager>();
     InitObject(g_asset_manager);
 
-    g_shader_manager = new ShaderManagerSystem;
+    g_shader_manager = new ShaderManager;
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;
 

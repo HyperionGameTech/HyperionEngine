@@ -7,6 +7,8 @@
 
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Skeleton.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 

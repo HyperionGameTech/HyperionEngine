@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <Config.hpp>
-#include <Engine.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -110,12 +109,7 @@ String Option::GetString() const
 const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_DEBUG_MODE, "DebugMode" },
     { CONFIG_SHADER_COMPILATION, "ShaderCompilation" },
-    { CONFIG_RT_ENABLED, "RTEnabled" },
-    { CONFIG_RT_REFLECTIONS, "RTReflections" },
-    { CONFIG_RT_GI, "RTGlobalIllumination" },
-    { CONFIG_RT_GI_DEBUG_PROBES, "DebugDDGIProbes" },
     { CONFIG_PATHTRACER,  "PathTracer" },
-    { CONFIG_SSR, "ScreenSpaceReflections" },
     { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
     { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
     { CONFIG_ENV_GRID_GI_MODE, "EnvGridGlobalIlluminationMode" },
@@ -154,20 +148,11 @@ String Configuration::OptionNameToString(OptionName option)
     return it->second;
 }
 
-bool Configuration::IsRTOption(OptionName option)
-{
-    return option == CONFIG_RT_ENABLED
-        || option == CONFIG_RT_REFLECTIONS
-        || option == CONFIG_RT_GI
-        || option == CONFIG_RT_GI_DEBUG_PROBES
-        || option == CONFIG_PATHTRACER;
-}
-
 Configuration::Configuration() = default;
 
 bool Configuration::LoadFromDefinitionsFile()
 {
-    const INIFile definitions(g_asset_manager->GetBasePath() / "Config.ini");
+    const INIFile definitions(AssetManager::GetInstance()->GetBasePath() / "Config.ini");
 
     if (!definitions.IsValid()) {
         return false;
@@ -186,22 +171,18 @@ bool Configuration::LoadFromDefinitionsFile()
 
             Option value;
 
-            if (IsRTOption(option_name) && !g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
-                value = false;
-            } else {
-                union { int i; float f; } tmp_value;
+            union { int i; float f; } tmp_value;
 
-                if (option_value.GetValue().name == "true") {
-                    value = true;
-                } else if (option_value.GetValue().name == "false") {
-                    value = false;
-                } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.i)) {
-                    value = tmp_value.i;
-                } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.f)) {
-                    value = tmp_value.f;
-                } else {
-                    value = false;
-                }
+            if (option_value.GetValue().name == "true") {
+                value = true;
+            } else if (option_value.GetValue().name == "false") {
+                value = false;
+            } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.i)) {
+                value = tmp_value.i;
+            } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.f)) {
+                value = tmp_value.f;
+            } else {
+                value = false;
             }
 
             m_variables[option_name] = std::move(value);
@@ -249,7 +230,7 @@ bool Configuration::SaveToDefinitionsFile()
         str_result += OptionNameToString(OptionName(index)) + " = " + value_string + "\n";
     }
 
-    const String path = g_asset_manager->GetBasePath() / "Config.ini";
+    const String path = AssetManager::GetInstance()->GetBasePath() / "Config.ini";
 
     FileByteWriter writer(path.Data());
 
@@ -277,14 +258,8 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_SHADER_COMPILATION] = Option(false, false);
 #endif
     
-    m_variables[CONFIG_RT_ENABLED] = Option(g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported() && g_engine->GetGPUDevice()->GetFeatures().IsRaytracingEnabled(), true);
-    m_variables[CONFIG_RT_REFLECTIONS] = Option(m_variables[CONFIG_RT_ENABLED].GetBool(), true);
-    m_variables[CONFIG_RT_GI] = Option(m_variables[CONFIG_RT_ENABLED].GetBool(), true);
-
     m_variables[CONFIG_HBAO] = Option(true, true);
     m_variables[CONFIG_HBIL] = Option(m_variables[CONFIG_HBAO].GetBool(), true);
-    
-    m_variables[CONFIG_SSR] = Option(!m_variables[CONFIG_RT_REFLECTIONS].GetBool(), true);
 
     m_variables[CONFIG_TEMPORAL_AA] = Option(true, true);
 

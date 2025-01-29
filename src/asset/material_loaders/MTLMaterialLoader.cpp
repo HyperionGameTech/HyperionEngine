@@ -3,6 +3,8 @@
 #include <asset/material_loaders/MTLMaterialLoader.hpp>
 #include <asset/AssetBatch.hpp>
 
+#include <rendering/Texture.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>
@@ -301,7 +303,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             textures.Set(it.mapping.key, std::move(texture));
         }
 
-        Handle<Material> material = g_material_system->GetOrCreate(
+        Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
             attributes,
             parameters,
             textures

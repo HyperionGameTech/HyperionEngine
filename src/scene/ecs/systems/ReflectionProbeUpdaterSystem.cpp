@@ -3,6 +3,8 @@
 #include <scene/ecs/systems/ReflectionProbeUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/Scene.hpp>
+
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>

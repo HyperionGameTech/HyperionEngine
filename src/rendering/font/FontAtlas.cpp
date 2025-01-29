@@ -2,6 +2,7 @@
 
 #include <rendering/font/FontAtlas.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -15,6 +16,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Font);
 
 using renderer::StagingBuffer;
+using renderer::GPUBufferType;
 
 #pragma region Render commands
 

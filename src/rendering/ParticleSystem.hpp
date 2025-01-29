@@ -15,10 +15,6 @@
 
 #include <util/img/Bitmap.hpp>
 
-#include <rendering/Shader.hpp>
-#include <rendering/Mesh.hpp>
-#include <rendering/Texture.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {

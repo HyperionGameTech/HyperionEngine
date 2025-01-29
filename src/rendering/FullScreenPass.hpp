@@ -3,12 +3,14 @@
 #ifndef HYPERION_FULL_SCREEN_PASS_HPP
 #define HYPERION_FULL_SCREEN_PASS_HPP
 
-#include <rendering/Shader.hpp>
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderableAttributes.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RendererStructs.hpp>
 
 #include <core/functional/Delegate.hpp>
+
+#include <core/Handle.hpp>
 
 #include <Constants.hpp>
 
@@ -17,8 +19,11 @@
 namespace hyperion {
 
 using renderer::PushConstantData;
+using renderer::BlendFunction;
 
 class Engine;
+class Mesh;
+class RenderGroup;
 
 class HYP_API FullScreenPass
 {

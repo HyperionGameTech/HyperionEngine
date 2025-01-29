@@ -8,7 +8,7 @@
 #include <core/object/HypObjectEnums.hpp>
 #include <core/object/HypData.hpp>
 #include <core/object/HypMemberFwd.hpp>
-#include <core/Base.hpp>
+#include <core/object/HypClassAttribute.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>

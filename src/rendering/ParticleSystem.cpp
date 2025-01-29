@@ -12,6 +12,7 @@
 #include <rendering/EnvGrid.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>

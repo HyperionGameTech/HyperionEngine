@@ -3,6 +3,8 @@
 #include <scene/ecs/systems/ScriptSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/World.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <core/logging/LogChannels.hpp>

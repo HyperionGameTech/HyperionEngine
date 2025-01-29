@@ -6,8 +6,6 @@
 #include <core/containers/TypeMap.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <rendering/Shader.hpp>
-#include <rendering/Mesh.hpp>
 #include <rendering/FullScreenPass.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

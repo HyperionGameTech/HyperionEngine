@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
@@ -50,30 +51,6 @@
 // #define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion {
-
-
-#pragma region Render commands
-
-struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
-{
-    Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
-
-    RENDER_COMMAND(BindEnvProbes)(Array<Pair<ID<EnvProbe>, EnvProbeType>> &&items)
-        : items(std::move(items))
-    {
-    }
-
-    virtual RendererResult operator()()
-    {
-        for (const auto &it : items) {
-            g_engine->GetRenderState()->BindEnvProbe(it.second, it.first);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
 
 Scene::Scene()
     : Scene(nullptr, Handle<Camera>::empty, Threads::GetStaticThreadID(ThreadName::THREAD_GAME), { })

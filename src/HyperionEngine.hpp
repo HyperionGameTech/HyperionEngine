@@ -3,7 +3,10 @@
 #pragma once
 
 #include <core/system/AppContext.hpp>
+
+#include <core/Handle.hpp>
 #include <core/Defines.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -13,8 +16,6 @@ class FilePath;
 } // namespace filesystem
 
 using filesystem::FilePath;
-
-class Game;
 
 HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game);
 

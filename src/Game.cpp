@@ -2,26 +2,31 @@
 
 #include <Game.hpp>
 
-#include <Engine.hpp>
-
 #include <asset/Assets.hpp>
 
 #include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
+
 #include <core/system/SystemEvent.hpp>
 #include <core/system/Debug.hpp>
+
 #include <core/logging/Logger.hpp>
 
+#include <scene/World.hpp>
+
+#include <scene/camera/Camera.hpp>
+
 #include <rendering/Camera.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 
-#include <scene/camera/Camera.hpp>
-
 #include <scripting/ScriptingService.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -137,7 +142,7 @@ void Game::Init()
             "BeforeInit",
             m_scene,
             m_app_context->GetInputManager(),
-            g_asset_manager,
+            AssetManager::GetInstance(),
             m_ui_stage
         );
 

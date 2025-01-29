@@ -5,7 +5,6 @@
 
 #include <asset/Assets.hpp>
 #include <scene/Node.hpp>
-#include <rendering/Mesh.hpp>
 
 #include <Types.hpp>
 

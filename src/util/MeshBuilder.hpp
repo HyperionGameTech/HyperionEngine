@@ -1,19 +1,23 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_MESH_BUILDER_HPP
 #define HYPERION_MESH_BUILDER_HPP
 
-#include <rendering/Mesh.hpp>
 #include <core/containers/Array.hpp>
-#include <core/memory/UniquePtr.hpp>
+
 #include <core/Handle.hpp>
+#include <core/Defines.hpp>
+
 #include <math/BoundingBox.hpp>
 #include <math/Vector3.hpp>
-#include <core/Defines.hpp>
+#include <math/Vector4.hpp>
+#include <math/Vertex.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
-using renderer::Topology;
+class Mesh;
 
 struct Quad
 {
@@ -100,12 +104,12 @@ struct VoxelGrid
 
 class HYP_API MeshBuilder
 {
-    static const Array<Vertex>      quad_vertices;
-    static const Array<Mesh::Index> quad_indices;
-    static const Array<Vertex>      cube_vertices;
+    static const Array<Vertex>  quad_vertices;
+    static const Array<uint32>  quad_indices;
+    static const Array<Vertex>  cube_vertices;
 
 public:
-    static Handle<Mesh> Quad(Topology topology = Topology::TRIANGLES);
+    static Handle<Mesh> Quad();
     static Handle<Mesh> Cube();
     static Handle<Mesh> NormalizedCubeSphere(uint32 num_divisions);
 

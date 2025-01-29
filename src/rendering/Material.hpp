@@ -807,7 +807,7 @@ private:
 
     FixedArray<Array<WeakHandle<Material>>, max_frames_in_flight>                           m_descriptor_sets_to_update;
     Mutex                                                                                   m_descriptor_sets_to_update_mutex;
-    AtomicVar<uint32>                                                                         m_descriptor_sets_to_update_flag;
+    AtomicVar<uint32>                                                                       m_descriptor_sets_to_update_flag;
 };
 
 } // namespace hyperion

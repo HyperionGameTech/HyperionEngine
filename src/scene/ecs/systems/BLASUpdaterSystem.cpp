@@ -3,6 +3,10 @@
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/Scene.hpp>
+
+#include <rendering/Mesh.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 

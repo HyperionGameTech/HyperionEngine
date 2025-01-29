@@ -25,10 +25,6 @@
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
-#include <rendering/RenderSubsystem.hpp>
-#include <rendering/EnvProbe.hpp>
-#include <rendering/Mesh.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {

@@ -26,10 +26,6 @@ public static class ${hyp_class.name}Extensions
             %endif
         % endif
     }
-    % elif hyp_class.members[i].member_type == HypMemberType.FIELD and return_type_name == "ScriptableDelegate":
-    public static Func<${", ".join(return_type[2])}> Get${hyp_class.members[i].name}Delegate(this ${hyp_class.name} obj)
-    {
-    }
     % endif
 % endfor
 }
