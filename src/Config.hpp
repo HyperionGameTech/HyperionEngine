@@ -30,14 +30,6 @@ enum OptionName
 
     CONFIG_DEBUG_MODE,
     CONFIG_SHADER_COMPILATION,
-    
-    CONFIG_RT_ENABLED,
-    CONFIG_RT_REFLECTIONS,
-    CONFIG_RT_GI,
-
-    CONFIG_RT_GI_DEBUG_PROBES,
-
-    CONFIG_SSR,
 
     CONFIG_ENV_GRID_GI,
     CONFIG_ENV_GRID_GI_MODE,
@@ -206,7 +198,6 @@ public:
 
     static OptionName StringToOptionName(const String &str);
     static String OptionNameToString(OptionName option);
-    static bool IsRTOption(OptionName option);
 
 private:
     FixedArray<Option, CONFIG_MAX>  m_variables;

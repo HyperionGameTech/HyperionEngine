@@ -2,6 +2,9 @@
 
 #include <rendering/Light.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/SafeDeleter.hpp>
+#include <rendering/RenderState.hpp>
+
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
 #include <core/object/HypClassUtils.hpp>
@@ -16,8 +19,6 @@
 #include <Engine.hpp>
 
 namespace hyperion {
-
-// @TODO Convert Light to use RenderResources
 
 #pragma region Render commands
 

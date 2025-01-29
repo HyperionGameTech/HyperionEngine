@@ -3,6 +3,8 @@
 #include <scene/ecs/systems/EnvGridUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/Scene.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Scene.hpp>

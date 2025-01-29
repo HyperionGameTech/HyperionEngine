@@ -3,23 +3,21 @@
 #ifndef HYPERION_ECS_ANIMATION_COMPONENT_HPP
 #define HYPERION_ECS_ANIMATION_COMPONENT_HPP
 
-#include <scene/animation/Skeleton.hpp>
-
 #include <HashCode.hpp>
 
 namespace hyperion {
 
-enum AnimationPlaybackStatus
+enum class AnimationPlaybackStatus : uint32
 {
-    ANIMATION_PLAYBACK_STATUS_STOPPED,
-    ANIMATION_PLAYBACK_STATUS_PAUSED,
-    ANIMATION_PLAYBACK_STATUS_PLAYING
+    STOPPED = 0,
+    PAUSED,
+    PLAYING
 };
 
-enum AnimationLoopMode
+enum class AnimationLoopMode : uint32
 {
-    ANIMATION_LOOP_MODE_ONCE,
-    ANIMATION_LOOP_MODE_REPEAT
+    ONCE = 0,
+    REPEAT
 };
 
 HYP_STRUCT()
@@ -29,10 +27,10 @@ struct AnimationPlaybackState
     uint32                  animation_index = ~0u;
 
     HYP_FIELD(Property="Status", Serialize=true, Editor=true)
-    AnimationPlaybackStatus status = ANIMATION_PLAYBACK_STATUS_STOPPED;
+    AnimationPlaybackStatus status = AnimationPlaybackStatus::STOPPED;
 
     HYP_FIELD(Property="LoopMode", Serialize=true, Editor=true)
-    AnimationLoopMode       loop_mode = ANIMATION_LOOP_MODE_ONCE;
+    AnimationLoopMode       loop_mode = AnimationLoopMode::ONCE;
 
     HYP_FIELD(Property="Speed", Serialize=true, Editor=true)
     float                   speed = 1.0f;

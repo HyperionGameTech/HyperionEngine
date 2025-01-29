@@ -16,13 +16,12 @@
 
 namespace hyperion {
 
-
-ShaderManagerSystem *ShaderManagerSystem::GetInstance()
+ShaderManager *ShaderManager::GetInstance()
 {
     return g_shader_manager;
 }
 
-ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
+ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
 {
     HYP_NAMED_SCOPE("Get shader from cache or create");
 
@@ -131,7 +130,7 @@ ShaderRef ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definition)
     return shader;
 }
 
-ShaderRef ShaderManagerSystem::GetOrCreate(
+ShaderRef ShaderManager::GetOrCreate(
     Name name,
     const ShaderProperties &props
 )

@@ -26,6 +26,8 @@
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/UIComponent.hpp>
 
+#include <rendering/Mesh.hpp>
+
 #include <input/InputManager.hpp>
 
 #include <core/threading/Threads.hpp>

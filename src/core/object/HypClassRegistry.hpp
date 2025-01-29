@@ -3,8 +3,6 @@
 #ifndef HYPERION_CORE_HYP_CLASS_REGISTRY_HPP
 #define HYPERION_CORE_HYP_CLASS_REGISTRY_HPP
 
-#include <core/object/HypClassAttribute.hpp>
-
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -18,6 +16,8 @@
 #include <core/Name.hpp>
 #include <core/Util.hpp>
 
+#include <type_traits>
+
 namespace hyperion {
 
 namespace dotnet {
@@ -26,8 +26,8 @@ class Object;
 } // namespace dotnet
 
 class HypClass;
+class HypClassAttribute;
 class HypEnum;
-
 struct HypMember;
 
 template <class T>
@@ -38,6 +38,9 @@ class HypStructInstance;
 
 template <class T>
 class HypEnumInstance;
+
+template <class T>
+struct Handle;
 
 enum class HypClassFlags : uint32
 {
@@ -178,6 +181,44 @@ struct HypEnumRegistration : public HypClassRegistrationBase
 };
 
 } // namespace detail
+
+#pragma region Global Helper Functions
+
+template <class T>
+HYP_FORCE_INLINE const HypClass *GetClass()
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+template <class T>
+HYP_FORCE_INLINE const HypClass *GetClass(const T *ptr)
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+template <class T>
+HYP_FORCE_INLINE const HypClass *GetClass(const Handle<T> &handle)
+{
+    return HypClassRegistry::GetInstance().template GetClass<T>();
+}
+
+HYP_API const HypClass *GetClass(TypeID type_id);
+HYP_API const HypClass *GetClass(WeakName type_name);
+
+template <class T>
+HYP_FORCE_INLINE const HypEnum *GetEnum()
+{
+    return HypClassRegistry::GetInstance().template GetEnum<T>();
+}
+
+HYP_API const HypEnum *GetEnum(TypeID type_id);
+HYP_API const HypEnum *GetEnum(WeakName type_name);
+
+HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
+HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
+
+#pragma endregion Global Helper Functions
+
 } // namespace hyperion
 
 #endif

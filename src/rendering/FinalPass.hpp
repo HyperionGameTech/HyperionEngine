@@ -14,9 +14,9 @@
 
 namespace hyperion {
 
-class ShaderManagerSystem;
+class ShaderManager;
 
-extern ShaderManagerSystem *g_shader_manager;
+extern ShaderManager *g_shader_manager;
 
 struct RENDER_COMMAND(SetUITexture);
 

@@ -26,6 +26,8 @@
 
 #include <util/json/JSON.hpp>
 
+#include <core/Core.hpp>
+
 #include <core/containers/Stack.hpp>
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/String.hpp>

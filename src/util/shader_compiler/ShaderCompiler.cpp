@@ -14,6 +14,10 @@
 
 #include <core/object/HypData.hpp>
 
+#include <core/containers/Stack.hpp>
+
+#include <core/functional/Proc.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

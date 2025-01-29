@@ -3,11 +3,13 @@
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
+#include <scene/World.hpp>
+
+#include <scene/ecs/EntityManager.hpp>
+
 #include <core/threading/Scheduler.hpp>
 
 #include <asset/Assets.hpp>
-
-#include <scene/ecs/EntityManager.hpp>
 
 #include <Engine.hpp>
 

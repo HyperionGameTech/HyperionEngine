@@ -16,18 +16,15 @@ class AnalyzerError : public Error
 {
 public:
     AnalyzerError()
-        : Error()
+        : Error(),
+          m_error_code(0)
     {
     }
 
-    AnalyzerError(const StaticMessage &static_message)
-        : AnalyzerError(static_message, "")
-    {
-    }
-
-    AnalyzerError(const StaticMessage &static_message, const FilePath &path)
+    AnalyzerError(const StaticMessage &static_message, const FilePath &path, int error_code = 0)
         : Error(static_message),
-          m_path(path)
+          m_path(path),
+          m_error_code(error_code)
     {
     }
 
@@ -41,8 +38,12 @@ public:
     HYP_FORCE_INLINE const FilePath &GetPath() const
         { return m_path; }
 
+    HYP_FORCE_INLINE int GetErrorCode() const
+        { return m_error_code; }
+
 private:
     FilePath    m_path;
+    int         m_error_code;
 };
 
 } // namespace buildtool

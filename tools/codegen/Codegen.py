@@ -335,11 +335,11 @@ class CodegenClassBuilder:
             self.metadata.get(hyp_class.name).update({ "last_modified": hyp_class.last_modified })
 
 class HypMemberDefinition:
-    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], return_type: 'tuple[str, str, list[str]] | None'=None, method_args: 'list[tuple[str, str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
+    def __init__(self, member_type: int, name: str, attributes: 'list[tuple[str, str, int]]'=[], return_type: 'tuple[str, str] | None'=None, method_args: 'list[tuple[str, str, str]]'=None, is_const_method: bool=False, property_args: 'list[str] | None'=None):
         self.member_type = member_type
         self.name = name
         self.attributes = attributes
-        self.return_type = return_type if return_type is not None else ('void', 'void', [])
+        self.return_type = return_type if return_type is not None else ('void', 'void')
         self.method_args = method_args
         self.is_const_method = is_const_method
         self.property_args = property_args
@@ -563,7 +563,7 @@ class HypClassDefinition:
                     if member_type == HypMemberType.FIELD:
                         member = parsed_data.namespace.classes[0].fields[0]
                         member_name = parse_cxx_field_name(member_content)
-                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.type), member.type.format(), state.class_builder.map_template_args_with_context(member.type))
+                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.type), member.type.format())
 
                         if not member_name:
                             state.add_error(f'Error: Failed to parse field name for {member_content}')
@@ -574,7 +574,7 @@ class HypClassDefinition:
                         member = parsed_data.namespace.classes[0].methods[0]
                         member_name = member.name.segments[-1].name
                         is_const_method = member.const
-                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.return_type), member.return_type.format(), state.class_builder.map_template_args_with_context(member.return_type))
+                        return_type: 'tuple[str, str, list[str]]' = (state.class_builder.map_type_with_context(member.return_type), member.return_type.format())
 
                         args: 'list[tuple[str, str, str]]' = []
 

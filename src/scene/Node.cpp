@@ -1,6 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/Node.hpp>
+#include <scene/Scene.hpp>
+#include <scene/World.hpp>
+
+#include <scene/animation/Bone.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -8,8 +12,6 @@
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-
-#include <scene/animation/Bone.hpp>
 
 #include <core/system/Debug.hpp>
 

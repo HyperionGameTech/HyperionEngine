@@ -6,6 +6,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
 #include <rendering/Scene.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
@@ -44,7 +45,7 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
         material->SetFaceCullMode(FaceCullMode::FRONT);
         material->SetIsDepthTestEnabled(true);
         material->SetIsDepthWriteEnabled(false);
-        material->SetShader(ShaderManagerSystem::GetInstance()->GetOrCreate(
+        material->SetShader(ShaderManager::GetInstance()->GetOrCreate(
             NAME("Skybox"),
             ShaderProperties(mesh_component->mesh->GetVertexAttributes())
         ));

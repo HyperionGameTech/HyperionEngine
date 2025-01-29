@@ -33,18 +33,11 @@ class FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
     /*! \brief Takes ownership of the file pointer to use for reading */
-    FileBufferedReaderSource(FILE *file, void(*close_func)(FILE *) = nullptr)
+    FileBufferedReaderSource(FILE *file, int(*close_func)(FILE *) = fclose)
         : m_file(file),
           m_close_func(close_func)
     {
-    }
-
-    /*! \brief Opens the file at the given path for reading */
-    FileBufferedReaderSource(const FilePath &filepath)
-        : m_file(nullptr),
-          m_close_func(nullptr)
-    {
-        if ((m_file = fopen(filepath.Data(), "rb"))) {
+        if (m_file) {
             fseek(m_file, 0, SEEK_END);
 
             m_size = ftell(m_file);
@@ -53,11 +46,17 @@ public:
         }
     }
 
+    /*! \brief Opens the file at the given path for reading */
+    FileBufferedReaderSource(const FilePath &filepath)
+        : FileBufferedReaderSource(fopen(filepath.Data(), "rb"), fclose)
+    {
+    }
+
     virtual ~FileBufferedReaderSource() override
     {
         if (m_file) {
             if (m_close_func) {
-                m_close_func(m_file);
+                AssertThrowMsg(m_close_func(m_file) == 0, "Failed to close file");
             } else {
                 fclose(m_file);
             }
@@ -83,7 +82,7 @@ public:
 private:
     SizeType    m_size;
     FILE        *m_file;
-    void        (*m_close_func)(FILE *);
+    int         (*m_close_func)(FILE *);
 };
 
 class MemoryBufferedReaderSource : public BufferedReaderSource

@@ -4,6 +4,8 @@
 
 #include <math/Triangle.hpp>
 
+#include <rendering/Mesh.hpp>
+
 namespace hyperion {
 
 const Array<Vertex> MeshBuilder::quad_vertices = {
@@ -13,7 +15,7 @@ const Array<Vertex> MeshBuilder::quad_vertices = {
     Vertex {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}
 };
 
-const Array<Mesh::Index> MeshBuilder::quad_indices = {
+const Array<uint32> MeshBuilder::quad_indices = {
     0, 3, 2,
     0, 2, 1
 };
@@ -68,39 +70,16 @@ const Array<Vertex> MeshBuilder::cube_vertices = {
     Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
 };
 
-Handle<Mesh> MeshBuilder::Quad(Topology topology)
+Handle<Mesh> MeshBuilder::Quad()
 {
-    Handle<Mesh> mesh;
-
     const VertexAttributeSet vertex_attributes = static_mesh_vertex_attributes;
 
-#ifndef HYP_APPLE
-    switch (topology) {
-    case Topology::TRIANGLE_FAN: {
-        auto [new_vertices, new_indices] = Mesh::CalculateIndices(quad_vertices);
-
-        mesh = CreateObject<Mesh>(
-            new_vertices,
-            new_indices,
-            topology,
-            vertex_attributes
-        );
-
-        break;
-    }
-    default:
-#endif
-        mesh = CreateObject<Mesh>(
-            quad_vertices,
-            quad_indices,
-            topology,
-            vertex_attributes
-        );
-
-#ifndef HYP_APPLE
-        break;
-    }
-#endif
+    Handle<Mesh> mesh = CreateObject<Mesh>(
+        quad_vertices,
+        quad_indices,
+        renderer::Topology::TRIANGLES,
+        vertex_attributes
+    );
 
     mesh->CalculateTangents();
 

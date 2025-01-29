@@ -9,17 +9,19 @@
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
-
-#include <scene/Entity.hpp>
+#include <core/Handle.hpp>
 
 #include <math/Transform.hpp>
 #include <math/Matrix4.hpp>
+#include <math/BoundingBox.hpp>
 
 #include <util/img/Bitmap.hpp>
 
 namespace hyperion {
+
+class Mesh;
+class Material;
+class Entity;
 
 struct LightmapElement
 {

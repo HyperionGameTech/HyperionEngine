@@ -3,6 +3,7 @@
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 

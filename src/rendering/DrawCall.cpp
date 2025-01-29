@@ -4,6 +4,8 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 

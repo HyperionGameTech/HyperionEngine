@@ -226,11 +226,11 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
         m_ddgi.RenderProbes(frame);
         m_ddgi.ComputeIrradiance(frame);
 
-        if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES).GetBool()) {
-            for (const Probe &probe : m_ddgi.GetProbes()) {
-                g_engine->GetDebugDrawer()->Sphere(probe.position);
-            }
-        }
+        // if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES).GetBool()) {
+        //     for (const Probe &probe : m_ddgi.GetProbes()) {
+        //         g_engine->GetDebugDrawer()->Sphere(probe.position);
+        //     }
+        // }
     }
 }
 

@@ -8,6 +8,8 @@
 #include <rendering/Camera.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/RenderState.hpp>
+#include <rendering/Mesh.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

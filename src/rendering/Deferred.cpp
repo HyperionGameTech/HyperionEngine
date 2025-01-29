@@ -11,6 +11,8 @@
 #include <rendering/Camera.hpp>
 #include <rendering/World.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/SafeDeleter.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -21,6 +23,8 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/World.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

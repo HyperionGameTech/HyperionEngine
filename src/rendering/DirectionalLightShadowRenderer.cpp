@@ -5,6 +5,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>

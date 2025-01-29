@@ -3,29 +3,36 @@
 #ifndef HYPERION_CORE_HYP_OBJECT_HPP
 #define HYPERION_CORE_HYP_OBJECT_HPP
 
+#include <core/ID.hpp>
+#include <core/Name.hpp>
 #include <core/Defines.hpp>
-#include <core/Core.hpp>
 
 #include <core/object/HypObjectFwd.hpp>
-
 #include <core/object/HypObjectEnums.hpp>
-
-#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/TypeID.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <core/threading/AtomicVar.hpp>
 
-#ifdef HYP_DEBUG_MODE
-#include <core/threading/Threads.hpp>
-#endif
+#include <core/functional/Delegate.hpp>
 
 #include <dotnet/Object.hpp>
+
+#include <HashCode.hpp>
+#include <Types.hpp>
+
+#include <type_traits>
 
 namespace hyperion {
 
 class HypClass;
 struct HypData;
+
+template <class T>
+struct Handle;
+
+template <class T>
+struct WeakHandle;
 
 namespace dotnet {
 class Class;
@@ -39,6 +46,9 @@ extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 // Ensure the current HypObjectInitializer being constructed is the same as the one passed
 extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address);
 extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr);
+
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
 
 template <class T>
 class HypObjectInitializer final : public IHypObjectInitializer
@@ -172,7 +182,7 @@ private:
             if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>) { \
                 return true; \
             } else { \
-                const HypClass *other_hyp_class = GetClass<TOther>(); \
+                const HypClass *other_hyp_class = GetClass(TypeID::ForType<TOther>()); \
                 if (!other_hyp_class) { \
                     return false; \
                 } \
@@ -188,6 +198,106 @@ private:
             return IsInstanceOfHypClass(other_hyp_class, InstanceClass()); \
         } \
     private:
+
+template <class T>
+class HypObject : public HypObjectBase
+{
+    using InnerType = T;
+
+public:
+    enum InitState : uint16
+    {
+        INIT_STATE_UNINITIALIZED    = 0x0,
+        INIT_STATE_INIT_CALLED      = 0x1,
+        INIT_STATE_READY            = 0x2
+    };
+
+    HypObject()
+        : m_init_state(INIT_STATE_UNINITIALIZED)
+    {
+    }
+
+    HypObject(const HypObject &other)               = delete;
+    HypObject &operator=(const HypObject &other)    = delete;
+
+    HypObject(HypObject &&other) noexcept
+        : m_init_state(other.m_init_state.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE))
+    {
+    }
+
+    HypObject &operator=(HypObject &&other) noexcept = delete;
+
+    virtual ~HypObject() override = default;
+
+    HYP_FORCE_INLINE ID<InnerType> GetID() const
+        { return ID<InnerType>(HypObjectBase::GetID().Value()); }
+
+    HYP_FORCE_INLINE bool IsInitCalled() const
+        { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }
+
+    HYP_FORCE_INLINE bool IsReady() const
+        { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_READY; }
+
+    // HYP_FORCE_INLINE static const HypClass *GetClass()
+    //     { return s_class_info.GetClass(); }
+
+    void Init()
+    {
+        m_init_state.BitOr(INIT_STATE_INIT_CALLED, MemoryOrder::RELAXED);
+    }
+
+    HYP_FORCE_INLINE Handle<T> HandleFromThis() const
+        { return Handle<T>(GetObjectHeader_Internal()); }
+
+    HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const
+        { return WeakHandle<T>(GetObjectHeader_Internal());  }
+
+protected:
+    void SetReady(bool is_ready)
+    {
+        if (is_ready) {
+            m_init_state.BitOr(INIT_STATE_READY, MemoryOrder::RELAXED);
+        } else {
+            m_init_state.BitAnd(~INIT_STATE_READY, MemoryOrder::RELAXED);
+        }
+    }
+
+    HYP_FORCE_INLINE void AssertReady() const
+    {
+        AssertThrowMsg(
+            IsReady(),
+            "Object is not in ready state; maybe Init() has not been called on it, "
+            "or the component requires an event to be sent from the Engine instance to determine that "
+            "it is ready to be constructed, and this event has not yet been sent.\n"
+        );
+    }
+
+    HYP_FORCE_INLINE void AssertIsInitCalled() const
+    {
+        AssertThrowMsg(
+            IsInitCalled(),
+            "Object has not had Init() called on it!\n"
+        );
+    }
+
+    void AddDelegateHandler(Name name, DelegateHandler &&delegate_handler)
+    {
+        m_delegate_handlers.Add(name, std::move(delegate_handler));
+    }
+
+    void AddDelegateHandler(DelegateHandler &&delegate_handler)
+    {
+        m_delegate_handlers.Add(std::move(delegate_handler));
+    }
+
+    bool RemoveDelegateHandler(WeakName name)
+    {
+        return m_delegate_handlers.Remove(name);
+    }
+    
+    AtomicVar<uint16>   m_init_state;
+    DelegateHandlerSet  m_delegate_handlers;
+};
 
 } // namespace hyperion
 

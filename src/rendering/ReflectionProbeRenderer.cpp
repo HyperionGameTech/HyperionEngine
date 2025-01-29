@@ -2,6 +2,7 @@
 
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 

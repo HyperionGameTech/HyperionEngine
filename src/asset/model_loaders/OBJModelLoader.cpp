@@ -5,6 +5,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
+#include <scene/World.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -16,8 +18,6 @@
 #include <util/fs/FsUtil.hpp>
 
 #include <Engine.hpp>
-
-#include <algorithm>
 
 namespace hyperion {
 
@@ -371,7 +371,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         }
 
         if (!material.IsValid()) {
-            material = g_material_system->GetOrCreate(
+            material = MaterialCache::GetInstance()->GetOrCreate(
                 {
                     .shader_definition = ShaderDefinition {
                         NAME("Forward"),

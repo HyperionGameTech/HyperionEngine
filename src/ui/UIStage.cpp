@@ -10,6 +10,8 @@
 
 #include <math/MathUtil.hpp>
 
+#include <scene/World.hpp>
+
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 

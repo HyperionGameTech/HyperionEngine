@@ -4,6 +4,8 @@
 #include <asset/serialization/fbom/FBOMArray.hpp>
 
 #include <scene/Entity.hpp>
+#include <scene/World.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 

@@ -1,6 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
+
+#include <scene/World.hpp>
+
+#include <scene/animation/Skeleton.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/AnimationComponent.hpp>
@@ -8,13 +13,14 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
+#include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>
 
 #include <util/xml/SAXParser.hpp>
-
-#include <algorithm>
 
 namespace hyperion {
 
@@ -257,7 +263,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         ShaderProperties shader_properties(mesh->GetVertexAttributes());
 
         Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())));
-        material->SetShader(g_shader_manager->GetOrCreate(NAME("Forward"), shader_properties));
+        material->SetShader(ShaderManager::GetInstance()->GetOrCreate(NAME("Forward"), shader_properties));
         InitObject(material);
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(
@@ -284,8 +290,8 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
                 AnimationComponent {
                     {
                         .animation_index    = 0,
-                        .status             = AnimationPlaybackStatus::ANIMATION_PLAYBACK_STATUS_PLAYING,
-                        .loop_mode          = AnimationLoopMode::ANIMATION_LOOP_MODE_REPEAT,
+                        .status             = AnimationPlaybackStatus::PLAYING,
+                        .loop_mode          = AnimationLoopMode::REPEAT,
                         .speed              = 1.0f,
                         .current_time       = 0.0f
                     }

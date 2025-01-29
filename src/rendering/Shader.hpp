@@ -38,10 +38,10 @@ struct SubShader
     }
 };
 
-class HYP_API ShaderManagerSystem
+class HYP_API ShaderManager
 {
 public:
-    static ShaderManagerSystem *GetInstance();
+    static ShaderManager *GetInstance();
 
     ShaderRef GetOrCreate(const ShaderDefinition &definition);
     ShaderRef GetOrCreate(Name name, const ShaderProperties &props = { });

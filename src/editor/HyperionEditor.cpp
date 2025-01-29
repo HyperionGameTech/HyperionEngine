@@ -9,6 +9,8 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
+#include <scene/World.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>

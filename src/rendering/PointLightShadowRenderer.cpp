@@ -4,6 +4,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 

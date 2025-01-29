@@ -4,6 +4,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -78,7 +79,7 @@ void MaterialRenderResources::Update()
     auto SetMaterialTexture = [](const Handle<Material> &material, uint32 texture_index, const Handle<Texture> &texture)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager().GetDescriptorSet(material.GetID(), frame_index);
+            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager()->GetDescriptorSet(material.GetID(), frame_index);
             AssertThrow(descriptor_set != nullptr);
 
             if (texture.IsValid()) {
@@ -90,7 +91,7 @@ void MaterialRenderResources::Update()
             }
         }
 
-        g_engine->GetMaterialDescriptorSetManager().SetNeedsDescriptorSetUpdate(material);
+        g_engine->GetMaterialDescriptorSetManager()->SetNeedsDescriptorSetUpdate(material);
     };
 
     if (!use_bindless_textures) {
@@ -137,7 +138,7 @@ void MaterialRenderResources::CreateDescriptorSets()
         }
     }
 
-    m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager().AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
+    m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager()->AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
 }
 
 void MaterialRenderResources::DestroyDescriptorSets()
@@ -146,7 +147,7 @@ void MaterialRenderResources::DestroyDescriptorSets()
 
     AssertThrow(m_material != nullptr);
     
-    g_engine->GetMaterialDescriptorSetManager().RemoveMaterial(m_material->GetID());
+    g_engine->GetMaterialDescriptorSetManager()->RemoveMaterial(m_material->GetID());
     m_descriptor_sets = { };
 }
 

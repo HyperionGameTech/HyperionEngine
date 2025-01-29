@@ -9,6 +9,7 @@
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>

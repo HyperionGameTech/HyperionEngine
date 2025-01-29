@@ -4,6 +4,8 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <scene/World.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::physics {
