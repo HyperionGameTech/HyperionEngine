@@ -23,14 +23,14 @@ namespace detail {
 
 using namespace containers::detail;
 
-template <int string_type>
+template <int TStringType>
 class StringView
 {
 public:
-    using CharType = typename containers::detail::StringTypeImpl< string_type >::CharType;
-    using WidestCharType = typename containers::detail::StringTypeImpl< string_type >::WidestCharType;
+    using CharType = typename containers::detail::StringTypeImpl< TStringType >::CharType;
+    using WidestCharType = typename containers::detail::StringTypeImpl< TStringType >::WidestCharType;
 
-    friend class containers::detail::String<string_type>;
+    friend class containers::detail::String<TStringType>;
 
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator<(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
@@ -39,14 +39,14 @@ public:
     friend constexpr bool operator==(const StringView<FirstStringType> &lhs, const StringView<SecondStringType> &rhs);
 
     static constexpr bool is_contiguous = true;
-
     static constexpr SizeType not_found = SizeType(-1);
+    static constexpr int string_type = TStringType;
 
-    static constexpr bool is_ansi = string_type == StringType::ANSI;
-    static constexpr bool is_utf8 = string_type == StringType::UTF8;
-    static constexpr bool is_utf16 = string_type == StringType::UTF16;
-    static constexpr bool is_utf32 = string_type == StringType::UTF32;
-    static constexpr bool is_wide = string_type == StringType::WIDE_CHAR;
+    static constexpr bool is_ansi = TStringType == StringType::ANSI;
+    static constexpr bool is_utf8 = TStringType == StringType::UTF8;
+    static constexpr bool is_utf16 = TStringType == StringType::UTF16;
+    static constexpr bool is_utf32 = TStringType == StringType::UTF32;
+    static constexpr bool is_wide = TStringType == StringType::WIDE_CHAR;
 
     static_assert(!is_utf8 || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "UTF-8 Strings must have CharType equal to char or unsigned char");
     static_assert(!is_ansi || (std::is_same_v<CharType, char> || std::is_same_v<CharType, unsigned char>), "ANSI Strings must have CharType equal to char or unsigned char");
@@ -128,7 +128,7 @@ public:
     {
     }
 
-    // StringView(const detail::String< string_type > &str)
+    // StringView(const detail::String< TStringType > &str)
     //     : m_begin(str.Begin()),
     //       m_end(str.End() + 1 /* String class accounts for NUL char also */),
     //       m_length(str.Length())
@@ -217,8 +217,8 @@ public:
 
     constexpr ~StringView() = default;
 
-    // HYP_FORCE_INLINE operator containers::detail::String<string_type>() const
-    //     { return containers::detail::String<string_type>(Data()); }
+    // HYP_FORCE_INLINE operator containers::detail::String<TStringType>() const
+    //     { return containers::detail::String<TStringType>(Data()); }
 
     /*! \brief Check if the StringView is in a valid state.
      *  \returns True if the StringView is valid, false otherwise. */
@@ -279,9 +279,40 @@ public:
         }
     }
 
-    constexpr SizeType FindIndex(const StringView &other) const
+    /*! \brief Check if the string contains the given character. */
+    HYP_FORCE_INLINE constexpr bool Contains(WidestCharType ch) const
+        { return ch != CharType { 0 } && FindFirstIndex(ch) != not_found; }
+
+    /*! \brief Check if the string contains the given substring. */
+    HYP_FORCE_INLINE constexpr bool Contains(const StringView &substr) const
+        { return FindFirstIndex(substr) != not_found; }
+
+    /*! \brief Find the first occurrence of the character
+        *  \param ch The character to search for.
+        *  \returns The index of the first occurrence of the character. */
+    HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(WidestCharType ch) const
     {
-        const StringView str = StrStr(other);
+        if (ch == 0) {
+            return not_found;
+        }
+
+        SizeType chars = 0;
+
+        for (auto it = Begin(); it != End(); ++it, ++chars) {
+            if (*it == ch) {
+                return chars;
+            }
+        }
+
+        return not_found;
+    }
+
+    /*! \brief Find the first occurrence of the substring.
+     *  \param substr The substring to search for.
+     *  \returns The index of the first occurrence of the substring. */
+    HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(const StringView &substr) const
+    {
+        const StringView str = StrStr(substr);
 
         if (str.Size() != 0) {
             if constexpr (is_utf8) {
@@ -400,8 +431,8 @@ private:
     SizeType        m_length;
 };
 
-template <int string_type>
-constexpr bool operator<(const StringView<string_type> &lhs, const StringView<string_type> &rhs)
+template <int TStringType>
+constexpr bool operator<(const StringView<TStringType> &lhs, const StringView<TStringType> &rhs)
 {
     if (!lhs.Data()) {
         return true;
@@ -411,11 +442,11 @@ constexpr bool operator<(const StringView<string_type> &lhs, const StringView<st
         return false;
     }
 
-    return utf::utf_strncmp<typename StringView<string_type>::CharType, StringView<string_type>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
+    return utf::utf_strncmp<typename StringView<TStringType>::CharType, StringView<TStringType>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
-template <int string_type>
-constexpr bool operator==(const StringView<string_type> &lhs, const StringView<string_type> &rhs)
+template <int TStringType>
+constexpr bool operator==(const StringView<TStringType> &lhs, const StringView<TStringType> &rhs)
 {
     if (lhs.Data() == rhs.Data() && (!lhs.Data() || lhs.Size() == rhs.Size())) {
         return true;

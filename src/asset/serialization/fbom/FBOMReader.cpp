@@ -151,8 +151,8 @@ void FBOMReader::FBOMStaticDataIndexMap::SetElementDesc(SizeType index, FBOMStat
 
 #pragma region FBOMReader
 
-template <class StringType>
-FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string)
+template <class TString>
+FBOMResult FBOMReader::ReadString(BufferedReader *reader, TString &out_string)
 {
     // read 4 bytes of string header
     uint32 string_header;
@@ -162,7 +162,7 @@ FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string
     const uint32 string_length = (string_header & ByteWriter::string_length_mask) >> 8;
     const uint32 string_type = (string_header & ByteWriter::string_type_mask);
     
-    if (string_type != 0 && string_type != StringType::string_type) {
+    if (string_type != 0 && string_type != TString::string_type) {
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string type mismatch");
     }
 
@@ -174,7 +174,7 @@ FBOMResult FBOMReader::ReadString(BufferedReader *reader, StringType &out_string
         return FBOMResult(FBOMResult::FBOM_ERR, "Error reading string: string length mismatch");
     }
 
-    out_string = StringType(string_buffer.ToByteView());
+    out_string = TString(string_buffer.ToByteView());
 
     return FBOMResult::FBOM_OK;
 }

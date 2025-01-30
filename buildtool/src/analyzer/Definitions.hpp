@@ -11,6 +11,7 @@
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/object/HypMemberFwd.hpp>
+#include <core/object/HypClassAttribute.hpp>
 
 #include <core/Defines.hpp>
 
@@ -25,6 +26,7 @@ struct TypeDefinition
 
 enum class HypClassDefinitionType
 {
+    NONE    = 0,
     CLASS,
     STRUCT,
     ENUM
@@ -32,18 +34,22 @@ enum class HypClassDefinitionType
 
 struct HypMemberDefinition
 {
-    HypMemberType                       type;
-    String                              name;
-    TypeDefinition                      return_type;
-    Array<Pair<String, TypeDefinition>> parameters;
+    HypMemberType                               type;
+    String                                      name;
+    Array<Pair<String, HypClassAttributeValue>> attributes;
+    TypeDefinition                              return_type;
+    Array<Pair<String, TypeDefinition>>         parameters;
+    String                                      source;
 };
 
 struct HypClassDefinition
 {
-    HypClassDefinitionType      type;
-    String                      name;
-    Array<String>               attributes;
-    Array<HypMemberDefinition>  members;
+    HypClassDefinitionType                      type;
+    String                                      name;
+    Array<Pair<String, HypClassAttributeValue>> attributes;
+    Array<String>                               base_class_names;
+    Array<HypMemberDefinition>                  members;
+    String                                      source;
 };
 
 } // namespace buildtool

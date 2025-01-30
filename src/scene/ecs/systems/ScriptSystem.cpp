@@ -118,7 +118,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     if (script_component.script.hot_reload_version > 0) {
         // @FIXME Implement FindLastIndex
-        const SizeType extension_index = assembly_path.FindIndex(".dll");
+        const SizeType extension_index = assembly_path.FindFirstIndex(".dll");
 
         if (extension_index != ANSIString::not_found) {
             assembly_path = assembly_path.Substr(0, extension_index)

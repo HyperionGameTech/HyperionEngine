@@ -79,6 +79,8 @@ public:
 
             return;
         }
+
+        HYP_BREAKPOINT;
     }
 
 private:
@@ -155,6 +157,9 @@ private:
         batch->pool = &m_thread_pool;
         batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
         {
+            // Temp
+            Threads::Sleep(1000);
+
             task_executor->Fulfill();
 
             delete batch;
@@ -184,12 +189,10 @@ private:
     {
         Threads::AssertOnThread(ThreadName::THREAD_MAIN);
 
-        if (!task.IsValid()) {
-            return;
-        }
+        AssertThrow(task.IsValid());
 
         while (!task.IsCompleted()) {
-            std::printf(".");
+            std::putchar('.');
             
             Threads::Sleep(100);
         }

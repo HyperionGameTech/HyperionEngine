@@ -16,33 +16,50 @@
 
 namespace hyperion {
 
+enum class HypClassAttributeType : uint32
+{
+    NONE    = 0,
+    STRING,
+    INT,
+    FLOAT,
+    BOOLEAN
+};
+
 class HypClassAttributeValue
 {
 public:
-    HypClassAttributeValue()                                                    = default;
+    HypClassAttributeValue()
+        : m_type(HypClassAttributeType::NONE)
+    {
+    }
 
     HypClassAttributeValue(const String &value)
-        : m_value(value)
+        : m_type(HypClassAttributeType::STRING),
+          m_value(value)
     {
     }
 
     HypClassAttributeValue(const char *str)
-        : m_value(String(str))
+        : m_type(HypClassAttributeType::STRING),
+          m_value(String(str))
     {
     }
 
     HypClassAttributeValue(int value)
-        : m_value(value)
+        : m_type(HypClassAttributeType::INT),
+          m_value(value)
     {
     }
 
     HypClassAttributeValue(double value)
-        : m_value(value)
+        : m_type(HypClassAttributeType::FLOAT),
+          m_value(value)
     {
     }
 
     HypClassAttributeValue(bool value)
-        : m_value(value)
+        : m_type(HypClassAttributeType::BOOLEAN),
+          m_value(value)
     {
     }
 
@@ -52,6 +69,9 @@ public:
     HypClassAttributeValue &operator=(HypClassAttributeValue &&other) noexcept  = default;
 
     ~HypClassAttributeValue()                                                   = default;
+
+    HYP_FORCE_INLINE HypClassAttributeType GetType() const
+        { return m_type; }
 
     HYP_FORCE_INLINE bool IsValid() const
         { return m_value.HasValue(); }
@@ -137,6 +157,7 @@ public:
         return result;
     }
 
+    HypClassAttributeType               m_type;
     Variant<String, int, double, bool>  m_value;
 };
 

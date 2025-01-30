@@ -218,10 +218,7 @@ static Optional<Color> ParseColor(const String &str)
 
         for (int i = 1; i < str.Length() && value_index < 4; i += 2, value_index++) {
             const String substr = str.Substr(i, i + 2);
-
             const long value = std::strtol(substr.Data(), nullptr, 16);
-
-            HYP_LOG(UI, Debug, "substr: {}, value: {}", substr, value);
 
             if (uint32(value) >= 256) {
                 return { };
@@ -282,7 +279,7 @@ static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
         return Pair<int32, uint32> { 100, UIObjectSize::FILL };
     }
 
-    const SizeType percent_index = str.FindIndex("%");
+    const SizeType percent_index = str.FindFirstIndex("%");
 
     int32 parsed_int;
 

@@ -838,7 +838,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                 if (pose_type == "BindPose") {
                     FBXBindPose bind_pose;
 
-                    const SizeType substr_index = node_name.FindIndex("Pose::");
+                    const SizeType substr_index = node_name.FindFirstIndex("Pose::");
 
                     if (substr_index != String::not_found) {
                         bind_pose.name = node_name.Substr(substr_index);

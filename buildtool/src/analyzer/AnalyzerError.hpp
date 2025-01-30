@@ -28,6 +28,13 @@ public:
     {
     }
 
+    AnalyzerError(const Error &error, const FilePath &path, int error_code = 0)
+        : Error(error),
+          m_path(path),
+          m_error_code(error_code)
+    {
+    }
+
     virtual ~AnalyzerError() override = default;
 
     virtual operator bool() const override

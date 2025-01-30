@@ -42,8 +42,8 @@ void INIFile::Parse()
         String line_trimmed = line.TrimmedLeft();
 
         FixedArray<SizeType, 2> comment_indices {
-            line_trimmed.FindIndex(";"),
-            line_trimmed.FindIndex("#")
+            line_trimmed.FindFirstIndex(";"),
+            line_trimmed.FindFirstIndex("#")
         };
 
         if (comment_indices[1] < comment_indices[0]) {
