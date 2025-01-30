@@ -1304,7 +1304,7 @@ Array<T, NumInlineBytes> Array<T, NumInlineBytes>::Slice(int first, int last) co
     Array<T, NumInlineBytes> result;
     result.ResizeUninitialized(last - first + 1);
 
-    T *buffer = GetBuffer();
+    const T *buffer = GetBuffer();
     T *result_buffer = result.GetBuffer();
 
     for (SizeType i = 0; i < result.m_size; ++i) {

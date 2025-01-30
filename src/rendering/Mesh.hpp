@@ -85,8 +85,6 @@ class HYP_API Mesh final : public HypObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
 
-    HYP_PROPERTY(ID, &Mesh::GetID, { { "serialize", false } });
-    
 public:
     friend struct RENDER_COMMAND(SetStreamedMeshData);
     friend struct RENDER_COMMAND(UploadMeshData);

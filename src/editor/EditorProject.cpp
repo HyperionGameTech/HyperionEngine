@@ -74,7 +74,7 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         return HYP_MAKE_ERROR(Error, "No filepath set");
     }
 
-    if (!m_filepath.Exists() && m_filepath.MkDir() != 0) {
+    if (!m_filepath.Exists() && !m_filepath.MkDir()) {
         return HYP_MAKE_ERROR(Error, "Failed to create directory");
     }
 
@@ -105,7 +105,7 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         const FilePath directory = parent_directory / package->GetName().LookupString();
 
         if (!directory.Exists()) {
-            if (directory.MkDir() != 0) {
+            if (!directory.MkDir()) {
                 return HYP_MAKE_ERROR(Error, "Failed to create directory");
             }
         } else if (!directory.IsDirectory()) {

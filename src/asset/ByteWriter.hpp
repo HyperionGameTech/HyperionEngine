@@ -55,6 +55,11 @@ public:
         WriteBytes(reinterpret_cast<const char *>(byte_buffer.Data()), byte_buffer.Size());
     }
 
+    void Write(ByteView byte_view)
+    {
+        WriteBytes(reinterpret_cast<const char *>(byte_view.Data()), byte_view.Size());
+    }
+
     void Write(ConstByteView byte_view)
     {
         WriteBytes(reinterpret_cast<const char *>(byte_view.Data()), byte_view.Size());

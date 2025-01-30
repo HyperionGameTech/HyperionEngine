@@ -44,6 +44,24 @@ public:
     HYP_FORCE_INLINE void SetSourceDirectory(const FilePath &source_directory)
         { m_source_directory = source_directory; }
 
+    HYP_FORCE_INLINE const FilePath &GetCXXOutputDirectory() const
+        { return m_cxx_output_directory; }
+
+    HYP_FORCE_INLINE void SetCXXOutputDirectory(const FilePath &cxx_output_directory)
+        { m_cxx_output_directory = cxx_output_directory; }
+
+    HYP_FORCE_INLINE const FilePath &GetCSharpOutputDirectory() const
+        { return m_csharp_output_directory; }
+
+    HYP_FORCE_INLINE void SetCSharpOutputDirectory(const FilePath &csharp_output_directory)
+        { m_csharp_output_directory = csharp_output_directory; }
+
+    HYP_FORCE_INLINE const HashSet<FilePath> &GetExcludeDirectories() const
+        { return m_exclude_directories; }
+
+    HYP_FORCE_INLINE void SetExcludeDirectories(const HashSet<FilePath> &exclude_directories)
+        { m_exclude_directories = exclude_directories; }
+
     HYP_FORCE_INLINE const AnalyzerState &GetState() const
         { return m_state; }
 
@@ -69,14 +87,21 @@ public:
         m_state.errors.PushBack(error);
     }
 
+    const HypClassDefinition *FindHypClassDefinition(UTF8StringView class_name) const;
+
     Module *AddModule(const FilePath &path);
 
 private:
     FilePath                    m_working_directory;
     FilePath                    m_source_directory;
+    FilePath                    m_cxx_output_directory;
+    FilePath                    m_csharp_output_directory;
+
+    HashSet<FilePath>           m_exclude_directories;
+
     AnalyzerState               m_state;
     Array<UniquePtr<Module>>    m_modules;
-    Mutex                       m_mutex;
+    mutable Mutex               m_mutex;
     HashMap<String, String>     m_global_defines;
     HashSet<String>             m_include_paths;
 };

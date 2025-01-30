@@ -79,7 +79,7 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
                 ? split.Back()
                 : path;
 
-            real_filename = StringUtil::StripExtension(real_filename.Data()).c_str();
+            real_filename = StringUtil::StripExtension(real_filename);
 
             os << termcolor::reset << "In file \"" << real_filename << "\":\n";
         }

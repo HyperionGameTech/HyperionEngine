@@ -154,21 +154,25 @@ public:
     HYP_NODISCARD FlatSet<Value> Values() const;
 
     template <class OtherContainerType>
-    void Merge(const OtherContainerType &other)
+    FlatMap &Merge(const OtherContainerType &other)
     {
         for (const auto &item : other) {
             Insert(item);
         }
+
+        return *this;
     }
 
     template <class OtherContainerType>
-    void Merge(OtherContainerType &&other)
+    FlatMap &Merge(OtherContainerType &&other)
     {
         for (auto &item : other) {
             Insert(std::move(item));
         }
 
         other.Clear();
+
+        return *this;
     }
 
 #ifndef HYP_DEBUG_MODE

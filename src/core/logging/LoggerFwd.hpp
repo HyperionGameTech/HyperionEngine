@@ -27,8 +27,8 @@ class LogCategory
 public:
     enum Flags : uint8
     {
-        LOG_CATEGORY_NONE           = 0x0,
-        LOG_CATEGORY_FATAL          = 0x1
+        LOG_CATEGORY_NONE   = 0x0,
+        LOG_CATEGORY_FATAL  = 0x1
     };
 
     constexpr LogCategory(LogLevel level, uint16 priority, uint8 flags = LOG_CATEGORY_NONE)
@@ -66,7 +66,7 @@ public:
     HYP_FORCE_INLINE constexpr LogLevel GetLevel() const
         { return LogLevel((m_value >> 24) & 0xFF); }
 
-    uint32          m_value;
+    uint32  m_value;
 };
 
 constexpr LogCategory Debug()
@@ -84,12 +84,8 @@ constexpr LogCategory Error()
 constexpr LogCategory Fatal()
     { return LogCategory(LogLevel::FATAL, 1, LogCategory::LOG_CATEGORY_FATAL); }
 
-namespace detail {
-
 template <LogLevel Level, auto FunctionNameString, auto FormatString, class... Args>
 static inline void Log_Internal(Logger &logger, const LogChannel &channel, Args &&... args);
-
-} // namespace detail
 
 HYP_API extern Logger &GetLogger();
 
@@ -108,7 +104,7 @@ using logging::LogChannel;
 #endif
 
 #define HYP_LOG(channel, category, fmt, ...) \
-    hyperion::logging::detail::Log_Internal< hyperion::logging::category(), HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt) >(hyperion::logging::GetLogger(), hyperion::Log_##channel, ##__VA_ARGS__)
+    hyperion::logging::Log_Internal< hyperion::logging::category(), HYP_PRETTY_FUNCTION_NAME, HYP_STATIC_STRING(fmt "\n") >(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__)
 
 #ifndef HYP_LOG_ONCE
     #define HYP_LOG_ONCE(channel, category, fmt, ...)

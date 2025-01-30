@@ -34,8 +34,6 @@ class HYP_API Texture : public HypObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
 
-    HYP_PROPERTY(ID, &Texture::GetID, { { "serialize", false } });
-
 public:
     static const FixedArray<Pair<Vec3f, Vec3f>, 6> cubemap_directions;
 

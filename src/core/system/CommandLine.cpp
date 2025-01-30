@@ -2,10 +2,47 @@
 
 #include <core/system/CommandLine.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <util/StringUtil.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Core);
+HYP_DEFINE_LOG_SUBCHANNEL(CommandLine, Core);
+
 namespace sys {
+
+static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>> &values, const String &key, CommandLineArgumentValue &&value);
+
+static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>> &values, const String &key, const CommandLineArgumentValue &value)
+{
+    AppendCommandLineArgumentValue(values, key, CommandLineArgumentValue(value));
+}
+
+static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumentValue>> &values, const String &key, CommandLineArgumentValue &&value)
+{
+    auto it = values.FindIf([key](const auto &item)
+    {
+        return item.first == key;
+    });
+
+    if (it != values.End()) {
+        if (it->second.IsArray()) {
+            it->second.AsArray().PushBack(std::move(value));
+        } else {
+            json::JSONArray array;
+            array.PushBack(std::move(it->second));
+            array.PushBack(std::move(value));
+
+            it->second = json::JSONValue(std::move(array));
+        }
+
+        return;
+    }
+
+    values.EmplaceBack(key, std::move(value));
+}
 
 #pragma region CommandLineArguments
 
@@ -27,15 +64,7 @@ CommandLineArguments CommandLineArguments::Merge(const CommandLineArguments &a, 
     CommandLineArguments result = a;
 
     for (const Pair<String, CommandLineArgumentValue> &element : b) {
-        auto it = result.Find(element.first);
-
-        if (it == result.End()) {
-            result.values.PushBack(element);
-
-            continue;
-        }
-
-        it->second = element.second;
+        AppendCommandLineArgumentValue(result.values, element.first, element.second);
     }
 
     return result;
@@ -46,6 +75,7 @@ Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const 
     const CommandLineArgumentType type = definition.type;
 
     json::ParseResult parse_result = json::JSON::Parse(str);
+    json::JSONValue value = std::move(parse_result.value);
 
     if (!parse_result.ok) {
         // If string, allow unquoted on parse error
@@ -53,20 +83,45 @@ Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const 
             return json::JSONValue(json::JSONString(str));
         }
 
+        HYP_LOG(CommandLine, Error, "Failed to parse argument \"{}\": {}",
+            str, parse_result.message);
+
         return HYP_MAKE_ERROR(Error, "Failed to parse argument");
     }
 
     switch (type) {
     case CommandLineArgumentType::STRING:
-        return json::JSONValue(parse_result.value.ToString());
-    case CommandLineArgumentType::INTEGER:
-        return json::JSONValue(parse_result.value.ToInt32());
-    case CommandLineArgumentType::FLOAT:
-        return json::JSONValue(parse_result.value.ToFloat());
+        return json::JSONValue(value.ToString());
+    case CommandLineArgumentType::INTEGER: {
+        int32 value_int;
+
+        if (value.IsNumber()) {
+            return json::JSONValue(value.ToInt32());
+        }
+
+        if (!StringUtil::Parse(value.ToString(), &value_int)) {
+            return json::JSONValue(value_int);
+        }
+
+        return HYP_MAKE_ERROR(Error, "Failed to parse integer argument");
+    }
+    case CommandLineArgumentType::FLOAT: {
+        double value_double;
+
+        if (value.IsNumber()) {
+            return json::JSONValue(value.ToDouble());
+        }
+
+        if (!StringUtil::Parse(value.ToString(), &value_double)) {
+            return json::JSONValue(value_double);
+        }
+
+        return HYP_MAKE_ERROR(Error, "Failed to parse float argument");
+    }
     case CommandLineArgumentType::BOOLEAN:
-        return json::JSONValue(parse_result.value.ToBool());
+        return json::JSONValue(value.ToBool());
     case CommandLineArgumentType::ENUM: {
-        const json::JSONString string_value = parse_result.value.ToString();
+        json::JSONString string_value = value.ToString();
 
         const Array<String> *enum_values = definition.enum_values.TryGet();
 
@@ -78,7 +133,7 @@ Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const 
             return HYP_MAKE_ERROR(Error, "Not a valid value for argument");
         }
 
-        return json::JSONValue(string_value);
+        return json::JSONValue(std::move(string_value));
     }
     }
 
@@ -270,13 +325,13 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
                 return parsed_value.GetError();
             }
 
-            result.values.EmplaceBack(arg, std::move(parsed_value.GetValue()));
+            AppendCommandLineArgumentValue(result.values, arg, std::move(parsed_value.GetValue()));
 
             continue;
         }
 
         if (it->type == CommandLineArgumentType::BOOLEAN) {
-            result.values.EmplaceBack(arg, CommandLineArgumentValue { true });
+            AppendCommandLineArgumentValue(result.values, arg, CommandLineArgumentValue { true });
 
             continue;
         }
@@ -291,7 +346,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
             return parsed_value.GetError();
         }
 
-        result.values.EmplaceBack(arg, std::move(parsed_value.GetValue()));
+        AppendCommandLineArgumentValue(result.values, arg, std::move(parsed_value.GetValue()));
     }
 
     for (const CommandLineArgumentDefinition &def : m_definitions) {
@@ -300,7 +355,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         }
 
         if (def.default_value.HasValue()) {
-            result.values.EmplaceBack(def.name, *def.default_value);
+            AppendCommandLineArgumentValue(result.values, def.name, *def.default_value);
 
             continue;
         }

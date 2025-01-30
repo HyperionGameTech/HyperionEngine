@@ -604,7 +604,13 @@ public:
             return AsArray();
         }
 
-        return JSONArray();
+        if (IsUndefined()) {
+            return JSONArray();
+        }
+
+        JSONArray array_value;
+        array_value.PushBack(*this);
+        return array_value;
     }
 
     HYP_FORCE_INLINE JSONObject &AsObject()

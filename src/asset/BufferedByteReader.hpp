@@ -33,8 +33,9 @@ class FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
     /*! \brief Takes ownership of the file pointer to use for reading */
-    FileBufferedReaderSource(FILE *file, int(*close_func)(FILE *) = fclose)
-        : m_file(file),
+    FileBufferedReaderSource(FILE *file, int(*close_func)(FILE *) = nullptr)
+        : m_size(0),
+          m_file(file),
           m_close_func(close_func)
     {
         if (m_file) {
@@ -48,7 +49,7 @@ public:
 
     /*! \brief Opens the file at the given path for reading */
     FileBufferedReaderSource(const FilePath &filepath)
-        : FileBufferedReaderSource(fopen(filepath.Data(), "rb"), fclose)
+        : FileBufferedReaderSource(fopen(filepath.Data(), "rb"), nullptr)
     {
     }
 
@@ -56,7 +57,7 @@ public:
     {
         if (m_file) {
             if (m_close_func) {
-                AssertThrowMsg(m_close_func(m_file) == 0, "Failed to close file");
+                m_close_func(m_file);
             } else {
                 fclose(m_file);
             }

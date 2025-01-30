@@ -93,8 +93,6 @@ class HYP_API World : public HypObject<World>
 {
     HYP_OBJECT_BODY(World);
 
-    HYP_PROPERTY(ID, &World::GetID, { { "serialize", false } });
-
 public:
     World();
     World(const World &other)                   = delete;

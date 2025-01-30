@@ -133,7 +133,10 @@ public:
 
     HYP_API bool Exists() const;
     HYP_API bool IsDirectory() const;
-    HYP_API int MkDir() const;
+    HYP_API bool MkDir() const;
+
+    HYP_API String GetExtension() const;
+    HYP_NODISCARD String StripExtension() const;
 
     HYP_API Time LastModifiedTimestamp() const;
 

@@ -37,7 +37,7 @@ HYP_MAKE_ENUM_FLAGS(CommandLineParserFlags)
 
 enum class CommandLineArgumentType
 {
-    STRING = 1,
+    STRING,
     INTEGER,
     FLOAT,
     BOOLEAN,

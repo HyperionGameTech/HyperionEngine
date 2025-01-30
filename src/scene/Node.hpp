@@ -330,7 +330,7 @@ public:
      *  \param node The Node to be added as achild of this Node
      *  \returns The added Node */
     HYP_METHOD()
-    NodeProxy AddChild(const NodeProxy &node = NodeProxy());
+    NodeProxy AddChild(const NodeProxy &node = NodeProxy::empty);
 
     /*! \brief Remove a child using the given iterator (i.e from FindChild())
      *  \param iter The iterator from this Node's child list
@@ -464,7 +464,7 @@ public:
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
     HYP_METHOD(Property="WorldTransform", Editor=true, Label="World-space Transform")
-    HYP_FORCE_INLINE const Transform &GetWorldTransform() const
+    const Transform &GetWorldTransform() const
         { return m_world_transform; }
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */

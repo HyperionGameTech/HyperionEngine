@@ -17,7 +17,7 @@ namespace hyperion {
 
 struct Triangle;
 
-HYP_STRUCT()
+HYP_STRUCT(Size=32)
 class HYP_API BoundingBox
 {
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);

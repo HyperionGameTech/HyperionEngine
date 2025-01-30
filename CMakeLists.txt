@@ -458,18 +458,18 @@ else()
     message(STATUS "Python executable path: ${PYTHON_EXECUTABLE_PATH}")
 endif()
 
-function(generate_reflection_library)
-    # execute on build
-    add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
-        COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Running Python codegen script"
-    )
-    add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
-endfunction()
+# function(generate_reflection_library)
+#     # execute on build
+#     add_custom_command(
+#         OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
+#         COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+#         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#         COMMENT "Running Python codegen script"
+#     )
+#     add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
+# endfunction()
 
-generate_reflection_library()
+# generate_reflection_library()
 
 # remove codegen output folder
 file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/generated)
@@ -577,7 +577,7 @@ function(create_csharp_library output_name csharp_sources)
 
     add_custom_target(${output_name} ALL
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-        DEPENDS HyperionCore reflection-codegen
+        DEPENDS HyperionCore #reflection-codegen
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.dll ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.dll
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}

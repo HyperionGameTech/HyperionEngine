@@ -297,7 +297,6 @@
         #define HYP_THROW(msg) \
             do { \
                 HYP_PRINT_STACK_TRACE(); \
-                HYP_BREAKPOINT; \
                 std::terminate(); \
             } while (0)
     #else
@@ -308,13 +307,14 @@
 #define HYP_UNREACHABLE() \
     HYP_THROW("Unreachable code hit in function " HYP_DEBUG_FUNC)
 
-#define HYP_NOT_IMPLEMENTED() \
-    HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
-    return { }
+#if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
+    #define HYP_NOT_IMPLEMENTED() do { HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); std::terminate(); } while (0)
+#else
+    #define HYP_NOT_IMPLEMENTED() HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC)
+#endif
 
-#define HYP_NOT_IMPLEMENTED_VOID() \
-    HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); \
-    return
+// obsolete
+#define HYP_NOT_IMPLEMENTED_VOID() HYP_NOT_IMPLEMENTED()
 
 #pragma endregion Error Handling
 

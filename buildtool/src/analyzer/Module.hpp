@@ -32,11 +32,13 @@ public:
         { return m_hyp_classes; }
 
     Result<void> AddHypClassDefinition(HypClassDefinition &&hyp_class_definition);
+
+    const HypClassDefinition *FindHypClassDefinition(UTF8StringView class_name) const;
  
 private:
     FilePath                            m_path;
     HashMap<String, HypClassDefinition> m_hyp_classes;
-    Mutex                               m_mutex;
+    mutable Mutex                       m_mutex;
 };
 
 } // namespace buildtool

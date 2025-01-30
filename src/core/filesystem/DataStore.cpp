@@ -128,7 +128,7 @@ bool DataStoreBase::MakeDirectory() const
     const FilePath path = GetDirectory();
 
     if (!path.Exists() || !path.IsDirectory()) {
-        return path.MkDir() == 0;
+        return path.MkDir();
     }
 
     return true;

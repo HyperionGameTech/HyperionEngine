@@ -10,6 +10,7 @@ namespace Hyperion
     {
         [FieldOffset(0)]
         private Vec3f min;
+        
         [FieldOffset(16)]
         private Vec3f max;
 

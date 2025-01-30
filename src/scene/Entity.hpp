@@ -16,8 +16,6 @@ class Entity final : public HypObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);
 
-    HYP_PROPERTY(ID, &Entity::GetID, { { "serialize", false } });
-
 public:
     HYP_API Entity();
     HYP_API virtual ~Entity() override;

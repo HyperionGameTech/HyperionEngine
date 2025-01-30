@@ -21,11 +21,6 @@ namespace hyperion {
 HYP_STRUCT()
 class alignas(uint32) HYP_API Color
 {
-    HYP_PROPERTY(Red, &Color::GetRed, &Color::SetRed, { { "serialize", true } });
-    HYP_PROPERTY(Green, &Color::GetGreen, &Color::SetGreen, { { "serialize", true } });
-    HYP_PROPERTY(Blue, &Color::GetBlue, &Color::SetBlue, { { "serialize", true } });
-    HYP_PROPERTY(Alpha, &Color::GetAlpha, &Color::SetAlpha, { { "serialize", true } });
-
 public:
     static constexpr uint32 size = 4;
 
@@ -53,31 +48,35 @@ public:
     Color(const Color &other);
     Color &operator=(const Color &other);
 
+    HYP_METHOD(Property="Red", Serialize=true)
     HYP_FORCE_INLINE float GetRed() const
         { return float(bytes[0]) / 255.0f; }
 
+    HYP_METHOD(Property="Red", Serialize=true)
     HYP_FORCE_INLINE Color &SetRed(float red)
         { bytes[0] = static_cast<ubyte>(red * 255.0f); return *this; }
 
+    HYP_METHOD(Property="Green", Serialize=true)
     HYP_FORCE_INLINE float GetGreen() const
         { return float(bytes[1]) / 255.0f; }
 
-    HYP_FORCE_INLINE
-    Color &SetGreen(float green)
+    HYP_METHOD(Property="Green", Serialize=true)
+    HYP_FORCE_INLINE Color &SetGreen(float green)
         { bytes[1] = static_cast<ubyte>(green * 255.0f); return *this; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    float GetBlue() const
+    HYP_METHOD(Property="Blue", Serialize=true)
+    HYP_FORCE_INLINE float GetBlue() const
         { return float(bytes[2]) / 255.0f; }
 
-    HYP_FORCE_INLINE
-    Color &SetBlue(float blue)
+    HYP_METHOD(Property="Blue", Serialize=true)
+    HYP_FORCE_INLINE Color &SetBlue(float blue)
         { bytes[2] = static_cast<ubyte>(blue * 255.0f); return *this; }
 
+    HYP_METHOD(Property="Alpha", Serialize=true)
     HYP_FORCE_INLINE float GetAlpha() const
         { return float(bytes[3]) / 255.0f; }
 
+    HYP_METHOD(Property="Alpha", Serialize=true)
     HYP_FORCE_INLINE Color &SetAlpha(float alpha)
         { bytes[3] = static_cast<ubyte>(alpha * 255.0f); return *this; }
     

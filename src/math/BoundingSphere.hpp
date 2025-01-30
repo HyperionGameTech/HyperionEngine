@@ -11,12 +11,9 @@
 
 namespace hyperion {
 
-HYP_STRUCT()
+HYP_STRUCT(Size=32)
 struct HYP_API BoundingSphere
 {
-    HYP_PROPERTY(Center, &BoundingSphere::center, { { "serialize", true } });
-    HYP_PROPERTY(Radius, &BoundingSphere::radius, { { "serialize", true } });
-
 public:
     static const BoundingSphere empty;
     static const BoundingSphere infinity;
@@ -68,7 +65,10 @@ public:
         return hc;
     }
 
+    HYP_FIELD(Property="Center", Serialize=true)
     Vec3f   center;
+
+    HYP_FIELD(Property="Radius", Serialize=true)
     float   radius;
 };
 

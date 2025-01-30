@@ -119,8 +119,6 @@ class HYP_API Light : public HypObject<Light>
 {
     HYP_OBJECT_BODY(Light);
 
-    HYP_PROPERTY(ID, &Light::GetID, { { "serialize", false } });
-
 public:
     Light();
 

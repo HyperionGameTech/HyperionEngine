@@ -137,8 +137,6 @@ class HYP_API Material : public HypObject<Material>
 {
     HYP_OBJECT_BODY(Material);
 
-    HYP_PROPERTY(ID, &Material::GetID, { { "serialize", false } });
-
 public:
     static constexpr uint32 max_parameters = 32u;
     static constexpr uint32 max_textures = 32u;

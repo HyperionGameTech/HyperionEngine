@@ -120,21 +120,25 @@ public:
         { return Base::Back(); }
 
     template <class OtherContainerType>
-    void Merge(const OtherContainerType &other)
+    FlatSet &Merge(const OtherContainerType &other)
     {
         for (const auto &item : other) {
             Insert(item);
         }
+
+        return *this;
     }
 
     template <class OtherContainerType>
-    void Merge(OtherContainerType &&other)
+    FlatSet &Merge(OtherContainerType &&other)
     {
         for (auto &item : other) {
             Insert(std::move(item));
         }
 
         other.Clear();
+
+        return *this;
     }
 
     template <class OtherContainerType>

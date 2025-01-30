@@ -542,7 +542,7 @@ public:
     {
         const ITaskExecutor *executor = GetTaskExecutor();
 
-        return executor != nullptr && executor->GetTaskID().IsValid();
+        return executor != nullptr;// && executor->GetTaskID().IsValid();
     }
 
     virtual bool IsCompleted() const final

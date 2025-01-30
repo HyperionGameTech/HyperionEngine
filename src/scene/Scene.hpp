@@ -69,8 +69,6 @@ class HYP_API Scene : public HypObject<Scene>
 
     HYP_OBJECT_BODY(Scene);
 
-    HYP_PROPERTY(ID, &Scene::GetID, { { "serialize", false } });
-
 public:
     Scene();
     
