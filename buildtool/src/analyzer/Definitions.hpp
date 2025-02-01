@@ -18,11 +18,7 @@
 namespace hyperion {
 namespace buildtool {
 
-struct TypeDefinition
-{
-    String                                          name;
-    Array<Pair<String, UniquePtr<TypeDefinition>>>  template_args;
-};
+class ASTType;
 
 enum class HypClassDefinitionType
 {
@@ -37,8 +33,7 @@ struct HypMemberDefinition
     HypMemberType                               type;
     String                                      name;
     Array<Pair<String, HypClassAttributeValue>> attributes;
-    TypeDefinition                              return_type;
-    Array<Pair<String, TypeDefinition>>         parameters;
+    RC<ASTType>                                 cxx_type;
     String                                      source;
 };
 

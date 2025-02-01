@@ -21,17 +21,19 @@ public:
     {
     }
 
-    AnalyzerError(const StaticMessage &static_message, const FilePath &path, int error_code = 0)
+    AnalyzerError(const StaticMessage &static_message, const FilePath &path, int error_code = 0, const String &error_message = String::empty)
         : Error(static_message),
           m_path(path),
-          m_error_code(error_code)
+          m_error_code(error_code),
+          m_error_message(error_message)
     {
     }
 
-    AnalyzerError(const Error &error, const FilePath &path, int error_code = 0)
+    AnalyzerError(const Error &error, const FilePath &path, int error_code = 0, const String &error_message = String::empty)
         : Error(error),
           m_path(path),
-          m_error_code(error_code)
+          m_error_code(error_code),
+          m_error_message(error_message)
     {
     }
 
@@ -48,9 +50,13 @@ public:
     HYP_FORCE_INLINE int GetErrorCode() const
         { return m_error_code; }
 
+    HYP_FORCE_INLINE const String &GetErrorMessage() const
+        { return m_error_message; }
+
 private:
     FilePath    m_path;
     int         m_error_code;
+    String      m_error_message;
 };
 
 } // namespace buildtool

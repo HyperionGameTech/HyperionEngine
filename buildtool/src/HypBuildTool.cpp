@@ -16,13 +16,14 @@
 #include <driver/Driver.hpp>
 #include <driver/clang/ClangDriver.hpp>
 
+#include <parser/Parser.hpp>
+
 #include <analyzer/Analyzer.hpp>
 
 namespace hyperion {
+namespace buildtool {
 
 HYP_DEFINE_LOG_CHANNEL(BuildTool);
-
-namespace buildtool {
 
 class WorkerThread : public TaskThread
 {
@@ -72,12 +73,28 @@ public:
         Task process_modules = ProcessModules();
         WaitWhileTaskRunning(process_modules);
 
-        if (m_analyzer.GetState().HasErrors()) {
-            for (const AnalyzerError &error : m_analyzer.GetState().errors) {
-                HYP_LOG(BuildTool, Error, "Error in module {}: {}", error.GetPath(), error.GetMessage());
-            }
+        // if (m_analyzer.GetState().HasErrors()) {
+        //     for (const AnalyzerError &error : m_analyzer.GetState().errors) {
+        //         HYP_LOG(BuildTool, Error, "Error in module {}: {}", error.GetPath(), error.GetMessage());
+        //     }
 
-            return;
+        //     return;
+        // }
+
+        // Temp : log out all classes
+
+        for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
+            for (const Pair<String, HypClassDefinition> &hyp_class : mod->GetHypClasses()) {
+                HYP_LOG(BuildTool, Info, "Class: {}", hyp_class.first);
+
+                // Log out all members
+                for (const HypMemberDefinition &hyp_member : hyp_class.second.members) {
+                    json::JSONValue json;
+                    hyp_member.cxx_type->ToJSON(json);
+
+                    HYP_LOG(BuildTool, Info, "\tMember: {}\t{}", hyp_member.name, json.ToString(true));
+                }
+            }
         }
 
         HYP_BREAKPOINT;

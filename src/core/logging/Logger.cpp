@@ -40,6 +40,43 @@ private:
 
 static LogChannelIDGenerator g_log_channel_id_generator { };
 
+#pragma region LoggerOutputStream
+
+class BasicLoggerOutputStream : public ILoggerOutputStream
+{
+public:
+    static BasicLoggerOutputStream &GetDefaultInstance()
+    {
+        static BasicLoggerOutputStream instance { stdout, stderr };
+
+        return instance;
+    }
+
+    BasicLoggerOutputStream(FILE *output, FILE *output_error)
+        : m_output(output),
+          m_output_error(output_error)
+    {
+    }
+
+    virtual ~BasicLoggerOutputStream() override = default;
+
+    virtual void Write(const LogChannel &channel, const LogMessage &message) override
+    {
+        std::fwrite(*message.message, 1, message.message.Size(), m_output);
+    }
+
+    virtual void WriteError(const LogChannel &channel, const LogMessage &message) override
+    {
+        std::fwrite(*message.message, 1, message.message.Size(), m_output_error);
+    }
+
+private:
+    FILE    *m_output;
+    FILE    *m_output_error;
+};
+
+#pragma endregion LoggerOutputStream
+
 #pragma region LogChannel
 
 LogChannel::LogChannel(Name name)
@@ -69,22 +106,25 @@ LogChannel::~LogChannel()
 
 #pragma region Logger
 
-static Logger g_logger;
-
 Logger &Logger::GetInstance()
 {
-    return g_logger;
+    static Logger instance;
+
+    return instance;
 }
 
 Logger::Logger()
-    : m_log_mask(uint64(-1))
+    : Logger(&BasicLoggerOutputStream::GetDefaultInstance())
 {
 }
 
-Logger::Logger(Name context_name)
-    : m_log_mask(uint64(-1))
+Logger::Logger(NotNullPtr<ILoggerOutputStream> output_stream)
+    : m_log_mask(uint64(-1)),
+      m_output_stream(output_stream)
 {
 }
+
+Logger::~Logger() = default;
 
 void Logger::RegisterChannel(LogChannel *channel)
 {
@@ -154,7 +194,11 @@ void Logger::SetChannelEnabled(const LogChannel &channel, bool enabled)
 
 void Logger::Log(const LogChannel &channel, const LogMessage &message)
 {
-    std::puts(*message.message);
+    if (uint32(message.level) >= uint32(LogLevel::WARNING)) {
+        m_output_stream->WriteError(channel, message);
+    } else {
+        m_output_stream->Write(channel, message);
+    }
 }
 
 #pragma endregion Logger

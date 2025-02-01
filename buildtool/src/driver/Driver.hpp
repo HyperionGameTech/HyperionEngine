@@ -17,9 +17,6 @@
 #include <type_traits>
 
 namespace hyperion {
-
-HYP_DECLARE_LOG_CHANNEL(BuildTool);
-
 namespace buildtool {
 
 class Analyzer;

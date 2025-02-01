@@ -387,21 +387,25 @@ public:
     void Clear();
 
     template <class OtherContainerType>
-    void Merge(const OtherContainerType &other)
+    HashSet &Merge(const OtherContainerType &other)
     {
         for (const auto &item : other) {
             Insert(item);
         }
+
+        return *this;
     }
 
     template <class OtherContainerType>
-    void Merge(OtherContainerType &&other)
+    HashSet &Merge(OtherContainerType &&other)
     {
         for (auto &item : other) {
             Insert(std::move(item));
         }
 
         other.Clear();
+
+        return *this;
     }
     
     HYP_FORCE_INLINE Iterator Begin()

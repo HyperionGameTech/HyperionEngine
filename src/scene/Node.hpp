@@ -464,7 +464,7 @@ public:
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
     HYP_METHOD(Property="WorldTransform", Editor=true, Label="World-space Transform")
-    HYP_FORCE_INLINE const Transform &GetWorldTransform() const
+    const Transform &GetWorldTransform() const
         { return m_world_transform; }
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */

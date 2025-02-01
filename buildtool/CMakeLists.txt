@@ -28,7 +28,7 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-file(GLOB_RECURSE SOURCES "*.cpp" "*.c")
+file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")

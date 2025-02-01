@@ -7,6 +7,9 @@
 
 #include <templates/Templates.hpp>
 
+#include <parser/Lexer.hpp>
+#include <parser/Parser.hpp>
+
 #include <core/utilities/Format.hpp>
 #include <core/utilities/StringView.hpp>
 
@@ -27,6 +30,8 @@
 
 namespace hyperion {
 namespace buildtool {
+
+HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 using namespace json;
 
@@ -204,7 +209,7 @@ static const String &HypClassDefinitionTypeToString(HypClassDefinitionType type)
 static const HashMap<String, HypMemberType> g_hyp_member_definition_types = {
     { "HYP_FIELD", HypMemberType::TYPE_FIELD },
     { "HYP_METHOD", HypMemberType::TYPE_METHOD },
-    { "HYP_PROPERTY", HypMemberType::TYPE_FIELD },
+    { "HYP_PROPERTY", HypMemberType::TYPE_PROPERTY },
     { "HYP_CONSTANT", HypMemberType::TYPE_CONSTANT }
 };
 
@@ -350,15 +355,21 @@ static Result<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribut
 }
 
 template <class MacroEnumType>
-static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, MacroEnumType> &usable_macros, const String &line, bool require_parentheses = true)
+static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, MacroEnumType> &usable_macros, const String &line, SizeType &out_start_index, SizeType &out_end_index, bool require_parentheses = true)
 {
+    out_start_index = String::not_found;
+    out_end_index = String::not_found;
+
     for (const Pair<String, MacroEnumType> &it : usable_macros) {
         SizeType macro_start_index = line.FindFirstIndex(it.first);
 
         if (macro_start_index != String::not_found) {
             Array<Pair<String, HypClassAttributeValue>> attributes;
 
-            const SizeType parenthesis_index = line.Substr(macro_start_index + it.first.Length()).FindFirstIndex("(");
+            out_start_index = macro_start_index;
+            out_end_index = out_start_index + it.first.Length();
+
+            const SizeType parenthesis_index = line.Substr(out_end_index).FindFirstIndex("(");
 
             if (parenthesis_index == String::not_found) {
                 if (require_parentheses) {
@@ -368,20 +379,22 @@ static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> 
 
                 // Otherwise, empty attributes are used
             } else {
+                out_end_index = parenthesis_index + 1;
+
                 int parenthesis_depth = 1;
                 String attributes_string;
 
-                for (SizeType j = macro_start_index + it.first.Length() + parenthesis_index + 1; j < line.Size(); j++) {
-                    if (line[j] == '(') {
+                for (; out_end_index < line.Size(); out_end_index++) {
+                    if (line[out_end_index] == '(') {
                         parenthesis_depth++;
-                    } else if (line[j] == ')') {
+                    } else if (line[out_end_index] == ')') {
                         parenthesis_depth--;
 
                         if (parenthesis_depth <= 0) {
                             break;
                         }
                     } else {
-                        attributes_string.Append(line[j]);
+                        attributes_string.Append(line[out_end_index]);
                     }
                 }
 
@@ -416,7 +429,10 @@ static Result<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const An
     for (SizeType i = 0; i < lines.Size(); i++) {
         HypClassDefinition result;
 
-        auto parse_macro_result = ParseHypMacro(g_hyp_class_definition_types, lines[i]);
+        SizeType macro_start_index;
+        SizeType macro_end_index;
+
+        auto parse_macro_result = ParseHypMacro(g_hyp_class_definition_types, lines[i], macro_start_index, macro_end_index, true);
 
         if (parse_macro_result.HasError()) {
             return AnalyzerError(parse_macro_result.GetError(), mod.GetPath());
@@ -519,7 +535,10 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
     for (SizeType i = 0; i < lines.Size(); i++) {
         const String &line = lines[i];
 
-        auto parse_macro_result = ParseHypMacro(g_hyp_member_definition_types, line);
+        SizeType macro_start_index;
+        SizeType macro_end_index;
+
+        auto parse_macro_result = ParseHypMacro(g_hyp_member_definition_types, line, macro_start_index, macro_end_index, false);
 
         if (parse_macro_result.HasError()) {
             return AnalyzerError(parse_macro_result.GetError(), mod.GetPath());
@@ -541,7 +560,7 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
             continue;
         }
 
-        const String content_to_end = String::Join(lines.Slice(i, lines.Size()), '\n');
+        const String content_to_end = String(line.Substr(macro_end_index)) + "\n" + String::Join(lines.Slice(i + 1, lines.Size()), '\n');
 
         int is_in_comment = 0; // 0 = no comment, 1 = line comment, 2 = block comment
         bool is_in_string = false;
@@ -592,23 +611,49 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
             }
         }
 
-        const String dummy_class_source = MemberDummyClass(result);
+        SourceFile source_file("<input>", result.source.Size());
 
-        auto res = ParseCXXHeader(dummy_class_source, analyzer.GetGlobalDefines());
+        ByteBuffer temp(result.source.Size(), result.source.Data());
+        source_file.ReadIntoBuffer(temp);
 
-        if (res.HasError()) {
-            return AnalyzerError(res.GetError(), mod.GetPath());
+        // testing
+        // use the lexer and parser on this file buffer
+        TokenStream token_stream(TokenStreamInfo { "<input>" });
+
+        CompilationUnit unit;
+        unit.SetPreprocessorDefinitions(analyzer.GetGlobalDefines());
+
+        const auto CheckParseErrors = [&]() -> Result<void, AnalyzerError>
+        {
+            String error_message;
+
+            for (SizeType index = 0; index < unit.GetErrorList().Size(); index++) {
+                error_message += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
+                    + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)
+                    + ": " + unit.GetErrorList()[index].GetText() + "\n";
+            }
+
+            if (unit.GetErrorList().HasFatalErrors()) {
+                return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse member", mod.GetPath(), 0, error_message);
+            }
+
+            return { };
+        };
+
+        Lexer lexer(SourceStream(&source_file), &token_stream, &unit);
+        lexer.Analyze();
+
+        Parser parser(&token_stream, &unit);
+        RC<ASTMemberDecl> decl = parser.ParseMemberDecl();
+
+        if (auto res = CheckParseErrors(); res.HasError()) {
+            return res.GetError();
         }
 
-        if (!res.GetValue().IsObject()) {
-            return HYP_MAKE_ERROR(AnalyzerError, "Expected clang ast to be a JSON object", mod.GetPath());
-        }
+        AssertThrow(decl != nullptr);
 
-        JSONObject object = res.GetValue().AsObject();
-
-        HYP_LOG(BuildTool, Debug, "Parsed JSON: {}", JSONValue(object).ToString());
-
-        HYP_LOG(BuildTool, Info, "Added member of type {} : {}", HypMemberTypeToString(result.type), result.source);
+        result.name = decl->name;
+        result.cxx_type = decl->type;
     }
 
     return results;
@@ -626,7 +671,7 @@ Result<void, AnalyzerError> ClangDriver::ProcessModule(const Analyzer &analyzer,
 
     for (HypClassDefinition &hyp_class_definition : res.GetValue()) {
         if (auto res = BuildHypClassMembers(analyzer, mod, hyp_class_definition); res.GetError()) {
-            HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode());
+            HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}\tMessage: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode(), res.GetError().GetErrorMessage());
 
             return res.GetError();
         }
@@ -634,7 +679,7 @@ Result<void, AnalyzerError> ClangDriver::ProcessModule(const Analyzer &analyzer,
         mod.AddHypClassDefinition(std::move(hyp_class_definition));
     }
 
-    return HYP_MAKE_ERROR(AnalyzerError, "Not implemented", mod.GetPath());
+    return { };
 }
 
 } // namespace buildtool
