@@ -89,6 +89,10 @@ public:
 
                 // Log out all members
                 for (const HypMemberDefinition &hyp_member : hyp_class.second.members) {
+                    if (!hyp_member.cxx_type) {
+                        continue;
+                    }
+
                     json::JSONValue json;
                     hyp_member.cxx_type->ToJSON(json);
 

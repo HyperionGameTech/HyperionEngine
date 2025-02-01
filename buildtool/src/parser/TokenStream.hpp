@@ -51,15 +51,54 @@ public:
         return m_tokens[pos];
     }
 
-    void Push(const Token &token) { m_tokens.PushBack(token); }
-    bool HasNext() const { return m_position < m_tokens.Size(); }
-    Token Next() { AssertThrow(m_position < m_tokens.Size()); return m_tokens[m_position++]; }
-    Token Last() const { AssertThrow(!m_tokens.Empty()); return m_tokens.Back(); }
-    SizeType GetSize() const { return m_tokens.Size(); }
-    SizeType GetPosition() const { return m_position; }
-    const TokenStreamInfo &GetInfo() const { return m_info; }
-    void SetPosition(SizeType position) { m_position = position; }
-    bool Eof() const { return m_position >= m_tokens.Size(); }
+    void Push(const Token &token, bool insert_at_position = false)
+    {
+        if (!insert_at_position || m_tokens.Size() <= m_position) {
+            m_tokens.PushBack(token);
+        } else {
+            auto it = m_tokens.Begin() + m_position;
+
+            m_tokens.Insert(it, token);
+        }
+    }
+
+    void Pop()
+    {
+        AssertThrow(m_position < m_tokens.Size());
+
+        m_tokens.Erase(m_tokens.Begin() + m_position);
+    }
+
+    bool HasNext() const
+        { return m_position < m_tokens.Size(); }
+
+    Token Next()
+        { AssertThrow(m_position < m_tokens.Size()); return m_tokens[m_position++]; }
+
+    Token Last() const
+        { AssertThrow(!m_tokens.Empty()); return m_tokens.Back(); }
+
+    SizeType GetSize() const
+        { return m_tokens.Size(); }
+
+    SizeType GetPosition() const
+        { return m_position; }
+
+    const TokenStreamInfo &GetInfo() const
+        { return m_info; }
+
+    void SetPosition(SizeType position)
+        { m_position = position; }
+
+    void Rewind(SizeType n)
+    {
+        AssertThrow(n <= m_position);
+
+        m_position -= n;
+    }
+    
+    bool Eof() const
+        { return m_position >= m_tokens.Size(); }
 
     Array<Token>    m_tokens;
     SizeType        m_position;

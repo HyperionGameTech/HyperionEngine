@@ -9,6 +9,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/Optional.hpp>
+#include <core/utilities/Variant.hpp>
 
 namespace hyperion::json {
 class JSONValue;
@@ -16,17 +17,114 @@ class JSONValue;
 
 namespace hyperion::buildtool {
 
-struct TypeName
+struct QualifiedName
 {
     Array<String>   parts;
     bool            is_global = false;
 };
+
+class ASTType;
 
 struct ASTNode
 {
     virtual ~ASTNode() = default;
 
     virtual void ToJSON(json::JSONValue &out) const = 0;
+};
+
+struct ASTExpr : ASTNode
+{
+    virtual ~ASTExpr() override = default;
+
+    virtual void ToJSON(json::JSONValue &out) const override = 0;
+};
+
+struct ASTUnaryExpr : ASTExpr
+{
+    virtual ~ASTUnaryExpr() override = default;
+
+    RC<ASTExpr>     expr;
+    const Operator  *op;
+    bool            is_prefix;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTBinExpr : ASTExpr
+{
+    virtual ~ASTBinExpr() override = default;
+
+    RC<ASTExpr>     left;
+    RC<ASTExpr>     right;
+    const Operator  *op;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTTernaryExpr : ASTExpr
+{
+    virtual ~ASTTernaryExpr() override = default;
+
+    RC<ASTExpr> conditional;
+    RC<ASTExpr> true_expr;
+    RC<ASTExpr> false_expr;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTLiteralString : ASTExpr
+{
+    virtual ~ASTLiteralString() override = default;
+
+    String  value;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTLiteralInt : ASTExpr
+{
+    virtual ~ASTLiteralInt() override = default;
+
+    int value;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTLiteralFloat : ASTExpr
+{
+    virtual ~ASTLiteralFloat() override = default;
+
+    double  value;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTLiteralBool : ASTExpr
+{
+    virtual ~ASTLiteralBool() override = default;
+
+    bool    value;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTIdentifier : ASTExpr
+{
+    virtual ~ASTIdentifier() override = default;
+
+    QualifiedName   name;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTTemplateArgument : ASTNode
+{
+    virtual ~ASTTemplateArgument() override = default;
+
+    RC<ASTType> type;
+    RC<ASTExpr> expr;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
 };
 
 struct ASTType : ASTNode
@@ -46,15 +144,15 @@ struct ASTType : ASTNode
     bool                                is_function_pointer = false;
     bool                                is_function = false;
 
-    int                                 array_size = -1;
-
     // One of the below is set
 
     RC<ASTType>                         ptr_to;
     RC<ASTType>                         ref_to;
-    Optional<TypeName>                  type_name;
+    Optional<QualifiedName>             type_name;
 
-    Array<RC<ASTType>>                  template_arguments;
+    RC<ASTExpr>                         array_expr;
+
+    Array<RC<ASTTemplateArgument>>      template_arguments;
 
     virtual void ToJSON(json::JSONValue &out) const override;
 };
@@ -71,6 +169,9 @@ struct ASTFunctionType : ASTType
     bool                                is_const_method = false;
     bool                                is_override_method = false;
     bool                                is_noexcept_method = false;
+    bool                                is_defaulted_method = false;
+    bool                                is_deleted_method = false;
+    bool                                is_pure_virtual_method = false;
     bool                                is_rvalue_method = false;
     bool                                is_lvalue_method = false;
 
@@ -84,8 +185,9 @@ struct ASTMemberDecl : ASTNode
 {
     virtual ~ASTMemberDecl() override = default;
 
-    RC<ASTType> type;
     String      name;
+    RC<ASTType> type;
+    RC<ASTExpr> value;
 
     virtual void ToJSON(json::JSONValue &out) const override;
 };
@@ -101,14 +203,25 @@ public:
     Parser(const Parser &other)             = delete;
     Parser &operator=(const Parser &other)  = delete;
 
-    TypeName ParseTypeName();
+    QualifiedName ReadQualifiedName();
 
+    RC<ASTExpr> ParseExpr();
+    RC<ASTExpr> ParseTerm();
+    RC<ASTExpr> ParseUnaryExprPrefix();
+    RC<ASTExpr> ParseUnaryExprPostfix(const RC<ASTExpr> &inner_expr);
+    RC<ASTExpr> ParseBinaryExpr(int expr_precedence, RC<ASTExpr> left);
+    RC<ASTExpr> ParseTernaryExpr(const RC<ASTExpr> &conditional);
+    RC<ASTExpr> ParseParentheses();
+    RC<ASTExpr> ParseLiteralString();
+    RC<ASTExpr> ParseLiteralInt();
+    RC<ASTExpr> ParseLiteralFloat();
+    RC<ASTIdentifier> ParseIdentifier();
     RC<ASTMemberDecl> ParseMemberDecl();
     RC<ASTType> ParseType();
     RC<ASTFunctionType> ParseFunctionType(const RC<ASTType> &return_type);
 
 private:
-    int m_template_argument_depth = 0; // until a better way is found..
+    int             m_template_argument_depth;
 
     TokenStream     *m_token_stream;
     CompilationUnit *m_compilation_unit;

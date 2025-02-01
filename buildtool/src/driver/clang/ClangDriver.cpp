@@ -526,7 +526,7 @@ static Result<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const An
     return results;
 }
 
-static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer &analyzer, const Module &mod, HypClassDefinition &hyp_class_definition)
+static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer &analyzer, const Module &mod, const HypClassDefinition &hyp_class_definition)
 {
     Array<HypMemberDefinition> results;
 
@@ -552,10 +552,12 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
         result.type = parse_macro_result.GetValue().first;
         result.attributes = parse_macro_result.GetValue().second;
 
-        // @TODO : Insert the member into a dummy class so we can send it to the Clang AST parser and extract the type, name, method arguments and return type, etc. (using ParseCXXHeader())
-
         if (result.type == HypMemberType::TYPE_PROPERTY) {
-            HYP_NOT_IMPLEMENTED();
+            if (result.attributes.Empty() || result.attributes[0].first.Empty()) {
+                return HYP_MAKE_ERROR(AnalyzerError, "Property must have a name", mod.GetPath());
+            }
+
+            result.name = result.attributes.PopFront().first;
 
             continue;
         }
@@ -611,14 +613,12 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
             }
         }
 
-        SourceFile source_file("<input>", result.source.Size());
+        SourceFile source_file(mod.GetPath().Basename(), result.source.Size());
 
         ByteBuffer temp(result.source.Size(), result.source.Data());
         source_file.ReadIntoBuffer(temp);
 
-        // testing
-        // use the lexer and parser on this file buffer
-        TokenStream token_stream(TokenStreamInfo { "<input>" });
+        TokenStream token_stream(TokenStreamInfo { mod.GetPath().Basename() });
 
         CompilationUnit unit;
         unit.SetPreprocessorDefinitions(analyzer.GetGlobalDefines());
@@ -674,6 +674,8 @@ Result<void, AnalyzerError> ClangDriver::ProcessModule(const Analyzer &analyzer,
             HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}\tMessage: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode(), res.GetError().GetErrorMessage());
 
             return res.GetError();
+        } else {
+            hyp_class_definition.members = std::move(res.GetValue());
         }
 
         mod.AddHypClassDefinition(std::move(hyp_class_definition));
