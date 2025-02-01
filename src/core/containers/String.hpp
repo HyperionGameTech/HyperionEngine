@@ -1040,13 +1040,13 @@ void String<TStringType>::Append(const utilities::detail::StringView<TStringType
 template <int TStringType>
 void String<TStringType>::Append(const CharType *str)
 {
-    Append(String(str));
+    Append(utilities::detail::StringView<TStringType>(str));
 }
 
 template <int TStringType>
 void String<TStringType>::Append(const CharType *_begin, const CharType *_end)
 {
-    Append(String(_begin, _end));
+    Append(utilities::detail::StringView<TStringType>(_begin, _end));
 }
 
 template <int TStringType>

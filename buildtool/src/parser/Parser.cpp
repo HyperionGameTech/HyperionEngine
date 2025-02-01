@@ -16,6 +16,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Parser, BuildTool);
 void ASTUnaryExpr::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTUnaryExpr";
 
     json::JSONValue expr_json;
     expr->ToJSON(expr_json);
@@ -30,6 +31,7 @@ void ASTUnaryExpr::ToJSON(json::JSONValue &out) const
 void ASTBinExpr::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTBinExpr";
 
     json::JSONValue left_json;
     left->ToJSON(left_json);
@@ -47,6 +49,7 @@ void ASTBinExpr::ToJSON(json::JSONValue &out) const
 void ASTTernaryExpr::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTTernaryExpr";
 
     json::JSONValue true_expr_json;
     true_expr->ToJSON(true_expr_json);
@@ -65,27 +68,44 @@ void ASTTernaryExpr::ToJSON(json::JSONValue &out) const
 
 void ASTLiteralString::ToJSON(json::JSONValue &out) const
 {
-    out = json::JSONString(value);
+    json::JSONObject object;
+    object["node_type"] = "ASTLiteralString";
+    object["value"] = json::JSONString(value);
+
+    out = std::move(object);
 }
 
 void ASTLiteralInt::ToJSON(json::JSONValue &out) const
 {
-    out = json::JSONNumber(value);
+    json::JSONObject object;
+    object["node_type"] = "ASTLiteralInt";
+    object["value"] = value;
+
+    out = std::move(object);
 }
 
 void ASTLiteralFloat::ToJSON(json::JSONValue &out) const
 {
-    out = json::JSONNumber(value);
+    json::JSONObject object;
+    object["node_type"] = "ASTLiteralFloat";
+    object["value"] = value;
+
+    out = std::move(object);
 }
 
 void ASTLiteralBool::ToJSON(json::JSONValue &out) const
 {
-    out = json::JSONBool(value);
+    json::JSONObject object;
+    object["node_type"] = "ASTLiteralBool";
+    object["value"] = value;
+
+    out = std::move(object);
 }
 
 void ASTIdentifier::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTIdentifier";
 
     json::JSONObject type_name_json;
     type_name_json["is_global"] = name.is_global;
@@ -103,9 +123,28 @@ void ASTIdentifier::ToJSON(json::JSONValue &out) const
     out = std::move(object);
 }
 
+void ASTInitializerExpr::ToJSON(json::JSONValue &out) const
+{
+    json::JSONObject object;
+    object["node_type"] = "ASTInitializerExpr";
+
+    json::JSONArray values_array;
+
+    for (const RC<ASTExpr> &value : values) {
+        json::JSONValue value_json;
+        value->ToJSON(value_json);
+        values_array.PushBack(std::move(value_json));
+    }
+
+    object["values"] = std::move(values_array);
+
+    out = std::move(object);
+}
+
 void ASTTemplateArgument::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTTemplateArgument";
 
     if (type) {
         json::JSONValue type_json;
@@ -123,12 +162,15 @@ void ASTTemplateArgument::ToJSON(json::JSONValue &out) const
 void ASTType::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
+    object["node_type"] = "ASTType";
 
     object["is_const"] = is_const;
     object["is_volatile"] = is_volatile;
-    object["is_static"] = is_static;
-    object["is_inline"] = is_inline;
     object["is_virtual"] = is_virtual;
+    object["is_inline"] = is_inline;
+    object["is_static"] = is_static;
+    object["is_thread_local"] = is_thread_local;
+    object["is_constexpr"] = is_constexpr;
     object["is_lvalue_reference"] = is_lvalue_reference;
     object["is_rvalue_reference"] = is_rvalue_reference;
     object["is_pointer"] = is_pointer;
@@ -191,12 +233,35 @@ void ASTType::ToJSON(json::JSONValue &out) const
     out = std::move(object);
 }
 
+void ASTMemberDecl::ToJSON(json::JSONValue &out) const
+{
+    json::JSONObject object;
+    object["node_type"] = "ASTMemberDecl";
+
+    object["name"] = name;
+
+    json::JSONValue type_json;
+    type->ToJSON(type_json);
+    object["type"] = std::move(type_json);
+
+    if (value) {
+        json::JSONValue value_json;
+        value->ToJSON(value_json);
+        object["value"] = std::move(value_json);
+    } else {
+        object["value"] = json::JSONNull();
+    }
+
+    out = std::move(object);
+}
+
 void ASTFunctionType::ToJSON(json::JSONValue &out) const
 {
     json::JSONValue type_json;
     ASTType::ToJSON(type_json);
 
     json::JSONObject object;
+    object["node_type"] = "ASTFunctionType";
 
     object["is_const_method"] = is_const_method;
     object["is_override_method"] = is_override_method;
@@ -213,33 +278,15 @@ void ASTFunctionType::ToJSON(json::JSONValue &out) const
 
     json::JSONArray parameters_array;
 
-    for (const Pair<String, RC<ASTType>> &parameter : parameters) {
-        json::JSONObject parameter_json;
-        parameter_json["name"] = parameter.first;
-
-        json::JSONValue parameter_type_json;
-        parameter.second->ToJSON(parameter_type_json);
-        parameter_json["type"] = std::move(parameter_type_json);
-
+    for (const RC<ASTMemberDecl> &parameter : parameters) {
+        json::JSONValue parameter_json;
+        parameter->ToJSON(parameter_json);
         parameters_array.PushBack(std::move(parameter_json));
     }
 
     object["parameters"] = std::move(parameters_array);
 
     out = type_json.ToObject().Merge(std::move(object));
-}
-
-void ASTMemberDecl::ToJSON(json::JSONValue &out) const
-{
-    json::JSONObject object;
-
-    object["name"] = name;
-
-    json::JSONValue type_json;
-    type->ToJSON(type_json);
-    object["type"] = std::move(type_json);
-
-    out = std::move(object);
 }
 
 #pragma endregion JSON conversion
@@ -574,6 +621,8 @@ RC<ASTExpr> Parser::ParseTerm()
         expr = ParseIdentifier();
     } else if (Match(TK_OPERATOR)) {
         expr = ParseUnaryExprPrefix();
+    } else if (Match(TK_OPEN_BRACE)) {
+        expr = ParseInitializerExpr();
     } else {
         m_compilation_unit->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -782,6 +831,27 @@ RC<ASTIdentifier> Parser::ParseIdentifier()
     return identifier;
 }
 
+RC<ASTInitializerExpr> Parser::ParseInitializerExpr()
+{
+    RC<ASTInitializerExpr> initializer_expr = MakeRefCountedPtr<ASTInitializerExpr>();
+
+    if (Expect(TK_OPEN_BRACE, true)) {
+        if (!Match(TK_CLOSE_BRACE, false)) {
+            while (true) {
+                initializer_expr->values.PushBack(ParseExpr());
+
+                if (!Match(TK_COMMA, true)) {
+                    break;
+                }
+            }
+        }
+        
+        Expect(TK_CLOSE_BRACE, true);
+    }
+
+    return initializer_expr;
+}
+
 RC<ASTMemberDecl> Parser::ParseMemberDecl()
 {
     RC<ASTMemberDecl> member_decl = MakeRefCountedPtr<ASTMemberDecl>();
@@ -789,6 +859,8 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     bool is_inline = false;
     bool is_virtual = false;
     bool is_static = false;
+    bool is_thread_local = false;
+    bool is_constexpr = false;
     bool is_function = false;
 
     bool keep_reading = true;
@@ -801,6 +873,10 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
             is_function = true;
         } else if (MatchIdentifier("static", true)) {
             is_static = true;
+        } else if (MatchIdentifier("thread_local", true)) {
+            is_thread_local = true;
+        } else if (MatchIdentifier("constexpr", true)) {
+            is_constexpr = true;
         } else {
             keep_reading = false;
         }
@@ -826,8 +902,6 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     }
 
     if (open_parenth_token) {
-        is_function = true;
-
         member_decl->type = ParseFunctionType(member_decl->type);
     } else if (Match(TK_OPEN_BRACKET, true)) {
         member_decl->type->is_array = true;
@@ -839,13 +913,19 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
         Expect(TK_CLOSE_BRACKET, true);
     }
 
-    if (!is_function && MatchOperator("=", true)) {
-        member_decl->value = ParseExpr();
+    if (!member_decl->type->is_function) {
+        if (MatchOperator("=", true)) {
+            member_decl->value = ParseExpr();
+        } else if (Match(TK_OPEN_BRACE, false)) {
+            member_decl->value = ParseInitializerExpr();
+        }
     }
 
     member_decl->type->is_virtual = is_virtual;
     member_decl->type->is_inline = is_inline;
     member_decl->type->is_static = is_static;
+    member_decl->type->is_thread_local = is_thread_local;
+    member_decl->type->is_constexpr = is_constexpr;
 
     return member_decl;
 }
@@ -861,6 +941,8 @@ RC<ASTType> Parser::ParseType()
             root_type->is_const = true;
         } else if (MatchIdentifier("volatile", true)) {
             root_type->is_volatile = true;
+        } if (MatchIdentifier("constexpr", true)) {
+            root_type->is_constexpr = true;
         } else {
             keep_reading = false;
         }
@@ -1007,8 +1089,7 @@ RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType> &return_type)
     if (Expect(TK_OPEN_PARENTH, true)) {
         if (!Match(TK_CLOSE_PARENTH, false)) {
             while (true) {
-                RC<ASTMemberDecl> param = ParseMemberDecl();
-                func_type->parameters.PushBack({ param->name, param->type });
+                func_type->parameters.PushBack(ParseMemberDecl());
 
                 if (!Match(TK_COMMA, true)) {
                     break;
@@ -1019,7 +1100,8 @@ RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType> &return_type)
         if (!Expect(TK_CLOSE_PARENTH, true)) {
             json::JSONValue json;
             func_type->ToJSON(json);
-            HYP_LOG(Parser, Error, "Expected closing parenthesis in function type {}\t{}", m_token_stream->GetInfo().filepath, json.ToString());
+            HYP_LOG(Parser, Error, "Expected closing parenthesis in function type {}\t{}   \n\tcurrent token: {}", m_token_stream->GetInfo().filepath, json.ToString(),
+                Token::TokenTypeToString(m_token_stream->Peek().GetTokenClass()));
             HYP_BREAKPOINT;
         }
 

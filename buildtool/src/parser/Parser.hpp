@@ -117,6 +117,15 @@ struct ASTIdentifier : ASTExpr
     virtual void ToJSON(json::JSONValue &out) const override;
 };
 
+struct ASTInitializerExpr : ASTExpr
+{
+    virtual ~ASTInitializerExpr() override = default;
+
+    Array<RC<ASTExpr>>  values;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
 struct ASTTemplateArgument : ASTNode
 {
     virtual ~ASTTemplateArgument() override = default;
@@ -133,9 +142,11 @@ struct ASTType : ASTNode
 
     bool                                is_const = false;
     bool                                is_volatile = false;
-    bool                                is_static = false;
-    bool                                is_inline = false;
     bool                                is_virtual = false;
+    bool                                is_inline = false;
+    bool                                is_static = false;
+    bool                                is_thread_local = false;
+    bool                                is_constexpr = false;
     bool                                is_lvalue_reference = false;
     bool                                is_rvalue_reference = false;
     bool                                is_pointer = false;
@@ -145,14 +156,25 @@ struct ASTType : ASTNode
     bool                                is_function = false;
 
     // One of the below is set
-
     RC<ASTType>                         ptr_to;
     RC<ASTType>                         ref_to;
     Optional<QualifiedName>             type_name;
 
+    // Inner value for array - may be null
     RC<ASTExpr>                         array_expr;
 
     Array<RC<ASTTemplateArgument>>      template_arguments;
+
+    virtual void ToJSON(json::JSONValue &out) const override;
+};
+
+struct ASTMemberDecl : ASTNode
+{
+    virtual ~ASTMemberDecl() override = default;
+
+    String      name;
+    RC<ASTType> type;
+    RC<ASTExpr> value;
 
     virtual void ToJSON(json::JSONValue &out) const override;
 };
@@ -176,18 +198,7 @@ struct ASTFunctionType : ASTType
     bool                                is_lvalue_method = false;
 
     RC<ASTType>                         return_type;
-    Array<Pair<String, RC<ASTType>>>    parameters;
-
-    virtual void ToJSON(json::JSONValue &out) const override;
-};
-
-struct ASTMemberDecl : ASTNode
-{
-    virtual ~ASTMemberDecl() override = default;
-
-    String      name;
-    RC<ASTType> type;
-    RC<ASTExpr> value;
+    Array<RC<ASTMemberDecl>>            parameters;
 
     virtual void ToJSON(json::JSONValue &out) const override;
 };
@@ -216,6 +227,7 @@ public:
     RC<ASTExpr> ParseLiteralInt();
     RC<ASTExpr> ParseLiteralFloat();
     RC<ASTIdentifier> ParseIdentifier();
+    RC<ASTInitializerExpr> ParseInitializerExpr();
     RC<ASTMemberDecl> ParseMemberDecl();
     RC<ASTType> ParseType();
     RC<ASTFunctionType> ParseFunctionType(const RC<ASTType> &return_type);

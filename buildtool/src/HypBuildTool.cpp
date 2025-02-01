@@ -100,8 +100,6 @@ public:
                 }
             }
         }
-
-        HYP_BREAKPOINT;
     }
 
 private:

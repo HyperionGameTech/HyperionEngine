@@ -202,14 +202,19 @@ struct ConditionVarSemaphoreImpl
 
     CounterType Release(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        CounterType new_value;
+        CounterType previous_value;
 
-        const CounterType previous_value = value;
-        value -= delta;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+
+            previous_value = value;
+            new_value = value -= delta;
+        }
 
         if (if_signal_state_changed_proc.IsValid()) {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
-            const bool should_signal_after = ShouldSignal<CounterType, Direction>(value);
+            const bool should_signal_after = ShouldSignal<CounterType, Direction>(new_value);
 
             if (should_signal_before != should_signal_after) {
                 if_signal_state_changed_proc(should_signal_after);
@@ -218,35 +223,44 @@ struct ConditionVarSemaphoreImpl
 
         cv.notify_all();
 
-        return previous_value - delta;
+        return new_value;
     }
 
     CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        CounterType new_value;
 
-        const CounterType previous_value = value;
-        value -= delta;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(value)) {
+            const CounterType previous_value = value;
+            new_value = value -= delta;
+        }
+
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value)) {
             if_signalled_proc();
         }
 
         cv.notify_all();
 
-        return previous_value - delta;
+        return new_value;
     }
 
     CounterType Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        CounterType new_value;
+        CounterType previous_value;
 
-        const CounterType previous_value = value;
-        value += delta;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+
+            previous_value = value;
+            new_value = value += delta;
+        }
 
         if (if_signal_state_changed_proc.IsValid()) {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
-            const bool should_signal_after = ShouldSignal<CounterType, Direction>(value);
+            const bool should_signal_after = ShouldSignal<CounterType, Direction>(new_value);
 
             if (should_signal_before != should_signal_after) {
                 if_signal_state_changed_proc(should_signal_after);
@@ -255,23 +269,27 @@ struct ConditionVarSemaphoreImpl
 
         cv.notify_all();
 
-        return value;
+        return new_value;
     }
 
     CounterType Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        CounterType new_value;
 
-        const CounterType previous_value = value;
-        value += delta;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(value)) {
+            const CounterType previous_value = value;
+            CounterType new_value = value += delta;
+        }
+
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value)) {
             if_signalled_proc();
         }
 
         cv.notify_all();
 
-        return value;
+        return new_value;
     }
 
     CounterType GetValue() const

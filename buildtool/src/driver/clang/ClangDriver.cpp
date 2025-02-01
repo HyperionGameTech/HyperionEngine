@@ -568,6 +568,7 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
         bool is_in_string = false;
         bool is_escaped = false;
         int brace_depth = 0;
+        int parenthesis_depth = 0;
 
         for (SizeType j = 0; j < content_to_end.Size(); j++) {
             const char ch = content_to_end[j];
@@ -604,14 +605,24 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
                 } else if (ch == '}') {
                     brace_depth--;
 
-                    if (brace_depth <= 0) {
+                    if (brace_depth <= 0 && parenthesis_depth <= 0) {
                         break;
                     }
-                } else if (ch == ';' && brace_depth == 0) {
+                } else if (ch == '(') {
+                    parenthesis_depth++;
+                } else if (ch == ')') {
+                    parenthesis_depth--;
+
+                    if (brace_depth <= 0 && parenthesis_depth <= 0) {
+                        break;
+                    }
+                } else if (ch == ';' && brace_depth <= 0 && parenthesis_depth <= 0) {
                     break;
                 }
             }
         }
+
+        HYP_LOG(BuildTool, Info, "Added member \"{}\" with source {}", result.name, result.source);
 
         SourceFile source_file(mod.GetPath().Basename(), result.source.Size());
 
