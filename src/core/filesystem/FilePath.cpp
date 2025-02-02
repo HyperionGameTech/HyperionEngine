@@ -32,6 +32,16 @@ int FilePath::MkDir() const
 #endif
 }
 
+HYP_API String FilePath::GetExtension() const
+{
+    return StringUtil::GetExtension(*this);
+}
+
+HYP_NODISCARD String FilePath::StripExtension() const
+{
+    return StringUtil::StripExtension(*this);
+}
+
 bool FilePath::Remove() const
 {
     return std::filesystem::remove(Data());

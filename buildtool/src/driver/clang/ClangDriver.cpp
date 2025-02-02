@@ -377,7 +377,7 @@ static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> 
 
                 // Otherwise, empty attributes are used
             } else {
-                out_end_index = parenthesis_index + 1;
+                out_end_index = out_end_index + parenthesis_index + 1;
 
                 int parenthesis_depth = 1;
                 String attributes_string;
@@ -389,6 +389,7 @@ static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> 
                         parenthesis_depth--;
 
                         if (parenthesis_depth <= 0) {
+                            out_end_index++; // Include the closing parenthesis
                             break;
                         }
                     } else {

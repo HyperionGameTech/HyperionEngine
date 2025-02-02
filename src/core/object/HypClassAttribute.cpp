@@ -10,6 +10,8 @@ namespace hyperion {
 
 #pragma region HypClassAttributeValue
 
+const HypClassAttributeValue HypClassAttributeValue::empty = HypClassAttributeValue();
+
 bool HypClassAttributeValue::IsString() const
 {
     return m_value.Is<String>();

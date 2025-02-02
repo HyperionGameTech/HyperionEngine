@@ -466,7 +466,7 @@ function(generate_reflection_library)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Running Python codegen script"
     )
-    add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
+    # add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
 endfunction()
 
 generate_reflection_library()
@@ -577,7 +577,7 @@ function(create_csharp_library output_name csharp_sources)
 
     add_custom_target(${output_name} ALL
         COMMAND dotnet build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-        DEPENDS HyperionCore reflection-codegen
+        DEPENDS HyperionCore #reflection-codegen
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.dll ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.dll
         COMMAND ${CMAKE_COMMAND} -E copy ${CSHARP_PROJECT_DIR}/bin/${HYP_BUILD_TYPE}/net8.0/${output_name}.xml ${CMAKE_CURRENT_BINARY_DIR}/${output_name}.xml
         WORKING_DIRECTORY ${CSHARP_PROJECT_DIR}

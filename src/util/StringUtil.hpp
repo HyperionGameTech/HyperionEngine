@@ -18,28 +18,6 @@ namespace hyperion {
 class StringUtil
 {
 public:
-    static inline std::string ToLower(const std::string &str)
-    {
-        std::string result(str);
-
-        std::transform(result.begin(), result.end(), result.begin(), [](char ch) {
-            return std::tolower(ch);
-        });
-
-        return result;
-    }
-
-    static inline std::string ToUpper(const std::string &str)
-    {
-        std::string result(str);
-
-        std::transform(result.begin(), result.end(), result.begin(), [](char ch) {
-            return std::toupper(ch);
-        });
-
-        return result;
-    }
-
     static inline bool StartsWith(const std::string &text, const std::string &token)
     {
         if (text.length() < token.length()) {
@@ -61,28 +39,6 @@ public:
     static inline bool Contains(const std::string &text, const std::string &token)
     {
         return text.find(token) != std::string::npos;
-    }
-
-    template <class LambdaFunction>
-    static inline void SplitBuffered(const std::string &text, char sep, LambdaFunction func)
-    {
-        std::string accum;
-        accum.reserve(1024);
-
-        for (char ch : text) {
-            if (ch == sep) {
-                func(accum);
-                accum.clear();
-
-                continue;
-            }
-
-            accum += ch;
-        }
-
-        if (accum.length()) {
-            func(accum);
-        }
     }
 
     static inline Array<std::string> Split(const std::string &text, char sep)
@@ -198,31 +154,6 @@ public:
         return filepath.substr(0, filepath.find_last_of("\\/"));
     }
 
-    static inline Array<std::string> SplitPath(const std::string &str)
-    {
-        Array<std::string> res;
-        
-        std::string tmp;
-        for (char ch : str) {
-            if (ch == '\\' || ch == '/') {
-                if (!tmp.empty()) {
-                    res.PushBack(tmp);
-                    tmp.clear();
-                }
-                continue;
-            }
-
-            tmp += ch;
-        }
-
-        // add last
-        if (!tmp.empty()) {
-            res.PushBack(tmp);
-        }
-
-        return res;
-    }
-
     static inline Array<String> CanonicalizePath(const Array<String> &original)
     {
         Array<String> res;
@@ -268,29 +199,51 @@ public:
         return res;
     }
 
-    static inline std::string StripExtension(const std::string &filename)
+    static inline String StripExtension(const String &filename)
     {
-        auto pos = filename.find_last_of('.');
+        SizeType last_index = filename.FindLastIndex('.');
 
-        if (pos == std::string::npos) {
+        if (last_index == String::not_found) {
             return filename;
         }
 
-        return filename.substr(0, pos);
+        return filename.Substr(0, last_index);
     }
 
-    static inline std::string GetExtension(const std::string &path)
+    static inline String GetExtension(const String &path)
     {
-        Array<std::string> split_path = SplitPath(path);
-        const std::string &filename = split_path.Back();
+        Array<String> split_path = path.Split('/', '\\');
 
-        auto pos = filename.find_last_of('.');
-
-        if (pos == std::string::npos) {
+        if (split_path.Empty()) {
             return "";
         }
 
-        return filename.substr(pos + 1);
+        const String &filename = split_path.Back();
+
+        SizeType last_index = filename.FindLastIndex('.');
+
+        if (last_index == String::not_found) {
+            return "";
+        }
+
+        return filename.Substr(last_index + 1);
+    }
+
+    static inline String ToPascalCase(const String &str)
+    {
+        Array<String> parts = str.Split('_', ' ', '-');
+
+        for (SizeType i = 0; i < parts.Size(); i++) {
+            String &part = parts[i];
+
+            if (part.Empty()) {
+                continue;
+            }
+
+            part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1)).ToLower();
+        }
+
+        return String::Join(parts, "");
     }
     
     static inline bool Parse(const String &str, int *out_value)

@@ -12,12 +12,14 @@ namespace buildtool {
     
 FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer &analyzer, const Module &mod) const
 {
-    return analyzer.GetCSharpOutputDirectory() / mod.GetPath().Basename();
+    FilePath relative_path = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+
+    return analyzer.GetCSharpOutputDirectory() / relative_path.BasePath() / StringUtil::StripExtension(relative_path.Basename()) + ".cs";
 }
 
 Result<void> CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
 {
-    return HYP_MAKE_ERROR(Error, "Not implemented");
+    return { };
 }
 
 } // namespace buildtool

@@ -25,5 +25,18 @@ Result<void> Module::AddHypClassDefinition(HypClassDefinition &&hyp_class_defini
     return { };
 }
 
+const HypClassDefinition *Module::FindHypClassDefinition(UTF8StringView class_name) const
+{
+    Mutex::Guard guard(m_mutex);
+
+    const auto it = m_hyp_classes.Find(class_name);
+
+    if (it == m_hyp_classes.End()) {
+        return nullptr;
+    }
+
+    return &it->second;
+}
+
 } // namespace buildtool
 } // namespace hyperion

@@ -165,6 +165,16 @@ struct ASTType : ASTNode
 
     Array<RC<ASTTemplateArgument>>      template_arguments;
 
+    HYP_FORCE_INLINE bool IsVoid() const
+    {
+        return type_name.HasValue()
+            && type_name->parts.Size() == 1
+            && type_name->parts[0] == "void";
+    }
+
+    virtual String Format() const;
+    virtual String FormatDecl(const String &decl_name) const;
+
     virtual void ToJSON(json::JSONValue &out) const override;
 };
 
@@ -199,6 +209,9 @@ struct ASTFunctionType : ASTType
 
     RC<ASTType>                         return_type;
     Array<RC<ASTMemberDecl>>            parameters;
+
+    virtual String Format() const override;
+    virtual String FormatDecl(const String &decl_name) const override;
 
     virtual void ToJSON(json::JSONValue &out) const override;
 };

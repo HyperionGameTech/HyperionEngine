@@ -28,6 +28,8 @@ enum class HypClassAttributeType : uint32
 class HypClassAttributeValue
 {
 public:
+    static const HypClassAttributeValue empty;
+
     HypClassAttributeValue()
         : m_type(HypClassAttributeType::NONE)
     {

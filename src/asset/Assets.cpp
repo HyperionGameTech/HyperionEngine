@@ -236,7 +236,7 @@ const AssetLoaderDefinition *AssetManager::GetLoaderDefinition(const FilePath &p
 {
     HYP_SCOPE;
 
-    const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
+    const String extension = StringUtil::GetExtension(path).ToLower();
 
     AssetLoaderBase *loader = nullptr;
 

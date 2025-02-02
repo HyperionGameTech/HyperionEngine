@@ -81,6 +81,8 @@ public:
         m_state.errors.PushBack(error);
     }
 
+    const HypClassDefinition *FindHypClassDefinition(UTF8StringView class_name) const;
+
     Module *AddModule(const FilePath &path);
 
 private:
@@ -90,7 +92,7 @@ private:
     FilePath                    m_csharp_output_directory;
     AnalyzerState               m_state;
     Array<UniquePtr<Module>>    m_modules;
-    Mutex                       m_mutex;
+    mutable Mutex               m_mutex;
     HashMap<String, String>     m_global_defines;
     HashSet<String>             m_include_paths;
 };

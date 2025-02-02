@@ -109,7 +109,7 @@ public:
 
         if (m_analyzer.GetState().HasErrors()) {
             for (const AnalyzerError &error : m_analyzer.GetState().errors) {
-                HYP_LOG(BuildTool, Error, "Error: {}", error.GetMessage());
+                HYP_LOG(BuildTool, Error, "Error: {}\t{}", error.GetMessage(), error.GetErrorMessage());
             }
 
             return HYP_MAKE_ERROR(Error, "Build tool finished with errors");
@@ -236,6 +236,10 @@ private:
         RC<CSharpModuleGenerator> csharp_module_generator = MakeRefCountedPtr<CSharpModuleGenerator>();
 
         for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
+            if (mod->GetHypClasses().Empty()) {
+                continue;
+            }
+
             batch->AddTask([this, cxx_module_generator, csharp_module_generator, mod = mod.Get()]()
             {
                 HYP_LOG(BuildTool, Info, "Generating output files for module: {}", mod->GetPath());
@@ -244,9 +248,9 @@ private:
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
 
-                if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
-                }
+                // if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                //     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                // }
             });
         }
 
@@ -286,10 +290,10 @@ int main(int argc, char **argv)
 {
     CommandLineParser arg_parse {
         CommandLineArgumentDefinitions()
-            .Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
-            .Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
-            .Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
-            .Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
+            .Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
+            .Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
+            .Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
             .Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"))
     };
 

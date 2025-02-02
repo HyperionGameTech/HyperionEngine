@@ -289,7 +289,7 @@ public:
 
     /*! \brief Find the first occurrence of the character
         *  \param ch The character to search for.
-        *  \returns The index of the first occurrence of the character. */
+        *  \returns The index of the first occurrence of the character or not_found if it is not in the string. */
     HYP_FORCE_INLINE constexpr SizeType FindFirstIndex(WidestCharType ch) const
     {
         if (ch == 0) {
@@ -305,6 +305,27 @@ public:
         }
 
         return not_found;
+    }
+
+    /*! \brief Find the last occurrence of the character
+        *  \param ch The character to search for.
+        *  \returns The index of the last occurrence of the character or not_found if it is not in the string. */
+    HYP_FORCE_INLINE constexpr SizeType FindLastIndex(WidestCharType ch) const
+    {
+        if (ch == 0) {
+            return not_found;
+        }
+
+        SizeType chars = 0;
+        SizeType last_index = not_found;
+
+        for (auto it = Begin(); it != End(); ++it, ++chars) {
+            if (*it == ch) {
+                last_index = chars;
+            }
+        }
+
+        return last_index;
     }
 
     /*! \brief Find the first occurrence of the substring.

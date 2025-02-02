@@ -159,6 +159,114 @@ void ASTTemplateArgument::ToJSON(json::JSONValue &out) const
     out = std::move(object);
 }
 
+String ASTType::Format() const
+{
+    String prefix;
+    if (is_const) prefix += "const ";
+    if (is_volatile) prefix += "volatile ";
+    if (is_inline) prefix += "inline ";
+    if (is_static) prefix += "static ";
+    if (is_thread_local) prefix += "thread_local ";
+    if (is_virtual) prefix += "virtual ";
+    if (is_constexpr) prefix += "constexpr ";
+
+    // Build base name (e.g. "int", "MyClass", etc.)
+    String base;
+    if (type_name.HasValue()) {
+        if (type_name->is_global) {
+            base = "::";
+        }
+        for (size_t i = 0; i < type_name->parts.Size(); i++) {
+            if (i > 0) base += "::";
+            base += type_name->parts[i];
+        }
+    } else {
+        base = "/*unnamed_type*/";
+    }
+
+    // Handle arrays (ignore detail here for brevity)
+    // Handle template params, function pointer, etc. similarly as needed
+
+    // If we reference another type (pointer/reference), recursively build
+    if (ptr_to) {
+        // Combine pointer syntax with any qualifiers
+        String ptr_qual;
+        
+        if (is_const) ptr_qual += " const";
+
+        if (is_volatile) ptr_qual += " volatile";
+
+        return ptr_to->FormatDecl("*" + ptr_qual);
+    }
+    else if (ref_to) {
+        // Combine reference syntax with any qualifiers
+        String ref_qual;
+        
+        if (is_const) ref_qual += " const";
+
+        if (is_volatile) ref_qual += " volatile";
+
+        return ref_to->FormatDecl("&" + ref_qual);
+    }
+
+    // Fall back to just prefix + base + decl_name
+    return prefix.Trimmed() + " " + base;
+}
+
+String ASTType::FormatDecl(const String &decl_name) const
+{
+    String prefix;
+    if (is_const) prefix += "const ";
+    if (is_volatile) prefix += "volatile ";
+    if (is_inline) prefix += "inline ";
+    if (is_static) prefix += "static ";
+    if (is_thread_local) prefix += "thread_local ";
+    if (is_virtual) prefix += "virtual ";
+    if (is_constexpr) prefix += "constexpr ";
+
+    // Build base name (e.g. "int", "MyClass", etc.)
+    String base;
+    if (type_name.HasValue()) {
+        if (type_name->is_global) {
+            base = "::";
+        }
+        for (size_t i = 0; i < type_name->parts.Size(); i++) {
+            if (i > 0) base += "::";
+            base += type_name->parts[i];
+        }
+    } else {
+        base = "/*unnamed_type*/";
+    }
+
+    // Handle arrays (ignore detail here for brevity)
+    // Handle template params, function pointer, etc. similarly as needed
+
+    // If we reference another type (pointer/reference), recursively build
+    if (ptr_to) {
+        // Combine pointer syntax with any qualifiers
+        String ptr_qual;
+        
+        if (is_const) ptr_qual += " const";
+
+        if (is_volatile) ptr_qual += " volatile";
+
+        return ptr_to->FormatDecl("*" + ptr_qual + " " + decl_name);
+    }
+    else if (ref_to) {
+        // Combine reference syntax with any qualifiers
+        String ref_qual;
+        
+        if (is_const) ref_qual += " const";
+
+        if (is_volatile) ref_qual += " volatile";
+
+        return ref_to->FormatDecl("&" + ref_qual + " " + decl_name);
+    }
+
+    // Fall back to just prefix + base + decl_name
+    return prefix.Trimmed() + " " + base + " " + decl_name;
+}
+
 void ASTType::ToJSON(json::JSONValue &out) const
 {
     json::JSONObject object;
@@ -253,6 +361,68 @@ void ASTMemberDecl::ToJSON(json::JSONValue &out) const
     }
 
     out = std::move(object);
+}
+
+String ASTFunctionType::Format() const
+{
+    String params;
+
+    for (size_t i = 0; i < parameters.Size(); ++i) {
+        if (i > 0) {
+            params += ", ";
+        }
+        params += parameters[i]->type->FormatDecl(parameters[i]->name);
+    }
+
+    String return_type_string = return_type->Format();
+
+    String result = return_type_string + "(" + params + ")";
+
+    if (is_const_method) result += " const";
+
+    if (is_noexcept_method) result += " noexcept";
+
+    if (is_rvalue_method) result += " &&";
+    else if (is_lvalue_method) result += " &";
+
+    if (is_override_method) result += " override";
+
+    if (is_pure_virtual_method) result += " = 0";
+    else if (is_defaulted_method) result += " = default";
+    else if (is_deleted_method) result += " = delete";
+
+    return result;
+}
+
+String ASTFunctionType::FormatDecl(const String &decl_name) const
+{
+    String params;
+
+    for (size_t i = 0; i < parameters.Size(); ++i) {
+        if (i > 0) {
+            params += ", ";
+        }
+        params += parameters[i]->type->FormatDecl(parameters[i]->name);
+    }
+
+    String return_type_string = return_type->Format();
+
+    String result = return_type_string + " " + decl_name + "(" + params + ")";
+
+    if (is_const_method) result += " const";
+
+    if (is_noexcept_method) result += " noexcept";
+
+    if (is_rvalue_method) result += " &&";
+    else if (is_lvalue_method) result += " &";
+
+    if (is_override_method) result += " override";
+
+    if (is_pure_virtual_method) result += " = 0";
+    else if (is_defaulted_method) result += " = default";
+    else if (is_deleted_method) result += " = delete";
+
+    return result;
 }
 
 void ASTFunctionType::ToJSON(json::JSONValue &out) const
@@ -889,8 +1059,11 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
         HYP_NOT_IMPLEMENTED();
     }
 
+    HYP_LOG(Parser, Debug, "{}\t{}\t{}", Token::TokenTypeToString(m_token_stream->Peek().GetTokenClass()), m_token_stream->GetInfo().filepath, member_decl->type->Format());
     if (Token name_token = Expect(TK_IDENT, true)) {
         member_decl->name = name_token.GetValue();
+    } else {
+        HYP_BREAKPOINT;
     }
 
     Token open_parenth_token = Token::EMPTY;
@@ -1097,13 +1270,7 @@ RC<ASTFunctionType> Parser::ParseFunctionType(const RC<ASTType> &return_type)
             }
         }
 
-        if (!Expect(TK_CLOSE_PARENTH, true)) {
-            json::JSONValue json;
-            func_type->ToJSON(json);
-            HYP_LOG(Parser, Error, "Expected closing parenthesis in function type {}\t{}   \n\tcurrent token: {}", m_token_stream->GetInfo().filepath, json.ToString(),
-                Token::TokenTypeToString(m_token_stream->Peek().GetTokenClass()));
-            HYP_BREAKPOINT;
-        }
+        Expect(TK_CLOSE_PARENTH, true);
 
         bool keep_reading = true;
 

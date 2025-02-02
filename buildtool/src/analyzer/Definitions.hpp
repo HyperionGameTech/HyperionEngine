@@ -35,6 +35,28 @@ struct HypMemberDefinition
     Array<Pair<String, HypClassAttributeValue>> attributes;
     RC<ASTType>                                 cxx_type;
     String                                      source;
+
+    HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
+    {
+        auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
+        {
+            return item.first.ToLower() == key_lower;
+        });
+
+        return it != attributes.End();
+    }
+
+    HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(UTF8StringView key) const
+    {
+        auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
+        {
+            return item.first.ToLower() == key_lower;
+        });
+
+        return it != attributes.End()
+            ? it->second
+            : HypClassAttributeValue::empty;
+    }
 };
 
 struct HypClassDefinition
@@ -45,6 +67,39 @@ struct HypClassDefinition
     Array<String>                               base_class_names;
     Array<HypMemberDefinition>                  members;
     String                                      source;
+
+    HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
+    {
+        auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
+        {
+            return item.first.ToLower() == key_lower;
+        });
+
+        return it != attributes.End();
+    }
+
+    HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(UTF8StringView key) const
+    {
+        auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
+        {
+            return item.first.ToLower() == key_lower;
+        });
+
+        return it != attributes.End()
+            ? it->second
+            : HypClassAttributeValue::empty;
+    }
+
+    HYP_FORCE_INLINE bool HasScriptableMethods() const
+    {
+        for (const HypMemberDefinition &member : members) {
+            if (member.HasAttribute("scriptable")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 };
 
 } // namespace buildtool

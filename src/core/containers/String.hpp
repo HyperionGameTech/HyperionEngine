@@ -255,6 +255,16 @@ public:
     HYP_FORCE_INLINE SizeType FindFirstIndex(const utilities::detail::StringView<TStringType> &substr) const
         { return utilities::detail::StringView<TStringType>(*this).FindFirstIndex(substr); }
 
+    /*! \brief Find the index of the last occurrence of the character. */
+    HYP_FORCE_INLINE SizeType FindLastIndex(WidestCharType ch) const
+        { return utilities::detail::StringView<TStringType>(*this).FindLastIndex(ch); }
+
+    /*! \brief Find the index of the last occurrence of the substring
+     * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
+     *       as the index is the character index, not the byte index. */
+    HYP_FORCE_INLINE SizeType FindLastIndex(const utilities::detail::StringView<TStringType> &substr) const
+        { return utilities::detail::StringView<TStringType>(*this).FindLastIndex(substr); }
+
     /*! \brief Check if the string is empty. */
     HYP_FORCE_INLINE bool Empty() const
         { return Size() == 0; }
