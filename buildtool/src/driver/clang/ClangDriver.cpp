@@ -5,8 +5,6 @@
 #include <analyzer/Analyzer.hpp>
 #include <analyzer/Module.hpp>
 
-#include <templates/Templates.hpp>
-
 #include <parser/Lexer.hpp>
 #include <parser/Parser.hpp>
 
@@ -621,8 +619,6 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
                 }
             }
         }
-
-        HYP_LOG(BuildTool, Info, "Added member \"{}\" with source {}", result.name, result.source);
 
         SourceFile source_file(mod.GetPath().Basename(), result.source.Size());
 

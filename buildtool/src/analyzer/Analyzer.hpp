@@ -44,6 +44,18 @@ public:
     HYP_FORCE_INLINE void SetSourceDirectory(const FilePath &source_directory)
         { m_source_directory = source_directory; }
 
+    HYP_FORCE_INLINE const FilePath &GetCXXOutputDirectory() const
+        { return m_cxx_output_directory; }
+
+    HYP_FORCE_INLINE void SetCXXOutputDirectory(const FilePath &cxx_output_directory)
+        { m_cxx_output_directory = cxx_output_directory; }
+
+    HYP_FORCE_INLINE const FilePath &GetCSharpOutputDirectory() const
+        { return m_csharp_output_directory; }
+
+    HYP_FORCE_INLINE void SetCSharpOutputDirectory(const FilePath &csharp_output_directory)
+        { m_csharp_output_directory = csharp_output_directory; }
+
     HYP_FORCE_INLINE const AnalyzerState &GetState() const
         { return m_state; }
 
@@ -74,6 +86,8 @@ public:
 private:
     FilePath                    m_working_directory;
     FilePath                    m_source_directory;
+    FilePath                    m_cxx_output_directory;
+    FilePath                    m_csharp_output_directory;
     AnalyzerState               m_state;
     Array<UniquePtr<Module>>    m_modules;
     Mutex                       m_mutex;

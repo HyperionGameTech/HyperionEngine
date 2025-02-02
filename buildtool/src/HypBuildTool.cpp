@@ -16,6 +16,9 @@
 #include <driver/Driver.hpp>
 #include <driver/clang/ClangDriver.hpp>
 
+#include <generator/generators/CXXModuleGenerator.hpp>
+#include <generator/generators/CSharpModuleGenerator.hpp>
+
 #include <parser/Parser.hpp>
 
 #include <analyzer/Analyzer.hpp>
@@ -50,11 +53,19 @@ public:
 class HypBuildTool
 {
 public:
-    HypBuildTool(UniquePtr<IDriver> &&driver, const FilePath &working_directory, const FilePath &source_directory)
-        : m_driver(std::move(driver))
+    HypBuildTool(
+        UniquePtr<IDriver> &&driver,
+        const FilePath &working_directory,
+        const FilePath &source_directory,
+        const FilePath &cxx_output_directory,
+        const FilePath &csharp_output_directory
+    ) : m_driver(std::move(driver))
     {
         m_analyzer.SetWorkingDirectory(working_directory);
         m_analyzer.SetSourceDirectory(source_directory);
+        m_analyzer.SetCXXOutputDirectory(cxx_output_directory);
+        m_analyzer.SetCSharpOutputDirectory(csharp_output_directory);
+
         m_analyzer.SetGlobalDefines(GetGlobalDefines());
         m_analyzer.SetIncludePaths(GetIncludePaths());
 
@@ -66,22 +77,12 @@ public:
         m_thread_pool.Stop();
     }
 
-    void Run()
+    Result<void> Run()
     {
         FindModules();
 
         Task process_modules = ProcessModules();
         WaitWhileTaskRunning(process_modules);
-
-        // if (m_analyzer.GetState().HasErrors()) {
-        //     for (const AnalyzerError &error : m_analyzer.GetState().errors) {
-        //         HYP_LOG(BuildTool, Error, "Error in module {}: {}", error.GetPath(), error.GetMessage());
-        //     }
-
-        //     return;
-        // }
-
-        // Temp : log out all classes
 
         for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
             for (const Pair<String, HypClassDefinition> &hyp_class : mod->GetHypClasses()) {
@@ -100,6 +101,21 @@ public:
                 }
             }
         }
+
+        Task generate_output_files = GenerateOutputFiles();
+        WaitWhileTaskRunning(generate_output_files);
+
+        HYP_LOG(BuildTool, Info, "Build tool finished");
+
+        if (m_analyzer.GetState().HasErrors()) {
+            for (const AnalyzerError &error : m_analyzer.GetState().errors) {
+                HYP_LOG(BuildTool, Error, "Error: {}", error.GetMessage());
+            }
+
+            return HYP_MAKE_ERROR(Error, "Build tool finished with errors");
+        }
+
+        return { };
     }
 
 private:
@@ -176,9 +192,6 @@ private:
         batch->pool = &m_thread_pool;
         batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
         {
-            // Temp
-            Threads::Sleep(1000);
-
             task_executor->Fulfill();
 
             delete batch;
@@ -195,6 +208,44 @@ private:
                     m_analyzer.AddError(result.GetError());
 
                     return;
+                }
+            });
+        }
+
+        TaskSystem::GetInstance().EnqueueBatch(batch);
+
+        return task;
+    }
+
+    Task<void> GenerateOutputFiles()
+    {
+        HYP_LOG(BuildTool, Info, "Generating output files...");
+
+        Task<void> task;
+
+        TaskBatch *batch = new TaskBatch();
+        batch->pool = &m_thread_pool;
+        batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
+        {
+            task_executor->Fulfill();
+
+            delete batch;
+        }).Detach();
+
+        RC<CXXModuleGenerator> cxx_module_generator = MakeRefCountedPtr<CXXModuleGenerator>();
+        RC<CSharpModuleGenerator> csharp_module_generator = MakeRefCountedPtr<CSharpModuleGenerator>();
+
+        for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
+            batch->AddTask([this, cxx_module_generator, csharp_module_generator, mod = mod.Get()]()
+            {
+                HYP_LOG(BuildTool, Info, "Generating output files for module: {}", mod->GetPath());
+
+                if (Result<void> res = cxx_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+                }
+
+                if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
             });
         }
@@ -235,8 +286,10 @@ int main(int argc, char **argv)
 {
     CommandLineParser arg_parse {
         CommandLineArgumentDefinitions()
-            .Add("WorkingDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
-            .Add("SourceDirectory", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("WorkingDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
+            .Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING, FilePath::Current().BasePath())
             .Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"))
     };
 
@@ -246,12 +299,18 @@ int main(int argc, char **argv)
         buildtool::HypBuildTool build_tool {
             MakeUnique<ClangDriver>(),
             FilePath(parse_result.GetValue()["WorkingDirectory"].AsString()),
-            FilePath(parse_result.GetValue()["SourceDirectory"].AsString())
+            FilePath(parse_result.GetValue()["SourceDirectory"].AsString()),
+            FilePath(parse_result.GetValue()["CXXOutputDirectory"].AsString()),
+            FilePath(parse_result.GetValue()["CSharpOutputDirectory"].AsString())
         };
         
-        build_tool.Run();
+        Result<void> res = build_tool.Run();
 
         TaskSystem::GetInstance().Stop();
+
+        if (res.HasError()) {
+            return 1;
+        }
     } else {
         HYP_LOG(BuildTool, Error, "Failed to parse arguments!\n\t{}", parse_result.GetError().GetMessage());
 
