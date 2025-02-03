@@ -123,6 +123,7 @@ private:
     {
         return {
             { "HYP_BUILDTOOL", "1" },
+            { "HYP_VULKAN", "1" },
             { "HYP_CLASS(...)", "" },
             { "HYP_STRUCT(...)", "" },
             { "HYP_ENUM(...)", "" },
@@ -132,8 +133,10 @@ private:
             { "HYP_CONSTANT(...)", "" },
             { "HYP_OBJECT_BODY(...)", "" },
             { "HYP_API", "" },
+            { "HYP_EXPORT", "" },
+            { "HYP_IMPORT", "" },
             { "HYP_FORCE_INLINE", "inline" },
-            { "HYP_VULKAN", "1" }
+            { "HYP_NODISCARD", "" }
         };
     }
 

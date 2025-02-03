@@ -229,7 +229,43 @@ static Result<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribut
 {
     Array<Pair<String, HypClassAttributeValue>> results;
 
-    const Array<String> attributes = attributes_string.Split(',');
+    Array<String> attributes;
+
+    {
+        String current_string;
+        char previous_char = 0;
+        bool in_string = false;
+
+        for (char ch : attributes_string) {
+            if (ch == '"' && previous_char != '\\') {
+                in_string = !in_string;
+            }
+
+            if (ch == ',' && !in_string) {
+                current_string = current_string.Trimmed();
+
+                if (current_string.Any()) {
+                    attributes.PushBack(current_string);
+                    current_string.Clear();
+                }
+            } else {
+                current_string.Append(ch);
+            }
+
+            current_string = current_string.Trimmed();
+
+            if (current_string.Any()) {
+                attributes.PushBack(current_string);
+                current_string.Clear();
+            }
+
+            previous_char = ch;
+        }
+
+        if (!current_string.Empty()) {
+            attributes.PushBack(current_string.Trimmed());
+        }
+    }
 
     for (const String &attribute : attributes) {
         const SizeType equals_index = attribute.FindFirstIndex('=');
@@ -611,11 +647,7 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
                     parenthesis_depth++;
                 } else if (ch == ')') {
                     parenthesis_depth--;
-
-                    if (brace_depth <= 0 && parenthesis_depth <= 0) {
-                        break;
-                    }
-                } else if (ch == ';' && brace_depth <= 0 && parenthesis_depth <= 0) {
+                } else if (ch == ';' && brace_depth <= 0) {
                     break;
                 }
             }

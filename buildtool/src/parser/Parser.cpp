@@ -184,8 +184,28 @@ String ASTType::Format() const
         base = "/*unnamed_type*/";
     }
 
-    // Handle arrays (ignore detail here for brevity)
-    // Handle template params, function pointer, etc. similarly as needed
+    // Handle arrays
+    if (is_array) {
+        base += "[]";
+    }
+
+    // Handle template parameters
+    if (is_template && template_arguments.Any()) {
+        base += "<";
+
+        for (int i = 0; i < template_arguments.Size(); ++i) {
+            if (i > 0) {
+                base += ", ";
+            }
+            if (template_arguments[i]->type) {
+                base += template_arguments[i]->type->Format();
+            } else if (template_arguments[i]->expr) {
+                base += "<expr>";
+            }
+        }
+        
+        base += ">";
+    }
 
     // If we reference another type (pointer/reference), recursively build
     if (ptr_to) {
@@ -238,8 +258,28 @@ String ASTType::FormatDecl(const String &decl_name) const
         base = "/*unnamed_type*/";
     }
 
-    // Handle arrays (ignore detail here for brevity)
-    // Handle template params, function pointer, etc. similarly as needed
+    // Handle arrays
+    if (is_array) {
+        base += "[]";
+    }
+
+    // Handle template parameters
+    if (is_template && template_arguments.Any()) {
+        base += "<";
+
+        for (int i = 0; i < template_arguments.Size(); ++i) {
+            if (i > 0) {
+                base += ", ";
+            }
+            if (template_arguments[i]->type) {
+                base += template_arguments[i]->type->Format();
+            } else if (template_arguments[i]->expr) {
+                base += "<expr>";
+            }
+        }
+        
+        base += ">";
+    }
 
     // If we reference another type (pointer/reference), recursively build
     if (ptr_to) {
@@ -1059,7 +1099,6 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_LOG(Parser, Debug, "{}\t{}\t{}", Token::TokenTypeToString(m_token_stream->Peek().GetTokenClass()), m_token_stream->GetInfo().filepath, member_decl->type->Format());
     if (Token name_token = Expect(TK_IDENT, true)) {
         member_decl->name = name_token.GetValue();
     } else {

@@ -34,11 +34,18 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer &analyzer, const M
 {
     FilePath relative_path = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 
-    return analyzer.GetCXXOutputDirectory() / relative_path.BasePath() / StringUtil::StripExtension(relative_path.Basename()) + ".cpp";
+    return analyzer.GetCXXOutputDirectory() / relative_path.BasePath() / StringUtil::StripExtension(relative_path.Basename()) + ".generated.cpp";
 }
 
 Result<void> CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
 {
+    FilePath relative_path = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
+
+    writer.WriteString(HYP_FORMAT("/* Generated from: {} */\n\n", relative_path));
+
+    writer.WriteString("#include <core/object/HypClassUtils.hpp>\n");
+    writer.WriteString(HYP_FORMAT("#include <{}>\n\n", relative_path));
+
     for (const Pair<String, HypClassDefinition> &pair : mod.GetHypClasses()) {
         const HypClassDefinition &hyp_class = pair.second;
         
@@ -108,41 +115,55 @@ Result<void> CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, con
                 continue;
             }
 
-            Array<String> attributes;
+            String attributes_string;
 
             if (member.attributes.Any()) {
-                for (const Pair<String, HypClassAttributeValue> &attribute_pair : member.attributes) {
-                    const String &name = attribute_pair.first;
-                    const HypClassAttributeValue &value = attribute_pair.second;
+                attributes_string = "Span<const HypClassAttribute> { {";
 
-                    attributes.PushBack(HYP_FORMAT("HypClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
+                for (SizeType i = 0; i < member.attributes.Size(); i++) {
+                    const String &name = member.attributes[i].first;
+                    const HypClassAttributeValue &value = member.attributes[i].second;
+
+                    attributes_string += HYP_FORMAT("HypClassAttribute(\"{}\", {})", name.ToLower(), value.ToString());
+
+                    if (i != member.attributes.Size() - 1) {
+                        attributes_string += ", ";
+                    }
                 }
+
+                attributes_string += " } }";
             }
 
             if (member.type == HypMemberType::TYPE_FIELD) {
                 writer.WriteString(HYP_FORMAT("    HypField(NAME(HYP_STR({})), &Type::{}, offsetof(Type, {})", member.name, member.name, member.name));
 
-                if (attributes.Any()) {
-                    writer.WriteString(", " + String::Join(attributes, ','));
+                if (attributes_string.Any()) {
+                    writer.WriteString(", " + attributes_string);
                 }
 
                 writer.WriteString(")");
             } else if (member.type == HypMemberType::TYPE_METHOD) {
                 writer.WriteString(HYP_FORMAT("    HypMethod(NAME(HYP_STR({})), &Type::{}", member.name, member.name));
 
-                if (attributes.Any()) {
-                    writer.WriteString(", " + String::Join(attributes, ','));
+                if (attributes_string.Any()) {
+                    writer.WriteString(", " + attributes_string);
                 }
 
                 writer.WriteString(")");
             } else if (member.type == HypMemberType::TYPE_PROPERTY) {
-                String property_args;
+                String property_args_string;
 
-                if (attributes.Any()) {
-                    property_args = String::Join(attributes, ',');
+                if (member.attributes.Any()) {
+                    for (SizeType i = 0; i < member.attributes.Size(); i++) {
+                        property_args_string += member.attributes[i].first;
+
+                        if (i != member.attributes.Size() - 1) {
+                            property_args_string += ", ";
+                        }
+                    }
                 }
 
-                writer.WriteString(HYP_FORMAT("    HypProperty(NAME(HYP_STR({})), {})", member.name, property_args));
+                writer.WriteString(HYP_FORMAT("    HypProperty(NAME(HYP_STR({})){})", member.name, property_args_string.Any() ? ", " + property_args_string : ""));
             } else if (member.type == HypMemberType::TYPE_CONSTANT) {
                 writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), Type::{})", StringUtil::ToPascalCase(member.name), member.name));
             }
@@ -199,7 +220,7 @@ Result<void> CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, con
                         writer.WriteString("    if (dotnet::Object *managed_object = GetManagedObject()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::Method *method_ptr = managed_object->GetClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", method_args_string_call));
+                        writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", method_args_string_call.Any() ? ", " + method_args_string_call : ""));
                         writer.WriteString("            return;\n");
                         writer.WriteString("        }\n");
                         writer.WriteString("    }\n");
@@ -213,7 +234,7 @@ Result<void> CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, con
                         writer.WriteString("    if (dotnet::Object *managed_object = GetManagedObject()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
                         writer.WriteString("        if (dotnet::Method *method_ptr = managed_object->GetClass()->GetMethodByHash(hash_code)) {\n");
-                        writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", return_type_string, method_args_string_call));
+                        writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", return_type_string, method_args_string_call.Any() ? ", " + method_args_string_call : ""));
                         writer.WriteString("        }\n");
                         writer.WriteString("    }\n");
                         writer.WriteString("\n");
