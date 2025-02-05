@@ -393,7 +393,7 @@ String ASTType::Format(bool use_csharp_syntax) const
     }
 
     // Fall back to just prefix + base + decl_name
-    return prefix.Trimmed() + " " + base;
+    return (prefix.Trimmed() + " " + base).Trimmed();
 }
 
 String ASTType::FormatDecl(const String &decl_name, bool use_csharp_syntax) const
@@ -471,7 +471,7 @@ String ASTType::FormatDecl(const String &decl_name, bool use_csharp_syntax) cons
     }
 
     // Fall back to just prefix + base + decl_name
-    return prefix.Trimmed() + " " + base + " " + decl_name;
+    return (prefix.Trimmed() + " " + base + " " + decl_name).Trimmed();
 }
 
 void ASTType::ToJSON(json::JSONValue &out) const
