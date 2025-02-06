@@ -9,7 +9,7 @@
 
 #include <core/utilities/TypeID.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/Traits.hpp>
 

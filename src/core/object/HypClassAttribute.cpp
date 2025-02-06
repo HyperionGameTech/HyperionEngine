@@ -2,9 +2,9 @@
 
 #include <core/object/HypClassAttribute.hpp>
 
-#include <util/StringUtil.hpp>
+#include <core/utilities/StringUtil.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 namespace hyperion {
 

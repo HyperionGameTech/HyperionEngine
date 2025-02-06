@@ -18,7 +18,7 @@
 #include <core/Defines.hpp>
 #include <core/Traits.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskThread.hpp>
@@ -214,7 +214,7 @@ public:
     TaskThread *GetNextTaskThread();
 
 protected:
-    AtomicVar<uint32>                 m_cycle { 0u };
+    AtomicVar<uint32>               m_cycle { 0u };
     Array<UniquePtr<TaskThread>>    m_threads;
     ThreadMask                      m_thread_mask;
 

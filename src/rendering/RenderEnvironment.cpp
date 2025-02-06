@@ -11,7 +11,7 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

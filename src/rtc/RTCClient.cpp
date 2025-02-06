@@ -4,7 +4,7 @@
 #include <rtc/RTCTrack.hpp>
 #include <rtc/RTCDataChannel.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 

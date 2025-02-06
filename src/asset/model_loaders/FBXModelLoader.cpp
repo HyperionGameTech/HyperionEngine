@@ -17,7 +17,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <core/memory/Memory.hpp>
 

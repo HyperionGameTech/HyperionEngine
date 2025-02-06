@@ -1,8 +1,9 @@
 
 #include "SampleStreamer.hpp"
 
-#include <core/system/AppContext.hpp>
-#include <core/system/Debug.hpp>
+#include <system/AppContext.hpp>
+
+#include <core/debug/Debug.hpp>
 
 #include <Engine.hpp>
 
@@ -34,11 +35,11 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/Queue.hpp>
 #include <core/threading/AtomicVar.hpp>
-#include <core/system/CommandLine.hpp>
-#include <util/json/JSON.hpp>
-
+#include <core/cli/CommandLine.hpp>
+#include <core/json/JSON.hpp>
 #include <core/net/Socket.hpp>
-#include <core/system/SystemEvent.hpp>
+
+#include <system/SystemEvent.hpp>
 
 #include <Game.hpp>
 

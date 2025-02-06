@@ -29,12 +29,12 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <util/BlueNoise.hpp>
 
 #include <util/Float16.hpp>
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

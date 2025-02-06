@@ -3,7 +3,7 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

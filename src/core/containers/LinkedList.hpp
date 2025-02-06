@@ -7,7 +7,7 @@
 #include <core/utilities/ValueStorage.hpp>
 #include <core/Defines.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

@@ -6,8 +6,8 @@
 
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <core/system/App.hpp>
-#include <core/system/AppContext.hpp>
+#include <system/App.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/threading/Threads.hpp>
 

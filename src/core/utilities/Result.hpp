@@ -9,7 +9,7 @@
 
 #include <core/utilities/StaticMessage.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <Types.hpp>
 

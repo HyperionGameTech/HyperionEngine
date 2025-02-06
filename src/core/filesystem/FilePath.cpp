@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 #include <core/filesystem/FilePath.hpp>
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 

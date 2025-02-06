@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 // #ifdef __MINGW32__
 // #undef _WIN32

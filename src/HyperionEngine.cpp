@@ -10,7 +10,7 @@
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/threading/Threads.hpp>
-#include <core/system/MessageBox.hpp>
+#include <system/MessageBox.hpp>
 
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/Material.hpp>

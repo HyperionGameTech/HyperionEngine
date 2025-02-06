@@ -5,7 +5,7 @@
 
 #include <rendering/backend/RendererResult.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Threads.hpp>

@@ -5,7 +5,7 @@
 
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <Engine.hpp>
 

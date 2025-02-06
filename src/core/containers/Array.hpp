@@ -9,7 +9,7 @@
 #include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
 #include <math/MathUtil.hpp>

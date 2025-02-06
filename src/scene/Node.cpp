@@ -13,7 +13,7 @@
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

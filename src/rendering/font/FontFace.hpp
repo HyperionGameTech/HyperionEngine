@@ -8,7 +8,7 @@
 #include <core/Base.hpp>
 
 #include <core/Defines.hpp>
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>

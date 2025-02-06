@@ -64,7 +64,7 @@
 #include <rendering/lightmapper/LightmapperSubsystem.hpp>
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
-#include <core/system/SystemEvent.hpp>
+#include <system/SystemEvent.hpp>
 
 #include <core/config/Config.hpp>
 

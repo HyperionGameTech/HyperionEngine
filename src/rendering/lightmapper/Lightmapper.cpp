@@ -23,8 +23,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/system/AppContext.hpp>
-#include <core/system/Time.hpp>
+#include <system/AppContext.hpp>
+#include <core/utilities/Time.hpp>
 
 #include <Engine.hpp>
 

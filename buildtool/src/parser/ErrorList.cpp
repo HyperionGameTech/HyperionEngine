@@ -5,7 +5,7 @@
 #include <core/containers/FlatSet.hpp>
 
 #include <util/Termcolor.hpp>
-#include <util/StringUtil.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 #include <fstream>
 

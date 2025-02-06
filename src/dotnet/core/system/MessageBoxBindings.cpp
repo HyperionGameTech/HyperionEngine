@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/system/MessageBox.hpp>
+#include <system/MessageBox.hpp>
 
 #include <Types.hpp>
 

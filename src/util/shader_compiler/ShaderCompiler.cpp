@@ -2,15 +2,15 @@
 
 #include <util/shader_compiler/ShaderCompiler.hpp>
 #include <util/ini/INIFile.hpp>
-#include <util/fs/FsUtil.hpp>
-#include <util/json/JSON.hpp>
-#include <util/ByteUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
+#include <core/json/JSON.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #include <core/Defines.hpp>
 
 #include <core/util/ForEach.hpp>
 
-#include <core/system/Time.hpp>
+#include <core/utilities/Time.hpp>
 
 #include <core/object/HypData.hpp>
 

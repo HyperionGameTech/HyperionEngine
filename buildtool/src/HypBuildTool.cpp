@@ -1,15 +1,10 @@
-#include <core/system/CommandLine.hpp>
+#include <core/cli/CommandLine.hpp>
 
 #include <core/logging/Logger.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/Mutex.hpp>
+#include <core/functional/Proc.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 
@@ -28,28 +23,6 @@ namespace buildtool {
 
 HYP_DEFINE_LOG_CHANNEL(BuildTool);
 
-class WorkerThread : public TaskThread
-{
-public:
-    WorkerThread(ThreadID id)
-        : TaskThread(id)
-    {
-    }
-
-    virtual ~WorkerThread() override = default;
-};
-
-class WorkerThreadPool : public TaskThreadPool
-{
-public:
-    WorkerThreadPool()
-    {
-        CreateThreads<WorkerThread>(NAME("BuildTool_WorkerThread"), 4);
-    }
-
-    virtual ~WorkerThreadPool() override = default;
-};
-
 class HypBuildTool
 {
 public:
@@ -59,7 +32,8 @@ public:
         const FilePath &source_directory,
         const FilePath &cxx_output_directory,
         const FilePath &csharp_output_directory,
-        const HashSet<FilePath> &exclude_directories
+        const HashSet<FilePath> &exclude_directories,
+        const HashSet<FilePath> &exclude_files
     ) : m_driver(std::move(driver))
     {
         m_analyzer.SetWorkingDirectory(working_directory);
@@ -68,24 +42,21 @@ public:
         m_analyzer.SetCSharpOutputDirectory(csharp_output_directory);
 
         m_analyzer.SetExcludeDirectories(exclude_directories);
+        m_analyzer.SetExcludeFiles(exclude_files);
 
         m_analyzer.SetGlobalDefines(GetGlobalDefines());
         m_analyzer.SetIncludePaths(GetIncludePaths());
-
-        m_thread_pool.Start();
     }
 
     ~HypBuildTool()
     {
-        m_thread_pool.Stop();
     }
 
     Result<void> Run()
     {
         FindModules();
 
-        Task process_modules = ProcessModules();
-        WaitWhileTaskRunning(process_modules);
+        ProcessModules();
 
         for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
             for (const Pair<String, HypClassDefinition> &hyp_class : mod->GetHypClasses()) {
@@ -105,8 +76,7 @@ public:
             }
         }
 
-        Task generate_output_files = GenerateOutputFiles();
-        WaitWhileTaskRunning(generate_output_files);
+        GenerateOutputFiles();
 
         HYP_LOG(BuildTool, Info, "Build tool finished");
 
@@ -162,12 +132,9 @@ private:
         IterateFilesAndSubdirectories = [&](const FilePath &dir)
         {
             for (const String &exclude_dir : m_analyzer.GetExcludeDirectories()) {
-                const FilePath exclude_dir_relative = FilePath(FileSystem::RelativePath(exclude_dir.Data(), m_analyzer.GetSourceDirectory().Data()).c_str());
                 const FilePath relative_path = FilePath(FileSystem::RelativePath(dir.Data(), m_analyzer.GetSourceDirectory().Data()).c_str());
 
-                if (relative_path.StartsWith(exclude_dir_relative)) {
-                    HYP_LOG(BuildTool, Info, "Excluding directory: {}", dir);
-
+                if (relative_path.StartsWith(exclude_dir)) {
                     return;
                 }
             }
@@ -176,14 +143,17 @@ private:
             
             for (const FilePath &file : dir.GetAllFilesInDirectory()) {
                 if (file.EndsWith(".hpp")) {
+                    const FilePath relative_path = FilePath(FileSystem::RelativePath(file.Data(), m_analyzer.GetSourceDirectory().Data()).c_str());
+
+                    if (m_analyzer.GetExcludeFiles().Contains(relative_path)) {
+                        continue;
+                    }
+
                     local_modules.PushBack(m_analyzer.AddModule(file));
                 }
             }
 
             Array<FilePath> local_subdirectories = dir.GetSubdirectories();
-
-            HYP_LOG(BuildTool, Info, "On worker thread {}: {}: Discovered {} modules, {} subdirectories",
-                ThreadID::Current().name, dir, local_modules.Size(), local_subdirectories.Size());
 
             if (local_subdirectories.Empty()) {
                 return;
@@ -199,55 +169,24 @@ private:
         HYP_LOG(BuildTool, Info, "Found {} total modules", m_analyzer.GetModules().Size());
     }
 
-    Task<void> ProcessModules()
+    void ProcessModules()
     {
         HYP_LOG(BuildTool, Info, "Processing modules...");
 
-        Task<void> task;
-
-        TaskBatch *batch = new TaskBatch();
-        batch->pool = &m_thread_pool;
-        batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
-        {
-            task_executor->Fulfill();
-
-            delete batch;
-        }).Detach();
-
         for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
-            batch->AddTask([this, mod = mod.Get()]()
-            {
-                HYP_LOG(BuildTool, Info, "Processing module: {}", mod->GetPath());
+            HYP_LOG(BuildTool, Info, "Processing module: {}", mod->GetPath());
 
-                auto result = m_driver->ProcessModule(m_analyzer, *mod);
+            auto result = m_driver->ProcessModule(m_analyzer, *mod);
 
-                if (result.HasError()) {
-                    m_analyzer.AddError(result.GetError());
-
-                    return;
-                }
-            });
+            if (result.HasError()) {
+                m_analyzer.AddError(result.GetError());
+            }
         }
-
-        TaskSystem::GetInstance().EnqueueBatch(batch);
-
-        return task;
     }
 
-    Task<void> GenerateOutputFiles()
+    void GenerateOutputFiles()
     {
         HYP_LOG(BuildTool, Info, "Generating output files...");
-
-        Task<void> task;
-
-        TaskBatch *batch = new TaskBatch();
-        batch->pool = &m_thread_pool;
-        batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
-        {
-            task_executor->Fulfill();
-
-            delete batch;
-        }).Detach();
 
         RC<CXXModuleGenerator> cxx_module_generator = MakeRefCountedPtr<CXXModuleGenerator>();
         RC<CSharpModuleGenerator> csharp_module_generator = MakeRefCountedPtr<CSharpModuleGenerator>();
@@ -256,43 +195,19 @@ private:
             if (mod->GetHypClasses().Empty()) {
                 continue;
             }
-
-            batch->AddTask([this, cxx_module_generator, csharp_module_generator, mod = mod.Get()]()
-            {
-                HYP_LOG(BuildTool, Info, "Generating output files for module: {}", mod->GetPath());
-
-                if (Result<void> res = cxx_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
-                }
-
-                if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
-                    m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
-                }
-            });
-        }
-
-        TaskSystem::GetInstance().EnqueueBatch(batch);
-
-        return task;
-    }
-
-    void WaitWhileTaskRunning(const Task<void> &task)
-    {
-        Threads::AssertOnThread(ThreadName::THREAD_MAIN);
-
-        AssertThrow(task.IsValid());
-
-        while (!task.IsCompleted()) {
-            std::putchar('.');
             
-            Threads::Sleep(100);
-        }
+            HYP_LOG(BuildTool, Info, "Generating output files for module: {}", mod->GetPath());
 
-        // Newline
-        std::puts("");
+            if (Result<void> res = cxx_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+            }
+
+            if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
+            }
+        }
     }
 
-    WorkerThreadPool    m_thread_pool;
     UniquePtr<IDriver>  m_driver;
     Analyzer            m_analyzer;
 };
@@ -311,35 +226,61 @@ int main(int argc, char **argv)
             .Add("SourceDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
             .Add("CXXOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
             .Add("CSharpOutputDirectory", "", "", CommandLineArgumentFlags::REQUIRED, CommandLineArgumentType::STRING)
-            .Add("ExcludeDirectories", "e", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING, json::JSONArray())
+            .Add("ExcludeDirectories", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING)
+            .Add("ExcludeFiles", "", "", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING)
             .Add("Mode", "m", "", CommandLineArgumentFlags::NONE, Array<String> { "ParseHeaders" }, String("ParseHeaders"))
     };
 
     if (auto parse_result = arg_parse.Parse(argc, argv)) {
-        TaskSystem::GetInstance().Start();
+        const FilePath working_directory = FilePath(parse_result.GetValue()["WorkingDirectory"].AsString());
+
+        if (!working_directory.IsDirectory()) {
+            HYP_LOG(BuildTool, Error, "Working directory is not a directory: {}", working_directory);
+
+            return 1;
+        }
+
+        const FilePath source_directory = FilePath(parse_result.GetValue()["SourceDirectory"].AsString());
+
+        if (!source_directory.IsDirectory()) {
+            HYP_LOG(BuildTool, Error, "Source directory is not a directory: {}", source_directory);
+
+            return 1;
+        }
+
+        const FilePath cxx_output_directory = FilePath(parse_result.GetValue()["CXXOutputDirectory"].AsString());
+        const FilePath csharp_output_directory = FilePath(parse_result.GetValue()["CSharpOutputDirectory"].AsString());
 
         HashSet<FilePath> exclude_directories;
+        HashSet<FilePath> exclude_files;
 
         if (parse_result.GetValue().Contains("ExcludeDirectories")) {
-            const json::JSONArray &exclude_directories_json = parse_result.GetValue()["ExcludeDirectories"].AsArray();
+            const json::JSONArray exclude_directories_json = parse_result.GetValue()["ExcludeDirectories"].ToArray();
 
             for (const json::JSONValue &value : exclude_directories_json) {
-                exclude_directories.Insert(value.ToString());
+                exclude_directories.Insert(FilePath(FileSystem::RelativePath(value.ToString().Data(), source_directory.Data()).c_str()));
+            }
+        }
+
+        if (parse_result.GetValue().Contains("ExcludeFiles")) {
+            const json::JSONArray exclude_files_json = parse_result.GetValue()["ExcludeFiles"].ToArray();
+
+            for (const json::JSONValue &value : exclude_files_json) {
+                exclude_files.Insert(FilePath(FileSystem::RelativePath(value.ToString().Data(), source_directory.Data()).c_str()));
             }
         }
 
         buildtool::HypBuildTool build_tool {
             MakeUnique<ClangDriver>(),
-            FilePath(parse_result.GetValue()["WorkingDirectory"].AsString()),
-            FilePath(parse_result.GetValue()["SourceDirectory"].AsString()),
-            FilePath(parse_result.GetValue()["CXXOutputDirectory"].AsString()),
-            FilePath(parse_result.GetValue()["CSharpOutputDirectory"].AsString()),
-            exclude_directories
+            working_directory,
+            source_directory,
+            cxx_output_directory,
+            csharp_output_directory,
+            exclude_directories,
+            exclude_files
         };
         
         Result<void> res = build_tool.Run();
-
-        TaskSystem::GetInstance().Stop();
 
         if (res.HasError()) {
             return 1;

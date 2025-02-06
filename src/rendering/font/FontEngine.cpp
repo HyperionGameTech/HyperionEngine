@@ -3,7 +3,7 @@
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

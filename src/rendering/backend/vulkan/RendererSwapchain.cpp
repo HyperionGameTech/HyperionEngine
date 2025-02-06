@@ -5,7 +5,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererImage.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 namespace hyperion {
 namespace renderer {

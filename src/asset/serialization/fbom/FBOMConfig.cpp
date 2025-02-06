@@ -2,7 +2,7 @@
 
 #include <asset/serialization/fbom/FBOMConfig.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 namespace hyperion::fbom {
 

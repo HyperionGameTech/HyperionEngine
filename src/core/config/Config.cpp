@@ -9,7 +9,7 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <asset/ByteWriter.hpp>
 #include <asset/BufferedByteReader.hpp>

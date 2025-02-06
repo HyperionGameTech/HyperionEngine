@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <iterator>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {

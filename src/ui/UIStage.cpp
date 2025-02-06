@@ -24,8 +24,8 @@
 #include <rendering/Texture.hpp>
 #include <rendering/font/FontAtlas.hpp>
 
-#include <core/system/AppContext.hpp>
-#include <core/system/SystemEvent.hpp>
+#include <system/AppContext.hpp>
+#include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 

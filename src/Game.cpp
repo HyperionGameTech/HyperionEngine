@@ -7,8 +7,8 @@
 #include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
 
-#include <core/system/SystemEvent.hpp>
-#include <core/system/Debug.hpp>
+#include <system/SystemEvent.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/logging/Logger.hpp>
 

@@ -32,7 +32,7 @@
 
 #include <ui/UIObject.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 #include <util/profiling/ProfileScope.hpp>
 
 #include <HyperionEngine.hpp>

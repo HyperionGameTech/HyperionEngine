@@ -168,18 +168,72 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
-    # Mac can compile objective-c and objective-c++ files
-    file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c" "src/*.m" "src/*.mm")
-else()
-    file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-endif()
+function(collect_sources BASE_DIR SRC_FILES SUB_LIBRARIES)
+    file(GLOB_RECURSE ALL_FILES
+        "${BASE_DIR}/*.cpp"
+        "${BASE_DIR}/*.cxx"
+        "${BASE_DIR}/*.cc"
+        "${BASE_DIR}/*.c"
+        "${BASE_DIR}/*.mm"
+        "${BASE_DIR}/*.m"
+        "${BASE_DIR}/*.h"
+        "${BASE_DIR}/*.hpp"
+        "${BASE_DIR}/*.hxx"
+    )
+
+    set(FINAL_FILES "")
+
+    foreach(FILE ${ALL_FILES})
+        get_filename_component(DIR ${FILE} DIRECTORY)
+        
+        # Check if CMakeLists.txt exists in this directory
+        if(EXISTS "${DIR}/CMakeLists.txt")
+            # Skip adding files and instead add subdirectory
+            string(FIND "${SUBDIRS}" "${DIR}" FOUND)
+            if(${FOUND} EQUAL -1)
+                list(APPEND SUBDIRS "${DIR}")
+            endif()
+        else()
+            list(APPEND FINAL_FILES "${FILE}")
+        endif()
+    endforeach()
+
+    set(${SRC_FILES} ${FINAL_FILES} PARENT_SCOPE)
+
+    set(LOCAL_SUB_LIBRARIES "")
+
+    # Add subdirectories
+    foreach(SUBDIR ${SUBDIRS})
+        message(STATUS "Adding subdirectory: ${SUBDIR} to sources")
+
+        # the subfolder must contain a library with the name hyperion-<subfolder>
+
+        set(SUBDIR_BASENAME "")
+        string(REGEX MATCH "([^/]+)$" SUBDIR_BASENAME ${SUBDIR})
+
+        add_subdirectory(${SUBDIR} ${CMAKE_BINARY_DIR}/${SUBDIR_BASENAME})
+
+        list(APPEND LOCAL_SUB_LIBRARIES "hyperion-${SUBDIR_BASENAME}")
+    endforeach()
+
+    set(${SUB_LIBRARIES} ${LOCAL_SUB_LIBRARIES} PARENT_SCOPE)
+endfunction()
+
+# if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
+#     # Mac can compile objective-c and objective-c++ files
+#     file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c" "src/*.m" "src/*.mm")
+# else()
+#     file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
+# endif()
+
+set(SUB_LIBRARIES "")
+collect_sources(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
 
 string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
-file(GLOB_RECURSE PLATFORM_FILES "src/core/system/platform/**/*")
+file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
-    if(NOT ${PLATFORM_FILE} MATCHES "src/core/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+    if(NOT ${PLATFORM_FILE} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
         message(STATUS "Removed source file ${PLATFORM_FILE} for non-matching platform")
     endif()
@@ -462,9 +516,9 @@ endif()
 #     # execute on build
 #     add_custom_command(
 #         OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
-#         COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+#         COMMAND ${BINARY_DIR}/hyperion-buildtool --WorkingDirectory=${CMAKE_SOURCE_DIR} --SourceDirectory=${CMAKE_SOURCE_DIR}/src --CXXOutputDirectory=${CMAKE_SOURCE_DIR}/src/generated --CSharpOutputDirectory=${CMAKE_SOURCE_DIR}/src/dotnet/runtime/gen --ExcludeDirectories=${CMAKE_SOURCE_DIR}/src/generated --ExcludeDirectories=${CMAKE_SOURCE_DIR}/src/core
 #         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#         COMMENT "Running Python codegen script"
+#         COMMENT "Running Hyperion Build Tool"
 #     )
 #     add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
 # endfunction()
@@ -474,15 +528,15 @@ endif()
 # remove codegen output folder
 file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/generated)
 
-# execute codegen script on configure
-execute_process(
-    COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-)
+# # execute codegen script on configure
+# execute_process(
+#     COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
+#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+# )
 
 file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
 
-message(STATUS "Running Python codegen script - output directory: ${HYP_GENERATED_DIR}")
+# message(STATUS "Running Python codegen script - output directory: ${HYP_GENERATED_DIR}")
 
 foreach(GENERATED_SOURCE ${REFLECTION_GENERATED_SOURCES})
     set(SOURCES ${SOURCES} ${GENERATED_SOURCE})
@@ -504,7 +558,9 @@ set(COMMON_LIBRARIES
     ${SDL2_LIBRARIES}
 )
 
-target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
+message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
+
+target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES} ${SUB_LIBRARIES})
 
 function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file
@@ -608,5 +664,4 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
-add_subdirectory(buildtool)
 add_subdirectory(samples)

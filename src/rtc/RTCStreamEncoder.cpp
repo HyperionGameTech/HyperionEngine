@@ -12,7 +12,7 @@
 
 #ifdef HYP_GSTREAMER
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <gst/gst.h>
 #include <gst/app/app.h>

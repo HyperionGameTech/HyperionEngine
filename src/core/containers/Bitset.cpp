@@ -4,7 +4,7 @@
 #include <core/utilities/Span.hpp>
 #include <core/Util.hpp>
 
-#include <util/ByteUtil.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

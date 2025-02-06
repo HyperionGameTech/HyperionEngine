@@ -13,7 +13,7 @@
 #include <core/Defines.hpp>
 
 #include <util/EnumOptions.hpp>
-#include <util/ByteUtil.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>

@@ -3,7 +3,7 @@
 #ifndef HYPERION_ASSET_REGISTRY_HPP
 #define HYPERION_ASSET_REGISTRY_HPP
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <core/Base.hpp>
 

@@ -13,7 +13,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Memory.hpp>

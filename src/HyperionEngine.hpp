@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>

@@ -8,7 +8,7 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <util/ByteUtil.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 namespace hyperion {
 namespace threading {

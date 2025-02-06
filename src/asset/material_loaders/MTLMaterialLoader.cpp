@@ -9,7 +9,7 @@
 
 #include <Engine.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 namespace hyperion {
 

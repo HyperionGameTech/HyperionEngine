@@ -7,7 +7,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/utilities/Optional.hpp>
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 #include <core/Defines.hpp>
 
 #include <input/InputManager.hpp>

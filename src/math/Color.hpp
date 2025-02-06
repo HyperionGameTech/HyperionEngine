@@ -11,7 +11,7 @@
 
 #include <core/memory/Memory.hpp>
 
-#include <util/ByteUtil.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

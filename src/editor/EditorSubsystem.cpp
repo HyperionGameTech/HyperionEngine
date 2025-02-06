@@ -38,7 +38,7 @@
 
 #include <input/InputManager.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

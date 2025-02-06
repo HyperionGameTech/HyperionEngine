@@ -10,8 +10,8 @@
 #include <core/utilities/Span.hpp>
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
-#include <core/system/AppContext.hpp>
-#include <core/system/Debug.hpp>
+#include <system/AppContext.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
 #include <system/vma/VmaUsage.hpp>
@@ -194,7 +194,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     }
 
     DebugLogRaw(lt, "Vulkan: [%s, %d]:\n\t%s\n",
-             callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage);
+        callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage);
 
 #if HYP_ENABLE_BREAKPOINTS
     if (lt == LogType::RenError) {

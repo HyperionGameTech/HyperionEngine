@@ -6,7 +6,7 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Bitset.hpp>
 
-#include <core/system/StackDump.hpp>
+#include <core/debug/StackDump.hpp>
 
 namespace hyperion {
 

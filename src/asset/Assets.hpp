@@ -6,7 +6,7 @@
 #include <asset/AssetLoader.hpp>
 #include <asset/AssetCache.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <core/Base.hpp>
 

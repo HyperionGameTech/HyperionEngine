@@ -24,7 +24,7 @@
 
 #include <util/xml/SAXParser.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #include <core/Core.hpp>
 

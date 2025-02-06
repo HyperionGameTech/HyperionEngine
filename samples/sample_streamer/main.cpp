@@ -2,9 +2,11 @@
 
 #include <editor/HyperionEditor.hpp>
 
-#include <core/system/App.hpp>
-#include <core/system/StackDump.hpp>
-#include <core/system/CommandLine.hpp>
+#include <system/App.hpp>
+
+#include <core/debug/StackDump.hpp>
+
+#include <core/cli/CommandLine.hpp>
 
 #include <core/containers/Bitset.hpp>
 

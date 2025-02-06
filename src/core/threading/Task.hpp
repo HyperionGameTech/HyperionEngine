@@ -710,13 +710,7 @@ protected:
         if (m_owns_executor) {
             // Wait for the task to complete when not in debug mode
             if (IsValid() && !IsCompleted()) {
-#ifdef HYP_DEBUG_MODE
                 HYP_FAIL("Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-#else
-                HYP_LOG(Tasks, Warning, "Task was destroyed before it was completed. Waiting on task to complete. Create a fire-and-forget task to prevent this.");
-
-                Base::Await_Internal();
-#endif
             }
 
             delete m_executor;

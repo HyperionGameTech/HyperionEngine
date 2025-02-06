@@ -13,7 +13,7 @@
 #include <rendering/font/FontFace.hpp>
 #include <rendering/font/Glyph.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #include <util/img/Bitmap.hpp>
 

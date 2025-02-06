@@ -5,7 +5,7 @@
 #include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <math/MathUtil.hpp>
 #include <math/Transform.hpp>
 

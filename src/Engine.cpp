@@ -30,14 +30,14 @@
 
 #include <util/profiling/ProfileScope.hpp>
 #include <util/MeshBuilder.hpp>
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <audio/AudioManager.hpp>
 
 #include <scene/World.hpp>
 
-#include <core/system/StackDump.hpp>
-#include <core/system/SystemEvent.hpp>
+#include <core/debug/StackDump.hpp>
+#include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -49,7 +49,7 @@
 
 #include <core/net/NetRequestThread.hpp>
 
-#include <core/system/CommandLine.hpp>
+#include <core/cli/CommandLine.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -281,6 +281,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_app_context = app_context;
 
     m_render_thread = MakeUnique<RenderThread>(m_app_context);
+
+    AssertThrow(m_app_context->GetMainWindow() != nullptr);
 
     m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i new_window_size)
     {

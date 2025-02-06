@@ -3,8 +3,8 @@
 
 #include <core/utilities/Result.hpp>
 
-#include <util/json/JSON.hpp>
-#include <util/StringUtil.hpp>
+#include <core/json/JSON.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 #include <core/logging/Logger.hpp>
 

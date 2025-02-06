@@ -16,7 +16,7 @@
 
 #include <core/object/HypObjectFwd.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>

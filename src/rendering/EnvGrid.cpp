@@ -14,7 +14,7 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <core/threading/Threads.hpp>
 

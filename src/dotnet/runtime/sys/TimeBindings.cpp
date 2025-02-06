@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/system/Time.hpp>
+#include <core/utilities/Time.hpp>
 
 #include <Types.hpp>
 

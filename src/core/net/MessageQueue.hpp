@@ -7,7 +7,7 @@
 #include <core/containers/Queue.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 namespace hyperion::net {
 

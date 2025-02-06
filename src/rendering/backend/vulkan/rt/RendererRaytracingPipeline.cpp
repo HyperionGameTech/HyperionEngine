@@ -4,7 +4,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <math/MathUtil.hpp>
 #include <math/Transform.hpp>
 

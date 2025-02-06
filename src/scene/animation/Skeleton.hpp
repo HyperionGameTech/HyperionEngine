@@ -11,7 +11,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <core/object/HypObject.hpp>
 

@@ -5,11 +5,11 @@
 
 #include <core/containers/String.hpp>
 #include <core/containers/ContainerBase.hpp>
-#include <core/system/Time.hpp>
+#include <core/utilities/Time.hpp>
 #include <core/utilities/FormatFwd.hpp>
 #include <core/Defines.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <HashCode.hpp>
 

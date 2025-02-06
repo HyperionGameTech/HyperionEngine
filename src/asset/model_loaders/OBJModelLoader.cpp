@@ -15,7 +15,7 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <Engine.hpp>
 

@@ -4,16 +4,16 @@
 
 #include <asset/ByteWriter.hpp>
 
-#include <core/system/AppContext.hpp>
-#include <core/system/CommandLine.hpp>
+#include <system/AppContext.hpp>
+#include <core/cli/CommandLine.hpp>
 
 #include <core/dll/DynamicLibrary.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <util/fs/FsUtil.hpp>
-#include <util/json/JSON.hpp>
+#include <core/filesystem/FsUtil.hpp>
+#include <core/json/JSON.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

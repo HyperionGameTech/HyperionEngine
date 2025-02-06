@@ -2,7 +2,7 @@
 
 #include <rendering/CrashHandler.hpp>
 
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <asset/ByteWriter.hpp>

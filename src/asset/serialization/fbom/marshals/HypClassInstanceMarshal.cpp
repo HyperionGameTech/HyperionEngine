@@ -10,7 +10,7 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/system/StackDump.hpp>
+#include <core/debug/StackDump.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

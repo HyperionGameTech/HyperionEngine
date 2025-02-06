@@ -3,7 +3,7 @@
 #ifndef HYPERION_PROFILE_SCOPE_HPP
 #define HYPERION_PROFILE_SCOPE_HPP
 
-#include <core/system/Time.hpp>
+#include <core/utilities/Time.hpp>
 
 #include <core/utilities/StringView.hpp>
 

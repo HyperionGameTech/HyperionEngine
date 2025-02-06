@@ -7,7 +7,7 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 

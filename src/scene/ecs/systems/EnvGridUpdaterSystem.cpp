@@ -14,7 +14,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <Engine.hpp>
 

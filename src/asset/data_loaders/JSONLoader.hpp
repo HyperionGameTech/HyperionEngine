@@ -4,7 +4,7 @@
 #define HYPERION_JSON_LOADER_HPP
 
 #include <asset/Assets.hpp>
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #include <Types.hpp>
 

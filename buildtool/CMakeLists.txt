@@ -19,11 +19,14 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../lib /usr/local/lib)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
+
+add_definitions(-DHYP_VULKAN=1)
+add_definitions(-DHYP_BUILDTOOL=1)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
@@ -33,9 +36,10 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
-    ${HYPERION_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/buildtool/src
+    ${CMAKE_SOURCE_DIR}/../src
+    ${CMAKE_SOURCE_DIR}/../src/core
+    ${CMAKE_SOURCE_DIR}/../include
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
@@ -45,8 +49,9 @@ endif()
 
 
 # link with shared library hyperion
-add_dependencies(${BUILD_NAME} hyperion)
-target_link_libraries(${BUILD_NAME} hyperion)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../src/core ${CMAKE_BINARY_DIR}/../core)
+target_link_libraries(${BUILD_NAME} hyperion-core)
+add_dependencies(${BUILD_NAME} hyperion-core)
 
 # copy the hyperion dll to the executable directory
 # add_custom_command(TARGET ${BUILD_NAME} POST_BUILD

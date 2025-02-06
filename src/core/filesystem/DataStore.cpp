@@ -8,7 +8,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/system/Time.hpp>
+#include <core/utilities/Time.hpp>
 
 #include <asset/ByteWriter.hpp>
 #include <asset/Assets.hpp>

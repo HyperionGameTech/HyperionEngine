@@ -4,7 +4,7 @@
 #define HYPERION_OPTIONAL_HPP
 
 #include <core/utilities/ValueStorage.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>

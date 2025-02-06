@@ -15,10 +15,10 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <core/system/AppContext.hpp>
-#include <core/system/CommandLine.hpp>
+#include <system/AppContext.hpp>
+#include <core/cli/CommandLine.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #include <Engine.hpp>
 

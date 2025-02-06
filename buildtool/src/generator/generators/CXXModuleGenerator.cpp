@@ -15,7 +15,7 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <util/StringUtil.hpp>
+#include <core/utilities/StringUtil.hpp>
 
 namespace hyperion {
 namespace buildtool {

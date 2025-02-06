@@ -17,8 +17,8 @@
 #include <Engine.hpp>
 #include <Types.hpp>
 
-#include <util/fs/FsUtil.hpp>
-#include <util/ByteUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 namespace hyperion {
 

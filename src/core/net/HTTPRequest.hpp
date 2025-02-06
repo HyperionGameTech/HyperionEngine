@@ -18,7 +18,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <util/json/JSON.hpp>
+#include <core/json/JSON.hpp>
 
 #include <Types.hpp>
 

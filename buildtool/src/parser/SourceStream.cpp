@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <parser/SourceStream.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 
 namespace hyperion::buildtool {
 

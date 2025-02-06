@@ -62,6 +62,12 @@ public:
     HYP_FORCE_INLINE void SetExcludeDirectories(const HashSet<FilePath> &exclude_directories)
         { m_exclude_directories = exclude_directories; }
 
+    HYP_FORCE_INLINE const HashSet<FilePath> &GetExcludeFiles() const
+        { return m_exclude_files; }
+
+    HYP_FORCE_INLINE void SetExcludeFiles(const HashSet<FilePath> &exclude_files)
+        { m_exclude_files = exclude_files; }
+
     HYP_FORCE_INLINE const AnalyzerState &GetState() const
         { return m_state; }
 
@@ -98,6 +104,7 @@ private:
     FilePath                    m_csharp_output_directory;
 
     HashSet<FilePath>           m_exclude_directories;
+    HashSet<FilePath>           m_exclude_files;
 
     AnalyzerState               m_state;
     Array<UniquePtr<Module>>    m_modules;

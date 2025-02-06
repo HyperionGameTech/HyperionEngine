@@ -6,7 +6,7 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/Memory.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
 #include <Types.hpp>

@@ -5,7 +5,7 @@
 #include <core/logging/LoggerFwd.hpp>
 
 #include <core/Name.hpp>
-#include <core/system/Debug.hpp>
+#include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
 #include <core/utilities/StringView.hpp>

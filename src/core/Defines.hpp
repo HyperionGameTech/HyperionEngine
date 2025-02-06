@@ -226,9 +226,7 @@
 
 #pragma endregion Utility Macros
 
-#pragma region Debugging
-
-// #define HYP_USE_EXCEPTIONS
+#pragma region Debug Preprocessor Definitions
 
 #if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
     #define HYP_ENABLE_BREAKPOINTS 0
@@ -279,44 +277,7 @@
     #define HYP_BREAKPOINT           (void(0))
 #endif
 
-#ifdef HYP_DEBUG_MODE
-    #define HYP_PRINT_STACK_TRACE() \
-        ::hyperion::LogStackTrace()
-#else
-    #define HYP_PRINT_STACK_TRACE()
-#endif
-
-#pragma endregion Debugging
-
-#pragma region Error Handling
-
-#if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-    #define HYP_THROW(msg) throw ::std::runtime_error(msg)
-#else
-    #ifdef HYP_DEBUG_MODE
-        #define HYP_THROW(msg) \
-            do { \
-                HYP_PRINT_STACK_TRACE(); \
-                std::terminate(); \
-            } while (0)
-    #else
-        #define HYP_THROW(msg) std::terminate()
-    #endif
-#endif
-
-#define HYP_UNREACHABLE() \
-    HYP_THROW("Unreachable code hit in function " HYP_DEBUG_FUNC)
-
-#if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-    #define HYP_NOT_IMPLEMENTED() do { HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); std::terminate(); } while (0)
-#else
-    #define HYP_NOT_IMPLEMENTED() HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC)
-#endif
-
-// obsolete
-#define HYP_NOT_IMPLEMENTED_VOID() HYP_NOT_IMPLEMENTED()
-
-#pragma endregion Error Handling
+#pragma endregion Debug Preprocessor Definitions
 
 #pragma region Synchonization
 
@@ -438,16 +399,6 @@
 #endif
 
 #pragma endregion Symbol Visibility
-
-#pragma region Global Forward Declarations
-
-namespace hyperion {
-
-extern HYP_API void LogStackTrace(int depth = 10);
-
-} // namespace hyperion
-
-#pragma endregion Global Forward Declarations
 
 #pragma region Codegen
 

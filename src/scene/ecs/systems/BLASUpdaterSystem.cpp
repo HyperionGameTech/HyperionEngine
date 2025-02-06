@@ -10,7 +10,7 @@
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <Engine.hpp>
 

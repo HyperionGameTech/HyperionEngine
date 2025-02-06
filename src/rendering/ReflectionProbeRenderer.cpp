@@ -8,7 +8,7 @@
 
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <scene/camera/PerspectiveCamera.hpp>
 

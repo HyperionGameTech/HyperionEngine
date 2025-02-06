@@ -24,12 +24,12 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/system/AppContext.hpp>
+#include <system/AppContext.hpp>
 
 #include <ui/UIStage.hpp>
 #include <ui/UIText.hpp>
 
-#include <util/fs/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
 #include <util/profiling/ProfileScope.hpp>
 
