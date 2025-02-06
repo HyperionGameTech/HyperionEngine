@@ -373,8 +373,6 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         }
 
         if (def.default_value.HasValue()) {
-            HYP_LOG(CommandLine, Debug, "Using default value for argument \"{}\": {}", def.name, def.default_value->ToString(true));
-
             AppendCommandLineArgumentValue(result.values, def.name, *def.default_value, allow_multiple);
 
             continue;

@@ -22,7 +22,8 @@
 
 #include <Types.hpp>
 
-namespace hyperion::net {
+namespace hyperion {
+namespace net {
 
 enum class HTTPMethod
 {
@@ -97,6 +98,12 @@ private:
     String      m_content_type;
 };
 
-} // namespace hyperion::net
+} // namespace net
+
+using net::HTTPMethod;
+using net::HTTPRequest;
+using net::HTTPResponse;
+
+} // namespace hyperion
 
 #endif

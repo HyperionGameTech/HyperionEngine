@@ -340,13 +340,13 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_scripting_service->Start();
 
-    m_net_request_thread = MakeRefCountedPtr<net::NetRequestThread>();
+    m_net_request_thread = MakeRefCountedPtr<NetRequestThread>();
     SetGlobalNetRequestThread(m_net_request_thread);
     m_net_request_thread->Start();
 
     // must start after net request thread
     if (m_app_context->GetArguments()["Profile"]) {
-        StartProfilerConnectionThread(ProfileConnectionParams {
+        StartProfilerConnectionThread(ProfilerConnectionParams {
             /* endpoint_url */ m_app_context->GetArguments()["TraceURL"].ToString(),
             /* enabled */ true
         });

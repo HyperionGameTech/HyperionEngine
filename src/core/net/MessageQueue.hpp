@@ -4,12 +4,14 @@
 #define HYPERION_CORE_NET_MESSAGE_QUEUE_HPP
 
 #include <core/threading/AtomicVar.hpp>
-#include <core/containers/Queue.hpp>
 #include <core/threading/Mutex.hpp>
+
+#include <core/containers/Queue.hpp>
 
 #include <core/json/JSON.hpp>
 
-namespace hyperion::net {
+namespace hyperion {
+namespace net {
 
 class MessageQueue
 {
@@ -53,6 +55,10 @@ private:
     AtomicVar<uint32>       m_size;
 };
 
-} // namespace hyperion::net
+} // namespace net
+
+using net::MessageQueue;
+
+} // namespace hyperion
 
 #endif

@@ -297,15 +297,15 @@ void RenderResourcesBase::WaitForCompletion()
         // Wait for any threads that are using this RenderResources pre-initialization to stop
         m_pre_init_semaphore.Acquire();
 
-        // We need to execute pending tasks if we are on the render thread and
+        // We need to flush pending render commands if we are on the render thread and
         // we still have pending tasks. Not ideal, but we need to wrap up
         // destruction of resources before we can return.
         if (!m_completion_semaphore.IsInSignalState()) {
-            HYP_NAMED_SCOPE("Waiting for RenderResources tasks to complete on Render Thread");
+            HYP_NAMED_SCOPE("Flushing render command queue");
 
-            HYP_LOG(RenderResources, Debug, "Waiting for RenderResources tasks to complete on Render Thread");
+            HYP_LOG(RenderResources, Debug, "Flushing render command queue while waiting on resource completion");
             
-            HYP_SYNC_RENDER();
+            HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
         
             AssertThrow(m_completion_semaphore.IsInSignalState());
         }

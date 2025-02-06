@@ -6,6 +6,8 @@
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/FlatMap.hpp>
 
+#include <core/memory/NotNullPtr.hpp>
+
 #include <core/threading/Threads.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/TaskThread.hpp>
@@ -90,21 +92,21 @@ public:
     {   
         StopThread();
 
-        for (Task<net::HTTPResponse> &task : m_requests) {
+        for (Task<HTTPResponse> &task : m_requests) {
             task.Await();
         }
     }
 
     const ProfilerConnectionParams &GetParams() const
     {
-        HYP_MT_CHECK_READ(m_params);
+        HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_params;
     }
 
     void SetParams(const ProfilerConnectionParams &params)
     {
-        HYP_MT_CHECK_WRITE(m_params);
+        HYP_MT_CHECK_WRITE(m_data_race_detector);
 
         AssertThrowMsg(!m_thread.IsRunning(), "Cannot change profiler connection parameters while profiler connection thread is running");
 
@@ -185,12 +187,12 @@ public:
         json::JSONObject object;
         object["trace_id"] = m_trace_id.ToString();
 
-        Task<net::HTTPResponse> start_request = net::HTTPRequest(m_params.endpoint_url + "/start", json::JSONValue(std::move(object)), net::HTTPMethod::POST)
+        Task<HTTPResponse> start_request = HTTPRequest(m_params.endpoint_url + "/start", json::JSONValue(std::move(object)), HTTPMethod::POST)
             .Send();
 
         HYP_LOG(Profile, Info, "Waiting for profiler connection request to finish");
 
-        net::HTTPResponse &response = start_request.Await();
+        HTTPResponse &response = start_request.Await();
 
         if (!response.IsSuccess()) {
             HYP_LOG(Profile, Error, "Failed to connect to profiler connection endpoint! Status code: {}", response.GetStatusCode());
@@ -231,7 +233,7 @@ public:
         }
 
         // Send request with all queued data
-        net::HTTPRequest request(m_params.endpoint_url + "/results", json::JSONValue(std::move(object)), net::HTTPMethod::POST);
+        HTTPRequest request(m_params.endpoint_url + "/results", json::JSONValue(std::move(object)), HTTPMethod::POST);
         m_requests.PushBack(request.Send());
     }
 
@@ -245,7 +247,7 @@ private:
     FlatMap<ThreadID, UniquePtr<json::JSONArray>>   m_per_thread_values;
     mutable Mutex                                   m_values_mutex;
 
-    Array<Task<net::HTTPResponse>>                  m_requests;
+    Array<Task<HTTPResponse>>                       m_requests;
 
 
 };
@@ -430,16 +432,17 @@ public:
 
         m_head->SaveDiff();
 
-        AssertThrow(m_head->parent != nullptr);
-
-        m_head = m_head->parent;
+        if (m_head != &m_root_entry) {
+            // m_head should not be set to nullptr
+            AssertThrow(m_head->parent != nullptr);
+            m_head = m_head->parent;
+        }
     }
 
 private:
     ThreadID                        m_thread_id;
     ProfileScopeEntry               m_root_entry;
-    ProfileScopeEntry               *m_head;
-
+    NotNullPtr<ProfileScopeEntry>   m_head;
     json::JSONArray                 m_queue;
 };
 

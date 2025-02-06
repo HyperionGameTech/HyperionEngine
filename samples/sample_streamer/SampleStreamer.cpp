@@ -59,8 +59,6 @@
 
 #include <asset/model_loaders/PLYModelLoader.hpp>
 
-#include <util/profiling/Profile.hpp>
-
 #include "rendering/RenderEnvironment.hpp"
 #include "rendering/UIRenderer.hpp"
 #include <rendering/GaussianSplatting.hpp>
@@ -73,24 +71,6 @@
 
 #include <math/Triangle.hpp>
 #include <math/Matrix3.hpp>
-
-// static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
-// {
-//     const auto &entity = node.GetEntity();
-
-//     if (entity) {
-//         const auto &mesh = entity->GetMesh();
-
-//         if (mesh) {
-//             out.PushBack(Pair<Handle<Mesh>, Transform> { mesh, entity->GetTransform() });
-//         }
-//     }
-
-//     for (auto &child : node.GetChildren()) {
-//         CollectMeshes(child, out);
-//     }
-// }
-
 
 SampleStreamer::SampleStreamer()
     : Game(ManagedGameInfo {

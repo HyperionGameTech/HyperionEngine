@@ -9,7 +9,7 @@ if [[ $RESP =~ ^[Yy] ]]; then
     cmake ..
 fi
 
-cmake --build . --target hyperion
+cmake --build .
 
 popd
 

@@ -35,8 +35,12 @@ class AppContext;
 using sys::AppContext;
 
 namespace net {
+
 class NetRequestThread;
+
 } // namespace net
+
+using net::NetRequestThread;
 
 class Engine;
 class Game;
@@ -200,7 +204,7 @@ public:
     HYP_FORCE_INLINE MaterialDescriptorSetManager *GetMaterialDescriptorSetManager()
         { return m_material_descriptor_set_manager.Get(); }
 
-    HYP_FORCE_INLINE net::NetRequestThread *GetNetRequestThread() const
+    HYP_FORCE_INLINE NetRequestThread *GetNetRequestThread() const
         { return m_net_request_thread.Get(); }
 
     HYP_FORCE_INLINE EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap() const
@@ -264,7 +268,7 @@ private:
 
     UniquePtr<ScriptingService>                             m_scripting_service;
 
-    RC<net::NetRequestThread>                               m_net_request_thread;
+    RC<NetRequestThread>                                    m_net_request_thread;
 
     UniquePtr<EntityInstanceBatchHolderMap>                 m_entity_instance_batch_holder_map;
 

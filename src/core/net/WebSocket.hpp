@@ -16,7 +16,8 @@
 
 #include <Types.hpp>
 
-namespace hyperion::net {
+namespace hyperion {
+namespace net {
 
 class WebSocket;
 
@@ -58,7 +59,12 @@ private:
     UniquePtr<WebSocketThread>  m_thread;
 };
 
-} // namespace hyperion::net
+} // namespace net
+
+using net::WebSocket;
+using net::WebSocketThread;
+
+} // namespace hyperion
 
 #endif
 

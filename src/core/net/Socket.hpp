@@ -19,7 +19,8 @@
 
 #include <Types.hpp>
 
-namespace hyperion::net {
+namespace hyperion {
+namespace net {
 
 struct SocketID
 {
@@ -136,6 +137,16 @@ private:
     Mutex                                   m_connections_mutex;
 };
 
-} // namespace hyperion::net
+} // namespace net
+
+using net::SocketClient;
+using net::SocketServer;
+using net::SocketServerThread;
+using net::SocketConnection;
+using net::SocketID;
+using net::SocketResultType;
+using net::SocketProcArgument;
+
+} // namespace hyperion
 
 #endif
