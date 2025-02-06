@@ -11,7 +11,7 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 

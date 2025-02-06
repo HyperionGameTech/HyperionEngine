@@ -1,4 +1,4 @@
-#include <util/profiling/PerformanceClock.hpp>
+#include <core/profiling/PerformanceClock.hpp>
 
 #include <core/utilities/Time.hpp>
 
@@ -10,9 +10,7 @@
 #endif
 
 namespace hyperion {
-
-// program start time in milliseconds
-static const uint64 g_program_start_time = uint64(Time::Now());
+namespace profiling {
 
 uint64 PerformanceClock::Now()
 {
@@ -40,4 +38,5 @@ uint64 PerformanceClock::TimeSince(uint64 microseconds)
     return now - us;
 }
     
+} // namespace profiling
 } // namespace hyperion

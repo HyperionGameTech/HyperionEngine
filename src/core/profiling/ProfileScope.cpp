@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <util/profiling/ProfileScope.hpp>
-#include <util/profiling/PerformanceClock.hpp>
+#include <core/profiling/ProfileScope.hpp>
+#include <core/profiling/PerformanceClock.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/FlatMap.hpp>
@@ -9,6 +9,7 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/TaskThread.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <core/net/HTTPRequest.hpp>
 
@@ -23,6 +24,7 @@
 #include <Engine.hpp>
 
 namespace hyperion {
+namespace profiling {
 
 #pragma region ProfilerConnectionThread
 
@@ -78,15 +80,7 @@ public:
         return instance;
     }
 
-    ProfilerConnection()
-    {
-        json::JSONValue trace_url = g_engine->GetAppContext()->GetArguments()["TraceURL"];
-        
-        if (trace_url.IsString()) {
-            m_endpoint_url = trace_url.AsString();
-        }
-    }
-
+    ProfilerConnection()                                                = default;
     ProfilerConnection(const ProfilerConnection &other)                 = delete;
     ProfilerConnection &operator=(const ProfilerConnection &other)      = delete;
     ProfilerConnection(ProfilerConnection &&other) noexcept             = delete;
@@ -101,15 +95,20 @@ public:
         }
     }
 
-    const String &GetEndpointURL() const
+    const ProfilerConnectionParams &GetParams() const
     {
-        return m_endpoint_url;
+        HYP_MT_CHECK_READ(m_params);
+
+        return m_params;
     }
 
-    void SetEndpointURL(const String &endpoint_url)
+    void SetParams(const ProfilerConnectionParams &params)
     {
-        // @TODO: ensure thread not running - restart it on change
-        m_endpoint_url = endpoint_url;
+        HYP_MT_CHECK_WRITE(m_params);
+
+        AssertThrowMsg(!m_thread.IsRunning(), "Cannot change profiler connection parameters while profiler connection thread is running");
+
+        m_params = params;
     }
 
     void StartThread()
@@ -175,7 +174,7 @@ public:
     {
         Threads::AssertOnThread(m_thread.GetID());
 
-        if (m_endpoint_url.Empty()) {
+        if (m_params.endpoint_url.Empty()) {
             HYP_LOG(Profile, Error, "Profiler connection endpoint URL not set, cannot start connection.");
 
             return false;
@@ -186,7 +185,7 @@ public:
         json::JSONObject object;
         object["trace_id"] = m_trace_id.ToString();
 
-        Task<net::HTTPResponse> start_request = net::HTTPRequest(m_endpoint_url + "/start", json::JSONValue(std::move(object)), net::HTTPMethod::POST)
+        Task<net::HTTPResponse> start_request = net::HTTPRequest(m_params.endpoint_url + "/start", json::JSONValue(std::move(object)), net::HTTPMethod::POST)
             .Send();
 
         HYP_LOG(Profile, Info, "Waiting for profiler connection request to finish");
@@ -206,7 +205,7 @@ public:
     {
         Threads::AssertOnThread(m_thread.GetID());
 
-        if (m_endpoint_url.Empty()) {
+        if (m_params.endpoint_url.Empty()) {
             HYP_LOG(Profile, Warning, "Profiler connection endpoint URL not set, cannot submit results.");
 
             return;
@@ -232,12 +231,14 @@ public:
         }
 
         // Send request with all queued data
-        net::HTTPRequest request(m_endpoint_url + "/results", json::JSONValue(std::move(object)), net::HTTPMethod::POST);
+        net::HTTPRequest request(m_params.endpoint_url + "/results", json::JSONValue(std::move(object)), net::HTTPMethod::POST);
         m_requests.PushBack(request.Send());
     }
 
 private:
-    String                                          m_endpoint_url;
+    ProfilerConnectionParams                        m_params;
+    DataRaceDetector                                m_data_race_detector;
+
     UUID                                            m_trace_id;
     ProfilerConnectionThread                        m_thread;
 
@@ -249,14 +250,10 @@ private:
 
 };
 
-HYP_API void SetProfilerConnectionEndpoint(ANSIStringView endpoint_url)
-{
-    ProfilerConnection::GetInstance().SetEndpointURL(endpoint_url);
-}
-
-HYP_API void StartProfilerConnectionThread()
+HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams &params)
 {
 #ifdef HYP_ENABLE_PROFILE
+    ProfilerConnection::GetInstance().SetParams(params);
     ProfilerConnection::GetInstance().StartThread();
 #endif
 }
@@ -403,7 +400,7 @@ public:
 
         m_root_entry.SaveDiff();
 
-        if (g_engine.IsValid() && g_engine->GetAppContext() != nullptr && g_engine->GetAppContext()->GetArguments()["Profile"]) {
+        if (ProfilerConnection::GetInstance().GetParams().enabled) {
             m_queue.PushBack(m_root_entry.ToJSON());
             
             if (m_queue.Size() >= 100) {
@@ -474,4 +471,5 @@ ProfileScope::~ProfileScope()
 
 #pragma endregion ProfileScope
 
+} // namespace profiling
 } // namespace hyperion

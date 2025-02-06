@@ -21,6 +21,17 @@ else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
 
+# run HypBuildTool before configuring
+execute_process(
+    COMMAND tools/scripts/RunHypBuildTool.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE HYP_BUILD_TOOL_RESULT
+)
+
+if(NOT ${HYP_BUILD_TOOL_RESULT} EQUAL 0)
+    message(FATAL_ERROR "HypBuildTool failed with exit code ${HYP_BUILD_TOOL_RESULT}")
+endif()
+
 # set HYP_BUILD_TYPE
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(HYP_BUILD_TYPE "Release")

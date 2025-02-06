@@ -4,6 +4,7 @@
 
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -11,11 +12,16 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <Engine.hpp>
+
 namespace hyperion {
+
+extern HYP_IMPORT Handle<Engine> g_engine;
 
 EditorDelegates::EditorDelegates()
     : m_scheduler(Threads::GetStaticThreadID(ThreadName::THREAD_GAME))
 {
+    g_engine->GetDefaultWorld()->SetEditorDelegates(this);
 }
 
 void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)

@@ -17,7 +17,7 @@
 
 #include <math/MathUtil.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 

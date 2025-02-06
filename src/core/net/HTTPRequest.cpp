@@ -8,7 +8,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
@@ -158,8 +158,16 @@ HTTPRequest::~HTTPRequest()
 Task<HTTPResponse> HTTPRequest::Send()
 {
     HYP_SCOPE;
+
+    RC<NetRequestThread> net_request_thread = GetGlobalNetRequestThread();
+
+    if (!net_request_thread) {
+        HYP_LOG(Net, Error, "No global NetRequestThread set!");
+
+        return Task<HTTPResponse>();
+    }
     
-    return g_engine->GetNetRequestThread()->GetScheduler().Enqueue([url = m_url, content_type = m_content_type, body = m_body, method = m_method]() -> HTTPResponse
+    return net_request_thread->GetScheduler().Enqueue([url = m_url, content_type = m_content_type, body = m_body, method = m_method]() -> HTTPResponse
     {
         HYP_SCOPE;
     

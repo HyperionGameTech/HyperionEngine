@@ -7,7 +7,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 

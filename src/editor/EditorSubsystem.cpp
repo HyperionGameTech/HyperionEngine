@@ -67,7 +67,7 @@
 
 #include <Engine.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 #include <util/MeshBuilder.hpp>
 
 

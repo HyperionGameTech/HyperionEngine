@@ -10,7 +10,7 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <type_traits>
 

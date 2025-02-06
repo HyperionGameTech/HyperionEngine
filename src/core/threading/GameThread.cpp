@@ -4,7 +4,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/Defines.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <asset/Assets.hpp>
 

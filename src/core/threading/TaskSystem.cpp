@@ -296,9 +296,15 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
         return batch;
     }
 
-    TaskThreadPool *pool = batch->pool != nullptr
-        ? batch->pool
-        : m_pools[uint32(TaskThreadPoolName::THREAD_POOL_GENERIC)].Get();
+    TaskThreadPool *pool = nullptr;
+
+    if (batch->pool != nullptr) {
+        AssertThrowMsg(batch->pool->IsRunning(), "Start() must be called on a TaskThreadPool before enqueuing tasks to it");
+
+        pool = batch->pool;
+    } else {
+        pool = m_pools[uint32(TaskThreadPoolName::THREAD_POOL_GENERIC)].Get();
+    }
 
 #ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
     HYP_MT_CHECK_RW(batch->data_race_detector);

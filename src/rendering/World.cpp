@@ -5,7 +5,7 @@
 #include <rendering/Scene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>

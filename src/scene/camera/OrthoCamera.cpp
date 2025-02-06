@@ -2,7 +2,7 @@
 
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 OrthoCameraController::OrthoCameraController()

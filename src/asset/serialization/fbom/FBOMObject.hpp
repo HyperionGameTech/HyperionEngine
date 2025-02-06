@@ -22,7 +22,7 @@
 #include <asset/serialization/fbom/FBOMInterfaces.hpp>
 #include <asset/serialization/fbom/FBOMMarshaler.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>

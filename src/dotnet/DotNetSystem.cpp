@@ -15,7 +15,7 @@
 #include <core/filesystem/FsUtil.hpp>
 #include <core/json/JSON.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <dotnet/Class.hpp>
 

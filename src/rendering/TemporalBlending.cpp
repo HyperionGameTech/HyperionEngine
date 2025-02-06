@@ -13,7 +13,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 

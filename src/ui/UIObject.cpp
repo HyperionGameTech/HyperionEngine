@@ -43,7 +43,7 @@
 
 #include <core/object/HypClassUtils.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 

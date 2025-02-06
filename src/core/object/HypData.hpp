@@ -30,7 +30,7 @@
 #include <asset/serialization/fbom/FBOMArray.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Types.hpp>
 

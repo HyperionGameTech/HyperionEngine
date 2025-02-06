@@ -8,6 +8,7 @@
 #include <Types.hpp>
 
 namespace hyperion {
+namespace profiling {
 
 class HYP_API PerformanceClock
 {
@@ -17,6 +18,10 @@ public:
     /*! Get time since the given timestamp in microseconds */
     static uint64 TimeSince(uint64 microseconds);
 };
+
+} // namespace profiling
+
+using profiling::PerformanceClock;
 
 } // namespace hyperion
 

@@ -19,14 +19,19 @@
 #include <Types.hpp>
 
 namespace hyperion {
+namespace profiling {
 
+class ProfilerConnection;
 class ProfileScopeStack;
 struct ProfileScopeEntry;
 
-class ProfilerConnection;
+struct ProfilerConnectionParams
+{
+    String  endpoint_url;
+    bool    enabled;
+};
 
-extern HYP_API void SetProfilerConnectionEndpoint(ANSIStringView endpoint_url);
-extern HYP_API void StartProfilerConnectionThread();
+extern HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams &params);
 extern HYP_API void StopProfilerConnectionThread();
 
 struct HYP_API ProfileScope
@@ -69,6 +74,13 @@ struct HYP_API ProfileScope
     #define HYP_SCOPE
     #define HYP_PROFILE_BEGIN
 #endif
+
+} // namespace profiling
+
+using profiling::ProfileScope;
+using profiling::ProfilerConnectionParams;
+using profiling::StartProfilerConnectionThread;
+using profiling::StopProfilerConnectionThread;
 
 } // namespace hyperion
 

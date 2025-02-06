@@ -11,6 +11,7 @@
 #include <type_traits>
 
 namespace hyperion {
+namespace profiling {
 
 class Profile
 {
@@ -50,6 +51,10 @@ private:
     double          m_result;
     SizeType        m_iteration;
 };
+
+} // namespace profiling
+
+using profiling::Profile;
 
 } // namespace hyperion
 

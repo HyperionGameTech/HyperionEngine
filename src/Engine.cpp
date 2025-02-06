@@ -28,7 +28,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 #include <util/MeshBuilder.hpp>
 #include <core/filesystem/FsUtil.hpp>
 
@@ -340,12 +340,16 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_scripting_service->Start();
 
-    m_net_request_thread = MakeUnique<net::NetRequestThread>();
+    m_net_request_thread = MakeRefCountedPtr<net::NetRequestThread>();
+    SetGlobalNetRequestThread(m_net_request_thread);
     m_net_request_thread->Start();
 
     // must start after net request thread
     if (m_app_context->GetArguments()["Profile"]) {
-        StartProfilerConnectionThread();
+        StartProfilerConnectionThread(ProfileConnectionParams {
+            /* endpoint_url */ m_app_context->GetArguments()["TraceURL"].ToString(),
+            /* enabled */ true
+        });
     }
 
     m_entity_instance_batch_holder_map = MakeUnique<EntityInstanceBatchHolderMap>();
@@ -505,6 +509,8 @@ void Engine::FinalizeStop()
     StopProfilerConnectionThread();
 
     if (m_net_request_thread != nullptr) {
+        SetGlobalNetRequestThread(nullptr);
+
         if (m_net_request_thread->IsRunning()) {
             m_net_request_thread->Stop();
         }

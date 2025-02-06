@@ -57,7 +57,7 @@
 #include <scripting/Script.hpp>
 #include <scripting/ScriptingService.hpp>
 
-#include <util/profiling/Profile.hpp>
+#include <core/profiling/Profile.hpp>
 
 #include <util/MeshBuilder.hpp>
 

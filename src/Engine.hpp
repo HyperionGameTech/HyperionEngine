@@ -264,7 +264,7 @@ private:
 
     UniquePtr<ScriptingService>                             m_scripting_service;
 
-    UniquePtr<net::NetRequestThread>                        m_net_request_thread;
+    RC<net::NetRequestThread>                               m_net_request_thread;
 
     UniquePtr<EntityInstanceBatchHolderMap>                 m_entity_instance_batch_holder_map;
 

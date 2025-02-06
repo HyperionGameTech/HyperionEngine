@@ -17,7 +17,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>

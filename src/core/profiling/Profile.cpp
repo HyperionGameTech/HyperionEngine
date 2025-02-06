@@ -1,10 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <util/profiling/Profile.hpp>
+#include <core/profiling/Profile.hpp>
 
 #include <chrono>
 
 namespace hyperion {
+namespace profiling {
 
 Array<double> Profile::RunInterleved(Array<Profile *> &&profiles, SizeType runs_per, SizeType num_iterations, SizeType runs_per_iteration)
 {
@@ -74,4 +75,5 @@ Profile &Profile::Run(SizeType num_iterations, SizeType runs_per_iteration)
     return *this;
 }
 
+} // namespace profiling
 } // namespace hyperion

@@ -22,7 +22,7 @@
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 
-#include <util/profiling/ProfileScope.hpp>
+#include <core/profiling/ProfileScope.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
