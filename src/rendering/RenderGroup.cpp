@@ -382,7 +382,7 @@ void RenderGroup::AddRenderProxy(const RenderProxy &render_proxy)
 
     AssertDebug(render_proxy.material.IsValid());
 
-    m_render_proxies.Set(render_proxy.entity.GetID(), render_proxy);
+    m_render_proxies.Set(render_proxy.entity.GetID(), &render_proxy);
 }
 
 bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
@@ -400,7 +400,7 @@ bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
     return true;
 }
 
-typename RenderProxyEntityMap::Iterator RenderGroup::RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator)
+typename FlatMap<ID<Entity>, const RenderProxy *>::Iterator RenderGroup::RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy *>::ConstIterator iterator)
 {
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
@@ -435,21 +435,21 @@ void RenderGroup::CollectDrawCalls()
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
     for (const auto &it : m_render_proxies) {
-        const RenderProxy &render_proxy = it.second;
+        const RenderProxy *render_proxy = it.second;
 
-        AssertDebug(render_proxy.material.IsValid());
+        AssertDebug(render_proxy->material.IsValid());
 
-        AssertDebug(render_proxy.mesh.IsValid());
-        AssertDebugMsg(render_proxy.mesh->IsReady(), "Mesh #%u is not ready", render_proxy.mesh->GetID().Value());
+        AssertDebug(render_proxy->mesh.IsValid());
+        AssertDebugMsg(render_proxy->mesh->IsReady(), "Mesh #%u is not ready", render_proxy->mesh->GetID().Value());
 
         DrawCallID draw_call_id;
 
         if (unique_per_material) {
             // @TODO: Rather than using Material ID we could use hashcode of the material,
             // so that we can use the same material with different IDs
-            draw_call_id = DrawCallID(render_proxy.mesh.GetID(), render_proxy.material.GetID());
+            draw_call_id = DrawCallID(render_proxy->mesh.GetID(), render_proxy->material.GetID());
         } else {
-            draw_call_id = DrawCallID(render_proxy.mesh.GetID());
+            draw_call_id = DrawCallID(render_proxy->mesh.GetID());
         }
 
         EntityInstanceBatch *batch = nullptr;
@@ -465,7 +465,7 @@ void RenderGroup::CollectDrawCalls()
             m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
         }
 
-        m_draw_state.PushDrawCallToBatch(batch, draw_call_id, render_proxy);
+        m_draw_state.PushDrawCallToBatch(batch, draw_call_id, *render_proxy);
     }
 
     previous_draw_state.ResetDrawCalls();

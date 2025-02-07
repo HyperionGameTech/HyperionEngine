@@ -129,7 +129,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
-    void AddRenderProxy(RenderProxyList &proxy_list, const RenderProxy &proxy, const RenderableAttributeSet &attributes, PassType pass_type)
+    void AddRenderProxy(RenderProxyList &proxy_list, RenderProxy &&proxy, const RenderableAttributeSet &attributes, PassType pass_type)
     {
         HYP_SCOPE;
 
@@ -172,9 +172,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             InitObject(render_group);
         }
 
-        render_group->AddRenderProxy(proxy);
+        auto iter = proxy_list.Add(entity, std::move(proxy));
 
-        proxy_list.Add(entity, std::move(proxy));
+        render_group->AddRenderProxy(iter->second);
     }
 
     bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, PassType pass_type)
@@ -202,6 +202,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
+        // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
+        proxy_list.Reserve(added_proxies.Size());
+
         // @TODO For changed proxies it would be more efficient
         // to update the RenderResources rather than Destroy + Recreate.
 
@@ -224,7 +227,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
         }
 
-        for (const RenderProxy &proxy : added_proxies) {
+        for (RenderProxy &proxy : added_proxies) {
             proxy.ClaimRenderResources();
 
             const Handle<Mesh> &mesh = proxy.mesh;
@@ -237,7 +240,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
 
-            AddRenderProxy(proxy_list, proxy, attributes, pass_type);
+            AddRenderProxy(proxy_list, std::move(proxy), attributes, pass_type);
         }
 
         for (ID<Entity> entity : removed_proxies) {
@@ -435,7 +438,7 @@ void RenderCollector::PushEntityToRender(
     AssertThrow(proxy.mesh.IsValid());
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-    proxy_list.Add(entity, proxy);
+    proxy_list.Add(entity, RenderProxy(proxy));
 }
 
 void RenderCollector::CollectDrawCalls(

@@ -339,6 +339,8 @@ public:
     HYP_FORCE_INLINE static constexpr double MaxLoadFactor()
         { return desired_load_factor; }
 
+    void Reserve(SizeType size);
+
     Iterator Find(const KeyByType &value);
     ConstIterator Find(const KeyByType &value) const;
 
@@ -450,9 +452,6 @@ private:
     HYP_FORCE_INLINE const detail::HashSetBucket<ValueType, KeyByFunction> *GetBucketForHash(HashCode::ValueType hash) const
         { return &m_buckets[hash % m_buckets.Size()]; }
 
-    InsertResult Set_Internal(ValueType &&value);
-    InsertResult Insert_Internal(ValueType &&value);
-
     Array<detail::HashSetBucket<ValueType, KeyByFunction>, initial_bucket_size * sizeof(detail::HashSetBucket<ValueType, KeyByFunction>)> m_buckets;
     SizeType m_size;
 };
@@ -554,15 +553,13 @@ HashSet<ValueType, KeyByFunction>::~HashSet()
 }
 
 template <class ValueType, auto KeyByFunction>
-void HashSet<ValueType, KeyByFunction>::CheckAndRebuildBuckets()
+void HashSet<ValueType, KeyByFunction>::Reserve(SizeType size)
 {
-    // Check load factor, if currently load factor is greater than `load_factor`, then rehash so that the load factor becomes <= `load_factor` constant.
+    const SizeType new_bucket_count = SizeType(MathUtil::Ceil(double(size) / MaxLoadFactor()));
 
-    if (LoadFactor() < MaxLoadFactor()) {
+    if (new_bucket_count <= m_buckets.Size()) {
         return;
     }
-
-    const SizeType new_bucket_count = SizeType(double(BucketCount()) / MaxLoadFactor());
 
     Array<detail::HashSetBucket<ValueType, KeyByFunction>, initial_bucket_size * sizeof(detail::HashSetBucket<ValueType, KeyByFunction>)> new_buckets;
     new_buckets.Resize(new_bucket_count);
@@ -581,6 +578,18 @@ void HashSet<ValueType, KeyByFunction>::CheckAndRebuildBuckets()
     }
 
     m_buckets = std::move(new_buckets);
+}
+
+template <class ValueType, auto KeyByFunction>
+void HashSet<ValueType, KeyByFunction>::CheckAndRebuildBuckets()
+{
+    // Check load factor, if currently load factor is greater than `load_factor`, then rehash so that the load factor becomes <= `load_factor` constant.
+
+    if (LoadFactor() < MaxLoadFactor()) {
+        return;
+    }
+
+    Reserve(Size() * 2);
 }
 
 template <class ValueType, auto KeyByFunction>

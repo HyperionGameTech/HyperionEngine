@@ -441,6 +441,8 @@ public:
     HYP_FORCE_INLINE static constexpr double MaxLoadFactor()
         { return desired_load_factor; }
 
+    void Reserve(SizeType size);
+
     Iterator Find(const KeyType &key);
     ConstIterator Find(const KeyType &key) const;
 
@@ -675,15 +677,13 @@ auto HashMap<KeyType, ValueType>::operator[](const KeyType &key) -> ValueType &
 }
 
 template <class KeyType, class ValueType>
-void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
+void HashMap<KeyType, ValueType>::Reserve(SizeType size)
 {
-    // Check load factor, if currently load factor is greater than `load_factor`, then rehash so that the load factor becomes <= `load_factor` constant.
+    const SizeType new_bucket_count = SizeType(MathUtil::Ceil(double(size) / MaxLoadFactor()));
 
-    if (LoadFactor() < MaxLoadFactor()) {
+    if (new_bucket_count <= m_buckets.Size()) {
         return;
     }
-
-    const SizeType new_bucket_count = SizeType(double(BucketCount()) / MaxLoadFactor());
 
     Array<detail::HashMapBucket<KeyType, ValueType>, initial_bucket_size * sizeof(detail::HashMapBucket<KeyType, ValueType>)> new_buckets;
     new_buckets.Resize(new_bucket_count);
@@ -702,6 +702,18 @@ void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
     }
 
     m_buckets = std::move(new_buckets);
+}
+
+template <class KeyType, class ValueType>
+void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
+{
+    // Check load factor, if currently load factor is greater than `load_factor`, then rehash so that the load factor becomes <= `load_factor` constant.
+
+    if (LoadFactor() < MaxLoadFactor()) {
+        return;
+    }
+
+    Reserve(Size() * 2);
 }
 
 template <class KeyType, class ValueType>

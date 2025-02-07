@@ -234,6 +234,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
+        // Reserve to prevent iterator invalidation
+        proxy_list.Reserve(added_proxies.Size());
+
         for (const auto &it : changed_proxies) {
             const ID<Entity> entity = it.first;
             const RenderProxy &proxy = it.second;

@@ -130,8 +130,8 @@ EntityInstanceBatch *DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
             }
 
             EntityInstanceBatch *batch = draw_call.batch;
-
-            draw_call = DrawCall { };
+            
+            draw_call.batch = nullptr;
 
             return batch;
         }

@@ -148,7 +148,9 @@ enum class RenderProxyListAdvanceAction : uint32
 class RenderProxyList
 {
 public:
-    void Add(ID<Entity> entity, const RenderProxy &proxy);
+    void Reserve(SizeType capacity);
+
+    RenderProxyEntityMap::Iterator Add(ID<Entity> entity, RenderProxy &&proxy);
 
     /*! \brief Mark to keep a proxy from the previous iteration for this iteration.
      *  Usable when \ref{Advance} is called with \ref{RenderProxyListAdvanceAction::CLEAR}. Returns true if the

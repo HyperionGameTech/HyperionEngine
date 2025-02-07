@@ -104,9 +104,9 @@ public:
     void AddRenderProxy(const RenderProxy &render_proxy);
 
     bool RemoveRenderProxy(ID<Entity> entity);
-    typename RenderProxyEntityMap::Iterator RemoveRenderProxy(typename RenderProxyEntityMap::ConstIterator iterator);
+    typename FlatMap<ID<Entity>, const RenderProxy *>::Iterator RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy *>::ConstIterator iterator);
 
-    HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
+    HYP_FORCE_INLINE const FlatMap<ID<Entity>, const RenderProxy *> &GetRenderProxies() const
         { return m_render_proxies; }
 
     void SetDrawCallCollectionImpl(IDrawCallCollectionImpl *draw_call_collection_impl);
@@ -165,7 +165,7 @@ private:
 
     DrawCallCollection                                  m_draw_state;
 
-    RenderProxyEntityMap                                m_render_proxies;
+    FlatMap<ID<Entity>, const RenderProxy *>            m_render_proxies;
 };
 
 } // namespace hyperion

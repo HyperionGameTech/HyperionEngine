@@ -49,7 +49,12 @@ void RenderProxy::UnclaimRenderResources() const
 
 #pragma region RenderProxyList
 
-void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
+void RenderProxyList::Reserve(SizeType capacity)
+{
+    m_proxies.Reserve(capacity);
+}
+
+RenderProxyEntityMap::Iterator RenderProxyList::Add(ID<Entity> entity, RenderProxy &&proxy)
 {
     RenderProxyEntityMap::Iterator iter = m_proxies.End();
 
@@ -58,10 +63,6 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
     if (HasProxyForEntity(entity)) {
         iter = m_proxies.FindAs(entity);
     }
-
-    // issue : getting added here, then added again with different attributes,
-    // causes it to be marked as changed for the same frame - 
-    // try having list of m_previous_proxies and m_proxies for next iteration?
 
     if (iter != m_proxies.End()) {
         // if (proxy != iter->second) {
@@ -76,17 +77,19 @@ void RenderProxyList::Add(ID<Entity> entity, const RenderProxy &proxy)
             m_changed_proxies.Insert({ entity, std::move(iter->second) });
             m_changed_entities.Set(entity.ToIndex(), true);
 
-            iter->second = proxy;
+            iter->second = std::move(proxy);
         }
     } else {
         // sanity check - if not in previous iteration, it must not be in the changed list
         AssertDebug(!m_changed_entities.Test(entity.ToIndex()));
         AssertDebug(!m_changed_proxies.Contains(entity));
 
-        iter = m_proxies.Insert(entity, proxy).first;
+        iter = m_proxies.Insert(entity, std::move(proxy)).first;
     }
 
     m_next_entities.Set(entity.ToIndex(), true);
+
+    return iter;
 }
 
 bool RenderProxyList::MarkToKeep(ID<Entity> entity)
