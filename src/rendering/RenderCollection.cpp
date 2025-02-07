@@ -101,7 +101,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 attributes.SetShaderDefinition(override_shader_definition);
             }
             
-            ShaderDefinition shader_definition = override_attributes->GetShaderDefinition().IsValid()
+            const ShaderDefinition &shader_definition = override_attributes->GetShaderDefinition().IsValid()
                 ? override_attributes->GetShaderDefinition()
                 : attributes.GetShaderDefinition();
 
@@ -114,12 +114,13 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             // has matching vertex attribs.
             const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
 
-            if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes()) {
-                shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
-            }
-
             MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
             new_material_attributes.shader_definition = shader_definition;
+
+            if (mesh_vertex_attributes != new_material_attributes.shader_definition.GetProperties().GetRequiredVertexAttributes()) {
+                new_material_attributes.shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
+            }
+
             // do not override bucket!
             new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
 

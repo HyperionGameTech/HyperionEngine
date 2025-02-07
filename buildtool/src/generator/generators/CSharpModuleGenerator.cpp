@@ -40,6 +40,11 @@ Result<void> CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, 
                 continue;
             }
 
+            if (const HypClassAttributeValue &no_script_bindings_attribute_value = member.GetAttribute("NoScriptBindings"); no_script_bindings_attribute_value.GetBool()) {
+                // skip generating script bindings for this
+                continue;
+            }
+
             if (!member.cxx_type->is_function || member.cxx_type->is_static) {
                 return HYP_MAKE_ERROR(Error, "C# extension methods must map to instance methods");
             }

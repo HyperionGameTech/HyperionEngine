@@ -73,7 +73,25 @@ struct HypDataGetReturnTypeHelper
 
 } // namespace detail
 
-using HypDataSerializeFunction = fbom::FBOMResult(*)(HypData &&hyp_data, fbom::FBOMData &out_data);
+using HypDataSerializeFunction = fbom::FBOMResult(*)(const HypData &data, fbom::FBOMData &out);
+
+namespace detail {
+
+template <class T>
+struct DefaultHypDataSerializeFunction;
+
+template <>
+struct DefaultHypDataSerializeFunction<void>
+{
+    static inline fbom::FBOMResult Serialize(const HypData &data, fbom::FBOMData &out)
+    {
+        out = fbom::FBOMData();
+
+        return { fbom::FBOMResult::FBOM_ERR, "No serialization function provided" };
+    }
+};
+
+} // namespace detail
 
 /*! \brief A type-safe union that can store multiple different types of run-time data, abstracting away internal engine structures such as Handle<T>, RC<T>, etc.
  *  Providing a unified way of accessing the data via Get<T>() and TryGet<T>() methods.
@@ -127,8 +145,10 @@ struct HypData
         || std::is_same_v<T, Any>;
 
     VariantType                 value;
+    HypDataSerializeFunction    serialize_function;
 
     HypData()
+        : serialize_function(&detail::DefaultHypDataSerializeFunction<void>::Serialize)
     {
     }
 
@@ -154,10 +174,27 @@ struct HypData
     HypData(const HypData &other)                   = delete;
     HypData &operator=(const HypData &other)        = delete;
 
-    HypData(HypData &&other) noexcept               = default;
-    HypData &operator=(HypData &&other) noexcept    = default;
+    HypData(HypData &&other) noexcept
+        : value(std::move(other.value)),
+          serialize_function(other.serialize_function)
+    {
+        other.serialize_function = &detail::DefaultHypDataSerializeFunction<void>::Serialize;
+    }
 
-    ~HypData()                                      = default;
+    HypData &operator=(HypData &&other) noexcept
+    {
+        if (&other == this) {
+            return *this;
+        }
+
+        value = std::move(other.value);
+        serialize_function = other.serialize_function;
+        other.serialize_function = &detail::DefaultHypDataSerializeFunction<void>::Serialize;
+
+        return *this;
+    }
+
+    ~HypData() = default;
 
     HYP_FORCE_INLINE bool IsValid() const
         { return value.IsValid(); }
@@ -295,6 +332,17 @@ struct HypData
         return result_value;
     }
 
+    /*! \brief Serialize this instance to an FBOMData object.
+     *  \param out The FBOMData object to serialize to.
+     *  \return The result of the serialization operation.
+     */
+    fbom::FBOMResult Serialize(fbom::FBOMData &out) const
+    {
+        AssertThrow(serialize_function != nullptr);
+
+        return serialize_function(*this, out);
+    }
+
     template <class T>
     static fbom::FBOMResult Serialize(T &&value, fbom::FBOMData &out)
     {
@@ -314,7 +362,31 @@ struct HypData
 
         return { };
     }
+
+    template <class T>
+    void Set_Internal(T &&value)
+    {
+        this->value.Set<NormalizedType<T>>(std::forward<T>(value));
+        serialize_function = &detail::DefaultHypDataSerializeFunction<NormalizedType<T>>::Serialize;
+    }
 };
+
+namespace detail {
+
+template <class T>
+struct DefaultHypDataSerializeFunction
+{
+    static inline fbom::FBOMResult Serialize(const HypData &data, fbom::FBOMData &out)
+    {
+        if (fbom::FBOMResult err = HypDataHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out)) {
+            return err;
+        }
+
+        return { };
+    }
+};
+
+} // namespace detail
 
 #pragma region HypDataMarshalHelper
 
@@ -427,7 +499,7 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, T value) const
     {
-        hyp_data.value.Set<T>(value);
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE static fbom::FBOMResult Serialize(T value, fbom::FBOMData &out)
@@ -569,7 +641,7 @@ struct HypDataHelper<void *>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, void *value) const
     {
-        hyp_data.value.Set<void *>(value);
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE static fbom::FBOMResult Serialize(void *value, fbom::FBOMData &out)
@@ -639,7 +711,7 @@ struct HypDataHelper<IDBase>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const IDBase &value) const
     {
-        hyp_data.value.Set<IDBase>(value);
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE static fbom::FBOMResult Serialize(IDBase value, fbom::FBOMData &out_data)
@@ -724,12 +796,12 @@ struct HypDataHelper<AnyHandle>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const AnyHandle &value) const
     {
-        hyp_data.value.Set<AnyHandle>(value);
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, AnyHandle &&value) const
     {
-        hyp_data.value.Set<AnyHandle>(std::move(value));
+        hyp_data.Set_Internal(std::move(value));
     }
 
     static fbom::FBOMResult Serialize(const AnyHandle &value, fbom::FBOMData &out_data)
@@ -881,12 +953,12 @@ struct HypDataHelper<RC<void>>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const RC<void> &value) const
     {
-        hyp_data.value.Set<RC<void>>(value);
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, RC<void> &&value) const
     {
-        hyp_data.value.Set<RC<void>>(std::move(value));
+        hyp_data.Set_Internal(std::move(value));
     }
 
     static fbom::FBOMResult Serialize(const RC<void> &value, fbom::FBOMData &out_data)
@@ -1014,12 +1086,12 @@ struct HypDataHelper<AnyRef>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const AnyRef &value) const
     {
-        Set(hyp_data, AnyRef(value));
+        hyp_data.Set_Internal(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, AnyRef &&value) const
     {
-        hyp_data.value.Set<AnyRef>(std::move(value));
+        hyp_data.Set_Internal(std::move(value));
     }
 
     static fbom::FBOMResult Serialize(const AnyRef &value, fbom::FBOMData &out_data)
@@ -1201,7 +1273,7 @@ struct HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, Any &&value) const
     {
-        hyp_data.value.Set<Any>(std::move(value));
+        hyp_data.Set_Internal(std::move(value));
     }
 
     static fbom::FBOMResult Serialize(const Any &value, fbom::FBOMData &out_data)
@@ -1391,7 +1463,7 @@ struct HypDataHelper<WeakName> : HypDataHelper<Name>
 };
 
 template <class T, SizeType NumInlineBytes>
-struct HypDataHelperDecl<Array<T, NumInlineBytes>> {};
+struct HypDataHelperDecl<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v<T>>> {};
 
 template <class T, SizeType NumInlineBytes>
 struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
@@ -2536,7 +2608,7 @@ struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleFrom...>>
 
 } // namespace detail
 
-static_assert(sizeof(HypData) == 32, "sizeof(HypData) must match C# struct size");
+static_assert(sizeof(HypData) == 40, "sizeof(HypData) must match C# struct size");
 
 template <class T>
 constexpr bool is_hypdata_v = std::is_same_v<NormalizedType<T>, HypData>;

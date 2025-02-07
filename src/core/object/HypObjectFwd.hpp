@@ -198,6 +198,9 @@ public:
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return m_ptr == nullptr; }
 
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return m_ptr != nullptr; }
+
     HYP_FORCE_INLINE bool operator==(const HypObjectPtr &other) const
         { return m_ptr == other.m_ptr && m_hyp_class == other.m_hyp_class; }
 
@@ -209,6 +212,9 @@ public:
 
     HYP_FORCE_INLINE const HypClass *GetClass() const
         { return m_hyp_class; }
+
+    HYP_FORCE_INLINE void *GetPointer() const
+        { return m_ptr; }
 
     HYP_API const IHypObjectInitializer *GetObjectInitializer() const;
 

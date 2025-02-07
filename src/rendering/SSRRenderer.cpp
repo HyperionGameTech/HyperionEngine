@@ -41,16 +41,17 @@ struct SSRParams
 
 struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 {
-    Vec2u           extent;
+    SSRParams       params;
     GPUBufferRef    uniform_buffer;
 
     RENDER_COMMAND(CreateSSRUniformBuffer)(
-        Vec2u extent,
-        GPUBufferRef uniform_buffers
-    ) : extent(extent),
-        uniform_buffer(std::move(uniform_buffers))
+        const SSRParams &params,
+        GPUBufferRef uniform_buffer
+    ) : params(params),
+        uniform_buffer(std::move(uniform_buffer))
     {
-        AssertThrow(extent.Volume() != 0);
+        AssertThrow(params.dimensions.x * params.dimensions.y != 0);
+
         AssertThrow(this->uniform_buffer != nullptr);
     }
 
@@ -58,28 +59,15 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        const SSRParams ssr_params {
-            .dimensions             = Vec4u { extent.x, extent.y, 0, 0 },
-            .ray_step               = 0.3f,
-            .num_iterations         = 128.0f,
-            .max_ray_distance       = 100.0f,
-            .distance_bias          = 0.01f,
-            .offset                 = 0.001f,
-            .eye_fade_start         = 0.92f,
-            .eye_fade_end           = 0.99f,
-            .screen_edge_fade_start = 0.85f,
-            .screen_edge_fade_end   = 0.98f
-        };
-            
         HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(
             g_engine->GetGPUDevice(),
-            sizeof(ssr_params)
+            sizeof(params)
         ));
 
         uniform_buffer->Copy(
             g_engine->GetGPUDevice(),
-            sizeof(ssr_params),
-            &ssr_params
+            sizeof(params),
+            &params
         );
 
         HYPERION_RETURN_OK;
@@ -145,7 +133,6 @@ SSRRenderer::SSRRenderer(SSRRendererConfig &&config)
     : m_config(std::move(config)),
       m_is_rendered(false)
 {
-    DebugLog(LogType::Debug, "SSRRenderer created, config path = %s, data = %s\n", m_config.GetDataStore()->GetFilePath().Data(), *m_config.ToString());
 }
 
 SSRRenderer::~SSRRenderer()
@@ -157,7 +144,7 @@ void SSRRenderer::Create()
     m_image_outputs[0] = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
-        Vec3u(m_config.GetExtent(), 1),
+        Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -169,7 +156,7 @@ void SSRRenderer::Create()
     m_image_outputs[1] = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
-        Vec3u(m_config.GetExtent(), 1),
+        Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -181,7 +168,7 @@ void SSRRenderer::Create()
     m_image_outputs[2] = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
-        Vec3u(m_config.GetExtent(), 1),
+        Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -193,7 +180,7 @@ void SSRRenderer::Create()
     m_image_outputs[3] = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
-        Vec3u(m_config.GetExtent(), 1),
+        Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -206,7 +193,7 @@ void SSRRenderer::Create()
 
     if (use_temporal_blending) {
         m_temporal_blending = MakeUnique<TemporalBlending>(
-            m_config.GetExtent(),
+            m_config.extent,
             InternalFormat::RGBA8,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::MEDIUM,
@@ -241,8 +228,8 @@ void SSRRenderer::Destroy()
 ShaderProperties SSRRenderer::GetShaderProperties() const
 {
     ShaderProperties shader_properties;
-    shader_properties.Set("CONE_TRACING", m_config.IsConeTracingEnabled());
-    shader_properties.Set("ROUGHNESS_SCATTERING", m_config.IsRoughnessScatteringEnabled());
+    shader_properties.Set("CONE_TRACING", m_config.cone_tracing);
+    shader_properties.Set("ROUGHNESS_SCATTERING", m_config.roughness_scattering);
 
     switch (ssr_format) {
     case InternalFormat::RGBA8:
@@ -261,13 +248,21 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
 
 void SSRRenderer::CreateUniformBuffers()
 {
-    m_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+    SSRParams params { };
+    params.dimensions = Vec4u(m_config.extent, 0, 0);
+    params.ray_step = m_config.ray_step;
+    params.num_iterations = m_config.num_iterations;
+    params.max_ray_distance = 1000.0f;
+    params.distance_bias = 0.01f;
+    params.offset = 0.001f;
+    params.eye_fade_start = m_config.eye_fade.x;
+    params.eye_fade_end = m_config.eye_fade.y;
+    params.screen_edge_fade_start = m_config.screen_edge_fade.x;
+    params.screen_edge_fade_end = m_config.screen_edge_fade.y;
 
-    PUSH_RENDER_COMMAND(
-        CreateSSRUniformBuffer,
-        m_config.GetExtent(),
-        m_uniform_buffer
-    );
+    m_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+    
+    PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, params, m_uniform_buffer);
 }
 
 void SSRRenderer::CreateComputePipelines()
@@ -348,7 +343,7 @@ void SSRRenderer::Render(Frame *frame)
     DebugMarker begin_ssr_marker(command_buffer, "Begin SSR");
 
     // We will be dispatching half the number of pixels, due to checkerboarding
-    const uint32 total_pixels_in_image = m_config.GetExtent().Volume();
+    const uint32 total_pixels_in_image = m_config.extent.Volume();
     const uint32 total_pixels_in_image_div_2 = total_pixels_in_image / 2;
 
     const uint32 num_dispatch_calls = (total_pixels_in_image_div_2 + 255) / 256;

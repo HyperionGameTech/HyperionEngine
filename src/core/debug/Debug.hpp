@@ -27,15 +27,17 @@ enum class LogType : int
 #ifdef HYP_DEBUG_MODE
     //#define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
     #define DebugLog(type, ...) \
-        debug::DebugLog_(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
+        debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
-    extern HYP_API void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt, ...);
+    extern HYP_API void DebugLog_Write(LogType type, const char *callee, uint32_t line, const char *fmt, ...);
 #else
     #define DebugLog(type, ...) \
-        debug::DebugLog_(type, __VA_ARGS__)
+        debug::DebugLog_Write(type, __VA_ARGS__)
 
-    extern HYP_API void DebugLog_(LogType type, const char *fmt, ...);
+    extern HYP_API void DebugLog_Write(LogType type, const char *fmt, ...);
 #endif
+
+extern HYP_API void DebugLog_FlushOutputStream();
 
 extern HYP_API void LogStackTrace(int depth = 10);
 
@@ -72,13 +74,13 @@ using debug::LogType;
 #define HYP_NOT_IMPLEMENTED_VOID() HYP_NOT_IMPLEMENTED()
 
 #define DebugLogRaw(type, ...) \
-    debug::DebugLog_(type, nullptr, 0, __VA_ARGS__)
+    debug::DebugLog_Write(type, nullptr, 0, __VA_ARGS__)
 
 #define DebugLogAssertion(level, cond) \
     do { \
         const char *s = "*** assertion failed: (" #cond ") ***"; \
         DebugLog(level, "%s", s); \
-        fflush(stdout); \
+        debug::DebugLog_FlushOutputStream(); \
     } while (0)
 
 #define AssertOrElse(level, cond, stmt) \

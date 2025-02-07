@@ -200,7 +200,7 @@ protected:
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
     {
-        if constexpr (HasGetHashCode<T, HashCode>::value) {
+        if constexpr (HYP_HAS_METHOD(T, GetHashCode)) {
             return HashCode::GetHashCode(ref.Get<T>());
         } else {
             HYP_NOT_IMPLEMENTED();

@@ -9,14 +9,20 @@
 #include <core/containers/FixedArray.hpp>
 
 #include <core/utilities/StringView.hpp>
+#include <core/utilities/Optional.hpp>
+#include <core/utilities/Result.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 #include <core/filesystem/DataStore.hpp>
+
+#include <core/memory/NotNullPtr.hpp>
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
+
+#include <core/object/HypObjectFwd.hpp>
 
 #include <core/json/JSON.hpp>
 
@@ -35,67 +41,8 @@ using ConfigurationValue = json::JSONValue;
 
 class ConfigurationTable;
 
-// struct ConfigurationValueKey
-// {
-//     String  group;
-//     String  key;
-
-//     ConfigurationValueKey()                                                     = default;
-
-//     ConfigurationValueKey(UTF8StringView value)
-//     {
-//         Array<String> parts = String(value).Split('/');
-
-//         if (parts.Empty()) {
-//             return;
-//         }
-
-//         group = std::move(parts[0]);
-
-//         if (parts.Size() > 1) {
-//             key = std::move(parts[1]);
-//         }
-//     }
-
-//     ConfigurationValueKey(UTF8StringView group, UTF8StringView key)
-//         : group(group),
-//           key(key)
-//     {
-//     }
-
-//     ConfigurationValueKey(const ConfigurationValueKey &other)                   = default;
-//     ConfigurationValueKey &operator=(const ConfigurationValueKey &other)        = default;
-//     ConfigurationValueKey(ConfigurationValueKey &&other) noexcept               = default;
-//     ConfigurationValueKey &operator=(ConfigurationValueKey &&other) noexcept    = default;
-//     ~ConfigurationValueKey()                                                    = default;
-
-//     HYP_FORCE_INLINE bool IsValid() const
-//     {
-//         return group.Any()
-//             && key.Any();
-//     }
-
-//     HYP_FORCE_INLINE explicit operator bool() const
-//         { return IsValid(); }
-
-//     HYP_FORCE_INLINE bool operator==(const ConfigurationValueKey &other) const
-//     {
-//         return group == other.group
-//             && key == other.key;
-//     }
-
-//     HYP_FORCE_INLINE bool operator!=(const ConfigurationValueKey &other) const
-//     {
-//         return group != other.group
-//             || key != other.key;
-//     }
-
-//     HYP_FORCE_INLINE HashCode GetHashCode() const
-//     {
-//         return HashCode::GetHashCode(group)
-//             .Add(key);
-//     }
-// };
+template <class Derived>
+class ConfigBase;
 
 class ConfigurationValueKey
 {
@@ -162,16 +109,21 @@ private:
 
 class HYP_API ConfigurationTable
 {
+    template <class Derived>
+    friend class ConfigBase;
+
+protected:
+    ConfigurationTable();
+    ConfigurationTable(const String &config_name, const HypClass *hyp_class);
+
 public:
     ConfigurationTable(const String &config_name);
+    ConfigurationTable(const String &config_name, const String &subobject_path);
     ConfigurationTable(const ConfigurationTable &other);
     ConfigurationTable &operator=(const ConfigurationTable &other);
     ConfigurationTable(ConfigurationTable &&other) noexcept;
     ConfigurationTable &operator=(ConfigurationTable &&other) noexcept;
-    ~ConfigurationTable()   = default;
-
-    HYP_FORCE_INLINE ConfigurationDataStore *GetDataStore() const
-        { return m_data_store; }
+    virtual ~ConfigurationTable() = default;
 
     bool IsChanged() const;
 
@@ -183,16 +135,28 @@ public:
     const ConfigurationValue &Get(UTF8StringView key) const;
     void Set(UTF8StringView key, const ConfigurationValue &value);
 
-    bool Save() const;
+    bool Save();
 
     HYP_FORCE_INLINE String ToString() const
-        { return m_root_object.ToString(); }
+        { return GetSubobject().ToString(true); }
+
+protected:
+    static const String &GetDefaultConfigName(const HypClass *hyp_class);
+    bool SetHypClassFields(const HypClass *hyp_class, const void *ptr);
+
+    bool Validate() const { return true; }
+    void PostLoadCallback() { }
+
+    Optional<String>                        m_subobject_path;
+    json::JSONValue                         m_root_object;
 
 private:
+    json::JSONValue &GetSubobject();
+    const json::JSONValue &GetSubobject() const;
+
     ConfigurationDataStore                  *m_data_store;
     TResourceHandle<ConfigurationDataStore> m_data_store_resource_handle;
 
-    json::JSONValue                         m_root_object;
     mutable HashCode                        m_cached_hash_code;
 };
 
@@ -209,18 +173,10 @@ class ConfigBase : public ConfigurationTable
     }
 
 protected:
-    ConfigBase()
-        : ConfigurationTable("<default>")
-    {
-    }
+    ConfigBase() = default;
 
     ConfigBase(const String &config_name)
-        : ConfigurationTable(config_name)
-    {
-    }
-
-    ConfigBase(const ConfigurationTable &configuration_table)
-        : ConfigurationTable(configuration_table)
+        : ConfigurationTable(config_name, GetHypClass())
     {
     }
 
@@ -229,48 +185,55 @@ public:
     ConfigBase &operator=(const ConfigBase &other)      = default;
     ConfigBase(ConfigBase &&other) noexcept             = default;
     ConfigBase &operator=(ConfigBase &&other) noexcept  = default;
-
     virtual ~ConfigBase()                               = default;
-
-    static Derived FromTemplate(const ConfigurationTable &table)
-    {
-        Derived result = Default();
-
-        ConfigurationTable merged_table = table;
-        merged_table.Merge(result);
-
-        static_cast<ConfigurationTable &>(result) = std::move(merged_table);
-
-        return result;
-    }
-
-    static Derived Default()
-    {
-        static const Derived default_value = GetInstance().Default_Internal();
-
-        return default_value;
-    }
-
+    
     static Derived FromConfig()
     {
-        Derived result = GetInstance().FromConfig_Internal();
+        if (const String &config_name = GetDefaultConfigName(GetHypClass()); config_name.Any()) {
+            return FromConfig(config_name);
+        }
 
-        ConfigurationTable merged_table = GetGlobalConfigurationTable();
-        merged_table.Merge(result);
+        return FromConfig(TypeNameHelper<Derived, true>::value.Data());
+    }
 
-        static_cast<ConfigurationTable &>(result) = std::move(merged_table);
+    static Derived FromConfig(const String &config_name)
+    {
+        if (config_name.Empty()) {
+            // @TODO Log error
+            return { };
+        }
+
+        const HypClass *hyp_class = GetHypClass();
+
+        Derived result;
+        static_cast<ConfigurationTable &>(result) = ConfigurationTable { config_name, hyp_class };
+
+        if (hyp_class) {
+            static_cast<ConfigurationTable &>(result).SetHypClassFields(hyp_class, &result);
+        }
+
+        result.PostLoadCallback();
+
+        if (!result.Validate()) {
+            // @TODO Log validation error
+            return { };
+        }
+
+        if (result.IsChanged()) {
+            const bool save_result = result.Save();
+
+            if (!save_result) {
+                // @TODO Log save error
+                HYP_BREAKPOINT;
+            }
+        }
 
         return result;
     }
 
-protected:
-    virtual Derived Default_Internal() const
-        { return FromTemplate(GetGlobalConfigurationTable()); }
-
-    virtual Derived FromConfig_Internal() const = 0;
-
-    virtual bool Validate() const
-        { return true; }
+private:
+    HYP_FORCE_INLINE static const HypClass *GetHypClass()
+        { return GetClass(TypeID::ForType<Derived>()); }
 };
 
 class GlobalConfig final : public ConfigBase<GlobalConfig>
@@ -308,12 +271,6 @@ public:
         HYP_MT_CHECK_RW(m_data_race_detector);
 
         ConfigBase<GlobalConfig>::Set(key, value);
-    }
-
-protected:
-    virtual GlobalConfig FromConfig_Internal() const override
-    {
-        return GlobalConfig(GetDataStore()->GetConfigName());
     }
 
 private:

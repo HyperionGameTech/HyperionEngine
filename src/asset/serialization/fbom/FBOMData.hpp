@@ -298,6 +298,8 @@ public:
 #pragma endregion String
 
 #pragma region JSON
+    FBOMResult ToJSON(json::JSONValue &out_json) const;
+
     static FBOMData FromJSON(const json::JSONValue &json_value);
 
     explicit FBOMData(const json::JSONValue &json_value);

@@ -228,6 +228,203 @@ void FBOMData::SetBytes(SizeType count, const void *data)
     bytes.SetData(count, data);
 }
 
+FBOMResult FBOMData::ToJSON(json::JSONValue &out_json) const
+{
+    if (IsInt8()) {
+        int8 value;
+
+        if (FBOMResult err = ReadInt8(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsInt16()) {
+        int16 value;
+
+        if (FBOMResult err = ReadInt16(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsInt32()) {
+        int32 value;
+
+        if (FBOMResult err = ReadInt32(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsInt64()) {
+        int64 value;
+
+        if (FBOMResult err = ReadInt64(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsUInt8()) {
+        uint8 value;
+
+        if (FBOMResult err = ReadUInt8(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsUInt16()) {
+        uint16 value;
+
+        if (FBOMResult err = ReadUInt16(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsUInt32()) {
+        uint32 value;
+
+        if (FBOMResult err = ReadUInt32(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsUInt64()) {
+        uint64 value;
+
+        if (FBOMResult err = ReadUInt64(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsFloat()) {
+        float value;
+
+        if (FBOMResult err = ReadFloat(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsDouble()) {
+        double value;
+
+        if (FBOMResult err = ReadDouble(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONNumber(value);
+
+        return { };
+    }
+
+    if (IsBool()) {
+        bool value;
+
+        if (FBOMResult err = ReadBool(&value)) {
+            return err;
+        }
+
+        out_json = json::JSONBool(value);
+
+        return { };
+    }
+
+    if (IsString()) {
+        String str;
+
+        if (FBOMResult err = ReadString(str)) {
+            return err;
+        }
+
+        out_json = json::JSONString(std::move(str));
+
+        return { };
+    }
+
+    if (IsArray()) {
+        FBOMArray array { FBOMUnset() };
+
+        if (FBOMResult err = ReadArray(array)) {
+            return err;
+        }
+
+        json::JSONArray array_json;
+
+        for (SizeType i = 0; i < array.Size(); i++) {
+            json::JSONValue element_json;
+
+            if (FBOMResult err = array.GetElement(i).ToJSON(element_json)) {
+                return err;
+            }
+
+            array_json.PushBack(std::move(element_json));
+        }
+
+        out_json = std::move(array_json);
+
+        return { };
+    }
+
+    if (IsObject()) {
+        FBOMObject object;
+
+        if (FBOMResult err = ReadObject(object)) {
+            return err;
+        }
+
+        json::JSONObject object_json;
+
+        for (const auto &it : object.GetProperties()) {
+            json::JSONValue value_json;
+
+            if (FBOMResult err = it.second.ToJSON(value_json)) {
+                return err;
+            }
+
+            object_json[it.first] = std::move(value_json);
+        }
+
+        out_json = std::move(object_json);
+
+        return { };
+    }
+
+    return { FBOMResult::FBOM_ERR, "Data could not be converted to JSON" };
+}
+
 FBOMData FBOMData::FromJSON(const json::JSONValue &json_value)
 {
     if (json_value.IsNumber()) {

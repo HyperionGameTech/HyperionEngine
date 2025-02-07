@@ -157,7 +157,7 @@ public:
     FlatMap &Merge(const OtherContainerType &other)
     {
         for (const auto &item : other) {
-            Insert(item);
+            Set_Internal(Pair<Key, Value>(item));
         }
 
         return *this;
@@ -167,7 +167,7 @@ public:
     FlatMap &Merge(OtherContainerType &&other)
     {
         for (auto &item : other) {
-            Insert(std::move(item));
+            Set_Internal(std::move(item));
         }
 
         other.Clear();
@@ -234,6 +234,10 @@ public:
         m_vector.Begin(),
         m_vector.End()
     )
+
+private:
+    InsertResult Set_Internal(Pair<KeyType, ValueType> &&pair);
+    InsertResult Insert_Internal(Pair<KeyType, ValueType> &&pair);
 };
 
 template <class Key, class Value>
@@ -295,51 +299,9 @@ auto FlatMap<Key, Value>::Find(const Key &key) const -> ConstIterator
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Key &key, const Value &value) -> InsertResult
+auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value> &&pair) -> InsertResult
 {
-    const auto lower_bound = m_vector.LowerBound(key);//FlatMap<Key, Value>::Base::LowerBound(key);
-
-    if (lower_bound == End() || !(lower_bound->first == key)) {
-        auto it = m_vector.Insert(lower_bound, KeyValuePairType { key, value });
-
-        return { it, true };
-    }
-
-    return { lower_bound, false };
-}
-
-template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
-{
-    const auto lower_bound = m_vector.LowerBound(key);//FlatMap<Key, Value>::Base::LowerBound(key);
-
-    if (lower_bound == End() || !(lower_bound->first == key)) {
-        auto it = m_vector.Insert(lower_bound, KeyValuePairType { key, std::move(value) });
-
-        return { it, true };
-    }
-
-    return { lower_bound, false };
-}
-
-template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Pair<Key, Value> &pair) -> InsertResult
-{
-    const auto lower_bound = m_vector.LowerBound(pair.first);// FlatMap<Key, Value>::Base::LowerBound(pair.first);
-
-    if (lower_bound == End() || !(lower_bound->first == pair.first)) {
-        auto it = m_vector.Insert(lower_bound, pair);
-
-        return { it, true };
-    }
-
-    return { lower_bound, false };
-}
-
-template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
-{
-    const auto lower_bound = m_vector.LowerBound(pair.first);// FlatMap<Key, Value>::Base::LowerBound(pair.first);
+    const auto lower_bound = m_vector.LowerBound(pair.first);
 
     if (lower_bound == End() || !(lower_bound->first == pair.first)) {
         auto it = m_vector.Insert(lower_bound, std::move(pair));
@@ -351,35 +313,55 @@ auto FlatMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResult
+auto FlatMap<Key, Value>::Insert(const Key &key, const Value &value) -> InsertResult
 {
-    const auto lower_bound = m_vector.LowerBound(key);//FlatMap<Key, Value>::Base::LowerBound(key);
+    return Insert_Internal(Pair<Key, Value> { key, value });
+}
 
-    if (lower_bound == End() || !(lower_bound->first == key)) {
-        auto it = m_vector.Insert(lower_bound, KeyValuePairType { key, value });
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
+{
+    return Insert_Internal(Pair<Key, Value> { key, std::move(value) });
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Insert(const Pair<Key, Value> &pair) -> InsertResult
+{
+    return Insert_Internal(Pair<Key, Value>(pair));
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
+{
+    return Insert_Internal(std::move(pair));
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value> &&pair) -> InsertResult
+{
+    const auto lower_bound = m_vector.LowerBound(pair.first);//FlatMap<Key, Value>::Base::LowerBound(key);
+
+    if (lower_bound == End() || !(lower_bound->first == pair.first)) {
+        auto it = m_vector.Insert(lower_bound, std::move(pair));
 
         return { it, true };
     }
 
-    lower_bound->second = value;
+    lower_bound->second = std::move(pair.second);
 
-    return InsertResult{ lower_bound, true };
+    return InsertResult { lower_bound, true };
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResult
+{
+    return Set_Internal(Pair<Key, Value> { key, value });
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
 {
-    const auto lower_bound = m_vector.LowerBound(key);//FlatMap<Key, Value>::Base::LowerBound(key);
-
-    if (lower_bound == End() || !(lower_bound->first == key)) {
-        auto it = m_vector.Insert(lower_bound, KeyValuePairType { key, std::move(value) });
-
-        return { it, true };
-    }
-
-    lower_bound->second = std::forward<Value>(value);
-
-    return InsertResult { lower_bound, true};
+    return Set_Internal(Pair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value>

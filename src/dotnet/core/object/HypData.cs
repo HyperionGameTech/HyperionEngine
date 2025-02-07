@@ -73,10 +73,14 @@ namespace Hyperion
     ///  Needs to be a struct to be passed by value, has a fixed size of 32 bytes
     ///  Destructor needs to be called manually (HypData_Destruct)
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 40)]
     public unsafe struct HypDataBuffer
     {
+        [FieldOffset(0)]
         private fixed byte buffer[32];
+
+        [FieldOffset(0)]
+        private IntPtr serializeFunctionPtr;
 
         /// <summary>
         /// Destructs the underlying HypData object. This needs to be called manually and may only be called on a valid HypData object.

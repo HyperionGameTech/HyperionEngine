@@ -154,14 +154,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wr
 
 #pragma region JSONSubscriptWrapper<JSONValue>
 
-JSONValue &JSONSubscriptWrapper<JSONValue>::Get()
-{
-    AssertThrow(value != nullptr);
-
-    return *value;
-}
-
-const JSONValue &JSONSubscriptWrapper<JSONValue>::Get() const
+JSONValue &JSONSubscriptWrapper<JSONValue>::Get() const
 {
     AssertThrow(value != nullptr);
 
@@ -203,14 +196,7 @@ bool JSONSubscriptWrapper<JSONValue>::IsUndefined() const
     return !value || value->IsUndefined();
 }
 
-JSONString &JSONSubscriptWrapper<JSONValue>::AsString()
-{
-    AssertThrow(IsString());
-
-    return value->AsString();
-}
-
-const JSONString &JSONSubscriptWrapper<JSONValue>::AsString() const
+JSONString &JSONSubscriptWrapper<JSONValue>::AsString() const
 {
     AssertThrow(IsString());
 
@@ -224,13 +210,6 @@ JSONString JSONSubscriptWrapper<JSONValue>::ToString() const
     }
 
     return value->ToString();
-}
-
-JSONNumber &JSONSubscriptWrapper<JSONValue>::AsNumber()
-{
-    AssertThrow(IsNumber());
-
-    return value->AsNumber();
 }
 
 JSONNumber JSONSubscriptWrapper<JSONValue>::AsNumber() const
@@ -249,13 +228,6 @@ JSONNumber JSONSubscriptWrapper<JSONValue>::ToNumber() const
     return value->ToNumber();
 }
 
-JSONBool &JSONSubscriptWrapper<JSONValue>::AsBool()
-{
-    AssertThrow(IsBool());
-
-    return value->AsBool();
-}
-
 JSONBool JSONSubscriptWrapper<JSONValue>::AsBool() const
 {
     AssertThrow(IsBool());
@@ -272,14 +244,7 @@ JSONBool JSONSubscriptWrapper<JSONValue>::ToBool() const
     return value->ToBool();
 }
 
-JSONArray &JSONSubscriptWrapper<JSONValue>::AsArray()
-{
-    AssertThrow(IsArray());
-
-    return value->AsArray();
-}
-
-const JSONArray &JSONSubscriptWrapper<JSONValue>::AsArray() const
+JSONArray &JSONSubscriptWrapper<JSONValue>::AsArray() const
 {
     AssertThrow(IsArray());
 
@@ -295,14 +260,7 @@ JSONArray JSONSubscriptWrapper<JSONValue>::ToArray() const
     return value->ToArray();
 }
 
-JSONObject &JSONSubscriptWrapper<JSONValue>::AsObject()
-{
-    AssertThrow(IsObject());
-
-    return value->AsObject();
-}
-
-const JSONObject &JSONSubscriptWrapper<JSONValue>::AsObject() const
+JSONObject &JSONSubscriptWrapper<JSONValue>::AsObject() const
 {
     AssertThrow(IsObject());
 
@@ -345,7 +303,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key)
 {
     if (!value) {
-        return *this;
+        return { nullptr };
     }
 
     if (value->IsObject()) {
@@ -368,18 +326,22 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[
     return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointer<decltype(this)>>(this)->operator[](key).value };
 }
 
-JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path)
+JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path, bool create_intermediate_objects)
 {
     if (!value) {
         return *this;
     }
 
-    return SelectHelper(*this, SplitStringView(path, '.').ToSpan());
+    return SelectHelper(*this, SplitStringView(path, '.').ToSpan(), create_intermediate_objects);
 }
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path) const
 {
-    return JSONSubscriptWrapper<const JSONValue> { const_cast<RemoveConstPointer<decltype(this)>>(this)->Get(path).value };
+    if (!value) {
+        return JSONSubscriptWrapper<const JSONValue> { value };
+    }
+
+    return SelectHelper(JSONSubscriptWrapper<const JSONValue> { value }, SplitStringView(path, '.').ToSpan());
 }
 
 void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &value)
@@ -876,6 +838,14 @@ private:
 #pragma endregion JSONParser
 
 #pragma region JSONValue
+
+const JSONValue JSONValue::s_undefined = json::JSONUndefined();
+const JSONValue JSONValue::s_null = json::JSONNull();
+const JSONValue JSONValue::s_empty_object = json::JSONObject();
+const JSONValue JSONValue::s_empty_array = json::JSONArray();
+const JSONValue JSONValue::s_empty_string = json::JSONString();
+const JSONValue JSONValue::s_true = json::JSONBool(true);
+const JSONValue JSONValue::s_false = json::JSONBool(false);
 
 JSONString JSONValue::ToString(bool representation, uint32 depth) const
 {

@@ -7,6 +7,11 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/object/HypClass.hpp>
+#include <core/object/HypProperty.hpp>
+#include <core/object/HypField.hpp>
+#include <core/object/HypConstant.hpp>
+
 #include <core/utilities/Format.hpp>
 
 #include <system/AppContext.hpp>
@@ -92,26 +97,41 @@ bool ConfigurationDataStore::Write(const json::JSONValue &value) const
 
 #pragma region ConfigurationTable
 
-ConfigurationTable::ConfigurationTable(const String &config_name)
-    : m_data_store(&DataStoreBase::GetOrCreate<ConfigurationDataStore>(config_name)),
-      m_data_store_resource_handle(*m_data_store),
-      m_root_object(json::JSONObject()),
-      m_cached_hash_code(m_root_object.GetHashCode())
+ConfigurationTable::ConfigurationTable()
+    : m_root_object(json::JSONObject()),
+      m_data_store(nullptr)
 {
-    HYP_LOG(Config, Debug, "Reading from configuration {}", config_name);
+}
 
+ConfigurationTable::ConfigurationTable(const String &config_name, const String &subobject_path)
+    : m_subobject_path(subobject_path.Any() ? subobject_path : Optional<String> { }),
+      m_root_object(json::JSONObject()),
+      m_data_store(&DataStoreBase::GetOrCreate<ConfigurationDataStore>(config_name)),
+      m_data_store_resource_handle(*m_data_store)
+{
     // try to read from config file
-    if (m_data_store->Read(m_root_object)) {
-        m_cached_hash_code = m_root_object.GetHashCode();
-    } else {
-        HYP_LOG(Config, Info, "Configuration could not be read: {}", m_data_store->GetFilePath());
+    if (!m_data_store->Read(m_root_object)) {
+        HYP_LOG(Config, Warning, "Configuration could not be read: {}", m_data_store->GetFilePath());
     }
+
+    m_cached_hash_code = GetSubobject().GetHashCode();
+}
+
+ConfigurationTable::ConfigurationTable(const String &config_name)
+    : ConfigurationTable(config_name, String::empty)
+{
+}
+
+ConfigurationTable::ConfigurationTable(const String &config_name, const HypClass *hyp_class)
+    : ConfigurationTable(config_name, hyp_class ? hyp_class->GetAttribute("configpath").GetString() : String::empty)
+{
 }
 
 ConfigurationTable::ConfigurationTable(const ConfigurationTable &other)
-    : m_data_store(other.m_data_store),
-      m_data_store_resource_handle(other.m_data_store_resource_handle),
+    : m_subobject_path(other.m_subobject_path),
       m_root_object(other.m_root_object),
+      m_data_store(other.m_data_store),
+      m_data_store_resource_handle(other.m_data_store_resource_handle),
       m_cached_hash_code(other.m_cached_hash_code)
 {
 }
@@ -122,20 +142,23 @@ ConfigurationTable &ConfigurationTable::operator=(const ConfigurationTable &othe
         return *this;
     }
 
+    m_subobject_path = other.m_subobject_path;
+    m_root_object = other.m_root_object;
     m_data_store = other.m_data_store;
     m_data_store_resource_handle = other.m_data_store_resource_handle;
-    m_root_object = other.m_root_object;
     m_cached_hash_code = other.m_cached_hash_code;
 
     return *this;
 }
 
 ConfigurationTable::ConfigurationTable(ConfigurationTable &&other) noexcept
-    : m_data_store(std::move(other.m_data_store)),
-      m_data_store_resource_handle(std::move(other.m_data_store_resource_handle)),
+    : m_subobject_path(std::move(other.m_subobject_path)),
       m_root_object(std::move(other.m_root_object)),
+      m_data_store(other.m_data_store),
+      m_data_store_resource_handle(std::move(other.m_data_store_resource_handle)),
       m_cached_hash_code(std::move(other.m_cached_hash_code))
 {
+    other.m_data_store = nullptr;
 }
 
 ConfigurationTable &ConfigurationTable::operator=(ConfigurationTable &&other) noexcept
@@ -144,9 +167,10 @@ ConfigurationTable &ConfigurationTable::operator=(ConfigurationTable &&other) no
         return *this;
     }
 
-    m_data_store = std::move(other.m_data_store);
-    m_data_store_resource_handle = std::move(other.m_data_store_resource_handle);
+    m_subobject_path = std::move(other.m_subobject_path);
     m_root_object = std::move(other.m_root_object);
+    m_data_store = other.m_data_store;
+    m_data_store_resource_handle = std::move(other.m_data_store_resource_handle);
     m_cached_hash_code = std::move(other.m_cached_hash_code);
 
     other.m_data_store = nullptr;
@@ -156,23 +180,37 @@ ConfigurationTable &ConfigurationTable::operator=(ConfigurationTable &&other) no
 
 bool ConfigurationTable::IsChanged() const
 {
-    return m_root_object.GetHashCode() != m_cached_hash_code;
+    return GetSubobject().GetHashCode() != m_cached_hash_code;
 }
 
 ConfigurationTable &ConfigurationTable::Merge(const ConfigurationTable &other)
 {
-    if (!m_root_object.IsObject() || !other.m_root_object.IsObject()) {
+    if (this == &other) {
         return *this;
     }
 
-    m_root_object.AsObject().Merge(other.m_root_object.AsObject());
+    const json::JSONValue &other_subobject = other.GetSubobject();
+
+    if (!other_subobject.IsObject()) {
+        return *this;
+    }
+
+    json::JSONValue &target_object = other.m_subobject_path.HasValue()
+        ? *m_root_object.Get(*other.m_subobject_path, /* create_intermediate_objects */ true)
+        : m_root_object;
+
+    if (!target_object.IsObject()) {
+        target_object = json::JSONObject();
+    }
+
+    target_object.AsObject().Merge(other_subobject.AsObject());
 
     return *this;
 }
 
 const ConfigurationValue &ConfigurationTable::Get(UTF8StringView key) const
 {
-    auto select_result = m_root_object.Get(key);
+    auto select_result = GetSubobject().Get(key);
 
     if (select_result.value != nullptr) {
         return *select_result.value;
@@ -183,21 +221,576 @@ const ConfigurationValue &ConfigurationTable::Get(UTF8StringView key) const
 
 void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue &value)
 {
-    m_root_object.Set(key, value);
+    GetSubobject().Set(key, value);
 }
 
-bool ConfigurationTable::Save() const
+bool ConfigurationTable::Save()
 {
     AssertThrow(m_data_store != nullptr);
 
     if (m_data_store->Write(m_root_object)) {
-        m_cached_hash_code = m_root_object.GetHashCode();
+        m_cached_hash_code = GetSubobject().GetHashCode();
 
         return true;
     }
 
     return false;
 }
+
+json::JSONValue &ConfigurationTable::GetSubobject()
+{
+    json::JSONValue *subobject = &m_root_object;
+
+    if (m_subobject_path.HasValue()) {
+        subobject = &*m_root_object.Get(*m_subobject_path, /* create_intermediate_objects */ true);
+
+        if (!subobject->IsObject()) {
+            *subobject = json::JSONObject();
+        }
+    }
+
+    return *subobject;
+}
+
+const json::JSONValue &ConfigurationTable::GetSubobject() const
+{
+    const json::JSONValue *subobject = &m_root_object;
+
+    if (m_subobject_path.HasValue()) {
+        subobject = &*m_root_object.Get(*m_subobject_path);
+
+        if (!subobject->IsObject()) {
+            subobject = &json::JSONValue::s_empty_object;
+        }
+    }
+
+    return *subobject;
+}
+
+static bool JSONToHypData(const json::JSONValue &json_value, TypeID type_id, HypData &out_hyp_data);
+static bool HypDataToJSON(const HypData &value, json::JSONValue &out_json);
+
+static bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONObject &out_json)
+{
+    for (const IHypMember &member : hyp_class->GetMembers()) {
+        if (const HypClassAttributeValue &attribute = member.GetAttribute("configignore"); attribute.IsValid() && attribute.GetBool()) {
+            continue;
+        }
+
+        switch (member.GetMemberType()) {
+        case HypMemberType::TYPE_PROPERTY:
+        {
+            const HypProperty *property = static_cast<const HypProperty *>(&member);
+
+            json::JSONValue json_value;
+
+            if (!HypDataToJSON(property->Get(target), json_value)) {
+                return false;
+            }
+
+            out_json[UTF8StringView(property->GetName().LookupString())] = std::move(json_value);
+
+            break;
+        }
+        case HypMemberType::TYPE_FIELD:
+        {
+            const HypField *field = static_cast<const HypField *>(&member);
+
+            json::JSONValue json_value;
+
+            if (!HypDataToJSON(field->Get(target), json_value)) {
+                return false;
+            }
+
+            out_json[UTF8StringView(field->GetName().LookupString())] = std::move(json_value);
+
+            break;
+        }
+        case HypMemberType::TYPE_CONSTANT:
+        {
+            const HypConstant *constant = static_cast<const HypConstant *>(&member);
+
+            json::JSONValue json_value;
+
+            if (!HypDataToJSON(constant->Get(), json_value)) {
+                return false;
+            }
+
+            out_json[UTF8StringView(constant->GetName().LookupString())] = std::move(json_value);
+
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    return true;
+}
+
+static bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class, HypData &target)
+{
+    for (const Pair<json::JSONString, json::JSONValue> &pair : json_object) {
+        const json::JSONString &name_string = pair.first;
+
+        auto members_it = FindIf(hyp_class->GetMembers().Begin(), hyp_class->GetMembers().End(), [&name_string](const IHypMember &member)
+        {
+            if (const HypClassAttributeValue &attribute = member.GetAttribute("configignore"); attribute.IsValid() && attribute.GetBool()) {
+                return false;
+            }
+
+            return member.GetName() == name_string;
+        });
+
+        if (members_it == hyp_class->GetMembers().End()) {
+            HYP_LOG(Config, Warning, "No property or field matching JSON property \"{}\" in HypClass \"{}\"", name_string, hyp_class->GetName());
+
+            continue;
+        }
+
+        const IHypMember &member = *members_it;
+
+        HYP_LOG(Config, Debug, "Deserializing JSON property \"{}\" for HypClass \"{}\"", name_string, hyp_class->GetName());
+
+        switch (member.GetMemberType()) {
+        case HypMemberType::TYPE_PROPERTY:
+        {
+            const HypProperty &property = static_cast<const HypProperty &>(member);
+
+            const TypeID type_id = property.Get(target).ToRef().GetTypeID();
+
+            HypData hyp_data;
+
+            if (!JSONToHypData(pair.second, type_id, hyp_data)) {
+                HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
+                    member.GetName(), hyp_class->GetName());
+
+                return false;
+            }
+
+            property.Set(target, hyp_data);
+
+            break;
+        }
+        case HypMemberType::TYPE_FIELD:
+        {
+            const HypField &field = static_cast<const HypField &>(member);
+
+            const TypeID type_id = field.Get(target).ToRef().GetTypeID();
+
+            HypData hyp_data;
+
+            if (!JSONToHypData(pair.second, type_id, hyp_data)) {
+                HYP_LOG(Config, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json",
+                    member.GetName(), hyp_class->GetName());
+
+                return false;
+            }
+
+            field.Set(target, hyp_data);
+
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    return true;
+}
+
+static bool JSONToHypData(const json::JSONValue &json_value, TypeID type_id, HypData &out_hyp_data)
+{
+    if (type_id == TypeID::ForType<int8>()) {
+        out_hyp_data = HypData(int8(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<int16>()) {
+        out_hyp_data = HypData(int16(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<int32>()) {
+        out_hyp_data = HypData(int32(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<int64>()) {
+        out_hyp_data = HypData(int64(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<uint8>()) {
+        out_hyp_data = HypData(uint8(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<uint16>()) {
+        out_hyp_data = HypData(uint16(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<uint32>()) {
+        out_hyp_data = HypData(uint32(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<uint64>()) {
+        out_hyp_data = HypData(uint64(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<float>()) {
+        out_hyp_data = HypData(float(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<double>()) {
+        out_hyp_data = HypData(double(json_value.ToNumber()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<bool>()) {
+        out_hyp_data = HypData(json_value.ToBool());
+
+        return true;
+    } else if (type_id == TypeID::ForType<String>()) {
+        out_hyp_data = HypData(json_value.ToString());
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec2i>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 2) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec2i(json_array[0].ToInt32(), json_array[1].ToInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec3i>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 3) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec3i(json_array[0].ToInt32(), json_array[1].ToInt32(), json_array[2].ToInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec4i>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 4) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec4i(json_array[0].ToInt32(), json_array[1].ToInt32(), json_array[2].ToInt32(), json_array[3].ToInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec2u>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 2) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec2u(json_array[0].ToUInt32(), json_array[1].ToUInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec3u>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 3) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec3u(json_array[0].ToUInt32(), json_array[1].ToUInt32(), json_array[2].ToUInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec4u>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 4) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec4u(json_array[0].ToUInt32(), json_array[1].ToUInt32(), json_array[2].ToUInt32(), json_array[3].ToUInt32()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec2f>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 2) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec2f(json_array[0].ToFloat(), json_array[1].ToFloat()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec3f>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 3) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec3f(json_array[0].ToFloat(), json_array[1].ToFloat(), json_array[2].ToFloat()));
+
+        return true;
+    } else if (type_id == TypeID::ForType<Vec4f>()) {
+        if (!json_value.IsArray()) {
+            return false;
+        }
+
+        const json::JSONArray &json_array = json_value.AsArray();
+
+        if (json_array.Size() != 4) {
+            return false;
+        }
+
+        out_hyp_data = HypData(Vec4f(json_array[0].ToFloat(), json_array[1].ToFloat(), json_array[2].ToFloat(), json_array[3].ToFloat()));
+
+        return true;
+    } else {
+        if (!json_value.IsObject()) {
+            return false;
+        }
+
+        const HypClass *hyp_class = GetClass(type_id);
+
+        if (hyp_class) {
+            HypData property_value_hyp_data;
+            hyp_class->CreateInstance(property_value_hyp_data);
+
+            if (!JSONToObject(json_value.AsObject(), hyp_class, property_value_hyp_data)) {
+                return false;
+            }
+
+            out_hyp_data = std::move(property_value_hyp_data);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
+{
+    if (value.IsNull()) {
+        out_json = json::JSONNull();
+
+        return true;
+    }
+
+    if (value.Is<bool>(/* strict */ true)) {
+        out_json = json::JSONBool(value.Get<bool>());
+
+        return true;
+    }
+
+    if (value.Is<double>(/* strict */ false)) {
+        out_json = json::JSONNumber(value.Get<double>());
+
+        return true;
+    }
+
+    if (value.Is<String>()) {
+        out_json = json::JSONString(value.Get<String>());
+
+        return true;
+    }
+
+    if (value.Is<Vec2i>()) {
+        const Vec2i &vec = value.Get<Vec2i>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec3i>()) {
+        const Vec3i &vec = value.Get<Vec3i>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec4i>()) {
+        const Vec4i &vec = value.Get<Vec4i>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+        json_array.PushBack(json::JSONNumber(vec.w));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec2u>()) {
+        const Vec2u &vec = value.Get<Vec2u>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec3u>()) {
+        const Vec3u &vec = value.Get<Vec3u>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec4u>()) {
+        const Vec4u &vec = value.Get<Vec4u>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+        json_array.PushBack(json::JSONNumber(vec.w));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec2f>()) {
+        const Vec2f &vec = value.Get<Vec2f>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec3f>()) {
+        const Vec3f &vec = value.Get<Vec3f>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec4f>()) {
+        const Vec4f &vec = value.Get<Vec4f>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+        json_array.PushBack(json::JSONNumber(vec.w));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    const HypClass *hyp_class = GetClass(value.GetTypeID());
+
+    if (hyp_class) {
+        json::JSONObject json_object;
+
+        if (!ObjectToJSON(hyp_class, value, json_object)) {
+            return false;
+        }
+
+        out_json = std::move(json_object);
+
+        return true;
+    }
+
+    return false;
+}
+
+const String &ConfigurationTable::GetDefaultConfigName(const HypClass *hyp_class)
+{
+    if (hyp_class) {
+        if (const HypClassAttributeValue &config_name_attribute_value = hyp_class->GetAttribute("configname")) {
+            return config_name_attribute_value.GetString();
+        }
+    }
+
+    return String::empty;
+}
+
+bool ConfigurationTable::SetHypClassFields(const HypClass *hyp_class, const void *ptr)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(ptr != nullptr);
+
+    AnyRef target_ref(hyp_class->GetTypeID(), const_cast<void *>(ptr));
+    HypData target_hyp_data = HypData(target_ref);
+
+    json::JSONObject json_object;
+
+    if (ObjectToJSON(hyp_class, target_hyp_data, json_object)) {
+        GetSubobject().AsObject().Merge(json_object);
+
+        return true;
+    } else {
+        HYP_LOG(Config, Error, "Failed to serialize HypClass \"{}\" to json", hyp_class->GetName());
+
+        return false;
+    }
+}
+
 
 #pragma endregion ConfigurationTable
 

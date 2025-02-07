@@ -6,26 +6,15 @@
 #include <Types.hpp>
 #include <Constants.hpp>
 
+#include <core/Traits.hpp>
+
 #include <type_traits>
-#include <functional>
-#include <string>
-#include <cstring>
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3876.pdf
 
 namespace hyperion {
 
-template <class T, class HashCode, class Enabled = void>
-struct HasGetHashCode
-{
-    static constexpr bool value = false;
-};
-
-template <class T, class HashCode>
-struct HasGetHashCode< T, HashCode, std::enable_if_t< std::is_member_function_pointer_v< decltype(&T::GetHashCode) > > >
-{
-    static constexpr bool value = std::is_member_function_pointer_v< decltype(&T::GetHashCode) >;
-};
+HYP_MAKE_HAS_METHOD(GetHashCode);
 
 namespace detail {
 
@@ -134,14 +123,14 @@ struct HashCode
 
     template <class T, class DecayedType = std::decay_t<T>>
     static constexpr inline
-    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HasGetHashCode<DecayedType, HashCode>::value, HashCode>
+    typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && HYP_HAS_METHOD(DecayedType, GetHashCode), HashCode>
     GetHashCode(const T &value)
     {
         return value.GetHashCode();
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
-    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value
+    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HYP_HAS_METHOD(DecayedType, GetHashCode)
         && !std::is_pointer_v<DecayedType> && std::is_fundamental_v<DecayedType>, HashCode>
     GetHashCode(const T &value)
     {
@@ -149,7 +138,7 @@ struct HashCode
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
-    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HasGetHashCode<DecayedType, HashCode>::value
+    static constexpr inline typename std::enable_if_t<!(std::is_same_v<T, HashCode> || std::is_base_of_v<HashCode, T>) && !HYP_HAS_METHOD(DecayedType, GetHashCode)
         && !std::is_pointer_v<DecayedType> && std::is_enum_v<DecayedType>, HashCode>
     GetHashCode(const T &value)
     {

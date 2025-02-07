@@ -90,6 +90,9 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
     HYP_FORCE_INLINE explicit operator bool() const
         { return ToBool(); }
 
+    HYP_FORCE_INLINE const JSONValue &operator*() const
+        { return Get(); }
+
     const JSONValue &Get() const;
     
     bool IsString() const;
@@ -99,6 +102,9 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
     bool IsObject() const;
     bool IsNull() const;
     bool IsUndefined() const;
+    
+    HYP_FORCE_INLINE bool IsNullOrUndefined() const
+        { return IsNull() || IsUndefined(); }
 
     const JSONString &AsString() const;
     JSONString ToString() const;
@@ -179,8 +185,10 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
     HYP_FORCE_INLINE explicit operator bool() const
         { return ToBool(); }
 
-    JSONValue &Get();
-    const JSONValue &Get() const;
+    HYP_FORCE_INLINE JSONValue &operator*() const
+        { return Get(); }
+
+    JSONValue &Get() const;
     
     bool IsString() const;
     bool IsNumber() const;
@@ -190,24 +198,19 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
     bool IsNull() const;
     bool IsUndefined() const;
 
-    JSONString &AsString();
-    const JSONString &AsString() const;
+    JSONString &AsString() const;
     JSONString ToString() const;
 
-    JSONNumber &AsNumber();
     JSONNumber AsNumber() const;
     JSONNumber ToNumber() const;
 
-    JSONBool &AsBool();
     JSONBool AsBool() const;
     JSONBool ToBool() const;
 
-    JSONArray &AsArray();
-    const JSONArray &AsArray() const;
+    JSONArray &AsArray() const;
     JSONArray ToArray() const;
 
-    JSONObject &AsObject();
-    const JSONObject &AsObject() const;
+    JSONObject &AsObject() const;
     JSONObject ToObject() const;
 
     JSONSubscriptWrapper<JSONValue> operator[](uint32 index);
@@ -219,9 +222,10 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
      *
      *  \param path The path to the value.
+     *  \param create_intermediate_objects If true, intermediate objects are created between the path elements if they do not exist.
      *  \return A JSONSubscriptWrapper object.
      */
-    JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path);
+    JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path, bool create_intermediate_objects = false);
 
     /*! \brief Get a value within the JSON object using a path (e.g. "key1.key2.key3").
      *  If the path does not exist, or the value is not an object, an undefined value is returned.
@@ -256,6 +260,14 @@ private:
     >;
 
 public:
+    static const JSONValue s_undefined;
+    static const JSONValue s_null;
+    static const JSONValue s_empty_object;
+    static const JSONValue s_empty_array;
+    static const JSONValue s_empty_string;
+    static const JSONValue s_true;
+    static const JSONValue s_false;
+
     JSONValue()
         : m_inner(JSONUndefined { })
     {
@@ -440,6 +452,9 @@ public:
 
     HYP_FORCE_INLINE bool IsUndefined() const
         { return m_inner.Is<JSONUndefined>(); }
+    
+    HYP_FORCE_INLINE bool IsNullOrUndefined() const
+        { return IsNull() || IsUndefined(); }
 
     HYP_FORCE_INLINE JSONString &AsString()
     {
@@ -457,13 +472,6 @@ public:
 
     HYP_FORCE_INLINE JSONString ToString(bool representation = false) const
         { return ToString(representation, 0); }
-
-    HYP_FORCE_INLINE JSONNumber &AsNumber()
-    {
-        AssertThrow(IsNumber());
-
-        return m_inner.GetUnchecked<JSONNumber>();
-    }
 
     HYP_FORCE_INLINE JSONNumber AsNumber() const
     {
@@ -531,13 +539,6 @@ public:
 
     HYP_FORCE_INLINE double ToDouble(double default_value = 0.0) const
         { return ToNumber(default_value); }
-    
-    HYP_FORCE_INLINE JSONBool &AsBool()
-    {
-        AssertThrow(IsBool());
-
-        return m_inner.GetUnchecked<JSONBool>();
-    }
 
     HYP_FORCE_INLINE JSONBool AsBool() const
     {
@@ -648,8 +649,8 @@ public:
     HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const
         { return JSONSubscriptWrapper<const JSONValue>(this)[key]; }
 
-    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path)
-        { return JSONSubscriptWrapper<JSONValue>(this).Get(path); }
+    HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> Get(UTF8StringView path, bool create_intermediate_objects = false)
+        { return JSONSubscriptWrapper<JSONValue>(this).Get(path, create_intermediate_objects); }
 
     HYP_FORCE_INLINE JSONSubscriptWrapper<const JSONValue> Get(UTF8StringView path) const
         { return JSONSubscriptWrapper<const JSONValue>(this).Get(path); }

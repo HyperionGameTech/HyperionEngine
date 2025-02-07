@@ -10,101 +10,73 @@
 
 #include <core/config/Config.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 namespace hyperion {
 
 class Engine;
 
-struct RenderCommand_CreateSSRImageOutputs;
-struct RenderCommand_DestroySSRInstance;
-
-enum class SSRRendererOptions : uint32
+HYP_STRUCT(ConfigName="app", ConfigPath="rendering.ssr")
+struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
-    NONE                    = 0x0,
-    CONE_TRACING            = 0x1,
-    ROUGHNESS_SCATTERING    = 0x2
-};
+    HYP_FIELD(Description="The quality level of the SSR effect. (0 = low, 1 = medium, 2 = high)")
+    int     quality = 1;
 
-HYP_MAKE_ENUM_FLAGS(SSRRendererOptions)
+    HYP_FIELD(Description="Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.")
+    bool    roughness_scattering = true;
 
-class SSRRendererConfig final : public ConfigBase<SSRRendererConfig>
-{
-public:
-    SSRRendererConfig()
-        : m_options(SSRRendererOptions::NONE)
-    {
-    }
+    HYP_FIELD(Description="Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.")
+    bool    cone_tracing = true;
 
-    SSRRendererConfig(const SSRRendererConfig &other)                   = default;
-    SSRRendererConfig &operator=(const SSRRendererConfig &other)        = delete;
-    SSRRendererConfig(SSRRendererConfig &&other) noexcept               = default;
-    SSRRendererConfig &operator=(SSRRendererConfig &&other) noexcept    = delete;
+    HYP_FIELD(Description="The distance between rays when tracing the SSR effect.")
+    float   ray_step = 0.65f;
 
-    virtual ~SSRRendererConfig() override                               = default;
+    HYP_FIELD(Description="The maximum number of iterations to perform for the SSR effect before stopping.")
+    uint32  num_iterations = 64;
 
-    HYP_FORCE_INLINE Vec2u GetExtent() const
-        { return m_extent; }
+    HYP_FIELD(Description="Where to start and end fading the SSR effect based on the eye vector.")
+    Vec2f   eye_fade = { 0.98f, 0.99f };
 
-    HYP_FORCE_INLINE bool IsConeTracingEnabled() const
-        { return m_options & SSRRendererOptions::CONE_TRACING; }
+    HYP_FIELD(Description="Where to start and end fading the SSR effect based on the screen edges.")
+    Vec2f   screen_edge_fade = { 0.96f, 0.99f };
 
-    HYP_FORCE_INLINE bool IsRoughnessScatteringEnabled() const
-        { return m_options & SSRRendererOptions::ROUGHNESS_SCATTERING; }
+    HYP_FIELD(ConfigIgnore)
+    Vec2u   extent;
 
-protected:
+    virtual ~SSRRendererConfig() override = default;
+
     static HYP_API Vec2u GetSwapchainExtent();
 
-    virtual SSRRendererConfig Default_Internal() const override
+    bool Validate() const
     {
-        SSRRendererConfig result;
-        result.m_options = SSRRendererOptions::ROUGHNESS_SCATTERING | SSRRendererOptions::CONE_TRACING;
-        result.m_extent = GetSwapchainExtent();
-
-        return result;
+        return extent.x * extent.y != 0
+            && ray_step > 0.0f
+            && num_iterations > 0;
     }
 
-    virtual SSRRendererConfig FromConfig_Internal() const override
+    void PostLoadCallback()
     {
-        SSRRendererConfig result = Default();
+        extent = GetSwapchainExtent();
 
-        const String ssr_quality = Get("rendering.ssr.quality").ToString().ToLower();
-
-        if (ssr_quality == "low") {
-            result.m_extent /= 4;
-        } else if (ssr_quality == "medium") {
-            result.m_extent /= 2;
+        switch (quality) {
+        case 0:
+            extent /= 4;
+            break;
+        case 1:
+            extent /= 2;
+            break;
+        default:
+            break;
         }
-
-        const json::JSONValue roughness_scattering_option = Get("rendering.ssr.roughness_scattering");
-        const json::JSONValue cone_tracing_option = Get("rendering.ssr.cone_tracing");
-
-        if (!roughness_scattering_option.IsUndefined() || !cone_tracing_option.IsUndefined()) {
-            result.m_options = SSRRendererOptions::NONE;
-        }
-
-        if (roughness_scattering_option.ToBool()) {
-            result.m_options |= SSRRendererOptions::ROUGHNESS_SCATTERING;
-        }
-
-        if (cone_tracing_option.ToBool()) {
-            result.m_options |= SSRRendererOptions::CONE_TRACING;
-        }
-
-        return result;
     }
-
-    EnumFlags<SSRRendererOptions>   m_options;
-    Vec2u                           m_extent;
 };
 
 
 class SSRRenderer
 {
 public:
-    friend struct RenderCommand_CreateSSRImageOutputs;
-    friend struct RenderCommand_DestroySSRInstance;
-
     SSRRenderer(SSRRendererConfig &&config);
     ~SSRRenderer();
 

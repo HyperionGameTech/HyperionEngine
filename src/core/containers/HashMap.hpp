@@ -504,7 +504,7 @@ public:
     HashMap &Merge(const OtherContainerType &other)
     {
         for (const auto &item : other) {
-            Insert(item);
+            Set_Internal(Pair<KeyType, ValueType>(item));
         }
 
         return *this;
@@ -514,7 +514,7 @@ public:
     HashMap &Merge(OtherContainerType &&other)
     {
         for (auto &item : other) {
-            Insert(std::move(item));
+            Set_Internal(std::move(item));
         }
 
         other.Clear();

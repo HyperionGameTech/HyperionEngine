@@ -152,6 +152,7 @@ private:
 #define HYP_OBJECT_BODY(T, ...) \
     private: \
         friend class HypObjectInitializer<T>; \
+        friend struct HypClassInitializer_##T; \
         \
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         IHypObjectInitializer   *m_hyp_object_initializer_ptr = &m_hyp_object_initializer; \

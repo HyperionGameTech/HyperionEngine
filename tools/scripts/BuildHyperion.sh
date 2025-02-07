@@ -9,7 +9,7 @@ if [[ $RESP =~ ^[Yy] ]]; then
     cmake ..
 fi
 
-cmake --build .
+cmake --build . --parallel 8
 
 popd
 
