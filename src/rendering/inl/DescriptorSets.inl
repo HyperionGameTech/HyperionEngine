@@ -27,6 +27,7 @@ HYP_DESCRIPTOR_SRV(Scene, PointLightShadowMapTextures, max_bound_point_shadow_ma
 HYP_DESCRIPTOR_SRV(Scene, EnvProbeTextures, max_bound_reflection_probes);
 HYP_DESCRIPTOR_SSBO(Scene, SHGridBuffer, 1, sizeof(SHGridBuffer), false);
 HYP_DESCRIPTOR_SRV(Scene, VoxelGridTexture, 1);
+HYP_DESCRIPTOR_SRV(Scene, LightFieldTexture, 1);
 
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, renderer::RenderConfig::IsBindlessSupported());
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bound_textures, !renderer::RenderConfig::IsBindlessSupported());

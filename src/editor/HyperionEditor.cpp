@@ -426,8 +426,8 @@ void HyperionEditor::Init()
 
             // Add env grid component
             m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-                EnvGridType::ENV_GRID_TYPE_SH,
-                Vec3u { 24, 4, 24 },
+                EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
+                Vec3u { 6, 4, 6 },
                 EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
             });
 

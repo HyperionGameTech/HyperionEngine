@@ -33,8 +33,9 @@ HYP_MAKE_ENUM_FLAGS(EnvGridFlags);
 
 enum EnvGridType : uint32
 {
-    ENV_GRID_TYPE_INVALID   = uint32(-1),
-    ENV_GRID_TYPE_SH        = 0,
+    ENV_GRID_TYPE_INVALID       = uint32(-1),
+    ENV_GRID_TYPE_SH            = 0,
+    ENV_GRID_TYPE_LIGHT_FIELD,
     ENV_GRID_TYPE_MAX
 };
 
@@ -62,7 +63,7 @@ struct EnvProbeCollection
     FixedArray<uint32, max_bound_ambient_probes * 2>        indirect_indices = { 0 };
     FixedArray<Handle<EnvProbe>, max_bound_ambient_probes>  probes = { };
 
-    // Must be called on init, before render thread starts using probes too
+    // Must be called in EnvGrid::Init(), before probes are used from the render thread.
     // returns the index
     uint32 AddProbe(Handle<EnvProbe> probe)
     {
@@ -77,6 +78,7 @@ struct EnvProbeCollection
         return index;
     }
 
+    // Must be called in EnvGrid::Init(), before probes are used from the render thread.
     void AddProbe(uint32 index, Handle<EnvProbe> probe)
     {
         AssertThrow(index < max_bound_ambient_probes);
@@ -88,7 +90,7 @@ struct EnvProbeCollection
         indirect_indices[max_bound_ambient_probes + index] = index;
     }
 
-    void SetProbeIndexOnGameThread(uint32 index, uint32 new_index)
+    HYP_FORCE_INLINE void SetProbeIndexOnGameThread(uint32 index, uint32 new_index)
     {
         AssertThrow(index < max_bound_ambient_probes);
         AssertThrow(new_index < max_bound_ambient_probes);
@@ -105,7 +107,7 @@ struct EnvProbeCollection
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbeOnGameThread(uint32 index) const
         { return probes[indirect_indices[index]]; }
 
-    void SetProbeIndexOnRenderThread(uint32 index, uint32 new_index)
+    HYP_FORCE_INLINE void SetProbeIndexOnRenderThread(uint32 index, uint32 new_index)
     {
         AssertThrow(index < max_bound_ambient_probes);
         AssertThrow(new_index < max_bound_ambient_probes);
@@ -161,16 +163,6 @@ private:
 
     HYP_FORCE_INLINE Vec3f SizeOfProbe() const
         { return m_aabb.GetExtent() / Vec3f(m_options.density); }
-    
-    HYP_FORCE_INLINE EnvProbeType GetEnvProbeType() const
-    {
-        switch (GetEnvGridType()) {
-        case ENV_GRID_TYPE_SH:
-            return ENV_PROBE_TYPE_AMBIENT;
-        default:
-            return ENV_PROBE_TYPE_INVALID;
-        }
-    }
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
@@ -178,15 +170,22 @@ private:
     void CreateFramebuffer();
 
     void CreateVoxelGridData();
-
-    void CreateSHData();
+    void CreateSphericalHarmonicsData();
+    void CreateLightFieldData();
 
     void RenderEnvProbe(
         Frame *frame,
         uint32 probe_index
     );
 
-    void ComputeSH(
+    void ComputeEnvProbeSphericalHarmonics(
+        Frame *frame,
+        const ImageRef &image,
+        const ImageViewRef &image_view,
+        uint32 probe_index
+    );
+
+    void PackEnvProbeInLightFieldTexture(
         Frame *frame,
         const ImageRef &image,
         const ImageViewRef &image_view,
@@ -228,8 +227,6 @@ private:
     Array<DescriptorTableRef>   m_compute_sh_descriptor_tables;
     Array<GPUBufferRef>         m_sh_tiles_buffers;
 
-    Handle<Texture>             m_probe_data_texture;
-
     ComputePipelineRef          m_clear_voxels;
     ComputePipelineRef          m_voxelize_probe;
     ComputePipelineRef          m_offset_voxel_grid;
@@ -240,7 +237,10 @@ private:
     Array<ImageViewRef>         m_voxel_grid_mips;
     Array<DescriptorTableRef>   m_generate_voxel_grid_mipmaps_descriptor_tables;
 
-    Queue<uint32>                 m_next_render_indices;
+    Handle<Texture>             m_irradiance_texture;
+    ComputePipelineRef          m_pack_light_field_probe;
+
+    Queue<uint32>               m_next_render_indices;
 };
 
 } // namespace hyperion

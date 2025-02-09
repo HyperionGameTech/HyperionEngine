@@ -163,7 +163,7 @@ void DDGI::Init()
         m_grid_info.NumProbes()
     );
 
-    const auto grid = m_grid_info.NumProbesPerDimension();
+    const Vec3u grid = m_grid_info.NumProbesPerDimension();
     m_probes.Resize(m_grid_info.NumProbes());
 
     for (uint32 x = 0; x < grid.x; x++) {
