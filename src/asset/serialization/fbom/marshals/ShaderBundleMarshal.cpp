@@ -9,6 +9,10 @@
 
 #include <core/object/HypData.hpp>
 
+namespace hyperion {
+HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
+} // namespace hyperion
+
 namespace hyperion::fbom {
 
 template <>
@@ -113,14 +117,7 @@ public:
         }
 
         if (global_descriptor_table_version != renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value()) {
-            DebugLog(
-                LogType::Error,
-                "Failed to deserialize Shader instance: The global descriptor table version does not match.\n"
-                "\tExpected: %llu\n"
-                "\tActual: %llu\n",
-                renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value(),
-                global_descriptor_table_version
-            );
+            HYP_LOG(ShaderCompiler, Info, "The global descriptor table version does not match. This shader will need to be recompiled.");
 
             return { FBOMResult::FBOM_ERR, "Global descriptor table version mismatch" };
         }

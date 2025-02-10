@@ -12,8 +12,7 @@ RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode m
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_num_multiview_layers(0),
-      m_clear_color(Vec4f::Zero())
+      m_num_multiview_layers(0)
 {
 }
 
@@ -21,8 +20,7 @@ RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode m
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_num_multiview_layers(num_multiview_layers),
-      m_clear_color(Vec4f::Zero())
+      m_num_multiview_layers(num_multiview_layers)
 {
 }
 
@@ -133,10 +131,10 @@ RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
             m_vk_clear_values.PushBack(VkClearValue {
                 .color = {
                     .float32 = {
-                        m_clear_color.x,
-                        m_clear_color.y,
-                        m_clear_color.z,
-                        m_clear_color.w
+                        attachment->GetClearColor().x,
+                        attachment->GetClearColor().y,
+                        attachment->GetClearColor().z,
+                        attachment->GetClearColor().w
                     }
                 }
             });

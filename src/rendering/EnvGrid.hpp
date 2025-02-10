@@ -53,6 +53,9 @@ struct EnvGridShaderData
 
     Vec4f   voxel_grid_aabb_max;
     Vec4f   voxel_grid_aabb_min;
+
+    Vec2i   light_field_image_dimensions;
+    Vec2i   light_field_probe_dimensions;
 };
 
 static constexpr uint32 max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvGridShaderData);
@@ -130,6 +133,8 @@ struct EnvGridOptions
     EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
 };
 
+// @TODO Refactor this class into a base class and divide it into subclasses (SH, LightField, etc.)
+
 HYP_CLASS()
 class HYP_API EnvGrid : public RenderSubsystem
 {
@@ -178,14 +183,14 @@ private:
         uint32 probe_index
     );
 
-    void ComputeEnvProbeSphericalHarmonics(
+    void ComputeEnvProbeIrradiance_SphericalHarmonics(
         Frame *frame,
         const ImageRef &image,
         const ImageViewRef &image_view,
         uint32 probe_index
     );
 
-    void PackEnvProbeInLightFieldTexture(
+    void ComputeEnvProbeIrradiance_LightField(
         Frame *frame,
         const ImageRef &image,
         const ImageViewRef &image_view,
@@ -238,6 +243,8 @@ private:
     Array<DescriptorTableRef>   m_generate_voxel_grid_mipmaps_descriptor_tables;
 
     Handle<Texture>             m_irradiance_texture;
+    Handle<Texture>             m_depth_texture;
+    Array<GPUBufferRef>         m_uniform_buffers;
     ComputePipelineRef          m_pack_light_field_probe;
 
     Queue<uint32>               m_next_render_indices;

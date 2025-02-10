@@ -408,7 +408,7 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        node.Scale(0.02f);
+        node.Scale(0.05f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -420,15 +420,15 @@ void HyperionEditor::Init()
             });
 
             m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent {
-                node.GetLocalAABB() * 2.0f,
-                node.GetWorldAABB() * 2.0f
+                node.GetLocalAABB() * 1.01f,
+                node.GetWorldAABB() * 1.01f
             });
 
             // Add env grid component
             m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
                 EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
                 Vec3u { 6, 4, 6 },
-                EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
+                EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
             });
 
             NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();

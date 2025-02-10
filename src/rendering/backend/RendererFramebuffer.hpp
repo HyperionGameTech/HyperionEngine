@@ -66,7 +66,7 @@ struct AttachmentMap
         return it->second.attachment;
     }
 
-    HYP_FORCE_INLINE void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
+    HYP_FORCE_INLINE AttachmentRef<PLATFORM> AddAttachment(const AttachmentRef<PLATFORM> &attachment)
     {
         AssertThrow(attachment.IsValid());
         AssertThrow(attachment->GetImage().IsValid());
@@ -83,9 +83,11 @@ struct AttachmentMap
                 attachment
             }
         );
+
+        return attachment;
     }
 
-    HYP_FORCE_INLINE void AddAttachment(
+    HYP_FORCE_INLINE AttachmentRef<PLATFORM> AddAttachment(
         uint32 binding,
         Vec2u extent,
         InternalFormat format,
@@ -106,16 +108,20 @@ struct AttachmentMap
 
         image->SetIsAttachmentTexture(true);
 
+        AttachmentRef<PLATFORM> attachment = MakeRenderObject<Attachment<PLATFORM>>(
+            image,
+            stage
+        );
+
         attachments.Set(
             binding,
             AttachmentDef<PLATFORM> {
                 image,
-                MakeRenderObject<Attachment<PLATFORM>>(
-                    image,
-                    stage
-                )
+                attachment
             }
         );
+
+        return attachment;
     }
 
     HYP_DEF_STL_BEGIN_END(
@@ -162,10 +168,10 @@ public:
     HYP_FORCE_INLINE const RenderPassRef<PLATFORM> &GetRenderPass() const
         { return m_render_pass; }
 
-    HYP_FORCE_INLINE void AddAttachment(const AttachmentRef<PLATFORM> &attachment)
-        { m_attachment_map.AddAttachment(attachment); }
+    HYP_FORCE_INLINE AttachmentRef<PLATFORM> AddAttachment(const AttachmentRef<PLATFORM> &attachment)
+        { return m_attachment_map.AddAttachment(attachment); }
 
-    HYP_FORCE_INLINE void AddAttachment(
+    HYP_FORCE_INLINE AttachmentRef<PLATFORM> AddAttachment(
         uint32 binding,
         InternalFormat format,
         ImageType type,
@@ -174,7 +180,7 @@ public:
         StoreOperation store_op
     )
     {
-        m_attachment_map.AddAttachment(
+        return m_attachment_map.AddAttachment(
             binding,
             m_extent,
             format,

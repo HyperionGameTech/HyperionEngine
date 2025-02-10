@@ -211,12 +211,6 @@ public:
     HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
         { m_bound_index = bound_index; }
     
-    HYP_FORCE_INLINE const Matrix4 &GetProjectionMatrix() const
-        { return m_projection_matrix; }
-    
-    HYP_FORCE_INLINE const FixedArray<Matrix4, 6> &GetViewMatrices() const
-        { return m_view_matrices; }
-    
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
@@ -310,9 +304,6 @@ private:
     ShaderRef               m_shader;
     Handle<Camera>          m_camera;
     RenderCollector         m_render_collector;
-
-    Matrix4                 m_projection_matrix;
-    FixedArray<Matrix4, 6>  m_view_matrices;
 
     EnvProbeIndex           m_bound_index;
 

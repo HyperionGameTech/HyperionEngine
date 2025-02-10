@@ -50,12 +50,6 @@ public:
     RenderPassStage GetStage() const
         { return m_stage; }
 
-    Vec4f GetClearColor() const
-        { return m_clear_color; }
-
-    void SetClearColor(const Vec4f &clear_color)
-        { m_clear_color = clear_color; }
-
     bool IsMultiview() const
         { return m_num_multiview_layers != 0; }
 
@@ -85,8 +79,6 @@ private:
     RenderPassStage                         m_stage;
     RenderPassMode                          m_mode;
     uint32                                  m_num_multiview_layers;
-
-    Vec4f                                   m_clear_color;
 
     Array<AttachmentRef<Platform::VULKAN>>  m_render_pass_attachments;
 

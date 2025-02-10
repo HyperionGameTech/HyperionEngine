@@ -1576,13 +1576,13 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         m_translucent_fbo->BeginCapture(primary, frame_index);
 
-        bool has_set_active_env_probe = false;
+        bool is_sky_set = false;
 
-        // Set sky environment map as definition
+        // Bind sky env probe
         if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
             g_engine->GetRenderState()->SetActiveEnvProbe(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
 
-            has_set_active_env_probe = true;
+            is_sky_set = true;
         }
 
         // begin translucent with forward rendering
@@ -1596,10 +1596,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             if (do_gaussian_splatting) {
                 environment->GetGaussianSplatting()->Render(frame);
             }
+        }
 
-            if (has_set_active_env_probe) {
-                g_engine->GetRenderState()->UnsetActiveEnvProbe();
-            }
+        if (is_sky_set) {
+            g_engine->GetRenderState()->UnsetActiveEnvProbe();
         }
 
         RenderSkybox(frame);

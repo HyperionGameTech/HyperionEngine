@@ -137,8 +137,7 @@ void EnvProbe::UpdateRenderData(
                   int32(grid_slot / (grid_size.x * grid_size.y)),
                   int32(grid_slot)
               }
-            : Vec4i::Zero(),
-        .position_offset    = Vec4i::Zero()
+            : Vec4i::Zero()
     };
 
     g_engine->GetRenderData()->env_probes->Set(GetID().ToIndex(), data);
@@ -239,8 +238,6 @@ void EnvProbe::Init()
             | (NeedsRender() ? EnvProbeFlags::DIRTY : EnvProbeFlags::NONE),
         .grid_slot = m_grid_slot
     };
-
-    m_view_matrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     if (!IsControlledByEnvGrid()) {
         if (IsShadowProbe()) {
@@ -350,7 +347,7 @@ void EnvProbe::CreateFramebuffer()
 
     AssertThrowMsg(format != InternalFormat::NONE, "Invalid attachment format for EnvProbe");
 
-    m_framebuffer->AddAttachment(
+    AttachmentRef color_attachment = m_framebuffer->AddAttachment(
         0,
         format,
         ImageType::TEXTURE_TYPE_CUBEMAP,
@@ -358,6 +355,10 @@ void EnvProbe::CreateFramebuffer()
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
+
+    if (IsShadowProbe()) {
+        color_attachment->SetClearColor(MathUtil::Infinity<Vec4f>());
+    }
 
     m_framebuffer->AddAttachment(
         1,

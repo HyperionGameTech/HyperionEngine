@@ -426,7 +426,9 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         }
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("VoxelGridTexture"), GetPlaceholderData()->GetImageView3D1x1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightFieldTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
+
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightFieldColorTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightFieldDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Object
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials->GetBuffer(frame_index));

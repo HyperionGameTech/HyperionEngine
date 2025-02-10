@@ -91,8 +91,8 @@ Attachment<Platform::VULKAN>::Attachment(
     m_stage(stage),
     m_load_operation(load_operation),
     m_store_operation(store_operation),
-    m_blend_function(blend_function)
-
+    m_blend_function(blend_function),
+    m_clear_color(Vec4f::Zero())
 {
 }
 

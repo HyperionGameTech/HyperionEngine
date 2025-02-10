@@ -97,6 +97,12 @@ public:
     HYP_FORCE_INLINE void SetBlendFunction(const BlendFunction &blend_function)
         { m_blend_function = blend_function; }
 
+    HYP_FORCE_INLINE Vec4f GetClearColor() const
+        { return m_clear_color; }
+
+    HYP_FORCE_INLINE void SetClearColor(const Vec4f &clear_color)
+        { m_clear_color = clear_color; }
+
     HYP_FORCE_INLINE uint32 GetBinding() const
         { return m_binding; }
     
@@ -129,6 +135,8 @@ private:
     StoreOperation                      m_store_operation;
 
     BlendFunction                       m_blend_function;
+
+    Vec4f                               m_clear_color;
 
     uint32                              m_binding = MathUtil::MaxSafeValue<uint32>();
 

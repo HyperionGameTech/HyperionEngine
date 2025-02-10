@@ -234,11 +234,8 @@ void ShadowPass::CreateFramebuffer()
         RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
-    // Set clear color to infinity for shadow maps
-    m_framebuffer->GetRenderPass()->SetClearColor(MathUtil::Infinity<Vec4f>());
-
     // depth, depth^2 texture (for variance shadow map)
-    m_framebuffer->AddAttachment(
+    AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
         0,
         GetFormat(),
         ImageType::TEXTURE_TYPE_2D,
@@ -246,6 +243,8 @@ void ShadowPass::CreateFramebuffer()
         LoadOperation::CLEAR,
         StoreOperation::STORE
     );
+
+    moments_attachment->SetClearColor(MathUtil::Infinity<Vec4f>());
 
     // standard depth texture
     m_framebuffer->AddAttachment(
