@@ -3,6 +3,8 @@
 #include <math/Color.hpp>
 #include <math/MathUtil.hpp>
 
+#include <Constants.hpp>
+
 namespace hyperion {
 
 Color::Color()
@@ -16,7 +18,7 @@ Color::Color(uint32 hex)
 }
 
 Color::Color(float r, float g, float b, float a)
-    : Color(ByteUtil::PackVec4f(Vec4f(r, g, b, a)))
+    : Color(Vec4f(r, g, b, a))
 {
 }
 

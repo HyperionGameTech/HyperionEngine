@@ -152,7 +152,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
                 break;
             }
         }
-        
+
         light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
 
         if (light_component.light->GetMutationState().IsDirty()) {

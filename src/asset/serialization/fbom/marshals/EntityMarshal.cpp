@@ -72,8 +72,6 @@ public:
                 }
 
                 if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("serialize") == false) {
-                    HYP_LOG(Serialization, Info, "HypClass for component '{}' has the Serialize attribute set to false; skipping", component_interface->GetTypeName());
-
                     continue;
                 }
 
@@ -165,8 +163,6 @@ public:
             }
 
             if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("serialize") == false) {
-                HYP_LOG(Serialization, Info, "HypClass for component '{}' has the Serialize attribute set to false; skipping", component_interface->GetTypeName());
-
                 continue;
             }
 

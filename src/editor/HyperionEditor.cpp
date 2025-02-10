@@ -275,7 +275,7 @@ void HyperionEditor::Init()
     //     }
     // }
 
-    if (true) { // add test area light
+    if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(
             LightType::AREA_RECT,
             Vec3f(0.0f, 1.25f, 0.0f),
@@ -328,12 +328,34 @@ void HyperionEditor::Init()
         });
     }
 
+    // add pointlight (Test)
+    auto point_light = CreateObject<Light>(
+        LightType::POINT,
+        Vec3f(0.0f, 1.5f, 2.0f),
+        Color(0.0f, 1.0f, 0.0f),
+        10.0f,
+        3.0f
+    );
+
+    NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
+    point_light_node.SetName("point_light_node");
+
+    auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+    point_light_node.SetEntity(point_light_entity);
+    point_light_node.SetWorldTranslation(Vec3f { 0.0f, 5.0f, 0.0f });
+
+    m_scene->GetEntityManager()->AddComponent<LightComponent>(point_light_entity, LightComponent {
+        point_light
+    });
+
+    m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, ShadowMapComponent { });
+
 #if 1
     // add sun
-    
+    #if 0
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
-        Vec3f(-0.4f, 0.65f, 0.1f).Normalize(),
+        Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
         Color(Vec4f(1.0f)),
         4.0f,
         0.0f
@@ -346,7 +368,7 @@ void HyperionEditor::Init()
 
     auto sun_entity = m_scene->GetEntityManager()->AddEntity();
     sun_node.SetEntity(sun_entity);
-    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.65f, 0.1f });
+    sun_node.SetWorldTranslation(Vec3f { -0.5f, 0.5f, 0.0f });
 
     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
         sun
@@ -354,9 +376,10 @@ void HyperionEditor::Init()
 
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
         .mode       = ShadowMode::PCF,
-        .radius     = 35.0f,
+        .radius     = 90.0f,
         .resolution = { 1024, 1024 }
     });
+    #endif
 
 
     // Add Skybox
@@ -412,6 +435,7 @@ void HyperionEditor::Init()
         node.SetName("test_model");
         node.LockTransform();
 
+#if 0
         if (node.IsValid()) {
             Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -435,6 +459,7 @@ void HyperionEditor::Init()
             env_grid_node.SetEntity(env_grid_entity);
             env_grid_node.SetName("EnvGrid");
         }
+#endif
 
         GetScene()->GetRoot()->AddChild(node);
         
