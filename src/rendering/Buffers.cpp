@@ -2,7 +2,11 @@
 
 #include <rendering/Buffers.hpp>
 
+#include <core/utilities/ByteUtil.hpp>
+
 #include <Engine.hpp>
+
+
 namespace hyperion {
 
 #pragma region GPUBufferHolderBase

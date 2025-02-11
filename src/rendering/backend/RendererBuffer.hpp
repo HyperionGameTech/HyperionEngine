@@ -165,6 +165,7 @@ public:
     HYP_API void Unmap(Device<PLATFORM> *device);
 
     HYP_API void Read(Device<PLATFORM> *device, SizeType count, void *out_ptr) const;
+    HYP_API void Read(Device<PLATFORM> *device, SizeType offset, SizeType count, void *out_ptr) const;
     
 private:
     GPUBufferPlatformImpl<PLATFORM> m_platform_impl;

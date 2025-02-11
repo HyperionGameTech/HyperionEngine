@@ -130,14 +130,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
-    void AddRenderProxy(RenderProxyList &proxy_list, RenderProxy &&proxy, const RenderableAttributeSet &attributes, PassType pass_type)
+    void AddRenderProxy(RenderProxyList &proxy_list, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
         const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
-        Handle<RenderGroup> &render_group = collection->GetProxyGroups()[pass_type][attributes];
+        Handle<RenderGroup> &render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
 
         if (!render_group.IsValid()) {
             HYP_LOG(RenderCollection, Debug, "Creating RenderGroup for attributes:\n"
@@ -178,11 +178,11 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         render_group->AddRenderProxy(iter->second);
     }
 
-    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, PassType pass_type)
+    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
-        auto &render_groups_by_attributes = collection->GetProxyGroups()[pass_type];
+        auto &render_groups_by_attributes = collection->GetProxyGroups()[uint32(bucket)];
 
         auto it = render_groups_by_attributes.Find(attributes);
         AssertThrow(it != render_groups_by_attributes.End());
@@ -223,9 +223,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(material.IsValid());
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
             
-            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
+            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, bucket));
         }
 
         for (RenderProxy &proxy : added_proxies) {
@@ -239,9 +239,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(material.IsValid());
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AddRenderProxy(proxy_list, std::move(proxy), attributes, pass_type);
+            AddRenderProxy(proxy_list, std::move(proxy), attributes, bucket);
         }
 
         for (ID<Entity> entity : removed_proxies) {
@@ -251,9 +251,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             proxy->UnclaimRenderResources();
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, pass_type));
+            AssertThrow(RemoveRenderProxy(proxy_list, entity, attributes, bucket));
         }
 
         // HYP_LOG(RenderCollection, Debug, "Added Proxies: {}\nRemoved Proxies: {}\nChanged Proxies: {}",
@@ -273,20 +273,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 #pragma endregion Render commands
 
 #pragma region EntityDrawCollection
-
-FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups()
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    return m_proxy_groups;
-}
-
-const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &EntityDrawCollection::GetProxyGroups() const
-{
-    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    return m_proxy_groups;
-}
 
 void EntityDrawCollection::ClearProxyGroups()
 {
@@ -452,24 +438,30 @@ void RenderCollector::CollectDrawCalls(
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
 
+    if (bucket_bits.Count() == 0) {
+        return;
+    }
+
     static const bool is_indirect_rendering_enabled = renderer::RenderConfig::IsIndirectRenderingEnabled();
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
 
     Array<IteratorType> iterators;
 
-    for (auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+    for (Bitset::BitIndex bit_index : bucket_bits) {
+        auto &render_groups_by_attributes = m_draw_collection->GetProxyGroups()[bit_index];
+
+        if (render_groups_by_attributes.Empty()) {
+            continue;
+        }
+
         for (auto &it : render_groups_by_attributes) {
-            const RenderableAttributeSet &attributes = it.first;
-
-            const Bucket bucket = bucket_bits.Test(uint32(attributes.GetMaterialAttributes().bucket)) ? attributes.GetMaterialAttributes().bucket : BUCKET_INVALID;
-
-            if (bucket == BUCKET_INVALID) {
-                continue;
-            }
-
             iterators.PushBack(&it);
         }
+    }
+
+    if (iterators.Empty()) {
+        return;
     }
 
     if (do_parallel_collection && iterators.Size() > 1) {
@@ -548,22 +540,29 @@ void RenderCollector::ExecuteDrawCalls(
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (framebuffer) {
-        framebuffer->BeginCapture(command_buffer, frame_index);
+    if (bucket_bits.Count() == 0) {
+        return;
     }
 
-    g_engine->GetRenderState()->BindCamera(camera.Get());
+    // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
+    if (bucket_bits.Count() == 1) {
+        const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits.ToUInt64()));
 
-    for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+        const auto &render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
+
+        if (render_groups_by_attributes.Empty()) {
+            return;
+        }
+
+        if (framebuffer) {
+            framebuffer->BeginCapture(command_buffer, frame_index);
+        }
+
+        g_engine->GetRenderState()->BindCamera(camera.Get());
+
         for (const auto &it : render_groups_by_attributes) {
             const RenderableAttributeSet &attributes = it.first;
             const Handle<RenderGroup> &render_group = it.second;
-
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-            if (!bucket_bits.Test(uint32(bucket))) {
-                continue;
-            }
 
             AssertThrow(render_group.IsValid());
 
@@ -577,12 +576,63 @@ void RenderCollector::ExecuteDrawCalls(
                 render_group->PerformRendering(frame);
             }
         }
-    }
 
-    g_engine->GetRenderState()->UnbindCamera(camera.Get());
+        g_engine->GetRenderState()->UnbindCamera(camera.Get());
 
-    if (framebuffer) {
-        framebuffer->EndCapture(command_buffer, frame_index);
+        if (framebuffer) {
+            framebuffer->EndCapture(command_buffer, frame_index);
+        }
+    } else {
+        bool all_empty = false;
+
+        for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+            if (render_groups_by_attributes.Any()) {
+                all_empty = false;
+
+                break;
+            }
+        }
+
+        if (all_empty) {
+            return;
+        }
+
+        if (framebuffer) {
+            framebuffer->BeginCapture(command_buffer, frame_index);
+        }
+
+        g_engine->GetRenderState()->BindCamera(camera.Get());
+
+        for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
+            for (const auto &it : render_groups_by_attributes) {
+                const RenderableAttributeSet &attributes = it.first;
+                const Handle<RenderGroup> &render_group = it.second;
+
+                const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+
+                if (!bucket_bits.Test(uint32(bucket))) {
+                    continue;
+                }
+
+                AssertThrow(render_group.IsValid());
+
+                if (push_constant) {
+                    render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
+                }
+
+                if (is_indirect_rendering_enabled && cull_data != nullptr) {
+                    render_group->PerformRenderingIndirect(frame);
+                } else {
+                    render_group->PerformRendering(frame);
+                }
+            }
+        }
+
+        g_engine->GetRenderState()->UnbindCamera(camera.Get());
+
+        if (framebuffer) {
+            framebuffer->EndCapture(command_buffer, frame_index);
+        }
     }
 }
 

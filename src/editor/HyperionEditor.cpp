@@ -70,16 +70,6 @@
 
 #include <HyperionEngine.hpp>
 
-// temp
-#include <core/object/HypClass.hpp>
-#include <core/object/HypProperty.hpp>
-#include <core/object/HypMethod.hpp>
-#include <core/object/HypField.hpp>
-#include <core/object/HypData.hpp>
-#include <core/object/HypClassUtils.hpp>
-
-#include <core/containers/Forest.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -101,43 +91,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-#if 0
 #if 1
-    const HypClass *cls = GetClass<LightComponent>();
-    HYP_LOG(Editor, Info, "my class: {}", cls->GetName());
-
-    LightComponent light_component;
-    light_component.light = CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f);
-
-    if (HypProperty *property = cls->GetProperty("Light")) {
-        // property->Set(light_component, CreateObject<Light>(LightType::POINT, Vec3f { 0.0f, 1.0f, 0.0f }, Color{}, 1.0f, 100.0f));
-
-        HYP_LOG(Editor, Info, "LightComponent Light: {}", property->Get(light_component).ToString());
-
-        if (const HypClass *light_class = property->GetHypClass()) {
-            AssertThrow(property->GetTypeID() == TypeID::ForType<Light>());
-            HYP_LOG(Editor, Info, "light_class: {}", light_class->GetName());
-            HypProperty *light_radius_property = light_class->GetProperty("radius");
-            AssertThrow(light_radius_property != nullptr);
-
-            light_radius_property->Set(property->Get(light_component), 123.4f);
-        }
-
-        HYP_LOG(Editor, Info, "LightComponent Light: {}", property->Get<Handle<Light>>(light_component)->GetRadius());
-    }
-#endif
-
-    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, Info, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // }
-
-    // if (HypProperty *property = cls->GetProperty(NAME("VertexAttributes"))) {
-    //     HYP_LOG(Core, Info, "Mesh Vertex Attributes: {}", property->getter.Invoke(m).Get<VertexAttributeSet>().flag_mask);
-    // }
-
-    HYP_BREAKPOINT;
-#endif
-
     EditorSubsystem *editor_subsystem = g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
         GetAppContext(),
         GetUIStage()
@@ -149,131 +103,7 @@ void HyperionEditor::Init()
     {
         m_scene = project->GetScene();
     }).Detach();
-
-    // fbom::FBOMDeserializedObject obj;
-    // fbom::FBOMReader reader({});
-    // if (auto err = reader.LoadFromFile("Scene.hypscene", obj)) {
-    //     HYP_FAIL("failed to load: %s", *err.message);
-    // }
-
-    // Handle<Scene> loaded_scene = obj.Get<Scene>();
-    // m_scene->SetRoot(loaded_scene->GetRoot());
-
-    // return;
-
-    // if (false) {
-        
-
-    //     Array<Handle<Light>> point_lights;
-
-    //     point_lights.PushBack(CreateObject<Light>(PointLight(
-    //         Vector3(-5.0f, 0.5f, 0.0f),
-    //         Color(1.0f, 0.0f, 0.0f),
-    //         1.0f,
-    //         5.0f
-    //     )));
-    //     point_lights.PushBack(CreateObject<Light>(PointLight(
-    //         Vector3(5.0f, 2.0f, 0.0f),
-    //         Color(0.0f, 1.0f, 0.0f),
-    //         1.0f,
-    //         15.0f
-    //     )));
-
-    //     for (auto &light : point_lights) {
-    //         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
-    //             Transform(
-    //                 light->GetPosition(),
-    //                 Vec3f(1.0f),
-    //                 Quaternion::Identity()
-    //             )
-    //         });
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
-    //             light
-    //         });
-    //     }
-    // }
-
-
-    // {
-    //     Array<Handle<Light>> point_lights;
-
-    //     point_lights.PushBack(CreateObject<Light>(PointLight(
-    //        Vector3(0.0f, 1.5f, 2.0f),
-    //        Color(0.0f, 1.0f, 0.0f),
-    //        10.0f,
-    //        15.0f
-    //     )));
-
-    //     for (auto &light : point_lights) {
-    //         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, ShadowMapComponent { });
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, TransformComponent {
-    //             Transform(
-    //                 light->GetPosition(),
-    //                 Vec3f(1.0f),
-    //                 Quaternion::Identity()
-    //             )
-    //         });
-
-    //         m_scene->GetEntityManager()->AddComponent(point_light_entity, LightComponent {
-    //             light
-    //         });
-    //     }
-    // }
-
-    // { // add test area light
-    //     auto light = CreateObject<Light>(RectangleLight(
-    //         Vec3f(0.0f, 1.25f, 0.0f),
-    //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
-    //         Vec2f(2.0f, 2.0f),
-    //         Color(1.0f, 0.0f, 0.0f),
-    //         1.0f
-    //     ));
-
-    //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
-    //         {
-    //            .shader_definition = ShaderDefinition {
-    //                 NAME("Forward"),
-    //                 ShaderProperties(static_mesh_vertex_attributes)
-    //             },
-    //            .bucket = Bucket::BUCKET_OPAQUE
-    //         },
-    //         {
-    //         }
-    //     ));
-    //     AssertThrow(light->GetMaterial().IsValid());
-
-    //     InitObject(light);
-
-    //     auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
-
-    //     m_scene->GetEntityManager()->AddComponent(area_light_entity, TransformComponent {
-    //         Transform(
-    //             light->GetPosition(),
-    //             Vec3f(1.0f),
-    //             Quaternion::Identity()
-    //         )
-    //     });
-
-    //     m_scene->GetEntityManager()->AddComponent(area_light_entity, LightComponent {
-    //         light
-    //     });
-    // }
-
-    // { // test terrain
-    //     if (WorldGrid *world_grid = m_scene->GetWorldGrid()) {
-    //         world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
-    //     } else {
-    //         HYP_FAIL("Failed to get world grid");
-    //     }
-    // }
+#endif
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(
@@ -328,13 +158,16 @@ void HyperionEditor::Init()
         });
     }
 
+#if 1
+    #if 0 // point light test
+
     // add pointlight (Test)
     auto point_light = CreateObject<Light>(
         LightType::POINT,
         Vec3f(0.0f, 1.5f, 2.0f),
         Color(0.0f, 1.0f, 0.0f),
-        10.0f,
-        3.0f
+        30.0f,
+        50.0f
     );
 
     NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
@@ -350,9 +183,10 @@ void HyperionEditor::Init()
 
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, ShadowMapComponent { });
 
-#if 1
+    #endif
+
     // add sun
-    #if 0
+    #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
         Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
@@ -383,7 +217,7 @@ void HyperionEditor::Init()
 
 
     // Add Skybox
-    if (true) {
+    if (false) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
@@ -413,8 +247,6 @@ void HyperionEditor::Init()
     batch->Add("test_model", "models/sponza/sponza.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
-
-    HYP_LOG(Editor, Debug, "Loading assets, scene ID = {}", GetScene()->GetID().Value());
 
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
@@ -501,7 +333,7 @@ void HyperionEditor::Init()
             zombie.SetName("zombie");
         }
 
-#if 1
+#if 0
         // testing serialization / deserialization
         FileByteWriter byte_writer("Scene2.hyp");
         fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
@@ -518,7 +350,7 @@ void HyperionEditor::Init()
     batch->LoadAsync();
 #endif
 
-#else
+#elif 0
     HypData loaded_scene_data;
     fbom::FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data)) {
@@ -653,15 +485,6 @@ void HyperionEditor::Teardown()
     
 void HyperionEditor::Logic(GameCounter::TickUnit delta)
 {
-    // auto env_grid_node = m_scene->FindNodeByName("EnvGrid");
-
-    // if (env_grid_node) {
-    //     env_grid_node.SetWorldTranslation(Vec3f {
-    //         m_scene->GetCamera()->GetTranslation().x,
-    //         0.0f,
-    //         m_scene->GetCamera()->GetTranslation().z
-    //     });
-    // }
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent &event)

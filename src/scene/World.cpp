@@ -39,7 +39,7 @@ World::World()
       m_detached_scenes(this),
       m_render_resources(nullptr)
 {
-    AddSubsystem<WorldGridSubsystem>();
+    // AddSubsystem<WorldGridSubsystem>();
 }
 
 World::~World()

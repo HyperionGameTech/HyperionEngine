@@ -221,6 +221,8 @@ public:
 
     virtual uint32 Count() const = 0;
 
+    virtual uint32 NumElementsPerBlock() const = 0;
+
     HYP_FORCE_INLINE const GPUBufferRef &GetBuffer(uint32 frame_index) const
         { return m_buffers[frame_index]; }
 
@@ -326,13 +328,20 @@ public:
                 ? range_start
                 : index;
 
-            uint32 count = (range_end > (block_index + 1) * Base::num_elements_per_block)
-                ? Base::num_elements_per_block
-                : range_end - offset;
+            uint32 count = (range_end < index + Base::num_elements_per_block)
+                ? range_end - offset
+                : Base::num_elements_per_block - offset;
+
+            // uint32 offset = index;
+            // uint32 count = MathUtil::Min(range_end - index, Base::num_elements_per_block);
 
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());
-            AssertThrow((offset + count) * sizeof(StructType) <= buffer->Size());
+
+            AssertThrowMsg((offset + count) * sizeof(StructType) <= buffer->Size(),
+                "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
+                buffer->Size(),
+                (offset + count) * sizeof(StructType));
 
             buffer->Copy(
                 device,
@@ -349,13 +358,11 @@ private:
     // @TODO Make atomic
     FixedArray<Range<uint32>, 2>    m_dirty_ranges;
 
-    IDGenerator                     m_id_generator;
-
+protected:
 #ifdef HYP_ENABLE_MT_CHECK
     DataRaceDetector                m_data_race_detector;
 #endif
 };
-
 
 template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase
@@ -380,6 +387,11 @@ public:
     virtual uint32 Count() const override
     {
         return m_pool.NumAllocatedElements();
+    }
+
+    virtual uint32 NumElementsPerBlock() const override
+    {
+        return m_pool.num_elements_per_block;
     }
 
     virtual void UpdateBuffer(Device *device, uint32 frame_index) override

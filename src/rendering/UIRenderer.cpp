@@ -162,16 +162,16 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 material->GetRenderAttributes()
             });
 
-            const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
             // skip non-UI items
-            if (pass_type != PASS_TYPE_UI) {
+            if (bucket != Bucket::BUCKET_UI) {
                 continue;
             }
             
             attributes.SetDrawableLayer(pair.second);
 
-            Handle<RenderGroup> &render_group = collection->GetProxyGroups()[pass_type][attributes];
+            Handle<RenderGroup> &render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
 
             if (!render_group.IsValid()) {
                 // Create RenderGroup

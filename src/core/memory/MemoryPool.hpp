@@ -22,9 +22,10 @@ namespace memory {
 template <class ElementType, uint32 NumElementsPerBlock = 2048, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
-protected:
+public:
     static constexpr uint32 num_elements_per_block = NumElementsPerBlock;
 
+protected:
     struct Block
     {
         FixedArray<ElementType, num_elements_per_block>         elements;
@@ -166,14 +167,14 @@ public:
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
-            //HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
+            HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
 
             return block.elements[element_index];
         } else {
             Mutex::Guard guard(m_blocks_mutex);
 
             Block &block = m_blocks[block_index];
-            //HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
+            HYP_MT_CHECK_READ(block.data_race_detectors[element_index]);
             
             return block.elements[element_index];
         }
@@ -188,7 +189,7 @@ public:
 
         if (block_index < m_initial_num_blocks) {
             Block &block = m_blocks[block_index];
-            //HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
+            HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
                 
             block.elements[element_index] = value;
         } else {
@@ -197,7 +198,7 @@ public:
             AssertThrow(block_index < m_num_blocks.Get(MemoryOrder::ACQUIRE));
 
             Block &block = m_blocks[block_index];
-            //HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
+            HYP_MT_CHECK_RW(block.data_race_detectors[element_index]);
                 
             block.elements[element_index] = value;
         }
@@ -232,7 +233,10 @@ public:
         if (to_remove.Any()) {
             m_num_blocks.Decrement(to_remove.Size(), MemoryOrder::RELEASE);
 
+
             while (to_remove.Any()) {
+                AssertThrow(&m_blocks.Back() == &*to_remove.Back());
+
                 m_blocks.Erase(to_remove.PopBack());
             }
         }

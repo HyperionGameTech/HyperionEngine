@@ -24,7 +24,7 @@
 
 namespace hyperion {
 
-#define HYP_SHADOW_RENDER_COLLECTION_ASYNC
+// #define HYP_SHADOW_RENDER_COLLECTION_ASYNC
 
 using renderer::RenderPassStage;
 using renderer::RenderPassMode;
@@ -621,7 +621,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     // * octant's statics hash code has changed
     // * camera view has changed
     // * static objects have been added, removed or changed
-    bool needs_statics_rerender = true;//false;
+    bool needs_statics_rerender = false;
     needs_statics_rerender |= m_cached_view_matrix != m_camera->GetViewMatrix();
     needs_statics_rerender |= m_cached_octant_hash_code_statics != octant_hash_statics;
     needs_statics_rerender |= statics_collection_result.NeedsUpdate();

@@ -153,6 +153,18 @@ public:
     HYP_NODISCARD FlatSet<Key> Keys() const;
     HYP_NODISCARD FlatSet<Value> Values() const;
 
+    HYP_NODISCARD HYP_FORCE_INLINE operator Span<KeyValuePairType>()
+        { return Span<KeyValuePairType>(Data(), Size()); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE operator Span<const KeyValuePairType>() const
+        { return Span<const KeyValuePairType>(Data(), Size()); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE Span<KeyValuePairType> ToSpan()
+        { return Span<KeyValuePairType>(Data(), Size()); }
+
+    HYP_NODISCARD HYP_FORCE_INLINE Span<const KeyValuePairType> ToSpan() const
+        { return Span<const KeyValuePairType>(Data(), Size()); }
+
     template <class OtherContainerType>
     FlatMap &Merge(const OtherContainerType &other)
     {

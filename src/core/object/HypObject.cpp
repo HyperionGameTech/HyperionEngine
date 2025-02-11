@@ -100,8 +100,6 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !hyp_class->IsAbstract()) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-            // HYP_LOG(Object, Debug, "Create new managed {} for address {}", hyp_class->GetName(), address);
-
             managed_object = managed_class->NewObject(hyp_class, address);
         }
     }

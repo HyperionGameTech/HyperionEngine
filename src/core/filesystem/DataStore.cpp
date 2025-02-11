@@ -68,7 +68,7 @@ int DataStoreBase::Unclaim()
             DiscardOldFiles();
 
             m_shutdown_semaphore.Release(1);
-        }, TaskThreadPoolName::THREAD_POOL_GENERIC, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }, TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
     });
 }
 

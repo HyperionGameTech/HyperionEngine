@@ -443,7 +443,7 @@ void DeferredPass::Record(uint32 frame_index)
                         );
                 }
 
-                const auto &lights = g_engine->GetRenderState()->bound_lights[uint32(light_type)]; 
+                const auto &lights = g_engine->GetRenderState()->bound_lights[uint32(light_type)];
 
                 for (const TResourceHandle<LightRenderResources> &it : lights) {
                     LightRenderResources &light_render_resources = *it;

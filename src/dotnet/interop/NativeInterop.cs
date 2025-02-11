@@ -393,8 +393,6 @@ namespace Hyperion
             // Add new object, free object delegates
             managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
-                Logger.Log(LogType.Debug, "Creating new object of type: {0}", type.Name);
-                
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
 

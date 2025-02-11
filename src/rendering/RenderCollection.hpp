@@ -49,39 +49,19 @@ class RenderEnvironment;
 
 using renderer::PushConstantData;
 
-enum PassType : uint32
-{
-    PASS_TYPE_INVALID = uint32(-1),
-    PASS_TYPE_SKYBOX = 0,
-    PASS_TYPE_OPAQUE,
-    PASS_TYPE_TRANSLUCENT,
-    PASS_TYPE_UI,
-    PASS_TYPE_MAX
-};
-
-constexpr PassType BucketToPassType(Bucket bucket)
-{
-    constexpr const PassType pass_type_per_bucket[uint32(BUCKET_MAX)] = {
-        PASS_TYPE_INVALID,     // BUCKET_SWAPCHAIN
-        PASS_TYPE_INVALID,     // BUCKET_RESERVED0
-        PASS_TYPE_INVALID,     // BUCKET_RESERVED1
-        PASS_TYPE_OPAQUE,      // BUCKET_OPAQUE
-        PASS_TYPE_TRANSLUCENT, // BUCKET_TRANSLUCENT
-        PASS_TYPE_SKYBOX,      // BUCKET_SKYBOX
-        PASS_TYPE_UI           // BUCKET_UI
-    };
-
-    return pass_type_per_bucket[uint32(bucket)];
-}
-
 class EntityDrawCollection
 {
 public:
     void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
 
-    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups();
-    const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> &GetProxyGroups() const;
+    /*! \note To be used from render thread only */
+    HYP_FORCE_INLINE FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> &GetProxyGroups()
+        { return m_proxy_groups; }
+
+    /*! \note To be used from render thread only */
+    HYP_FORCE_INLINE const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> &GetProxyGroups() const
+        { return m_proxy_groups; }
 
     HYP_FORCE_INLINE RenderProxyList &GetProxyList(ThreadType thread_type)
         { return m_proxy_lists[uint32(thread_type)]; }
@@ -92,8 +72,8 @@ public:
     uint32 NumRenderGroups() const;
 
 private:
-    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, PASS_TYPE_MAX> m_proxy_groups;
-    FixedArray<RenderProxyList, 2>                                                  m_proxy_lists;
+    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>    m_proxy_groups;
+    FixedArray<RenderProxyList, 2>                                                          m_proxy_lists;
 };
 
 class RenderCollector

@@ -64,8 +64,6 @@ int RenderResourcesBase::Claim()
             {
                 HYP_NAMED_SCOPE("Initializing RenderResources - Initialization");
 
-                HYP_LOG(RenderResources, Info, "Initializing RenderResources of type {}", render_resources->GetTypeName());
-                    
                 // Wait for pre-init to complete
                 render_resources->m_pre_init_semaphore.Acquire();
 

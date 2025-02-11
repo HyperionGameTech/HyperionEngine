@@ -9,6 +9,8 @@
 
 #include <math/MathUtil.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -561,6 +563,8 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const GraphicsPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
+    HashSet<Name> used_offsets;
+
     Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
@@ -571,10 +575,20 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 
         if (it != offsets.End()) {
             offsets_flat[i] = it->second;
+
+            used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
         }
     }
+
+#ifdef HYP_DEBUG_MODE
+    for (const auto &it : offsets) {
+        if (!used_offsets.Contains(it.first)) {
+            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", it.first);
+        }
+    }
+#endif
 
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,
@@ -606,6 +620,8 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const ComputePipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
+    HashSet<Name> used_offsets;
+
     Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
@@ -616,10 +632,20 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 
         if (it != offsets.End()) {
             offsets_flat[i] = it->second;
+
+            used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
         }
     }
+
+#ifdef HYP_DEBUG_MODE
+    for (const auto &it : offsets) {
+        if (!used_offsets.Contains(it.first)) {
+            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", it.first);
+        }
+    }
+#endif
 
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,
@@ -651,6 +677,8 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 template <>
 void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN> *command_buffer, const RaytracingPipeline<Platform::VULKAN> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const
 {
+    HashSet<Name> used_offsets;
+
     Array<uint32> offsets_flat;
     offsets_flat.Resize(m_layout.GetDynamicElements().Size());
 
@@ -661,10 +689,20 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
 
         if (it != offsets.End()) {
             offsets_flat[i] = it->second;
+
+            used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
         }
     }
+
+#ifdef HYP_DEBUG_MODE
+    for (const auto &it : offsets) {
+        if (!used_offsets.Contains(it.first)) {
+            HYP_LOG(RenderingBackend, Warning, "Unused dynamic offset for descriptor set element: {}", it.first);
+        }
+    }
+#endif
 
     vkCmdBindDescriptorSets(
         command_buffer->GetPlatformImpl().command_buffer,

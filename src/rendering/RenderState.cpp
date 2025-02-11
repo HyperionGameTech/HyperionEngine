@@ -215,14 +215,6 @@ void RenderState::BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
         }
     }
 
-    DebugLog(
-        LogType::Info,
-        "Binding probe #%u (type: %u) to slot %u\n",
-        probe_id.Value(),
-        uint32(type),
-        binding_slot
-    );
-
     bound_env_probes[type].Insert(
         probe_id,
         binding_slot != ENV_PROBE_BINDING_SLOT_INVALID

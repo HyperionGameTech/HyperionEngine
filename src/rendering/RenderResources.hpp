@@ -71,6 +71,10 @@ public:
     HYP_FORCE_INLINE uint32 GetBufferIndex() const
         { return m_buffer_index; }
 
+    /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
+    HYP_FORCE_INLINE void *GetBufferAddress() const
+        { return m_buffer_address; }
+
 #ifdef HYP_DEBUG_MODE
     HYP_FORCE_INLINE uint32 GetUseCount() const
         { return m_ref_count.Get(MemoryOrder::SEQUENTIAL); }

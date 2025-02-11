@@ -21,13 +21,15 @@ namespace hyperion {
 struct IDGenerator
 {
     TypeID              type_id;
-    AtomicVar<uint32>   id_counter { 0u };
-    AtomicVar<uint32>   num_free_indices { 0u };
+    AtomicVar<uint32>   id_counter;
+    AtomicVar<uint32>   num_free_indices;
     Queue<uint32>       free_indices;
     Mutex               free_id_mutex;
 
     IDGenerator(TypeID type_id = TypeID::Void())
-        : type_id(type_id)
+        : type_id(type_id),
+          id_counter(0),
+          num_free_indices(0)
     {
     }
 
@@ -36,8 +38,8 @@ struct IDGenerator
 
     IDGenerator(IDGenerator &&other) noexcept
         : type_id(std::move(other.type_id)),
-          id_counter(other.id_counter.Get(MemoryOrder::ACQUIRE)),
-          num_free_indices(other.num_free_indices.Get(MemoryOrder::ACQUIRE)),
+          id_counter(other.id_counter.Exchange(0, MemoryOrder::ACQUIRE)),
+          num_free_indices(other.num_free_indices.Exchange(0, MemoryOrder::ACQUIRE)),
           free_indices(std::move(other.free_indices))
     {
     }
@@ -50,7 +52,7 @@ struct IDGenerator
     {
         uint32 current_num_free_indices;
         
-        if ((current_num_free_indices = num_free_indices.Get(MemoryOrder::RELAXED)) != 0) {
+        if ((current_num_free_indices = num_free_indices.Get(MemoryOrder::ACQUIRE)) != 0) {
             Mutex::Guard guard(free_id_mutex);
 
             // Check that it hasn't changed before the lock

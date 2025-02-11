@@ -35,7 +35,7 @@ enum class LightType : uint32
     MAX
 };
 
-struct alignas(128) LightShaderData
+struct LightShaderData
 {
     uint32  light_id;
     uint32  light_type;

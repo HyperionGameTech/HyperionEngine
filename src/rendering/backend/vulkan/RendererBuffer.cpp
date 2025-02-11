@@ -466,6 +466,18 @@ void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeTyp
 }
 
 template <>
+void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, void *out_ptr) const
+{
+    if (m_platform_impl.mapping == nullptr) {
+        m_platform_impl.Map(device);
+
+        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+    }
+
+    Memory::MemCpy(out_ptr, reinterpret_cast<void *>(uintptr_t(m_platform_impl.mapping) + uintptr_t(offset)), count);
+}
+
+template <>
 GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
     : m_platform_impl { this },
       m_type(type),

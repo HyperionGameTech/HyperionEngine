@@ -108,6 +108,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     const Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
     const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
+#if 0
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
 
     for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
@@ -119,6 +120,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
                 it.first, it.second.binding);
         }
     }
+#endif
     
     if (used_layouts.Size() > max_set_layouts) {
         return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
