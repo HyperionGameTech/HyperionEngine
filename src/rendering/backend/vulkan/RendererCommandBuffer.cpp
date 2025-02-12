@@ -26,6 +26,13 @@ CommandBuffer<Platform::VULKAN>::~CommandBuffer()
 {
     AssertThrowMsg(m_platform_impl.command_buffer == VK_NULL_HANDLE, "command buffer should have been destroyed");
 }
+
+template <>
+bool CommandBuffer<Platform::VULKAN>::IsCreated() const
+{
+    return m_platform_impl.command_buffer != VK_NULL_HANDLE;
+}
+
 template <>
 RendererResult CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
@@ -90,6 +97,10 @@ RendererResult CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *
 
         begin_info.pInheritanceInfo = &inheritance_info;
         begin_info.flags |= VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+    }
+
+    if (!m_platform_impl.command_buffer) {
+        return HYP_MAKE_ERROR(RendererError, "Command buffer not created!");
     }
 
     HYPERION_VK_CHECK_MSG(

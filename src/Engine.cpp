@@ -17,6 +17,7 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -456,6 +457,9 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_material_descriptor_set_manager = MakeUnique<MaterialDescriptorSetManager>();
     m_material_descriptor_set_manager->Initialize();
 
+    m_graphics_pipeline_cache = MakeUnique<GraphicsPipelineCache>();
+    m_graphics_pipeline_cache->Initialize();
+
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
     m_deferred_renderer = MakeUnique<DeferredRenderer>();
@@ -532,6 +536,9 @@ void Engine::FinalizeStop()
 
         HYP_LOG(Tasks, Info, "Task system stopped");
     }
+
+    m_graphics_pipeline_cache->Destroy();
+    m_graphics_pipeline_cache.Reset();
 
     m_material_descriptor_set_manager.Reset();
 

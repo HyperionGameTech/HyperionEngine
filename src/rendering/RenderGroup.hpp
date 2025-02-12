@@ -144,6 +144,9 @@ private:
     GraphicsPipelineRef                                 m_pipeline;
 
     ShaderRef                                           m_shader;
+
+    DescriptorTableRef                                  m_descriptor_table;
+
     RenderableAttributeSet                              m_renderable_attributes;
 
     RC<IndirectRenderer>                                m_indirect_renderer;

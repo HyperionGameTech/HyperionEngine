@@ -58,6 +58,7 @@ class ShaderManager;
 class RenderState;
 class MaterialCache;
 class MaterialDescriptorSetManager;
+class GraphicsPipelineCache;
 
 extern Handle<Engine> g_engine;
 extern Handle<AssetManager> g_asset_manager;
@@ -210,6 +211,9 @@ public:
     HYP_FORCE_INLINE EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap() const
         { return m_entity_instance_batch_holder_map.Get(); }
 
+    HYP_FORCE_INLINE GraphicsPipelineCache *GetGraphicsPipelineCache() const
+        { return m_graphics_pipeline_cache.Get(); }
+
     HYP_FORCE_INLINE EngineDelegates &GetDelegates()
         { return m_delegates; }
 
@@ -271,6 +275,8 @@ private:
     RC<NetRequestThread>                                    m_net_request_thread;
 
     UniquePtr<EntityInstanceBatchHolderMap>                 m_entity_instance_batch_holder_map;
+
+    UniquePtr<GraphicsPipelineCache>                        m_graphics_pipeline_cache;
 
     Handle<RenderState>                                     m_render_state;
 
