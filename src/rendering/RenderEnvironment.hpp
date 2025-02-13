@@ -13,7 +13,10 @@
 
 #include <core/Base.hpp>
 #include <core/Name.hpp>
+
 #include <core/utilities/Pair.hpp>
+
+#include <core/object/HypObjectFwd.hpp>
 
 #include <math/MathUtil.hpp>
 #include <Constants.hpp>
@@ -74,7 +77,7 @@ public:
 
         AssertThrow(component != nullptr);
 
-        AddRenderSubsystem(TypeID::ForType<T>(), component);
+        AddRenderSubsystem(GetRenderSubsystemTypeID<T>(), component);
 
         return component;
     }
@@ -90,11 +93,19 @@ public:
     {
         Mutex::Guard guard(m_render_subsystems_mutex);
 
-        if (!m_render_subsystems.Contains<T>()) {
+        const TypeID type_id = GetRenderSubsystemTypeID<T>();
+
+        if (!m_render_subsystems.Contains(type_id)) {
             return nullptr;
         }
 
-        auto &items = m_render_subsystems.At<T>();
+        auto &items = m_render_subsystems.At(type_id);
+
+        if (items.Empty()) {
+            return nullptr;
+        }
+
+        RenderSubsystem *render_subsystem = nullptr;
 
         if (name) {
             const auto it = items.Find(name);
@@ -103,27 +114,47 @@ public:
                 return nullptr;
             }
 
-            return static_cast<T *>(it->second.Get());
+            render_subsystem = it->second.Get();
         } else {
-            return items.Any() ? static_cast<T *>(items.Front().second.Get()) : nullptr;
+            render_subsystem = items.Front().second.Get();
         }
+
+        if (type_id != TypeID::ForType<T>()) {
+            if (!render_subsystem->IsInstanceOf(T::Class())) {
+                return nullptr;
+            }
+        }
+
+        return static_cast<T *>(render_subsystem);
     }
 
     template <class T>
     bool HasRenderSubsystem() const
     {
+        const TypeID type_id = GetRenderSubsystemTypeID<T>();
+
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
             "Component should be a derived class of RenderSubsystem");
 
         Mutex::Guard guard(m_render_subsystems_mutex);
 
-        if (!m_render_subsystems.Contains<T>()) {
+        if (!m_render_subsystems.Contains(type_id)) {
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At<T>();
+        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At(type_id);
 
-        return items.Any();
+        if (type_id == TypeID::ForType<T>()) {
+            return items.Any();
+        }
+
+        for (const auto &it : items) {
+            if (it.second->IsInstanceOf(T::Class())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     template <class T>
@@ -132,15 +163,27 @@ public:
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
             "Component should be a derived class of RenderSubsystem");
 
+        const TypeID type_id = GetRenderSubsystemTypeID<T>();
+
         Mutex::Guard guard(m_render_subsystems_mutex);
 
-        if (!m_render_subsystems.Contains<T>()) {
+        if (!m_render_subsystems.Contains(type_id)) {
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At<T>();
+        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At(type_id);
 
-        return items.Contains(name);
+        if (type_id == TypeID::ForType<T>()) {
+            return items.Contains(name);
+        }
+
+        for (const auto &it : items) {
+            if (it.first == name && it.second->IsInstanceOf(T::Class())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /*! \brief Remove a RenderSubsystem of the given type T and the given name value.
@@ -152,9 +195,7 @@ public:
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
             "Component should be a derived class of RenderSubsystem");
 
-        RemoveRenderSubsystem(TypeID::ForType<T>(), name);
-
-        DebugLog(LogType::Debug, "Remove render component of type %s with name %s\n", TypeName<T>().Data(), name.LookupString());
+        RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
 
     // only touch from render thread!
@@ -188,8 +229,22 @@ private:
         return m_update_marker.Get(MemoryOrder::ACQUIRE) & (value << (RENDER_ENVIRONMENT_UPDATES_THREAD_MASK * uint64(thread_type)));
     }
 
+    /*! \brief Finds the TypeID to use to group an instance in for a given clas extending RenderSubsystem.
+     *  The type will be the highest HypClass in the heirarchy that is not \ref{RenderSubsystem}.
+     *  E.g for a class FooBarThingy -> ThingyBase -> RenderSubsystem, the type will be ThingyBase.
+     */ 
+    template <class T>
+    static TypeID GetRenderSubsystemTypeID()
+    {
+        static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "Component should be a derived class of RenderSubsystem");
+        
+        return GetRenderSubsystemTypeID(T::Class());
+    }
+
+    static TypeID GetRenderSubsystemTypeID(const HypClass *hyp_class);
+
     void AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem> &render_subsystem);
-    void RemoveRenderSubsystem(TypeID type_id, Name name);
+    void RemoveRenderSubsystem(TypeID type_id, const HypClass *hyp_class, Name name);
 
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 

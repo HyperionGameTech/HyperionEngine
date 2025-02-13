@@ -14,6 +14,7 @@
 #include <system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -300,6 +301,19 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     ++m_frame_counter;
 }
 
+TypeID RenderEnvironment::GetRenderSubsystemTypeID(const HypClass *hyp_class)
+{
+    AssertThrow(hyp_class != nullptr);
+    
+    static const HypClass *render_subsystem_base_class = RenderSubsystem::Class();
+
+    while (hyp_class->GetParent() != nullptr && hyp_class->GetParent() != render_subsystem_base_class) {
+        hyp_class = hyp_class->GetParent();
+    }
+
+    return hyp_class->GetTypeID();
+}
+
 void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem> &render_subsystem)
 {
     struct RENDER_COMMAND(AddRenderSubsystem) : renderer::RenderCommand
@@ -359,17 +373,19 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
     PUSH_RENDER_COMMAND(AddRenderSubsystem, WeakHandleFromThis(), type_id, render_subsystem);
 }
 
-void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, Name name)
+void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass *hyp_class, Name name)
 {
     struct RENDER_COMMAND(RemoveRenderSubsystem) : renderer::RenderCommand
     {
         WeakHandle<RenderEnvironment>   render_environment_weak;
         TypeID                          type_id;
+        const HypClass                  *hyp_class;
         Name                            name;
 
-        RENDER_COMMAND(RemoveRenderSubsystem)(const WeakHandle<RenderEnvironment> &render_environment_weak, TypeID type_id, Name name)
+        RENDER_COMMAND(RemoveRenderSubsystem)(const WeakHandle<RenderEnvironment> &render_environment_weak, TypeID type_id, const HypClass *hyp_class, Name name)
             : render_environment_weak(render_environment_weak),
               type_id(type_id),
+              hyp_class(hyp_class),
               name(name)
         {
         }
@@ -383,6 +399,8 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, Name name)
             if (!render_environment) {
                 return HYP_MAKE_ERROR(RendererError, "RenderEnvironment is null");
             }
+
+            const bool skip_instance_class_check = hyp_class->GetTypeID() == type_id;
 
             Mutex::Guard guard(render_environment->m_render_subsystems_mutex);
 
@@ -398,22 +416,30 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, Name name)
                     if (name_it != components_it->second.End()) {
                         const RC<RenderSubsystem> &render_subsystem = name_it->second;
 
-                        if (render_subsystem && render_subsystem->IsInitialized()) {
-                            render_subsystem->ComponentRemoved();
-                        }
+                        if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class)) {
+                            if (render_subsystem && render_subsystem->IsInitialized()) {
+                                render_subsystem->ComponentRemoved();
+                            }
 
-                        components_it->second.Erase(name_it);
+                            components_it->second.Erase(name_it);
+                        }
                     }
                 } else {
-                    for (const auto &it : components_it->second) {
-                        const RC<RenderSubsystem> &render_subsystem = it.second;
+                    for (auto it = components_it->second.Begin(); it != components_it->second.End();) {
+                        const RC<RenderSubsystem> &render_subsystem = it->second;
 
-                        if (render_subsystem && render_subsystem->IsInitialized()) {
-                            render_subsystem->ComponentRemoved();
+                        if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class)) {
+                            if (render_subsystem && render_subsystem->IsInitialized()) {
+                                render_subsystem->ComponentRemoved();
+
+                                it = components_it->second.Erase(it);
+
+                                continue;
+                            }
                         }
-                    }
 
-                    components_it->second.Clear();
+                        ++it;
+                    }
                 }
 
                 if (components_it->second.Empty()) {
@@ -425,7 +451,7 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, Name name)
         }
     };
 
-    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, WeakHandleFromThis(), type_id, name);
+    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, WeakHandleFromThis(), type_id, hyp_class, name);
 }
 
 void RenderEnvironment::InitializeRT()
