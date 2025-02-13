@@ -391,7 +391,7 @@ void EnvGrid::Init()
     m_shader_data.aabb_max = Vec4f(m_aabb.max, 1.0f);
     m_shader_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
     m_shader_data.density = { m_options.density.x, m_options.density.y, m_options.density.z, 0 };
-    m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
+    
     m_shader_data.voxel_grid_aabb_max = Vec4f(m_voxel_grid_aabb.max, 1.0f);
     m_shader_data.voxel_grid_aabb_min = Vec4f(m_voxel_grid_aabb.min, 1.0f);
 
@@ -515,12 +515,8 @@ void EnvGrid::OnRender(Frame *frame)
         return;
     }
 
-    m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
-
     for (uint32 index = 0; index < ArraySize(m_shader_data.probe_indices); index++) {
         const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
-
-        // @TODO: Set enabled_indices_mask properly
 
         m_shader_data.probe_indices[index] = probe.GetID().ToIndex();
     }
@@ -1197,7 +1193,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }
@@ -1224,7 +1220,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }
@@ -1275,7 +1271,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                             { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                         }
                     }
                 }
@@ -1313,7 +1309,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                 }
             }
         }

@@ -49,7 +49,6 @@ struct EnvGridShaderData
     Vec4f   aabb_min;
 
     Vec4u   density;
-    Vec4u   enabled_indices_mask;
 
     Vec4f   voxel_grid_aabb_max;
     Vec4f   voxel_grid_aabb_min;
