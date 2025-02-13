@@ -55,7 +55,7 @@ struct EnvGridShaderData
     Vec4f   voxel_grid_aabb_min;
 
     Vec2i   light_field_image_dimensions;
-    Vec2i   light_field_probe_dimensions;
+    Vec2i   irradiance_octahedron_size;
 };
 
 static constexpr uint32 max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvGridShaderData);
@@ -185,16 +185,12 @@ private:
 
     void ComputeEnvProbeIrradiance_SphericalHarmonics(
         Frame *frame,
-        const ImageRef &image,
-        const ImageViewRef &image_view,
-        uint32 probe_index
+        const Handle<EnvProbe> &probe
     );
 
     void ComputeEnvProbeIrradiance_LightField(
         Frame *frame,
-        const ImageRef &image,
-        const ImageViewRef &image_view,
-        uint32 probe_index
+        const Handle<EnvProbe> &probe
     );
 
     void OffsetVoxelGrid(
@@ -245,7 +241,9 @@ private:
     Handle<Texture>             m_irradiance_texture;
     Handle<Texture>             m_depth_texture;
     Array<GPUBufferRef>         m_uniform_buffers;
-    ComputePipelineRef          m_pack_light_field_probe;
+
+    ComputePipelineRef          m_compute_irradiance;
+    ComputePipelineRef          m_copy_border_texels;
 
     Queue<uint32>               m_next_render_indices;
 };

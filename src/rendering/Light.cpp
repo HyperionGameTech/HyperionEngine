@@ -397,7 +397,8 @@ BoundingSphere Light::GetBoundingSphere() const
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO(Scene, LightsBuffer, 1, sizeof(LightShaderData), true);
+HYP_DESCRIPTOR_SSBO(Scene, CurrentLight, 1, sizeof(LightShaderData), true);
+HYP_DESCRIPTOR_SSBO(Scene, LightsBuffer, 1, sizeof(LightShaderData), false);
 
 } // namespace renderer
 

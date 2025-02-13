@@ -6,6 +6,21 @@ namespace hyperion {
 
 uint64 MathUtil::g_seed = ~0u;
 
+float VanDerCorpus(uint32 bits) 
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+Vec2f MathUtil::Hammersley(uint32 sample_index, uint32 num_samples)
+{
+    return { float(sample_index) / float(num_samples), VanDerCorpus(sample_index) };
+}
+
 Vec3f MathUtil::RandomInSphere(Vec3f rnd)
 {
     float ang1 = (rnd.x + 1.0) * pi<float>;

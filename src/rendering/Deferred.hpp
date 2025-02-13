@@ -83,8 +83,7 @@ private:
 enum class EnvGridPassMode
 {
     RADIANCE,
-    IRRADIANCE,
-    IRRADIANCE_VOXEL
+    IRRADIANCE
 };
 
 class EnvGridPass final : public FullScreenPass
@@ -190,9 +189,6 @@ public:
     HYP_FORCE_INLINE const Handle<Texture> &GetMipChain() const
         { return m_mip_chain; }
 
-    HYP_FORCE_INLINE const GPUBufferRef &GetBlueNoiseBuffer() const
-        { return m_blue_noise_buffer; }
-
     void Create();
     void Destroy();
     
@@ -204,6 +200,8 @@ private:
     void ApplyCameraJitter();
 
     void CreateBlueNoiseBuffer();
+
+    void CreateSphereSamplesBuffer();
 
     void CreateCombinePass();
     void CreateDescriptorSets();
@@ -241,8 +239,6 @@ private:
 
     FixedArray<Handle<Texture>, max_frames_in_flight>   m_results;
     Handle<Texture>                                     m_mip_chain;
-
-    GPUBufferRef                                        m_blue_noise_buffer;
     
     CullData                                            m_cull_data;
 

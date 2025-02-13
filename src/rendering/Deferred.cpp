@@ -13,6 +13,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -87,36 +88,6 @@ struct RENDER_COMMAND(SetDeferredResultInGlobalDescriptorSet) : renderer::Render
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
                 ->SetElement(NAME("DeferredResult"), result_image_view);
         }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateBlueNoiseBuffer) : renderer::RenderCommand
-{
-    GPUBufferRef buffer;
-
-    RENDER_COMMAND(CreateBlueNoiseBuffer)(const GPUBufferRef &buffer)
-        : buffer(buffer)
-    {
-    }
-
-    virtual RendererResult operator()()
-    {
-        AssertThrow(buffer.IsValid());
-
-        static_assert(sizeof(BlueNoiseBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
-        static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
-        static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
-
-        UniquePtr<BlueNoiseBuffer> aligned_buffer = MakeUnique<BlueNoiseBuffer>();
-        Memory::MemCpy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
-        Memory::MemCpy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
-        Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
-
-        HYPERION_BUBBLE_ERRORS(buffer->Create(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer)));
-
-        buffer->Copy(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer), aligned_buffer.Get());
 
         HYPERION_RETURN_OK;
     }
@@ -466,8 +437,8 @@ void DeferredPass::Record(uint32 frame_index)
                             {
                                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
                                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
-                                { NAME("LightsBuffer"), ShaderDataOffset<LightShaderData>(&light_render_resources) },
                                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) },
+                                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resources) },
                                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
                             },
                             scene_descriptor_set_index
@@ -559,10 +530,6 @@ void EnvGridPass::CreateShader()
     case EnvGridPassMode::IRRADIANCE:
         properties.Set("MODE_IRRADIANCE");
 
-        break;
-    case EnvGridPassMode::IRRADIANCE_VOXEL:
-        properties.Set("MODE_IRRADIANCE_VOXEL");
-        
         break;
     default:
         HYP_UNREACHABLE();
@@ -1241,21 +1208,7 @@ void DeferredRenderer::Create()
     m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE);
     m_env_grid_radiance_pass->Create();
 
-    EnvGridPassMode irradiance_mode = EnvGridPassMode::IRRADIANCE;
-
-    if (const json::JSONString gi_mode_string = g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString(); gi_mode_string.Any()) {
-        if (gi_mode_string == "voxel") {
-            irradiance_mode = EnvGridPassMode::IRRADIANCE_VOXEL;
-        } else if (gi_mode_string == "sh") {
-            irradiance_mode = EnvGridPassMode::IRRADIANCE;
-        } else {
-            HYP_LOG(Config, Warning, "Unknown EnvGrid GI mode \"{}\"; falling back to \"sh\"", gi_mode_string);
-
-            irradiance_mode = EnvGridPassMode::IRRADIANCE;
-        }
-    }
-
-    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(irradiance_mode);
+    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE);
     m_env_grid_irradiance_pass->Create();
 
     m_reflection_probe_pass = MakeUnique<ReflectionProbePass>();
@@ -1287,6 +1240,7 @@ void DeferredRenderer::Create()
     m_hbao->Create();
 
     CreateBlueNoiseBuffer();
+    CreateSphereSamplesBuffer();
 
     { // screenspace reflections
         m_ssr = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig());
@@ -1317,9 +1271,6 @@ void DeferredRenderer::CreateDescriptorSets()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("GBufferMipChain"), m_mip_chain->GetImageView());
-
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("BlueNoiseBuffer"), m_blue_noise_buffer);
     }
 }
 
@@ -1350,8 +1301,6 @@ void DeferredRenderer::Destroy()
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-
-    SafeRelease(std::move(m_blue_noise_buffer));
 
     m_depth_pyramid_renderer.Reset();
 
@@ -1731,10 +1680,58 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
     HYP_SCOPE;
 
     Threads::AssertOnThread(ThreadName::THREAD_RENDER);
-    
-    m_blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
-    PUSH_RENDER_COMMAND(CreateBlueNoiseBuffer, m_blue_noise_buffer);
+    static_assert(sizeof(BlueNoiseBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
+    static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
+    static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
+
+    UniquePtr<BlueNoiseBuffer> aligned_buffer = MakeUnique<BlueNoiseBuffer>();
+    Memory::MemCpy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
+    Memory::MemCpy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
+    Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
+    
+    GPUBufferRef blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer)));
+
+    blue_noise_buffer->Copy(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer), aligned_buffer.Get());
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(NAME("BlueNoiseBuffer"), blue_noise_buffer);
+    }
+}
+
+void DeferredRenderer::CreateSphereSamplesBuffer()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(ThreadName::THREAD_RENDER);
+    
+    GPUBufferRef sphere_samples_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096));
+
+    Vec4f *sphere_samples = new Vec4f[4096];
+
+    uint32 seed = 0;
+
+    for (uint32 i = 0; i < 4096; i++) {
+        Vec3f sample = MathUtil::RandomInSphere(Vec3f {
+            MathUtil::RandomFloat(seed),
+            MathUtil::RandomFloat(seed),
+            MathUtil::RandomFloat(seed)
+        });
+
+        sphere_samples[i] = Vec4f(sample, 0.0f);
+    }
+
+    sphere_samples_buffer->Copy(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096, sphere_samples);
+
+    delete[] sphere_samples;
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(NAME("SphereSamplesBuffer"), sphere_samples_buffer);
+    }
 }
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)

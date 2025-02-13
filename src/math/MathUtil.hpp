@@ -552,6 +552,7 @@ public:
         return value + multiple - remainder;
     }
 
+    static Vec2f Hammersley(uint32 sample_index, uint32 num_samples);
     static Vec3f RandomInSphere(Vec3f rnd);
     static Vec3f RandomInHemisphere(Vec3f rnd, Vec3f n);
     static Vec2f VogelDisk(uint32 sample_index, uint32 num_samples, float phi);

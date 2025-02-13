@@ -579,6 +579,10 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
             used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
+
+#ifdef HYP_DEBUG_MODE
+            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#endif
         }
     }
 
@@ -636,6 +640,10 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
             used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
+
+#ifdef HYP_DEBUG_MODE
+            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#endif
         }
     }
 
@@ -693,6 +701,10 @@ void DescriptorSet<Platform::VULKAN>::Bind(const CommandBuffer<Platform::VULKAN>
             used_offsets.Insert(dynamic_element_name);
         } else {
             offsets_flat[i] = 0;
+
+#ifdef HYP_DEBUG_MODE
+            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#endif
         }
     }
 

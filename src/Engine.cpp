@@ -367,6 +367,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("BlueNoiseBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer), true /* exact size */));
 
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SphereSamplesBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096, true /* exact size */));
+
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DeferredResult"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
@@ -406,6 +408,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         // Scene
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ScenesBuffer"), m_render_data->scenes->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("LightsBuffer"), m_render_data->lights->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CurrentLight"), m_render_data->lights->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ObjectsBuffer"), m_render_data->objects->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("CamerasBuffer"), m_render_data->cameras->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvGridsBuffer"), m_render_data->env_grids->GetBuffer(frame_index));

@@ -159,7 +159,7 @@ void HyperionEditor::Init()
     }
 
 #if 1
-    #if 0 // point light test
+    #if 1 // point light test
 
     // add pointlight (Test)
     auto point_light = CreateObject<Light>(
@@ -191,7 +191,7 @@ void HyperionEditor::Init()
         LightType::DIRECTIONAL,
         Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
         Color(Vec4f(1.0f)),
-        4.0f,
+        10.0f,
         0.0f
     );
 
@@ -217,7 +217,7 @@ void HyperionEditor::Init()
 
 
     // Add Skybox
-    if (false) {
+    if (true) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
@@ -267,7 +267,7 @@ void HyperionEditor::Init()
         node.SetName("test_model");
         node.LockTransform();
 
-#if 0
+#if 1
         if (node.IsValid()) {
             Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -283,7 +283,7 @@ void HyperionEditor::Init()
             // Add env grid component
             m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
                 EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-                Vec3u { 6, 4, 6 },
+                Vec3u { 15, 4, 15 },
                 EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
             });
 

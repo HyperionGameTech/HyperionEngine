@@ -15,6 +15,7 @@ HYP_DESCRIPTOR_SRV(Global, DeferredIndirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, DeferredDirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, DepthPyramidResult, 1);
 HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer, 1, sizeof(BlueNoiseBuffer), false);
+HYP_DESCRIPTOR_CBUFF(Global, SphereSamplesBuffer, 1, sizeof(Vec4f) * 4096, false);
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear, 1);
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest, 1);
 HYP_DESCRIPTOR_SRV(Global, UITexture, 1);

@@ -104,7 +104,7 @@ void TemporalAA::CreateImages()
 {
     m_result_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
@@ -116,7 +116,7 @@ void TemporalAA::CreateImages()
 
     m_history_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,

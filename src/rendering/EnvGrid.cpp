@@ -51,7 +51,9 @@ static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
 static const Vec2u framebuffer_dimensions { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-static const uint32 irradiance_octahedron_size = 256;
+const InternalFormat light_field_color_format = InternalFormat::RGBA16F;
+const InternalFormat light_field_depth_format = InternalFormat::RG16F;
+static const uint32 irradiance_octahedron_size = 64;
 static const Vec2u light_field_probe_dimensions { 256, 256 };
 
 #pragma endregion Globals
@@ -397,7 +399,7 @@ void EnvGrid::Init()
         ? Vec2i(m_irradiance_texture->GetExtent().GetXY())
         : Vec2i::Zero();
 
-    m_shader_data.light_field_probe_dimensions = Vec2i(light_field_probe_dimensions);
+    m_shader_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
 
     {
         m_camera = CreateObject<Camera>(
@@ -799,7 +801,9 @@ void EnvGrid::CreateSphericalHarmonicsData()
             const DescriptorSetRef &compute_sh_descriptor_set = m_compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
             AssertThrow(compute_sh_descriptor_set != nullptr);
 
-            compute_sh_descriptor_set->SetElement(NAME("InCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
             compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), m_sh_tiles_buffers[i]);
 
             if (i != sh_num_levels - 1) {
@@ -851,7 +855,7 @@ void EnvGrid::CreateLightFieldData()
         TextureDesc
         {
             ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RGBA8,
+            light_field_color_format,
             Vec3u {
                 (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
                 (irradiance_octahedron_size + 2) * m_options.density.z + 2,
@@ -877,7 +881,7 @@ void EnvGrid::CreateLightFieldData()
         TextureDesc
         {
             ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RG16F,
+            light_field_depth_format,
             Vec3u {
                 (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
                 (irradiance_octahedron_size + 2) * m_options.density.z + 2,
@@ -911,35 +915,44 @@ void EnvGrid::CreateLightFieldData()
         m_uniform_buffers.PushBack(std::move(light_field_probe_irradiance_uniforms));
     }
 
-    ShaderRef pack_light_field_probe_shader = g_shader_manager->GetOrCreate(NAME("LightField_PackLightFieldProbe"));
+    ShaderRef compute_irradiance_shader = g_shader_manager->GetOrCreate(NAME("LightField_ComputeIrradiance"));
+    ShaderRef copy_border_texels_shader = g_shader_manager->GetOrCreate(NAME("LightField_CopyBorderTexels"));
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = pack_light_field_probe_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    Pair<ShaderRef, ComputePipelineRef &> shaders[] = {
+        { compute_irradiance_shader, m_compute_irradiance },
+        { copy_border_texels_shader, m_copy_border_texels }
+    };
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    for (Pair<ShaderRef, ComputePipelineRef &> &pair : shaders) {
+        ShaderRef &shader = pair.first;
+        ComputePipelineRef &pipeline = pair.second;
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("LightFieldProbeDescriptorSet"), frame_index);
-        AssertThrow(descriptor_set != nullptr);
+        AssertThrow(shader.IsValid());
 
-        descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffers[frame_index]);
+        const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        descriptor_set->SetElement(NAME("InColorImage"), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(NAME("InNormalsImage"), m_framebuffer->GetAttachment(1)->GetImageView());
-        descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
-        descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
-        descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
-        descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetImageView());
-        descriptor_set->SetElement(NAME("OutDepthsImage"), m_depth_texture->GetImageView());
+        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("LightFieldProbeDescriptorSet"), frame_index);
+            AssertThrow(descriptor_set != nullptr);
+
+            descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffers[frame_index]);
+
+            descriptor_set->SetElement(NAME("InColorImage"), m_framebuffer->GetAttachment(0)->GetImageView());
+            descriptor_set->SetElement(NAME("InNormalsImage"), m_framebuffer->GetAttachment(1)->GetImageView());
+            descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
+            descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
+            descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+            descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetImageView());
+            descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetImageView());
+        }
+
+        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+
+        pipeline = MakeRenderObject<ComputePipeline>(shader, descriptor_table);
+        DeferCreate(pipeline, g_engine->GetGPUDevice());
     }
-
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-    m_pack_light_field_probe = MakeRenderObject<ComputePipeline>(
-        pack_light_field_probe_shader,
-        descriptor_table
-    );
-
-    DeferCreate(m_pack_light_field_probe, g_engine->GetGPUDevice());
 }
 
 void EnvGrid::CreateShader()
@@ -1029,6 +1042,19 @@ void EnvGrid::RenderEnvProbe(
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
+    // Bind a directional light
+    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
+
+    {
+        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+
+        if (directional_lights.Any()) {
+            light_render_resources_handle = &directional_lights[0];
+
+            g_engine->GetRenderState()->SetActiveLight(**light_render_resources_handle);
+        }
+    }
+
     g_engine->GetRenderState()->SetActiveEnvProbe(probe.GetID());
     g_engine->GetRenderState()->BindScene(scene);
 
@@ -1047,6 +1073,10 @@ void EnvGrid::RenderEnvProbe(
     g_engine->GetRenderState()->UnbindScene(scene);
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
+    if (light_render_resources_handle != nullptr) {
+        g_engine->GetRenderState()->UnsetActiveLight();
+    }
+
     const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
     const ImageViewRef &framebuffer_image_view = m_framebuffer->GetAttachment(0)->GetImageView();
 
@@ -1061,11 +1091,11 @@ void EnvGrid::RenderEnvProbe(
 
     switch (GetEnvGridType()) {
     case ENV_GRID_TYPE_SH:
-        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, framebuffer_image, framebuffer_image_view, probe_index);
+        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, probe);
 
         break;
     case ENV_GRID_TYPE_LIGHT_FIELD:
-        ComputeEnvProbeIrradiance_LightField(frame, framebuffer_image, framebuffer_image_view, probe_index);
+        ComputeEnvProbeIrradiance_LightField(frame, probe);
 
         break;
     default:
@@ -1083,31 +1113,38 @@ void EnvGrid::RenderEnvProbe(
     probe->SetNeedsRender(false);
 }
 
-void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
-    Frame *frame,
-    const ImageRef &image,
-    const ImageViewRef &image_view,
-    uint32 probe_index
-)
+void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const Handle<EnvProbe> &probe)
 {
     HYP_SCOPE;
 
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
-    AssertThrow(image != nullptr);
-    AssertThrow(image_view != nullptr);
+    const uint32 probe_index = probe->m_grid_slot;
+
+    const AttachmentRef &color_attachment = m_framebuffer->GetAttachment(0);
+    const AttachmentRef &normals_attachment = m_framebuffer->GetAttachment(1);
+    const AttachmentRef &depth_attachment = m_framebuffer->GetAttachment(2);
 
     const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
     const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    
-    const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
-    AssertThrow(probe.IsValid());
+
+    // Bind a directional light
+    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
+
+    {
+        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+
+        if (directional_lights.Any()) {
+            light_render_resources_handle = &directional_lights[0];
+        }
+    }
 
     struct alignas(128)
     {
         Vec4u   probe_grid_position;
         Vec4u   cubemap_dimensions;
         Vec4u   level_dimensions;
+        Vec4f   world_position;
     } push_constants;
 
     push_constants.probe_grid_position = {
@@ -1117,11 +1154,19 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
         probe_index
     };
 
-    push_constants.cubemap_dimensions = { image->GetExtent().x, image->GetExtent().y, 0, 0 };
+    push_constants.cubemap_dimensions = Vec4u { color_attachment->GetImage()->GetExtent(), 0 };
+
+    push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
 
     for (const DescriptorTableRef &descriptor_set_ref : m_compute_sh_descriptor_tables) {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
-            ->SetElement(NAME("InCubemap"), image_view);
+            ->SetElement(NAME("InColorCubemap"), color_attachment->GetImageView());
+
+        descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
+            ->SetElement(NAME("InNormalsCubemap"), normals_attachment->GetImageView());
+        
+        descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
+            ->SetElement(NAME("InDepthCubemap"), depth_attachment->GetImageView());
 
         descriptor_set_ref->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex());
     }
@@ -1151,6 +1196,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
@@ -1177,6 +1223,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
@@ -1227,6 +1274,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                         }
                     }
@@ -1264,6 +1312,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources_handle != nullptr ? (*light_render_resources_handle)->GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(probe.GetID().ToIndex()) }
                 }
             }
@@ -1277,36 +1326,16 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(
     );
 }
 
-void EnvGrid::ComputeEnvProbeIrradiance_LightField(
-    Frame *frame,
-    const ImageRef &image,
-    const ImageViewRef &image_view,
-    uint32 probe_index
-)
+void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<EnvProbe> &probe)
 {
     HYP_SCOPE;
 
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    AssertThrow(image != nullptr);
-    AssertThrow(image_view != nullptr);
+    const uint32 probe_index = probe->m_grid_slot;
 
     const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
     const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-
-    // Bind a directional light
-    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
-
-    {
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
-
-        if (directional_lights.Any()) {
-            light_render_resources_handle = &directional_lights[0];
-        }
-    }
-
-    const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
-    AssertThrow(probe.IsValid());
 
     { // Update uniform buffer
         ComputeLightFieldProbeIrradianceUniforms uniforms;
@@ -1324,15 +1353,15 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(
         uniforms.dimension_per_probe = { irradiance_octahedron_size, irradiance_octahedron_size, 0, 0 };
 
         uniforms.probe_offset_coord = {
-            (irradiance_octahedron_size + 2) * (uniforms.probe_grid_position.x * m_options.density.y + uniforms.probe_grid_position.y),
-            (irradiance_octahedron_size + 2) * uniforms.probe_grid_position.z,
+            (irradiance_octahedron_size + 2) * (uniforms.probe_grid_position.x * m_options.density.y + uniforms.probe_grid_position.y) + 1,
+            (irradiance_octahedron_size + 2) * uniforms.probe_grid_position.z + 1,
             0, 0
         };
 
         const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
         uint32 num_bound_lights = 0;
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
+        for (uint32 light_type = 0; light_type < uint32(LightType::POINT/*LightType::MAX*/); light_type++) {
             if (num_bound_lights >= max_bound_lights) {
                 break;
             }
@@ -1354,11 +1383,11 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(
     m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    m_pack_light_field_probe->Bind(frame->GetCommandBuffer());
+    m_compute_irradiance->Bind(frame->GetCommandBuffer());
     
-    m_pack_light_field_probe->GetDescriptorTable()->Bind(
+    m_compute_irradiance->GetDescriptorTable()->Bind(
         frame,
-        m_pack_light_field_probe,
+        m_compute_irradiance,
         {
             {
                 NAME("Scene"),
@@ -1372,13 +1401,39 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(
         }
     );
 
-    m_pack_light_field_probe->Dispatch(
+    m_compute_irradiance->Dispatch(
         frame->GetCommandBuffer(),
         Vec3u {
             (irradiance_octahedron_size + 31) / 32,
             (irradiance_octahedron_size + 31) / 32,
             1
         }
+    );
+
+    m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    m_copy_border_texels->Bind(frame->GetCommandBuffer());
+    
+    m_copy_border_texels->GetDescriptorTable()->Bind(
+        frame,
+        m_copy_border_texels,
+        {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
+                }
+            }
+        }
+    );
+
+    m_copy_border_texels->Dispatch(
+        frame->GetCommandBuffer(),
+        Vec3u { ((irradiance_octahedron_size * 4) + 255) / 256, 1, 1 }
     );
 
     m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);

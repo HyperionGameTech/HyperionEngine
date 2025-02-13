@@ -312,32 +312,33 @@ public:
     HYP_FORCE_INLINE bool operator!=(const TResourceHandle &other) const
         { return handle != other.handle; }
 
-    HYP_FORCE_INLINE T *operator->() const
+    HYP_FORCE_INLINE T *Get() const
     {
-        static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
-
         IResource &ptr = *handle;
 
         if (ptr.IsNull()) {
             return nullptr;
         }
 
-        // can safely cast to T since we know it's not null
+        // can safely cast to T since we know it's not NullResource
         return static_cast<T *>(&ptr);
+    }
+
+    HYP_FORCE_INLINE T *operator->() const
+    {
+        return Get();
     }
 
     HYP_FORCE_INLINE T &operator*() const
     {
-        static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
+        T *ptr = Get();
 
-        IResource &ptr = *handle;
-
-        if (ptr.IsNull()) {
+        if (!ptr) {
             HYP_FAIL("Dereferenced null resource handle");
         }
 
         // can safely cast to T since we know it's not null
-        return *static_cast<T *>(&ptr);
+        return *ptr;
     }
 
 private:
