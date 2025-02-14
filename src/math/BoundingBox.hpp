@@ -75,6 +75,8 @@ public:
     BoundingBox &operator/=(const Vec3f &scale);
     BoundingBox operator*(const Vec3f &scale) const;
     BoundingBox &operator*=(const Vec3f &scale);
+    BoundingBox operator*(const Matrix4 &transform) const;
+    BoundingBox &operator*=(const Matrix4 &transform);
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
     

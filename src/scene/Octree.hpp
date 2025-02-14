@@ -344,7 +344,7 @@ public:
     HYP_FORCE_INLINE OctreeState *GetState() const
         { return m_state; }
 
-    bool TestRay(const Ray &ray, RayTestResults &out_results) const;
+    bool TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh = true) const;
 
 private:
     void ResetEntriesHash();

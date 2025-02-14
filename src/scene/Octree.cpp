@@ -5,6 +5,8 @@
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/BVHComponent.hpp>
+
 #include <scene/camera/Camera.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -1192,7 +1194,7 @@ void Octree::RebuildEntriesHash(uint32 level)
     }
 }
 
-bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
+bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) const
 {
     HYP_SCOPE;
 
@@ -1200,20 +1202,34 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
 
     if (ray.TestAABB(m_aabb)) {
         for (const Octree::Entry &entry : m_entries) {
-            // if (!entry.entity->HasFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED)) {
-            //     continue;
-            // }
+            RayTestResults aabb_result;
 
-            // if (!BucketRayTestsEnabled(entry.entity->GetRenderableAttributes().GetMaterialAttributes().bucket)) {
-            //     continue;
-            // }
+            if (use_bvh) {
+                if (m_entity_manager && entry.entity.IsValid()) {
 
-            if (ray.TestAABB(
-                entry.aabb,
-                entry.entity.GetID().Value(),
-                nullptr,
-                out_results
-            )) {
+                    // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
+                    if (BVHComponent *bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.entity)) {
+                        RayTestResults bvh_result = bvh_component->bvh.TestRay(ray);
+
+                        if (bvh_result.Any()) {
+                            for (RayHit &hit : bvh_result) {
+                                hit.id = entry.entity.GetID().Value();
+                                hit.user_data = nullptr;
+                            }
+                            
+                            out_results.Merge(std::move(bvh_result));
+
+                            has_hit = true;
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
+            if (ray.TestAABB(entry.aabb, entry.entity.GetID().Value(), nullptr, aabb_result)) {
+                out_results.Merge(std::move(aabb_result));
+
                 has_hit = true;
             }
         }

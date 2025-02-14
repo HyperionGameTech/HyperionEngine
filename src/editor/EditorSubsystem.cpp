@@ -344,13 +344,28 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         m_scene = project_scene;
         AssertThrow(InitObject(m_scene));
 
+        { // Ensure nodes with entities have BVH for ray testing on mouse click
+            for (Node *child : m_scene->GetRoot()->GetDescendants()) {
+                child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
+            }
+
+            m_delegate_handlers.Add(NAME("SetBuildBVHFlag"), m_scene->GetRoot()->GetDelegates()->OnChildAdded.Bind([](Node *node, bool)
+            {
+                node->SetFlags(node->GetFlags() | NodeFlags::BUILD_BVH);
+
+                for (Node *child : node->GetDescendants()) {
+                    child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
+                }
+            }));
+        }
+
         m_camera = m_scene->GetCamera();
         AssertThrow(InitObject(m_camera));
 
         m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
         m_scene->GetRenderResources().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
 
-        m_delegate_handlers.Remove(NAME("OnPackageAdded"));
+        m_delegate_handlers.Remove("OnPackageAdded");
 
         if (m_content_browser_directory_list && m_content_browser_directory_list->GetDataSource()) {
             m_content_browser_directory_list->GetDataSource()->Clear();
@@ -367,6 +382,8 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
         // Reinitialize viewport
         InitViewport();
+        // Reinitialize scene outline - delegate bindings need up be updated
+        InitSceneOutline();
 
         m_manipulation_widget_holder.Initialize();
     }).Detach();
@@ -394,7 +411,11 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
             m_scene.Reset();
         }
 
-        m_delegate_handlers.Remove(NAME("OnPackageAdded"));
+        // remove node watchers that are watching for changes from the previous scenes' root
+        m_editor_delegates->RemoveNodeWatchers("SceneView");
+
+        m_delegate_handlers.Remove("SetBuildBVHFlag");
+        m_delegate_handlers.Remove("OnPackageAdded");
 
         if (m_content_browser_directory_list && m_content_browser_directory_list->GetDataSource()) {
             m_content_browser_directory_list->GetDataSource()->Clear();
@@ -448,7 +469,6 @@ void EditorSubsystem::Initialize()
 
     NewProject();
 
-    InitSceneOutline();
     InitDetailView();
     InitDebugOverlays();
 
@@ -810,10 +830,10 @@ void EditorSubsystem::InitSceneOutline()
         return UIEventHandlerResult::OK;
     }).Detach();
 
+    m_editor_delegates->RemoveNodeWatchers("SceneView");
+
     m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot().Get(), { Node::Class()->GetProperty(NAME("Name")), 1 }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
-       HYP_LOG(Editor, Debug, "Property changed for Node {}: {}", node->GetName(), property->GetName());
-
        // Update name in list view
        // @TODO: Ensure game thread
 
@@ -928,10 +948,12 @@ void EditorSubsystem::InitDetailView()
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
+    m_editor_delegates->RemoveNodeWatchers("DetailView");
+
     OnFocusedNodeChanged.RemoveAll(this);
     OnFocusedNodeChanged.BindOwned(this, [this, hyp_class = Node::Class(), list_view_weak = list_view.ToWeak()](const NodeProxy &node, const NodeProxy &previous_node)
     {
-        m_editor_delegates->RemoveNodeWatcher(NAME("DetailView"));
+        m_editor_delegates->RemoveNodeWatchers("DetailView");
 
         RC<UIListView> list_view = list_view_weak.Lock();
 
@@ -986,8 +1008,6 @@ void EditorSubsystem::InitDetailView()
 
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
-
-        m_editor_delegates->RemoveNodeWatcher(NAME("DetailView"));
 
         m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node.Get(), {}, Proc<void, Node *, const HypProperty *> { [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {

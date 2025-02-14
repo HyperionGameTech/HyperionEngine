@@ -14,6 +14,7 @@ namespace hyperion {
 class Mesh;
 class Material;
 class Skeleton;
+class BVHNode;
 
 using MeshComponentFlags = uint32;
 

@@ -21,6 +21,7 @@
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
+#include <scene/ecs/systems/BVHUpdaterSystem.hpp>
 #include <scene/ecs/systems/PhysicsSystem.hpp>
 #include <scene/ecs/systems/ScriptSystem.hpp>
 
@@ -160,6 +161,7 @@ void Scene::Init()
     m_entity_manager->AddSystem<SkySystem>();
     m_entity_manager->AddSystem<AudioSystem>();
     m_entity_manager->AddSystem<BLASUpdaterSystem>();
+    m_entity_manager->AddSystem<BVHUpdaterSystem>();
     m_entity_manager->AddSystem<PhysicsSystem>();
     m_entity_manager->AddSystem<ScriptSystem>();
 

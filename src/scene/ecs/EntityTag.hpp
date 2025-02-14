@@ -10,9 +10,12 @@ namespace hyperion {
 enum class EntityTag : uint32
 {
     NONE,
+    
     STATIC,
     DYNAMIC,
+    
     LIGHT, /* associated with a LightComponent */
+
     UI,    /* associated with a UIObject */
     UI_OBJECT_VISIBLE,
 

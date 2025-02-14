@@ -22,6 +22,8 @@ void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     bounding_box_component.transform_hash_code = transform_component.transform.GetHashCode();
 
+    // @TODO Use an EntityTag to tell the MeshComponent that it needs to be updated, rather than having to mutate that component
+    // EntityTags will need to be able to be used across threads
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
     mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
 }

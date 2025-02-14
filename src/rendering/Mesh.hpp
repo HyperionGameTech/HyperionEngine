@@ -34,6 +34,8 @@ using renderer::IndirectDrawCommand;
 struct RENDER_COMMAND(SetStreamedMeshData);
 struct RENDER_COMMAND(UploadMeshData);
 
+class BVHNode;
+
 class MeshRenderResources final : public RenderResourcesBase
 {
 public:
@@ -216,6 +218,8 @@ public:
             m_always_claimed_render_resources_handle.Reset();
         }
     }
+
+    bool BuildBVH(const Matrix4 &transform, BVHNode &out_bvh_node, int max_depth = 3);
 
 private:
     void CalculateAABB();

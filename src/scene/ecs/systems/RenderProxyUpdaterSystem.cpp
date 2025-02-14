@@ -15,7 +15,6 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -23,6 +22,7 @@
 
 namespace hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(ECS);
 HYP_DEFINE_LOG_SUBCHANNEL(RenderProxy, ECS);
 
 #pragma region Render commands

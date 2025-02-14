@@ -159,7 +159,7 @@ BoundingBox &BoundingBox::operator*=(const Vec3f &scale)
     return *this;
 }
 
-BoundingBox &BoundingBox::operator*=(const Transform &transform)
+BoundingBox &BoundingBox::operator*=(const Matrix4 &transform)
 {
     if (!IsValid()) {
         return *this;
@@ -170,12 +170,22 @@ BoundingBox &BoundingBox::operator*=(const Transform &transform)
     Clear();
 
     for (Vec3f &corner : corners) {
-        corner = transform.GetMatrix() * corner;
+        corner = transform * corner;
 
         *this = Union(corner);
     }
 
     return *this;
+}
+
+BoundingBox BoundingBox::operator*(const Matrix4 &transform) const
+{
+    return BoundingBox(*this) *= transform;
+}
+
+BoundingBox &BoundingBox::operator*=(const Transform &transform)
+{
+    return *this *= transform.GetMatrix();
 }
 
 BoundingBox BoundingBox::operator*(const Transform &transform) const

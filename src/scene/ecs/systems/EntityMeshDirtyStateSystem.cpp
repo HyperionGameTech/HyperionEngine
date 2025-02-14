@@ -5,6 +5,7 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/BVH.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 

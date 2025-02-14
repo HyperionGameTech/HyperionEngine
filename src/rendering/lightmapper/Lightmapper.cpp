@@ -10,12 +10,14 @@
 #include <rendering/EnvProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/BVH.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/BLASComponent.hpp>
+#include <scene/ecs/components/BVHComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
@@ -140,146 +142,12 @@ public:
 
 /// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
 
-class LightmapBVHNode
-{
-    static constexpr int max_depth = 3;
-
-public:
-    LightmapBVHNode(const BoundingBox &aabb)
-        : m_aabb(aabb),
-          m_is_leaf_node(true)
-    {
-    }
-
-    LightmapBVHNode(const LightmapBVHNode &other)                   = delete;
-    LightmapBVHNode &operator=(const LightmapBVHNode &other)        = delete;
-
-    LightmapBVHNode(LightmapBVHNode &&other) noexcept               = default;
-    LightmapBVHNode &operator=(LightmapBVHNode &&other) noexcept    = default;
-
-    ~LightmapBVHNode()                                              = default;
-
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
-
-    HYP_FORCE_INLINE const Array<UniquePtr<LightmapBVHNode>> &GetChildren() const
-        { return m_children; }
-
-    HYP_FORCE_INLINE const Array<Triangle> &GetTriangles() const
-        { return m_triangles; }
-
-    HYP_FORCE_INLINE void AddTriangle(const Triangle &triangle)
-        { m_triangles.PushBack(triangle); }
-
-    HYP_FORCE_INLINE bool IsLeafNode() const
-        { return m_is_leaf_node; }
-
-    void Split()
-    {
-        Split(0);
-    }
-
-    HYP_NODISCARD RayTestResults TestRay(const Ray &ray) const
-    {
-        RayTestResults results;
-
-        if (ray.TestAABB(m_aabb)) {
-            if (IsLeafNode()) {
-                for (SizeType triangle_index = 0; triangle_index < m_triangles.Size(); triangle_index++) {
-                    const Triangle &triangle = m_triangles[triangle_index];
-
-                    ray.TestTriangle(triangle, triangle_index, this, results);
-                }
-            } else {
-                for (const UniquePtr<LightmapBVHNode> &node : m_children) {
-                    results.Merge(node->TestRay(ray));
-                }
-            }
-        }
-
-        return results;
-    }
-
-    static void DebugLogBVHNode(LightmapBVHNode *node, int depth = 0)
-    {
-        String indentation_string;
-
-        for (int i = 0; i < depth; i++) {
-            indentation_string += "  ";
-        }
-
-        HYP_LOG(Lightmap, Debug, "{}Node {} (AABB: {}, {} triangles)", indentation_string, node->IsLeafNode() ? "(leaf)" : "(parent)", node->GetAABB(), node->m_triangles.Size());
-
-        for (const UniquePtr<LightmapBVHNode> &node : node->m_children) {
-            DebugLogBVHNode(node.Get(), depth + 1);
-        }
-    }
-
-private:
-    void Split(int depth)
-    {
-        if (m_is_leaf_node) {
-            if (m_triangles.Any()) {
-                if (depth < max_depth) {
-                    const Vec3f center = m_aabb.GetCenter();
-                    const Vec3f extent = m_aabb.GetExtent();
-
-                    const Vec3f &min = m_aabb.GetMin();
-                    const Vec3f &max = m_aabb.GetMax();
-
-                    for (int i = 0; i < 2; i++) {
-                        for (int j = 0; j < 2; j++) {
-                            for (int k = 0; k < 2; k++) {
-                                const Vec3f new_min = Vec3f(
-                                    i == 0 ? min.x : center.x,
-                                    j == 0 ? min.y : center.y,
-                                    k == 0 ? min.z : center.z
-                                );
-
-                                const Vec3f new_max = Vec3f(
-                                    i == 0 ? center.x : max.x,
-                                    j == 0 ? center.y : max.y,
-                                    k == 0 ? center.z : max.z
-                                );
-
-                                m_children.PushBack(MakeUnique<LightmapBVHNode>(BoundingBox(new_min, new_max)));
-                            }
-                        }
-                    }
-
-                    for (const Triangle &triangle : m_triangles) {
-                        for (const UniquePtr<LightmapBVHNode> &node : m_children) {
-                            if (node->GetAABB().ContainsTriangle(triangle)) {
-                                node->m_triangles.PushBack(triangle);
-                            }
-                        }
-                    }
-
-                    m_triangles.Clear();
-
-                    m_is_leaf_node = false;
-                }
-            }
-        }
-
-        for (const UniquePtr<LightmapBVHNode> &node : m_children) {
-            node->Split(depth + 1);
-        }
-    }
-
-    BoundingBox                         m_aabb;
-    Array<UniquePtr<LightmapBVHNode>>   m_children;
-    Array<Triangle>                     m_triangles;
-    bool                                m_is_leaf_node;
-};
-
 class LightmapBottomLevelAccelerationStructure final : public ILightmapAccelerationStructure
 {
 public:
-    LightmapBottomLevelAccelerationStructure(const Handle<Entity> &entity, const Handle<Mesh> &mesh, const Transform &transform)
+    LightmapBottomLevelAccelerationStructure(const Handle<Entity> &entity, BVHNode &bvh)
         : m_entity(entity),
-          m_mesh(mesh),
-          m_root(BuildBVH(mesh, transform))
+          m_root(&bvh)
     {
     }
 
@@ -295,7 +163,7 @@ public:
             for (const RayHit &ray_hit : triangle_ray_test_results) {
                 AssertThrow(ray_hit.user_data != nullptr);
 
-                const LightmapBVHNode *bvh_node = static_cast<const LightmapBVHNode *>(ray_hit.user_data);
+                const BVHNode *bvh_node = static_cast<const BVHNode *>(ray_hit.user_data);
 
                 results.Insert(
                     ray_hit.distance,
@@ -311,64 +179,12 @@ public:
         return results;
     }
 
-    HYP_FORCE_INLINE LightmapBVHNode *GetRoot() const
-        { return m_root.Get(); }
+    HYP_FORCE_INLINE BVHNode *GetRoot() const
+        { return m_root; }
 
 private:
-    static UniquePtr<LightmapBVHNode> BuildBVH(const Handle<Mesh> &mesh, const Transform &transform)
-    {
-        if (!mesh.IsValid()) {
-            return nullptr;
-        }
-
-        if (!mesh->GetStreamedMeshData()) {
-            return nullptr;
-        }
-
-        UniquePtr<LightmapBVHNode> root = MakeUnique<LightmapBVHNode>(mesh->GetAABB() * transform);
-
-        auto ref = mesh->GetStreamedMeshData()->AcquireRef();
-        const MeshData &mesh_data = ref->GetMeshData();
-
-        const Matrix4 &model_matrix = transform.GetMatrix();
-        const Matrix4 normal_matrix = model_matrix.Inverted().Transpose();
-
-        for (uint32 i = 0; i < mesh_data.indices.Size(); i += 3) {
-            Triangle triangle {
-                mesh_data.vertices[mesh_data.indices[i + 0]],
-                mesh_data.vertices[mesh_data.indices[i + 1]],
-                mesh_data.vertices[mesh_data.indices[i + 2]]
-            };
-
-            triangle[0].position = model_matrix * triangle[0].position;
-            triangle[1].position = model_matrix * triangle[1].position;
-            triangle[2].position = model_matrix * triangle[2].position;
-
-            triangle[0].normal = (model_matrix * Vec4f(triangle[0].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[1].normal = (model_matrix * Vec4f(triangle[1].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[2].normal = (model_matrix * Vec4f(triangle[2].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
-
-            triangle[0].tangent = (model_matrix * Vec4f(triangle[0].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[1].tangent = (model_matrix * Vec4f(triangle[1].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[2].tangent = (model_matrix * Vec4f(triangle[2].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-
-            triangle[0].bitangent = (model_matrix * Vec4f(triangle[0].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[1].bitangent = (model_matrix * Vec4f(triangle[1].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-            triangle[2].bitangent = (model_matrix * Vec4f(triangle[2].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-
-            root->AddTriangle(triangle);
-        }
-
-        root->Split();
-
-        // LightmapBVHNode::DebugLogBVHNode(root.Get());
-
-        return root;
-    }
-
-    Handle<Entity>              m_entity;
-    Handle<Mesh>                m_mesh;
-    UniquePtr<LightmapBVHNode>  m_root;
+    Handle<Entity>  m_entity;
+    BVHNode         *m_root;
 };
 
 class LightmapTopLevelAccelerationStructure final : public ILightmapAccelerationStructure
@@ -1310,10 +1126,18 @@ void Lightmapper::PerformLightmapping()
                 acceleration_structure = MakeUnique<LightmapTopLevelAccelerationStructure>();
             }
 
+            BVHComponent *bvh_component = mgr.TryGetComponent<BVHComponent>(element.entity);
+
+            if (!bvh_component) {
+                // BVHUpdaterSystem will calculate BVH when added
+                mgr.AddComponent<BVHComponent>(element.entity, BVHComponent { });
+
+                bvh_component = &mgr.GetComponent<BVHComponent>(element.entity);
+            }
+
             acceleration_structure->Add(MakeUnique<LightmapBottomLevelAccelerationStructure>(
                 element.entity,
-                element.mesh,
-                element.transform
+                bvh_component->bvh
             ));
         }
 

@@ -25,13 +25,7 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<con
 
     AssertThrow(root_node != nullptr);
 
-    auto it = m_node_watchers.Find(watcher_key);
-
-    if (it == m_node_watchers.End()) {
-        it = m_node_watchers.Insert(watcher_key, NodeWatcher { }).first;
-    }
-
-    NodeWatcher &node_watcher = it->second;
+    NodeWatcher &node_watcher = m_node_watchers.EmplaceBack(watcher_key, NodeWatcher { }).second;
     node_watcher.root_node = root_node->WeakRefCountedPtrFromThis();
     node_watcher.OnChange.Bind(std::move(proc), ThreadName::THREAD_GAME).Detach();
 
@@ -40,32 +34,26 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<con
     }
 }
 
-void EditorDelegates::RemoveNodeWatcher(WeakName watcher_key)
+int EditorDelegates::RemoveNodeWatchers(WeakName watcher_key)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    auto it = m_node_watchers.FindAs(watcher_key);
+    int num_removed = 0;
 
-    if (it == m_node_watchers.End()) {
-        return;
+    for (auto it = m_node_watchers.Begin(); it != m_node_watchers.End();) {
+        if (it->first == watcher_key) {
+            it = m_node_watchers.Erase(it);
+
+            ++num_removed;
+
+            continue;
+        }
+
+        ++it;
     }
 
-    m_node_watchers.Erase(it);
-}
-
-NodeWatcher *EditorDelegates::GetNodeWatcher(WeakName watcher_key)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(ThreadName::THREAD_GAME);
-
-    auto it = m_node_watchers.FindAs(watcher_key);
-
-    if (it == m_node_watchers.End()) {
-        return nullptr;
-    }
-
-    return &it->second;
+    return num_removed;
 }
 
 void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
@@ -97,7 +85,7 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
                 continue;
             }
 
-            if (!node_watcher.properties_to_watch.Empty() && !node_watcher.properties_to_watch.Contains(property)) {
+            if (node_watcher.properties_to_watch.Any() && !node_watcher.properties_to_watch.Contains(property)) {
                 continue;
             }
 

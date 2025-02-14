@@ -12,6 +12,7 @@
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/BVHComponent.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -226,6 +227,10 @@ void Node::SetFlags(EnumFlags<NodeFlags> flags)
 {
     if (m_flags == flags) {
         return;
+    }
+
+    if ((flags & NodeFlags::BUILD_BVH) && !(m_flags & NodeFlags::BUILD_BVH)) {
+        EnsureEntityHasBVHComponent();
     }
 
     m_flags = flags;
@@ -660,6 +665,10 @@ void Node::SetEntity(const Handle<Entity> &entity)
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         m_entity = entity;
 
+        if (m_flags & NodeFlags::BUILD_BVH) {
+            EnsureEntityHasBVHComponent();
+        }
+
 #ifdef HYP_EDITOR
         if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
             editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
@@ -710,7 +719,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
             m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, { });
         }
     } else {
-        m_entity = { };
+        m_entity = Handle<Entity>::empty;
 
         m_transform_changed = false;
 
@@ -893,6 +902,27 @@ void Node::RefreshEntityTransform()
     } else {
         SetEntityAABB(BoundingBox::Empty());
     }
+}
+
+void Node::EnsureEntityHasBVHComponent()
+{
+    if (!m_entity.IsValid()) {
+        return;
+    }
+
+    if (!m_scene) {
+        return;
+    }
+
+    if (!m_scene->GetEntityManager()) {
+        return;
+    }
+
+    if (m_scene->GetEntityManager()->HasComponent<BVHComponent>(m_entity)) {
+        return;
+    }
+
+    m_scene->GetEntityManager()->AddComponent<BVHComponent>(m_entity, BVHComponent { });
 }
 
 uint32 Node::CalculateDepth() const
