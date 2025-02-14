@@ -353,17 +353,10 @@ public:
 
     ValueType &operator[](const KeyType &key);
 
-#ifndef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
-        { return Find(key)->second; }
-
-    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
-        { return Find(key)->second; }
-#else
     HYP_FORCE_INLINE ValueType &At(const KeyType &key)
     {
         const auto it = Find(key);
-        AssertThrowMsg(it != End(), "At(): Element not found");
+        AssertDebugMsg(it != End(), "At(): Element not found");
 
         return it->second;
     }
@@ -371,11 +364,10 @@ public:
     HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
     {
         const auto it = Find(key);
-        AssertThrowMsg(it != End(), "At(): Element not found");
+        AssertDebugMsg(it != End(), "At(): Element not found");
 
         return it->second;
     }
-#endif
 
     HYP_FORCE_INLINE bool Any() const
         { return m_size != 0; }

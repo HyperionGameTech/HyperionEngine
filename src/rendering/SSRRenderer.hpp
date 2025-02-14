@@ -28,10 +28,10 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
     bool    roughness_scattering = true;
 
     HYP_FIELD(Description="Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.")
-    bool    cone_tracing = true;
+    bool    cone_tracing = false;
 
     HYP_FIELD(Description="The distance between rays when tracing the SSR effect.")
-    float   ray_step = 0.65f;
+    float   ray_step = 3.2f;
 
     HYP_FIELD(Description="The maximum number of iterations to perform for the SSR effect before stopping.")
     uint32  num_iterations = 64;

@@ -781,7 +781,9 @@ bool ConfigurationTable::SetHypClassFields(const HypClass *hyp_class, const void
     json::JSONObject json_object;
 
     if (ObjectToJSON(hyp_class, target_hyp_data, json_object)) {
-        GetSubobject().AsObject().Merge(json_object);
+        GetSubobject().AsObject() = std::move(json_object.Merge(GetSubobject().AsObject()));
+
+        HYP_LOG(Config, Debug, "Loaded HypClass \"{}\" from configuration: {}", hyp_class->GetName(), GetSubobject().ToString(true));
 
         return true;
     } else {

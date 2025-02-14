@@ -251,11 +251,15 @@ constexpr auto PrettyFunctionName()
 
 #define HYP_PRETTY_FUNCTION_NAME hyperion::PrettyFunctionName< HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT) >()
 
+#pragma region Template helpers
+
 template <class T>
 struct TypeWrapper
 {
     using Type = T;
 };
+
+#pragma endregion Template helpers
 
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */
 template <class T, uint32 N>

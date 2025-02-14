@@ -114,7 +114,7 @@ struct HashSetBucket
     Iterator Find(const TFindAsType &value)
     {
         for (auto it = head; it != nullptr; it = it->next) {
-            if (KeyByFunction(it->value) == value) {
+            if (KeyByFunctionInvoker<KeyByFunction>()(it->value) == value) {
                 return Iterator { this, it };
             }
         }
@@ -126,7 +126,7 @@ struct HashSetBucket
     ConstIterator Find(const TFindAsType &value) const
     {
        for (auto it = head; it != nullptr; it = it->next) {
-            if (KeyByFunction(it->value) == value) {
+            if (KeyByFunctionInvoker<KeyByFunction>()(it->value) == value) {
                 return ConstIterator { this, it };
             }
         }
@@ -149,14 +149,8 @@ struct HashSetBucket
 
 } // namespace detail
 
-template <class ValueType>
-constexpr decltype(auto) HashSetIdentity(const ValueType &value)
-{
-    return value;
-}
-
-template <class ValueType, auto KeyByFunction = &HashSetIdentity<ValueType>>
-class HashSet : public ContainerBase<HashSet<ValueType, KeyByFunction>, decltype(KeyByFunction(std::declval<ValueType>()))>
+template <class ValueType, auto KeyByFunction = &KeyBy_Identity<ValueType>>
+class HashSet : public ContainerBase<HashSet<ValueType, KeyByFunction>, decltype(std::declval<KeyByFunctionInvoker<KeyByFunction>>()(std::declval<ValueType>()))>
 {
     static constexpr bool is_contiguous = false;
 
@@ -186,7 +180,7 @@ class HashSet : public ContainerBase<HashSet<ValueType, KeyByFunction>, decltype
     }
 
 public:
-    using KeyByType = decltype(KeyByFunction(std::declval<ValueType>()));
+    using KeyByType = decltype(std::declval<KeyByFunctionInvoker<KeyByFunction>>()(std::declval<ValueType>()));
     using Base = ContainerBase<HashSet<ValueType, KeyByFunction>, KeyByType>;
 
     struct ConstIterator;
@@ -350,7 +344,7 @@ public:
         const HashCode::ValueType hash_code = HashCode::GetHashCode(value).Value();
         detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-        typename detail::HashSetBucket<ValueType, KeyByFunction>::Iterator it = bucket->Find(KeyByFunction(value));
+        typename detail::HashSetBucket<ValueType, KeyByFunction>::Iterator it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
         if (it == bucket->End()) {
             return End();
@@ -365,7 +359,7 @@ public:
         const HashCode::ValueType hash_code = HashCode::GetHashCode(value).Value();
         const detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-        const typename detail::HashSetBucket<ValueType, KeyByFunction>::ConstIterator it = bucket->Find(KeyByFunction(value));
+        const typename detail::HashSetBucket<ValueType, KeyByFunction>::ConstIterator it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
         if (it == bucket->End()) {
             return End();
@@ -376,6 +370,22 @@ public:
 
     HYP_FORCE_INLINE bool Contains(const KeyByType &value) const
         { return Find(value) != End(); }
+
+    HYP_FORCE_INLINE ValueType &At(const KeyByType &value)
+    {
+        auto it = Find(value);
+        AssertDebugMsg(it != End(), "At(): element not found");
+
+        return *it;
+    }
+
+    HYP_FORCE_INLINE const ValueType &At(const KeyByType &value) const
+    {
+        auto it = Find(value);
+        AssertDebugMsg(it != End(), "At(): element not found");
+
+        return *it;
+    }
     
     Iterator Erase(ConstIterator iter);
     bool Erase(const KeyByType &value);
@@ -442,7 +452,7 @@ public:
 
 private:
     HYP_FORCE_INLINE static HashCode GetHashCode(const ValueType &value)
-        { return HashCode::GetHashCode(KeyByFunction(value)); }
+        { return HashCode::GetHashCode(KeyByFunctionInvoker<KeyByFunction>()(value)); }
 
     void CheckAndRebuildBuckets();
 
@@ -677,7 +687,7 @@ auto HashSet<ValueType, KeyByFunction>::Set(const ValueType &value) -> InsertRes
 
     detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(KeyByFunction(value));
+    auto it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
     Iterator insert_it(this, it);
 
@@ -707,7 +717,7 @@ auto HashSet<ValueType, KeyByFunction>::Set(ValueType &&value) -> InsertResult
 
     detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(KeyByFunction(value));
+    auto it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
     Iterator insert_it(this, it);
 
@@ -740,7 +750,7 @@ auto HashSet<ValueType, KeyByFunction>::Insert(const ValueType &value) -> Insert
 
     detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(KeyByFunction(value));
+    auto it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
     Iterator insert_it(this, it);
 
@@ -769,7 +779,7 @@ auto HashSet<ValueType, KeyByFunction>::Insert(ValueType &&value) -> InsertResul
 
     detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(KeyByFunction(value));
+    auto it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
 
     Iterator insert_it(this, it);
 

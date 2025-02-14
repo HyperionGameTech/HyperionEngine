@@ -11,6 +11,7 @@
 #include <scene/NodeProxy.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/containers/HashSet.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -92,6 +93,99 @@ private:
     Handle<World>   m_world;
     Handle<Scene>   m_scene;
     Task<void>      *m_task;
+};
+
+enum class EditorManipulationMode
+{
+    NONE        = 0,
+
+    TRANSLATE,
+    ROTATE,
+    SCALE
+};
+
+/*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
+HYP_CLASS(Abstract)
+class HYP_API EditorManipulationWidgetBase : public EnableRefCountedPtrFromThis<EditorManipulationWidgetBase>
+{
+    HYP_OBJECT_BODY(EditorManipulationWidgetBase);
+
+public:
+    virtual ~EditorManipulationWidgetBase() = default;
+
+    HYP_FORCE_INLINE const NodeProxy &GetNode() const
+        { return m_node; }
+
+    void Initialize();
+    void Shutdown();
+
+    virtual EditorManipulationMode GetManipulationMode() const = 0;
+    
+    virtual void UpdateWidget(const NodeProxy &focused_node) const;
+
+protected:
+    virtual NodeProxy Load_Internal() const = 0;
+
+private:
+    NodeProxy   m_node;
+};
+
+HYP_CLASS()
+class NullEditorManipulationWidget : public EditorManipulationWidgetBase
+{
+    HYP_OBJECT_BODY(NullEditorManipulationWidget);
+
+public:
+    virtual ~NullEditorManipulationWidget() override = default;
+
+    virtual EditorManipulationMode GetManipulationMode() const override
+        { return EditorManipulationMode::NONE; }
+
+protected:
+    virtual NodeProxy Load_Internal() const override
+        { return NodeProxy::empty; }
+};
+
+HYP_CLASS()
+class TranslateEditorManipulationWidget : public EditorManipulationWidgetBase
+{
+    HYP_OBJECT_BODY(TranslateEditorManipulationWidget);
+
+public:
+    virtual ~TranslateEditorManipulationWidget() override = default;
+
+    virtual EditorManipulationMode GetManipulationMode() const override
+        { return EditorManipulationMode::TRANSLATE; }
+
+protected:
+    virtual NodeProxy Load_Internal() const override;
+};
+
+class HYP_API EditorManipulationWidgetHolder
+{
+    using EditorManipulationWidgetSet = HashSet<
+        RC<EditorManipulationWidgetBase>,
+        +[](const RC<EditorManipulationWidgetBase> &ptr) -> EditorManipulationMode { return ptr->GetManipulationMode(); }
+    >;
+
+public:
+    using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase &, EditorManipulationWidgetBase &>;
+
+    EditorManipulationWidgetHolder();
+
+    EditorManipulationMode GetSelectedManipulationMode() const;
+    void SetSelectedManipulationMode(EditorManipulationMode mode);
+
+    EditorManipulationWidgetBase &GetSelectedManipulationWidget() const;
+
+    void Initialize();
+    void Shutdown();
+
+    OnSelectedManipulationWidgetChangeDelegate  OnSelectedManipulationWidgetChange;
+
+private:
+    EditorManipulationMode                      m_selected_manipulation_mode;
+    EditorManipulationWidgetSet                 m_manipulation_widgets;
 };
 
 HYP_CLASS()
@@ -189,6 +283,8 @@ private:
     RC<EditorProject>                                                   m_current_project;
 
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX>   m_tasks_by_thread_type;
+
+    EditorManipulationWidgetHolder                                      m_manipulation_widget_holder;
 
     Handle<Texture>                                                     m_scene_texture;
     RC<UIObject>                                                        m_main_panel;

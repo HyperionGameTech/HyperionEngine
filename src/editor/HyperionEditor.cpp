@@ -159,6 +159,7 @@ void HyperionEditor::Init()
     }
 
 #if 1
+
     #if 0 // point light test
 
     // add pointlight (Test)
@@ -244,7 +245,8 @@ void HyperionEditor::Init()
 #if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
+    // batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
@@ -263,7 +265,8 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        node.Scale(0.05f);
+        node.Scale(10.0f);
+        // node.Scale(0.05f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -302,6 +305,25 @@ void HyperionEditor::Init()
                 m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, BLASComponent { });
             }
         }
+
+        if (true) {
+            // testing reflection capture
+            Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
+
+            m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
+
+            m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
+                m_scene->GetRoot()->GetWorldAABB(),
+                m_scene->GetRoot()->GetWorldAABB()
+            });
+
+            m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
+
+            NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
+            reflection_probe_node.SetEntity(reflection_probe_entity);
+            reflection_probe_node.SetName("ReflectionProbeTest");
+        }
+
 #endif
 
         if (auto &zombie_asset = results["zombie"]; zombie_asset.IsOK()) {
@@ -456,25 +478,6 @@ void HyperionEditor::Init()
     loaded_scene->SetRoot(NodeProxy::empty);
 
     m_scene->GetRoot()->AddChild(root);
-
-
-    if (false) {
-        // testing reflection capture
-        Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
-
-        m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
-
-        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
-            m_scene->GetRoot()->GetWorldAABB(),
-            m_scene->GetRoot()->GetWorldAABB()
-        });
-
-        m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
-
-        NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
-        reflection_probe_node.SetEntity(reflection_probe_entity);
-        reflection_probe_node.SetName("ReflectionProbeTest");
-    }
 #endif
 }
 

@@ -187,23 +187,10 @@ public:
         return *this;
     }
 
-#ifndef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
-        { return Find(key)->second; }
-
-    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
-        { return Find(key)->second; }
-
-    HYP_FORCE_INLINE KeyValuePairType &AtIndex(SizeType index)
-        { return *(Data() + index); }
-
-    HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
-        { return *(Data() + index); }
-#else
     HYP_FORCE_INLINE ValueType &At(const KeyType &key)
     {
         const auto it = Find(key);
-        AssertThrowMsg(it != End(), "At(): Element not found");
+        AssertDebugMsg(it != End(), "At(): Element not found");
 
         return it->second;
     }
@@ -211,17 +198,16 @@ public:
     HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
     {
         const auto it = Find(key);
-        AssertThrowMsg(it != End(), "At(): Element not found");
+        AssertDebugMsg(it != End(), "At(): Element not found");
 
         return it->second;
     }
 
     HYP_FORCE_INLINE KeyValuePairType &AtIndex(SizeType index)
-        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+        { AssertDebugMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
 
     HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
-        { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
-#endif
+        { AssertDebugMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
 
     template <class Lambda>
     HYP_FORCE_INLINE bool Any(Lambda &&lambda) const

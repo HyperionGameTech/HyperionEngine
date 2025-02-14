@@ -7,12 +7,71 @@
 
 #include <core/Defines.hpp>
 
+#include <Constants.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 
 #include <algorithm>
 
 namespace hyperion {
+
+template <auto KeyByFunction>
+struct KeyByFunctionInvoker;
+
+template <class TargetType, class ReturnType, ReturnType(TargetType::*func)()>
+struct KeyByFunctionInvoker<func>
+{
+    using Type = decltype(func);
+
+    constexpr ReturnType operator()(TargetType &value) const
+    {
+        return (value.*func)();
+    }
+
+    constexpr ReturnType operator()(const TargetType &value) const
+    {
+        return (value.*func)();
+    }
+};
+
+template <class TargetType, class ReturnType, ReturnType(TargetType::*func)() const>
+struct KeyByFunctionInvoker<func>
+{
+    using Type = decltype(func);
+
+    constexpr ReturnType operator()(const TargetType &value) const
+    {
+        return (value.*func)();
+    }
+};
+
+template <class TargetType, class ReturnType, ReturnType(*func)(TargetType &)>
+struct KeyByFunctionInvoker<func>
+{
+    using Type = decltype(func);
+
+    constexpr ReturnType operator()(TargetType &value) const
+    {
+        return func(value);
+    }
+};
+
+template <class TargetType, class ReturnType, ReturnType(*func)(const TargetType &)>
+struct KeyByFunctionInvoker<func>
+{
+    using Type = decltype(func);
+
+    constexpr ReturnType operator()(const TargetType &value) const
+    {
+        return func(value);
+    }
+};
+
+template <class ValueType>
+constexpr decltype(auto) KeyBy_Identity(const ValueType &value)
+{
+    return value;
+}
 
 template <class Container, class Key>
 class ContainerBase
