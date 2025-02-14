@@ -94,9 +94,6 @@ public:
     EnvGridPass &operator=(const EnvGridPass &other)    = delete;
     virtual ~EnvGridPass() override;
 
-    HYP_FORCE_INLINE TemporalBlending *GetTemporalBlending() const
-        { return m_temporal_blending.Get(); }
-
     virtual void Create() override;
     virtual void Record(uint32 frame_index) override;
     virtual void Render(Frame *frame) override;
@@ -148,6 +145,7 @@ private:
 
     void CreatePreviousTexture();
     void CreateRenderTextureToScreenPass();
+    void CreateTemporalBlending();
 
     void AddToGlobalDescriptorSet();
 
@@ -157,6 +155,7 @@ private:
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
     UniquePtr<FullScreenPass>                                                                       m_render_texture_to_screen_pass;
     Handle<Texture>                                                                                 m_previous_texture;
+    UniquePtr<TemporalBlending>                                                                     m_temporal_blending;
     bool                                                                                            m_is_first_frame;
 };
 

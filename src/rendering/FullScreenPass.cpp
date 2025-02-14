@@ -6,6 +6,7 @@
 #include <rendering/Scene.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/TemporalBlending.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -145,6 +146,7 @@ void FullScreenPass::Create()
     CreateCommandBuffers();
     CreateFramebuffer();
     CreatePipeline();
+    CreateTemporalBlending();
     CreateDescriptors();
 
     m_is_initialized = true;
@@ -194,7 +196,6 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
     //     m_render_group->RemoveFramebuffer(m_framebuffer);
     // }
 
-    SafeRelease(std::move(m_framebuffer));
 
     if (new_size.x * new_size.y == 0) {
         new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
@@ -202,7 +203,11 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
 
     m_extent = new_size;
 
+    SafeRelease(std::move(m_framebuffer));
+    m_temporal_blending.Reset();
+
     CreateFramebuffer();
+    CreateTemporalBlending();
 }
 
 void FullScreenPass::CreateQuad()
@@ -310,6 +315,37 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
     m_render_group->AddFramebuffer(m_framebuffer);
 
     InitObject(m_render_group);
+}
+
+void FullScreenPass::CreateTemporalBlending()
+{
+    HYP_SCOPE;
+
+    if (!UsesTemporalBlending()) {
+        return;
+    }
+
+    m_temporal_blending = MakeUnique<TemporalBlending>(
+        m_extent,
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_1,
+        TemporalBlendFeedback::LOW,
+        m_framebuffer
+    );
+
+    m_temporal_blending->Create();
+
+    // Create previous image
+    m_previous_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
+        m_image_format,
+        Vec3u { m_extent.x, m_extent.y, 1 },
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    });
+
+    InitObject(m_previous_texture);
 }
 
 void FullScreenPass::CreateDescriptors()

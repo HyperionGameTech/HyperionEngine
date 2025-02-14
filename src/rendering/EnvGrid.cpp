@@ -37,7 +37,7 @@ using renderer::ImageView;
 
 static const Vec2u sh_num_samples { 16, 16 };
 static const Vec2u sh_num_tiles { 16, 16 };
-static const Vec2u sh_probe_dimensions { 16, 16 };
+static const Vec2u sh_probe_dimensions { 256, 256 };
 static const uint32 sh_num_levels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(sh_num_samples.Max()) + 1));
 static const bool sh_parallel_reduce = false;
 
@@ -140,7 +140,7 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
 
 #pragma region Uniform buffer structs
 
-struct ComputeLightFieldProbeIrradianceUniforms
+struct LightFieldUniforms
 {
     Vec4u   image_dimensions;
     Vec4u   probe_grid_position;
@@ -188,6 +188,9 @@ EnvGrid::~EnvGrid()
 
     SafeRelease(std::move(m_voxel_grid_mips));
     SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_tables));
+
+    SafeRelease(std::move(m_compute_irradiance));
+    SafeRelease(std::move(m_compute_filtered_depth));
 }
 
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
@@ -476,29 +479,43 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     Threads::AssertOnThread(ThreadName::THREAD_GAME);
 
-    AssertThrow(m_camera.IsValid());
+    Octree const *octree = &GetParent()->GetScene()->GetOctree();
+    octree->GetFittingOctant(m_aabb, octree);
+    
+    const HashCode octant_hash_code = octree->GetEntryListHash<EntityTag::STATIC>()
+        .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
 
-    m_camera->Update(delta);
+    if (octant_hash_code != m_octant_hash_code) {
+        HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes",
+            m_octant_hash_code.Value(), octant_hash_code.Value());
 
-    GetParent()->GetScene()->CollectStaticEntities(
-        m_render_collector,
-        m_camera,
-        RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .shader_definition  = m_ambient_shader->GetCompiledShader()->GetDefinition(),
-                .cull_faces         = FaceCullMode::BACK
-            }
-        ),
-        true // skip frustum culling, until Camera supports multiple frustums.
-    );
+        m_octant_hash_code = octant_hash_code;
 
-    for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++) {
-        // Don't worry about using the indirect index
-        const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
-        AssertThrow(probe.IsValid());
+        AssertThrow(m_camera.IsValid());
+        m_camera->Update(delta);
 
-        probe->Update(delta);
+        GetParent()->GetScene()->CollectStaticEntities(
+            m_render_collector,
+            m_camera,
+            RenderableAttributeSet(
+                MeshAttributes { },
+                MaterialAttributes {
+                    .shader_definition  = m_ambient_shader->GetCompiledShader()->GetDefinition(),
+                    .cull_faces         = FaceCullMode::BACK
+                }
+            ),
+            true // skip frustum culling, until Camera supports multiple frustums.
+        );
+
+        for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++) {
+            // Don't worry about using the indirect index
+            const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
+            AssertThrow(probe.IsValid());
+
+            probe->SetNeedsUpdate(true);
+
+            probe->Update(delta);
+        }
     }
 }
 
@@ -771,7 +788,7 @@ void EnvGrid::CreateSphericalHarmonicsData()
 
         DeferCreate(
             m_sh_tiles_buffers[i],
-            g_engine->GetGPUDevice(), 6 * sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i)
+            g_engine->GetGPUDevice(), sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i)
         );
     }
 
@@ -900,22 +917,24 @@ void EnvGrid::CreateLightFieldData()
     );
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        GPUBufferRef light_field_probe_irradiance_uniforms = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+        GPUBufferRef light_field_uniforms = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
 
         DeferCreate(
-            light_field_probe_irradiance_uniforms,
+            light_field_uniforms,
             g_engine->GetGPUDevice(),
-            sizeof(ComputeLightFieldProbeIrradianceUniforms)
+            sizeof(LightFieldUniforms)
         );
 
-        m_uniform_buffers.PushBack(std::move(light_field_probe_irradiance_uniforms));
+        m_uniform_buffers.PushBack(std::move(light_field_uniforms));
     }
 
     ShaderRef compute_irradiance_shader = g_shader_manager->GetOrCreate(NAME("LightField_ComputeIrradiance"));
+    ShaderRef compute_filtered_depth_shader = g_shader_manager->GetOrCreate(NAME("LightField_ComputeFilteredDepth"));
     ShaderRef copy_border_texels_shader = g_shader_manager->GetOrCreate(NAME("LightField_CopyBorderTexels"));
 
     Pair<ShaderRef, ComputePipelineRef &> shaders[] = {
         { compute_irradiance_shader, m_compute_irradiance },
+        { compute_filtered_depth_shader, m_compute_filtered_depth },
         { copy_border_texels_shader, m_copy_border_texels }
     };
 
@@ -1135,6 +1154,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
         }
     }
 
+    const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
+
     struct alignas(128)
     {
         Vec4u   probe_grid_position;
@@ -1150,7 +1171,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
         probe_index
     };
 
-    push_constants.cubemap_dimensions = Vec4u { color_attachment->GetImage()->GetExtent(), 0 };
+    push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
 
     push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
 
@@ -1183,7 +1204,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     g_engine->GetGPUDevice()->GetAsyncCompute()->Dispatch(
         frame,
         m_clear_sh,
-        Vec3u { 6, 1, 1 },
+        Vec3u { 1, 1, 1 },
         m_compute_sh_descriptor_tables[0],
         {
             {
@@ -1210,7 +1231,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     g_engine->GetGPUDevice()->GetAsyncCompute()->Dispatch(
         frame,
         m_compute_sh,
-        Vec3u { 6, 1, 1 },
+        Vec3u { 1, 1, 1 },
         m_compute_sh_descriptor_tables[0],
         {
             {
@@ -1334,7 +1355,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
 
     { // Update uniform buffer
-        ComputeLightFieldProbeIrradianceUniforms uniforms;
+        LightFieldUniforms uniforms;
         Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
         uniforms.image_dimensions = Vec4u { m_irradiance_texture->GetExtent(), 0 };
@@ -1377,7 +1398,6 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     }
 
     m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-    m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_compute_irradiance->Bind(frame->GetCommandBuffer());
     
@@ -1406,7 +1426,33 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
         }
     );
 
-    m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_compute_filtered_depth->Bind(frame->GetCommandBuffer());
+    
+    m_compute_filtered_depth->GetDescriptorTable()->Bind(
+        frame,
+        m_compute_filtered_depth,
+        {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
+                }
+            }
+        }
+    );
+
+    m_compute_filtered_depth->Dispatch(
+        frame->GetCommandBuffer(),
+        Vec3u {
+            (irradiance_octahedron_size + 31) / 32,
+            (irradiance_octahedron_size + 31) / 32,
+            1
+        }
+    );
+
     m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_copy_border_texels->Bind(frame->GetCommandBuffer());

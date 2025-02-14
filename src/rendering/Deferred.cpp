@@ -808,6 +808,7 @@ void ReflectionProbePass::Create()
 
     FullScreenPass::Create();
 
+    CreateTemporalBlending();
     CreatePreviousTexture();
     CreateRenderTextureToScreenPass();
 
@@ -948,11 +949,24 @@ void ReflectionProbePass::CreateRenderTextureToScreenPass()
     m_render_texture_to_screen_pass->Create();
 }
 
+void ReflectionProbePass::CreateTemporalBlending()
+{
+    m_temporal_blending = MakeUnique<TemporalBlending>(
+        m_framebuffer->GetExtent(),
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_2,
+        TemporalBlendFeedback::LOW,
+        m_framebuffer
+    );
+
+    m_temporal_blending->Create();
+}
+
 void ReflectionProbePass::AddToGlobalDescriptorSet()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("ReflectionProbeResultTexture"), GetAttachment(0)->GetImageView());
+            ->SetElement(NAME("ReflectionProbeResultTexture"), m_temporal_blending->GetResultTexture()->GetImageView()); //GetAttachment(0)->GetImageView());
     }
 }
 
@@ -966,9 +980,12 @@ void ReflectionProbePass::Resize_Internal(Vec2u new_size)
     }
 
     m_render_texture_to_screen_pass.Reset();
+    
+    m_temporal_blending.Reset();
 
     CreatePreviousTexture();
     CreateRenderTextureToScreenPass();
+    CreateTemporalBlending();
 
     AddToGlobalDescriptorSet();
 }
@@ -1141,6 +1158,10 @@ void ReflectionProbePass::Render(Frame *frame)
 
         src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
         dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    }
+
+    if (m_temporal_blending) {
+        m_temporal_blending->Render(frame);
     }
 }
 

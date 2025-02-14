@@ -398,22 +398,22 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     // Check if octree has changes, and we need to re-render.
 
     Octree const *octree = &m_parent_scene->GetOctree();
-    m_parent_scene->GetOctree().GetFittingOctant(m_aabb, octree);
+    octree->GetFittingOctant(m_aabb, octree);
     
-    HashCode octant_hash;
+    HashCode octant_hash_code;
     
     if (OnlyCollectStaticEntities()) {
         // Static entities and lights changing affect the probe
-        octant_hash = octree->GetEntryListHash<EntityTag::STATIC>()
+        octant_hash_code = octree->GetEntryListHash<EntityTag::STATIC>()
             .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
     } else {
-        octant_hash = octree->GetEntryListHash<EntityTag::NONE>();
+        octant_hash_code = octree->GetEntryListHash<EntityTag::NONE>();
     }
 
-    if (m_octant_hash_code != octant_hash) {
+    if (m_octant_hash_code != octant_hash_code) {
         SetNeedsUpdate(true);
 
-        m_octant_hash_code = octant_hash;
+        m_octant_hash_code = octant_hash_code;
     }
 
     if (!NeedsUpdate()) {

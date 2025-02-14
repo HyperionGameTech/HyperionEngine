@@ -159,7 +159,7 @@ void HyperionEditor::Init()
     }
 
 #if 1
-    #if 1 // point light test
+    #if 0 // point light test
 
     // add pointlight (Test)
     auto point_light = CreateObject<Light>(
@@ -282,8 +282,8 @@ void HyperionEditor::Init()
 
             // Add env grid component
             m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-                EnvGridType::ENV_GRID_TYPE_SH,//ENV_GRID_TYPE_LIGHT_FIELD,
-                Vec3u { 20, 6, 20 },
+                EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
+                Vec3u { 12, 6, 12 },
                 EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
             });
 

@@ -10,6 +10,8 @@
 
 #include <core/functional/Delegate.hpp>
 
+#include <core/memory/UniquePtr.hpp>
+
 #include <core/Handle.hpp>
 
 #include <Constants.hpp>
@@ -23,7 +25,9 @@ using renderer::BlendFunction;
 
 class Engine;
 class Mesh;
+class Texture;
 class RenderGroup;
+class TemporalBlending;
 
 class HYP_API FullScreenPass
 {
@@ -117,6 +121,9 @@ public:
 protected:
     void CreateQuad();
 
+    virtual bool UsesTemporalBlending() const
+        { return false; }
+
     virtual void Resize_Internal(Vec2u new_size);
 
     FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
@@ -134,7 +141,12 @@ protected:
 
     Optional<DescriptorTableRef>                        m_descriptor_table;
 
+    UniquePtr<TemporalBlending>                         m_temporal_blending;
+    Handle<Texture>                                     m_previous_texture;
+
 private:
+    void CreateTemporalBlending();
+
     bool                                                m_is_initialized;
 };
 } // namespace hyperion

@@ -242,9 +242,12 @@ private:
     Array<GPUBufferRef>         m_uniform_buffers;
 
     ComputePipelineRef          m_compute_irradiance;
+    ComputePipelineRef          m_compute_filtered_depth;
     ComputePipelineRef          m_copy_border_texels;
 
     Queue<uint32>               m_next_render_indices;
+
+    HashCode                    m_octant_hash_code;
 };
 
 } // namespace hyperion
