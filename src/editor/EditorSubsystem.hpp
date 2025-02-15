@@ -39,6 +39,7 @@ class EditorSubsystem;
 class EditorProject;
 class EditorDebugOverlayBase;
 class AssetPackage;
+struct MouseEvent;
 
 namespace sys {
 class AppContext;
@@ -123,6 +124,15 @@ public:
     
     virtual void UpdateWidget(const NodeProxy &focused_node) const;
 
+    virtual bool OnMouseHover(const MouseEvent &mouse_event, const NodeProxy &node)
+        { return false; }
+
+    virtual bool OnMouseLeave(const MouseEvent &mouse_event, const NodeProxy &node)
+        { return false; }
+
+    virtual bool OnMouseMove(const MouseEvent &mouse_event, const NodeProxy &node)
+        { return false; }
+
 protected:
     virtual NodeProxy Load_Internal() const = 0;
 
@@ -156,6 +166,10 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const override
         { return EditorManipulationMode::TRANSLATE; }
+
+    virtual bool OnMouseHover(const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseLeave(const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseMove(const MouseEvent &mouse_event, const NodeProxy &node) override;
 
 protected:
     virtual NodeProxy Load_Internal() const override;
@@ -273,6 +287,17 @@ private:
     void AddPackageToContentBrowser(const Handle<AssetPackage> &package, bool nested);
     void SetSelectedPackage(const Handle<AssetPackage> &package);
 
+    void SetHoveredManipulationWidget(
+        const MouseEvent &event,
+        EditorManipulationWidgetBase *manipulation_widget,
+        const NodeProxy &manipulation_widget_node
+    );
+
+    HYP_FORCE_INLINE bool IsHoveringManipulationWidget() const
+    {
+        return m_hovered_manipulation_widget.IsValid() && m_hovered_manipulation_widget_node.IsValid();
+    }
+
     RC<AppContext>                                                      m_app_context;
     Handle<Scene>                                                       m_scene;
     Handle<Camera>                                                      m_camera;
@@ -285,6 +310,8 @@ private:
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX>   m_tasks_by_thread_type;
 
     EditorManipulationWidgetHolder                                      m_manipulation_widget_holder;
+    Weak<EditorManipulationWidgetBase>                                  m_hovered_manipulation_widget;
+    Weak<Node>                                                          m_hovered_manipulation_widget_node;
 
     Handle<Texture>                                                     m_scene_texture;
     RC<UIObject>                                                        m_main_panel;

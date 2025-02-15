@@ -199,26 +199,35 @@ public:
         return *static_cast<const T *>(m_storage.GetPointer());
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE T GetOr(T &&default_value) const &
+    HYP_FORCE_INLINE const T &GetOr(const T &default_value) const &
     {
         if (m_has_value) {
             return Get();
         }
 
-        return std::forward<T>(default_value);
+        return default_value;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE T GetOr(T &&default_value) &&
+    HYP_FORCE_INLINE T GetOr(T &&default_value) const &
+    {
+        if (m_has_value) {
+            return Get();
+        }
+
+        return std::move(default_value);
+    }
+
+    HYP_FORCE_INLINE T GetOr(T &&default_value) &&
     {
         if (m_has_value) {
             return std::move(Get());
         }
 
-        return std::forward<T>(default_value);
+        return std::move(default_value);
     }
 
     template <class Function, typename = std::enable_if_t< std::is_invocable_v< NormalizedType<Function> > > > 
-    HYP_FORCE_INLINE T GetOr(Function &&func) const &
+    HYP_FORCE_INLINE const T &GetOr(Function &&func) const &
     {
         if (m_has_value) {
             return Get();
@@ -450,6 +459,63 @@ public:
         AssertThrow(m_ptr != nullptr);
 
         return *m_ptr;
+    }
+
+    HYP_FORCE_INLINE typename std::remove_reference_t< T > &GetOr(typename std::remove_reference_t< T > &default_value)
+    {
+        if (m_ptr != nullptr) {
+            return *m_ptr;
+        }
+
+        return default_value;
+    }
+
+    HYP_FORCE_INLINE const typename std::remove_reference_t< T > &GetOr(const typename std::remove_reference_t< T > &default_value) const
+    {
+        if (m_ptr != nullptr) {
+            return *m_ptr;
+        }
+
+        return default_value;
+    }
+
+    HYP_FORCE_INLINE NormalizedType<T> GetOr(NormalizedType<T> &&default_value) const &
+    {
+        if (m_ptr != nullptr) {
+            return *m_ptr;
+        }
+
+        return std::move(default_value);
+    }
+
+    HYP_FORCE_INLINE NormalizedType<T> GetOr(NormalizedType<T> &&default_value) &&
+    {
+        if (m_ptr != nullptr) {
+            return std::move(*m_ptr);
+        }
+
+        return std::move(default_value);
+    }
+
+
+    template <class Function, typename = std::enable_if_t< std::is_invocable_v< NormalizedType<Function> > > > 
+    HYP_FORCE_INLINE decltype(auto) GetOr(Function &&func) const &
+    {
+        if (m_ptr != nullptr) {
+            return *m_ptr;
+        }
+
+        return func();
+    }
+
+    template <class Function, typename = std::enable_if_t< std::is_invocable_v< NormalizedType<Function> > > >
+    HYP_FORCE_INLINE decltype(auto) GetOr(Function &&func) &&
+    {
+        if (m_ptr != nullptr) {
+            return std::move(*m_ptr);
+        }
+
+        return func();
     }
 
     /*! \brief Replace the reference that is held with a new reference.

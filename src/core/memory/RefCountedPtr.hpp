@@ -352,6 +352,10 @@ public:
     HYP_FORCE_INLINE bool Any() const
         { return m_ref->UseCount_Strong() != 0; }
 
+    /*! \brief Returns true if the RefCountedPtr has been assigned a value. */
+    HYP_FORCE_INLINE bool IsValid() const
+        { return m_ref->HasValue(); }
+
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> CastUnsafe() const &
     {
@@ -570,6 +574,11 @@ public:
     HYP_FORCE_INLINE bool Any() const
         { return m_ref->UseCount_Weak() != 0; }
 
+    /*! \brief Returns whether or not the WeakRefCountedPtr has been assigned a value.
+     *  \note This does not check whether the referenced object still exists, just tests if any value has been assigned. */
+    HYP_FORCE_INLINE bool IsValid() const
+        { return m_ref->HasValue(); }
+
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> CastUnsafe() const
     {
@@ -602,10 +611,6 @@ protected:
 
     HYP_FORCE_INLINE void IncRefCount()
     {
-#ifdef HYP_DEBUG_MODE
-        AssertThrow(m_ref != nullptr);
-#endif
-
         if (!m_ref->HasValue()) {
             return;
         }

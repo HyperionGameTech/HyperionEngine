@@ -104,6 +104,12 @@ struct NodeTag
         return *this;
     }
 
+    HYP_FORCE_INLINE explicit operator bool() const
+        { return data.IsValid(); }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return !data.IsValid(); }
+
     HYP_FORCE_INLINE bool IsValid() const
         { return data.IsValid(); }
 
@@ -596,7 +602,7 @@ public:
     HYP_METHOD()
     uint32 FindSelfIndex() const;
 
-    bool TestRay(const Ray &ray, RayTestResults &out_results) const;
+    bool TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh = true) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
     HYP_METHOD()

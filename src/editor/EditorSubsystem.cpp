@@ -178,6 +178,9 @@ void EditorManipulationWidgetBase::Initialize()
 
         EntityManager &entity_manager = *child->GetScene()->GetEntityManager();
 
+        entity_manager.RemoveTag<EntityTag::STATIC>(child->GetEntity().GetID());
+        entity_manager.AddTag<EntityTag::DYNAMIC>(child->GetEntity().GetID());
+
         MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(child->GetEntity().GetID());
 
         if (!mesh_component) {
@@ -198,9 +201,12 @@ void EditorManipulationWidgetBase::Initialize()
         material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
         material_attributes.bucket = Bucket::BUCKET_TRANSLUCENT;
 
-        mesh_component->material = MaterialCache::GetInstance()->GetOrCreate(material_attributes, material_parameters);
+        mesh_component->material = MaterialCache::GetInstance()->CreateMaterial(material_attributes, material_parameters);
+        mesh_component->material->SetIsDynamic(true);
 
         mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+
+        child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), HypData(Vec4f(mesh_component->material->GetParameter(Material::MATERIAL_KEY_ALBEDO)))));
     }
 
     m_node->SetFlags(
@@ -237,13 +243,72 @@ void EditorManipulationWidgetBase::UpdateWidget(const NodeProxy &focused_node) c
 
 #pragma region TranslateEditorManipulationWidget
 
+bool TranslateEditorManipulationWidget::OnMouseHover(const MouseEvent &mouse_event, const NodeProxy &node)
+{
+    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager()) {
+        return false;
+    }
+
+    MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+
+    if (!mesh_component || !mesh_component->material) {
+        return false;
+    }
+
+    mesh_component->material->SetParameter(
+        Material::MATERIAL_KEY_ALBEDO,
+        Vec4f(1.0f, 1.0f, 0.0, 1.0)
+    );
+
+    return true;
+}
+
+bool TranslateEditorManipulationWidget::OnMouseLeave(const MouseEvent &mouse_event, const NodeProxy &node)
+{
+    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager()) {
+        return false;
+    }
+
+    MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+
+    if (!mesh_component || !mesh_component->material) {
+        return false;
+    }
+
+    if (const NodeTag &tag = node->GetTag("TransformWidgetElementColor")) {
+        mesh_component->material->SetParameter(
+            Material::MATERIAL_KEY_ALBEDO,
+            tag.data.TryGet<Vec4f>().GetOr(Vec4f::Zero())
+        );
+    }
+
+    return true;
+}
+
+bool TranslateEditorManipulationWidget::OnMouseMove(const MouseEvent &mouse_event, const NodeProxy &node)
+{
+    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager()) {
+        return false;
+    }
+
+    MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+
+    if (!mesh_component || !mesh_component->material) {
+        return false;
+    }
+
+    // @TODO
+
+    return true;
+}
+
 NodeProxy TranslateEditorManipulationWidget::Load_Internal() const
 {
     Asset<Node> asset = AssetManager::GetInstance()->Load<Node>("models/editor/axis_arrows.obj");
 
     if (asset.IsOK()) {
         if (NodeProxy node = asset.Result()) {
-            node->SetWorldScale(2.0f);
+            node->SetWorldScale(2.5f);
 
             return node;
         }
@@ -386,6 +451,14 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         InitSceneOutline();
 
         m_manipulation_widget_holder.Initialize();
+
+        m_delegate_handlers.Add(NAME("OnGameStateChange"), GetWorld()->OnGameStateChange.Bind([this](World *world, GameStateMode game_state_mode)
+        {
+            if (game_state_mode != GameStateMode::EDITOR) {
+                // unset manipulation widgets
+                m_manipulation_widget_holder.SetSelectedManipulationMode(EditorManipulationMode::NONE);
+            }
+        }));
     }).Detach();
 
     OnProjectClosing.BindOwned(this, [this](EditorProject *project)
@@ -416,6 +489,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
         m_delegate_handlers.Remove("SetBuildBVHFlag");
         m_delegate_handlers.Remove("OnPackageAdded");
+        m_delegate_handlers.Remove("OnGameStateChange");
 
         if (m_content_browser_directory_list && m_content_browser_directory_list->GetDataSource()) {
             m_content_browser_directory_list->GetDataSource()->Clear();
@@ -424,6 +498,8 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
     m_manipulation_widget_holder.OnSelectedManipulationWidgetChange.Bind([this](EditorManipulationWidgetBase &new_widget, EditorManipulationWidgetBase &prev_widget)
     {
+        SetHoveredManipulationWidget(MouseEvent { }, nullptr, NodeProxy::empty);
+
         if (!m_scene.IsValid()) {
             HYP_LOG(Editor, Warning, "Manipulation widget mode changed while editor scene is inactive");
 
@@ -644,8 +720,6 @@ void EditorSubsystem::InitViewport()
         ui_image->OnClick.RemoveAll(this);
         ui_image->OnClick.BindOwned(this, [this](const MouseEvent &event)
         {
-            HYP_LOG(Editor, Debug, "Click at : {}", event.position);
-
             if (m_should_cancel_next_click) {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -655,18 +729,20 @@ void EditorSubsystem::InitViewport()
             }
 
             if (GetWorld()->GetGameState().IsEditor()) {
-                const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
+                if (IsHoveringManipulationWidget()) {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
 
+                const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
                 const Vec4f ray_direction = mouse_world.Normalized();
 
                 const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
+
                 RayTestResults results;
 
                 if (m_scene->GetOctree().TestRay(ray, results)) {
                     for (const RayHit &hit : results) {
                         if (ID<Entity> entity = ID<Entity>(hit.id)) {
-                            HYP_LOG(Editor, Info, "Hit: {}", entity.Value());
-
                             if (NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity)) {
                                 if (RC<Node> node = node_link_component->node.Lock()) {
                                     SetFocusedNode(NodeProxy(node));
@@ -684,8 +760,22 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }).Detach();
 
+        m_delegate_handlers.Add(ui_image->OnMouseLeave.Bind([this](const MouseEvent &event)
+        {
+            if (IsHoveringManipulationWidget()) {
+                SetHoveredManipulationWidget(event, nullptr, NodeProxy::empty);
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
         m_delegate_handlers.Add(ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
         {
+            // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
+            if (IsHoveringManipulationWidget()) {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
 
             // prevent click being triggered on release once mouse has been dragged
@@ -710,9 +800,60 @@ void EditorSubsystem::InitViewport()
 
             if (GetWorld()->GetGameState().IsEditor() && m_manipulation_widget_holder.GetSelectedManipulationMode() != EditorManipulationMode::NONE) {
                 // Ray test the widget
-                // @TODO: Use mesh bvh!
+                
+                const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
+                const Vec4f ray_direction = mouse_world.Normalized();
+
+                const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
+                
+                RayTestResults results;
 
                 EditorManipulationWidgetBase &manipulation_widget = m_manipulation_widget_holder.GetSelectedManipulationWidget();
+                bool hit_manipulation_widget = false;
+
+                if (manipulation_widget.GetNode()->TestRay(ray, results, /* use_bvh */ true)) {
+                    for (const RayHit &ray_hit : results) {
+                        ID<Entity> entity = ID<Entity>(ray_hit.id);
+
+                        if (!entity.IsValid()) {
+                            continue;
+                        }
+
+                        NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity);
+
+                        if (!node_link_component) {
+                            continue;
+                        }
+
+                        RC<Node> node = node_link_component->node.Lock();
+
+                        if (!node) {
+                            continue;
+                        }
+
+                        if (node != m_hovered_manipulation_widget_node) {
+                            if (manipulation_widget.OnMouseHover(event, NodeProxy(node))) {
+                                SetHoveredManipulationWidget(event, &manipulation_widget, NodeProxy(node));
+
+                                hit_manipulation_widget = true;
+
+                                break;
+                            }
+                        } else {
+                            if (manipulation_widget.OnMouseMove(event, NodeProxy(node))) {
+                                hit_manipulation_widget = true;
+                                
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (hit_manipulation_widget) {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                } else if (IsHoveringManipulationWidget()) {
+                    SetHoveredManipulationWidget(event, nullptr, NodeProxy::empty);
+                }
             }
 
             return UIEventHandlerResult::OK;
@@ -1484,6 +1625,32 @@ void EditorSubsystem::UpdateDebugOverlays(GameCounter::TickUnit delta)
         
         debug_overlay->Update();
     }
+}
+
+void EditorSubsystem::SetHoveredManipulationWidget(
+    const MouseEvent &event,
+    EditorManipulationWidgetBase *manipulation_widget,
+    const NodeProxy &manipulation_widget_node
+)
+{
+    // @TODO: On game state change, unset hovered manipulation widget
+
+    if (m_hovered_manipulation_widget.IsValid() && m_hovered_manipulation_widget_node.IsValid()) {
+        RC<Node> hovered_manipulation_widget_node = m_hovered_manipulation_widget_node.Lock();
+        RC<EditorManipulationWidgetBase> hovered_manipulation_widget = m_hovered_manipulation_widget.Lock();
+
+        if (hovered_manipulation_widget_node && hovered_manipulation_widget) {
+            hovered_manipulation_widget->OnMouseLeave(event, NodeProxy(hovered_manipulation_widget_node));
+        }
+    }
+
+    if (manipulation_widget != nullptr) {
+        m_hovered_manipulation_widget = manipulation_widget->WeakRefCountedPtrFromThis();
+    } else {
+        m_hovered_manipulation_widget.Reset();
+    }
+
+    m_hovered_manipulation_widget_node = manipulation_widget_node;
 }
 
 #endif

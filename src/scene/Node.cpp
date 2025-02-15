@@ -954,22 +954,38 @@ uint32 Node::FindSelfIndex() const
     return uint32(it - m_parent_node->GetChildren().Begin());
 }
 
-bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
+bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) const
 {
     const BoundingBox world_aabb = GetWorldAABB();
 
-    const bool has_node_hit = ray.TestAABB(world_aabb);
-
     bool has_entity_hit = false;
 
-    if (has_node_hit) {
+    if (ray.TestAABB(world_aabb)) {
         if (m_entity.IsValid()) {
-            has_entity_hit = ray.TestAABB(
-                world_aabb,
-                m_entity.GetID().Value(),
-                nullptr,
-                out_results
-            );
+            BVHNode *bvh = nullptr;
+
+            if (use_bvh && m_scene && m_scene->GetEntityManager()) {
+                if (BVHComponent *bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity.GetID())) {
+                    bvh = &bvh_component->bvh;
+                }
+            }
+
+            if (bvh) {
+                RayTestResults bvh_results = bvh->TestRay(ray);
+
+                if (bvh_results.Any()) {
+                    for (RayHit &hit : bvh_results) {
+                        hit.id = m_entity.GetID().Value();
+                        hit.user_data = nullptr;
+                    }
+
+                    out_results.Merge(std::move(bvh_results));
+
+                    has_entity_hit = true;
+                }
+            } else {
+                has_entity_hit = ray.TestAABB(world_aabb, m_entity.GetID().Value(), nullptr, out_results);
+            }
         }
 
         for (const NodeProxy &child_node : m_child_nodes) {
@@ -977,7 +993,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
                 continue;
             }
 
-            if (child_node->TestRay(ray, out_results)) {
+            if (child_node->TestRay(ray, out_results, use_bvh)) {
                 has_entity_hit = true;
             }
         }

@@ -1209,15 +1209,15 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
 
                     // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                     if (BVHComponent *bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.entity)) {
-                        RayTestResults bvh_result = bvh_component->bvh.TestRay(ray);
+                        RayTestResults bvh_results = bvh_component->bvh.TestRay(ray);
 
-                        if (bvh_result.Any()) {
-                            for (RayHit &hit : bvh_result) {
+                        if (bvh_results.Any()) {
+                            for (RayHit &hit : bvh_results) {
                                 hit.id = entry.entity.GetID().Value();
                                 hit.user_data = nullptr;
                             }
                             
-                            out_results.Merge(std::move(bvh_result));
+                            out_results.Merge(std::move(bvh_results));
 
                             has_hit = true;
                         }
