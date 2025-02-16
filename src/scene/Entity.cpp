@@ -17,6 +17,11 @@ Entity::Entity() = default;
 
 Entity::~Entity()
 {
+    HYP_LOG(Entity, Debug, "Destroying Entity with ID #{}\tRef counts: {} strong, {} weak",
+        GetID().Value(),
+        GetObjectHeader_Internal()->GetRefCountStrong(),
+        GetObjectHeader_Internal()->GetRefCountWeak());
+
     const ID<Entity> id = GetID();
 
     if (!id.IsValid()) {

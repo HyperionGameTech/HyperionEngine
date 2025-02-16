@@ -122,19 +122,21 @@ public:
 
     virtual EditorManipulationMode GetManipulationMode() const = 0;
     
-    virtual void UpdateWidget(const NodeProxy &focused_node) const;
+    virtual void UpdateWidget(const NodeProxy &focused_node);
 
-    virtual bool OnMouseHover(const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
         { return false; }
 
-    virtual bool OnMouseLeave(const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
         { return false; }
 
-    virtual bool OnMouseMove(const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
         { return false; }
 
 protected:
     virtual NodeProxy Load_Internal() const = 0;
+
+    NodeProxy   m_focused_node;
 
 private:
     NodeProxy   m_node;
@@ -167,9 +169,9 @@ public:
     virtual EditorManipulationMode GetManipulationMode() const override
         { return EditorManipulationMode::TRANSLATE; }
 
-    virtual bool OnMouseHover(const MouseEvent &mouse_event, const NodeProxy &node) override;
-    virtual bool OnMouseLeave(const MouseEvent &mouse_event, const NodeProxy &node) override;
-    virtual bool OnMouseMove(const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
 
 protected:
     virtual NodeProxy Load_Internal() const override;

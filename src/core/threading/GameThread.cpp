@@ -13,7 +13,7 @@
 #include <Game.hpp>
 #include <GameCounter.hpp>
 
-#define HYP_GAME_THREAD_LOCKED 1
+#define HYP_GAME_THREAD_LOCKED 0
 
 namespace hyperion {
 
@@ -35,6 +35,11 @@ void GameThread::Stop()
 
 void GameThread::operator()(Game *game)
 {
+    uint32 num_frames = 0;
+    float delta_time_accum = 0.0f;
+
+    float trace_accum = 0.0f;// debugging
+
 #if HYP_GAME_THREAD_LOCKED
     LockstepGameCounter counter(1.0f / game_thread_target_ticks_per_second);
 #else
@@ -55,6 +60,25 @@ void GameThread::operator()(Game *game)
         HYP_PROFILE_BEGIN;
 
         counter.NextTick();
+
+        delta_time_accum += counter.delta;
+        num_frames++;
+
+        if (delta_time_accum >= 1.0f) {
+            HYP_LOG(GameThread, Debug, "Game thread ticks per second: {}", 1.0f / (delta_time_accum / float(num_frames)));
+
+            delta_time_accum = 0.0f;
+            num_frames = 0;
+        }
+
+        trace_accum += counter.delta;
+
+        if (trace_accum >= 60.0f) {
+            // Debugging
+            TraceLiveEntities();
+
+            trace_accum = 0.0f;
+        }
 
         AssetManager::GetInstance()->Update(counter.delta);
 

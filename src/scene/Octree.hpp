@@ -178,12 +178,12 @@ public:
 
     struct Entry
     {
-        Handle<Entity>  entity;
-        BoundingBox     aabb;
+        WeakHandle<Entity>  entity;
+        BoundingBox         aabb;
 
         Entry() = default;
 
-        Entry(const Handle<Entity> &entity, const BoundingBox &aabb)
+        Entry(const WeakHandle<Entity> &entity, const BoundingBox &aabb)
             : entity(entity),
               aabb(aabb)
         {
@@ -317,7 +317,7 @@ public:
     }
         
     void Clear();
-    InsertResult Insert(const Handle<Entity> &entity, const BoundingBox &aabb, bool allow_rebuild = false);
+    InsertResult Insert(const WeakHandle<Entity> &entity, const BoundingBox &aabb, bool allow_rebuild = false);
     Result Remove(ID<Entity> id, bool allow_rebuild = false);
     
     /*! \brief Update the entry in the octree. 
@@ -330,10 +330,11 @@ public:
     InsertResult Rebuild();
     InsertResult Rebuild(const BoundingBox &new_aabb);
     
-    void CollectEntities(Array<Handle<Entity>> &out) const;
-    void CollectEntitiesInRange(const Vector3 &position, float radius, Array<Handle<Entity>> &out) const;
-    bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
-    bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
+    void CollectEntries(Array<const Entry *> &out_entries) const;
+    void CollectEntriesInRange(const Vec3f &position, float radius, Array<const Entry *> &out_entries) const;
+
+    bool GetNearestOctants(const Vec3f &position, FixedArray<Octree *, 8> &out) const;
+    bool GetNearestOctant(const Vec3f &position, Octree const *&out) const;
     bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
 
     void NextVisibilityState();
@@ -385,7 +386,7 @@ private:
         If \ref{allow_rebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allow_rebuild);
-    InsertResult InsertInternal(const Handle<Entity> &entity, const BoundingBox &aabb);
+    InsertResult InsertInternal(const WeakHandle<Entity> &entity, const BoundingBox &aabb);
     InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild);
     Result RemoveInternal(ID<Entity> id, bool allow_rebuild);
     InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
@@ -397,7 +398,7 @@ private:
     RC<EntityManager>                                   m_entity_manager;
     
     Array<Entry>                                        m_entries;
-    FixedArray<HashCode, 1u << uint32(EntityTag::MAX)>    m_entry_hashes;
+    FixedArray<HashCode, 1u << uint32(EntityTag::MAX)>  m_entry_hashes;
     Octree                                              *m_parent;
     BoundingBox                                         m_aabb;
     FixedArray<Octant, 8>                               m_octants;

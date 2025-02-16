@@ -259,6 +259,19 @@ bool Node::IsOrHasParent(const Node *node) const
     return m_parent_node->IsOrHasParent(node);
 }
 
+Node *Node::FindParentWithName(UTF8StringView name) const
+{
+    if (m_name == name) {
+        return const_cast<Node *>(this);
+    }
+
+    if (m_parent_node == nullptr) {
+        return nullptr;
+    }
+
+    return m_parent_node->FindParentWithName(name);
+}
+
 void Node::SetScene(Scene *scene)
 {
     if (!scene) {
@@ -660,6 +673,9 @@ void Node::SetEntity(const Handle<Entity> &entity)
     // Remove the NodeLinkComponent from the old entity
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
+
+        // Move entity to detached scene
+        m_scene->GetEntityManager()->MoveEntity(m_entity, *GetDefaultScene()->GetEntityManager());
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
@@ -1088,7 +1104,15 @@ bool Node::RemoveTag(WeakName key)
 {
     HYP_SCOPE;
 
-    return m_tags.Erase(key);
+    auto it = m_tags.FindAs(key);
+
+    if (it == m_tags.End()) {
+        return false;
+    }
+
+    m_tags.Erase(it);
+
+    return true;
 }
 
 const NodeTag &Node::GetTag(WeakName key) const
@@ -1097,7 +1121,7 @@ const NodeTag &Node::GetTag(WeakName key) const
 
     static const NodeTag empty_tag = NodeTag();
 
-    const auto it = m_tags.Find(key);
+    const auto it = m_tags.FindAs(key);
 
     if (it == m_tags.End()) {
         return empty_tag;
@@ -1110,7 +1134,7 @@ bool Node::HasTag(WeakName key) const
 {
     HYP_SCOPE;
 
-    return m_tags.Contains(key);
+    return m_tags.FindAs(key) != m_tags.End();
 }
 
 Scene *Node::GetDefaultScene()

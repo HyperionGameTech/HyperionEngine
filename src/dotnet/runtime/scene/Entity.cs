@@ -8,6 +8,12 @@ namespace Hyperion
     {
         public Entity()
         {
+            Logger.Log(LogType.Debug, "Entity with ID " + ID + " created from C#");
+        }
+
+        ~Entity()
+        {
+            Logger.Log(LogType.Debug, "Entity with ID " + ID + " destructed from C#");
         }
 
         public IDBase ID

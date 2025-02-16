@@ -27,11 +27,14 @@ class LogCategory
 public:
     enum Flags : uint8
     {
-        LOG_CATEGORY_NONE   = 0x0,
-        LOG_CATEGORY_FATAL  = 0x1
+        LOG_CATEGORY_FLAG_NONE      = 0x0,
+        LOG_CATEGORY_FLAG_ENABLED   = 0x1,
+        LOG_CATEGORY_FLAG_FATAL     = 0x2,
+
+        LOG_CATEGORY_FLAG_DEFAULT   = LOG_CATEGORY_FLAG_ENABLED
     };
 
-    constexpr LogCategory(LogLevel level, uint16 priority, uint8 flags = LOG_CATEGORY_NONE)
+    constexpr LogCategory(LogLevel level, uint16 priority, uint8 flags = LOG_CATEGORY_FLAG_DEFAULT)
         : m_value(uint32(flags) | (uint32(priority) << 8) | (uint32(level) << 24))
     {
     }
@@ -66,11 +69,19 @@ public:
     HYP_FORCE_INLINE constexpr LogLevel GetLevel() const
         { return LogLevel((m_value >> 24) & 0xFF); }
 
+    HYP_FORCE_INLINE constexpr bool IsEnabled() const
+        { return (GetFlags() & LOG_CATEGORY_FLAG_ENABLED) != 0; }
+
     uint32  m_value;
 };
 
+#ifdef HYP_DEBUG_MODE
 constexpr LogCategory Debug()
-    { return LogCategory(LogLevel::DEBUG, 10000); }
+    { return LogCategory(LogLevel::DEBUG, 10000, LogCategory::LOG_CATEGORY_FLAG_ENABLED); }
+#else
+constexpr LogCategory Debug()
+    { return LogCategory(LogLevel::DEBUG, 10000, LogCategory::LOG_CATEGORY_FLAG_NONE); }
+#endif
 
 constexpr LogCategory Warning()
     { return LogCategory(LogLevel::WARNING, 1000); }
@@ -82,7 +93,7 @@ constexpr LogCategory Error()
     { return LogCategory(LogLevel::ERR, 10); }
 
 constexpr LogCategory Fatal()
-    { return LogCategory(LogLevel::FATAL, 1, LogCategory::LOG_CATEGORY_FATAL); }
+    { return LogCategory(LogLevel::FATAL, 1, LogCategory::LOG_CATEGORY_FLAG_FATAL); }
 
 template <LogLevel Level, auto FunctionNameString, auto FormatString, class... Args>
 static inline void Log_Internal(Logger &logger, const LogChannel &channel, Args &&... args);

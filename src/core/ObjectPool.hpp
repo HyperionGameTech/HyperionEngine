@@ -38,8 +38,15 @@ class ObjectContainer;
 class IObjectContainer;
 
 struct HypObjectHeader;
-
 class HypClass;
+
+class Entity;
+
+// For debugging
+void TraceLiveEntities();
+void TraceIncEntityRef(uint32 index);
+void TraceDecEntityRef(uint32 index);
+void TraceRemoveEntityRef(uint32 index);
 
 class IObjectContainer
 {
@@ -164,6 +171,11 @@ struct HypObjectMemory final : HypObjectHeader
 
         HypObject_OnIncRefCount_Strong(HypObjectPtr(GetPointer()), count);
 
+        // temp
+        if (TypeID::ForType<T>() == TypeID::ForType<Entity>()) {
+            TraceIncEntityRef(index);
+        }
+
         return count;
     }
 
@@ -196,6 +208,15 @@ struct HypObjectMemory final : HypObjectHeader
 
         HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
 
+        // temp
+        if (TypeID::ForType<T>() == TypeID::ForType<Entity>()) {
+            TraceDecEntityRef(index);
+
+            if (count == 1) {
+                TraceRemoveEntityRef(index);
+            }
+        }
+
         return count - 1;
     }
 
@@ -224,7 +245,7 @@ struct HypObjectMemory final : HypObjectHeader
         return count - 1;
     }
 
-    T *Release()
+    HYP_NODISCARD T *Release()
     {
         T *ptr = reinterpret_cast<T *>(bytes);
 
@@ -237,6 +258,11 @@ struct HypObjectMemory final : HypObjectHeader
 
         const uint32 count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
         AssertDebug(count != 0);
+
+        // temp
+        if (TypeID::ForType<T>() == TypeID::ForType<Entity>()) {
+            TraceDecEntityRef(index);
+        }
 
         return ptr;
     }
@@ -413,7 +439,7 @@ public:
         return m_pool.GetIDGenerator();
     }
 
-private:
+// private:
     MemoryPoolType  m_pool;
     HypObjectMemory m_default_object;
 };

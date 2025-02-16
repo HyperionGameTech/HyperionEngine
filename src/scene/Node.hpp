@@ -124,10 +124,7 @@ struct NodeTag
     // }
 };
 
-constexpr WeakName NodeTag_KeyByFunction(const NodeTag &tag)
-{
-    return tag.name;
-}
+struct NodeUnlockTransformScope;
 
 HYP_CLASS()
 class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
@@ -215,7 +212,7 @@ public:
 
     using NodeList = Array<NodeProxy>;
 
-    using NodeTagSet = HashSet<NodeTag, &NodeTag_KeyByFunction>;
+    using NodeTagSet = HashSet<NodeTag, &NodeTag::name>;
 
     enum class Type : uint32
     {
@@ -297,6 +294,9 @@ public:
     
     HYP_METHOD()
     bool IsOrHasParent(const Node *node) const;
+    
+    HYP_METHOD()
+    Node *FindParentWithName(UTF8StringView name) const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsRoot() const
@@ -711,6 +711,28 @@ protected:
     NodeTagSet                  m_tags;
 
     UUID                        m_uuid;
+};
+
+struct NodeUnlockTransformScope
+{
+    NodeUnlockTransformScope(Node &node)
+        : node(node),
+          locked(node.IsTransformLocked())
+    {
+        if (locked) {
+            node.UnlockTransform();
+        }
+    }
+
+    ~NodeUnlockTransformScope()
+    {
+        if (locked) {
+            node.LockTransform();
+        }
+    }
+
+    Node    &node;
+    bool    locked;
 };
 
 } // namespace hyperion

@@ -85,7 +85,7 @@ public:
 
         EntityData data;
 
-        auto it = m_entities.Insert(handle, {});
+        auto it = m_entities.Insert(handle.ToWeak(), {});
         AssertThrow(it.second);
     }
 

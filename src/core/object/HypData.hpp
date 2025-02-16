@@ -161,15 +161,15 @@ struct HypData
         HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
     }
     
-    template <class T, typename = std::enable_if_t< !std::is_same_v< T, HypData > > >
-    HypData &operator=(T &&value)
-    {
-        HYP_NAMED_SCOPE("Assign HypData from T");
+    // template <class T, typename = std::enable_if_t< !std::is_same_v< T, HypData > > >
+    // HypData &operator=(T &&value)
+    // {
+    //     HYP_NAMED_SCOPE("Assign HypData from T");
 
-        HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
+    //     HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
 
-        return *this;
-    }
+    //     return *this;
+    // }
 
     HypData(const HypData &other)                   = delete;
     HypData &operator=(const HypData &other)        = delete;

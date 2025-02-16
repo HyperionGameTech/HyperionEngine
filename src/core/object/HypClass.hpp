@@ -459,9 +459,9 @@ protected:
     {
         if constexpr (std::is_default_constructible_v<T>) {
             if constexpr (std::is_base_of_v<HypObjectBase, T>) {
-                out = CreateObject<T>();
+                out = HypData(CreateObject<T>());
             } else {
-                out = MakeRefCountedPtr<T>();
+                out = HypData(MakeRefCountedPtr<T>());
             }
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
@@ -475,9 +475,9 @@ protected:
 
         if constexpr (std::is_default_constructible_v<T>) {
             if constexpr (std::is_base_of_v<HypObjectBase, T>) {
-                out = CreateObject<T>();
+                out = HypData(CreateObject<T>());
             } else {
-                out = MakeRefCountedPtr<T>();
+                out = HypData(MakeRefCountedPtr<T>());
             }
 
             void *address = out.ToRef().GetPointer();

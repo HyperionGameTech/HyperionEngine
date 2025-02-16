@@ -41,12 +41,21 @@ namespace Hyperion
 
         public void Dispose()
         {
+            Console.WriteLine("Disposing object \"" + guid + "\" (type: " + weakReference.Target?.GetType().Name + ")");
+
             gcHandle.Free();
+
             gcHandleStrong?.Free();
+            gcHandleStrong = null;
         }
 
         public void MakeStrongReference()
         {
+            if (gcHandleStrong != null)
+            {
+                return;
+            }
+
             object? obj = weakReference.Target;
 
             if (obj == null)
@@ -60,6 +69,7 @@ namespace Hyperion
         public void MakeWeakReference()
         {
             gcHandleStrong?.Free();
+            gcHandleStrong = null;
         }
 
         public object? Value

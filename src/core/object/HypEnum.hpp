@@ -92,7 +92,7 @@ public:
 protected:
     virtual void CreateInstance_Internal(HypData &out) const override
     {
-        out = T { };
+        out = HypData(T { });
     }
 
     virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const override

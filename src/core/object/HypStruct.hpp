@@ -187,7 +187,7 @@ protected:
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {
-            out = T { };
+            out = HypData(T { });
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

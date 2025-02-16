@@ -59,6 +59,7 @@ namespace Hyperion
 #if DEBUG
                     if (!objectReference.IsValid)
                     {
+                        gcHandle.Free();
                         throw new Exception("Failed to add object to cache");
                     }
 #endif
@@ -118,6 +119,7 @@ namespace Hyperion
                 _hypClassPtr = IntPtr.Zero;
                 _nativeAddress = IntPtr.Zero;
 
+                // @FIXME: potential issue her if the object gets used after being disposed
                 GC.SuppressFinalize(this);
             }
         }

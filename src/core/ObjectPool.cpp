@@ -2,7 +2,90 @@
 
 #include <core/ObjectPool.hpp>
 
+// Debugging
+#include <core/containers/HashMap.hpp>
+#include <core/threading/Mutex.hpp>
+#include <core/debug/StackDump.hpp>
+
+// temp
+#include <scene/Entity.hpp>
+
 namespace hyperion {
+
+// debugging
+static HashMap<uint32, Pair<Array<String>, Array<String>>> g_entity_stack_traces { };
+static Mutex g_entity_stack_traces_mutex { };
+
+// Debugging
+void TraceLiveEntities()
+{
+    auto *holder = dynamic_cast<ObjectContainer<Entity> *>(ObjectPool::GetObjectContainerHolder().TryGet(TypeID::ForType<Entity>()));
+    if (!holder) {
+        return;
+    }
+
+    uint32 num = holder->m_pool.NumAllocatedElements();
+
+    Mutex::Guard guard(g_entity_stack_traces_mutex);
+
+    for (uint32 i = 0; i < num; i++) {
+        auto &element = holder->m_pool.GetElement(i);
+        DebugLog(LogType::Debug, "ID: %u\tStrong: %u\tWeak: %u\n",
+            element.index + 1,
+            element.GetRefCountStrong(),
+            element.GetRefCountWeak());
+
+        if (element.GetRefCountStrong() != 0) {
+            auto &traces = g_entity_stack_traces[element.index];
+
+            DebugLog(LogType::Debug, "\tIncRefStrong traces:\n");
+
+            if (traces.first.Any()) {
+                for (auto &trace : traces.first) {
+                    DebugLog(LogType::Debug, "\t\t%s\n", trace.Data());
+                }
+            } else {
+                DebugLog(LogType::Debug, "\t\t--NONE--\n");
+            }
+
+
+            DebugLog(LogType::Debug, "\tDecRefStrong traces:\n");
+
+            if (traces.second.Any()) {
+                for (auto &trace : traces.second) {
+                    DebugLog(LogType::Debug, "\t\t%s\n", trace.Data());
+                }
+            } else {
+                DebugLog(LogType::Debug, "\t\t--NONE--\n");
+            }
+        }
+    }
+}
+
+void TraceIncEntityRef(uint32 index)
+{
+    Mutex::Guard guard(g_entity_stack_traces_mutex);
+
+    g_entity_stack_traces[index].first.PushBack(StackDump(3, 6).GetTrace().Front());
+}
+
+void TraceDecEntityRef(uint32 index)
+{
+    Mutex::Guard guard(g_entity_stack_traces_mutex);
+
+    g_entity_stack_traces[index].second.PushBack(StackDump(3, 6).GetTrace().Front());
+}
+
+void TraceRemoveEntityRef(uint32 index)
+{
+    Mutex::Guard guard(g_entity_stack_traces_mutex);
+
+    auto it = g_entity_stack_traces.Find(index);
+
+    if (it != g_entity_stack_traces.End()) {
+        g_entity_stack_traces.Erase(it);
+    }
+}
 
 ObjectPool::ObjectContainerMap &ObjectPool::GetObjectContainerHolder()
 {

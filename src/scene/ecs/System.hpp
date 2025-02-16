@@ -4,6 +4,7 @@
 #define HYPERION_ECS_SYSTEM_HPP
 
 #include <core/containers/Array.hpp>
+#include <core/containers/HashSet.hpp>
 
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/Tuple.hpp>
@@ -32,7 +33,7 @@ public:
     virtual ANSIStringView GetName() const = 0;
 
     HYP_FORCE_INLINE bool IsEntityInitialized(ID<Entity> entity) const
-        { return m_initialized_entities.Contains(entity); }
+        { return m_initialized_entities.FindAs(entity) != m_initialized_entities.End(); }
 
     virtual bool AllowParallelExecution() const
         { return true; }
@@ -161,7 +162,7 @@ protected:
 private:
     void SetWorld(World *world);
 
-    FlatSet<WeakHandle<Entity>>                                 m_initialized_entities;
+    HashSet<WeakHandle<Entity>>                                 m_initialized_entities;
 
     Array<TypeID>                                               m_component_type_ids;
     Array<ComponentInfo>                                        m_component_infos;

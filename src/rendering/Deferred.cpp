@@ -954,7 +954,7 @@ void ReflectionProbePass::CreateTemporalBlending()
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_framebuffer->GetExtent(),
         InternalFormat::RGBA8,
-        TemporalBlendTechnique::TECHNIQUE_2,
+        TemporalBlendTechnique::TECHNIQUE_1,
         TemporalBlendFeedback::LOW,
         m_framebuffer
     );

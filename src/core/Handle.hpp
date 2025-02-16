@@ -615,7 +615,7 @@ public:
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE operator Handle<T> &()
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator Handle<T> &()
     {
         if (!type_id || type_id != TypeID::ForType<T>()) {
             return { };
@@ -625,7 +625,7 @@ public:
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE operator const Handle<T> &() const
+    HYP_NODISCARD HYP_FORCE_INLINE explicit operator const Handle<T> &() const
     {
         if (!type_id || type_id != TypeID::ForType<T>()) {
             return { };

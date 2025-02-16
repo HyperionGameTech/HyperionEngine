@@ -90,7 +90,7 @@ struct MeshInstanceData
 
 struct RenderProxy
 {
-    Handle<Entity>      entity;
+    WeakHandle<Entity>  entity;
     Handle<Mesh>        mesh;
     Handle<Material>    material;
     Handle<Skeleton>    skeleton;

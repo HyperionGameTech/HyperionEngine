@@ -58,7 +58,7 @@ public:
                     continue;
                 }
 
-                if (!property->CanGet() || !property->CanSet()) {
+                if (!property->CanGet()) {
                     continue;
                 }
 
@@ -776,6 +776,8 @@ public:
 
     void Update(UIObject *ui_object, const EditorNodePropertyRef &value) const
     {
+        // @TODO Implement
+
         RC<Node> node_rc = value.node.Lock();
         AssertThrow(node_rc != nullptr);
 

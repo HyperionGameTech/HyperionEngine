@@ -62,6 +62,8 @@
 
 namespace hyperion {
 
+HYP_DEFINE_LOG_SUBCHANNEL(RenderThread, Rendering);
+
 using renderer::FillMode;
 using renderer::GPUBufferType;
 
@@ -137,11 +139,7 @@ private:
             num_frames++;
 
             if (delta_time_accum >= 1.0f) {
-                DebugLog(
-                    LogType::Debug,
-                    "Render FPS: %f\n",
-                    1.0f / (delta_time_accum / float(num_frames))
-                );
+                HYP_LOG(RenderThread, Debug, "Render thread ticks per second: {}", 1.0f / (delta_time_accum / float(num_frames)));
 
                 delta_time_accum = 0.0f;
                 num_frames = 0;

@@ -344,7 +344,7 @@ public:
         const HashCode::ValueType hash_code = HashCode::GetHashCode(value).Value();
         detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-        typename detail::HashSetBucket<ValueType, KeyByFunction>::Iterator it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
+        typename detail::HashSetBucket<ValueType, KeyByFunction>::Iterator it = bucket->Find(value);
 
         if (it == bucket->End()) {
             return End();
@@ -359,7 +359,7 @@ public:
         const HashCode::ValueType hash_code = HashCode::GetHashCode(value).Value();
         const detail::HashSetBucket<ValueType, KeyByFunction> *bucket = GetBucketForHash(hash_code);
 
-        const typename detail::HashSetBucket<ValueType, KeyByFunction>::ConstIterator it = bucket->Find(KeyByFunctionInvoker<KeyByFunction>()(value));
+        const typename detail::HashSetBucket<ValueType, KeyByFunction>::ConstIterator it = bucket->Find(value);
 
         if (it == bucket->End()) {
             return End();

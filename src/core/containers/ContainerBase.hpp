@@ -23,12 +23,12 @@ struct KeyByFunctionInvoker<func>
 {
     using Type = decltype(func);
 
-    constexpr ReturnType operator()(TargetType &value) const
+    constexpr decltype(auto) operator()(TargetType &value) const
     {
         return (value.*func)();
     }
 
-    constexpr ReturnType operator()(const TargetType &value) const
+    constexpr decltype(auto) operator()(const TargetType &value) const
     {
         return (value.*func)();
     }
@@ -39,9 +39,25 @@ struct KeyByFunctionInvoker<func>
 {
     using Type = decltype(func);
 
-    constexpr ReturnType operator()(const TargetType &value) const
+    constexpr decltype(auto) operator()(const TargetType &value) const
     {
         return (value.*func)();
+    }
+};
+
+template <class TargetType, class ReturnType, ReturnType TargetType::*member>
+struct KeyByFunctionInvoker<member>
+{
+    using Type = decltype(member);
+
+    constexpr decltype(auto) operator()(TargetType &value) const
+    {
+        return value.*member;
+    }
+
+    constexpr decltype(auto) operator()(const TargetType &value) const
+    {
+        return value.*member;
     }
 };
 
@@ -50,7 +66,7 @@ struct KeyByFunctionInvoker<func>
 {
     using Type = decltype(func);
 
-    constexpr ReturnType operator()(TargetType &value) const
+    constexpr decltype(auto) operator()(TargetType &value) const
     {
         return func(value);
     }
@@ -61,7 +77,7 @@ struct KeyByFunctionInvoker<func>
 {
     using Type = decltype(func);
 
-    constexpr ReturnType operator()(const TargetType &value) const
+    constexpr decltype(auto) operator()(const TargetType &value) const
     {
         return func(value);
     }

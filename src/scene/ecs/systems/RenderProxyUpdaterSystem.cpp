@@ -115,7 +115,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         // Update MeshComponent's proxy
         *mesh_component.proxy = RenderProxy {
-            Handle<Entity>(entity_id),
+            WeakHandle<Entity>(entity_id),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,

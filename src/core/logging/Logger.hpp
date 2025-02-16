@@ -167,6 +167,10 @@ struct LogOnceHelper
 template <LogCategory Category, auto FunctionNameString, auto FormatString, class... Args>
 static inline void Log_Internal(Logger &logger, const LogChannel &channel, Args &&... args)
 {
+    if constexpr (!Category.IsEnabled()) {
+        return;
+    }
+
     static const auto prefix_static_string = containers::helpers::Concat<
         StaticString("["),
         LogLevelToString< Category.GetLevel() >(),
@@ -185,6 +189,10 @@ static inline void Log_Internal(Logger &logger, const LogChannel &channel, Args 
                 prefix_string + utilities::Format<FormatString>(std::forward<Args>(args)...)
             }
         );
+    }
+
+    if constexpr (Category.GetFlags() & LogCategory::LOG_CATEGORY_FLAG_FATAL) {
+        HYP_THROW("Fatal error logged");
     }
 }
 

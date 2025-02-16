@@ -11,7 +11,7 @@ class InputManager;
 enum class MouseButton : uint32
 {
     INVALID = ~0u,
-    LEFT = 0,
+    LEFT    = 0,
     MIDDLE,
     RIGHT,
     
@@ -49,7 +49,7 @@ struct MouseEvent
     HYP_FIELD()
     Vec2i                       wheel;
 
-    HYP_FIELD()
+    HYP_FIELD(Deprecated)
     bool                        is_down = false;
 };
 

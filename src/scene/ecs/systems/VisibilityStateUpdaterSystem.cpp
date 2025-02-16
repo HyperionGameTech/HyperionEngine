@@ -19,6 +19,8 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     VisibilityStateComponent &visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
 
     if (visibility_state_component.octant_id != OctantID::Invalid()) {
+        HYP_LOG(Octree, Debug, "Entity #{} already has an octant ID assigned", entity.GetID().Value());
+
         return;
     }
 
@@ -28,28 +30,22 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     BoundingBoxComponent &bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
 
-    if (bounding_box_component.world_aabb.IsValid()) {
-        Octree &octree = GetEntityManager().GetScene()->GetOctree();
+    Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
-        const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
+    const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
-        if (insert_result.first) {
-            AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
+    if (insert_result.first) {
+        AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
 
-            visibility_state_component.octant_id = insert_result.second;
+        visibility_state_component.octant_id = insert_result.second;
 
-            if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
-                visibility_state_component.visibility_state = octant->GetVisibilityState().Get();
-            }
-
-#ifdef HYP_OCTREE_DEBUG
-            HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
-#endif
-        } else {
-#ifdef HYP_OCTREE_DEBUG
-            HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity.GetID().Value(), insert_result.first.message);
-#endif
+        if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
+            visibility_state_component.visibility_state = octant->GetVisibilityState().Get();
         }
+
+        HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
+    } else {
+        HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity.GetID().Value(), insert_result.first.message);
     }
 
     visibility_state_component.last_aabb_hash = bounding_box_component.world_aabb.GetHashCode();
@@ -67,7 +63,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     const Octree::Result remove_result = octree.Remove(entity);
 
     if (!remove_result) {
-        HYP_LOG(Octree, Warning,  "Failed to remove entity {} from octree: {}", entity.Value(), remove_result.message);
+        HYP_LOG(Octree, Warning, "Failed to remove entity {} from octree: {}", entity.Value(), remove_result.message);
     }
 
     visibility_state_component.octant_id = OctantID::Invalid();
