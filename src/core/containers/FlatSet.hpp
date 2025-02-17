@@ -21,6 +21,9 @@ public:
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 
+    using KeyType = T;
+    using ValueType = T;
+
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     FlatSet();

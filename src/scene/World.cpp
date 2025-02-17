@@ -32,7 +32,7 @@
 
 namespace hyperion {
 
-#define HYP_WORLD_ASYNC_SCENE_UPDATES
+// #define HYP_WORLD_ASYNC_SCENE_UPDATES
 
 World::World()
     : HypObject(),
@@ -191,10 +191,12 @@ void World::Update(GameCounter::TickUnit delta)
 
         scene->Update(delta);
 
-        EntityManager &entity_manager = *scene->GetEntityManager();
-        entity_manager.FlushCommandQueue(delta);
+        if (!scene->IsNonWorldScene()) {
+            EntityManager &entity_manager = *scene->GetEntityManager();
+            entity_manager.FlushCommandQueue(delta);
 
-        entity_managers.PushBack(&entity_manager);
+            entity_managers.PushBack(&entity_manager);
+        }
     }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
@@ -202,11 +204,15 @@ void World::Update(GameCounter::TickUnit delta)
     collect_entities_tasks.Reserve(m_scenes.Size());
 #endif
 
+    uint32 num_async_update_calls = 0;
+
     // Ensure Scene::Update() and EntityManager::FlushCommandQueue() or called on all scenes before we kickoff async updates for their entity managers.
     for (EntityManager *entity_manager : entity_managers) {
         HYP_NAMED_SCOPE("Call BeginAsyncUpdate on EntityManager");
 
         entity_manager->BeginAsyncUpdate(delta);
+
+        ++num_async_update_calls;
     }
 
     for (EntityManager *entity_manager : entity_managers) {
@@ -214,6 +220,10 @@ void World::Update(GameCounter::TickUnit delta)
 
         entity_manager->EndAsyncUpdate();
     }
+
+    HYP_LOG(Scene, Debug, "Async update calls: {}\t\t",
+        num_async_update_calls,
+        String::Join(Map(entity_managers, [](EntityManager *entity_manager) { return entity_manager->GetScene()->GetName().LookupString(); }), '\t'));
 
     for (uint32 index = 0; index < m_scenes.Size(); index++) {
         HYP_NAMED_SCOPE("Scene entity collection");

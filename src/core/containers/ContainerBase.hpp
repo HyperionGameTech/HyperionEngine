@@ -16,10 +16,10 @@
 namespace hyperion {
 
 template <auto KeyByFunction>
-struct KeyByFunctionInvoker;
+struct MapFunction;
 
 template <class TargetType, class ReturnType, ReturnType(TargetType::*func)()>
-struct KeyByFunctionInvoker<func>
+struct MapFunction<func>
 {
     using Type = decltype(func);
 
@@ -35,7 +35,7 @@ struct KeyByFunctionInvoker<func>
 };
 
 template <class TargetType, class ReturnType, ReturnType(TargetType::*func)() const>
-struct KeyByFunctionInvoker<func>
+struct MapFunction<func>
 {
     using Type = decltype(func);
 
@@ -46,7 +46,7 @@ struct KeyByFunctionInvoker<func>
 };
 
 template <class TargetType, class ReturnType, ReturnType TargetType::*member>
-struct KeyByFunctionInvoker<member>
+struct MapFunction<member>
 {
     using Type = decltype(member);
 
@@ -62,7 +62,7 @@ struct KeyByFunctionInvoker<member>
 };
 
 template <class TargetType, class ReturnType, ReturnType(*func)(TargetType &)>
-struct KeyByFunctionInvoker<func>
+struct MapFunction<func>
 {
     using Type = decltype(func);
 
@@ -73,7 +73,7 @@ struct KeyByFunctionInvoker<func>
 };
 
 template <class TargetType, class ReturnType, ReturnType(*func)(const TargetType &)>
-struct KeyByFunctionInvoker<func>
+struct MapFunction<func>
 {
     using Type = decltype(func);
 

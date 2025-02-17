@@ -18,6 +18,9 @@ class Queue : Array<T>
 public:
     using Base = Array<T>;
 
+    using KeyType = typename Base::KeyType;
+    using ValueType = typename Base::ValueType;
+
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;
 

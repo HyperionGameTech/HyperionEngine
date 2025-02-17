@@ -26,6 +26,9 @@ public:
 
     using KeyValuePairType = typename Map::KeyValuePairType;
 
+    using KeyType = TypeID;
+    using ValueType = KeyValuePairType;
+
     using InsertResult = typename Map::InsertResult;
 
     using Iterator = typename Map::Iterator;

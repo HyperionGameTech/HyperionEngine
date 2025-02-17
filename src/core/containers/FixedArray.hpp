@@ -44,6 +44,7 @@ public:
     using ConstIterator = const T *;
 
     using KeyType = SizeType;
+    using ValueType = T;
 
     static constexpr SizeType size = Sz;
 

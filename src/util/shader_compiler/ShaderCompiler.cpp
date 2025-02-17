@@ -1445,7 +1445,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         Array<String> preprocess_error_messages;
         const bool preprocess_result = PreprocessShaderSource(type, language, BuildPreamble(properties), source, filename, preprocessed_source, preprocess_error_messages);
 
-        result.errors.Concat(preprocess_error_messages.Map([](const String &error_message)
+        result.errors.Concat(Map(preprocess_error_messages, [](const String &error_message)
         {
             return ProcessError { error_message };
         }));
@@ -2070,10 +2070,7 @@ bool ShaderCompiler::CompileBundle(
 
                     error_messages_mutex.lock();
 
-                    out.error_messages.Concat(process_result.errors.Map([](const ProcessError &error) -> String
-                    {
-                        return error.error_message;
-                    }));
+                    out.error_messages.Concat(Map(process_result.errors, &ProcessError::error_message));
 
                     error_messages_mutex.unlock();
 

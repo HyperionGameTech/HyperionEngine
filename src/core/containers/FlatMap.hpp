@@ -28,7 +28,7 @@ public:
     using Base = ContainerBase<FlatMap<Key, Value>, Key>;
 
     using KeyType = Key;
-    using ValueType = Value;
+    using ValueType = KeyValuePairType;
 
     using Iterator = typename decltype(m_vector)::Iterator;
     using ConstIterator = typename decltype(m_vector)::ConstIterator;
@@ -187,7 +187,7 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE ValueType &At(const KeyType &key)
+    HYP_FORCE_INLINE Value &At(const Key &key)
     {
         const auto it = Find(key);
         AssertDebugMsg(it != End(), "At(): Element not found");
@@ -195,7 +195,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE const ValueType &At(const KeyType &key) const
+    HYP_FORCE_INLINE const Value &At(const Key &key) const
     {
         const auto it = Find(key);
         AssertDebugMsg(it != End(), "At(): Element not found");
@@ -234,8 +234,8 @@ public:
     )
 
 private:
-    InsertResult Set_Internal(Pair<KeyType, ValueType> &&pair);
-    InsertResult Insert_Internal(Pair<KeyType, ValueType> &&pair);
+    InsertResult Set_Internal(Pair<Key, Value> &&pair);
+    InsertResult Insert_Internal(Pair<Key, Value> &&pair);
 };
 
 template <class Key, class Value>

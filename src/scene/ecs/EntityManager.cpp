@@ -496,22 +496,30 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
     Threads::AssertOnThread(m_owner_thread_mask);
     
     TaskBatch *root_task_batch = nullptr;
+    TaskBatch *last_task_batch = nullptr;
 
     // Prepare task dependencies
     for (SizeType index = 0; index < m_system_execution_groups.Size(); index++) {
         SystemExecutionGroup &system_execution_group = m_system_execution_groups[index];
 
+        TaskBatch *current_task_batch = system_execution_group.GetTaskBatch();
+
         if (!root_task_batch) {
-            root_task_batch = system_execution_group.GetTaskBatch();
+            root_task_batch = current_task_batch;
         }
 
-        system_execution_group.GetTaskBatch()->ResetState();
+        current_task_batch->ResetState();
 
         // Add tasks to batches before kickoff
         system_execution_group.StartProcessing(delta);
 
-        if (index != 0) {
-            m_system_execution_groups[index - 1].GetTaskBatch()->next_batch = m_system_execution_groups[index].GetTaskBatch();
+        if (last_task_batch != nullptr) {
+            if (current_task_batch->num_enqueued > 0) {
+                last_task_batch->next_batch = current_task_batch;
+                last_task_batch = current_task_batch;
+            }
+        } else {
+            last_task_batch = current_task_batch;
         }
     }
 

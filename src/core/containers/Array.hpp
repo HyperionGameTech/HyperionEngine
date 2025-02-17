@@ -515,19 +515,6 @@ public:
     HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }
 
-    template <class Lambda>
-    HYP_FORCE_INLINE auto Map(Lambda &&lambda) const -> Array<std::invoke_result_t<Lambda, const T &>>
-    {
-        Array<std::invoke_result_t<Lambda, const T &>> result;
-        result.Reserve(Size());
-
-        for (const auto &item : *this) {
-            result.PushBack(lambda(item));
-        }
-
-        return result;
-    }
-
     template <SizeType OtherNumInlineBytes>
     HYP_FORCE_INLINE bool operator==(const Array<T, OtherNumInlineBytes> &other) const
     {
@@ -1519,10 +1506,81 @@ void Array<T, NumInlineBytes>::Clear()
     //Refit();
 }
 
+/*! \brief A map function that applies a function to each element in a container.
+ *  \param container The container to map over.
+ *  \param func The function to apply to each element.
+ *  \return A new array with the results of the function applied to each element. */
+template <class ContainerType, class Function, typename = std::enable_if_t<!std::is_member_pointer_v<NormalizedType<Function>> && !std::is_member_function_pointer_v<NormalizedType<Function>>>>
+auto Map(ContainerType &&container, Function &&func)
+{
+    Array<decltype(std::declval<NormalizedType<Function>>()(std::declval<typename NormalizedType<ContainerType>::ValueType>()))> result;
+    result.Reserve(container.Size());
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        result.PushBack(func(*it));
+    }
+
+    return result;
+}
+
+template <class ContainerType, class ResultType>
+auto Map(ContainerType &&container, ResultType(NormalizedType<ContainerType>::ValueType::*MemFn)())
+{
+    Array<ResultType> result;
+    result.Reserve(container.Size());
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        result.PushBack(((*it).*MemFn)());
+    }
+
+    return result;
+}
+
+template <class ContainerType, class ResultType>
+auto Map(ContainerType &&container, ResultType(NormalizedType<ContainerType>::ValueType::*MemFn)() const)
+{
+    Array<ResultType> result;
+    result.Reserve(container.Size());
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        result.PushBack(((*it).*MemFn)());
+    }
+
+    return result;
+}
+
+template <class ContainerType, class ResultType>
+auto Map(ContainerType &&container, ResultType NormalizedType<ContainerType>::ValueType::*member)
+{
+    Array<ResultType> result;
+    result.Reserve(container.Size());
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        result.PushBack((*it).*member);
+    }
+
+    return result;
+}
+
+template <class ContainerType, class ResultType>
+auto Map(ContainerType &&container, ResultType const NormalizedType<ContainerType>::ValueType::*member)
+{
+    Array<ResultType> result;
+    result.Reserve(container.Size());
+
+    for (auto it = container.Begin(); it != container.End(); ++it) {
+        result.PushBack((*it).*member);
+    }
+
+    return result;
+}
+
 } // namespace containers
 
 template <class T, SizeType NumInlineBytes = 256u>
 using Array = containers::Array<T, NumInlineBytes>;
+
+using containers::Map;
 
 // traits
 template <class T>

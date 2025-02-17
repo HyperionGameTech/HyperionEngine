@@ -229,9 +229,7 @@ static Optional<Color> ParseColor(const String &str)
     } else {
 
         // Parse rgba if csv
-        Array<String> split = str
-            .Split(',')
-            .Map([](const String &s) { return s.Trimmed(); });
+        Array<String> split = Map(str.Split(','), &String::Trimmed);
 
         if (split.Size() == 4) {
         } else if (split.Size() == 3) {

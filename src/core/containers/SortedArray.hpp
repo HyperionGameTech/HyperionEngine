@@ -16,6 +16,7 @@ class SortedArray : public Array<T>
 {
 protected:
     using Base = Array<T>;
+    using KeyType = typename Base::KeyType;
     using ValueType = typename Base::ValueType;
 
 public:

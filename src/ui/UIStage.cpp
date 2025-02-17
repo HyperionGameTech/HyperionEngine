@@ -105,8 +105,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
         new_scene = CreateObject<Scene>(
             nullptr,
             CreateObject<Camera>(),
-            m_owner_thread_id,
-            SceneFlags::NON_WORLD
+            m_owner_thread_id
         );
     }
 
@@ -212,8 +211,7 @@ void UIStage::Init()
     m_scene = CreateObject<Scene>(
         nullptr,
         CreateObject<Camera>(),
-        m_owner_thread_id,
-        SceneFlags::NON_WORLD
+        m_owner_thread_id
     );
 
     m_scene->SetName(CreateNameFromDynamicString(ANSIString(GetName().LookupString()) + "_Scene"));
