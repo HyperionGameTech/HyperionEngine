@@ -157,6 +157,20 @@ public:
         return insert_result.first->second.Get();
     }
 
+    template <class SystemType>
+    SystemType *GetSystem() const
+    {
+        static const TypeID type_id = TypeID::ForType<SystemType>();
+
+        const auto it = m_systems.Find(type_id);
+
+        if (it == m_systems.End()) {
+            return nullptr;
+        }
+
+        return static_cast<SystemType *>(it->second.Get());
+    }
+
     /*! \brief Removes a System from the SystemExecutionGroup.
      *
      *  \tparam SystemType The type of the System to remove.
@@ -851,6 +865,18 @@ public:
     HYP_FORCE_INLINE SystemType *AddSystem(Args &&... args)
     {
         return AddSystemToExecutionGroup(MakeUnique<SystemType>(*this, std::forward<Args>(args)...));
+    }
+
+    template <class SystemType>
+    HYP_FORCE_INLINE SystemType *GetSystem() const
+    {
+        for (const SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
+            if (SystemType *system = system_execution_group.GetSystem<SystemType>()) {
+                return system;
+            }
+        }
+
+        return nullptr;
     }
 
     void Initialize();

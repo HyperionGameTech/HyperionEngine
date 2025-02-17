@@ -38,9 +38,10 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
 
         visibility_state_component.octant_id = insert_result.second;
+        visibility_state_component.visibility_state = nullptr;
 
         if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
-            visibility_state_component.visibility_state = octant->GetVisibilityState().Get();
+            visibility_state_component.visibility_state = &octant->GetVisibilityState();
         }
 
         HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
@@ -56,7 +57,6 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 
     VisibilityStateComponent &visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
-    visibility_state_component.visibility_state = nullptr;
 
     Octree &octree = GetEntityManager().GetScene()->GetOctree();
 
@@ -67,6 +67,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     }
 
     visibility_state_component.octant_id = OctantID::Invalid();
+    visibility_state_component.visibility_state = nullptr;
 }
 
 void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
@@ -87,9 +88,9 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         // if entity is not in the octree, try to insert it
         if (visibility_state_component.octant_id == OctantID::Invalid()) {
-            if (!bounding_box_component.world_aabb.IsValid()) {
-                visibility_state_component.visibility_state = nullptr;
+            visibility_state_component.visibility_state = nullptr;
 
+            if (!bounding_box_component.world_aabb.IsValid()) {
                 continue;
             }
 
@@ -105,7 +106,7 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
                 visibility_state_component.last_aabb_hash = aabb_hash_code;
 
                 if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
-                    visibility_state_component.visibility_state = octant->GetVisibilityState().Get();
+                    visibility_state_component.visibility_state = &octant->GetVisibilityState();
                 }
 
                 HYP_LOG(Octree, Debug, "Inserted entity {} into octree, inserted at {}, {}", entity_id.Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
@@ -115,11 +116,15 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
 
         if (needs_octree_update) {
+            visibility_state_component.visibility_state = nullptr;
+
             // force entry invalidation if the bounding box is not finite,
             // so directional lights changing cause the octree to be updated
             const bool force_entry_invalidation = visibility_state_invalidated;
 
             const Octree::InsertResult update_result = octree.Update(entity_id, bounding_box_component.world_aabb, force_entry_invalidation);
+
+            visibility_state_component.octant_id = update_result.second;
 
             if (!update_result.first) {
                 HYP_LOG(Octree, Warning, "Failed to update entity {} in octree: {}", entity_id.Value(), update_result.first.message);
@@ -129,21 +134,16 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
 
             AssertThrowMsg(update_result.second != OctantID::Invalid(), "Invalid octant ID returned from Update()");
 
-            visibility_state_component.octant_id = update_result.second;
             visibility_state_component.last_aabb_hash = aabb_hash_code;
         }
 
         if (visibility_state_component.octant_id != OctantID::Invalid()) {
-            Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id);
+            visibility_state_component.visibility_state = nullptr;
 
-            if (octant) {
-                visibility_state_component.visibility_state = octant->GetVisibilityState().Get();
-
-                continue;
+            if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
+                visibility_state_component.visibility_state = &octant->GetVisibilityState();
             }
         }
-
-        visibility_state_component.visibility_state = nullptr;
     }
 }
 

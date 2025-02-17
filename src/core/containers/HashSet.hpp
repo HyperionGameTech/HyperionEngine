@@ -396,6 +396,10 @@ public:
     InsertResult Insert(const ValueType &value);
     InsertResult Insert(ValueType &&value);
 
+    template <class... Args>
+    HYP_FORCE_INLINE InsertResult Emplace(Args &&... args)
+        { return Insert(ValueType(std::forward<Args>(args)...)); }
+
     void Clear();
 
     template <class OtherContainerType>

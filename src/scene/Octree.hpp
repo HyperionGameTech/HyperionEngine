@@ -6,6 +6,7 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/HashSet.hpp>
 
 #include <core/utilities/Pair.hpp>
 
@@ -119,7 +120,6 @@ class Octree;
 struct OctreeState
 {
     HashMap<WeakHandle<Entity>, Octree *>   entity_to_octree;
-    uint8                                   visibility_cursor { 0u };
 
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
     OctantID                                rebuild_state = OctantID::Invalid();
@@ -249,6 +249,8 @@ public:
         }
     };
 
+    using EntrySet = HashSet<Entry, &Entry::entity>;
+
     Octree(const RC<EntityManager> &entity_manager);
     Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb);
     Octree(const RC<EntityManager> &entity_manager, const BoundingBox &aabb, Octree *parent, uint8 index);
@@ -259,7 +261,10 @@ public:
     Octree &operator=(Octree &&other) noexcept  = delete;
     ~Octree();
 
-    const RC<VisibilityState> &GetVisibilityState() const
+    VisibilityState &GetVisibilityState()
+        { return m_visibility_state; }
+
+    const VisibilityState &GetVisibilityState() const
         { return m_visibility_state; }
 
     /*! \brief Get the EntityManager the Octree is using to manage entities.
@@ -277,7 +282,7 @@ public:
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
-    HYP_FORCE_INLINE const Array<Entry> &GetEntries() const
+    HYP_FORCE_INLINE const EntrySet &GetEntries() const
         { return m_entries; }
 
     HYP_FORCE_INLINE OctantID GetOctantID() const
@@ -351,21 +356,12 @@ private:
     void ResetEntriesHash();
     void RebuildEntriesHash(uint32 level = 0);
 
-    void ClearInternal(Array<Entry> &out_entries);
-    void Clear(Array<Entry> &out_entries);
+    void Clear_Internal(Array<Entry> &out_entries, bool undivide);
 
     /*! \brief Move the entity to a new octant. If allow_rebuild is true, the octree will be rebuilt if the entity doesn't fit in the new octant,
         and subdivided octants will be collapsed if they are empty + new octants will be created if they are needed.
      */
-    InsertResult Move(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild, const Array<Entry>::Iterator *it = nullptr);
-
-    auto FindEntry(ID<Entity> id)
-    {
-        return m_entries.FindIf([id](const Entry &entry)
-        {
-            return entry.entity == id;
-        });
-    }
+    InsertResult Move(ID<Entity> id, const BoundingBox &aabb, bool allow_rebuild, EntrySet::Iterator it);
 
     HYP_FORCE_INLINE bool IsRoot() const
         { return m_parent == nullptr; }
@@ -386,25 +382,24 @@ private:
         If \ref{allow_rebuild} is false, marks them as dirty so they get removed on the next call to PerformUpdates()
     */
     void CollapseParents(bool allow_rebuild);
-    InsertResult InsertInternal(const WeakHandle<Entity> &entity, const BoundingBox &aabb);
-    InsertResult UpdateInternal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild);
-    Result RemoveInternal(ID<Entity> id, bool allow_rebuild);
-    InsertResult RebuildExtendInternal(const BoundingBox &extend_include_aabb);
-    void UpdateVisibilityState(const Handle<Camera> &camera, uint16 validity_marker);
 
-    /* Called from entity - remove the pointer */
-    // void OnEntityRemoved(Entity *entity);
+    InsertResult Insert_Internal(const WeakHandle<Entity> &entity, const BoundingBox &aabb);
+    InsertResult Update_Internal(ID<Entity> id, const BoundingBox &aabb, bool force_invalidation, bool allow_rebuild);
+    Result Remove_Internal(ID<Entity> id, bool allow_rebuild);
+    InsertResult RebuildExtend_Internal(const BoundingBox &extend_include_aabb);
+
+    void UpdateVisibilityState(const Handle<Camera> &camera, uint16 validity_marker);
 
     RC<EntityManager>                                   m_entity_manager;
     
-    Array<Entry>                                        m_entries;
+    EntrySet                                            m_entries;
     FixedArray<HashCode, 1u << uint32(EntityTag::MAX)>  m_entry_hashes;
     Octree                                              *m_parent;
     BoundingBox                                         m_aabb;
     FixedArray<Octant, 8>                               m_octants;
     bool                                                m_is_divided;
     OctreeState                                         *m_state;
-    RC<VisibilityState>                                 m_visibility_state;
+    VisibilityState                                     m_visibility_state;
     OctantID                                            m_octant_id;
     uint32                                              m_invalidation_marker;
 };

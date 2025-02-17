@@ -324,7 +324,7 @@ RenderCollector::CollectionResult Scene::CollectEntities(
 
     const ID<Camera> camera_id = camera.GetID();
 
-    const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
+    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
@@ -375,7 +375,7 @@ RenderCollector::CollectionResult Scene::CollectDynamicEntities(
 
     const ID<Camera> camera_id = camera.GetID();
     
-    const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
+    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
@@ -431,7 +431,7 @@ RenderCollector::CollectionResult Scene::CollectStaticEntities(
 
     const ID<Camera> camera_id = camera.GetID();
     
-    const VisibilityStateSnapshot &visibility_state_snapshot = m_octree.GetVisibilityState()->GetSnapshot(camera_id);
+    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {

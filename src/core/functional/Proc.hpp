@@ -276,6 +276,10 @@ public:
 
     Proc &operator=(Proc &&other) noexcept
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         functor = std::move(other.functor);
 
         return *this;

@@ -490,6 +490,14 @@ public:
     InsertResult Insert(const Pair<KeyType, ValueType> &pair);
     InsertResult Insert(Pair<KeyType, ValueType> &&pair);
 
+    template <class... Args>
+    HYP_FORCE_INLINE InsertResult Emplace(const KeyType &key, Args &&...args)
+        { return Insert(key, ValueType(std::forward<Args>(args)...)); }
+
+    template <class... Args>
+    HYP_FORCE_INLINE InsertResult Emplace(KeyType &&key, Args &&...args)
+        { return Insert(std::move(key), ValueType(std::forward<Args>(args)...)); }
+
     void Clear();
 
     template <class OtherContainerType>

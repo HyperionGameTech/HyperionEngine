@@ -20,7 +20,8 @@
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static const uint32 systems_execution_parallel_threshold = 3;
+static const uint32 g_systems_execution_parallel_threshold = 3;
+static const uint32 g_entity_manager_command_queue_warning_size = 8192;
 
 #pragma region EntityManagerCommandQueue
 
@@ -62,6 +63,15 @@ void EntityManagerCommandQueue::Push(EntityManagerCommandProc &&command)
 
     buffer.commands.Push(std::move(command));
     m_count.Increment(1, MemoryOrder::RELEASE);
+
+    if (buffer.commands.Size() >= g_entity_manager_command_queue_warning_size) {
+        HYP_LOG(ECS, Warning, "EntityManager command queue has grown past warning threshold size of ({} >= {}). This may indicate FlushCommandQueue() is not being called which would be a memory leak.",
+            buffer.commands.Size(), g_entity_manager_command_queue_warning_size);
+
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif
+    }
 }
 
 void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUnit delta)

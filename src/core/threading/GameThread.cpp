@@ -71,14 +71,14 @@ void GameThread::operator()(Game *game)
             num_frames = 0;
         }
 
-        trace_accum += counter.delta;
+        // trace_accum += counter.delta;
 
-        if (trace_accum >= 60.0f) {
-            // Debugging
-            TraceLiveEntities();
+        // if (trace_accum >= 60.0f) {
+        //     // Debugging
+        //     TraceLiveEntities();
 
-            trace_accum = 0.0f;
-        }
+        //     trace_accum = 0.0f;
+        // }
 
         AssetManager::GetInstance()->Update(counter.delta);
 

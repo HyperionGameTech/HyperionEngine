@@ -18,6 +18,9 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 
+// debugging
+#include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
+
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
