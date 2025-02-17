@@ -25,6 +25,8 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/profiling/PerformanceClock.hpp>
+
 #include <core/Handle.hpp>
 #include <core/ID.hpp>
 
@@ -88,6 +90,14 @@ public:
 
     HYP_FORCE_INLINE TaskBatch *GetTaskBatch() const
         { return m_task_batch.Get(); }
+
+#ifdef HYP_DEBUG_MODE
+    HYP_FORCE_INLINE const PerformanceClock &GetPerformanceClock() const
+        { return m_performance_clock; }
+
+    HYP_FORCE_INLINE const FlatMap<SystemBase *, PerformanceClock> &GetPerformanceClocks() const
+        { return m_performance_clocks; }
+#endif
 
     /*! \brief Checks if the SystemExecutionGroup is valid for the given System.
      *
@@ -195,8 +205,13 @@ public:
     void FinishProcessing();
 
 private:
-    TypeMap<UniquePtr<SystemBase>>  m_systems;
-    UniquePtr<TaskBatch>            m_task_batch;
+    TypeMap<UniquePtr<SystemBase>>          m_systems;
+    UniquePtr<TaskBatch>                    m_task_batch;
+
+#ifdef HYP_DEBUG_MODE
+    PerformanceClock                        m_performance_clock;
+    FlatMap<SystemBase *, PerformanceClock> m_performance_clocks;
+#endif
 };
 
 using EntityListenerID = uint32;

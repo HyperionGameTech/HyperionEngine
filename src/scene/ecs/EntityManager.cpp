@@ -20,8 +20,10 @@
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static const uint32 g_systems_execution_parallel_threshold = 3;
+static const double g_system_execution_group_lag_spike_threshold = 50.0;
 static const uint32 g_entity_manager_command_queue_warning_size = 8192;
+
+#define HYP_SYSTEMS_PARALLEL_EXECUTION
 
 #pragma region EntityManagerCommandQueue
 
@@ -515,7 +517,9 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
 
     // Kickoff first task
     if (root_task_batch) {
+#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
         TaskSystem::GetInstance().EnqueueBatch(root_task_batch);
+#endif
     }
 }
 
@@ -527,6 +531,21 @@ void EntityManager::EndAsyncUpdate()
     for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
         system_execution_group.FinishProcessing();
     }
+
+#ifdef HYP_DEBUG_MODE
+    for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
+        const PerformanceClock &performance_clock = system_execution_group.GetPerformanceClock();
+        const double elapsed_time_ms = performance_clock.Elapsed() / 1000.0;
+
+        if (elapsed_time_ms >= g_system_execution_group_lag_spike_threshold) {
+            HYP_LOG(ECS, Warning, "SystemExecutionGroup spike detected: {} ms", elapsed_time_ms);
+
+            for (const auto &it : system_execution_group.GetPerformanceClocks()) {
+                HYP_LOG(ECS, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.Elapsed() / 1000.0);
+            }
+        }
+    }
+#endif
 }
 
 void EntityManager::FlushCommandQueue(GameCounter::TickUnit delta)
@@ -556,19 +575,48 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
+#ifdef HYP_DEBUG_MODE
+    m_performance_clock.Start();
+
     for (auto &it : m_systems) {
-        m_task_batch->AddTask([system = it.second.Get(), delta]
+        SystemBase *system = it.second.Get();
+
+        m_performance_clocks.Set(system, PerformanceClock());
+    }
+#endif
+
+    for (auto &it : m_systems) {
+        SystemBase *system = it.second.Get();
+
+        m_task_batch->AddTask([this, system, delta]
         {
             HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
+#ifdef HYP_DEBUG_MODE
+            PerformanceClock &performance_clock = m_performance_clocks[system];
+            performance_clock.Start();
+#endif
+
             system->Process(delta);
+
+#ifdef HYP_DEBUG_MODE
+            performance_clock.Stop();
+#endif
         });
     }
 }
 
 void SystemExecutionGroup::FinishProcessing()
 {
+#ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
     m_task_batch->AwaitCompletion();
+#else
+    m_task_batch->ExecuteBlocking(/* execute_dependent_batches */ true);
+#endif
+
+#ifdef HYP_DEBUG_MODE
+    m_performance_clock.Stop();
+#endif
 }
 
 #pragma endregion SystemExecutionGroup

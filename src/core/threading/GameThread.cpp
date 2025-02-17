@@ -38,8 +38,6 @@ void GameThread::operator()(Game *game)
     uint32 num_frames = 0;
     float delta_time_accum = 0.0f;
 
-    float trace_accum = 0.0f;// debugging
-
 #if HYP_GAME_THREAD_LOCKED
     LockstepGameCounter counter(1.0f / game_thread_target_ticks_per_second);
 #else
@@ -70,15 +68,6 @@ void GameThread::operator()(Game *game)
             delta_time_accum = 0.0f;
             num_frames = 0;
         }
-
-        // trace_accum += counter.delta;
-
-        // if (trace_accum >= 60.0f) {
-        //     // Debugging
-        //     TraceLiveEntities();
-
-        //     trace_accum = 0.0f;
-        // }
 
         AssetManager::GetInstance()->Update(counter.delta);
 

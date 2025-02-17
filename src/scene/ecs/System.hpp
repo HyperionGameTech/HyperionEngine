@@ -32,6 +32,8 @@ public:
 
     virtual ANSIStringView GetName() const = 0;
 
+    virtual TypeID GetTypeID() const = 0;
+
     HYP_FORCE_INLINE bool IsEntityInitialized(ID<Entity> entity) const
         { return m_initialized_entities.FindAs(entity) != m_initialized_entities.End(); }
 
@@ -196,6 +198,11 @@ public:
     virtual ANSIStringView GetName() const override final
     {
         return ANSIStringView(TypeNameHelper<Derived, true>::value);
+    }
+
+    virtual TypeID GetTypeID() const override final
+    {
+        return TypeID::ForType<Derived>();
     }
 
     virtual void Process(GameCounter::TickUnit delta) override = 0;

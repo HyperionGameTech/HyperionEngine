@@ -96,7 +96,7 @@ public:
         HYP_MT_CHECK_RW(data_race_detector);
 #endif
 
-        executors.EmplaceBack(std::move(executor));
+        executors.PushBack(std::move(executor));
 
         ++num_enqueued;
 

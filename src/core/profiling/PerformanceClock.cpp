@@ -37,6 +37,23 @@ uint64 PerformanceClock::TimeSince(uint64 microseconds)
 
     return now - us;
 }
+
+PerformanceClock::PerformanceClock()
+    : m_start_time_us(0),
+      m_end_time_us(0)
+{
+}
+
+void PerformanceClock::Start()
+{
+    m_start_time_us = Now();
+    m_end_time_us = 0;
+}
+
+void PerformanceClock::Stop()
+{
+    m_end_time_us = Now();
+}
     
 } // namespace profiling
 } // namespace hyperion

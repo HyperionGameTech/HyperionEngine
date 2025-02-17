@@ -145,7 +145,7 @@ void World::Update(GameCounter::TickUnit delta)
             continue;
         }
 
-        update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, subsystem = it.second.Get(), delta]
+        update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem = it.second.Get(), delta]
         {
             HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
@@ -164,6 +164,8 @@ void World::Update(GameCounter::TickUnit delta)
     for (Task<void> &task : update_subsystem_tasks) {
         task.Await();
     }
+
+    update_subsystem_tasks.Clear();
 
     Array<EntityManager *> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
@@ -272,8 +274,6 @@ Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
     // otherwise, it is safe to call this function from the World constructor (main thread)
     if (IsInitCalled()) {
         Threads::AssertOnThread(ThreadName::THREAD_GAME);
-    } else {
-        Threads::AssertOnThread(ThreadName::THREAD_MAIN);
     }
 
     subsystem->SetWorld(this);

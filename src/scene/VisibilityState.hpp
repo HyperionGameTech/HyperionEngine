@@ -41,7 +41,7 @@ struct VisibilityState
         auto it = snapshots.Find(id);
 
         if (it == snapshots.End()) {
-            return VisibilityStateSnapshot();
+            return { };
         }
 
         return it->second;

@@ -17,6 +17,18 @@ public:
 
     /*! Get time since the given timestamp in microseconds */
     static uint64 TimeSince(uint64 microseconds);
+
+    PerformanceClock();
+
+    HYP_FORCE_INLINE uint64 Elapsed() const
+        { return m_end_time_us - m_start_time_us; }
+
+    void Start();
+    void Stop();
+
+private:
+    uint64  m_start_time_us;
+    uint64  m_end_time_us;
 };
 
 } // namespace profiling
