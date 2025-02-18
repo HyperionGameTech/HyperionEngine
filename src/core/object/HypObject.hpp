@@ -63,9 +63,7 @@ public:
 
     virtual ~HypObjectInitializer() override
     {
-#ifdef HYP_DEBUG_MODE
         HYP_MT_CHECK_RW(m_data_race_detector);
-#endif
 
         CleanupHypObjectInitializer(GetClass_Static(), &m_managed_object);
     }
@@ -87,18 +85,14 @@ public:
 
     virtual void SetManagedObject(dotnet::Object &&managed_object) override
     {
-#ifdef HYP_DEBUG_MODE
         HYP_MT_CHECK_RW(m_data_race_detector);
-#endif
 
         m_managed_object = std::move(managed_object);
     }
 
     virtual dotnet::Object *GetManagedObject() const override
     {
-#ifdef HYP_DEBUG_MODE
         HYP_MT_CHECK_READ(m_data_race_detector);
-#endif
 
         return m_managed_object.IsValid() ? const_cast<dotnet::Object *>(&m_managed_object) : nullptr;
     }
@@ -125,9 +119,7 @@ public:
 private:
     dotnet::Object      m_managed_object;
 
-#ifdef HYP_DEBUG_MODE
-    DataRaceDetector    m_data_race_detector;
-#endif
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 // template <class T>

@@ -6,8 +6,6 @@
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Bitset.hpp>
 
-#include <core/debug/StackDump.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);

@@ -44,10 +44,8 @@ public:
 
 private:
     TypeMap<UniquePtr<GPUBufferHolderBase>> m_entity_instance_batch_holders;
-
-#ifdef HYP_ENABLE_MT_CHECK
-    DataRaceDetector                        m_data_race_detector;
-#endif
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion

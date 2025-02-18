@@ -141,8 +141,8 @@ private:
 
     HashMap<HypClass *, dotnet::Class *>    m_managed_classes;
     mutable Mutex                           m_managed_classes_mutex;
-
-    DataRaceDetector                        m_data_race_detector;
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 namespace detail {

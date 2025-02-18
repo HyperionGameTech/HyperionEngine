@@ -18,8 +18,8 @@ class RenderEnvironment;
 
 struct SceneShaderData
 {
-    Vec4f   aabb_max;
-    Vec4f   aabb_min;
+    Vec4f   _pad0;//aabb_max;
+    Vec4f   _pad1;//aabb_min;
     Vec4f   fog_params;
 
     float   game_time;

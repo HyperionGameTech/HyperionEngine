@@ -128,6 +128,12 @@ public:
 
 #endif
 
+#ifdef HYP_ENABLE_MT_CHECK
+    #define HYP_DECLARE_MT_CHECK(_data_race_detector) DataRaceDetector _data_race_detector
+#else
+    #define HYP_DECLARE_MT_CHECK(_data_race_detector)
+#endif
+
 } // namespace threading
 
 using threading::DataRaceDetector;

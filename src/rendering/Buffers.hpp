@@ -356,9 +356,7 @@ private:
     FixedArray<Range<uint32>, 2>    m_dirty_ranges;
 
 protected:
-#ifdef HYP_ENABLE_MT_CHECK
-    DataRaceDetector                m_data_race_detector;
-#endif
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 template <class StructType, GPUBufferType BufferType>

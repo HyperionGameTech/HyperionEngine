@@ -274,7 +274,7 @@ public:
     }
 
 private:
-    DataRaceDetector    m_data_race_detector;
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace config

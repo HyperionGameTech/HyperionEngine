@@ -22,7 +22,7 @@ HYP_DEFINE_LOG_CHANNEL(GameThread);
 static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
 GameThread::GameThread()
-    : Thread(Threads::GetStaticThreadID(ThreadName::THREAD_GAME)),
+    : Thread(Threads::GetStaticThreadID(ThreadName::THREAD_GAME), ThreadPriorityValue::HIGHEST),
       m_is_running { false },
       m_stop_requested { false }
 {

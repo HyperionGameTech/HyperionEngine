@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/debug/StackDump.hpp>
 #include <system/SharedMemory.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/Defines.hpp>

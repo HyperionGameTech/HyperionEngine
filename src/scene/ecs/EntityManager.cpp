@@ -524,7 +524,7 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
     }
 
     // Kickoff first task
-    if (root_task_batch) {
+    if (root_task_batch != nullptr && (root_task_batch->num_enqueued > 0 || root_task_batch->next_batch != nullptr)) {
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
         TaskSystem::GetInstance().EnqueueBatch(root_task_batch);
 #endif
@@ -596,6 +596,10 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
     for (auto &it : m_systems) {
         SystemBase *system = it.second.Get();
 
+        if (system->GetInitializedEntities().Empty()) {
+            continue;
+        }
+
         m_task_batch->AddTask([this, system, delta]
         {
             HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
@@ -616,11 +620,13 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::FinishProcessing()
 {
+    if (m_task_batch->num_enqueued != 0 || m_task_batch->next_batch != nullptr) {
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
-    m_task_batch->AwaitCompletion();
+        m_task_batch->AwaitCompletion();
 #else
-    m_task_batch->ExecuteBlocking(/* execute_dependent_batches */ true);
+        m_task_batch->ExecuteBlocking(/* execute_dependent_batches */ true);
 #endif
+    }
 
 #ifdef HYP_DEBUG_MODE
     m_performance_clock.Stop();

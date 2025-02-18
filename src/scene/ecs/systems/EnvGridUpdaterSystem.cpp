@@ -50,7 +50,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         HYP_LOG(EnvGrid, Warning, "EnvGridUpdaterSystem::OnEntityAdded: Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
-    if (!(GetEntityManager().GetScene()->GetFlags() & (SceneFlags::NON_WORLD | SceneFlags::DETACHED))) {
+    if (GetEntityManager().GetScene()->IsForegroundScene()) {
         HYP_LOG(EnvGrid, Debug, "Adding EnvGrid render component to scene {}", GetEntityManager().GetScene()->GetName());
 
         env_grid_component.env_grid = GetEntityManager().GetScene()->GetRenderResources().GetEnvironment()->AddRenderSubsystem<EnvGrid>(

@@ -21,8 +21,8 @@ struct TaskThreadPoolInfo
 };
 
 static const FlatMap<TaskThreadPoolName, TaskThreadPoolInfo> g_thread_pool_info {
-    { TaskThreadPoolName::THREAD_POOL_GENERIC,      { 4u, ThreadPriorityValue::HIGH } },
-    { TaskThreadPoolName::THREAD_POOL_RENDER,       { 2u, ThreadPriorityValue::HIGHEST } },
+    { TaskThreadPoolName::THREAD_POOL_GENERIC,      { 4u, ThreadPriorityValue::NORMAL } },
+    { TaskThreadPoolName::THREAD_POOL_RENDER,       { 2u, ThreadPriorityValue::HIGH } },
     { TaskThreadPoolName::THREAD_POOL_BACKGROUND,   { 2u, ThreadPriorityValue::LOW } }
 };
 
@@ -50,6 +50,11 @@ void TaskBatch::AwaitCompletion()
     }
 
     semaphore.Acquire();
+
+    // ensure dependent batches are also completed
+    if (next_batch != nullptr) {
+        next_batch->AwaitCompletion();
+    }
 }
 
 #pragma endregion TaskBatch
@@ -131,7 +136,7 @@ void TaskThreadPool::Stop(Array<TaskThread *> &out_task_threads)
 
 TaskThread *TaskThreadPool::GetNextTaskThread()
 {
-    static constexpr uint32 max_spins = 40;
+    static constexpr uint32 max_spins = 16;
 
     const uint32 num_threads_in_pool = uint32(m_threads.Size());
 

@@ -14,12 +14,6 @@
 
 namespace hyperion {
 
-// struct LightComponent;
-// struct TransformComponent;
-// struct BoundingBoxComponent;
-// struct VisibilityStateComponent;
-// struct MeshComponent;
-
 class LightVisibilityUpdaterSystem : public System<
     LightVisibilityUpdaterSystem,
     

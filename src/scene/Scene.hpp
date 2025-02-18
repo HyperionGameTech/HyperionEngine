@@ -49,9 +49,10 @@ struct FogParams
 enum class SceneFlags : uint32
 {
     NONE        = 0x0,
-    HAS_TLAS    = 0x1,
-    NON_WORLD   = 0x2,
-    DETACHED    = 0x4
+    FOREGROUND  = 0x1,
+    DETACHED    = 0x2,
+    HAS_TLAS    = 0x4,
+    UI          = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
@@ -180,8 +181,11 @@ public:
     void SetWorld(World *world);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsNonWorldScene() const
-        { return m_flags & SceneFlags::NON_WORLD; }
+    HYP_FORCE_INLINE bool IsForegroundScene() const
+        { return m_flags & SceneFlags::FOREGROUND; }
+
+    HYP_FORCE_INLINE bool IsBackgroundScene() const
+    { return !(m_flags & SceneFlags::FOREGROUND); }
 
     HYP_METHOD(Property="IsAudioListener", Serialize=true)
     HYP_FORCE_INLINE bool IsAudioListener() const

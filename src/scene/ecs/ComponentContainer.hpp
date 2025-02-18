@@ -78,11 +78,13 @@ public:
     HYP_FORCE_INLINE ComponentContainerFactoryBase *GetFactory() const
         { return m_factory; }
 
+#ifdef HYP_ENABLE_MT_CHECK
     HYP_FORCE_INLINE DataRaceDetector &GetDataRaceDetector()
         { return m_data_race_detector; }
 
     HYP_FORCE_INLINE const DataRaceDetector &GetDataRaceDetector() const
         { return m_data_race_detector; }
+#endif
 
     /*! \brief Gets the type ID of the component type that this component container holds.
      *
@@ -150,7 +152,7 @@ public:
     virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) = 0;
 
 protected:
-    DataRaceDetector                m_data_race_detector;
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 
 private:
     ComponentContainerFactoryBase   *m_factory;

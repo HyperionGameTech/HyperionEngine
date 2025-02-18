@@ -37,6 +37,9 @@ public:
     HYP_FORCE_INLINE bool IsEntityInitialized(ID<Entity> entity) const
         { return m_initialized_entities.FindAs(entity) != m_initialized_entities.End(); }
 
+    HYP_FORCE_INLINE const HashSet<WeakHandle<Entity>> &GetInitializedEntities() const
+        { return m_initialized_entities; }
+
     virtual bool AllowParallelExecution() const
         { return true; }
 

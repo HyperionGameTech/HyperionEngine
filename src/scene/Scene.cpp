@@ -167,7 +167,7 @@ void Scene::Init()
 
     m_render_resources = AllocateResource<SceneRenderResources>(this);
 
-    if (!IsNonWorldScene()) {
+    if (IsForegroundScene()) {
         if (m_flags & SceneFlags::HAS_TLAS) {
             if (!m_tlas) {
                 if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
@@ -304,6 +304,10 @@ void Scene::Update(GameCounter::TickUnit delta)
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
             m_mutation_state |= DataMutationState::DIRTY;
         }
+    }
+
+    if (IsForegroundScene()) {
+        m_entity_manager->FlushCommandQueue(delta);
     }
 }
 
@@ -471,13 +475,9 @@ void Scene::EnqueueRenderUpdates()
 
     AssertReady();
 
-    AssertThrow(m_world != nullptr);
-
     SceneShaderData shader_data { };
-    shader_data.aabb_max = Vec4f(m_root_node_proxy.GetWorldAABB().max, 1.0f);
-    shader_data.aabb_min = Vec4f(m_root_node_proxy.GetWorldAABB().min, 1.0f);
     shader_data.fog_params = Vec4f(float(m_fog_params.color.Packed()), m_fog_params.start_distance, m_fog_params.end_distance, 0.0f);
-    shader_data.game_time = m_world->GetGameState().game_time;
+    shader_data.game_time = m_world != nullptr ? m_world->GetGameState().game_time : 0.0f;
 
     m_render_resources->SetBufferData(shader_data);
 
@@ -488,7 +488,7 @@ bool Scene::CreateTLAS()
 {
     HYP_SCOPE;
 
-    AssertThrowMsg(!IsNonWorldScene(), "Can only create TLAS for world scenes");
+    AssertThrowMsg(IsForegroundScene(), "Can only create TLAS for foreground");
     AssertIsInitCalled();
 
     if (m_tlas) {

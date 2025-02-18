@@ -172,7 +172,8 @@ public:
 
 private:
     FlatMap<WeakHandle<Entity>, EntityData> m_entities;
-    DataRaceDetector                        m_data_race_detector;
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion

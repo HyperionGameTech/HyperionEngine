@@ -244,7 +244,7 @@ private:
     EntityContainer                                 &m_entities;
     Tuple< ComponentContainer<Components> &... >    m_component_containers;
 
-    DataRaceDetector                                m_data_race_detector;
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 template <class... Components>
@@ -254,24 +254,34 @@ struct EntitySetView
     using ConstIterator = EntitySetIterator<const Components...>;
 
     EntitySet<Components...>                                                    &entity_set;
+
+#ifdef HYP_ENABLE_MT_CHECK
     FixedArray<DataRaceDetector *, sizeof...(Components)>                       m_component_data_race_detectors;
     ValueStorageArray<DataRaceDetector::DataAccessScope, sizeof...(Components)> m_component_data_access_scopes;
+#endif
 
     EntitySetView(EntitySet<Components...> &entity_set, EnumFlags<DataAccessFlags> data_access_flags)
-        : entity_set(entity_set),
-          m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+        : entity_set(entity_set)
+#ifdef HYP_ENABLE_MT_CHECK
+        , m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+#endif
     {
+#ifdef HYP_ENABLE_MT_CHECK
         if constexpr (sizeof...(Components) != 0) {
             for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
                 m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i]);
             }
         }
+#endif
     }
 
     EntitySetView(EntitySet<Components...> &entity_set, const Array<ComponentInfo> &component_infos)
-        : entity_set(entity_set),
-          m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+        : entity_set(entity_set)
+#ifdef HYP_ENABLE_MT_CHECK
+        , m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
+#endif
     {
+#ifdef HYP_ENABLE_MT_CHECK
         static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
 
         if constexpr (sizeof...(Components) != 0) {
@@ -296,6 +306,7 @@ struct EntitySetView
                 m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i]);
             }
         }
+#endif
     }
 
     EntitySetView(const EntitySetView &other)                   = delete;
@@ -305,11 +316,13 @@ struct EntitySetView
 
     ~EntitySetView()
     {
+#ifdef HYP_ENABLE_MT_CHECK
         if constexpr (sizeof...(Components) != 0) {
             for (SizeType i = 0; i < m_component_data_access_scopes.Size(); i++) {
                 m_component_data_access_scopes[i].Destruct();
             }
         }
+#endif
     }
 
     HYP_DEF_STL_BEGIN_END(

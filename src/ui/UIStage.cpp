@@ -211,7 +211,8 @@ void UIStage::Init()
     m_scene = CreateObject<Scene>(
         nullptr,
         CreateObject<Camera>(),
-        m_owner_thread_id
+        m_owner_thread_id,
+        SceneFlags::FOREGROUND | SceneFlags::UI
     );
 
     m_scene->SetName(CreateNameFromDynamicString(ANSIString(GetName().LookupString()) + "_Scene"));
@@ -256,9 +257,6 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
     Threads::AssertOnThread(m_owner_thread_id);
 
     UIObject::Update_Internal(delta);
-
-    // m_scene->BeginUpdate(delta);
-    // m_scene->EndUpdate();
 
     for (auto &it : m_mouse_button_pressed_states) {
         it.second.held_time += delta;

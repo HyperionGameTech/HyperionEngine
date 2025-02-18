@@ -232,10 +232,10 @@ private:
 
     mutable BoundingBox     m_aabb;
 
-    DataRaceDetector        m_data_race_detector;
-
     MeshRenderResources     *m_render_resources;
     ResourceHandle          m_always_claimed_render_resources_handle;
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion

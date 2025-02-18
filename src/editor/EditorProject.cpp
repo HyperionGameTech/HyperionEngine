@@ -36,7 +36,7 @@ EditorProject::EditorProject(Name name)
     camera->SetNear(0.01f);
     camera->SetFar(30000.0f);
 
-    m_scene = CreateObject<Scene>(nullptr, camera);
+    m_scene = CreateObject<Scene>(nullptr, camera, SceneFlags::FOREGROUND);
 }
 
 EditorProject::~EditorProject()

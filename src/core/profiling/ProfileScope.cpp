@@ -239,7 +239,6 @@ public:
 
 private:
     ProfilerConnectionParams                        m_params;
-    DataRaceDetector                                m_data_race_detector;
 
     UUID                                            m_trace_id;
     ProfilerConnectionThread                        m_thread;
@@ -248,8 +247,8 @@ private:
     mutable Mutex                                   m_values_mutex;
 
     Array<Task<HTTPResponse>>                       m_requests;
-
-
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams &params)

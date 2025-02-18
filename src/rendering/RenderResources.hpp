@@ -110,10 +110,8 @@ private:
     PreInitSemaphore                m_pre_init_semaphore;
     InitSemaphore                   m_init_semaphore;
     CompletionSemaphore             m_completion_semaphore;
-
-#ifdef HYP_ENABLE_MT_CHECK
-    DataRaceDetector                m_data_race_detector;
-#endif
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion

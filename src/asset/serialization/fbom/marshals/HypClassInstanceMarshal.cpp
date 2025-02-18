@@ -10,8 +10,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <core/debug/StackDump.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -89,7 +87,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize(const FBOMObject &in, HypData &o
     const HypClass *hyp_class = in.GetHypClass();
 
     if (!hyp_class) {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeID: {}) has no associated HypClass (Trace: {})", in.GetType().name, in.GetType().GetNativeTypeID().Value(), StackDump(5).ToString()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeID: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeID().Value()) };
     }
 
     hyp_class->CreateInstance(out);
