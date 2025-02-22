@@ -495,9 +495,6 @@ EnvGridPass::EnvGridPass(EnvGridPassMode mode)
 
 EnvGridPass::~EnvGridPass()
 {
-    m_render_texture_to_screen_pass.Reset();
-
-    m_temporal_blending.Reset();
 }
 
 void EnvGridPass::Create()
@@ -507,13 +504,6 @@ void EnvGridPass::Create()
     CreateShader();
 
     FullScreenPass::Create();
-
-    if (m_mode == EnvGridPassMode::RADIANCE) {
-        CreateTemporalBlending();
-    }
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
 
     AddToGlobalDescriptorSet();
 }
@@ -556,81 +546,18 @@ void EnvGridPass::CreatePipeline()
     ));
 }
 
-void EnvGridPass::CreatePreviousTexture()
-{
-    // Create previous image
-    m_previous_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        m_image_format,
-        Vec3u { m_extent.x, m_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    });
-
-    InitObject(m_previous_texture);
-}
-
-void EnvGridPass::CreateRenderTextureToScreenPass()
-{
-    AssertThrow(m_previous_texture.IsValid());
-    AssertThrow(m_previous_texture->GetImageView().IsValid());
-
-    // Create render texture to screen pass.
-    // this is used to render the previous frame's result to the screen,
-    // so we can blend it with the current frame's result (checkerboarded)
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
-    AssertThrow(render_texture_to_screen_shader.IsValid());
-
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
-        AssertThrow(descriptor_set != nullptr);
-
-        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
-    }
-
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-    m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
-        render_texture_to_screen_shader,
-        descriptor_table,
-        m_image_format,
-        m_extent
-    );
-
-    m_render_texture_to_screen_pass->Create();
-}
-
-void EnvGridPass::CreateTemporalBlending()
-{
-    m_temporal_blending = MakeUnique<TemporalBlending>(
-        m_framebuffer->GetExtent(),
-        InternalFormat::RGBA8,
-        TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::LOW,
-        m_framebuffer
-    );
-
-    m_temporal_blending->Create();
-}
-
 void EnvGridPass::AddToGlobalDescriptorSet()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         switch (m_mode) {
         case EnvGridPassMode::RADIANCE:
-            AssertThrow(m_temporal_blending->GetResultTexture()->GetImageView().IsValid());
-            AssertThrow(m_temporal_blending->GetResultTexture()->GetImageView()->IsCreated());
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("EnvGridRadianceResultTexture"), GetAttachment(0)->GetImageView()); //m_temporal_blending->GetResultTexture()->GetImageView());
+                ->SetElement(NAME("EnvGridRadianceResultTexture"), GetFinalImageView());
 
             break;
         case EnvGridPassMode::IRRADIANCE:
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("EnvGridIrradianceResultTexture"), GetAttachment(0)->GetImageView());
+                ->SetElement(NAME("EnvGridIrradianceResultTexture"), GetFinalImageView());
 
             break;
         }
@@ -640,18 +567,6 @@ void EnvGridPass::AddToGlobalDescriptorSet()
 void EnvGridPass::Resize_Internal(Vec2u new_size)
 {
     FullScreenPass::Resize_Internal(new_size);
-
-    if (m_previous_texture.IsValid()) {
-        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
-    }
-
-    m_render_texture_to_screen_pass.Reset();
-    
-    m_temporal_blending.Reset();
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-    CreateTemporalBlending();
 
     AddToGlobalDescriptorSet();
 }
@@ -675,106 +590,70 @@ void EnvGridPass::Render(Frame *frame)
 
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
-    // // render previous frame's result to screen
-    // if (!m_is_first_frame) {
-    //     m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->Record(
-    //         g_engine->GetGPUInstance()->GetDevice(),
-    //         m_render_group->GetPipeline()->GetRenderPass(),
-    //         [&](CommandBuffer *cmd)
-    //         {
-    //             // render previous frame's result to screen
-    //             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-    //             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-    //                 cmd,
-    //                 frame_index,
-    //                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
-    //                 {
-    //                     {
-    //                         NAME("Scene"),
-    //                         {
-    //                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_index) },
-    //                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
-    //                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
-    //                         }
-    //                     }
-    //                 }
-    //             );
-
-    //             m_full_screen_quad->Render(cmd);
-
-    //             HYPERION_RETURN_OK;
-    //         });
-
-    //     HYPERION_ASSERT_RESULT(m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer()));
-    // } else {
-    //     m_is_first_frame = false;
-    // }
+    // render previous frame's result to screen
+    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
+        RenderPreviousTextureToScreen(frame);
+    }
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
-    command_buffer->Record(
-        g_engine->GetGPUInstance()->GetDevice(),
-        m_render_group->GetPipeline()->GetRenderPass(),
-        [&](CommandBuffer *cmd)
-        {
-            const uint32 global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-            const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
 
-            m_render_group->GetPipeline()->SetPushConstants(
-                m_push_constant_data.Data(),
-                m_push_constant_data.Size()
-            );
+    const uint32 global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+    const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-            m_render_group->GetPipeline()->Bind(cmd);
+    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
-            m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->Bind(
-                    cmd,
-                    m_render_group->GetPipeline(),
-                    { },
-                    global_descriptor_set_index
-                );
+    if (ShouldRenderHalfRes()) {
+        const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
 
-            m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                ->Bind(
-                    cmd,
-                    m_render_group->GetPipeline(),
-                    {
-                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
-                    },
-                    scene_descriptor_set_index
-                );
+        m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
+    } else {
+        m_render_group->GetPipeline()->Bind(command_buffer);
+    }
 
-            m_full_screen_quad->Render(cmd);
+    m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+        ->Bind(
+            command_buffer,
+            m_render_group->GetPipeline(),
+            { },
+            global_descriptor_set_index
+        );
 
-            HYPERION_RETURN_OK;
-        });
+    m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+        ->Bind(
+            command_buffer,
+            m_render_group->GetPipeline(),
+            {
+                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
+            },
+            scene_descriptor_set_index
+        );
+
+    m_full_screen_quad->Render(command_buffer);
+
+    command_buffer->End(g_engine->GetGPUDevice());
 
     HYPERION_ASSERT_RESULT(m_command_buffers[frame_index]->SubmitSecondary(frame->GetCommandBuffer()));
 
     GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame_index);
 
-    { // Copy the result to the previous texture
-        const ImageRef &src_image = m_framebuffer->GetAttachment(0)->GetImage();
-        const ImageRef &dst_image = m_previous_texture->GetImage();
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
-
-        dst_image->Blit(
-            frame->GetCommandBuffer(),
-            src_image
-        );
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    if (ShouldRenderHalfRes()) {
+        MergeHalfResTextures(frame);
     }
 
-    if (m_temporal_blending) {
+    if (UsesTemporalBlending()) {
+        if (!ShouldRenderHalfRes()) {
+            CopyResultToPreviousTexture(frame);
+        }
+
         m_temporal_blending->Render(frame);
     }
+
+    m_is_first_frame = false;
 }
 
 #pragma endregion Env grid pass
@@ -793,10 +672,6 @@ ReflectionProbePass::ReflectionProbePass()
 
 ReflectionProbePass::~ReflectionProbePass()
 {
-    m_render_texture_to_screen_pass.Reset();
-
-    g_safe_deleter->SafeRelease(std::move(m_previous_texture));
-
     for (auto &it : m_command_buffers) {
         SafeRelease(std::move(it));
     }
@@ -807,10 +682,6 @@ void ReflectionProbePass::Create()
     HYP_SCOPE;
 
     FullScreenPass::Create();
-
-    CreateTemporalBlending();
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
 
     AddToGlobalDescriptorSet();
 }
@@ -901,91 +772,19 @@ void ReflectionProbePass::CreateCommandBuffers()
     }
 }
 
-void ReflectionProbePass::CreatePreviousTexture()
-{
-    // Create previous image
-    m_previous_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        m_image_format,
-        Vec3u { m_extent.x, m_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    });
-
-    InitObject(m_previous_texture);
-}
-
-void ReflectionProbePass::CreateRenderTextureToScreenPass()
-{
-    AssertThrow(m_previous_texture.IsValid());
-    AssertThrow(m_previous_texture->GetImageView().IsValid());
-
-    // Create render texture to screen pass.
-    // this is used to render the previous frame's result to the screen,
-    // so we can blend it with the current frame's result (checkerboarded)
-    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
-    AssertThrow(render_texture_to_screen_shader.IsValid());
-
-    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
-        AssertThrow(descriptor_set != nullptr);
-
-        descriptor_set->SetElement(NAME("InTexture"), m_previous_texture->GetImageView());
-    }
-
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
-
-    m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
-        render_texture_to_screen_shader,
-        std::move(descriptor_table),
-        m_image_format,
-        m_extent
-    );
-
-    m_render_texture_to_screen_pass->Create();
-}
-
-void ReflectionProbePass::CreateTemporalBlending()
-{
-    m_temporal_blending = MakeUnique<TemporalBlending>(
-        m_framebuffer->GetExtent(),
-        InternalFormat::RGBA8,
-        TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::LOW,
-        m_framebuffer
-    );
-
-    m_temporal_blending->Create();
-}
-
 void ReflectionProbePass::AddToGlobalDescriptorSet()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("ReflectionProbeResultTexture"), m_temporal_blending->GetResultTexture()->GetImageView()); //GetAttachment(0)->GetImageView());
+            ->SetElement(NAME("ReflectionProbeResultTexture"), GetFinalImageView());
     }
 }
 
 void ReflectionProbePass::Resize_Internal(Vec2u new_size)
 {
     HYP_SCOPE;
+
     FullScreenPass::Resize_Internal(new_size);
-
-    if (m_previous_texture.IsValid()) {
-        g_safe_deleter->SafeRelease(std::move(m_previous_texture));
-    }
-
-    m_render_texture_to_screen_pass.Reset();
-    
-    m_temporal_blending.Reset();
-
-    CreatePreviousTexture();
-    CreateRenderTextureToScreenPass();
-    CreateTemporalBlending();
 
     AddToGlobalDescriptorSet();
 }
@@ -1035,37 +834,8 @@ void ReflectionProbePass::Render(Frame *frame)
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
     // render previous frame's result to screen
-    if (!m_is_first_frame) {
-        m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->Record(
-            g_engine->GetGPUInstance()->GetDevice(),
-            m_render_group->GetPipeline()->GetRenderPass(),
-            [&](CommandBuffer *cmd)
-            {
-                // render previous frame's result to screen
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-                    cmd,
-                    frame_index,
-                    m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
-                    {
-                        {
-                            NAME("Scene"),
-                            {
-                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) }
-                            }
-                        }
-                    }
-                );
-
-                m_full_screen_quad->Render(cmd);
-
-                HYPERION_RETURN_OK;
-            });
-
-        HYPERION_ASSERT_RESULT(m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer()));
-    } else {
-        m_is_first_frame = false;
+    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
+        RenderPreviousTextureToScreen(frame);
     }
     
     uint32 num_rendered_env_probes = 0;
@@ -1086,83 +856,74 @@ void ReflectionProbePass::Render(Frame *frame)
         const Handle<RenderGroup> &render_group = *it.first;
         const Array<ID<EnvProbe>> &env_probes = it.second;
 
-        const RendererResult record_result = command_buffer->Record(
-            g_engine->GetGPUInstance()->GetDevice(),
-            render_group->GetPipeline()->GetRenderPass(),
-            [&](CommandBuffer *cmd)
-            {
-                render_group->GetPipeline()->SetPushConstants(
-                    m_push_constant_data.Data(),
-                    m_push_constant_data.Size()
+        command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
+
+        render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+
+        if (ShouldRenderHalfRes()) {
+            const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
+            const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+    
+            m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
+        } else {
+            m_render_group->GetPipeline()->Bind(command_buffer);
+        }
+
+        const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+        const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+        render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->Bind(
+                command_buffer,
+                render_group->GetPipeline(),
+                { },
+                global_descriptor_set_index
+            );
+
+        for (const ID<EnvProbe> env_probe_id : env_probes) {
+            if (num_rendered_env_probes >= max_bound_reflection_probes) {
+                HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
+
+                break;
+            }
+
+            render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                ->Bind(
+                    command_buffer,
+                    render_group->GetPipeline(),
+                    {
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_id.ToIndex()) }
+                    },
+                    scene_descriptor_set_index
                 );
-                render_group->GetPipeline()->Bind(cmd);
 
-                const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-                const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+            m_full_screen_quad->Render(command_buffer);
 
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->Bind(
-                        cmd,
-                        render_group->GetPipeline(),
-                        { },
-                        global_descriptor_set_index
-                    );
+            ++num_rendered_env_probes;
+        }
 
-                for (const ID<EnvProbe> env_probe_id : env_probes) {
-                    if (num_rendered_env_probes >= max_bound_reflection_probes) {
-                        HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
-
-                        break;
-                    }
-
-                    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                        ->Bind(
-                            cmd,
-                            render_group->GetPipeline(),
-                            {
-                                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
-                                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_id.ToIndex()) }
-                            },
-                            scene_descriptor_set_index
-                        );
-
-                    // HYP_LOG(Rendering, Debug, "ReflectionProbePass: Render reflection probe #{}, type: {}", env_probe_id.Value(), uint32(env_probe_type));
-
-                    m_full_screen_quad->Render(cmd);
-
-                    ++num_rendered_env_probes;
-                }
-
-                HYPERION_RETURN_OK;
-            });
-
-        HYPERION_ASSERT_RESULT(record_result);
+        command_buffer->End(g_engine->GetGPUDevice());
 
         HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
     }
 
     GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame_index);
 
-    { // Copy the result to the previous texture
-        const ImageRef &src_image = m_framebuffer->GetAttachment(0)->GetImage();
-        const ImageRef &dst_image = m_previous_texture->GetImage();
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
-
-        dst_image->Blit(
-            frame->GetCommandBuffer(),
-            src_image
-        );
-
-        src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    if (ShouldRenderHalfRes()) {
+        MergeHalfResTextures(frame);
     }
 
-    if (m_temporal_blending) {
+    if (UsesTemporalBlending()) {
+        if (!ShouldRenderHalfRes()) {
+            CopyResultToPreviousTexture(frame);
+        }
+
         m_temporal_blending->Render(frame);
     }
+
+    m_is_first_frame = false;
 }
 
 #pragma endregion Reflection probe pass

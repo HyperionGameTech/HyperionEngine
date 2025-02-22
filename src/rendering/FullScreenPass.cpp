@@ -638,35 +638,6 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
 
     m_merge_half_res_textures_pass->Record(frame_index);
     m_merge_half_res_textures_pass->Render(frame);
-
-    // m_merge_half_res_textures_pass->GetCommandBuffer(frame_index)->Record(
-    //     g_engine->GetGPUInstance()->GetDevice(),
-    //     m_render_group->GetPipeline()->GetRenderPass(),
-    //     [&](CommandBuffer *cmd)
-    //     {
-    //         m_merge_half_res_textures_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-            
-    //         m_merge_half_res_textures_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-    //             cmd,
-    //             frame_index,
-    //             m_merge_half_res_textures_pass->GetRenderGroup()->GetPipeline(),
-    //             {
-    //                 {
-    //                     NAME("Scene"),
-    //                     {
-    //                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-    //                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) }
-    //                     }
-    //                 }
-    //             }
-    //         );
-
-    //         m_full_screen_quad->Render(cmd);
-
-    //         HYPERION_RETURN_OK;
-    //     });
-
-    // HYPERION_ASSERT_RESULT(m_merge_half_res_textures_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer()));
 }
 
 void FullScreenPass::Render(Frame *frame)

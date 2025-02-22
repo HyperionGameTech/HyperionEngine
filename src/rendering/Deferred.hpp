@@ -103,19 +103,18 @@ protected:
     virtual void CreatePipeline() override;
 
 private:
-    void CreatePreviousTexture();
-    void CreateRenderTextureToScreenPass();
-    void CreateTemporalBlending();
+    virtual bool UsesTemporalBlending() const override
+        { return m_mode == EnvGridPassMode::RADIANCE; }
+
+    virtual bool ShouldRenderHalfRes() const override
+        { return true; }
 
     void AddToGlobalDescriptorSet();
     
     virtual void Resize_Internal(Vec2u new_size) override;
 
-    const EnvGridPassMode       m_mode;
-    UniquePtr<TemporalBlending> m_temporal_blending;
-    UniquePtr<FullScreenPass>   m_render_texture_to_screen_pass;
-    Handle<Texture>             m_previous_texture;
-    bool                        m_is_first_frame;
+    const EnvGridPassMode   m_mode;
+    bool                    m_is_first_frame;
 };
 
 class ReflectionProbePass final : public FullScreenPass
@@ -139,13 +138,15 @@ public:
     virtual void Render(Frame *frame) override;
 
 private:
+    virtual bool UsesTemporalBlending() const override
+        { return true; }
+
+    virtual bool ShouldRenderHalfRes() const override
+        { return true; }
+        
     virtual void CreatePipeline() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
     virtual void CreateCommandBuffers() override;
-
-    void CreatePreviousTexture();
-    void CreateRenderTextureToScreenPass();
-    void CreateTemporalBlending();
 
     void AddToGlobalDescriptorSet();
 
@@ -153,9 +154,6 @@ private:
 
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
     FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
-    UniquePtr<FullScreenPass>                                                                       m_render_texture_to_screen_pass;
-    Handle<Texture>                                                                                 m_previous_texture;
-    UniquePtr<TemporalBlending>                                                                     m_temporal_blending;
     bool                                                                                            m_is_first_frame;
 };
 

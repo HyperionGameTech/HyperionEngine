@@ -129,9 +129,14 @@ protected:
 
     virtual const ImageViewRef &GetPreviousFrameColorImageView() const;
 
+    virtual void Resize_Internal(Vec2u new_size);
+    
     void CreateQuad();
 
-    virtual void Resize_Internal(Vec2u new_size);
+    void RenderPreviousTextureToScreen(Frame *frame);
+    void CopyResultToPreviousTexture(Frame *frame);
+
+    void MergeHalfResTextures(Frame *frame);
 
     FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
     FramebufferRef                                      m_framebuffer;
@@ -151,6 +156,8 @@ protected:
     UniquePtr<TemporalBlending>                         m_temporal_blending;
     Handle<Texture>                                     m_previous_texture;
 
+    UniquePtr<FullScreenPass>                           m_render_texture_to_screen_pass;
+
     bool                                                m_is_first_frame;
 
 private:
@@ -159,14 +166,7 @@ private:
     void CreatePreviousTexture();
     void CreateMergeHalfResTexturesPass();
 
-    void RenderPreviousTextureToScreen(Frame *frame);
-    void CopyResultToPreviousTexture(Frame *frame);
-
-    void MergeHalfResTextures(Frame *frame);
-
     bool                                                m_is_initialized;
-
-    UniquePtr<FullScreenPass>                           m_render_texture_to_screen_pass;
 
     // Used for half-res rendering
     UniquePtr<FullScreenPass>                           m_merge_half_res_textures_pass;

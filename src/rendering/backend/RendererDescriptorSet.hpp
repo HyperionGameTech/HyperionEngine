@@ -113,18 +113,6 @@ struct DescriptorSetLayoutElement
     }
 };
 
-template <SizeType Sz>
-static inline uint32 GetDescriptorSetElementTypeMask(FixedArray<DescriptorSetElementType, Sz> types)
-{
-    uint32 mask = 0;
-
-    for (const auto &type : types) {
-        mask |= 1 << uint32(type);
-    }
-
-    return mask;
-}
-
 enum DescriptorSlot : uint32
 {
     DESCRIPTOR_SLOT_NONE,
