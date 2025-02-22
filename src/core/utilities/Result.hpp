@@ -6,8 +6,8 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/StringView.hpp>
-
 #include <core/utilities/StaticMessage.hpp>
+#include <core/utilities/Format.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -25,7 +25,7 @@ public:
 
     virtual operator bool() const = 0;
 
-    virtual UTF8StringView GetMessage() const = 0;
+    virtual const String &GetMessage() const = 0;
     virtual ANSIStringView GetFunctionName() const = 0;
 };
 
@@ -33,18 +33,16 @@ class Error : public IError
 {
 protected:
     Error()
-        : m_static_message {"", "<unknown>" }
-    {
-    }
-
-    Error(UTF8StringView message)
-        : m_static_message { message, "<unknown>" }
+        : m_message(String::empty),
+          m_current_function("<unknown>")
     {
     }
 
 public:
-    Error(const StaticMessage &static_message)
-        : m_static_message { static_message }
+    template <auto FormatString, class... Args>
+    Error(const StaticMessage &current_function, ValueWrapper<FormatString>, Args &&... args)
+        : m_message(Format<FormatString>(std::forward<Args>(args)...)),
+          m_current_function(current_function.value)
     {
     }
 
@@ -55,18 +53,19 @@ public:
         return true;
     }
 
-    virtual UTF8StringView GetMessage() const override
+    virtual const String &GetMessage() const override
     {
-        return m_static_message.message;
+        return m_message;
     }
 
     virtual ANSIStringView GetFunctionName() const override
     {
-        return m_static_message.current_function;
+        return m_current_function;
     }
 
 protected:
-    StaticMessage   m_static_message;
+    String          m_message;
+    ANSIStringView  m_current_function;
 };
 
 template <class ErrorType>
@@ -90,7 +89,7 @@ public:
     }
 };
 
-#define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(message), ##__VA_ARGS__)
+#define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(HYP_PRETTY_FUNCTION_NAME), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)
 
 /*! \brief A class that represents a result that can either be a value or an error.
  *  The value and error types are specified by the template parameters.

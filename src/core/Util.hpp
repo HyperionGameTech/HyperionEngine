@@ -259,6 +259,12 @@ struct TypeWrapper
     using Type = T;
 };
 
+template <auto Value>
+struct ValueWrapper
+{
+    static constexpr auto value = Value;
+};
+
 #pragma endregion Template helpers
 
 /*! \brief Size of an array literal (Hyperion equivalent of std::size) */

@@ -21,8 +21,9 @@ public:
     {
     }
 
-    RendererError(const StaticMessage &static_message, int error_code = 0)
-        : Error(static_message),
+    template <auto MessageString>
+    RendererError(const StaticMessage &current_function, ValueWrapper<MessageString>, int error_code = 0)
+        : Error(current_function, ValueWrapper<MessageString>()),
           m_error_code(error_code)
     {
     }

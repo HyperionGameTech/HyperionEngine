@@ -119,6 +119,42 @@ public:
         hc.Add(uint32(*this));
         return hc;
     }
+
+    static Color Black()
+        { return { 0, 0, 0, 1 }; }
+
+    static Color White()
+        { return { 1, 1, 1, 1 }; }
+
+    static Color Red()
+        { return { 1, 0, 0, 1 }; }
+
+    static Color Green()
+        { return { 0, 1, 0, 1 }; }
+
+    static Color Blue()
+        { return { 0, 0, 1, 1 }; }
+
+    static Color Yellow()
+        { return { 1, 1, 0, 1 }; }
+
+    static Color Cyan()
+        { return { 0, 1, 1, 1 }; }
+
+    static Color Magenta()
+        { return { 1, 0, 1, 1 }; }
+
+    static Color Gray()
+        { return { 0.5f, 0.5f, 0.5f, 1 }; }
+
+    static Color DarkGray()
+        { return { 0.25f, 0.25f, 0.25f, 1 }; }
+
+    static Color LightGray()
+        { return { 0.75f, 0.75f, 0.75f, 1 }; }
+
+    static Color Transparent()
+        { return { 0, 0, 0, 0 }; }
 };
 
 static_assert(sizeof(Color) == sizeof(uint32), "sizeof(Color) must be equal to sizeof uint32");

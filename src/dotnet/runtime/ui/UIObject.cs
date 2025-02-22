@@ -37,7 +37,7 @@ namespace Hyperion
         Vertical = 0x2
     }
     [HypClassBinding(Name="UIEventHandlerResult")]
-    [StructLayout(LayoutKind.Explicit, Size=16, Pack=8)]
+    [StructLayout(LayoutKind.Explicit, Size=24, Pack=8)]
     public struct UIEventHandlerResult
     {
         public static readonly UIEventHandlerResult Error = new UIEventHandlerResult(0x1u << 31);
@@ -48,12 +48,16 @@ namespace Hyperion
         private uint code;
 
         [FieldOffset(8)]
-        private IntPtr staticMessage;
+        private IntPtr messagePtr;
+
+        [FieldOffset(8)]
+        private IntPtr functionNamePtr;
 
         public UIEventHandlerResult(uint code)
         {
             this.code = code;
-            this.staticMessage = IntPtr.Zero;
+            this.messagePtr = IntPtr.Zero;
+            this.functionNamePtr = IntPtr.Zero;
         }
 
         public uint Code
@@ -68,7 +72,7 @@ namespace Hyperion
         {
             get
             {
-                if (staticMessage == IntPtr.Zero)
+                if (messagePtr == IntPtr.Zero)
                 {
                     return string.Empty;
                 }
@@ -88,7 +92,7 @@ namespace Hyperion
         {
             get
             {
-                if (staticMessage == IntPtr.Zero)
+                if (functionNamePtr == IntPtr.Zero)
                 {
                     return string.Empty;
                 }

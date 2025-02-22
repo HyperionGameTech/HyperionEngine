@@ -155,10 +155,18 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 uint32(attributes.GetMaterialAttributes().flags),
                 attributes.GetDrawableLayer());
 
+            EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
+
+            // Disable occlusion culling for translucent objects
+            if (attributes.GetMaterialAttributes().bucket == BUCKET_TRANSLUCENT) {
+                render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
+            }
+
             // Create RenderGroup
             render_group = CreateObject<RenderGroup>(
                 g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
-                attributes
+                attributes,
+                render_group_flags
             );
 
             if (framebuffer != nullptr) {
@@ -487,6 +495,10 @@ void RenderCollector::CollectDrawCalls(
 
     if (is_indirect_rendering_enabled && cull_data != nullptr) {
         for (SizeType index = 0; index < iterators.Size(); index++) {
+            if (!(iterators[index]->second->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)) {
+                continue;
+            }
+
             (*iterators[index]).second->PerformOcclusionCulling(frame, cull_data);
         }
     }
@@ -570,7 +582,7 @@ void RenderCollector::ExecuteDrawCalls(
                 render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
             }
 
-            if (is_indirect_rendering_enabled && cull_data != nullptr) {
+            if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
                 render_group->PerformRenderingIndirect(frame);
             } else {
                 render_group->PerformRendering(frame);
@@ -620,7 +632,7 @@ void RenderCollector::ExecuteDrawCalls(
                     render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
                 }
 
-                if (is_indirect_rendering_enabled && cull_data != nullptr) {
+                if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
                     render_group->PerformRenderingIndirect(frame);
                 } else {
                     render_group->PerformRendering(frame);

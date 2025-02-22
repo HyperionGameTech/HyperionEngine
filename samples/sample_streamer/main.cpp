@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         DebugLog(
             LogType::Error,
             "Failed to parse arguments!\n\t%s\n",
-            error.GetMessage()
+            error.GetMessage().Any()
                 ? error.GetMessage().Data()
                 : "<no message>"
         );

@@ -17,34 +17,31 @@ namespace hyperion {
 
 struct StaticMessage
 {
-    UTF8StringView  message;
-    ANSIStringView  current_function;
+    ANSIStringView  value;
 };
 
-template <auto MessageString, auto CurrentFunctionString>
+template <auto Value>
 struct StaticMessageInitializer
 {
-    static constexpr auto message_string = MessageString.Data();
-    static constexpr auto current_function_string = CurrentFunctionString.Data();
+    static constexpr auto value_string = Value.Data();
 
     static const StaticMessage &MakeStaticMessage()
     {
         static const StaticMessage static_message {
-            message_string,
-            current_function_string
+            value_string
         };
 
         return static_message;
     }
 };
 
-template <auto MessageString, auto CurrentFunctionString>
+template <auto Value>
 const StaticMessage &MakeStaticMessage()
 {
-    return StaticMessageInitializer<MessageString, CurrentFunctionString>::MakeStaticMessage();
+    return StaticMessageInitializer<Value>::MakeStaticMessage();
 }
 
-#define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str), HYP_STATIC_STRING(HYP_PRETTY_FUNCTION_NAME)>()
+#define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str)>()
 
 #pragma endregion StaticMessage
 

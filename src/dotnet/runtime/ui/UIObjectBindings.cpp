@@ -15,7 +15,7 @@ HYP_EXPORT const char *UIEventHandlerResult_GetMessage(UIEventHandlerResult *res
 {
     AssertThrow(result != nullptr);
 
-    if (Optional<UTF8StringView> message = result->GetMessage()) {
+    if (Optional<ANSIStringView> message = result->GetMessage()) {
         return message->Data();
     }
 

@@ -35,6 +35,7 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 #include <core/object/HypProperty.hpp>
+#include <core/object/HypField.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -545,7 +546,9 @@ public:
 
                     // Check HypClass attributes
                     if (hyp_class != nullptr) {
-                        auto member_it = FindIf(hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(), hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(), [&](const auto &it)
+                        HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
+
+                        auto member_it = FindIf(member_list.Begin(), member_list.End(), [&](const auto &it)
                         {
                             if (const HypClassAttributeValue &attr = it.GetAttribute("xmlattribute"); attr && attr.GetString().ToLower() == attribute_name_lower) {
                                 return true;
@@ -554,29 +557,49 @@ public:
                             return false;
                         });
 
-                        if (member_it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End()) {
-                            HypProperty *hyp_property = dynamic_cast<HypProperty *>(&*member_it);
-
-                            if (!hyp_property || !hyp_property->CanDeserialize()) {
-                                HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member_it->GetName());
-
-                                continue;
-                            }
-
+                        if (member_it != member_list.End()) {
                             fbom::FBOMData data;
                             json::ParseResult json_parse_result = ParseJSON(attribute.second, data);
 
                             if (!json_parse_result.ok) {
-                                HYP_LOG(Assets, Error, "Failed to parse JSON \"{}\": {}", attribute.second, json_parse_result.message);
-
-                                continue;
+                                // Set data as string if JSON parsing failed
+                                data = fbom::FBOMData::FromString(attribute.second);
                             }
 
                             HypData target_value { ui_object };
 
-                            hyp_property->Deserialize(target_value, data);
+                            switch (member_it->GetMemberType()) {
+                            case HypMemberType::TYPE_FIELD:
+                            {
+                                HypField *hyp_field = dynamic_cast<HypField *>(&*member_it);
 
-                            continue;
+                                if (!hyp_field || !hyp_field->CanDeserialize()) {
+                                    HYP_LOG(Assets, Error, "Cannot set HypClass field: {}", member_it->GetName());
+
+                                    continue;
+                                }
+
+                                hyp_field->Deserialize(target_value, data);
+
+                                break;
+                            }
+                            case HypMemberType::TYPE_PROPERTY:
+                            {
+                                HypProperty *hyp_property = dynamic_cast<HypProperty *>(&*member_it);
+
+                                if (!hyp_property || !hyp_property->CanDeserialize()) {
+                                    HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member_it->GetName());
+
+                                    continue;
+                                }
+
+                                hyp_property->Deserialize(target_value, data);
+
+                                break;
+                            }
+                            default:
+                                HYP_UNREACHABLE();
+                            }
                         }
                     }
 

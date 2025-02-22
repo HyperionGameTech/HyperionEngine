@@ -30,9 +30,25 @@ public:
      * \param text The text to set. */
     virtual void SetText(const String &text) override;
 
+    /*! \brief Gets the placeholder text to display when the text is empty.
+     * 
+     * \return The placeholder text. */
+    HYP_METHOD(Property="Placeholder", XMLAttribute="placeholder")
+    HYP_FORCE_INLINE const String &GetPlaceholder() const
+        { return m_placeholder; }
+
+    /*! \brief Sets the placeholder text to display when the text is empty.
+    * 
+    * \param placeholder The placeholder text to set. */
+    HYP_METHOD(Property="Placeholder", XMLAttribute="placeholder")
+    void SetPlaceholder(const String &placeholder);
+
     virtual void Init() override;
 
 protected:
+    bool ShouldDisplayPlaceholder() const
+        { return GetText().Length() == 0 && m_placeholder.Length() != 0; }
+
     virtual void Update_Internal(GameCounter::TickUnit delta) override;
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
@@ -44,6 +60,8 @@ protected:
     uint32          m_character_index;
 
     BlendVar<float> m_cursor_blink_blend_var;
+
+    String          m_placeholder;
 };
 
 

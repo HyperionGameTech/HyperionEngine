@@ -15,6 +15,7 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
+#include <core/utilities/Result.hpp>
 
 #include <core/containers/String.hpp>
 
@@ -125,21 +126,26 @@ public:
                 }
             };
 
-            m_deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> void
+            m_deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> Result<void>
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
-                    HYP_FAIL("Cannot deserialize non-copy-assignable field");
+                    return HYP_MAKE_ERROR(Error, "Cannot deserialize non-copy-assignable field");
                 } else {
                     AnyRef target_ref = target_data.ToRef();
 
-                    AssertThrow(target_ref.HasValue());
-                    AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
-                        TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                    if (!target_ref.HasValue()) {
+                        return HYP_MAKE_ERROR(Error, "Invalid target reference");
+                    }
+
+                    if (!target_ref.Is<ThisType>()) {
+                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                            TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                    }
 
                     HypData value;
         
                     if (fbom::FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(data, value)) {
-                        HYP_FAIL("Failed to deserialize data: %s", err.message.Data());
+                        return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                     }
 
                     ThisType *target = static_cast<ThisType *>(target_ref.GetPointer());
@@ -166,6 +172,8 @@ public:
                         }
                     }
                 }
+
+                return { };
             };
         }
     }
@@ -237,11 +245,13 @@ public:
     HYP_FORCE_INLINE bool CanDeserialize() const
         { return IsValid() && m_deserialize_proc.IsValid(); }
 
-    HYP_FORCE_INLINE void Deserialize(HypData &target_data, const fbom::FBOMData &data) const
+    HYP_FORCE_INLINE Result<void> Deserialize(HypData &target_data, const fbom::FBOMData &data) const
     {
-        AssertThrow(CanDeserialize());
+        if (!CanDeserialize()) {
+            return HYP_MAKE_ERROR(Error, "Cannot deserialize field");
+        }
 
-        m_deserialize_proc(target_data, data);
+        return m_deserialize_proc(target_data, data);
     }
 
     HYP_FORCE_INLINE HypData Get(const HypData &target_data) const
@@ -255,19 +265,19 @@ public:
     }
 
 private:
-    Name                                            m_name;
-    TypeID                                          m_type_id;
-    TypeID                                          m_target_type_id;
-    uint32                                          m_offset;
-    uint32                                          m_size;
+    Name                                                    m_name;
+    TypeID                                                  m_type_id;
+    TypeID                                                  m_target_type_id;
+    uint32                                                  m_offset;
+    uint32                                                  m_size;
 
-    HypClassAttributeSet                            m_attributes;
+    HypClassAttributeSet                                    m_attributes;
 
-    Proc<HypData, const HypData &>                  m_get_proc;
-    Proc<void, HypData &, const HypData &>          m_set_proc;
+    Proc<HypData, const HypData &>                          m_get_proc;
+    Proc<void, HypData &, const HypData &>                  m_set_proc;
 
-    Proc<fbom::FBOMData, const HypData &>           m_serialize_proc;
-    Proc<void, HypData &, const fbom::FBOMData &>   m_deserialize_proc;
+    Proc<fbom::FBOMData, const HypData &>                   m_serialize_proc;
+    Proc<Result<void>, HypData &, const fbom::FBOMData &>   m_deserialize_proc;
 };
 
 } // namespace hyperion

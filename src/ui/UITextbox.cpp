@@ -20,6 +20,7 @@ UITextbox::UITextbox()
 {
     SetBorderRadius(2);
     SetPadding({ 5, 2 });
+    SetTextColor(Color::Black());
     
     // For now
     SetIsScrollEnabled(UIObjectScrollbarOrientation::ALL, false);
@@ -62,9 +63,16 @@ void UITextbox::Init()
     // SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     m_text_element = CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-    m_text_element->SetText(m_text);
     m_text_element->SetTextSize(12.0f);
-    m_text_element->SetTextColor(Vec4f { 0, 0, 0, 1 }); // black
+
+    if (ShouldDisplayPlaceholder()) {
+        m_text_element->SetText(m_placeholder);
+        m_text_element->SetTextColor(GetTextColor() * Vec4f { 1, 1, 1, 0.5f });
+    } else {
+        m_text_element->SetText(m_text);
+        m_text_element->SetTextColor(GetTextColor());
+    }
+
     // m_text_element->SetAffectsParentSize(false);
 
     UIObject::AddChildUIObject(m_text_element);
@@ -72,11 +80,37 @@ void UITextbox::Init()
 
 void UITextbox::SetText(const String &text)
 {
+    const bool was_displaying_placeholder = ShouldDisplayPlaceholder();
+
     UIObject::SetText(text);
 
     if (m_text_element) {
-        m_text_element->SetText(text);
+        const bool should_display_placeholder = ShouldDisplayPlaceholder();
+
+        if (should_display_placeholder != was_displaying_placeholder) {
+            if (should_display_placeholder) {
+                m_text_element->SetTextColor(GetTextColor() * Vec4f { 1, 1, 1, 0.5f });
+            } else {
+                m_text_element->SetTextColor(GetTextColor());
+            }
+        }
+
+        m_text_element->SetText(should_display_placeholder ? m_placeholder : text);
     }
+}
+
+void UITextbox::SetPlaceholder(const String &placeholder)
+{
+    m_placeholder = placeholder;
+
+    if (ShouldDisplayPlaceholder()) {
+        if (m_text_element) {
+            m_text_element->SetText(placeholder);
+            m_text_element->SetTextColor(GetTextColor() * Vec4f { 1, 1, 1, 0.5f });
+        }
+    }
+
+    HYP_LOG(UI, Debug, "Textbox placeholder set to '{}'", placeholder);
 }
 
 void UITextbox::Update_Internal(GameCounter::TickUnit delta)

@@ -80,7 +80,7 @@ enum class UIObjectType : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
 
-HYP_STRUCT()
+HYP_STRUCT(Size=24)
 struct alignas(8) UIEventHandlerResult
 {
     enum Value : uint32
@@ -94,26 +94,38 @@ struct alignas(8) UIEventHandlerResult
 
     UIEventHandlerResult()
         : value(OK),
-          static_message(nullptr)
+          message(nullptr),
+          function_name(nullptr)
     {
     }
 
     UIEventHandlerResult(uint32 value)
         : value(value),
-          static_message(nullptr)
+          message(nullptr),
+          function_name(nullptr)
     {
     }
 
-    UIEventHandlerResult(uint32 value, const StaticMessage &static_message)
+    UIEventHandlerResult(uint32 value, const StaticMessage &message)
         : value(value),
-          static_message(&static_message)
+          message(&message),
+          function_name(nullptr)
+    {
+    }
+
+    UIEventHandlerResult(uint32 value, const StaticMessage &message, const StaticMessage &function_name)
+        : value(value),
+          message(&message),
+          function_name(&function_name)
     {
     }
 
     UIEventHandlerResult &operator=(uint32 value)
     {
         this->value = value;
-        static_message = nullptr;
+        
+        message = nullptr;
+        function_name = nullptr;
 
         return *this;
     }
@@ -164,29 +176,28 @@ struct alignas(8) UIEventHandlerResult
     HYP_FORCE_INLINE UIEventHandlerResult operator~() const
         { return UIEventHandlerResult(~value); }
 
-    HYP_FORCE_INLINE Optional<UTF8StringView> GetMessage() const
+    HYP_FORCE_INLINE Optional<ANSIStringView> GetMessage() const
     {
-        if (!static_message) {
+        if (!message) {
             return { };
         }
 
-        return static_message->message;
+        return message->value;
     }
 
     HYP_FORCE_INLINE Optional<ANSIStringView> GetFunctionName() const
     {
-        if (!static_message) {
+        if (!function_name) {
             return { };
         }
 
-        return static_message->current_function;
+        return function_name->value;
     }
 
     uint32              value;
-    const StaticMessage *static_message;
+    const StaticMessage *message;
+    const StaticMessage *function_name;
 };
-
-static_assert(sizeof(UIEventHandlerResult) == 16, "sizeof(UIEventHandlerResult) must match C# struct size");
 
 HYP_ENUM()
 enum class UIObjectAlignment : uint32
