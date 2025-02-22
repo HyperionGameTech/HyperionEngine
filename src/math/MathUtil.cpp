@@ -2,9 +2,24 @@
 
 #include <math/MathUtil.hpp>
 
+#include <core/containers/Array.hpp>
+
 namespace hyperion {
 
 uint64 MathUtil::g_seed = ~0u;
+
+static Array<Vec2f> FindFactors(int num)
+{
+    Array<Vec2f> factors;
+
+    for (int i = 1; i <= num; i++) {
+        if (num % i == 0) {
+            factors.PushBack(Vec2f { float(i), float(num) / float(i) });
+        }
+    }
+
+    return factors;
+}
 
 float VanDerCorpus(uint32 bits) 
 {
@@ -14,6 +29,32 @@ float VanDerCorpus(uint32 bits)
     bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
     bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+Vec2i MathUtil::ReshapeExtent(Vec2i extent)
+{
+    Array<Vec2f> factors = FindFactors(extent.x * extent.y);
+
+    if (factors.Size() == 0) {
+        return Vec2i::Zero();
+    }
+
+    // Sort it so lowest difference is front
+    std::sort(
+        factors.Begin(),
+        factors.End(),
+        [](const Vec2f &a, const Vec2f &b)
+        {
+            const float a_diff = MathUtil::Abs(a[0] - a[1]);
+            const float b_diff = MathUtil::Abs(b[0] - b[1]);
+
+            return a_diff < b_diff;
+        }
+    );
+
+    const Vec2f most_balanced_pair = factors[0];
+
+    return Vec2i(most_balanced_pair);
 }
 
 Vec2f MathUtil::Hammersley(uint32 sample_index, uint32 num_samples)

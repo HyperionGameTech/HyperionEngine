@@ -606,7 +606,7 @@ void EnvGridPass::Render(Frame *frame)
 
     if (ShouldRenderHalfRes()) {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
     } else {
@@ -862,7 +862,7 @@ void ReflectionProbePass::Render(Frame *frame)
 
         if (ShouldRenderHalfRes()) {
             const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-            const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+            const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
     
             m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
         } else {

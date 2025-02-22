@@ -143,6 +143,9 @@ void HyperionEditor::Init()
 
         InitObject(light);
 
+        NodeProxy light_node = m_scene->GetRoot()->AddChild();
+        light_node.SetName("AreaLight");
+
         auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, {
@@ -156,6 +159,8 @@ void HyperionEditor::Init()
         m_scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, {
             light
         });
+
+        light_node->SetEntity(area_light_entity);
     }
 
 #if 1
@@ -165,7 +170,7 @@ void HyperionEditor::Init()
     // add pointlight (Test)
     auto point_light = CreateObject<Light>(
         LightType::POINT,
-        Vec3f(0.0f, 1.5f, 2.0f),
+        Vec3f(0.0f, 5.5f, 2.0f),
         Color(0.0f, 1.0f, 0.0f),
         30.0f,
         50.0f
@@ -306,7 +311,7 @@ void HyperionEditor::Init()
             }
         }
 
-        if (false) {
+        if (true) {
             // testing reflection capture
             Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
 

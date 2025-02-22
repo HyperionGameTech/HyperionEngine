@@ -11,6 +11,8 @@
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
+#include <math/MathUtil.hpp>
+
 #include <Engine.hpp>
 #include <Types.hpp>
 
@@ -296,14 +298,30 @@ void FullScreenPass::CreateFramebuffer()
         m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
+    Vec2u framebuffer_extent = m_extent;
+
+    if (ShouldRenderHalfRes()) {
+        constexpr double resolution_scale = 0.5;
+
+        const uint32 num_pixels = framebuffer_extent.x * framebuffer_extent.y;
+        const int num_pixels_scaled = MathUtil::Ceil(num_pixels * resolution_scale);
+
+        const Vec2i reshaped_extent = MathUtil::ReshapeExtent(Vec2i { num_pixels_scaled, 1 });
+
+        // double the width as we swap between the two halves when rendering (checkerboarded)
+        framebuffer_extent = Vec2u { uint32(reshaped_extent.x * 2), uint32(reshaped_extent.y) };
+
+        DebugLog(LogType::Debug, "Reshaped extent: %d, %d to %d, %d", m_extent.x, m_extent.y, framebuffer_extent.x, framebuffer_extent.y);
+    }
+
     m_framebuffer = MakeRenderObject<Framebuffer>(
-        m_extent,
+        framebuffer_extent,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
     ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
-        m_extent,
+        framebuffer_extent,
         m_image_format
     ));
 
@@ -520,7 +538,7 @@ void FullScreenPass::Record(uint32 frame_index)
     
     if (ShouldRenderHalfRes()) {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
     } else {
@@ -568,7 +586,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
         {
             if (ShouldRenderHalfRes()) {
                 const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-                const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+                const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
                 // render previous frame's result to screen
                 m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd, viewport_offset, viewport_extent);
@@ -687,7 +705,7 @@ void FullScreenPass::Begin(Frame *frame)
 
     if (ShouldRenderHalfRes()) {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent()) / 2;
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
     } else {

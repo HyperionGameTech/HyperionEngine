@@ -16,8 +16,6 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <util/MiscUtil.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
