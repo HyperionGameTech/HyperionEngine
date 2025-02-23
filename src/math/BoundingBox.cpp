@@ -228,22 +228,6 @@ bool BoundingBox::Overlaps(const BoundingBox &other) const
     return true;
 }
 
-bool BoundingBox::Contains(const BoundingBox &other) const
-{
-    const FixedArray<Vec3f, 8> corners = other.GetCorners();
-
-    if (!ContainsPoint(corners[0])) return false;
-    if (!ContainsPoint(corners[1])) return false;
-    if (!ContainsPoint(corners[2])) return false;
-    if (!ContainsPoint(corners[3])) return false;
-    if (!ContainsPoint(corners[4])) return false;
-    if (!ContainsPoint(corners[5])) return false;
-    if (!ContainsPoint(corners[6])) return false;
-    if (!ContainsPoint(corners[7])) return false;
-
-    return true;
-}
-
 bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
 {
     // Get the axes to test for separation
@@ -288,18 +272,6 @@ bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
             return false;
         }
     }
-
-    return true;
-}
-
-bool BoundingBox::ContainsPoint(const Vec3f &vec) const
-{
-    if (vec.x < min.x) return false;
-    if (vec.y < min.y) return false;
-    if (vec.z < min.z) return false;
-    if (vec.x > max.x) return false;
-    if (vec.y > max.y) return false;
-    if (vec.z > max.z) return false;
 
     return true;
 }

@@ -94,12 +94,31 @@ public:
     // do the AABB's overlap at all?
     bool Overlaps(const BoundingBox &other) const;
 
-    // does this AABB completely contain other?
-    bool Contains(const BoundingBox &other) const;
-
     bool ContainsTriangle(const Triangle &triangle) const;
 
-    bool ContainsPoint(const Vec3f &vec) const;
+    HYP_FORCE_INLINE bool ContainsPoint(const Vec3f &point) const
+    {
+        if (point.x < min.x || point.y < min.y || point.z < min.z || point.x > max.x || point.y > max.y || point.z > max.z) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // does this AABB completely contain other?
+    HYP_FORCE_INLINE bool Contains(const BoundingBox &other) const
+    {
+        if (!ContainsPoint(Vec3f(other.min.x, other.min.y, other.min.z))) return false;
+        if (!ContainsPoint(Vec3f(other.max.x, other.min.y, other.min.z))) return false;
+        if (!ContainsPoint(Vec3f(other.max.x, other.max.y, other.min.z))) return false;
+        if (!ContainsPoint(Vec3f(other.min.x, other.max.y, other.min.z))) return false;
+        if (!ContainsPoint(Vec3f(other.min.x, other.min.y, other.max.z))) return false;
+        if (!ContainsPoint(Vec3f(other.min.x, other.max.y, other.max.z))) return false;
+        if (!ContainsPoint(Vec3f(other.max.x, other.max.y, other.max.z))) return false;
+        if (!ContainsPoint(Vec3f(other.max.x, other.min.y, other.max.z))) return false;
+
+        return true;
+    }
     
     float Area() const;
     

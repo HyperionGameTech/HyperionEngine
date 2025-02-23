@@ -198,7 +198,7 @@ Octree *Octree::GetChildOctant(OctantID octant_id)
 
         if (!current || !current->IsDivided()) {
 #if HYP_OCTREE_DEBUG
-            HYP_DEBUG(Octree, LogLevel::WARNING,
+            HYP_LOG(Octree, LogLevel::WARNING,
                 "Octant id {}:{} is not a child of {}:{}: Octant {}:{} is not divided",
                 octant_id.GetDepth(), octant_id.GetIndex(),
                 m_octant_id.GetDepth(), m_octant_id.GetIndex(),
@@ -1060,17 +1060,24 @@ bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
         return false;
     }
 
-    if (m_is_divided) {
-        for (const Octant &octant : m_octants) {
-            AssertThrow(octant.octree != nullptr);
+    const Octree *top_octant = this;
 
-            if (octant.octree->GetFittingOctant(aabb, out)) {
-                return true;
+top:
+    while (top_octant != nullptr && top_octant->m_is_divided) {
+        for (const Octant &octant : top_octant->m_octants) {
+            if (octant.aabb.Contains(aabb)) {
+                AssertThrow(octant.octree != nullptr);
+
+                top_octant = octant.octree.Get();
+                    
+                goto top;
             }
         }
+
+        break;
     }
 
-    out = this;
+    out = top_octant;
 
     return true;
 }
