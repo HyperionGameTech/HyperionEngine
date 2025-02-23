@@ -9,6 +9,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/utilities/FormatFwd.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -71,7 +73,8 @@ public:
     Vec3f operator*(const Vec3f &vec) const;
     Vec4f operator*(const Vec4f &vec) const;
 
-    Vec3f ExtractTransformScale() const;
+    Vec3f ExtractTranslation() const;
+    Vec3f ExtractScale() const;
     Quaternion ExtractRotation() const;
 
     Vec4f GetColumn(uint32 index) const;
@@ -102,6 +105,23 @@ public:
         return hc;
     }
 };
+
+namespace utilities {
+
+template <class StringType>
+struct Formatter<StringType, Matrix4>
+{
+    auto operator()(const Matrix4 &matrix) const
+    {
+        return StringType("Matrix4(")
+            + Formatter<StringType, Vec4f>{}(matrix.rows[0]) + StringType(", ")
+            + Formatter<StringType, Vec4f>{}(matrix.rows[1]) + StringType(", ")
+            + Formatter<StringType, Vec4f>{}(matrix.rows[2]) + StringType(", ")
+            + Formatter<StringType, Vec4f>{}(matrix.rows[3]) + StringType(")");
+    }
+};
+    
+} // namespace utilities
 
 } // namespace hyperion
 

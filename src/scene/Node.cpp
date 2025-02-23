@@ -832,27 +832,27 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
 
     const Transform transform_before = m_world_transform;
 
-    if (m_parent_node != nullptr && !(m_flags & NodeFlags::IGNORE_PARENT_TRANSFORM)) {
-        m_world_transform = m_parent_node->GetWorldTransform() * m_local_transform;
-    } else if (m_parent_node != nullptr) {
-        m_world_transform = m_local_transform;
+    Transform world_transform = m_local_transform;
+
+    if (m_parent_node != nullptr) {
+        world_transform = m_parent_node->GetWorldTransform() * m_local_transform;
         
-        if (!(m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)) {
-            m_world_transform.GetTranslation() = (m_local_transform.GetTranslation() + m_parent_node->GetWorldTransform().GetTranslation());
+        if (m_flags & NodeFlags::IGNORE_PARENT_TRANSFORM) {
+            if (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION) {
+                world_transform.GetTranslation() = m_local_transform.GetTranslation();
+            }
+    
+            if (m_flags & NodeFlags::IGNORE_PARENT_ROTATION) {
+                world_transform.GetRotation() = m_local_transform.GetRotation();
+            }
+    
+            if (m_flags & NodeFlags::IGNORE_PARENT_SCALE) {
+                world_transform.GetScale() = m_local_transform.GetScale();
+            }
         }
-
-        if (!(m_flags & NodeFlags::IGNORE_PARENT_ROTATION)) {
-            m_world_transform.GetRotation() = (m_local_transform.GetRotation() * m_parent_node->GetWorldTransform().GetRotation());
-        }
-
-        if (!(m_flags & NodeFlags::IGNORE_PARENT_SCALE)) {
-            m_world_transform.GetScale() = (m_local_transform.GetScale() * m_parent_node->GetWorldTransform().GetScale());
-        }
-
-        m_world_transform.UpdateMatrix();
-    } else {
-        m_world_transform = m_local_transform;
     }
+
+    m_world_transform = world_transform;
 
     if (m_world_transform == transform_before) {
         return;

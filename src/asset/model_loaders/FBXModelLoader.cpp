@@ -1251,13 +1251,9 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
             node_proxy = NodeProxy(MakeRefCountedPtr<Node>());
         } else if (node.type == FBXNode::Type::LIMB_NODE) {
             Transform binding_transform;
-            binding_transform.SetTranslation(Vector3(
-                node.local_bind_matrix.GetColumn(3)[0],
-                node.local_bind_matrix.GetColumn(3)[1],
-                node.local_bind_matrix.GetColumn(3)[2]
-            ));
-            binding_transform.SetRotation(Quaternion(node.local_bind_matrix));
-            binding_transform.SetScale(node.local_bind_matrix.ExtractTransformScale());
+            binding_transform.SetTranslation(node.local_bind_matrix.ExtractTranslation());
+            binding_transform.SetRotation(node.local_bind_matrix.ExtractRotation());
+            binding_transform.SetScale(node.local_bind_matrix.ExtractScale());
 
             RC<Bone> bone = MakeRefCountedPtr<Bone>();
             bone->SetBindingTransform(binding_transform);

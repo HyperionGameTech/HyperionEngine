@@ -26,15 +26,23 @@ public:
                   normal,
                   texcoord;
 
-            HYP_FORCE_INLINE
-            bool operator==(const OBJIndex &other) const
+            HYP_FORCE_INLINE bool operator==(const OBJIndex &other) const
                 { return vertex == other.vertex
                     && normal == other.normal
                     && texcoord == other.texcoord; }
 
-            HYP_FORCE_INLINE
-            bool operator<(const OBJIndex &other) const
+            HYP_FORCE_INLINE bool operator<(const OBJIndex &other) const
                 { return Tie(vertex, normal, texcoord) < Tie(other.vertex, other.normal, other.texcoord); }
+
+            HYP_FORCE_INLINE HashCode GetHashCode() const
+            {
+                HashCode hc;
+                hc.Add(vertex);
+                hc.Add(normal);
+                hc.Add(texcoord);
+
+                return hc;
+            }
         };
 
         struct OBJMesh

@@ -469,15 +469,22 @@ Vec4f Matrix4::operator*(const Vec4f &vec) const
     };
 }
 
-Vec3f Matrix4::ExtractTransformScale() const
+Vec3f Matrix4::ExtractTranslation() const
 {
-    Vec3f scale;
+    return {
+        rows[0][3],
+        rows[1][3],
+        rows[2][3]
+    };
+}
 
-    scale.x = GetColumn(0).GetXYZ().Length();
-    scale.y = GetColumn(1).GetXYZ().Length();
-    scale.z = GetColumn(2).GetXYZ().Length();
-
-    return scale;
+Vec3f Matrix4::ExtractScale() const
+{
+    return {
+        rows[0][0],
+        rows[1][1],
+        rows[2][2]
+    };
 }
 
 Quaternion Matrix4::ExtractRotation() const

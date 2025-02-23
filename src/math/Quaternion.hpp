@@ -65,7 +65,7 @@ struct alignas(16) HYP_API Quaternion
     Quaternion operator*(const Quaternion &other) const;
     Quaternion &operator*=(const Quaternion &other);
     Quaternion &operator+=(const Vec3f &vec);
-    Vec3f operator*(const Vector3 &vec) const;
+    Vec3f operator*(const Vec3f &vec) const;
 
     float Length() const;
     float LengthSquared() const;

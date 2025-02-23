@@ -373,6 +373,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
     Vec3 Reflect(const Vec3 &normal) const;
 
     Vec3 &Rotate(const Vec3 &axis, Type radians);
+    Vec3 &Rotate(const Quaternion &quaternion);
     Vec3 &Lerp(const Vec3 &to, Type amt);
     Type Dot(const Vec3 &other) const;
     Type AngleBetween(const Vec3 &other) const;

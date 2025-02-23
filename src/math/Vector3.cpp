@@ -180,6 +180,11 @@ Vec3<float> &math::detail::Vec3<float>::Rotate(const Vec3<float> &axis, float ra
     return (*this) = Matrix4::Rotation(axis, radians) * (*this);
 }
 
+Vec3<float> &math::detail::Vec3<float>::Rotate(const Quaternion &quaternion)
+{
+    return (*this) = Matrix4::Rotation(quaternion) * (*this);
+}
+
 Vec3<float> &math::detail::Vec3<float>::Lerp(const Vec3<float> &to, const float amt)
 {
     x = MathUtil::Lerp(x, to.x, amt);

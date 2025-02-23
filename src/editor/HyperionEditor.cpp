@@ -91,6 +91,19 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
+    // // testing
+    // Transform parent_transform;
+    // parent_transform.SetScale(0.05f);
+
+    // Transform child_transform;
+    // child_transform.SetTranslation(Vec3f(100.0f, 0.0f, 0.0f));
+    // child_transform = parent_transform * child_transform;
+
+    // HYP_LOG(Editor, Info, "Parent transform: {}", parent_transform.GetMatrix());
+    // HYP_LOG(Editor, Info, "Child transform: {}", child_transform.GetMatrix());
+
+    // HYP_BREAKPOINT;
+
 #if 1
     EditorSubsystem *editor_subsystem = g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
         GetAppContext(),
@@ -271,7 +284,7 @@ void HyperionEditor::Init()
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
         // node.Scale(10.0f);
-        node.Scale(0.05f);
+        node->Scale(0.05f);
         node.SetName("test_model");
         node.LockTransform();
 

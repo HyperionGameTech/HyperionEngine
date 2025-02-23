@@ -56,21 +56,15 @@ Transform Transform::GetInverse() const
 Transform Transform::operator*(const Transform &other) const
 {
     return {
-        other.translation + translation,
-        other.scale * scale,
-        other.rotation * rotation
+        translation + ((scale * other.translation).Rotate(rotation)),
+        scale * other.scale,
+        rotation * other.rotation
     };
 }
 
 Transform &Transform::operator*=(const Transform &other)
 {
-    translation += other.translation;
-    scale *= other.scale;
-    rotation = other.rotation * rotation;
-
-    UpdateMatrix();
-
-    return *this;
+    return *this = *this * other;
 }
 
 } // namespace hyperion

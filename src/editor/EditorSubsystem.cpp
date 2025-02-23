@@ -489,7 +489,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         m_scene = project_scene;
         AssertThrow(InitObject(m_scene));
 
-        /*{ // Ensure nodes with entities have BVH for ray testing on mouse click
+        { // Ensure nodes with entities have BVH for ray testing on mouse click
             for (Node *child : m_scene->GetRoot()->GetDescendants()) {
                 child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
             }
@@ -502,7 +502,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
                     child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
                 }
             }));
-        }*/
+        }
 
         m_camera = m_scene->GetCamera();
         AssertThrow(InitObject(m_camera));
@@ -545,6 +545,12 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
     {
         // Shutdown to reinitialize widget holder after project is opened
         m_manipulation_widget_holder.Shutdown();
+
+        m_focused_node.Reset();
+
+        if (m_highlight_node.IsValid()) {
+            m_highlight_node->Remove();
+        }
 
         const Handle<Scene> &project_scene = project->GetScene();
         
@@ -736,6 +742,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 void EditorSubsystem::CreateHighlightNode()
 {
     m_highlight_node = NodeProxy(MakeRefCountedPtr<Node>("Editor_Highlight"));
+    m_highlight_node->SetFlags(m_highlight_node->GetFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
 
     const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -751,7 +758,7 @@ void EditorSubsystem::CreateHighlightNode()
             .bucket = Bucket::BUCKET_TRANSLUCENT
         },
         {
-            { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
+            { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },
             { Material::MATERIAL_KEY_ROUGHNESS, 0.0f },
             { Material::MATERIAL_KEY_METALNESS, 0.0f }
         }
@@ -1631,14 +1638,18 @@ void EditorSubsystem::SetFocusedNode(const NodeProxy &focused_node)
 
     m_focused_node = focused_node;
 
-    // m_highlight_node.Remove();
+    m_highlight_node.Remove();
 
     if (m_focused_node.IsValid()) {
         // @TODO watch for transform changes and update the highlight node
 
         // m_focused_node->AddChild(m_highlight_node);
+        m_scene->GetRoot()->AddChild(m_highlight_node);
         m_highlight_node->SetWorldScale(m_focused_node->GetWorldAABB().GetExtent() * 0.5f);
         m_highlight_node->SetWorldTranslation(m_focused_node->GetWorldTranslation());
+
+        HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focused_node->GetName(), m_focused_node->GetWorldTranslation());
+        HYP_LOG(Editor, Debug, "Set highlight node translation: {}", m_highlight_node->GetWorldTranslation());
 
         if (m_manipulation_widget_holder.GetSelectedManipulationMode() == EditorManipulationMode::NONE) {
             m_manipulation_widget_holder.SetSelectedManipulationMode(EditorManipulationMode::TRANSLATE);
