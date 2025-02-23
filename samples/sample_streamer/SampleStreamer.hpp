@@ -42,7 +42,7 @@ private:
 
     FlatMap<Name, RC<AssetBatch>>       m_asset_batches;
 
-    uint                                m_counter = 0;
+    uint32                              m_counter = 0;
 };
 
 #endif

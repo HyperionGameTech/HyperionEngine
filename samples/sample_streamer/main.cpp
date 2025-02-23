@@ -63,7 +63,6 @@ int main(int argc, char **argv)
     
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
-    signal(SIGBUS, HandleSignal);
 
     HyperionEditor editor;
     // SampleStreamer editor;

@@ -5,6 +5,11 @@
 
 #include <core/Defines.hpp>
 
+#include <core/functional/Proc.hpp>
+
+#include <core/containers/Array.hpp>
+#include <core/containers/HashSet.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererShader.hpp>
@@ -12,8 +17,6 @@
 #include <rendering/backend/Platform.hpp>
 
 #include <Types.hpp>
-
-#include <unordered_set>
 
 namespace hyperion {
 namespace renderer {
@@ -323,10 +326,10 @@ public:
     {
         friend class StagingBufferPool;
 
-        StagingBufferPool                   *m_pool;
-        Device                              *m_device;
-        std::vector<StagingBufferRecord>    m_staging_buffers;
-        std::unordered_set<StagingBuffer *> m_used;
+        StagingBufferPool           *m_pool;
+        Device                      *m_device;
+        Array<StagingBufferRecord>  m_staging_buffers;
+        HashSet<StagingBuffer *>    m_used;
 
         Context(StagingBufferPool *pool, Device *device)
             : m_pool(pool),
@@ -342,7 +345,7 @@ public:
         StagingBuffer *Acquire(SizeType required_size);
     };
 
-    using UseFunction = std::function<RendererResult(Context &context)>;
+    using UseFunction = Proc<RendererResult, Context &>;
 
     static constexpr time_t hold_time = 1000;
     static constexpr uint32 gc_threshold = 5; /* run every 5 Use() calls */
@@ -351,18 +354,18 @@ public:
      * is called, and the staging buffers created will not be able to be reused.
      * This will allow the staging buffer(s) acquired by this to be used in sequence
      * in a single time command buffer */
-    RendererResult Use(Device *device, UseFunction &&fn);
+    HYP_DEPRECATED RendererResult Use(Device *device, UseFunction &&fn);
 
-    RendererResult GC(Device *device);
+    HYP_DEPRECATED RendererResult GC(Device *device);
 
     /*! \brief Destroy all remaining staging buffers in the pool */
-    RendererResult Destroy(Device *device);
+    HYP_DEPRECATED RendererResult Destroy(Device *device);
 
 private:
     StagingBuffer *FindStagingBuffer(SizeType size);
 
-    std::vector<StagingBufferRecord> m_staging_buffers;
-    uint32 use_calls = 0;
+    Array<StagingBufferRecord>  m_staging_buffers;
+    uint32                      use_calls = 0;
 };
 
 } // namespace renderer

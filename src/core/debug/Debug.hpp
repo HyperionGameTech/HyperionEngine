@@ -29,7 +29,7 @@ enum class LogType : int
     #define DebugLog(type, ...) \
         debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
-    extern HYP_API void DebugLog_Write(LogType type, const char *callee, uint32_t line, const char *fmt, ...);
+    extern HYP_API void DebugLog_Write(LogType type, const char *callee, unsigned int line, const char *fmt, ...);
 #else
     #define DebugLog(type, ...) \
         debug::DebugLog_Write(type, __VA_ARGS__)

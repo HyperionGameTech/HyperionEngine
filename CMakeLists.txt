@@ -22,16 +22,29 @@ else()
 endif()
 
 function(RunHypBuildTool)
-    message(STATUS "Running HypBuildTool")
+    if(WIN32)
+        set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.bat")
+        set(HYP_BUILD_TOOL_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildHypBuildTool.bat")
+    else()
+        set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.sh")
+        set(HYP_BUILD_TOOL_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildHypBuildTool.sh")
+    endif()
+
+    message(STATUS "Running HypBuildTool: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
+
+    if(NOT EXISTS ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH})
+        message(FATAL_ERROR "RunHypBuildTool script not found in tools/scripts! Expected path: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
+    endif()
     
     execute_process(
-        COMMAND tools/scripts/RunHypBuildTool.sh
+        COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         RESULT_VARIABLE HYP_BUILD_TOOL_RESULT
+        OUTPUT_FILE HYP_BUILD_TOOL_OUTPUT
     )
 
-    if(NOT ${HYP_BUILD_TOOL_RESULT} EQUAL 0)
-        message(FATAL_ERROR "HypBuildTool failed with exit code ${HYP_BUILD_TOOL_RESULT}")
+    if(NOT HYP_BUILD_TOOL_RESULT EQUAL 0)
+        message(FATAL_ERROR "HypBuildTool failed with exit code: ${HYP_BUILD_TOOL_RESULT}\n\tOutput: ${HYP_BUILD_TOOL_OUTPUT}")
     endif()
 endfunction()
 
@@ -173,7 +186,7 @@ file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 set(HYP_SCRIPTS_BIN_DIR "${CMAKE_SOURCE_DIR}/res/scripts/bin")
 file(MAKE_DIRECTORY ${HYP_SCRIPTS_BIN_DIR})
 
-set(HYP_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/build/generated")
 
 add_definitions(-DHYP_EDITOR=1)
 
@@ -520,42 +533,12 @@ include_directories(
 # set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
-# find python executable
-find_program(PYTHON_EXECUTABLE_PATH NAMES python3 python)
-
-if(NOT PYTHON_EXECUTABLE_PATH)
-    message(FATAL_ERROR "Python executable not found on the system")
-else()
-    message(STATUS "Python executable path: ${PYTHON_EXECUTABLE_PATH}")
-endif()
-
-# function(generate_reflection_library)
-#     # execute on build
-#     add_custom_command(
-#         OUTPUT ${CMAKE_SOURCE_DIR}/generated_files.txt
-#         COMMAND ${BINARY_DIR}/hyperion-buildtool --WorkingDirectory=${CMAKE_SOURCE_DIR} --SourceDirectory=${CMAKE_SOURCE_DIR}/src --CXXOutputDirectory=${CMAKE_SOURCE_DIR}/src/generated --CSharpOutputDirectory=${CMAKE_SOURCE_DIR}/src/dotnet/runtime/gen --ExcludeDirectories=${CMAKE_SOURCE_DIR}/src/generated --ExcludeDirectories=${CMAKE_SOURCE_DIR}/src/core
-#         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#         COMMENT "Running Hyperion Build Tool"
-#     )
-#     add_custom_target(reflection-codegen DEPENDS ${CMAKE_SOURCE_DIR}/generated_files.txt)
-# endfunction()
-
-# generate_reflection_library()
-
-# remove codegen output folder
-file(REMOVE_RECURSE ${CMAKE_SOURCE_DIR}/generated)
-
-# # execute codegen script on configure
-# execute_process(
-#     COMMAND ${PYTHON_EXECUTABLE_PATH} ${CMAKE_SOURCE_DIR}/tools/codegen --output ${HYP_GENERATED_DIR}
-#     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-# )
-
 file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
-
-# message(STATUS "Running Python codegen script - output directory: ${HYP_GENERATED_DIR}")
+message(STATUS "Reflection generated sources directory: ${HYP_GENERATED_DIR}")
 
 foreach(GENERATED_SOURCE ${REFLECTION_GENERATED_SOURCES})
+    message(STATUS "Adding generated source file: ${GENERATED_SOURCE}")
+
     set(SOURCES ${SOURCES} ${GENERATED_SOURCE})
 endforeach()
 

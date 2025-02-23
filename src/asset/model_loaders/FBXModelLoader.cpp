@@ -17,6 +17,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
+#include <core/functional/Proc.hpp>
+
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/memory/Memory.hpp>
@@ -1234,7 +1236,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
     bool found_first_bone = false;
 
-    std::function<void(FBXNode::Type, FBXNode &, Node *)> BuildNodes;
+    Proc<void, FBXNode::Type, FBXNode &, Node *> BuildNodes;
 
     BuildNodes = [&](FBXNode::Type type, FBXNode &node, Node *parent_node)
     {
@@ -1353,7 +1355,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         }
     };
 
-    std::function<void(FBXNode &)> ApplyLocalBindPose;
+    Proc<void, FBXNode &> ApplyLocalBindPose;
 
     ApplyLocalBindPose = [&](FBXNode &node)
     {
@@ -1406,7 +1408,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
     ApplyBindPoses();
     CalculateLocalBindPoses();
 
-    std::function<void(FBXNode &)> BuildLimbNodes;
+    Proc<void, FBXNode &> BuildLimbNodes;
 
     BuildLimbNodes = [&](FBXNode &node)
     {
@@ -1429,7 +1431,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
 #if 0
 
-    std::function<FBXNode *(FBXNode &)> FindFirstLimbNode;
+    Proc<FBXNode *, FBXNode &> FindFirstLimbNode;
 
     FindFirstLimbNode = [&](FBXNode &node) -> FBXNode *
     {

@@ -1549,7 +1549,7 @@ auto Map(ContainerType &&container, ResultType(NormalizedType<ContainerType>::Va
     return result;
 }
 
-template <class ContainerType, class ResultType>
+template <class ContainerType, class ResultType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ResultType NormalizedType<ContainerType>::ValueType::*>>>
 auto Map(ContainerType &&container, ResultType NormalizedType<ContainerType>::ValueType::*member)
 {
     Array<ResultType> result;
@@ -1562,7 +1562,7 @@ auto Map(ContainerType &&container, ResultType NormalizedType<ContainerType>::Va
     return result;
 }
 
-template <class ContainerType, class ResultType>
+template <class ContainerType, class ResultType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ResultType const NormalizedType<ContainerType>::ValueType::*>>>
 auto Map(ContainerType &&container, ResultType const NormalizedType<ContainerType>::ValueType::*member)
 {
     Array<ResultType> result;

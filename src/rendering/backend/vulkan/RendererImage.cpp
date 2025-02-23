@@ -10,6 +10,12 @@
 
 #include <util/img/ImageUtil.hpp>
 
+#include <core/containers/Array.hpp>
+
+#include <core/utilities/Pair.hpp>
+
+#include <core/functional/Proc.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -192,12 +198,12 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     if (!format_support_result) {
         // try a series of fixes to get the image in a valid state.
 
-        std::vector<std::pair<const char *, std::function<RendererResult()>>> potential_fixes;
+        Array<Pair<const char *, Proc<RendererResult>>> potential_fixes;
 
         if (!IsDepthFormat(self->GetTextureFormat())) {
             // convert to 32bpp image
             if (self->GetBPP() != 4) {
-                potential_fixes.emplace_back(std::make_pair(
+                potential_fixes.EmplaceBack(
                     "Convert to 32-bpp image",
                     [&]() -> RendererResult
                     {
@@ -209,7 +215,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
                             &vk_format
                         );
                     }
-                ));
+                );
             }
         }
 

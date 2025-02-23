@@ -17,7 +17,7 @@ StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
 
     StagingBuffer *staging_buffer = m_pool->FindStagingBuffer(required_size - 1);
 
-    if (staging_buffer != nullptr && m_used.find(staging_buffer) == m_used.end()) {
+    if (staging_buffer != nullptr && !m_used.Contains(staging_buffer)) {
 #ifdef HYP_LOG_MEMORY_OPERATIONS
         DebugLog(
             LogType::Debug,
@@ -39,7 +39,7 @@ StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
         staging_buffer = CreateStagingBuffer(new_size);
     }
 
-    m_used.insert(staging_buffer);
+    m_used.Insert(staging_buffer);
 
     return staging_buffer;
 }
@@ -61,28 +61,29 @@ StagingBuffer *StagingBufferPool::Context::CreateStagingBuffer(SizeType size)
         return nullptr;
     }
 
-    m_staging_buffers.push_back(StagingBufferRecord{
-        .size = size,
-        .buffer = std::move(staging_buffer),
-        .last_used = current_time
+    m_staging_buffers.PushBack(StagingBufferRecord {
+        .size       = size,
+        .buffer     = std::move(staging_buffer),
+        .last_used  = current_time
     });
 
-    return m_staging_buffers.back().buffer.get();
+    return m_staging_buffers.Back().buffer.get();
 }
 
 StagingBuffer *StagingBufferPool::FindStagingBuffer(SizeType size)
 {
     /* do a binary search to find one with the closest size (never less than required) */
     const auto bound = std::upper_bound(
-        m_staging_buffers.begin(),
-        m_staging_buffers.end(),
+        m_staging_buffers.Begin(),
+        m_staging_buffers.End(),
         size,
-        [](const SizeType &sz, const auto &it) {
+        [](SizeType sz, const auto &it)
+        {
             return sz < it.size;
         }
     );
 
-    if (bound != m_staging_buffers.end()) {
+    if (bound != m_staging_buffers.End()) {
         /* Update the time so that frequently used buffers will stay in the pool longer */
         bound->last_used = std::time(nullptr);
 
@@ -102,15 +103,15 @@ RendererResult StagingBufferPool::Use(Device *device, UseFunction &&fn)
 
     for (auto &record : context.m_staging_buffers) {
         const auto bound = std::upper_bound(
-            m_staging_buffers.begin(),
-            m_staging_buffers.end(),
+            m_staging_buffers.Begin(),
+            m_staging_buffers.End(),
             record,
             [](const auto &record, const auto &it) {
                 return record.size < it.size;
             }
         );
 
-        m_staging_buffers.insert(bound, std::move(record));
+        m_staging_buffers.Insert(bound, std::move(record));
     }
     
     if (++use_calls % gc_threshold == 0) {
@@ -129,13 +130,13 @@ RendererResult StagingBufferPool::GC(Device *device)
     RendererResult result;
     SizeType num_destroyed = 0;
 
-    for (auto it = m_staging_buffers.begin(); it != m_staging_buffers.end();) {
+    for (auto it = m_staging_buffers.Begin(); it != m_staging_buffers.End();) {
         if (current_time - it->last_used > hold_time) {
             ++num_destroyed;
             
             HYPERION_PASS_ERRORS(it->buffer->Destroy(device), result);
 
-            it = m_staging_buffers.erase(it);
+            it = m_staging_buffers.Erase(it);
         } else {
             ++it;
         }
@@ -156,7 +157,7 @@ RendererResult StagingBufferPool::Destroy(Device *device)
         HYPERION_PASS_ERRORS(record.buffer->Destroy(device), result);
     }
 
-    m_staging_buffers.clear();
+    m_staging_buffers.Clear();
 
     use_calls = 0;
 

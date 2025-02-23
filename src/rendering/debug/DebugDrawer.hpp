@@ -13,11 +13,11 @@
 
 #include <core/Handle.hpp>
 
-#include <math/Transform.hpp>
-#include <math/Color.hpp>
-#include <math/Vector2.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
+#include <core/math/Transform.hpp>
+#include <core/math/Color.hpp>
+#include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <rendering/Buffers.hpp>
 

@@ -852,7 +852,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
             }
         }
 
-        uint camera_definition_index = 0;
+        uint32 camera_definition_index = 0;
 
         RC<CameraTrack> camera_track = RC<CameraTrack>::Construct();
         camera_track->SetDuration(60.0);
