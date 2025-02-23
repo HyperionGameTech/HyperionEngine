@@ -20,20 +20,25 @@ public:
           m_error_code(0)
     {
     }
-
-    AnalyzerError(const StaticMessage &static_message, const FilePath &path, int error_code = 0, const String &error_message = String::empty)
-        : Error(static_message),
-          m_path(path),
-          m_error_code(error_code),
-          m_error_message(error_message)
+    
+    template <auto MessageString>
+    AnalyzerError(const StaticMessage &current_function, ValueWrapper<MessageString>, const FilePath &path)
+        : AnalyzerError(current_function, ValueWrapper<MessageString>(), path, 0)
     {
     }
-
-    AnalyzerError(const Error &error, const FilePath &path, int error_code = 0, const String &error_message = String::empty)
+    
+    template <auto MessageString, class... Args>
+    AnalyzerError(const StaticMessage &current_function, ValueWrapper<MessageString>, const FilePath &path, int error_code, Args &&... args)
+        : Error(current_function, ValueWrapper<HYP_STATIC_STRING("[{}] {}: ").template Concat< MessageString >()>(), error_code, path, std::forward<Args>(args)...),
+          m_path(path),
+          m_error_code(error_code)
+    {
+    }
+    
+    AnalyzerError(const Error &error, const FilePath &path, int error_code = 0)
         : Error(error),
           m_path(path),
-          m_error_code(error_code),
-          m_error_message(error_message)
+          m_error_code(error_code)
     {
     }
 
@@ -50,13 +55,9 @@ public:
     HYP_FORCE_INLINE int GetErrorCode() const
         { return m_error_code; }
 
-    HYP_FORCE_INLINE const String &GetErrorMessage() const
-        { return m_error_message; }
-
 private:
     FilePath    m_path;
     int         m_error_code;
-    String      m_error_message;
 };
 
 } // namespace buildtool

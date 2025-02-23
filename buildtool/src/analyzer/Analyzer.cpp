@@ -21,102 +21,12 @@
 
 #include <core/json/JSON.hpp>
 
-#include <stdio.h>
-#include <unistd.h>
-
 namespace hyperion {
 namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
 
 using namespace json;
-
-class TmpFile
-{
-public:
-    TmpFile(const UTF8StringView &suffix)
-        : m_path(String(std::tmpnam(nullptr)) + suffix),
-          m_file(fopen(m_path.Data(), "w+"))
-    {
-        if (!m_file) {
-            HYP_LOG(BuildTool, Error, "Failed to create temporary file: {}", m_path);
-
-            m_path.Clear();
-        }
-    }
-
-    TmpFile(const TmpFile &)            = delete;
-    TmpFile &operator=(const TmpFile &) = delete;
-
-    TmpFile(TmpFile &&other)
-        : m_path(std::move(other.m_path)),
-          m_file(other.m_file)
-    {
-        other.m_file = nullptr;
-    }
-
-    TmpFile &operator=(TmpFile &&other)
-    {
-        if (this != &other) {
-            if (m_file) {
-                fclose(m_file);
-            }
-
-            m_path = std::move(other.m_path);
-
-            m_file = other.m_file;
-            other.m_file = nullptr;
-        }
-
-        return *this;
-    }
-
-    ~TmpFile()
-    {
-        Close();
-    }
-
-    HYP_FORCE_INLINE const FilePath &GetPath() const
-        { return m_path; }
-
-    HYP_FORCE_INLINE FILE *GetFile() const
-        { return m_file; }
-
-    TmpFile &operator<<(UTF8StringView str)
-    {
-        if (m_file) {
-            fwrite(str.Data(), 1, str.Size(), m_file);
-        }
-
-        return *this;
-    }
-
-    void Close()
-    {
-        if (m_file) {
-            fclose(m_file);
-
-            m_file = nullptr;
-        }
-
-        if (m_path.Any()) {
-            remove(m_path.Data());
-
-            m_path.Clear();
-        }
-    }
-
-    void Flush()
-    {
-        if (m_file) {
-            fflush(m_file);
-        }
-    }
-
-private:
-    FilePath    m_path;
-    FILE        *m_file;
-};
 
 static const HashMap<String, HypClassDefinitionType> g_hyp_class_definition_types = {
     { "HYP_CLASS", HypClassDefinitionType::CLASS },
@@ -601,7 +511,7 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
             }
 
             if (unit.GetErrorList().HasFatalErrors()) {
-                return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse member", mod.GetPath(), 0, error_message);
+                return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse member: {}", mod.GetPath(), 0, error_message);
             }
 
             return { };
@@ -660,7 +570,7 @@ Result<void, AnalyzerError> Analyzer::ProcessModule(Module &mod)
 
     for (HypClassDefinition &hyp_class_definition : res.GetValue()) {
         if (auto res = BuildHypClassMembers(*this, mod, hyp_class_definition); res.GetError()) {
-            HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}\tMessage: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode(), res.GetError().GetErrorMessage());
+            HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode());
 
             return res.GetError();
         } else {

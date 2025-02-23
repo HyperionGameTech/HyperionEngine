@@ -19,8 +19,6 @@
 #include <asset/ByteWriter.hpp>
 #include <asset/BufferedByteReader.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 namespace config {
 
@@ -801,14 +799,6 @@ bool ConfigurationTable::SetHypClassFields(const HypClass *hyp_class, const void
 
 
 #pragma endregion ConfigurationTable
-
-HYP_API const ConfigurationTable &GetGlobalConfigurationTable()
-{
-    AssertThrow(g_engine.IsValid());
-    AssertThrow(g_engine->GetAppContext() != nullptr);
-
-    return g_engine->GetAppContext()->GetConfiguration();
-}
 
 } // namespace config
 } // namespace hyperion

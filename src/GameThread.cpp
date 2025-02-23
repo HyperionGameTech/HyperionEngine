@@ -1,7 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/GameThread.hpp>
+#include <GameThread.hpp>
+#include <Game.hpp>
+#include <GameCounter.hpp>
+
 #include <core/logging/Logger.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -9,9 +13,6 @@
 #include <asset/Assets.hpp>
 
 #include <math/MathUtil.hpp>
-
-#include <Game.hpp>
-#include <GameCounter.hpp>
 
 #define HYP_GAME_THREAD_LOCKED 0
 

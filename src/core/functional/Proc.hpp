@@ -25,19 +25,15 @@ template <class ReturnType, class T2 = void>
 struct ProcDefaultReturn;
 
 template <class ReturnType>
-struct ProcDefaultReturn<ReturnType, std::enable_if_t<std::is_default_constructible_v<ReturnType>>>
+struct ProcDefaultReturn<ReturnType, std::enable_if_t<std::is_default_constructible_v<ReturnType> && !std::is_void_v<ReturnType>>>
 {
-    static_assert(!std::is_void_v<ReturnType>, "ProcDefaultReturn should not be used with void return types");
-
     static ReturnType Get()
         { return ReturnType(); }
 };
 
 template <class ReturnType>
-struct ProcDefaultReturn<ReturnType, std::enable_if_t<!std::is_default_constructible_v<ReturnType>>>
+struct ProcDefaultReturn<ReturnType, std::enable_if_t<!std::is_default_constructible_v<ReturnType> && !std::is_void_v<ReturnType>>>
 {
-    static_assert(!std::is_void_v<ReturnType>, "ProcDefaultReturn should not be used with void return types");
-
     static ReturnType Get()
     {
         HYP_FAIL("Cannot get default proc return value for type %s - type is not default constructible", TypeNameHelper<ReturnType>::value.Data());

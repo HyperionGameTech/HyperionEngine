@@ -92,7 +92,7 @@ public:
 
         if (m_analyzer.GetState().HasErrors()) {
             for (const AnalyzerError &error : m_analyzer.GetState().errors) {
-                HYP_LOG(BuildTool, Error, "Error: {}\t{}", error.GetMessage(), error.GetErrorMessage());
+                HYP_LOG(BuildTool, Error, "Error: {}", error.GetMessage());
             }
 
             return HYP_MAKE_ERROR(Error, "Build tool finished with errors");

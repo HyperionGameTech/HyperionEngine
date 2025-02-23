@@ -3,6 +3,8 @@
 #include <parser/Lexer.hpp>
 #include <parser/CompilerError.hpp>
 
+#include <core/containers/FixedArray.hpp>
+
 #include <core/memory/Memory.hpp>
 
 #include <sstream>
@@ -68,8 +70,10 @@ Token Lexer::NextToken()
 {
     SourceLocation location = m_source_location;
 
-    std::array<u32char, 3> ch;
+    FixedArray<u32char, 3> ch;
+
     int total_pos_change = 0;
+
     for (int i = 0; i < 3; i++) {
         int pos_change = 0;
         ch[i] = m_source_stream.Next(pos_change);
@@ -231,7 +235,7 @@ u32char Lexer::ReadEscapeCode()
                 LEVEL_ERROR,
                 Msg_unrecognized_escape_sequence,
                 location,
-                std::string("\\") + utf::get_bytes(esc)
+                String("\\") + utf::get_bytes(esc)
             ));
         }
     }
@@ -542,13 +546,16 @@ Token Lexer::ReadOperator()
     // location of the start of the hex number
     SourceLocation location = m_source_location;
 
-    std::array<u32char, 2> ch;
+    FixedArray<u32char, 2> ch;
+
     int total_pos_change = 0;
+
     for (int i = 0; i < 2; i++) {
         int pos_change = 0;
         ch[i] = m_source_stream.Next(pos_change);
         total_pos_change += pos_change;
     }
+
     // go back
     m_source_stream.GoBack(total_pos_change);
 

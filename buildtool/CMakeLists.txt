@@ -50,8 +50,8 @@ endif()
 
 # link with shared library hyperion
 add_subdirectory(${CMAKE_SOURCE_DIR}/../src/core ${CMAKE_BINARY_DIR}/../core)
-target_link_libraries(${BUILD_NAME} hyperion-core)
 add_dependencies(${BUILD_NAME} hyperion-core)
+target_link_libraries(${BUILD_NAME} hyperion-core)
 
 # copy the hyperion dll to the executable directory
 # add_custom_command(TARGET ${BUILD_NAME} POST_BUILD

@@ -3,11 +3,12 @@
 #ifndef HYPERION_GAME_THREAD_HPP
 #define HYPERION_GAME_THREAD_HPP
 
-#include <GameCounter.hpp>
-
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
+
 #include <core/logging/LoggerFwd.hpp>
+
+#include <GameCounter.hpp>
 
 namespace hyperion {
 

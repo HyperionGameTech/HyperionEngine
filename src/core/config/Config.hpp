@@ -160,8 +160,6 @@ private:
     mutable HashCode                        m_cached_hash_code;
 };
 
-HYP_API const ConfigurationTable &GetGlobalConfigurationTable();
-
 template <class Derived>
 class ConfigBase : public ConfigurationTable
 {

@@ -13,17 +13,16 @@
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
+#include <core/utilities/UUID.hpp>
+
 #include <core/net/HTTPRequest.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <system/AppContext.hpp>
 #include <core/cli/CommandLine.hpp>
 
 #include <core/json/JSON.hpp>
-
-#include <Engine.hpp>
 
 namespace hyperion {
 namespace profiling {

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <Game.hpp>
+#include <GameThread.hpp>
 
 #include <asset/Assets.hpp>
 
-#include <core/threading/GameThread.hpp>
 #include <core/threading/Threads.hpp>
 
 #include <system/SystemEvent.hpp>

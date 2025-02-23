@@ -17,10 +17,6 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 find_package(Threads REQUIRED)
 
-# @TODO Refactor to not rely on SDL or Vulkan includes
-find_package(SDL2 REQUIRED)
-find_package(Vulkan)
-
 file(GLOB_RECURSE SOURCES "*.cpp" "*.cc" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 
