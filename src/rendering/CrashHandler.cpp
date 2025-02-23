@@ -5,7 +5,7 @@
 #include <core/debug/Debug.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
 #include <Aftermath/GFSDK_Aftermath.h>

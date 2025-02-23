@@ -2,9 +2,9 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 
-#include <rendering/Shader.hpp>
-
 #include <core/object/HypData.hpp>
+
+#include <rendering/Shader.hpp>
 
 namespace hyperion::fbom {
 

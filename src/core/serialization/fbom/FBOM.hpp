@@ -17,7 +17,7 @@
 
 #include <core/filesystem/FsUtil.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>

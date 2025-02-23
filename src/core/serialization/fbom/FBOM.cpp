@@ -3,7 +3,7 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypClass.hpp>

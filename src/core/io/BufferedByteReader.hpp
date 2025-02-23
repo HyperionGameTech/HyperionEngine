@@ -3,15 +3,18 @@
 #ifndef BUFFERED_BYTE_READER_HPP
 #define BUFFERED_BYTE_READER_HPP
 
-#include <core/math/MathUtil.hpp>
+#include <core/Defines.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/ByteBuffer.hpp>
+
 #include <core/filesystem/FilePath.hpp>
-#include <core/Defines.hpp>
+
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 

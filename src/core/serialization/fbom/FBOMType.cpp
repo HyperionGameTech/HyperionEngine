@@ -4,7 +4,7 @@
 #include <core/serialization/fbom/FBOMBaseTypes.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 namespace hyperion::fbom {
 

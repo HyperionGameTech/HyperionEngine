@@ -3,12 +3,6 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
 
-#include <scene/Entity.hpp>
-#include <scene/World.hpp>
-
-#include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/ComponentInterface.hpp>
-
 #include <core/threading/Threads.hpp>
 
 #include <core/object/HypClass.hpp>
@@ -21,6 +15,12 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <scene/Entity.hpp>
+#include <scene/World.hpp>
+
+#include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 #include <Engine.hpp>
 

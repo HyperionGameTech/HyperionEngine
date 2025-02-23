@@ -2,9 +2,9 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 
-#include <rendering/Mesh.hpp>
-
 #include <core/object/HypData.hpp>
+
+#include <rendering/Mesh.hpp>
 
 namespace hyperion::fbom {
 

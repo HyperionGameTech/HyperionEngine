@@ -60,7 +60,6 @@ public:
     }
 
     bool HasFatalErrors() const;
-    std::ostream &WriteOutput(std::ostream &os) const;
 
 private:
     FlatSet<CompilerError>  m_errors;

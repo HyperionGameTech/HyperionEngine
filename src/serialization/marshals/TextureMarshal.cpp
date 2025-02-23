@@ -3,10 +3,10 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <rendering/Texture.hpp>
 #include <rendering/backend/RendererImage.hpp>
-
-#include <core/object/HypData.hpp>
 
 namespace hyperion::fbom {
 

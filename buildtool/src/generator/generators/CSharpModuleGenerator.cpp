@@ -7,7 +7,7 @@
 
 #include <parser/Parser.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 namespace hyperion {
 namespace buildtool {

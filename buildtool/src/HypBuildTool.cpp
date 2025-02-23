@@ -184,8 +184,8 @@ private:
         batch->OnComplete.Bind([batch, task_executor = task.Initialize()]()
         {
             task_executor->Fulfill();
-
-            delete batch;
+            
+            DeferDeleteTaskBatch(batch);
         }).Detach();
 
         for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
@@ -216,7 +216,7 @@ private:
         {
             task_executor->Fulfill();
 
-            delete batch;
+            DeferDeleteTaskBatch(batch);
         }).Detach();
 
         RC<CXXModuleGenerator> cxx_module_generator = MakeRefCountedPtr<CXXModuleGenerator>();
@@ -274,6 +274,20 @@ private:
         while (!task.IsCompleted()) {
             Threads::Sleep(100);
         }
+    }
+    
+    // Setup a task to delete the batch
+    // Use when deleting the batch inline would cause an issue due to destructing a mutex that is currently locked.
+    static void DeferDeleteTaskBatch(TaskBatch *batch)
+    {
+        if (!batch) {
+            return;
+        }
+
+        TaskSystem::GetInstance().Enqueue([batch]()
+        {
+            delete batch;
+        }, TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 
     WorkerThreadPool    m_thread_pool;

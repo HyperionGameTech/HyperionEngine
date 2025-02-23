@@ -3,7 +3,7 @@
 #ifndef HYPERION_BITMAP_HPP
 #define HYPERION_BITMAP_HPP
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>

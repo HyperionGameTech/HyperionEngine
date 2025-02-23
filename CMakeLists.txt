@@ -36,22 +36,7 @@ function(RunHypBuildTool)
 endfunction()
 
 # run HypBuildTool before configuring
-if (EXISTS "${CMAKE_CURRENT_BINARY_DIR}/hyperion-buildtool")
-    RunHypBuildTool()
-else()
-    message(STATUS "HypBuildTool not found, attempting to build it...")
-
-    execute_process(
-        COMMAND tools/scripts/BuildHypBuildTool.sh
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE BUILD_HYP_BUILD_TOOL_RESULT
-    )
-    if(NOT ${BUILD_HYP_BUILD_TOOL_RESULT} EQUAL 0)
-        message(FATAL_ERROR "Failed to build HypBuildTool: ${BUILD_HYP_BUILD_TOOL_RESULT}")
-    endif()
-    
-    RunHypBuildTool()
-endif()
+RunHypBuildTool()
 
 # set HYP_BUILD_TYPE
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

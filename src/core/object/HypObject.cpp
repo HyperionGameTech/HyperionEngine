@@ -16,13 +16,6 @@
 
 namespace hyperion {
 
-// @TODO Thread local / static initializer stack for each HypObjectInitializer
-// first call for the type (base) initializes a pointer (maybe from a table or inline?)
-// subsequent calls will see the ptr already exists and update it..
-
-// maybe before constructor gets called we set the actual target HypClass ptr on a stack somewhere
-// and we don't use NewObject until that matches?
-
 struct HypObjectInitializerContext
 {
     const HypClass  *hyp_class = nullptr;

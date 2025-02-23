@@ -15,7 +15,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 #include <util/ParseUtil.hpp>
 

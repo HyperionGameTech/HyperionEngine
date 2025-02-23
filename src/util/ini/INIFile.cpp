@@ -2,7 +2,7 @@
 
 #include <util/ini/INIFile.hpp>
 
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 #include <core/debug/Debug.hpp>
 

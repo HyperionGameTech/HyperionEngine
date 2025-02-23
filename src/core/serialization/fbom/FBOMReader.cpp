@@ -4,7 +4,7 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOM.hpp>
 
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/utilities/DeferredScope.hpp>

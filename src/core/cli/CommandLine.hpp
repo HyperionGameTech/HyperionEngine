@@ -63,7 +63,7 @@ struct CommandLineArgumentDefinition
     Optional<Array<String>>             enum_values;
 };
 
-struct CommandLineArgumentDefinitions
+struct HYP_API CommandLineArgumentDefinitions
 {
     using Iterator = typename Array<CommandLineArgumentDefinition>::Iterator;
     using ConstIterator = typename Array<CommandLineArgumentDefinition>::ConstIterator;
@@ -85,7 +85,7 @@ struct CommandLineArgumentDefinitions
     ~CommandLineArgumentDefinitions()                                                           = default;
 
     // Add an argument - may be a string, int, float, bool.
-    HYP_API CommandLineArgumentDefinitions &Add(
+    CommandLineArgumentDefinitions &Add(
         const String &name,
         const String &shorthand = String::empty,
         const String &description = String::empty,
@@ -95,7 +95,7 @@ struct CommandLineArgumentDefinitions
     );
 
     // Add an enum argument
-    HYP_API CommandLineArgumentDefinitions &Add(
+    CommandLineArgumentDefinitions &Add(
         const String &name,
         const String &shorthand = String::empty,
         const String &description = String::empty,

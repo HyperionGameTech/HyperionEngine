@@ -21,7 +21,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/FBOMResult.hpp>

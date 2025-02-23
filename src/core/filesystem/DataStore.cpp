@@ -10,7 +10,7 @@
 
 #include <core/utilities/Time.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 #include <asset/Assets.hpp>
 
 namespace hyperion {

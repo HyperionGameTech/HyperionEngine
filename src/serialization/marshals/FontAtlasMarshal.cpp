@@ -3,9 +3,6 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
 
-#include <rendering/font/FontAtlas.hpp>
-#include <rendering/Texture.hpp>
-
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypData.hpp>
@@ -14,6 +11,9 @@
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <rendering/font/FontAtlas.hpp>
+#include <rendering/Texture.hpp>
 
 namespace hyperion::fbom {
 

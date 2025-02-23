@@ -22,7 +22,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>

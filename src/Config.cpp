@@ -10,7 +10,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <asset/Assets.hpp>
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 namespace hyperion {
 

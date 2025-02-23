@@ -386,12 +386,17 @@
 #define HYP_IMPORT
 #endif
 
+#ifdef HYP_STATICALLY_LINKED
+#define HYP_API
+#define HYP_C_API extern "C"
+#else
 #ifdef HYP_BUILD_LIBRARY
 #define HYP_API HYP_EXPORT
 #define HYP_C_API extern "C" HYP_EXPORT
 #else
 #define HYP_API HYP_IMPORT
 #define HYP_C_API extern "C" HYP_IMPORT
+#endif
 #endif
 
 #pragma endregion Symbol Visibility

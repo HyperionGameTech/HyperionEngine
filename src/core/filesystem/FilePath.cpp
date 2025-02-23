@@ -2,7 +2,7 @@
 #include <core/filesystem/FilePath.hpp>
 #include <core/filesystem/FsUtil.hpp>
 
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 #include <filesystem>
 #include <fstream>

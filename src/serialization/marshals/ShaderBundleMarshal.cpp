@@ -2,12 +2,12 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 
-#include <rendering/shader_compiler/ShaderCompiler.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/object/HypData.hpp>
+
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
 
 namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);

@@ -9,7 +9,8 @@
 namespace hyperion {
 namespace buildtool {
 
-Optional<String> ExtractCXXClassName(const String &line) {
+Optional<String> ExtractCXXClassName(const String &line)
+{
     static const std::regex pattern(
         "(?:class|struct|(?:enum class)|enum)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(\\w+)"
     );
@@ -24,7 +25,8 @@ Optional<String> ExtractCXXClassName(const String &line) {
     return { };
 }
 
-Array<String> ExtractCXXBaseClasses(const String &line) {
+Array<String> ExtractCXXBaseClasses(const String &line)
+{
     static const std::regex pattern(
         "((?:class|struct)\\s+(?:alignas\\(.*\\)\\s+)?(?:HYP_API\\s+)?(?:\\w+)\\s*(?:final)?\\s*:\\s*((?:public|private|protected)?\\s*(?:\\w+\\s*,?\\s*)+))"
     );

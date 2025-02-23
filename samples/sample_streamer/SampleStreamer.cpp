@@ -43,7 +43,7 @@
 
 #include <Game.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 

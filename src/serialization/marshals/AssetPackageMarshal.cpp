@@ -4,14 +4,14 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <asset/AssetRegistry.hpp>
-
 #include <core/object/HypData.hpp>
 
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <asset/AssetRegistry.hpp>
 
 #include <HyperionEngine.hpp>
 

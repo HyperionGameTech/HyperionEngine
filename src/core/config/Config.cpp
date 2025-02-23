@@ -16,8 +16,8 @@
 
 #include <system/AppContext.hpp>
 
-#include <asset/ByteWriter.hpp>
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 namespace hyperion {
 namespace config {

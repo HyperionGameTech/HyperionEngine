@@ -5,13 +5,13 @@
 #include <core/serialization/fbom/FBOMObject.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <scene/Node.hpp>
-#include <scene/animation/Bone.hpp>
-
 #include <core/object/HypData.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
+
+#include <scene/Node.hpp>
+#include <scene/animation/Bone.hpp>
 
 namespace hyperion::fbom {
 

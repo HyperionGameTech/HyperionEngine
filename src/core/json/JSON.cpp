@@ -7,7 +7,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#include <asset/BufferedByteReader.hpp>
+#include <core/io/BufferedByteReader.hpp>
 
 namespace hyperion {
 namespace json {

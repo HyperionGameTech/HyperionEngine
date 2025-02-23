@@ -2,7 +2,7 @@
 
 #include <dotnet/DotNetSystem.hpp>
 
-#include <asset/ByteWriter.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <system/AppContext.hpp>
 #include <core/cli/CommandLine.hpp>

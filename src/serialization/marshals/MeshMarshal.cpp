@@ -3,12 +3,12 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
-#include <rendering/Mesh.hpp>
-
 #include <core/object/HypData.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <rendering/Mesh.hpp>
 
 namespace hyperion::fbom {
 
