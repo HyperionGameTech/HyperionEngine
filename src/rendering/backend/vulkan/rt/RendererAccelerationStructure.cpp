@@ -8,7 +8,7 @@
 #include <rendering/Material.hpp>
 
 #include <core/utilities/Range.hpp>
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 namespace renderer {

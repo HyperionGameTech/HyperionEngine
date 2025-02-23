@@ -17,7 +17,7 @@
 
 #include <core/containers/Array.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

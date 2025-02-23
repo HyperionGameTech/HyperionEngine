@@ -7,7 +7,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <math/Vector3.hpp>
+#include <core/math/Vector3.hpp>
 
 #include <Types.hpp>
 

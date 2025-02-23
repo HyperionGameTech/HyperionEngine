@@ -43,7 +43,7 @@
 
 #include <core/Name.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <algorithm>
 

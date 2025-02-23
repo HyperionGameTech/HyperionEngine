@@ -16,7 +16,7 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

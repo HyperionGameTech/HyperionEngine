@@ -3,7 +3,7 @@
 #ifndef HYPERION_STRING_HPP
 #define HYPERION_STRING_HPP
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>

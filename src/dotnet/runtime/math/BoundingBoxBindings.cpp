@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <Types.hpp>
 

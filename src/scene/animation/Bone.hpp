@@ -10,7 +10,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 
 namespace hyperion {
 

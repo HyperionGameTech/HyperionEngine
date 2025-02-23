@@ -3,9 +3,9 @@
 #ifndef HYPERION_EDITOR_OBJECT_PROPERTIES_HPP
 #define HYPERION_EDITOR_OBJECT_PROPERTIES_HPP
 
-#include <math/Vector2.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
+#include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/utilities/TypeID.hpp>

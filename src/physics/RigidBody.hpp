@@ -10,11 +10,11 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <math/Transform.hpp>
-#include <math/BoundingBox.hpp>
-#include <math/BoundingSphere.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
+#include <core/math/Transform.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/BoundingSphere.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <physics/PhysicsMaterial.hpp>
 

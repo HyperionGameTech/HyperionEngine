@@ -1,7 +1,7 @@
 #ifndef WORLEY_NOISE_HPP
 #define WORLEY_NOISE_HPP
 
-#include <math/Vector3.hpp>
+#include <core/math/Vector3.hpp>
 
 #include <Types.hpp>
 

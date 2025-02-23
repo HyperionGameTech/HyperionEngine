@@ -23,8 +23,8 @@
 
 #include <rendering/Material.hpp>
 
-#include <math/Color.hpp>
-#include <math/BlendVar.hpp>
+#include <core/math/Color.hpp>
+#include <core/math/BlendVar.hpp>
 
 #include <Types.hpp>
 

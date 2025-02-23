@@ -11,7 +11,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/camera/OrthoCamera.hpp>

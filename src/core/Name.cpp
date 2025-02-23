@@ -3,7 +3,7 @@
 #include <core/Name.hpp>
 #include <core/utilities/UUID.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

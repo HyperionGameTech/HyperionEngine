@@ -1,6 +1,6 @@
 #include <scripting/Script.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

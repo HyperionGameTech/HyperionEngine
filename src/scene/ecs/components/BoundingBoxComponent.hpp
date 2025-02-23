@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_BOUNDING_BOX_COMPONENT_HPP
 #define HYPERION_ECS_BOUNDING_BOX_COMPONENT_HPP
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion {

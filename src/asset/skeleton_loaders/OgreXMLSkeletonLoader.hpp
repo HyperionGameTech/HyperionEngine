@@ -5,7 +5,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <math/Quaternion.hpp>
+#include <core/math/Quaternion.hpp>
 
 #include <Types.hpp>
 

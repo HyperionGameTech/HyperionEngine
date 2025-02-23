@@ -2,7 +2,7 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>

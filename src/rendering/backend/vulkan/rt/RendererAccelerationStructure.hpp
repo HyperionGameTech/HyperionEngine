@@ -3,7 +3,7 @@
 #ifndef RENDERER_ACCELERATION_STRUCTURE_HPP
 #define RENDERER_ACCELERATION_STRUCTURE_HPP
 
-#include <math/Matrix4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <core/containers/Array.hpp>
 

@@ -17,7 +17,7 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>

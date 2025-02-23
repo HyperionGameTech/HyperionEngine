@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/camera/CameraTrack.hpp>
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

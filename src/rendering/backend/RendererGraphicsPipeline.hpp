@@ -7,7 +7,7 @@
 #include <rendering/backend/RendererPipeline.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
-#include <math/Vertex.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <core/Defines.hpp>
 

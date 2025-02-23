@@ -3,7 +3,7 @@
 #ifndef HYPERION_KEYFRAME_HPP
 #define HYPERION_KEYFRAME_HPP
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

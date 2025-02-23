@@ -6,7 +6,7 @@
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <core/object/HypObject.hpp>
 

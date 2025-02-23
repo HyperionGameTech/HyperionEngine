@@ -5,8 +5,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <core/debug/Debug.hpp>
-#include <math/MathUtil.hpp>
-#include <math/Transform.hpp>
+#include <core/math/MathUtil.hpp>
+#include <core/math/Transform.hpp>
 
 #include <cstring>
 

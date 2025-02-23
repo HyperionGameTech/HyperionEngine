@@ -12,7 +12,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

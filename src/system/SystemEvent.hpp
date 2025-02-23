@@ -7,7 +7,7 @@
 #include <core/utilities/Variant.hpp>
 #include <core/filesystem/FilePath.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <SDL2/SDL.h>
 

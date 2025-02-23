@@ -14,8 +14,8 @@
 
 #include <rendering/font/FontAtlas.hpp>
 
-#include <math/Transform.hpp>
-#include <math/Vector2.hpp>
+#include <core/math/Transform.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <scene/Scene.hpp>
 

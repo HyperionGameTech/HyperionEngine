@@ -4,8 +4,8 @@
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
 #include <core/memory/UniquePtr.hpp>
-#include <math/Vector3.hpp>
-#include <math/Quaternion.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Quaternion.hpp>
 
 #ifdef HYP_BULLET_PHYSICS
 #include "btBulletDynamicsCommon.h"

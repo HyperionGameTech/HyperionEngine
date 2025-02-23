@@ -24,7 +24,7 @@
 
 #include <core/util/ForEach.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>

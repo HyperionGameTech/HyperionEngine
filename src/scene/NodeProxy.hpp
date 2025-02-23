@@ -6,8 +6,8 @@
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
 
-#include <math/Transform.hpp>
-#include <math/Ray.hpp>
+#include <core/math/Transform.hpp>
+#include <core/math/Ray.hpp>
 
 #include <Types.hpp>
 

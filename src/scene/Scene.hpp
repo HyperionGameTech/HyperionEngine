@@ -23,7 +23,7 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/Color.hpp>
+#include <core/math/Color.hpp>
 
 #include <GameCounter.hpp>
 #include <Types.hpp>

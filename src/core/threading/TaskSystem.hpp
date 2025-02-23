@@ -26,7 +26,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Semaphore.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 

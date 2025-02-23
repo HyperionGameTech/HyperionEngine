@@ -9,7 +9,7 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/Extent.hpp>
+#include <core/math/Extent.hpp>
 
 namespace hyperion {
 

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <math/Matrix4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <Types.hpp>
 

@@ -7,7 +7,7 @@
 #include <rendering/backend/RendererQueue.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <Constants.hpp>
 
 namespace hyperion {

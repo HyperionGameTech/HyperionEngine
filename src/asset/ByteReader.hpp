@@ -3,7 +3,7 @@
 #ifndef BYTE_READER_HPP
 #define BYTE_READER_HPP
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <core/memory/ByteBuffer.hpp>
 #include <Types.hpp>
 

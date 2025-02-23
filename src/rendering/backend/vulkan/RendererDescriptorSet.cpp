@@ -7,7 +7,7 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/containers/HashSet.hpp>
 

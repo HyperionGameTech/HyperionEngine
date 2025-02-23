@@ -19,7 +19,7 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/Platform.hpp>
 
-#include <math/Matrix4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>

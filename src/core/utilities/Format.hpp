@@ -10,7 +10,7 @@
 
 #include <core/memory/ByteBuffer.hpp>
 
-#include <math/Quaternion.hpp>
+#include <core/math/Quaternion.hpp>
 
 namespace hyperion {
 

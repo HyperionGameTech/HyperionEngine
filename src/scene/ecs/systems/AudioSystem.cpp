@@ -8,7 +8,7 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

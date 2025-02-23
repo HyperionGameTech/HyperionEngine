@@ -69,8 +69,8 @@
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCDataChannel.hpp>
 
-#include <math/Triangle.hpp>
-#include <math/Matrix3.hpp>
+#include <core/math/Triangle.hpp>
+#include <core/math/Matrix3.hpp>
 
 SampleStreamer::SampleStreamer()
     : Game(ManagedGameInfo {

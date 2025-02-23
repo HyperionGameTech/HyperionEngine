@@ -8,10 +8,10 @@
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>
 
-#include <math/BoundingBox.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
-#include <math/Vertex.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <Types.hpp>
 

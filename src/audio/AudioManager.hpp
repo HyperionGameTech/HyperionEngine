@@ -9,7 +9,7 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
-#include <math/Vector3.hpp>
+#include <core/math/Vector3.hpp>
 
 namespace hyperion {
 class AudioManager {

@@ -3,8 +3,8 @@
 #ifndef HYPERION_BYTE_UTIL_HPP
 #define HYPERION_BYTE_UTIL_HPP
 
-#include <math/MathUtil.hpp>
-#include <math/Vector4.hpp>
+#include <core/math/MathUtil.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <Types.hpp>
 

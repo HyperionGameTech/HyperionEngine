@@ -12,7 +12,7 @@
 #include <core/debug/Debug.hpp>
 #include <core/Defines.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 #include <HashCode.hpp>

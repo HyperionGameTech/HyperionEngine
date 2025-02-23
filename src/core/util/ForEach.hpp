@@ -3,7 +3,7 @@
 #ifndef HYPERION_UTIL_FOREACH_HPP
 #define HYPERION_UTIL_FOREACH_HPP
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <Types.hpp>
 #include <core/threading/TaskSystem.hpp>
 

@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_TRANSFORM_COMPONENT_HPP
 #define HYPERION_ECS_TRANSFORM_COMPONENT_HPP
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 
 #include <HashCode.hpp>
 

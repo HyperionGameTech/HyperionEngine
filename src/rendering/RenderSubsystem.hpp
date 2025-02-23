@@ -13,7 +13,7 @@
 
 #include <scene/Entity.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

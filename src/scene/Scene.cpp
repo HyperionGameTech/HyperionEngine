@@ -42,7 +42,7 @@
 
 #include <core/object/HypClassUtils.hpp>
 
-#include <math/Halton.hpp>
+#include <core/math/Halton.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

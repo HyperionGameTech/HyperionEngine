@@ -8,7 +8,7 @@
 
 #include <core/containers/StringFwd.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <HashCode.hpp>
 

@@ -14,7 +14,7 @@
 #include <core/containers/Bitset.hpp>
 #include <core/containers/LinkedList.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>

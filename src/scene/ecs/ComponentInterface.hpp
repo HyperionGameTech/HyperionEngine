@@ -17,11 +17,11 @@
 
 #include <asset/serialization/Serialization.hpp>
 
-#include <math/Vector2.hpp>
-#include <math/Vector3.hpp>
-#include <math/Vector4.hpp>
-#include <math/Matrix4.hpp>
-#include <math/Quaternion.hpp>
+#include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
+#include <core/math/Matrix4.hpp>
+#include <core/math/Quaternion.hpp>
 
 #include <scene/ecs/ComponentFactory.hpp>
 #include <scene/ecs/ComponentContainer.hpp>

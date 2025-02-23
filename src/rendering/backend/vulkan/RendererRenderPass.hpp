@@ -8,7 +8,7 @@
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
 
-#include <math/Vector4.hpp>
+#include <core/math/Vector4.hpp>
 #include <core/containers/Array.hpp>
 
 #include <Types.hpp>

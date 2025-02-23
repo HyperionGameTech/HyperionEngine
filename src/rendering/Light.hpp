@@ -14,9 +14,9 @@
 #include <rendering/Material.hpp>
 #include <rendering/RenderResources.hpp>
 
-#include <math/Vector3.hpp>
-#include <math/BoundingBox.hpp>
-#include <math/BoundingSphere.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/BoundingSphere.hpp>
 
 #include <Types.hpp>
 

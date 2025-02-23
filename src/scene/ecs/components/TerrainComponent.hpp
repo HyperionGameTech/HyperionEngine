@@ -3,8 +3,8 @@
 #ifndef HYPERION_ECS_TERRAIN_COMPONENT_HPP
 #define HYPERION_ECS_TERRAIN_COMPONENT_HPP
 
-#include <math/Vector3.hpp>
-#include <math/Extent.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Extent.hpp>
 
 #include <core/containers/FixedArray.hpp>
 

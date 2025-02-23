@@ -3,7 +3,7 @@
 #ifndef HYPERION_IMAGE_UTIL_HPP
 #define HYPERION_IMAGE_UTIL_HPP
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

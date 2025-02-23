@@ -13,7 +13,7 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <asset/BufferedByteReader.hpp>
 

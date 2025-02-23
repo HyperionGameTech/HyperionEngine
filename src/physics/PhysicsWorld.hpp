@@ -6,7 +6,7 @@
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
 
-#include <math/Vector3.hpp>
+#include <core/math/Vector3.hpp>
 
 namespace hyperion {
 namespace physics {

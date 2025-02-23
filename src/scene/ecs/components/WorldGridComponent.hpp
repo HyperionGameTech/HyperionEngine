@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_WORLD_GRID_COMPONENT_HPP
 #define HYPERION_ECS_WORLD_GRID_COMPONENT_HPP
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 #include <scene/world_grid/WorldGrid.hpp>

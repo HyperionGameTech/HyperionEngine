@@ -5,7 +5,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

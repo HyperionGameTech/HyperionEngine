@@ -19,8 +19,8 @@
 
 #include <core/object/HypClassUtils.hpp>
 
-#include <math/MathUtil.hpp>
-#include <math/Color.hpp>
+#include <core/math/MathUtil.hpp>
+#include <core/math/Color.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 #include <util/NoiseFactory.hpp>

@@ -12,7 +12,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #define HYP_GAME_THREAD_LOCKED 0
 

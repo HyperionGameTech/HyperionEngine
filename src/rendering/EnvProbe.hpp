@@ -8,7 +8,7 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>

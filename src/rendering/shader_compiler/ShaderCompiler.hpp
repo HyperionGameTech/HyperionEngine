@@ -10,7 +10,7 @@
 
 #include <core/containers/HeapArray.hpp>
 
-#include <math/Vertex.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>

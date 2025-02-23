@@ -8,10 +8,10 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <math/Extent.hpp>
-#include <math/Vector2.hpp>
-#include <math/Matrix4.hpp>
-#include <math/BoundingBox.hpp>
+#include <core/math/Extent.hpp>
+#include <core/math/Vector2.hpp>
+#include <core/math/Matrix4.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <rendering/Shadows.hpp>
 

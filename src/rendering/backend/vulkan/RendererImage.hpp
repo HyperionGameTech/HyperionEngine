@@ -4,7 +4,7 @@
 #define RENDERER_IMAGE_HPP
 
 #include <rendering/backend/RendererBuffer.hpp>
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 

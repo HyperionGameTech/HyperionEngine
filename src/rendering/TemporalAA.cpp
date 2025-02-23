@@ -13,7 +13,7 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
 

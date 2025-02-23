@@ -5,8 +5,8 @@
 
 #include <core/Defines.hpp>
 
-#include <math/MathUtil.hpp>
-#include <math/Rect.hpp>
+#include <core/math/MathUtil.hpp>
+#include <core/math/Rect.hpp>
 
 #include <streaming/StreamedTextureData.hpp>
 

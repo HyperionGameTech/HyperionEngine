@@ -24,7 +24,7 @@
 
 #include <scene/Node.hpp>
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 
 #include <Types.hpp>
 

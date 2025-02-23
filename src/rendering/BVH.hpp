@@ -8,10 +8,10 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <math/BoundingBox.hpp>
-#include <math/Triangle.hpp>
-#include <math/Vertex.hpp>
-#include <math/Ray.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Triangle.hpp>
+#include <core/math/Vertex.hpp>
+#include <core/math/Ray.hpp>
 
 #include <core/Defines.hpp>
 

@@ -14,7 +14,7 @@
 
 #include <core/Defines.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <util/UTF8.hpp>
 

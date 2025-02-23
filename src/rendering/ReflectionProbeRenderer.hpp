@@ -13,7 +13,7 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 
 namespace hyperion {
 

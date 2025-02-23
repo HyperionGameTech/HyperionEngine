@@ -3,8 +3,8 @@
 #ifndef HYPERION_RENDERING_CAMERA_HPP
 #define HYPERION_RENDERING_CAMERA_HPP
 
-#include <math/Vector4.hpp>
-#include <math/Matrix4.hpp>
+#include <core/math/Vector4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <rendering/RenderResources.hpp>
 

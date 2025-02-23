@@ -18,8 +18,8 @@
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <math/Triangle.hpp>
-#include <math/Ray.hpp>
+#include <core/math/Triangle.hpp>
+#include <core/math/Ray.hpp>
 
 #include <scene/Scene.hpp>
 

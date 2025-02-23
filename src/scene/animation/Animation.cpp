@@ -3,7 +3,7 @@
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Bone.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 

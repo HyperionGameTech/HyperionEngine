@@ -11,9 +11,9 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <math/Extent.hpp>
-#include <math/Matrix4.hpp>
-#include <math/Vector3.hpp>
+#include <core/math/Extent.hpp>
+#include <core/math/Matrix4.hpp>
+#include <core/math/Vector3.hpp>
 
 #include <rendering/EnvGrid.hpp>
 

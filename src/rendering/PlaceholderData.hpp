@@ -12,7 +12,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 // #include <core/threading/Threads.hpp>
 

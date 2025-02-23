@@ -10,7 +10,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/Defines.hpp>
 
-#include <math/Vector4.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <Types.hpp>
 

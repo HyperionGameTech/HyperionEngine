@@ -18,7 +18,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <math/Color.hpp>
+#include <core/math/Color.hpp>
 
 #include <Types.hpp>
 

@@ -2,7 +2,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <math/Triangle.hpp>
+#include <core/math/Triangle.hpp>
 
 #include <rendering/Mesh.hpp>
 

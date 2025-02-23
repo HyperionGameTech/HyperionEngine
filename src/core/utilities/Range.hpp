@@ -3,7 +3,7 @@
 #ifndef HYPERION_RANGE_HPP
 #define HYPERION_RANGE_HPP
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 

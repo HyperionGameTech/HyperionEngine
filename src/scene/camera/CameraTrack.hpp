@@ -3,7 +3,7 @@
 #ifndef HYPERION_CAMERA_TRACK_HPP
 #define HYPERION_CAMERA_TRACK_HPP
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 #include <core/containers/SortedArray.hpp>
 
 namespace hyperion {

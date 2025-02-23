@@ -22,7 +22,7 @@
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 
 #include <GameCounter.hpp>
 #include <HashCode.hpp>

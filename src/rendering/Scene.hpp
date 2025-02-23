@@ -5,7 +5,7 @@
 
 #include <rendering/RenderResources.hpp>
 
-#include <math/Vector4.hpp>
+#include <core/math/Vector4.hpp>
 
 #include <core/Handle.hpp>
 

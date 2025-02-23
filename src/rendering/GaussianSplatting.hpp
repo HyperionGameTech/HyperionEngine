@@ -7,8 +7,8 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <math/Vector3.hpp>
-#include <math/BoundingBox.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <util/img/Bitmap.hpp>
 

@@ -10,11 +10,11 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <math/BoundingBox.hpp>
-#include <math/Extent.hpp>
-#include <math/Vector4.hpp>
-#include <math/Color.hpp>
-#include <math/Frustum.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Extent.hpp>
+#include <core/math/Vector4.hpp>
+#include <core/math/Color.hpp>
+#include <core/math/Frustum.hpp>
 
 #include <Types.hpp>
 

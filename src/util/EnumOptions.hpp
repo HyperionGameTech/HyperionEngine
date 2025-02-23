@@ -6,7 +6,7 @@
 #include <core/containers/Array.hpp>
 #include <core/utilities/Pair.hpp>
 #include <HashCode.hpp>
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
 

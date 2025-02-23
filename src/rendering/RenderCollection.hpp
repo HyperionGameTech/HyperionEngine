@@ -12,7 +12,7 @@
 
 #include <core/ID.hpp>
 
-#include <math/Transform.hpp>
+#include <core/math/Transform.hpp>
 
 #include <rendering/DrawProxy.hpp>
 #include <rendering/RenderableAttributes.hpp>

@@ -4,7 +4,7 @@
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 namespace renderer {

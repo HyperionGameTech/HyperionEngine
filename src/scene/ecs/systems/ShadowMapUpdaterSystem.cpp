@@ -10,7 +10,7 @@
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/Scene.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
 

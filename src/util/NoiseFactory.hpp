@@ -8,8 +8,8 @@
 
 #include <core/Defines.hpp>
 
-#include <math/Vector2.hpp>
-#include <math/Vector3.hpp>
+#include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
 
 #include <core/containers/SortedArray.hpp>
 #include <core/memory/UniquePtr.hpp>

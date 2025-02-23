@@ -2,7 +2,7 @@
 
 #include <rendering/backend/RendererHelpers.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 namespace renderer {

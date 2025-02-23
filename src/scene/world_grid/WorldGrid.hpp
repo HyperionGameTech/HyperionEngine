@@ -18,7 +18,7 @@
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 #include <GameCounter.hpp>
 #include <HashCode.hpp>

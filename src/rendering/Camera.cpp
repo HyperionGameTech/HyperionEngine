@@ -6,7 +6,7 @@
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
-#include <math/Matrix4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

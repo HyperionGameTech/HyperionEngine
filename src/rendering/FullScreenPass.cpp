@@ -11,7 +11,7 @@
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>

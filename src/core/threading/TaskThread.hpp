@@ -6,7 +6,7 @@
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 #include <core/containers/Queue.hpp>
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <GameCounter.hpp>
 #include <core/Defines.hpp>
 

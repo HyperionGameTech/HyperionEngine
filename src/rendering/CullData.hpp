@@ -3,7 +3,7 @@
 #ifndef HYPERION_CULL_DATA_HPP
 #define HYPERION_CULL_DATA_HPP
 
-#include <math/Extent.hpp>
+#include <core/math/Extent.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

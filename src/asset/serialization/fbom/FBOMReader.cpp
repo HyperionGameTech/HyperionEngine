@@ -19,7 +19,7 @@
 
 #include <core/compression/Archive.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 namespace utilities {

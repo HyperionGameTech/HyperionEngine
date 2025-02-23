@@ -9,7 +9,7 @@
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/Platform.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>

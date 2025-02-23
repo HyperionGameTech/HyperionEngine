@@ -8,7 +8,7 @@
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <math/Vector2.hpp>
+#include <core/math/Vector2.hpp>
 
 namespace hyperion {
 

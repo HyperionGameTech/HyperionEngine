@@ -18,7 +18,7 @@
 
 #include <core/object/HypObjectFwd.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 

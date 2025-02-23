@@ -12,7 +12,7 @@
 
 #include <scene/Node.hpp>
 
-#include <math/MathUtil.hpp>
+#include <core/math/MathUtil.hpp>
 
 #include <type_traits>
 

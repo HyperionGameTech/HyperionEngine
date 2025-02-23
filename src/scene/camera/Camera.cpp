@@ -2,7 +2,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <math/Halton.hpp>
+#include <core/math/Halton.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Camera.hpp>

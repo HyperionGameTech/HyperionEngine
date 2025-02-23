@@ -13,8 +13,8 @@
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
-#include <math/MathUtil.hpp>
-#include <math/Extent.hpp>
+#include <core/math/MathUtil.hpp>
+#include <core/math/Extent.hpp>
 
 #include <Types.hpp>
 

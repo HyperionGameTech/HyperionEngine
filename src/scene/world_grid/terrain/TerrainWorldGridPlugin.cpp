@@ -9,7 +9,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/Scene.hpp>
 
-#include <math/Vertex.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>

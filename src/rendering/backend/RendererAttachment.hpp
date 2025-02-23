@@ -8,7 +8,7 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/Platform.hpp>
-#include <math/Extent.hpp>
+#include <core/math/Extent.hpp>
 #include <Types.hpp>
 
 namespace hyperion {

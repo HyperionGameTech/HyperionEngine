@@ -17,9 +17,9 @@
 
 #include <scene/ecs/EntityTag.hpp>
 
-#include <math/Vector3.hpp>
-#include <math/BoundingBox.hpp>
-#include <math/Ray.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Ray.hpp>
 
 #include <Types.hpp>
 

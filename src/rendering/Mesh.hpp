@@ -11,8 +11,8 @@
 
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <math/BoundingBox.hpp>
-#include <math/Vertex.hpp>
+#include <core/math/BoundingBox.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderResources.hpp>

@@ -9,7 +9,7 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 
-#include <math/BoundingBox.hpp>
+#include <core/math/BoundingBox.hpp>
 
 #include <Types.hpp>
 

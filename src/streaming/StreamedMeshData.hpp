@@ -5,7 +5,7 @@
 
 #include <streaming/StreamedData.hpp>
 
-#include <math/Vertex.hpp>
+#include <core/math/Vertex.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/Array.hpp>
