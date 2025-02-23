@@ -6,9 +6,9 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <asset/serialization/fbom/FBOMWriter.hpp>
-#include <asset/serialization/fbom/FBOMReader.hpp>
-#include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
+#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMDeserializedObject.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 

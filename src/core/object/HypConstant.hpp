@@ -21,7 +21,7 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>
 
-#include <asset/serialization/fbom/FBOMData.hpp>
+#include <core/serialization/fbom/FBOMData.hpp>
 
 #include <Types.hpp>
 

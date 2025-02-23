@@ -13,6 +13,8 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
+#include <core/serialization/SerializationWrapper.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <scene/Node.hpp>
@@ -20,7 +22,6 @@
 #include <Constants.hpp>
 
 #include <asset/Loader.hpp>
-#include <asset/serialization/SerializationWrapper.hpp>
 
 namespace hyperion {
 

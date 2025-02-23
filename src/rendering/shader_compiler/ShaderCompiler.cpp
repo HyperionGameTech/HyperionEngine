@@ -24,8 +24,8 @@
 #include <asset/Assets.hpp>
 #include <asset/ByteWriter.hpp>
 
-#include <asset/serialization/fbom/FBOMWriter.hpp>
-#include <asset/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
 
 #include <core/math/MathUtil.hpp>
 

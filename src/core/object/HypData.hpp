@@ -24,11 +24,11 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/ByteBuffer.hpp>
 
-#include <asset/serialization/fbom/FBOMResult.hpp>
-#include <asset/serialization/fbom/FBOMData.hpp>
-#include <asset/serialization/fbom/FBOMObject.hpp>
-#include <asset/serialization/fbom/FBOMArray.hpp>
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOMResult.hpp>
+#include <core/serialization/fbom/FBOMData.hpp>
+#include <core/serialization/fbom/FBOMObject.hpp>
+#include <core/serialization/fbom/FBOMArray.hpp>
+#include <core/serialization/fbom/FBOM.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

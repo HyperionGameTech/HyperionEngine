@@ -12,9 +12,9 @@
 
 #include <dotnet/Object.hpp>
 
-#include <asset/serialization/fbom/FBOM.hpp>
-#include <asset/serialization/fbom/FBOMData.hpp>
-#include <asset/serialization/fbom/FBOMMarshaler.hpp>
+#include <core/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOMData.hpp>
+#include <core/serialization/fbom/FBOMMarshaler.hpp>
 
 namespace hyperion {
 

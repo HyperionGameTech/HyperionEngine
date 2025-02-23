@@ -2,7 +2,7 @@
 
 #include <asset/ui_loaders/UILoader.hpp>
 
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOM.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>

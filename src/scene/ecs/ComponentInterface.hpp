@@ -15,7 +15,7 @@
 
 #include <core/Name.hpp>
 
-#include <asset/serialization/Serialization.hpp>
+#include <core/serialization/Serialization.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>

@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <asset/serialization/Serialization.hpp>
+#include <core/serialization/Serialization.hpp>
 
-#include <asset/serialization/fbom/FBOMBaseTypes.hpp>
-#include <asset/serialization/fbom/FBOMData.hpp>
-#include <asset/serialization/fbom/FBOMObject.hpp>
+#include <core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <core/serialization/fbom/FBOMData.hpp>
+#include <core/serialization/fbom/FBOMObject.hpp>
 
 using namespace hyperion;
 using namespace fbom;

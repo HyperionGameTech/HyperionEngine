@@ -24,8 +24,8 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <asset/serialization/fbom/FBOMReader.hpp>
-#include <asset/serialization/fbom/FBOMWriter.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMWriter.hpp>
 
 #include <ui/UIObject.hpp>
 #include <ui/UIStage.hpp>

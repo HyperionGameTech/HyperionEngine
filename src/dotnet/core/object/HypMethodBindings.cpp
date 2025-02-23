@@ -10,7 +10,7 @@
 
 #include <dotnet/Object.hpp>
 
-#include <asset/serialization/fbom/FBOM.hpp>
+#include <core/serialization/fbom/FBOM.hpp>
 
 #include <Types.hpp>
 

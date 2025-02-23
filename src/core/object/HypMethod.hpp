@@ -19,7 +19,7 @@
 #include <core/Name.hpp>
 #include <core/Traits.hpp>
 
-#include <asset/serialization/Serialization.hpp>
+#include <core/serialization/Serialization.hpp>
 
 #include <Types.hpp>
 

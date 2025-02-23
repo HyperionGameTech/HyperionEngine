@@ -20,8 +20,8 @@
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>
 
-#include <asset/serialization/Serialization.hpp>
-#include <asset/serialization/SerializationWrapper.hpp>
+#include <core/serialization/Serialization.hpp>
+#include <core/serialization/SerializationWrapper.hpp>
 
 #include <Types.hpp>
 
