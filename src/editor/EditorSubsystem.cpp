@@ -204,6 +204,16 @@ void EditorManipulationWidgetBase::Initialize()
         material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
         material_attributes.bucket = Bucket::BUCKET_TRANSLUCENT;
 
+        // testing
+        material_attributes.stencil_function = StencilFunction {
+            .pass_op        = StencilOp::REPLACE,
+            .fail_op        = StencilOp::REPLACE,
+            .depth_fail_op  = StencilOp::REPLACE,
+            .compare_op     = StencilCompareOp::ALWAYS,
+            .mask           = 0xff,
+            .value          = 0x1
+        };
+
         mesh_component->material = MaterialCache::GetInstance()->CreateMaterial(material_attributes, material_parameters);
         mesh_component->material->SetIsDynamic(true);
 
@@ -755,7 +765,16 @@ void EditorSubsystem::CreateHighlightNode()
                 NAME("Forward"),
                 ShaderProperties(mesh->GetVertexAttributes())
             },
-            .bucket = Bucket::BUCKET_TRANSLUCENT
+            .bucket = Bucket::BUCKET_TRANSLUCENT,
+            // .flags = MaterialAttributeFlags::NONE, // temp
+            .stencil_function = StencilFunction {
+                .pass_op        = StencilOp::REPLACE,
+                .fail_op        = StencilOp::KEEP,
+                .depth_fail_op  = StencilOp::KEEP,
+                .compare_op     = StencilCompareOp::NOT_EQUAL,
+                .mask           = 0xff,
+                .value          = 0x1
+            }
         },
         {
             { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },

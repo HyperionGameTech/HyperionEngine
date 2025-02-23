@@ -352,35 +352,26 @@ enum class StencilOp : uint8
     DECREMENT
 };
 
+HYP_STRUCT()
 struct StencilFunction
 {
-    StencilOp           pass_op;
-    StencilOp           fail_op;
-    StencilOp           depth_fail_op;
-    StencilCompareOp    compare_op;
-    uint8               mask;
-    uint8               value;
+    HYP_FIELD()
+    StencilOp           pass_op = StencilOp::KEEP;
 
-    StencilFunction()
-        : StencilFunction(StencilOp::KEEP, StencilOp::REPLACE, StencilOp::REPLACE, StencilCompareOp::ALWAYS, 0x0, 0x1)
-    {
-    }
+    HYP_FIELD()
+    StencilOp           fail_op = StencilOp::REPLACE;
 
-    StencilFunction(StencilOp pass_op, StencilOp fail_op, StencilOp depth_fail_op, StencilCompareOp compare_op, uint8 mask, uint8 value)
-        : pass_op(pass_op),
-          fail_op(fail_op),
-          depth_fail_op(depth_fail_op),
-          compare_op(compare_op),
-          mask(mask),
-          value(value)
-    {
-    }
+    HYP_FIELD()
+    StencilOp           depth_fail_op = StencilOp::REPLACE;
 
-    StencilFunction(const StencilFunction &other)                   = default;
-    StencilFunction &operator=(const StencilFunction &other)        = default;
-    StencilFunction(StencilFunction &&other) noexcept               = default;
-    StencilFunction &operator=(StencilFunction &&other) noexcept    = default;
-    ~StencilFunction()                                              = default;
+    HYP_FIELD()
+    StencilCompareOp    compare_op = StencilCompareOp::ALWAYS;
+
+    HYP_FIELD()
+    uint8               mask = 0x0;
+
+    HYP_FIELD()
+    uint8               value = 0x1;
 
     HYP_FORCE_INLINE bool operator==(const StencilFunction &other) const = default;
     HYP_FORCE_INLINE bool operator!=(const StencilFunction &other) const = default;
@@ -389,7 +380,7 @@ struct StencilFunction
         { return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0; }
 
     HYP_FORCE_INLINE bool IsSet() const
-        { return mask != 0; }
+        { return mask != 0x0; }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { return HashCode::GetHashCode(value); }
