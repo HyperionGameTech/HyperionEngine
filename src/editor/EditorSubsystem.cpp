@@ -217,7 +217,7 @@ void EditorManipulationWidgetBase::Initialize()
         mesh_component->material = MaterialCache::GetInstance()->CreateMaterial(material_attributes, material_parameters);
         mesh_component->material->SetIsDynamic(true);
 
-        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+        entity_manager.AddTag<EntityTag::UPDATE_RENDER_PROXY>(child->GetEntity().GetID());
 
         child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), HypData(Vec4f(mesh_component->material->GetParameter(Material::MATERIAL_KEY_ALBEDO)))));
 

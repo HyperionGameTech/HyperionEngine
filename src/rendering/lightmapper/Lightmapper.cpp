@@ -1307,13 +1307,14 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             {
                 if (MeshComponent *mesh_component = mgr.TryGetComponent<MeshComponent>(entity)) {
                     mesh_component->material = std::move(new_material);
-                    mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
                 } else {
                     mgr.AddComponent<MeshComponent>(entity, MeshComponent {
                         mesh,
                         new_material
                     });
                 }
+
+                mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
             });
         }        
     }

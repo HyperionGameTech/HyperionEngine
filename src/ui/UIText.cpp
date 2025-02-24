@@ -380,7 +380,7 @@ void UIText::UpdateMeshData_Internal()
     mesh_component.instance_data.SetBufferData(2, instance_offsets.Data(), instance_offsets.Size());
     mesh_component.instance_data.SetBufferData(3, instance_sizes.Data(), instance_sizes.Size());
 
-    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+    GetScene()->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
 }
 
 bool UIText::Repaint_Internal()

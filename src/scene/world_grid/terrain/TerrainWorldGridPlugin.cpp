@@ -80,7 +80,6 @@ public:
         if (patch_mesh_component) {
             patch_mesh_component->mesh = m_mesh;
             patch_mesh_component->material = m_material;
-            patch_mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
         } else {
             // Add MeshComponent to patch entity
             entity_manager->AddComponent<MeshComponent>(entity, MeshComponent {
@@ -88,6 +87,8 @@ public:
                 .material   = m_material
             });
         }
+
+        entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
     }
 
     virtual void Update(GameCounter::TickUnit delta) override

@@ -23,6 +23,10 @@ enum class EntityTag : uint32
 
     UPDATE_BVH,
 
+    UPDATE_RENDER_PROXY,
+
+    UPDATE_VISIBILITY_STATE,
+
     MAX
 };
 

@@ -35,7 +35,7 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
         // mesh_component.mesh->InvertNormals();
         InitObject(mesh_component->mesh);
 
-        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+        GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
     }
 
     if (!mesh_component->material) {
@@ -54,7 +54,7 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
 
         mesh_component->material = std::move(material);
 
-        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+        GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
     }
 }
 
