@@ -96,7 +96,11 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
     if (Threads::IsOnThread(g_game_thread)) {
         Impl();
     } else {
-        m_scheduler.Enqueue(Impl, TaskEnqueueFlags::FIRE_AND_FORGET);
+        m_scheduler.Enqueue(
+            HYP_STATIC_MESSAGE(HYP_PRETTY_FUNCTION_NAME),
+            Impl,
+            TaskEnqueueFlags::FIRE_AND_FORGET
+        );
     }
 }
 

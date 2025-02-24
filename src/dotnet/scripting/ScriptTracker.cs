@@ -19,17 +19,11 @@ namespace Hyperion
 
         public void Initialize(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
-            Console.WriteLine("Initializing script tracker...");
-
             this.callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
             this.callbackSelfPtr = callbackSelfPtr;
 
-            Console.WriteLine("Source directory: {0}", sourceDirectory);
-
             scriptCompiler = new ScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
             scriptCompiler.BuildAllProjects();
-
-            Console.WriteLine("Script tracker initialized.");
 
             watcher = new FileSystemWatcher(sourceDirectory);
             watcher.NotifyFilter = NotifyFilters.LastWrite;

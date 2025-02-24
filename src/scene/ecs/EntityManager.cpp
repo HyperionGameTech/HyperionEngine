@@ -600,6 +600,9 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
             continue;
         }
 
+        StaticMessage debug_name;
+        debug_name.value = system->GetName();
+
         m_task_batch->AddTask([this, system, delta]
         {
             HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
@@ -614,7 +617,7 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 #ifdef HYP_DEBUG_MODE
             performance_clock.Stop();
 #endif
-        });
+        }, debug_name);
     }
 }
 

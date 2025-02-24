@@ -84,26 +84,30 @@ void Game::Init_Internal()
     m_scene->SetName(NAME("Scene_Main"));
     m_scene->SetCamera(camera);
 
-    m_game_thread->GetScheduler().Enqueue([this]() -> void
-    {
-        if (m_managed_game_info.HasValue()) {
-            if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
-                if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
-                    m_managed_game_object = class_ptr->NewObject();
+    m_game_thread->GetScheduler().Enqueue(
+        HYP_STATIC_MESSAGE("Initialize game"),
+        [this]() -> void
+        {
+            if (m_managed_game_info.HasValue()) {
+                if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
+                    if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
+                        m_managed_game_object = class_ptr->NewObject();
+                    }
                 }
             }
-        }
 
-        m_scene->SetIsAudioListener(true);
+            m_scene->SetIsAudioListener(true);
 
-        g_engine->GetWorld()->AddScene(m_scene);
-        InitObject(m_scene);
-        
-        m_ui_stage.Emplace(g_game_thread);
+            g_engine->GetWorld()->AddScene(m_scene);
+            InitObject(m_scene);
+            
+            m_ui_stage.Emplace(g_game_thread);
 
-        // Call Init method (overridden)
-        Init();
-    }, TaskEnqueueFlags::FIRE_AND_FORGET);
+            // Call Init method (overridden)
+            Init();
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET
+    );
 
     m_game_thread->Start(this);
 
@@ -214,10 +218,14 @@ void Game::PushEvent(SystemEvent &&event)
     }
 
     if (m_game_thread->IsRunning()) {
-        m_game_thread->GetScheduler().Enqueue([this, event = std::move(event)]() mutable -> void
-        {
-            HandleEvent(std::move(event));
-        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        m_game_thread->GetScheduler().Enqueue(
+            HYP_STATIC_MESSAGE("HandleEvent"),
+            [this, event = std::move(event)]() mutable -> void
+            {
+                HandleEvent(std::move(event));
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET
+        );
     }
 }
 

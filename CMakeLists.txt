@@ -256,6 +256,12 @@ function(collect_sources_and_modules dir out_sources out_modules)
     set(local_sources "")
     set(local_modules "")
 
+    # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
+    if(${dir} MATCHES "src/system/platform/.*" AND NOT ${dir} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+        message(STATUS "Skipping platform directory: ${dir}")
+        return()
+    endif()
+
     # If this directory has a CMakeLists.txt, consider it a module and skip recursion.
     if(EXISTS "${dir}/CMakeLists.txt")
         # the subfolder must contain a library with the name hyperion-<subfolder>
@@ -268,22 +274,27 @@ function(collect_sources_and_modules dir out_sources out_modules)
         add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
 
         list(APPEND local_modules "hyperion-${subdir_basename}")
-    else()
-        file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
-             "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c")
-        list(APPEND local_sources ${current_sources})
 
-        message(STATUS "Adding sources from ${dir}: ${current_sources}")
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
 
-        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
-        foreach(child ${children})
-            if(IS_DIRECTORY "${child}")
-                collect_sources_and_modules("${child}" child_sources child_modules)
-                list(APPEND local_sources ${child_sources})
-                list(APPEND local_modules ${child_modules})
-            endif()
-        endforeach()
+        return()
     endif()
+
+    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
+         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
+    list(APPEND local_sources ${current_sources})
+
+    message(STATUS "Adding sources from ${dir}: ${current_sources}")
+
+    file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+    foreach(child ${children})
+        if(IS_DIRECTORY "${child}")
+            collect_sources_and_modules("${child}" child_sources child_modules)
+            list(APPEND local_sources ${child_sources})
+            list(APPEND local_modules ${child_modules})
+        endif()
+    endforeach()
 
     set(${out_sources} "${local_sources}" PARENT_SCOPE)
     set(${out_modules} "${local_modules}" PARENT_SCOPE)
@@ -357,26 +368,6 @@ if(Bullet_FOUND)
     )
 endif()
 
-if(APPLE)
-    set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
-    set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
-endif()
-
-find_package(CURL)
-# include_directories(${CURL_INCLUDE_DIR})
-# link_directories(${CURL_LIBRARY})
-
-# message(STATUS "CURL found, linking to it: ${CURL_LIBRARIES}\nInclude directories: ${CURL_INCLUDE_DIRS}")
-
-if(CURL_FOUND)
-    message(STATUS "CURL found at ${CURL_INCLUDE_DIRS}")
-
-    add_definitions(-DHYP_CURL=1)
-
-    include_directories(${CURL_INCLUDE_DIRS})
-    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${CURL_LIBRARIES})
-endif()
-
 if (${NATIVE})
 
     # if glslang folder exists, link with it.
@@ -391,18 +382,6 @@ if (${NATIVE})
             ${COMMON_LIBRARIES}
             glslang
             SPIRV
-        )
-    endif()
-
-    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
-        add_definitions(-DHYP_ZLIB=1)
-    
-        include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-        add_subdirectory(submodules/zlib)
-    
-        set(COMMON_LIBRARIES
-            ${COMMON_LIBRARIES}
-            zlibstatic
         )
     endif()
 

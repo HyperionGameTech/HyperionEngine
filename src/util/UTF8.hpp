@@ -98,6 +98,10 @@ constexpr inline bool utf32_isalpha(u32char ch)
 
 constexpr inline SizeType utf8_strlen(const char *first, const char *last)
 {
+    if (first == last) {
+        return 0;
+    }
+
     SizeType count = 0;
     SizeType codepoints = 0;
 
@@ -116,6 +120,12 @@ constexpr inline SizeType utf8_strlen(const char *first, const char *last)
 
 constexpr inline SizeType utf8_strlen(const char *first, const char *last, SizeType &out_codepoints)
 {
+    if (first == last) {
+        out_codepoints = 0;
+        
+        return 0;
+    }
+
     SizeType count = 0;
     SizeType codepoints = 0;
 

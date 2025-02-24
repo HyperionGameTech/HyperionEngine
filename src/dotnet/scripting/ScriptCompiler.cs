@@ -175,8 +175,6 @@ namespace Hyperion
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
             hotReloadVersion = -1;
 
-            Console.WriteLine("Building project for module {0}...", moduleName);
-
             try
             {
                 if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))

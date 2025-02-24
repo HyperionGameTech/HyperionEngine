@@ -90,40 +90,6 @@ static inline void ForEachInBatches(Container &&container, uint32 num_batches, C
     }
 }
 
-/*! \brief Perform a parallel foreach with in the default pool (THREAD_POOL_GENERIC). */
-template <class Container, class Callback>
-HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, Callback &&callback)
-{
-    TaskSystem::GetInstance().ParallelForEach(
-        std::forward<Container>(container),
-        std::forward<Callback>(callback)
-    );
-}
-
-/*! \brief Perform a parallel foreach within the given task thread pool \ref{pool}.
- *  Number of batches will depend upon the thread pool selected's number of workers. */
-template <class Container, class Callback>
-HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, TaskThreadPool &pool, Callback &&callback)
-{
-    TaskSystem::GetInstance().ParallelForEach(
-        pool,
-        std::forward<Container>(container),
-        std::forward<Callback>(callback)
-    );
-}
-
-/*! \brief Perform a parallel foreach within the given task thread pool \ref{pool} and using \ref{num_batches} batches. */
-template <class Container, class Callback>
-HYP_FORCE_INLINE static inline void ParallelForEach(Container &&container, uint32 num_batches, TaskThreadPool &pool, Callback &&callback)
-{
-    TaskSystem::GetInstance().ParallelForEach(
-        pool,
-        num_batches,
-        std::forward<Container>(container),
-        std::forward<Callback>(callback)
-    );
-}
-
 } // namespace hyperion
 
 #endif

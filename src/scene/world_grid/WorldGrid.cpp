@@ -348,16 +348,20 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                     HYP_LOG(WorldGrid, Warning, "Patch generation at {} already in progress", initial_patch_info.coord);
                 } else {
                     // add task to generation queue
-                    Task<void> generation_task = TaskSystem::GetInstance().Enqueue([patch_info = initial_patch_info, &shared_queue = m_state.patch_generation_queue_shared, plugin = std::move(plugin)]()
-                    {
-                        HYP_NAMED_SCOPE_FMT("Generating patch at {}", patch_info.coord);
+                    Task<void> generation_task = TaskSystem::GetInstance().Enqueue(
+                        HYP_STATIC_MESSAGE("GeneratePatch"),
+                        [patch_info = initial_patch_info, &shared_queue = m_state.patch_generation_queue_shared, plugin = std::move(plugin)]()
+                        {
+                            HYP_NAMED_SCOPE_FMT("Generating patch at {}", patch_info.coord);
 
-                        Mutex::Guard guard(shared_queue.mutex);
-                        shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
-                        shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
+                            Mutex::Guard guard(shared_queue.mutex);
+                            shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
+                            shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
 
-                        HYP_LOG(WorldGrid, Info, "Patch generation at {} completed on thread {}", patch_info.coord, Threads::CurrentThreadID().GetName());
-                    }, TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+                            HYP_LOG(WorldGrid, Info, "Patch generation at {} completed on thread {}", patch_info.coord, Threads::CurrentThreadID().GetName());
+                        },
+                        TaskThreadPoolName::THREAD_POOL_BACKGROUND
+                    );
                     
                     m_state.patch_generation_tasks.Insert(initial_patch_info.coord, std::move(generation_task));
                 }

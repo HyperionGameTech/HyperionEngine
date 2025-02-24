@@ -33,7 +33,7 @@
 namespace hyperion {
 
 // #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
-// #define HYP_WORLD_ASYNC_SCENE_UPDATES
+#define HYP_WORLD_ASYNC_SCENE_UPDATES
 
 World::World()
     : HypObject(),

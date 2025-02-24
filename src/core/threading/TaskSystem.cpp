@@ -317,6 +317,8 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
 #endif
 
     for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it) {
+        SizeType index = batch->executors.IndexOf(it);
+
         TaskThread *task_thread = pool->GetNextTaskThread();
         AssertThrow(task_thread != nullptr);
 
@@ -325,7 +327,10 @@ TaskBatch *TaskSystem::EnqueueBatch(TaskBatch *batch)
             &batch->semaphore,
             next_batch != nullptr
                 ? OnTaskCompletedCallback([this, &OnComplete = batch->OnComplete, next_batch]() { OnComplete(); EnqueueBatch(next_batch); })
-                : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr)
+                : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr),
+            index < batch->debug_names.Size()
+                ? batch->debug_names[index]
+                : StaticMessage()
         );
 
         batch->task_refs.EmplaceBack(task_id, &task_thread->GetScheduler());
