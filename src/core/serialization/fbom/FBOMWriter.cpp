@@ -197,7 +197,7 @@ FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter *out)
 
     Mutex mtx;
 
-    ParallelForEach(m_write_stream->m_object_libraries, [out, &any_errors, &mtx, write_stream = m_write_stream.Get()](const FBOMObjectLibrary &library, uint32, uint32)
+    TaskSystem::GetInstance().ParallelForEach(m_write_stream->m_object_libraries, [out, &any_errors, &mtx, write_stream = m_write_stream.Get()](const FBOMObjectLibrary &library, uint32, uint32)
     {
         FBOMWriter serializer { FBOMWriterConfig { } };
 

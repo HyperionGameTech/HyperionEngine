@@ -14,8 +14,6 @@
 
 #include <core/utilities/Format.hpp>
 
-#include <system/AppContext.hpp>
-
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>
 

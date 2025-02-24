@@ -14,12 +14,12 @@ namespace profiling {
 
 uint64 PerformanceClock::Now()
 {
-    // use clock_gettime if available
 #ifdef HYP_UNIX
     struct timeval tv;
-    gettimeofday(&tv, 0);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
 
-    return uint64(tv.tv_sec) * 1000000 + uint64(tv.tv_usec);
+    return uint64(ts.tv_sec) * 1000000 + uint64(ts.tv_nsec) / 1000;
 #else
     // @TODO 
 

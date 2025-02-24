@@ -474,6 +474,7 @@ void RenderCollector::CollectDrawCalls(
 
     if (do_parallel_collection && iterators.Size() > 1) {
         TaskSystem::GetInstance().ParallelForEach(
+            HYP_STATIC_MESSAGE("RenderCollector::CollectDrawCalls"),
             TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
             iterators,
             [this](IteratorType it, uint32, uint32)

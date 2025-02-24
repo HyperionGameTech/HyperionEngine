@@ -392,6 +392,7 @@ void UIRenderCollector::CollectDrawCalls(Frame *frame)
     }
 
     TaskSystem::GetInstance().ParallelForEach(
+        HYP_STATIC_MESSAGE("UIRenderCollector::CollectDrawCalls"),
         TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
         iterators,
         [this](IteratorType it, uint32, uint32)

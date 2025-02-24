@@ -79,17 +79,18 @@ void TaskThread::operator()()
                 PerformanceClock task_performance_clock;
                 task_performance_clock.Start();
 
-                {
-                    Scheduler::ScheduledTask scheduled_task = m_task_queue.Pop();
-                    scheduled_task.Execute();
-                }
+                Scheduler::ScheduledTask scheduled_task = m_task_queue.Pop();
+                scheduled_task.Execute();
 
                 task_performance_clock.Stop();
 
                 ++num_executed_tasks;
 
                 if (task_performance_clock.Elapsed() / 1000.0 > g_task_thread_single_task_lag_spike_threshold) {
-                    HYP_LOG(TaskThread, Warning, "Task thread {} lag spike detected in single task: {}ms", GetID().GetName(), task_performance_clock.Elapsed() / 1000.0);
+                    HYP_LOG(TaskThread, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
+                        GetID().GetName(),
+                        scheduled_task.debug_name.value ? scheduled_task.debug_name.value : "<unnamed task>",
+                        task_performance_clock.Elapsed() / 1000.0);
                 }
             }
 

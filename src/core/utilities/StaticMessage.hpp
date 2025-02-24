@@ -7,6 +7,7 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/Util.hpp>
 #include <core/Defines.hpp>
 
 #include <Types.hpp>
@@ -15,30 +16,37 @@ namespace hyperion {
 
 #pragma region StaticMessage
 
-struct StaticMessage
-{
-    ANSIStringView  value;
-};
-
 template <auto Value>
 struct StaticMessageInitializer
 {
-    static constexpr auto value_string = Value.Data();
+    static constexpr auto value = Value.Data();
+};
 
-    static const StaticMessage &MakeStaticMessage()
+struct StaticMessage
+{
+    ANSIStringView  value;
+
+    constexpr StaticMessage()                                           = default;
+
+    template <auto MessageStaticString>
+    constexpr StaticMessage(ValueWrapper<MessageStaticString>)
+        : value(StaticMessageInitializer<MessageStaticString>().value)
     {
-        static const StaticMessage static_message {
-            value_string
-        };
-
-        return static_message;
     }
+
+    constexpr StaticMessage(const StaticMessage &other)                 = default;
+    constexpr StaticMessage &operator=(const StaticMessage &other)      = default;
+    constexpr StaticMessage(StaticMessage &&other) noexcept             = default;
+    constexpr StaticMessage &operator=(StaticMessage &&other) noexcept  = default;
+
+    constexpr operator const ANSIStringView &() const
+        { return value; }
 };
 
 template <auto Value>
-const StaticMessage &MakeStaticMessage()
+constexpr StaticMessage MakeStaticMessage()
 {
-    return StaticMessageInitializer<Value>::MakeStaticMessage();
+    return StaticMessage(ValueWrapper<Value>());
 }
 
 #define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str)>()

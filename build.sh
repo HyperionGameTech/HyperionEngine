@@ -7,8 +7,8 @@ BUILD_TOOL_CMD="./build/hyperion-buildtool --WorkingDirectory=$SCRIPT_DIR --Sour
 read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
 
 if [[ $RESP =~ ^[Yy] ]]; then
-    (printf "y" | ./tools/scripts/BuildHypBuildTool.sh) && (printf "y" | ./tools/scripts/BuildHyperion.sh)
+    (printf "y" | ./tools/scripts/BuildHyperion.sh)
 else
-    (printf "n" | ./tools/scripts/BuildHypBuildTool.sh) && (printf "n" | ./tools/scripts/BuildHyperion.sh)
+    (printf "n" | ./tools/scripts/BuildHyperion.sh)
 fi
 

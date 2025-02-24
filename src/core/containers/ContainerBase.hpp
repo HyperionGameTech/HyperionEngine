@@ -387,7 +387,7 @@ public:
             typename Container::ConstIterator>, "Iterator type does not match container");
 
         return iter != static_cast<const Container *>(this)->End()
-            ? static_cast<KeyType>(std::distance(static_cast<const Container *>(this)->Begin(), iter))
+            ? static_cast<KeyType>(iter - static_cast<const Container *>(this)->Begin())
             : static_cast<KeyType>(-1);
     }
 
@@ -408,28 +408,6 @@ public:
             other_container.Begin(),
             this_size_bytes
         ) == 0;
-    }
-
-    template <class TaskSystem, class Lambda>
-    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda)
-    {
-        static_assert(Container::is_contiguous, "Container must be contiguous to perform parallel for-each");
-
-        task_system.ParallelForEach(
-            *static_cast<Container *>(this),
-            std::forward<Lambda>(lambda)
-        );
-    }
-
-    template <class TaskSystem, class Lambda>
-    void ParallelForEach(TaskSystem &task_system, Lambda &&lambda) const
-    {
-        static_assert(Container::is_contiguous, "Container must be contiguous to perform parallel for-each");
-
-        task_system.ParallelForEach(
-            *static_cast<const Container *>(this),
-            std::forward<Lambda>(lambda)
-        );
     }
 
     HashCode GetHashCode() const

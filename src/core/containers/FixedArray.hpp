@@ -177,15 +177,6 @@ public:
         }
     }
 
-    template <class TaskSystem, class Lambda>
-    HYP_FORCE_INLINE void ParallelForEach(TaskSystem &task_system, Lambda &&lambda) const
-    {
-        if constexpr (Sz != 0) {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
-            impl.ParallelForEach(task_system, std::forward<Lambda>(lambda));
-        }
-    }
-
     template <class OtherContainer>
     HYP_FORCE_INLINE bool CompareBitwise(const OtherContainer &other) const
     {

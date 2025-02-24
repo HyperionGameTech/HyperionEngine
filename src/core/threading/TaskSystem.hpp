@@ -83,6 +83,8 @@ public:
     /*! \brief Delegate that is called when the TaskBatch is complete (before next_batch has completed) */
     Delegate<void>                          OnComplete;
 
+    Array<StaticMessage>                    debug_names;
+
     ~TaskBatch()
     {
         AssertThrowMsg(IsCompleted(), "TaskBatch must be in completed state by the time the destructor is called!");
@@ -90,13 +92,14 @@ public:
 
     /*! \brief Add a task to be ran with this batch
      *  \note Do not call this function after the TaskBatch has been enqueued (before it has been completed). */
-    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor)
+    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void> &&executor, const StaticMessage &debug_name = StaticMessage())
     {
 #ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
         HYP_MT_CHECK_RW(data_race_detector);
 #endif
 
         executors.PushBack(std::move(executor));
+        debug_names.PushBack(debug_name);
 
         ++num_enqueued;
 
@@ -142,6 +145,7 @@ public:
         num_enqueued = 0;
         executors.Clear();
         task_refs.Clear();
+        debug_names.Clear();
         next_batch = nullptr;
 
         OnComplete.RemoveAll(/* thread_safe */ false);
@@ -208,12 +212,20 @@ public:
         return nullptr;
     }
 
-    template <class TaskFunction>
-    auto Enqueue(TaskFunction &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<TaskFunction>::ReturnType>
+    template <class Function>
+    auto Enqueue(const StaticMessage &debug_name, Function &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         TaskThread *task_thread = GetNextTaskThread();
 
-        return task_thread->GetScheduler().Enqueue(std::forward<TaskFunction>(fn), flags);
+        return task_thread->GetScheduler().Enqueue(debug_name, std::forward<Function>(fn), flags);
+    }
+
+    template <class Function>
+    auto Enqueue(Function &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
+    {
+        TaskThread *task_thread = GetNextTaskThread();
+
+        return task_thread->GetScheduler().Enqueue(std::forward<Function>(fn), flags);
     }
 
     TaskThread *GetNextTaskThread();
@@ -265,22 +277,40 @@ public:
         return nullptr;
     }
 
-    template <class TaskFunction>
-    auto Enqueue(TaskFunction &&fn, TaskThreadPool &pool, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<TaskFunction>::ReturnType>
+    template <class Function>
+    auto Enqueue(const StaticMessage &debug_name, Function &&fn, TaskThreadPool &pool, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
         
-        return pool.Enqueue(std::forward<TaskFunction>(fn), flags);
+        return pool.Enqueue(debug_name, std::forward<Function>(fn), flags);
     }
 
-    template <class TaskFunction>
-    auto Enqueue(TaskFunction &&fn, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<TaskFunction>::ReturnType>
+    template <class Function>
+    auto Enqueue(Function &&fn, TaskThreadPool &pool, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
+    {
+        AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
+        
+        return pool.Enqueue(std::forward<Function>(fn), flags);
+    }
+
+    template <class Function>
+    auto Enqueue(const StaticMessage &debug_name, Function &&fn, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
 
         TaskThreadPool &pool = GetPool(pool_name);
         
-        return pool.Enqueue(std::forward<TaskFunction>(fn), flags);
+        return pool.Enqueue(debug_name, std::forward<Function>(fn), flags);
+    }
+
+    template <class Function>
+    auto Enqueue(Function &&fn, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
+    {
+        AssertThrowMsg(IsRunning(), "TaskSystem::Start() must be called before enqueuing tasks");
+
+        TaskThreadPool &pool = GetPool(pool_name);
+        
+        return pool.Enqueue(std::forward<Function>(fn), flags);
     }
 
     /*! \brief Enqueue a batch of multiple Tasks. Each task will be enqueued to run in parallel.
@@ -304,7 +334,7 @@ public:
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class CallbackFunction>
-    void ParallelForEach(TaskThreadPool &pool, uint32 num_batches, uint32 num_items, CallbackFunction &&cb)
+    void ParallelForEach(const StaticMessage &debug_name, TaskThreadPool &pool, uint32 num_batches, uint32 num_items, CallbackFunction &&cb)
     {
         if (num_items == 0) {
             return;
@@ -326,11 +356,41 @@ public:
                 for (uint32 i = offset_index; i < max_index; i++) {
                     cb(i, batch_index);
                 }
-            });
+            }, debug_name);
         }
 
         EnqueueBatch(&batch);
         batch.AwaitCompletion();
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into \ref{num_batches} batches.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    void ParallelForEach(TaskThreadPool &pool, uint32 num_batches, uint32 num_items, CallbackFunction &&cb)
+    {
+        ParallelForEach(
+            HYP_STATIC_MESSAGE("ParallelForEach"),
+            pool,
+            num_batches,
+            num_items,
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(const StaticMessage &debug_name, TaskThreadPool &pool, uint32 num_items, CallbackFunction &&cb)
+    {
+        ParallelForEach(
+            debug_name,
+            pool,
+            pool.NumThreads(),
+            num_items,
+            std::forward<CallbackFunction>(cb)
+        );
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
@@ -340,6 +400,23 @@ public:
     HYP_FORCE_INLINE void ParallelForEach(TaskThreadPool &pool, uint32 num_items, CallbackFunction &&cb)
     {
         ParallelForEach(
+            pool,
+            pool.NumThreads(),
+            num_items,
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for \ref{num_items} times in parallel.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(const StaticMessage &debug_name, uint32 num_items, CallbackFunction &&cb)
+    {
+        TaskThreadPool &pool = GetPool(THREAD_POOL_GENERIC);
+
+        ParallelForEach(
+            debug_name,
             pool,
             pool.NumThreads(),
             num_items,
@@ -367,7 +444,7 @@ public:
      *  The tasks will be split evenly into \ref{num_batches} batches.
         The lambda will be called with (item, index) for each item. */
     template <class Container, class CallbackFunction>
-    void ParallelForEach(TaskThreadPool &pool, uint32 num_batches, Container &&items, CallbackFunction &&cb)
+    void ParallelForEach(const StaticMessage &debug_name, TaskThreadPool &pool, uint32 num_batches, Container &&items, CallbackFunction &&cb)
     {
         //static_assert(Container::is_contiguous, "Container must be contiguous to use ParallelForEach");
 
@@ -395,11 +472,41 @@ public:
                 for (uint32 i = offset_index; i < max_index; i++) {
                     cb(*(data_ptr + i), i, batch_index);
                 }
-            });
+            }, debug_name);
         }
 
         EnqueueBatch(&batch);
         batch.AwaitCompletion();
+    }
+    
+    /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
+     *  The tasks will be split evenly into \ref{num_batches} batches.
+        The lambda will be called with (item, index) for each item. */
+    template <class Container, class CallbackFunction>
+    void ParallelForEach(TaskThreadPool &pool, uint32 num_batches, Container &&items, CallbackFunction &&cb)
+    {
+        ParallelForEach(
+            HYP_STATIC_MESSAGE("ParallelForEach"),
+            pool,
+            num_batches,
+            std::forward<Container>(items),
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the given priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(const StaticMessage &debug_name, TaskThreadPool &pool, Container &&items, CallbackFunction &&cb)
+    {
+        ParallelForEach(
+            debug_name,
+            pool,
+            pool.NumThreads(),
+            std::forward<Container>(items),
+            std::forward<CallbackFunction>(cb)
+        );
     }
 
     /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
@@ -409,6 +516,23 @@ public:
     HYP_FORCE_INLINE void ParallelForEach(TaskThreadPool &pool, Container &&items, CallbackFunction &&cb)
     {
         ParallelForEach(
+            pool,
+            pool.NumThreads(),
+            std::forward<Container>(items),
+            std::forward<CallbackFunction>(cb)
+        );
+    }
+
+    /*! \brief Creates a TaskBatch which will call the lambda for each and every item in the given container.
+     *  The tasks will be split evenly into groups, based on the number of threads in the pool for the default priority.
+        The lambda will be called with (item, index) for each item. */
+    template <class Container, class CallbackFunction>
+    HYP_FORCE_INLINE void ParallelForEach(const StaticMessage &debug_name, Container &&items, CallbackFunction &&cb)
+    {
+        TaskThreadPool &pool = GetPool(THREAD_POOL_GENERIC);
+
+        ParallelForEach(
+            debug_name,
             pool,
             pool.NumThreads(),
             std::forward<Container>(items),

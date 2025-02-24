@@ -301,10 +301,15 @@ void MemoryStreamedData::Unpage_Internal()
     }
 
     // Enqueue task to write file to disk
-    TaskSystem::GetInstance().Enqueue([byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code, data_store_resource_handle = TResourceHandle<DataStore>(*m_data_store)]
-    {
-        data_store_resource_handle->Write(String::ToString(hash_code.Value()), byte_buffer);
-    }, TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
+    TaskSystem::GetInstance().Enqueue(
+        HYP_STATIC_MESSAGE("Write streamed data to disk"),
+        [byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code, data_store_resource_handle = TResourceHandle<DataStore>(*m_data_store)]
+        {
+            data_store_resource_handle->Write(String::ToString(hash_code.Value()), byte_buffer);
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
+        TaskEnqueueFlags::FIRE_AND_FORGET
+    );
 
     m_byte_buffer.Unset();
 }

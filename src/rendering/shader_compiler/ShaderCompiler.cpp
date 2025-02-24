@@ -824,10 +824,14 @@ static void ForEachPermutation(
 // #endif
 
     if (parallel) {
-        ParallelForEach(all_combinations, [&callback](const Array<ShaderProperty> &properties, uint32, uint32)
-        {
-            callback(ShaderProperties(properties));
-        });
+        TaskSystem::GetInstance().ParallelForEach(
+            HYP_STATIC_MESSAGE("ShaderCompiler::ForEachPermutation parallel processing"),
+            all_combinations,
+            [&callback](const Array<ShaderProperty> &properties, uint32, uint32)
+            {
+                callback(ShaderProperties(properties));
+            }
+        );
     } else {
         for (const Array<ShaderProperty> &properties : all_combinations) {
             callback(ShaderProperties(properties));
@@ -1362,34 +1366,38 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
     Mutex results_mutex;
 
     // Compile all shaders ahead of time
-    ParallelForEach(bundles, [&](auto &bundle, uint32, uint32)
-    {
-        if (bundle.HasRTShaders() && !supports_rt_shaders) {
-            HYP_LOG(
-                ShaderCompiler,
-                Warning,
-                "Not compiling shader bundle {} because it contains raytracing shaders and raytracing is not supported on this device.",
-                bundle.name
-            );
-
-            return;
-        }
-
-        if (bundle.HasVertexShader()) {
-            bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes));
-            bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes | skeleton_vertex_attributes));
-        }
-
-        ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties)
+    TaskSystem::GetInstance().ParallelForEach(
+        HYP_STATIC_MESSAGE("ShaderCompiler::LoadShaderDefinitions parallel"),
+        bundles,
+        [&](auto &bundle, uint32, uint32)
         {
-            CompiledShader compiled_shader;
-            bool result = GetCompiledShader(bundle.name, properties, compiled_shader);
+            if (bundle.HasRTShaders() && !supports_rt_shaders) {
+                HYP_LOG(
+                    ShaderCompiler,
+                    Warning,
+                    "Not compiling shader bundle {} because it contains raytracing shaders and raytracing is not supported on this device.",
+                    bundle.name
+                );
 
-            Mutex::Guard guard(results_mutex);
-            results[&bundle] = result;
-            
-        }, false);//true);
-    });
+                return;
+            }
+
+            if (bundle.HasVertexShader()) {
+                bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes));
+                bundle.versions.Merge(ShaderProperties(static_mesh_vertex_attributes | skeleton_vertex_attributes));
+            }
+
+            ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties)
+            {
+                CompiledShader compiled_shader;
+                bool result = GetCompiledShader(bundle.name, properties, compiled_shader);
+
+                Mutex::Guard guard(results_mutex);
+                results[&bundle] = result;
+                
+            }, false);//true);
+        }
+    );
 
     bool all_results = true;
 
@@ -1795,6 +1803,9 @@ bool ShaderCompiler::CompileBundle(
     TaskBatch task_batch;
 
     for (SizeType index = 0; index < bundle.sources.Size(); index++) {
+        StaticMessage debug_name;
+        debug_name.value = ANSIStringView(bundle.sources.AtIndex(index).second.path.Data());
+
         task_batch.AddTask([this, index, &bundle, &loaded_source_files, &process_errors, &required_vertex_attributes, &optional_vertex_attributes](...)
         {
             const auto &it = bundle.sources.AtIndex(index);
@@ -1850,7 +1861,7 @@ bool ShaderCompiler::CompileBundle(
                 .last_modified_timestamp    = filepath.LastModifiedTimestamp(),
                 .source                     = result.processed_source
             };
-        });
+        }, debug_name);
     }
 
     if (Threads::IsOnThread(ThreadCategory::THREAD_CATEGORY_TASK)) {
