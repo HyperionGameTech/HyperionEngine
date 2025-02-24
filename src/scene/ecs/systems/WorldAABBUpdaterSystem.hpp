@@ -4,6 +4,8 @@
 #define HYPERION_ECS_WORLD_AABB_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
+#include <scene/ecs/EntityTag.hpp>
+
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
@@ -12,9 +14,12 @@ namespace hyperion {
 
 class WorldAABBUpdaterSystem : public System<
     WorldAABBUpdaterSystem,
+
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::NEEDS_AABB_UPDATE>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

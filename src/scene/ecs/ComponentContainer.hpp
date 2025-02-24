@@ -34,13 +34,13 @@ enum ComponentRWFlagBits : ComponentRWFlags
     COMPONENT_RW_FLAGS_READ_WRITE   = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
 };
 
-template <class T, ComponentRWFlags _rw_flags = COMPONENT_RW_FLAGS_READ_WRITE, bool _receives_events = true>
+template <class T, ComponentRWFlags RWFlags = COMPONENT_RW_FLAGS_READ_WRITE, bool ReceivesEvents = true>
 struct ComponentDescriptor
 {
     using Type = T;
 
-    constexpr static ComponentRWFlags rw_flags = _rw_flags;
-    constexpr static bool receives_events = _receives_events;
+    constexpr static ComponentRWFlags rw_flags = RWFlags;
+    constexpr static bool receives_events = ReceivesEvents;
 };
 
 struct ComponentInfo

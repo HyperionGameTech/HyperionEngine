@@ -14,9 +14,6 @@ struct BVHComponent
 {
     HYP_FIELD()
     BVHNode     bvh;
-    
-    HYP_FIELD()
-    HashCode    transform_hash_code;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

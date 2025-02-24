@@ -19,6 +19,10 @@ enum class EntityTag : uint32
     UI,    /* associated with a UIObject */
     UI_OBJECT_VISIBLE,
 
+    UPDATE_AABB,
+
+    UPDATE_BVH,
+
     MAX
 };
 

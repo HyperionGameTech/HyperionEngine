@@ -400,6 +400,14 @@ public:
 
     static bool IsValidComponentType(TypeID component_type_id);
 
+    template <class Component>
+    static bool IsEntityTagComponent()
+    {
+        return IsEntityTagComponent(TypeID::ForType<Component>());
+    }
+
+    static bool IsEntityTagComponent(TypeID component_type_id);
+
     /*! \brief Gets the thread mask of the thread that owns this EntityManager.
      *
      *  \return The thread mask.
@@ -489,6 +497,12 @@ public:
         AddComponent<EntityTagComponent<Tag>>(entity, EntityTagComponent<Tag>());
     }
 
+    template <EntityTag... Tag>
+    HYP_FORCE_INLINE void AddTags(ID<Entity> entity)
+    {
+        (AddTag<Tag>(entity), ...);
+    }
+
     template <EntityTag Tag>
     HYP_FORCE_INLINE void RemoveTag(ID<Entity> entity)
     {
@@ -520,7 +534,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
@@ -535,7 +549,7 @@ public:
     {
         EnsureValidComponentType(component_type_id);
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
@@ -682,7 +696,7 @@ public:
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
     HYP_FORCE_INLINE Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -702,7 +716,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
@@ -747,7 +761,7 @@ public:
 
         EnsureValidComponentType(component_type_id);
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
@@ -790,7 +804,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_mask);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");

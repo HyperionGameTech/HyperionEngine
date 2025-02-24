@@ -173,6 +173,17 @@ bool EntityManager::IsValidComponentType(TypeID component_type_id)
     return ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id) != nullptr;
 }
 
+bool EntityManager::IsEntityTagComponent(TypeID component_type_id)
+{
+    const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
+
+    if (!component_interface) {
+        return false;
+    }
+
+    return component_interface->GetFlags() & ComponentInterfaceFlags::ENTITY_TAG;
+}
+
 EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags)
     : m_owner_thread_mask(owner_thread_mask),
       m_world(scene != nullptr ? scene->GetWorld() : nullptr),

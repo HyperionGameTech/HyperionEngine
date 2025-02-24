@@ -4,6 +4,8 @@
 #define HYPERION_ECS_BVH_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
+#include <scene/ecs/EntityTag.hpp>
+
 #include <scene/ecs/components/BVHComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -14,7 +16,9 @@ class BVHUpdaterSystem : public System<
     BVHUpdaterSystem,
     ComponentDescriptor<BVHComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BVH>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:
