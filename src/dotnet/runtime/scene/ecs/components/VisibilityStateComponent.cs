@@ -17,12 +17,11 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="VisibilityStateComponent")]
-    [StructLayout(LayoutKind.Sequential, Size = 40)]
+    [StructLayout(LayoutKind.Sequential, Size = 32)]
     public struct VisibilityStateComponent : IComponent
     {
         public VisibilityStateFlags visibilityStateFlags;
         public OctantID octantID;
         public IntPtr visibilityStatePtr;
-        private HashCode lastAabbHash;
     }
 }

@@ -21,7 +21,7 @@ enum VisibilityStateFlagBits : VisibilityStateFlags
     VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
 };
 
-HYP_STRUCT(Component, Size=40, Serialize=false, Editor=false)
+HYP_STRUCT(Component, Size=32, Serialize=false, Editor=false)
 struct VisibilityStateComponent
 {
     HYP_FIELD()
@@ -32,9 +32,6 @@ struct VisibilityStateComponent
 
     HYP_FIELD()
     VisibilityState         *visibility_state = nullptr;
-
-    HYP_FIELD()
-    HashCode                last_aabb_hash;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

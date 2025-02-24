@@ -354,6 +354,8 @@ RenderCollector::CollectionResult Scene::CollectEntities(
             entity_id,
             *mesh_component.proxy
         );
+
+        num_entities++;
     }
 
     return render_collector.PushUpdatesToRenderThread(

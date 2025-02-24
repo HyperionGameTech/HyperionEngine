@@ -1395,7 +1395,6 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
         }
 
         bounding_box_component.world_aabb = aabb * transform;
-        bounding_box_component.transform_hash_code = transform.GetHashCode();
     }
 
     m_aabb = aabb * transform;
@@ -2042,7 +2041,7 @@ void UIObject::UpdateMeshData_Internal()
     mesh_component->instance_data.SetBufferData(2, &instance_offsets, 1);
     mesh_component->instance_data.SetBufferData(3, &instance_sizes, 1);
 
-    mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+    scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
 }
 
 void UIObject::UpdateMaterial(bool update_children)
@@ -2088,7 +2087,8 @@ void UIObject::UpdateMaterial(bool update_children)
         HYP_LOG(UI, Debug, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
 
         mesh_component->material = std::move(new_material);
-        mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+        
+        scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
 
         return;
     }
@@ -2107,7 +2107,8 @@ void UIObject::UpdateMaterial(bool update_children)
             HYP_LOG(UI, Debug, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
 
             mesh_component->material = new_material;
-            mesh_component->flags |= MESH_COMPONENT_FLAG_DIRTY;
+
+            scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
         }
 
         AssertThrow(new_material->IsDynamic());

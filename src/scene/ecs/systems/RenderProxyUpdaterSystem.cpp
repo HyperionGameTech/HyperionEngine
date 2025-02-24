@@ -65,8 +65,6 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-
-
 EnumFlags<SceneFlags> RenderProxyUpdaterSystem::GetRequiredSceneFlags() const
 {
     return SceneFlags::NONE;
@@ -97,7 +95,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         });
     }
 
-    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
 void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -109,13 +107,10 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
+    Array<ID<Entity>> updated_entity_ids;
     Array<RC<RenderProxy>> render_proxies;
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
-        if (!(mesh_component.flags & MESH_COMPONENT_FLAG_DIRTY)) {
-            continue;
-        }
-
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos())) {
         HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity_id.Value());
 
         const uint32 render_proxy_version = mesh_component.proxy != nullptr
@@ -139,10 +134,14 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
         render_proxies.PushBack(mesh_component.proxy);
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix()) {
-            mesh_component.flags &= ~MESH_COMPONENT_FLAG_DIRTY;
+            updated_entity_ids.PushBack(entity_id);
         } else {
             mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
         }
+    }
+
+    for (const ID<Entity> &entity_id : updated_entity_ids) {
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
     }
 
     if (render_proxies.Any()) {

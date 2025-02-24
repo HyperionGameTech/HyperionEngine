@@ -4,6 +4,8 @@
 #define HYPERION_ECS_ENTITY_MESH_DIRTY_STATE_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
+#include <scene/ecs/EntityTag.hpp>
+
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -15,7 +17,9 @@ namespace hyperion {
 class EntityMeshDirtyStateSystem : public System<
     EntityMeshDirtyStateSystem,
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

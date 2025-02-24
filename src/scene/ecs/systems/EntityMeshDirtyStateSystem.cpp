@@ -27,7 +27,7 @@ void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity> &entity)
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
 
-    mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
 void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
@@ -37,7 +37,9 @@ void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
 
 void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
+    Array<ID<Entity>> updated_entity_ids;
+
+    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         // Update the material
         if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty()) {
             mesh_component.material->EnqueueRenderUpdates();
@@ -45,8 +47,12 @@ void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 
         // If transform has changed, mark the MeshComponent as dirty
         if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {
-            mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+            updated_entity_ids.PushBack(entity_id);
         }
+    }
+
+    for (const ID<Entity> &entity_id : updated_entity_ids) {
+        GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
     }
 }
 

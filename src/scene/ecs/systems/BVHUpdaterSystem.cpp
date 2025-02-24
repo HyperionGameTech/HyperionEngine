@@ -30,8 +30,8 @@ void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
             mesh_component.mesh->GetID().Value(),
             mesh_component.mesh->GetName());
-
-        bvh_component.transform_hash_code = transform_component.transform.GetHashCode();
+            
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity);
     } else {
         HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
             mesh_component.mesh->GetID().Value(),

@@ -20,8 +20,7 @@ using MeshComponentFlags = uint32;
 
 enum MeshComponentFlagBits : MeshComponentFlags
 {
-    MESH_COMPONENT_FLAG_NONE    = 0x0,
-    MESH_COMPONENT_FLAG_DIRTY   = 0x1
+    MESH_COMPONENT_FLAG_NONE    = 0x0
 };
 
 using MeshComponentUserData = UserData<32, 16>;
@@ -45,7 +44,7 @@ struct MeshComponent
     RC<RenderProxy>         proxy;
 
     HYP_FIELD()
-    MeshComponentFlags      flags = MESH_COMPONENT_FLAG_DIRTY;
+    MeshComponentFlags      flags = MESH_COMPONENT_FLAG_NONE;
 
     HYP_FIELD()
     Matrix4                 previous_model_matrix;

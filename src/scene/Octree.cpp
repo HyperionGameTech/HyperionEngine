@@ -335,6 +335,8 @@ void Octree::Clear()
                 visibility_state_component->octant_id = OctantID::Invalid();
                 visibility_state_component->visibility_state = nullptr;
             }
+
+            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entry.entity.GetID());
         }
     }
 
@@ -834,6 +836,8 @@ Octree::InsertResult Octree::Rebuild()
                     .visibility_state   = nullptr
                 });
             }
+
+            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(it.entity.GetID());
         }
     }
 
@@ -875,6 +879,8 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox &new_aabb)
                     .visibility_state   = nullptr
                 });
             }
+
+            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(it.entity.GetID());
         }
     }
 

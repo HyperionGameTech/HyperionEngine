@@ -19,7 +19,8 @@ class WorldAABBUpdaterSystem : public System<
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::NEEDS_AABB_UPDATE>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, COMPONENT_RW_FLAGS_READ_WRITE, false>,
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:
@@ -36,6 +37,9 @@ public:
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    bool ProcessEntity(ID<Entity>, BoundingBoxComponent &bounding_box_component, TransformComponent &transform_component, MeshComponent &mesh_component);
 };
 
 } // namespace hyperion
