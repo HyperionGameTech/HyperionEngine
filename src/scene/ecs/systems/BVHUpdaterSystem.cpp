@@ -46,26 +46,28 @@ void BVHUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, bvh_component, mesh_component, transform_component] : GetEntityManager().GetEntitySet<BVHComponent, MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
-        const HashCode transform_hash_code = transform_component.transform.GetHashCode();
+    Array<ID<Entity>> updated_entity_ids;
 
-        if (!bvh_component.bvh.IsValid() || transform_hash_code != bvh_component.transform_hash_code) {
-            if (!mesh_component.mesh.IsValid()) {
-                continue;
-            }
-
-            if (mesh_component.mesh->BuildBVH(transform_component.transform.GetMatrix(), bvh_component.bvh, /* max_depth */ 3)) {
-                HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
-                    mesh_component.mesh->GetID().Value(),
-                    mesh_component.mesh->GetName());
-
-                bvh_component.transform_hash_code = transform_hash_code;
-            } else {
-                HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
-                    mesh_component.mesh->GetID().Value(),
-                    mesh_component.mesh->GetName());
-            }
+    for (auto [entity_id, bvh_component, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<BVHComponent, MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BVH>>().GetScopedView(GetComponentInfos())) {
+        if (!mesh_component.mesh.IsValid()) {
+            continue;
         }
+
+        if (mesh_component.mesh->BuildBVH(transform_component.transform.GetMatrix(), bvh_component.bvh, /* max_depth */ 3)) {
+            HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
+                mesh_component.mesh->GetID().Value(),
+                mesh_component.mesh->GetName());
+
+            updated_entity_ids.PushBack(entity_id);
+        } else {
+            HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
+                mesh_component.mesh->GetID().Value(),
+                mesh_component.mesh->GetName());
+        }
+    }
+
+    for (const ID<Entity> &entity_id : updated_entity_ids) {
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity_id);
     }
 }
 

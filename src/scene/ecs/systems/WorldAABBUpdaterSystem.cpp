@@ -5,7 +5,11 @@
 
 #include <scene/Scene.hpp>
 
+#include <core/logging/Logger.hpp>
+
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(ECS);
 
 EnumFlags<SceneFlags> WorldAABBUpdaterSystem::GetRequiredSceneFlags() const
 {
@@ -27,8 +31,6 @@ void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         }
     }
 
-    bounding_box_component.transform_hash_code = transform_component.transform.GetHashCode();
-
     // @TODO Use an EntityTag to tell the MeshComponent that it needs to be updated, rather than having to mutate that component
     // EntityTags will need to be able to be used across threads
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
@@ -42,28 +44,33 @@ void WorldAABBUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, bounding_box_component, transform_component, mesh_component] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent>().GetScopedView(GetComponentInfos())) {
+    Array<ID<Entity>> updated_entity_ids;
+
+    for (auto [entity_id, bounding_box_component, transform_component, mesh_component, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, MeshComponent, EntityTagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos())) {
         const BoundingBox local_aabb = bounding_box_component.local_aabb;
         BoundingBox world_aabb = bounding_box_component.world_aabb;
 
-        const HashCode transform_hash_code = transform_component.transform.GetHashCode();
+        world_aabb = BoundingBox::Empty();
 
-        if (transform_hash_code != bounding_box_component.transform_hash_code) {
-            world_aabb = BoundingBox::Empty();
-
-            if (local_aabb.IsValid()) {
-                for (const Vec3f &corner : local_aabb.GetCorners()) {
-                    world_aabb = world_aabb.Union(transform_component.transform.GetMatrix() * corner);
-                }
+        if (local_aabb.IsValid()) {
+            for (const Vec3f &corner : local_aabb.GetCorners()) {
+                world_aabb = world_aabb.Union(transform_component.transform.GetMatrix() * corner);
             }
-
-            bounding_box_component.local_aabb = local_aabb;
-            bounding_box_component.world_aabb = world_aabb;
-            bounding_box_component.transform_hash_code = transform_hash_code;
-        
-            // Update the render proxy
-            mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
         }
+
+        bounding_box_component.local_aabb = local_aabb;
+        bounding_box_component.world_aabb = world_aabb;
+    
+        // Update the render proxy
+        mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
+
+        updated_entity_ids.PushBack(entity_id);
+    }
+
+    for (const ID<Entity> &entity_id : updated_entity_ids) {
+        HYP_LOG(ECS, Debug, "Entity #{} AABB updated", entity_id.Value());
+
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_id);
     }
 }
 

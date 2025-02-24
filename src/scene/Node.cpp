@@ -915,6 +915,8 @@ void Node::RefreshEntityTransform()
                 m_world_transform
             });
         }
+
+        m_scene->GetEntityManager()->AddTags<EntityTag::UPDATE_AABB, EntityTag::UPDATE_BVH>(m_entity);
     } else {
         SetEntityAABB(BoundingBox::Empty());
     }
