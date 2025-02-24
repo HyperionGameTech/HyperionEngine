@@ -530,6 +530,7 @@ using renderer::WrapMode;
 using renderer::TextureMode;
 using renderer::TextureData;
 using renderer::TextureDesc;
+using renderer::StencilFunction;
 
 } // namespace hyperion
 

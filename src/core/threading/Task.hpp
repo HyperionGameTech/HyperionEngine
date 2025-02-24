@@ -962,7 +962,7 @@ struct TaskAwaitAll_Impl<Task<void>>
         Array<int> called_states;
         called_states.Resize(tasks.Size());
 
-        Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(tasks.Size());
+        Semaphore<int, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(int(tasks.Size()));
 
         while ((completion_states | bound_states).Count() != tasks.Size()) {
             for (SizeType i = 0; i < tasks.Size(); ++i) {

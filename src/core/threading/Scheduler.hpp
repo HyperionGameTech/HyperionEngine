@@ -71,7 +71,11 @@ protected:
     {
     }
 
-    void WakeUpOwnerThread();
+    void WakeUpOwnerThread()
+    {
+        m_has_tasks.notify_all();
+    }
+
     bool WaitForTasks(std::unique_lock<std::mutex> &lock);
 
     uint32                  m_id_counter = 0;

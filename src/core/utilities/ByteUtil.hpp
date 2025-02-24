@@ -97,9 +97,6 @@ public:
      *  \param value The value to count the bits of.
      *  \return The number of bits set in the value. */
     static uint64 BitCount(uint64 value);
-    
-    HYP_FORCE_INLINE static constexpr uint32 MaskToBitIndex(uint64 mask)
-        { return MathUtil::FastLog2_Pow2(mask); }
 };
 
 /*! \brief Converts a value of type \ref{To} to a value of type \ref{From}.

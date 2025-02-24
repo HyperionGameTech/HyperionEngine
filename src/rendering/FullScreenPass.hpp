@@ -8,8 +8,6 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
-#include <core/functional/Delegate.hpp>
-
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/Handle.hpp>

@@ -21,6 +21,8 @@ else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
 
+string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
+
 function(RunHypBuildTool)
     if(WIN32)
         set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.bat")
@@ -40,11 +42,10 @@ function(RunHypBuildTool)
         COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         RESULT_VARIABLE HYP_BUILD_TOOL_RESULT
-        OUTPUT_FILE HYP_BUILD_TOOL_OUTPUT
     )
 
     if(NOT HYP_BUILD_TOOL_RESULT EQUAL 0)
-        message(FATAL_ERROR "HypBuildTool failed with exit code: ${HYP_BUILD_TOOL_RESULT}\n\tOutput: ${HYP_BUILD_TOOL_OUTPUT}")
+        message(FATAL_ERROR "HypBuildTool failed with exit code: ${HYP_BUILD_TOOL_RESULT}")
     endif()
 endfunction()
 
@@ -198,55 +199,99 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-function(collect_sources BASE_DIR SRC_FILES SUB_LIBRARIES)
-    file(GLOB_RECURSE ALL_FILES
-        "${BASE_DIR}/*.cpp"
-        "${BASE_DIR}/*.cxx"
-        "${BASE_DIR}/*.cc"
-        "${BASE_DIR}/*.c"
-        "${BASE_DIR}/*.mm"
-        "${BASE_DIR}/*.m"
-        "${BASE_DIR}/*.h"
-        "${BASE_DIR}/*.hpp"
-        "${BASE_DIR}/*.hxx"
-    )
+# function(collect_sources BASE_DIR SRC_FILES SUB_LIBRARIES)
+#     file(GLOB_RECURSE ALL_FILES
+#         "${BASE_DIR}/*.cpp"
+#         "${BASE_DIR}/*.cxx"
+#         "${BASE_DIR}/*.cc"
+#         "${BASE_DIR}/*.c"
+#         "${BASE_DIR}/*.mm"
+#         "${BASE_DIR}/*.m"
+#         "${BASE_DIR}/*.h"
+#         "${BASE_DIR}/*.hpp"
+#         "${BASE_DIR}/*.hxx"
+#     )
+# 
+#     set(FINAL_FILES "")
+# 
+#     foreach(FILE ${ALL_FILES})
+#         get_filename_component(DIR ${FILE} DIRECTORY)
+#         
+#         # Check if CMakeLists.txt exists in this directory
+#         if(EXISTS "${DIR}/CMakeLists.txt")
+#             # Skip adding files and instead add subdirectory
+#             string(FIND "${SUBDIRS}" "${DIR}" FOUND)
+#             if(${FOUND} EQUAL -1)
+#                 list(APPEND SUBDIRS "${DIR}")
+#             endif()
+#         else()
+#             message(STATUS "Adding source file to main library: ${FILE}")
+#             list(APPEND FINAL_FILES "${FILE}")
+#         endif()
+#     endforeach()
+# 
+#     set(${SRC_FILES} ${FINAL_FILES} PARENT_SCOPE)
+# 
+#     set(LOCAL_SUB_LIBRARIES "")
+# 
+#     # Add subdirectories
+#     foreach(SUBDIR ${SUBDIRS})
+#         message(STATUS "Adding subdirectory: ${SUBDIR} to sources")
+# 
+#         # the subfolder must contain a library with the name hyperion-<subfolder>
+# 
+#         set(SUBDIR_BASENAME "")
+#         string(REGEX MATCH "([^/]+)$" SUBDIR_BASENAME ${SUBDIR})
+# 
+#         add_subdirectory(${SUBDIR} ${CMAKE_BINARY_DIR}/${SUBDIR_BASENAME})
+# 
+#         list(APPEND LOCAL_SUB_LIBRARIES "hyperion-${SUBDIR_BASENAME}")
+#     endforeach()
+# 
+#     set(${SUB_LIBRARIES} ${LOCAL_SUB_LIBRARIES} PARENT_SCOPE)
+# endfunction()
 
-    set(FINAL_FILES "")
 
-    foreach(FILE ${ALL_FILES})
-        get_filename_component(DIR ${FILE} DIRECTORY)
-        
-        # Check if CMakeLists.txt exists in this directory
-        if(EXISTS "${DIR}/CMakeLists.txt")
-            # Skip adding files and instead add subdirectory
-            string(FIND "${SUBDIRS}" "${DIR}" FOUND)
-            if(${FOUND} EQUAL -1)
-                list(APPEND SUBDIRS "${DIR}")
-            endif()
-        else()
-            list(APPEND FINAL_FILES "${FILE}")
+function(collect_sources_and_modules dir out_sources out_modules)
+    set(local_sources "")
+    set(local_modules "")
+
+    # If this directory has a CMakeLists.txt, consider it a module and skip recursion.
+    if(EXISTS "${dir}/CMakeLists.txt")
+        # the subfolder must contain a library with the name hyperion-<subfolder>
+ 
+        set(subdir_basename "")
+        string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
+
+        message(STATUS "Adding subdirectory as module: ${subdir_basename}")
+
+        add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
+
+        list(APPEND local_modules "hyperion-${subdir_basename}")
+
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+
+        return()
+    endif()
+
+    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
+         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c")
+    list(APPEND local_sources ${current_sources})
+
+    message(STATUS "Adding sources from ${dir}: ${current_sources}")
+
+    file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+    foreach(child ${children})
+        if(IS_DIRECTORY "${child}")
+            collect_sources_and_modules("${child}" child_sources child_modules)
+            list(APPEND local_sources ${child_sources})
+            list(APPEND local_modules ${child_modules})
         endif()
     endforeach()
 
-    set(${SRC_FILES} ${FINAL_FILES} PARENT_SCOPE)
-
-    set(LOCAL_SUB_LIBRARIES "")
-
-    # Add subdirectories
-    foreach(SUBDIR ${SUBDIRS})
-        message(STATUS "Adding subdirectory: ${SUBDIR} to sources")
-
-        # the subfolder must contain a library with the name hyperion-<subfolder>
-
-        set(SUBDIR_BASENAME "")
-        string(REGEX MATCH "([^/]+)$" SUBDIR_BASENAME ${SUBDIR})
-
-        add_subdirectory(${SUBDIR} ${CMAKE_BINARY_DIR}/${SUBDIR_BASENAME})
-
-        list(APPEND LOCAL_SUB_LIBRARIES "hyperion-${SUBDIR_BASENAME}")
-    endforeach()
-
-    set(${SUB_LIBRARIES} ${LOCAL_SUB_LIBRARIES} PARENT_SCOPE)
+    set(${out_sources} "${local_sources}" PARENT_SCOPE)
+    set(${out_modules} "${local_modules}" PARENT_SCOPE)
 endfunction()
 
 # if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
@@ -257,9 +302,9 @@ endfunction()
 # endif()
 
 set(SUB_LIBRARIES "")
-collect_sources(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
+#collect_sources(${CMAKE_SOURCE_DIR}/src SOURCES SUB_LIBRARIES)
 
-string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
 file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
@@ -549,6 +594,11 @@ endforeach()
 # else()
     add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 # endif()
+
+if(MSVC)
+    # Allow multiprocess building with MSVC
+    target_compile_options(${BUILD_NAME} PRIVATE "/MP")
+endif()
 
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}

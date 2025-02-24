@@ -116,7 +116,7 @@ public:
                 }
             } else {
                 // Add blocks until we can insert the element
-                uint32 current_block_index = m_blocks.Size();
+                uint32 current_block_index = uint32(m_blocks.Size());
 
                 while (index >= num_elements_per_block * m_num_blocks.Get(MemoryOrder::ACQUIRE)) {
                     m_blocks.EmplaceBack(m_block_init_ctx, current_block_index);

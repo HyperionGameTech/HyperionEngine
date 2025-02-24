@@ -20,7 +20,7 @@ constexpr uint32 g_thread_dynamic_mask = ~(~0u >> 1); // last bit
 constexpr uint32 g_thread_category_mask = ~(~0u << 4);
 constexpr uint32 g_thread_id_mask = ~(g_thread_category_mask | g_thread_dynamic_mask);
 
-constexpr uint32 g_max_static_thread_ids = MathUtil::FastLog2_Pow2((~0u & g_thread_id_mask) >> 4);
+constexpr uint32 g_max_static_thread_ids = uint32(MathUtil::FastLog2_Pow2((~0u & g_thread_id_mask) >> 4));
 
 using ThreadMask = uint32;
 
@@ -146,7 +146,7 @@ public:
         { return m_value & mask; }
 
     HYP_FORCE_INLINE constexpr uint32 GetStaticThreadIndex() const
-        { return MathUtil::FastLog2_Pow2((m_value & g_thread_id_mask) >> 4); }
+        { return uint32(MathUtil::FastLog2_Pow2((m_value & g_thread_id_mask) >> 4)); }
 };
 
 HYP_FORCE_INLINE constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadID &rhs)

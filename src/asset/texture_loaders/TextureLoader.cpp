@@ -3,6 +3,7 @@
 #include <asset/texture_loaders/TextureLoader.hpp>
 
 #include <core/utilities/StringUtil.hpp>
+
 #include <util/img/stb_image.h>
 
 namespace hyperion {

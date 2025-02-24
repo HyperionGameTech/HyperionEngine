@@ -40,10 +40,5 @@ bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex> &lock)
     return !m_stop_requested.Get(MemoryOrder::RELAXED);
 }
 
-void SchedulerBase::WakeUpOwnerThread()
-{
-    m_has_tasks.notify_all();
-}
-
 } // namespace threading
 } // namespace hyperion

@@ -511,34 +511,34 @@ public:
     }
 
     HYP_FORCE_INLINE int8 ToInt8(int8 default_value = 0) const
-        { return static_cast<int8>(ToNumber(default_value)); }
+        { return static_cast<int8>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE int16 ToInt16(int16 default_value = 0) const
-        { return static_cast<int16>(ToNumber(default_value)); }
+        { return static_cast<int16>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE int32 ToInt32(int32 default_value = 0) const
-        { return static_cast<int32>(ToNumber(default_value)); }
+        { return static_cast<int32>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE int64 ToInt64(int64 default_value = 0) const
-        { return static_cast<int64>(ToNumber(default_value)); }
+        { return static_cast<int64>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE uint8 ToUInt8(uint8 default_value = 0) const
-        { return static_cast<uint8>(ToNumber(default_value)); }
+        { return static_cast<uint8>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE uint16 ToUInt16(uint16 default_value = 0) const
-        { return static_cast<uint16>(ToNumber(default_value)); }
+        { return static_cast<uint16>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE uint32 ToUInt32(uint32 default_value = 0) const
-        { return static_cast<uint32>(ToNumber(default_value)); }
+        { return static_cast<uint32>(ToNumber(JSONNumber(default_value))); }
 
-    HYP_FORCE_INLINE uint64 ToUInt64(uint64 default_value =0 ) const
-        { return static_cast<uint64>(ToNumber(default_value)); }
+    HYP_FORCE_INLINE uint64 ToUInt64(uint64 default_value = 0) const
+        { return static_cast<uint64>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE float ToFloat(float default_value = 0.0f) const
-        { return static_cast<float>(ToNumber(default_value)); }
+        { return static_cast<float>(ToNumber(JSONNumber(default_value))); }
 
     HYP_FORCE_INLINE double ToDouble(double default_value = 0.0) const
-        { return ToNumber(default_value); }
+        { return ToNumber(JSONNumber(default_value)); }
 
     HYP_FORCE_INLINE JSONBool AsBool() const
     {

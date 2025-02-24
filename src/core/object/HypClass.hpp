@@ -35,7 +35,7 @@ namespace fbom {
 class FBOMData;
 } // namespace fbom
 
-class HypMember;
+struct HypMember;
 class HypProperty;
 class HypMethod;
 class HypField;

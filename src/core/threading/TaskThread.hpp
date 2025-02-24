@@ -15,7 +15,7 @@
 namespace hyperion {
 namespace threading {
 
-struct ThreadID;
+class ThreadID;
 
 class TaskThread : public Thread<Scheduler>
 {
