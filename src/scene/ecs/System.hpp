@@ -39,12 +39,6 @@ public:
 
     virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const;
 
-    HYP_FORCE_INLINE bool IsEntityInitialized(ID<Entity> entity) const
-        { return m_initialized_entities.FindAs(entity) != m_initialized_entities.End(); }
-
-    HYP_FORCE_INLINE const HashSet<WeakHandle<Entity>> &GetInitializedEntities() const
-        { return m_initialized_entities; }
-
     virtual bool AllowParallelExecution() const
         { return true; }
 
@@ -136,16 +130,10 @@ public:
 
     virtual void OnEntityAdded(const Handle<Entity> &entity)
     {
-        m_initialized_entities.Insert(entity.ToWeak());
     }
 
     virtual void OnEntityRemoved(ID<Entity> entity)
     {
-        auto it = m_initialized_entities.FindAs(entity);
-        
-        if (it != m_initialized_entities.End()) {
-            m_initialized_entities.Erase(it);
-        }
     }
 
     virtual void Process(GameCounter::TickUnit delta) = 0;

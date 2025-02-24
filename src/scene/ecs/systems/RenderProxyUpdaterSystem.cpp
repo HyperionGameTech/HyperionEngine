@@ -14,6 +14,8 @@
 
 #include <rendering/backend/RenderCommand.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -95,7 +97,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         });
     }
 
-    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+    GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
 void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -107,7 +109,7 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    Array<ID<Entity>> updated_entity_ids;
+    HashSet<ID<Entity>> updated_entity_ids;
     Array<RC<RenderProxy>> render_proxies;
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos())) {
@@ -134,7 +136,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
         render_proxies.PushBack(mesh_component.proxy);
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix()) {
-            updated_entity_ids.PushBack(entity_id);
+            updated_entity_ids.Insert(entity_id);
         } else {
             mesh_component.previous_model_matrix = transform_component.transform.GetMatrix();
         }

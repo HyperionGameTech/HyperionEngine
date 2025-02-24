@@ -231,11 +231,20 @@ void EntityManager::Initialize()
 
                 const TypeMap<ComponentID> &component_ids = entities_it->second.components;
 
-                if (system_it.second->IsEntityInitialized(entity.GetID())) {
-                    continue;
-                }
-
                 if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
+                    { // critical section
+                        Mutex::Guard guard(m_system_entity_map_mutex);
+
+                        auto system_entity_it = m_system_entity_map.Find(system_it.second.Get());
+
+                        // Check if the system already has this entity initialized
+                        if (system_entity_it != m_system_entity_map.End() && (system_entity_it->second.FindAs(entity) != system_entity_it->second.End())) {
+                            continue;
+                        }
+
+                        m_system_entity_map[system_it.second.Get()].Insert(entity);
+                    }
+
                     system_it.second->OnEntityAdded(entity);
                 }
             }
@@ -445,12 +454,12 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
     other.NotifySystemsOfEntityAdded(entity, new_component_ids);
 }
 
-void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
+void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity_id, const TypeMap<ComponentID> &component_ids)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    if (!entity.IsValid()) {
+    if (!entity_id.IsValid()) {
         return;
     }
 
@@ -460,16 +469,25 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<
         return;
     }
 
-    Handle<Entity> entity_handle { entity };
+    Handle<Entity> entity { entity_id };
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (system_it.second->IsEntityInitialized(entity)) {
-                continue;
-            }
-
             if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
-                system_it.second->OnEntityAdded(entity_handle);
+                { // critical section
+                    Mutex::Guard guard(m_system_entity_map_mutex);
+
+                    auto system_entity_it = m_system_entity_map.Find(system_it.second.Get());
+
+                    // Check if the system already has this entity initialized
+                    if (system_entity_it != m_system_entity_map.End() && (system_entity_it->second.FindAs(entity) != system_entity_it->second.End())) {
+                        continue;
+                    }
+
+                    m_system_entity_map[system_it.second.Get()].Insert(entity);
+                }
+
+                system_it.second->OnEntityAdded(entity);
             }
         }
     }
@@ -490,11 +508,25 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
-            if (!system_it.second->IsEntityInitialized(entity)) {
-                continue;
-            }
-
             if (system_it.second->ActsOnComponents(component_ids.Keys(), true)) {
+                { // critical section
+                    Mutex::Guard guard(m_system_entity_map_mutex);
+
+                    auto system_entity_it = m_system_entity_map.Find(system_it.second.Get());
+
+                    if (system_entity_it == m_system_entity_map.End()) {
+                        continue;
+                    }
+
+                    auto entity_it = system_entity_it->second.FindAs(entity);
+
+                    if (entity_it == system_entity_it->second.End()) {
+                        continue;
+                    }
+
+                    system_entity_it->second.Erase(entity_it);
+                }
+
                 system_it.second->OnEntityRemoved(entity);
             }
         }
@@ -577,6 +609,25 @@ void EntityManager::FlushCommandQueue(GameCounter::TickUnit delta)
     }
 }
 
+bool EntityManager::IsEntityInitializedForSystem(SystemBase *system, ID<Entity> entity_id) const
+{
+    HYP_SCOPE;
+
+    if (!system) {
+        return false;
+    }
+
+    Mutex::Guard guard(m_system_entity_map_mutex);
+
+    const auto it = m_system_entity_map.Find(system);
+
+    if (it == m_system_entity_map.End()) {
+        return false;
+    }
+
+    return it->second.FindAs(entity_id) != it->second.End();
+}
+
 #pragma endregion EntityManager
 
 #pragma region SystemExecutionGroup
@@ -606,10 +657,6 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 
     for (auto &it : m_systems) {
         SystemBase *system = it.second.Get();
-
-        if (system->GetInitializedEntities().Empty()) {
-            continue;
-        }
 
         StaticMessage debug_name;
         debug_name.value = system->GetName();

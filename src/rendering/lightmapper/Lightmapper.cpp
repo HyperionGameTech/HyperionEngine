@@ -1316,7 +1316,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
 
                 mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
             });
-        }        
+        }
     }
 
     m_queue.Pop();
