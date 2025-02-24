@@ -5,6 +5,8 @@
 
 #include <rendering/Mesh.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {
@@ -46,7 +48,7 @@ void BVHUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    Array<ID<Entity>> updated_entity_ids;
+    HashSet<ID<Entity>> updated_entity_ids;
 
     for (auto [entity_id, bvh_component, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<BVHComponent, MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BVH>>().GetScopedView(GetComponentInfos())) {
         if (!mesh_component.mesh.IsValid()) {
@@ -58,7 +60,7 @@ void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
                 mesh_component.mesh->GetID().Value(),
                 mesh_component.mesh->GetName());
 
-            updated_entity_ids.PushBack(entity_id);
+            updated_entity_ids.Insert(entity_id);
         } else {
             HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
                 mesh_component.mesh->GetID().Value(),

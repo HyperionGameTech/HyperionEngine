@@ -5,6 +5,8 @@
 
 #include <scene/Scene.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/BVH.hpp>
@@ -37,7 +39,7 @@ void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
 
 void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 {
-    Array<ID<Entity>> updated_entity_ids;
+    HashSet<ID<Entity>> updated_entity_ids;
 
     for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
         // Update the material
@@ -47,7 +49,7 @@ void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 
         // If transform has changed, mark the MeshComponent as dirty
         if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {
-            updated_entity_ids.PushBack(entity_id);
+            updated_entity_ids.Insert(entity_id);
         }
     }
 

@@ -1021,6 +1021,8 @@ private:
      */
     bool RemoveEntity(ID<Entity> id);
 
+    bool IsEntityInitializedForSystem(SystemBase *system, ID<Entity> entity) const;
+
     ThreadMask                                                              m_owner_thread_mask;
     World                                                                   *m_world;
     Scene                                                                   *m_scene;
@@ -1036,6 +1038,9 @@ private:
     FlatMap<EntitySetTypeID, FlatMap<EntityListenerID, EntityListener>>     m_entity_listeners;
     EntityManagerCommandQueue                                               m_command_queue;
     Array<SystemExecutionGroup>                                             m_system_execution_groups;
+
+    HashMap<SystemBase *, HashSet<WeakHandle<Entity>>>                      m_system_entity_map;
+    mutable Mutex                                                           m_system_entity_map_mutex;
 
     bool                                                                    m_is_initialized;
 };
