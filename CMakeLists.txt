@@ -77,7 +77,7 @@ if(MSVC)
     if (DEFINED CMAKE_TOOLCHAIN_FILE)
         message(STATUS "Using CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
     else()
-        message(SEND_ERROR "CMake toolchain file not specified -- should be set to vcpkg cmake file! \
+        message(STATUS "CMake toolchain file not specified -- should be set to vcpkg cmake file! \
             If you don't have vcpkg set up, download vcpkg from Microsoft and set the `-DCMAKE_TOOLCHAIN_FILE` CMake argument to \
             `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`.")
     endif()
@@ -268,27 +268,22 @@ function(collect_sources_and_modules dir out_sources out_modules)
         add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
 
         list(APPEND local_modules "hyperion-${subdir_basename}")
+    else()
+        file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
+             "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c")
+        list(APPEND local_sources ${current_sources})
 
-        set(${out_sources} "${local_sources}" PARENT_SCOPE)
-        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+        message(STATUS "Adding sources from ${dir}: ${current_sources}")
 
-        return()
+        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+        foreach(child ${children})
+            if(IS_DIRECTORY "${child}")
+                collect_sources_and_modules("${child}" child_sources child_modules)
+                list(APPEND local_sources ${child_sources})
+                list(APPEND local_modules ${child_modules})
+            endif()
+        endforeach()
     endif()
-
-    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR} 
-         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c")
-    list(APPEND local_sources ${current_sources})
-
-    message(STATUS "Adding sources from ${dir}: ${current_sources}")
-
-    file(GLOB children LIST_DIRECTORIES true "${dir}/*")
-    foreach(child ${children})
-        if(IS_DIRECTORY "${child}")
-            collect_sources_and_modules("${child}" child_sources child_modules)
-            list(APPEND local_sources ${child_sources})
-            list(APPEND local_modules ${child_modules})
-        endif()
-    endforeach()
 
     set(${out_sources} "${local_sources}" PARENT_SCOPE)
     set(${out_modules} "${local_modules}" PARENT_SCOPE)
@@ -610,7 +605,8 @@ set(COMMON_LIBRARIES
 
 message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
 
-target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES} ${SUB_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
 
 function(create_csharp_library output_name csharp_sources)
     # make a directory for the .csproj file

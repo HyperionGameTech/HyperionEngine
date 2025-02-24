@@ -60,18 +60,18 @@ static constexpr auto LogLevelToString()
     }
 }
 
-class HYP_API LogChannel
+class LogChannel
 {
 public:
     friend class Logger;
 
-    LogChannel(Name name);
-    LogChannel(Name name, LogChannel *parent_channel);
+    HYP_API LogChannel(Name name);
+    HYP_API LogChannel(Name name, LogChannel *parent_channel);
     LogChannel(const LogChannel &other)                 = delete;
     LogChannel &operator=(const LogChannel &other)      = delete;
     LogChannel(LogChannel &&other) noexcept             = delete;
     LogChannel &operator=(LogChannel &&other) noexcept  = delete;
-    ~LogChannel();
+    HYP_API ~LogChannel();
 
     /*! \brief Get the ID of this channel. */
     HYP_FORCE_INLINE uint32 GetID() const

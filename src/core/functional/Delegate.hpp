@@ -399,7 +399,7 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(ProcType &&proc, bool require_current_thread = false)
     {
-        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID::invalid);
+        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID());
     }
 
     /*! \brief Bind a Proc<> to the Delegate.

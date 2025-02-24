@@ -64,11 +64,15 @@ namespace Hyperion
 
             string[] files = System.IO.Directory.GetFiles(scriptDirectory, "*.cs", System.IO.SearchOption.AllDirectories);
 
+            Console.WriteLine("Files: {0}", string.Join(", ", files));
+
             long maxTimestamp = 0;
 
             foreach (string file in files)
             {
                 long timestamp = System.IO.File.GetLastWriteTime(file).ToFileTime();
+
+                Console.WriteLine("Timestamp for {0}: {1}", file, timestamp);
 
                 if (timestamp > maxTimestamp)
                 {
@@ -76,8 +80,12 @@ namespace Hyperion
                 }
             }
 
+            Console.WriteLine("Checking if {0}.dll needs rebuild...", moduleName);
+
             // Try to find the DLL in the output directory
             string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, $"{moduleName}.dll", System.IO.SearchOption.AllDirectories);
+
+            Console.WriteLine("DLLs: {0}", string.Join(", ", dlls));
 
             if (dlls.Length == 0)
             {
@@ -167,11 +175,22 @@ namespace Hyperion
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
             hotReloadVersion = -1;
 
-            if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
-            {
-                Logger.Log(LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
+            Console.WriteLine("Building project for module {0}...", moduleName);
 
-                return true;
+            try
+            {
+                if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
+                {
+                    Logger.Log(LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
+
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, "Failed to detect if module {0} needs rebuild: {1}", moduleName, e.Message);
+
+                return false;
             }
 
             Logger.Log(LogType.Info, "Rebuilding module {0}...", moduleName);
