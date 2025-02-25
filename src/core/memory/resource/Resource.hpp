@@ -60,6 +60,84 @@ public:
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) = 0;
 };
 
+class HYP_API ResourceBase : public IResource
+{
+protected:
+    using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using InitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
+    using CompletionSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+
+public:
+    ResourceBase();
+
+    ResourceBase(const ResourceBase &other)                 = delete;
+    ResourceBase &operator=(const ResourceBase &other)      = delete;
+
+    ResourceBase(ResourceBase &&other) noexcept;
+    ResourceBase &operator=(ResourceBase &&other) noexcept  = delete;
+
+    virtual ~ResourceBase() override;
+
+    virtual Name GetTypeName() const override = 0;
+
+    virtual bool IsNull() const override final
+        { return false; }
+
+    virtual int Claim() override final;
+    virtual int Unclaim() override final;
+    virtual void WaitForCompletion() override final;
+
+    virtual ResourceMemoryPoolHandle GetPoolHandle() const override final
+        { return m_pool_handle; }
+
+    virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) override final
+        { m_pool_handle = pool_handle; }
+
+    /*! \brief Performs an operation on the owner thread if the resources are initialized,
+     *  otherwise executes it immediately on the calling thread. Initialization on the owner thread will not begin until at least the end of the given proc,
+     *  so it is safe to use this method on any thread.
+     *  \param proc The operation to perform.
+     *  \param force_owner_thread If true, the operation will be performed on the owner thread regardless of initialization state. */
+    void Execute(Proc<void> &&proc, bool force_owner_thread = false);
+
+#ifdef HYP_DEBUG_MODE
+    HYP_FORCE_INLINE uint32 GetUseCount() const
+        { return m_ref_count.Get(MemoryOrder::SEQUENTIAL); }
+#endif
+
+protected:
+    virtual IThread *GetOwnerThread() const
+        { return nullptr; }
+
+    virtual bool CanExecuteInline() const;
+
+    virtual void FlushScheduledTasks();
+
+    virtual void EnqueueOp(Proc<void> &&proc);
+
+    HYP_FORCE_INLINE bool IsInitialized() const
+        { return m_init_semaphore.IsInSignalState(); }
+
+    virtual void Initialize() = 0;
+    virtual void Destroy() = 0;
+    virtual void Update() = 0;
+
+    void SetNeedsUpdate();
+
+    bool                            m_is_initialized;
+
+    AtomicVar<int16>                m_ref_count;
+    AtomicVar<int16>                m_update_counter;
+
+    InitSemaphore                   m_init_semaphore;
+    PreInitSemaphore                m_pre_init_semaphore;
+    CompletionSemaphore             m_completion_semaphore;
+
+    ResourceMemoryPoolHandle        m_pool_handle;
+    
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
+};
+
 class IResourceMemoryPool
 {
 public:

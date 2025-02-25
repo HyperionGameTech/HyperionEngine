@@ -110,9 +110,9 @@ public:
     void SetBufferData(const MaterialShaderData &buffer_data);
 
 protected:
-    virtual void Initialize() override;
-    virtual void Destroy() override;
-    virtual void Update() override;
+    virtual void Initialize_Internal() override;
+    virtual void Destroy_Internal() override;
+    virtual void Update_Internal() override;
     
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 

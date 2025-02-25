@@ -74,7 +74,7 @@ MeshRenderResources::MeshRenderResources(MeshRenderResources &&other) noexcept
 
 MeshRenderResources::~MeshRenderResources() = default;
 
-void MeshRenderResources::Initialize()
+void MeshRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -83,7 +83,7 @@ void MeshRenderResources::Initialize()
     UploadMeshData();
 }
 
-void MeshRenderResources::Destroy()
+void MeshRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -91,7 +91,7 @@ void MeshRenderResources::Destroy()
     SafeRelease(std::move(m_ibo));
 }
 
-void MeshRenderResources::Update()
+void MeshRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 

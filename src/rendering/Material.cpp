@@ -44,7 +44,7 @@ MaterialRenderResources::MaterialRenderResources(MaterialRenderResources &&other
 
 MaterialRenderResources::~MaterialRenderResources() = default;
 
-void MaterialRenderResources::Initialize()
+void MaterialRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -57,7 +57,7 @@ void MaterialRenderResources::Initialize()
     }
 }
 
-void MaterialRenderResources::Destroy()
+void MaterialRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -68,7 +68,7 @@ void MaterialRenderResources::Destroy()
     }
 }
 
-void MaterialRenderResources::Update()
+void MaterialRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 

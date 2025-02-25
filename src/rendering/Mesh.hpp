@@ -59,9 +59,9 @@ public:
     void SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data);
 
 protected:
-    virtual void Initialize() override;
-    virtual void Destroy() override;
-    virtual void Update() override;
+    virtual void Initialize_Internal() override;
+    virtual void Destroy_Internal() override;
+    virtual void Update_Internal() override;
 
     virtual Name GetTypeName() const override
         { return NAME("MeshRenderResources"); }

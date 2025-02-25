@@ -10,10 +10,8 @@ enum class HypClassAllocationMethod : uint8
 {
     NONE = 0,
     
-    OBJECT_POOL_HANDLE,
-    REF_COUNTED_PTR,
-
-    DEFAULT = OBJECT_POOL_HANDLE
+    HANDLE,
+    REF_COUNTED_PTR
 };
 
 } // namespace hyperion

@@ -51,15 +51,25 @@ public:
         return *it;
     }
 
-    void Add(IThread *thread)
+    /*! \brief Add a thread to the map. Returns false if the thread is already in the map. Returns true on success. */
+    bool Add(IThread *thread)
     {
         AssertThrow(thread != nullptr);
 
         Mutex::Guard guard(m_mutex);
 
+        auto it = m_threads.Find(thread->GetID());
+
+        if (it != m_threads.End()) {
+            return false;
+        }
+
         m_threads.Set(thread);
+
+        return true;
     }
 
+    /*! \brief Remove a thread from the map. Returns false if the thread is not in the map. Returns true on success. */
     bool Remove(const ThreadID &thread_id)
     {
         Mutex::Guard guard(m_mutex);
@@ -114,8 +124,55 @@ static void SetCurrentThreadID(ThreadID id)
 #endif
 }
 
+void Threads::RegisterThread(const ThreadID &id, IThread *thread)
+{
+    AssertThrow(id.IsValid());
+    AssertThrow(thread != nullptr);
+
+    bool success = false;
+
+    if (id.IsDynamic()) {
+        success = g_dynamic_thread_map.Add(thread);
+    } else {
+        success = g_static_thread_map.Add(thread);
+    }
+
+    AssertThrowMsg(success, "Thread %u (%s) could not be registered",
+        id.GetValue(), *id.GetName());
+}
+
+void Threads::UnregisterThread(const ThreadID &id)
+{
+    if (!id.IsValid()) {
+        return;
+    }
+
+    if (id.IsDynamic()) {
+        g_dynamic_thread_map.Remove(id);
+    } else {
+        g_static_thread_map.Remove(id);
+    }
+}
+
+bool Threads::IsThreadRegistered(const ThreadID &id)
+{
+    if (!id.IsValid()) {
+        return false;
+    }
+
+    if (id.IsDynamic()) {
+        return g_dynamic_thread_map.Get(id) != nullptr;
+    } else {
+        return g_static_thread_map.Get(id) != nullptr;
+    }
+}
+
 IThread *Threads::GetThread(const ThreadID &thread_id)
 {
+    if (!thread_id.IsValid()) {
+        return nullptr;
+    }
+
     if (thread_id.IsDynamic()) {
         return g_dynamic_thread_map.Get(thread_id);
     } else {
@@ -132,16 +189,13 @@ void Threads::SetCurrentThreadObject(IThread *thread)
 {
     AssertThrow(thread != nullptr);
 
+    AssertThrowMsg(IsThreadRegistered(thread->GetID()), "Thread %u (%s) is not registered",
+        thread->GetID().GetValue(), *thread->GetID().GetName());
+
     g_current_thread = thread;
 
     SetCurrentThreadID(thread->GetID());
     SetCurrentThreadPriority(thread->GetPriority());
-
-    if (thread->GetID().IsDynamic()) {
-        g_dynamic_thread_map.Add(thread);
-    } else {
-        g_static_thread_map.Add(thread);
-    }
 }
 
 void Threads::AssertOnThread(ThreadMask mask, const char *message)

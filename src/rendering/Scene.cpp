@@ -21,19 +21,19 @@ SceneRenderResources::SceneRenderResources(Scene *scene)
 
 SceneRenderResources::~SceneRenderResources() = default;
 
-void SceneRenderResources::Initialize()
+void SceneRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void SceneRenderResources::Destroy()
+void SceneRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SceneRenderResources::Update()
+void SceneRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 }

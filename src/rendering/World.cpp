@@ -111,12 +111,12 @@ Task<bool> WorldRenderResources::RemoveScene(ID<Scene> scene_id)
     return task;
 }
 
-void WorldRenderResources::Initialize()
+void WorldRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 }
 
-void WorldRenderResources::Destroy()
+void WorldRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -124,7 +124,7 @@ void WorldRenderResources::Destroy()
     m_bound_scenes.Clear();
 }
 
-void WorldRenderResources::Update()
+void WorldRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 }

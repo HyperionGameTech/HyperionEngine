@@ -35,19 +35,19 @@ CameraRenderResources::CameraRenderResources(CameraRenderResources &&other) noex
 
 CameraRenderResources::~CameraRenderResources() = default;
 
-void CameraRenderResources::Initialize()
+void CameraRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void CameraRenderResources::Destroy()
+void CameraRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void CameraRenderResources::Update()
+void CameraRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 }

@@ -35,6 +35,8 @@ namespace fbom {
 class FBOMData;
 } // namespace fbom
 
+class IResource;
+
 struct HypMember;
 class HypProperty;
 class HypMethod;
@@ -249,7 +251,7 @@ public:
     virtual HypClassAllocationMethod GetAllocationMethod() const = 0;
 
     HYP_FORCE_INLINE bool UseHandles() const
-        { return GetAllocationMethod() == HypClassAllocationMethod::OBJECT_POOL_HANDLE; }
+        { return GetAllocationMethod() == HypClassAllocationMethod::HANDLE; }
 
     HYP_FORCE_INLINE bool UseRefCountedPtr() const
         { return GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR; }
@@ -418,7 +420,7 @@ public:
     virtual HypClassAllocationMethod GetAllocationMethod() const override
     {
         if constexpr (std::is_base_of_v<HypObjectBase, T>) {
-            return HypClassAllocationMethod::OBJECT_POOL_HANDLE;
+            return HypClassAllocationMethod::HANDLE;
         } else {
             static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
             

@@ -66,19 +66,19 @@ LightRenderResources::LightRenderResources(LightRenderResources &&other) noexcep
 
 LightRenderResources::~LightRenderResources() = default;
 
-void LightRenderResources::Initialize()
+void LightRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void LightRenderResources::Destroy()
+void LightRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void LightRenderResources::Update()
+void LightRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 }

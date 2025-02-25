@@ -30,7 +30,7 @@ SkeletonRenderResources::SkeletonRenderResources(SkeletonRenderResources &&other
 
 SkeletonRenderResources::~SkeletonRenderResources() = default;
 
-void SkeletonRenderResources::Initialize()
+void SkeletonRenderResources::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -39,12 +39,12 @@ void SkeletonRenderResources::Initialize()
     UpdateBufferData();
 }
 
-void SkeletonRenderResources::Destroy()
+void SkeletonRenderResources::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SkeletonRenderResources::Update()
+void SkeletonRenderResources::Update_Internal()
 {
     HYP_SCOPE;
 }

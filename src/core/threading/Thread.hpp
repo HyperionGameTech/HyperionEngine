@@ -48,6 +48,9 @@ public:
     virtual ThreadPriorityValue GetPriority() const = 0;
 };
 
+extern HYP_API void RegisterThread(const ThreadID &id, IThread *thread);
+extern HYP_API void UnregisterThread(const ThreadID &id);
+
 extern HYP_API void SetCurrentThreadObject(IThread *);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
@@ -95,12 +98,13 @@ private:
     std::thread                 *m_thread;
 };
 
-template <class Scheduler, class ...Args>
+template <class Scheduler, class... Args>
 Thread<Scheduler, Args...>::Thread(const ThreadID &id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
       m_thread(nullptr)
 {
+    RegisterThread(m_id, this);
 }
 
 template <class Scheduler, class ...Args>
@@ -114,6 +118,8 @@ Thread<Scheduler, Args...>::~Thread()
         delete m_thread;
         m_thread = nullptr;
     }
+
+    UnregisterThread(m_id);
 }
 
 template <class Scheduler, class... Args>

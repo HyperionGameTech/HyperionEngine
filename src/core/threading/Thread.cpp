@@ -29,6 +29,16 @@
 namespace hyperion {
 namespace threading {
 
+HYP_API void RegisterThread(const ThreadID &id, IThread *thread)
+{
+    Threads::RegisterThread(id, thread);
+}
+
+HYP_API void UnregisterThread(const ThreadID &id)
+{
+    Threads::UnregisterThread(id);
+}
+
 HYP_API void SetCurrentThreadObject(IThread *thread)
 {
     Threads::SetCurrentThreadObject(thread);
