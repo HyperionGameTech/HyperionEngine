@@ -3,6 +3,8 @@
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 #include <rendering/RenderMesh.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <streaming/StreamedMeshData.hpp>
 
 #ifdef HYP_XATLAS

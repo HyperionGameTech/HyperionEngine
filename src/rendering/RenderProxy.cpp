@@ -4,6 +4,7 @@
 #include <rendering/RenderMaterial.hpp>
 
 #include <scene/Entity.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 

@@ -4,12 +4,15 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -562,7 +565,7 @@ void FullScreenPass::Record(uint32 frame_index)
         }
     );
 
-    m_full_screen_quad->Render(command_buffer);
+    m_full_screen_quad->GetRenderResource().Render(command_buffer);
 
     command_buffer->End(g_engine->GetGPUDevice());
 }
@@ -610,7 +613,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
                 }
             );
 
-            m_full_screen_quad->Render(cmd);
+            m_full_screen_quad->GetRenderResource().Render(cmd);
 
             HYPERION_RETURN_OK;
         });

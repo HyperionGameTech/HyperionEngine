@@ -60,6 +60,7 @@ public:
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) = 0;
 };
 
+/*! \brief Basic abstract implementation of IResource, using reference counting to manage the lifetime of the underlying resources. */
 class HYP_API ResourceBase : public IResource
 {
 protected:
@@ -106,17 +107,15 @@ public:
 #endif
 
 protected:
+    HYP_FORCE_INLINE bool IsInitialized() const
+        { return m_is_initialized; }
+
     virtual IThread *GetOwnerThread() const
         { return nullptr; }
 
     virtual bool CanExecuteInline() const;
-
     virtual void FlushScheduledTasks();
-
     virtual void EnqueueOp(Proc<void> &&proc);
-
-    HYP_FORCE_INLINE bool IsInitialized() const
-        { return m_init_semaphore.IsInSignalState(); }
 
     virtual void Initialize() = 0;
     virtual void Destroy() = 0;
@@ -124,16 +123,17 @@ protected:
 
     void SetNeedsUpdate();
 
-    bool                            m_is_initialized;
+private:
+    bool                        m_is_initialized;
 
-    AtomicVar<int16>                m_ref_count;
-    AtomicVar<int16>                m_update_counter;
+    AtomicVar<int16>            m_ref_count;
+    AtomicVar<int16>            m_update_counter;
 
-    InitSemaphore                   m_init_semaphore;
-    PreInitSemaphore                m_pre_init_semaphore;
-    CompletionSemaphore             m_completion_semaphore;
+    InitSemaphore               m_init_semaphore;
+    PreInitSemaphore            m_pre_init_semaphore;
+    CompletionSemaphore         m_completion_semaphore;
 
-    ResourceMemoryPoolHandle        m_pool_handle;
+    ResourceMemoryPoolHandle    m_pool_handle;
     
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

@@ -26,6 +26,7 @@
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Mesh.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -452,7 +453,7 @@ void DeferredPass::Record(uint32 frame_index)
                         material_descriptor_set->Bind(cmd, render_group->GetPipeline(), material_descriptor_set_index);
                     }
 
-                    m_full_screen_quad->Render(cmd);
+                    m_full_screen_quad->GetRenderResource().Render(cmd);
                 }
             }
 
@@ -633,7 +634,7 @@ void EnvGridPass::Render(Frame *frame)
             scene_descriptor_set_index
         );
 
-    m_full_screen_quad->Render(command_buffer);
+    m_full_screen_quad->GetRenderResource().Render(command_buffer);
 
     command_buffer->End(g_engine->GetGPUDevice());
 
@@ -899,7 +900,7 @@ void ReflectionProbePass::Render(Frame *frame)
                     scene_descriptor_set_index
                 );
 
-            m_full_screen_quad->Render(command_buffer);
+            m_full_screen_quad->GetRenderResource().Render(command_buffer);
 
             ++num_rendered_env_probes;
         }
@@ -1372,7 +1373,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             }
         );
 
-        m_combine_pass->GetQuadMesh()->Render(m_combine_pass->GetCommandBuffer(frame_index));
+        m_combine_pass->GetQuadMesh()->GetRenderResource().Render(m_combine_pass->GetCommandBuffer(frame_index));
         m_combine_pass->End(frame);
     }
 

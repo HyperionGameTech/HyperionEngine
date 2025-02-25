@@ -38,14 +38,6 @@ RenderResourceBase::~RenderResourceBase()
 {
 }
 
-IThread *RenderResourceBase::GetOwnerThread() const
-{
-    IThread *render_thread = Threads::GetThread(g_render_thread);
-    AssertThrow(render_thread != nullptr);
-
-    return render_thread;
-}
-
 void RenderResourceBase::Initialize()
 {
     AssertThrow(m_buffer_index == ~0u);
@@ -66,6 +58,13 @@ void RenderResourceBase::Destroy()
 void RenderResourceBase::Update()
 {
     Update_Internal();
+}
+
+IThread *RenderResourceBase::GetOwnerThread() const
+{
+    static IThread *const render_thread = Threads::GetThread(g_render_thread);
+
+    return render_thread;
 }
 
 bool RenderResourceBase::CanExecuteInline() const

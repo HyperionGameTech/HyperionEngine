@@ -58,7 +58,7 @@ void SceneRenderResource::SetBufferData(const SceneShaderData &buffer_data)
     {
         m_buffer_data = buffer_data;
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });

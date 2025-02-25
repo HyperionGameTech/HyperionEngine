@@ -9,14 +9,17 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProbe.hpp>
-#include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -159,7 +162,7 @@ struct RENDER_COMMAND(CreateParticleSystemBuffers) : renderer::RenderCommand
         ));
 
         IndirectDrawCommand empty_draw_command { };
-        quad_mesh->PopulateIndirectDrawCommand(empty_draw_command);
+        quad_mesh->GetRenderResource().PopulateIndirectDrawCommand(empty_draw_command);
 
         // copy zeros to buffer
         staging_buffer->Copy(
@@ -572,7 +575,7 @@ void ParticleSystem::Render(Frame *frame)
                         }
                     );
 
-                    m_quad_mesh->RenderIndirect(
+                    m_quad_mesh->GetRenderResource().RenderIndirect(
                         secondary,
                         particle_spawner->GetIndirectBuffer().Get()
                     );

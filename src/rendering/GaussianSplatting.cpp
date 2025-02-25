@@ -9,11 +9,14 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -23,10 +26,11 @@
 #include <core/math/Color.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
-#include <util/NoiseFactory.hpp>
-#include <util/MeshBuilder.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <util/NoiseFactory.hpp>
+#include <util/MeshBuilder.hpp>
 
 #include <Engine.hpp>
 
@@ -180,7 +184,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers) : renderer::Render
         ));
 
         IndirectDrawCommand empty_draw_command { };
-        quad_mesh->PopulateIndirectDrawCommand(empty_draw_command);
+        quad_mesh->GetRenderResource().PopulateIndirectDrawCommand(empty_draw_command);
 
         // copy zeros to buffer
         staging_buffer->Copy(
@@ -823,7 +827,7 @@ void GaussianSplatting::Render(Frame *frame)
                 }
             );
 
-            m_quad_mesh->RenderIndirect(
+            m_quad_mesh->GetRenderResource().RenderIndirect(
                 secondary,
                 m_gaussian_splatting_instance->GetIndirectBuffer().Get()
             );

@@ -2,10 +2,10 @@
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
 
-#include <rendering/RenderMesh.hpp>
-#include <rendering/RenderMaterial.hpp>
-
+#include <scene/Mesh.hpp>
 #include <scene/World.hpp>
+
+#include <rendering/RenderMaterial.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

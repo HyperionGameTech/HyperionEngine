@@ -11,7 +11,6 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

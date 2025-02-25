@@ -10,10 +10,13 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -86,10 +89,13 @@ void DebugDrawerRenderGroupProxy::DrawMesh(Frame *frame, Mesh *mesh)
 {
     HYP_SCOPE;
 
+    AssertThrow(mesh != nullptr);
+    AssertThrow(mesh->IsReady());
+
     CommandBuffer *command_buffer = GetCommandBuffer(frame);
     AssertThrow(command_buffer != nullptr);
 
-    mesh->Render(command_buffer);
+    mesh->GetRenderResource().Render(command_buffer);
 }
 
 void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
@@ -135,11 +141,11 @@ void DebugDrawer::Create()
     m_shapes[uint32(DebugDrawShape::BOX)] = MeshBuilder::Cube();
     m_shapes[uint32(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
 
-    for (auto &shape : m_shapes) {
-        InitObject(shape);
+    for (Handle<Mesh> &shape_mesh : m_shapes) {
+        InitObject(shape_mesh);
 
         // Allow Render() to be called on it
-        shape->SetPersistentRenderResourceEnabled(true);
+        shape_mesh->SetPersistentRenderResourceEnabled(true);
     }
 
     m_shader = g_shader_manager->GetOrCreate(

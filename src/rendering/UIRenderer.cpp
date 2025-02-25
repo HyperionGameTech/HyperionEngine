@@ -14,6 +14,8 @@
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/UIComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>

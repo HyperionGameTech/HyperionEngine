@@ -10,6 +10,7 @@
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -51,7 +52,6 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <rendering/RenderScene.hpp>
-#include <rendering/RenderMesh.hpp>
 #include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/subsystems/ScreenCapture.hpp>

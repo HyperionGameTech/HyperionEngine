@@ -9,8 +9,8 @@
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/RenderMesh.hpp>
 
+#include <scene/Mesh.hpp>
 #include <scene/BVH.hpp>
 
 #include <scene/ecs/EntityManager.hpp>

@@ -16,6 +16,8 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -277,7 +279,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
         m_draw_commands.Resize(m_num_draw_commands);
     }
 
-    draw_call.mesh->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
+    draw_call.mesh_render_resource->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
     
     m_dirty_bits |= 0x3;
 }

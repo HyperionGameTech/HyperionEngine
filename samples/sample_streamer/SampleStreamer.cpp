@@ -22,10 +22,12 @@
 #include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -362,7 +364,7 @@ void SampleStreamer::Init()
 
     // Used for RTC streaming or for editor view.
     // Has a performance impact due to copying the framebuffer.
-    auto streaming_capture_component = m_scene->GetRenderResources().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(HYP_NAME(StreamingCapture), Vec2u(window_size));
+    auto streaming_capture_component = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(HYP_NAME(StreamingCapture), Vec2u(window_size));
 
     if (false) {
         auto terrain_node = m_scene->GetRoot()->AddChild();
@@ -639,7 +641,7 @@ void SampleStreamer::Init()
 
             GetScene()->GetRoot()->AddChild(node);
 
-            m_scene->GetRenderResources().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+            m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
                 HYP_NAME(ReflectionProbe0),
                 node.GetWorldAABB()
             );
@@ -871,7 +873,7 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         auto gaussian_splatting_instance = CreateObject<GaussianSplattingInstance>(std::move(gaussian_splatting_model));
         InitObject(gaussian_splatting_instance);
 
-        m_scene->GetRenderResources().GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
+        m_scene->GetRenderResource().GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
     }
 }
 
@@ -1229,7 +1231,7 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
     }
 
     if (m_rtc_stream) {
-        const ScreenCaptureRenderSubsystem *screen_capture = m_scene->GetRenderResources().GetEnvironment()->GetRenderSubsystem<ScreenCaptureRenderSubsystem>(HYP_NAME(StreamingCapture));
+        const ScreenCaptureRenderSubsystem *screen_capture = m_scene->GetRenderResource().GetEnvironment()->GetRenderSubsystem<ScreenCaptureRenderSubsystem>(HYP_NAME(StreamingCapture));
 
         if (screen_capture) {
             const GPUBufferRef &gpu_buffer_ref = screen_capture->GetBuffer();

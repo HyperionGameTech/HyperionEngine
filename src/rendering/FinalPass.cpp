@@ -9,6 +9,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <system/AppContext.hpp>
@@ -351,7 +353,7 @@ void FinalPass::Render(Frame *frame)
     );
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(frame->GetCommandBuffer());
+    m_full_screen_quad->GetRenderResource().Render(frame->GetCommandBuffer());
 
 #ifdef HYP_RENDER_UI_IN_COMPOSITE_PASS
     // Render UI onto screen, blending with the scene render pass
@@ -380,7 +382,7 @@ void FinalPass::Render(Frame *frame)
             }
         );
 
-        m_full_screen_quad->Render(frame->GetCommandBuffer());
+        m_full_screen_quad->GetRenderResource().Render(frame->GetCommandBuffer());
     }
 #endif
 

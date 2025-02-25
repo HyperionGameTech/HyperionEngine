@@ -4,11 +4,14 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -236,7 +239,7 @@ void HBAO::Render(Frame *frame)
             }
         );
         
-        GetQuadMesh()->Render(GetCommandBuffer(frame_index));
+        GetQuadMesh()->GetRenderResource().Render(GetCommandBuffer(frame_index));
         End(frame);
     }
 }

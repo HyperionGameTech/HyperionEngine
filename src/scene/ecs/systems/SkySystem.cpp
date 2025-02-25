@@ -3,10 +3,11 @@
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 

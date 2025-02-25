@@ -21,7 +21,7 @@ namespace hyperion {
 
 class GPUBufferHolderBase;
 
-// Represents the objects an engine object (e.g Material) uses while it is currently being rendered.
+// Represents the objects an engine object (e.g Material) uses while it is currently being used by the renderer in some way.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
 class RenderResourceBase : public ResourceBase

@@ -7,11 +7,12 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+
 #include <scene/Scene.hpp>
+#include <scene/Mesh.hpp>
 
 #include <core/math/Vertex.hpp>
 
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderTexture.hpp>
 

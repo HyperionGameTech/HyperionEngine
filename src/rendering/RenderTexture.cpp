@@ -2,6 +2,7 @@
 
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderGroup.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/FullScreenPass.hpp>
 
@@ -10,6 +11,8 @@
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <scene/Mesh.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -207,7 +210,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
                         { }
                     );
                     
-                    pass->GetQuadMesh()->Render(pass->GetCommandBuffer(temp_frame.GetFrameIndex()));
+                    pass->GetQuadMesh()->GetRenderResource().Render(pass->GetCommandBuffer(temp_frame.GetFrameIndex()));
                     pass->End(&temp_frame);
                 }
 

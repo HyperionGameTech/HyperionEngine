@@ -6,10 +6,10 @@
 #include <scene/animation/Skeleton.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Mesh.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderSkeleton.hpp>
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>

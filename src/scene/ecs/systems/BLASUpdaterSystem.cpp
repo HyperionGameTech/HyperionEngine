@@ -4,6 +4,7 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Mesh.hpp>
 
 #include <rendering/RenderMesh.hpp>
 
@@ -106,12 +107,14 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     }
 
     blas_component.transform_hash_code = transform_component.transform.GetHashCode();
-
     blas_component.blas = MakeRenderObject<BLAS>(transform_component.transform.GetMatrix());
 
+    InitObject(mesh_component.mesh);
+    AssertThrow(mesh_component.mesh->IsReady());
+
     AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
-        mesh_component.mesh->BuildPackedVertices(),
-        mesh_component.mesh->BuildPackedIndices(),
+        mesh_component.mesh->GetRenderResource().BuildPackedVertices(),
+        mesh_component.mesh->GetRenderResource().BuildPackedIndices(),
         entity,
         mesh_component.material
     );

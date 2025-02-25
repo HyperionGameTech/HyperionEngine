@@ -3,7 +3,7 @@
 #include <scene/ecs/systems/BVHUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
-#include <rendering/RenderMesh.hpp>
+#include <scene/Mesh.hpp>
 
 #include <core/containers/HashSet.hpp>
 

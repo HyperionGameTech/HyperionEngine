@@ -118,7 +118,7 @@ void LightRenderResource::SetMaterial(const Handle<Material> &material)
             m_material_render_resources_handle = TResourceHandle<MaterialRenderResource>();
         }
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             SetNeedsUpdate();
         }
     });
@@ -132,7 +132,7 @@ void LightRenderResource::SetBufferData(const LightShaderData &buffer_data)
     {
         m_buffer_data = buffer_data;
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });

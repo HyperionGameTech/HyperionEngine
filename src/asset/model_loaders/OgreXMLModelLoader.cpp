@@ -3,6 +3,7 @@
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -13,7 +14,6 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 
 #include <core/logging/Logger.hpp>

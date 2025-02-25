@@ -27,8 +27,10 @@ struct RenderProxy;
 struct DrawCommandData;
 class IndirectDrawState;
 class GPUBufferHolderBase;
-
 struct MeshInstanceData;
+class MeshRenderResource;
+class MaterialRenderResource;
+class SkeletonRenderResource;
 
 extern HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap();
 
@@ -58,17 +60,17 @@ struct DrawCallID
 
     uint64  value;
 
-    DrawCallID()
+    constexpr DrawCallID()
         : value(0)
     {
     }
 
-    DrawCallID(ID<Mesh> mesh_id)
+    constexpr DrawCallID(ID<Mesh> mesh_id)
         : value(mesh_id.Value())
     {
     }
 
-    DrawCallID(ID<Mesh> mesh_id, ID<Material> material_id)
+    constexpr DrawCallID(ID<Mesh> mesh_id, ID<Material> material_id)
         : value(uint64(mesh_id.Value()) | (uint64(material_id.Value()) << 32))
     {
     }
@@ -91,16 +93,16 @@ struct DrawCallID
 
 struct DrawCall
 {
-    DrawCallID          id;
-    EntityInstanceBatch *batch = nullptr;
-    uint32              draw_command_index = 0;
+    DrawCallID              id;
+    EntityInstanceBatch     *batch = nullptr;
+    uint32                  draw_command_index = 0;
 
-    Mesh                *mesh = nullptr;
-    Material            *material = nullptr;
-    Skeleton            *skeleton = nullptr;
+    MeshRenderResource      *mesh_render_resource = nullptr;
+    MaterialRenderResource  *material_render_resource = nullptr;
+    SkeletonRenderResource  *skeleton_render_resource = nullptr;
 
-    uint32              entity_id_count = 0;
-    ID<Entity>          entity_ids[max_entities_per_instance_batch];
+    uint32                  entity_id_count = 0;
+    ID<Entity>              entity_ids[max_entities_per_instance_batch];
 };
 
 class IDrawCallCollectionImpl

@@ -178,7 +178,7 @@ void ResourceBase::SetNeedsUpdate()
 
     // If not yet initialized, increment the counter and return immediately
     // Otherwise, we need to push a command to the owner thread to update the resources
-    if (!IsInitialized()) {
+    if (!m_init_semaphore.IsInSignalState()) {
         m_pre_init_semaphore.Produce(1);
 
         HYP_DEFER({
@@ -186,7 +186,7 @@ void ResourceBase::SetNeedsUpdate()
         });
 
         // Check again, as it might have been initialized in between the initial check and the increment
-        if (!IsInitialized()) {
+        if (!m_init_semaphore.IsInSignalState()) {
             m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
             m_completion_semaphore.Release(1);
@@ -196,7 +196,6 @@ void ResourceBase::SetNeedsUpdate()
     }
 
     m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
-
 
     if (!CanExecuteInline()) {
         EnqueueOp(std::move(Impl));
@@ -244,7 +243,7 @@ void ResourceBase::Execute(Proc<void> &&proc, bool force_owner_thread)
     m_completion_semaphore.Produce(1);
 
     if (!force_owner_thread) {
-        if (!IsInitialized()) {
+        if (!m_init_semaphore.IsInSignalState()) {
             // Initialization (happens on owner thread) will wait for this value to hit zero
             m_pre_init_semaphore.Produce(1);
 
@@ -253,7 +252,7 @@ void ResourceBase::Execute(Proc<void> &&proc, bool force_owner_thread)
             });
 
             // Check again, as it might have been initialized in between the initial check and the increment
-            if (!IsInitialized()) {
+            if (!m_init_semaphore.IsInSignalState()) {
                 HYP_NAMED_SCOPE("Executing Resource Command - Inline");
 
                 { // Critical section
@@ -310,7 +309,10 @@ void ResourceBase::FlushScheduledTasks()
 
 void ResourceBase::EnqueueOp(Proc<void> &&proc)
 {
-    GetOwnerThread()->GetScheduler().Enqueue(std::move(proc), TaskEnqueueFlags::FIRE_AND_FORGET);
+    GetOwnerThread()->GetScheduler().Enqueue(
+        std::move(proc),
+        TaskEnqueueFlags::FIRE_AND_FORGET
+    );
 }
 
 #pragma endregion ResourceBase

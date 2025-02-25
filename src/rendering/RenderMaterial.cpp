@@ -189,7 +189,7 @@ void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Ha
     {
         m_textures.Set(texture_key, texture);
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });
@@ -203,7 +203,7 @@ void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Text
     {
         m_textures = std::move(textures);
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });
@@ -217,7 +217,7 @@ void MaterialRenderResource::SetBoundTextureIDs(const Array<ID<Texture>> &bound_
     {
         m_bound_texture_ids = bound_texture_ids;
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });
@@ -231,7 +231,7 @@ void MaterialRenderResource::SetBufferData(const MaterialShaderData &buffer_data
     {
         m_buffer_data = buffer_data;
 
-        if (m_is_initialized) {
+        if (IsInitialized()) {
             UpdateBufferData();
         }
     });

@@ -3,6 +3,7 @@
 #include <asset/model_loaders/FBXModelLoader.hpp>
 
 #include <scene/Entity.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -14,7 +15,6 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 
 #include <core/functional/Proc.hpp>

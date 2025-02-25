@@ -26,6 +26,7 @@
 #include <rendering/backend/RenderConfig.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/camera/Camera.hpp>
 
