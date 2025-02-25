@@ -4,10 +4,10 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 

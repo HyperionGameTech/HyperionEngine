@@ -7,6 +7,9 @@
 
 #include <rendering/RenderMaterial.hpp>
 
+// @TODO: Refactor to not need this include
+#include <scene/Material.hpp>
+
 #include <core/utilities/Range.hpp>
 #include <core/math/MathUtil.hpp>
 

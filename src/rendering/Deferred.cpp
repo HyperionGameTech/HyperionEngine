@@ -10,6 +10,7 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
@@ -27,6 +28,7 @@
 
 #include <scene/World.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

@@ -10,10 +10,10 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <core/math/Vertex.hpp>
 
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderTexture.hpp>
 
 #include <asset/Assets.hpp>

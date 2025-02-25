@@ -20,8 +20,7 @@
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
-
-#include <rendering/RenderMaterial.hpp>
+#include <scene/Material.hpp>
 
 #include <core/math/Color.hpp>
 #include <core/math/BlendVar.hpp>

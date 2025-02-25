@@ -14,6 +14,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderMaterial.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderState.hpp>

@@ -4,6 +4,7 @@
 #define HYPERION_LIGHT_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/containers/Bitset.hpp>
 
@@ -11,12 +12,12 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderResource.hpp>
-
+#include <core/math/Color.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
+
+#include <rendering/RenderResource.hpp>
 
 #include <Types.hpp>
 
@@ -24,6 +25,8 @@ namespace hyperion {
 
 class Engine;
 class Camera;
+class Material;
+class MaterialRenderResource;
 
 enum class LightType : uint32
 {
@@ -107,11 +110,11 @@ protected:
 private:
     void UpdateBufferData();
 
-    Light                                       *m_light;
-    Bitset                                      m_visibility_bits;
-    Handle<Material>                            m_material;
-    TResourceHandle<MaterialRenderResource>    m_material_render_resources_handle;
-    LightShaderData                             m_buffer_data;
+    Light                                   *m_light;
+    Bitset                                  m_visibility_bits;
+    Handle<Material>                        m_material;
+    TResourceHandle<MaterialRenderResource> m_material_render_resources_handle;
+    LightShaderData                         m_buffer_data;
 };
 
 HYP_CLASS()

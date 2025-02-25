@@ -4,9 +4,10 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderMaterial.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
+
 #include <scene/animation/Skeleton.hpp>
 
 #include <core/logging/Logger.hpp>

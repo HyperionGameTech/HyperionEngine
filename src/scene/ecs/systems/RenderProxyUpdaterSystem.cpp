@@ -7,6 +7,7 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderSkeleton.hpp>

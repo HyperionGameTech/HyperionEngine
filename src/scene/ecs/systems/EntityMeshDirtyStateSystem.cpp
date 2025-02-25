@@ -5,11 +5,10 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 #include <scene/BVH.hpp>
 
 #include <core/containers/HashSet.hpp>
-
-#include <rendering/RenderMaterial.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 

@@ -6,6 +6,7 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderSkeleton.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -19,6 +20,7 @@
 
 #include <scene/Entity.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 

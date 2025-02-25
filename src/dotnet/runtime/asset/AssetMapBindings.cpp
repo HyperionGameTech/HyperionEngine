@@ -3,9 +3,12 @@
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
 #include <rendering/RenderTexture.hpp>
-#include <rendering/RenderMaterial.hpp>
+
 #include <scene/Node.hpp>
+#include <scene/Material.hpp>
+
 #include <scene/animation/Skeleton.hpp>
+
 #include <audio/AudioSource.hpp>
 
 #include <core/containers/TypeMap.hpp>

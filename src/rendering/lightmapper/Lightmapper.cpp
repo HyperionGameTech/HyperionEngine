@@ -6,12 +6,13 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/EnvGrid.hpp>
 
-#include <scene/Mesh.hpp>
 #include <scene/BVH.hpp>
+#include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

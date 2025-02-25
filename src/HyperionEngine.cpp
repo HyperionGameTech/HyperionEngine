@@ -6,14 +6,16 @@
 
 #include <dotnet/DotNetSystem.hpp>
 
+#include <scene/Material.hpp>
+
 #include <scene/ecs/ComponentInterface.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
 #include <core/threading/Threads.hpp>
+
 #include <system/MessageBox.hpp>
 
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderMaterial.hpp>
 
 #include <Game.hpp>
 

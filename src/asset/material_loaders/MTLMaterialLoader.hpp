@@ -4,11 +4,8 @@
 #define HYPERION_MTL_MATERIAL_LOADER_HPP
 
 #include <asset/Assets.hpp>
-#include <rendering/RenderMaterial.hpp>
 
-#include <vector>
-#include <string>
-#include <unordered_map>
+#include <scene/Material.hpp>
 
 namespace hyperion {
 

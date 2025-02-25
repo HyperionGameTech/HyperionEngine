@@ -4,8 +4,6 @@
 #include <rendering/backend/RenderConfig.hpp>
 
 #include <rendering/Buffers.hpp>
-#include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderScene.hpp>
 
 namespace hyperion {
 namespace renderer {

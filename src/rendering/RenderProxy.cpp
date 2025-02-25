@@ -1,10 +1,12 @@
-#include <rendering/RenderProxy.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderSkeleton.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderSkeleton.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 

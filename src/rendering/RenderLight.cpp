@@ -1,11 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderState.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
+
+#include <scene/Material.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

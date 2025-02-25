@@ -1,17 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/containers/Array.hpp>
-
-#include <core/utilities/UniqueID.hpp>
-
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
-
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
-#include <core/Util.hpp>
-
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -27,12 +15,25 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 
 #include <scene/camera/Camera.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/containers/Array.hpp>
+
+#include <core/utilities/UniqueID.hpp>
+
+#include <core/threading/Threads.hpp>
+#include <core/threading/TaskSystem.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
+#include <core/Util.hpp>
 
 #include <Engine.hpp>
 
