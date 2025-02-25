@@ -25,6 +25,11 @@ class IResourceMemoryPool;
 template <class T>
 class ResourceMemoryPool;
 
+template <class T>
+struct ResourceMemoryPoolInitInfo : MemoryPoolInitInfo
+{
+};
+
 struct ResourceMemoryPoolHandle
 {
     uint32  index = ~0u;
@@ -64,12 +69,12 @@ public:
 extern HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool>(*create_fn)(void));
 
 template <class T>
-class ResourceMemoryPool final : private MemoryPool<ValueStorage<T>>, public IResourceMemoryPool
+class ResourceMemoryPool final : private MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>, public IResourceMemoryPool
 {
 public:
     static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
 
-    using Base = MemoryPool<ValueStorage<T>>;
+    using Base = MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>;
 
     static ResourceMemoryPool<T> *GetInstance()
     {

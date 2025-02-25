@@ -269,7 +269,7 @@ static inline void ObjectContainer_OnBlockAllocated(void *ctx, HypObjectMemory<T
 template <class T>
 class ObjectContainer final : public IObjectContainer
 {
-    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, 2048, ObjectContainer_OnBlockAllocated<T>>;
+    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, MemoryPoolInitInfo, ObjectContainer_OnBlockAllocated<T>>;
 
     using HypObjectMemory = HypObjectMemory<T>;
 

@@ -110,6 +110,13 @@ private:
     RenderCollectorContainer                        m_render_collector_container;
 };
 
+template <>
+struct ResourceMemoryPoolInitInfo<WorldRenderResources> : MemoryPoolInitInfo
+{
+    static constexpr uint32 num_elements_per_block = 16;
+    static constexpr uint32 num_initial_elements = 16;
+};
+
 } // namespace hyperion
 
 #endif

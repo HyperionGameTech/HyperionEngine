@@ -19,11 +19,19 @@
 namespace hyperion {
 namespace memory {
 
-template <class ElementType, uint32 NumElementsPerBlock = 2048, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
+struct MemoryPoolInitInfo
+{
+    static constexpr uint32 num_elements_per_block = 2048;
+    static constexpr uint32 num_initial_elements = 16 * num_elements_per_block;
+};
+
+template <class ElementType, class TInitInfo = MemoryPoolInitInfo, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
 public:
-    static constexpr uint32 num_elements_per_block = NumElementsPerBlock;
+    using InitInfo = TInitInfo;
+
+    static constexpr uint32 num_elements_per_block = InitInfo::num_elements_per_block;
 
 protected:
     struct Block
@@ -70,7 +78,7 @@ protected:
 public:
     static constexpr uint32 s_invalid_index = ~0u;
 
-    MemoryPool(uint32 initial_count = 16 * num_elements_per_block, bool create_initial_blocks = true, void *block_init_ctx = nullptr)
+    MemoryPool(uint32 initial_count = InitInfo::num_initial_elements, bool create_initial_blocks = true, void *block_init_ctx = nullptr)
         : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
           m_num_blocks(0),
           m_block_init_ctx(block_init_ctx)
@@ -258,6 +266,7 @@ protected:
 } // namespace memory
 
 using memory::MemoryPool;
+using memory::MemoryPoolInitInfo;
 
 } // namespace hyperion
 

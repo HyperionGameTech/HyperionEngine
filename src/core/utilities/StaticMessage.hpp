@@ -44,9 +44,11 @@ struct StaticMessage
 };
 
 template <auto Value>
-constexpr StaticMessage MakeStaticMessage()
+inline const StaticMessage &MakeStaticMessage()
 {
-    return StaticMessage(ValueWrapper<Value>());
+    static const StaticMessage value { ValueWrapper<Value>() };
+
+    return value;
 }
 
 #define HYP_STATIC_MESSAGE(str) MakeStaticMessage<HYP_STATIC_STRING(str)>()

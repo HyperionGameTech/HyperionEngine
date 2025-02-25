@@ -274,7 +274,7 @@ class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
 public:
     using Base = MemoryPool<StructType>;
 
-    GPUBufferHolderMemoryPool(uint32 initial_count = 16 * Base::num_elements_per_block)
+    GPUBufferHolderMemoryPool(uint32 initial_count = Base::InitInfo::num_initial_elements)
         : Base(initial_count, /* create_initial_blocks */ true, /* block_init_ctx */ nullptr)
     {
     }

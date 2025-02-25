@@ -289,10 +289,10 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
     Array<Vertex> vertices;
     vertices.Resize(m_height_data.patch_info.extent.x * m_height_data.patch_info.extent.z);
 
-    uint32 i = 0;
+    int i = 0;
 
-    for (uint32 z = 0; z < m_height_data.patch_info.extent.z; z++) {
-        for (uint32 x = 0; x < m_height_data.patch_info.extent.x; x++) {
+    for (int z = 0; z < m_height_data.patch_info.extent.z; z++) {
+        for (int x = 0; x < m_height_data.patch_info.extent.x; x++) {
             const Vec3f position = Vec3f { float(x), m_height_data.heights[i].height, float(z) } * m_height_data.patch_info.scale;
 
             const Vec2f texcoord(
@@ -310,9 +310,9 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 Array<uint32> TerrainMeshBuilder::BuildIndices() const
 {
     Array<uint32> indices;
-    indices.Resize(6 * (m_height_data.patch_info.extent.x - 1) * (m_height_data.patch_info.extent.z - 1));
+    indices.Resize(SizeType(6 * (m_height_data.patch_info.extent.x - 1) * (m_height_data.patch_info.extent.z - 1)));
 
-    uint32 pitch = m_height_data.patch_info.extent.x;
+    uint32 pitch = uint32(m_height_data.patch_info.extent.x);
     uint32 row = 0;
 
     uint32 i0 = row;

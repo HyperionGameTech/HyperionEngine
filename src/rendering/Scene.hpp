@@ -70,6 +70,13 @@ private:
     Handle<RenderEnvironment>   m_environment;
 };
 
+template <>
+struct ResourceMemoryPoolInitInfo<SceneRenderResources> : MemoryPoolInitInfo
+{
+    static constexpr uint32 num_elements_per_block = 16;
+    static constexpr uint32 num_initial_elements = 16;
+};
+
 } // namespace hyperion
 
 #endif

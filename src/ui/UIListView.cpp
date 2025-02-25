@@ -344,7 +344,8 @@ UIListViewItem *UIListView::FindListViewItem(const UIObject *parent_object, cons
     parent_object->ForEachChildUIObject_Proc([&data_source_element_uuid, &result_ptr](UIObject *object)
     {
         if (object->IsInstanceOf<UIListViewItem>() && object->GetDataSourceElementUUID() == data_source_element_uuid) {
-            result_ptr = static_cast<UIListViewItem *>(object);
+            result_ptr = dynamic_cast<UIListViewItem *>(object);
+            AssertThrow(result_ptr != nullptr);
 
             return IterationResult::STOP;
         }
