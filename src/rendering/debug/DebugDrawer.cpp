@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/debug/DebugDrawer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>

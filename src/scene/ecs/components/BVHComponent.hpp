@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_BVH_COMPONENT_HPP
 #define HYPERION_ECS_BVH_COMPONENT_HPP
 
-#include <rendering/BVH.hpp>
+#include <scene/BVH.hpp>
 
 #include <HashCode.hpp>
 

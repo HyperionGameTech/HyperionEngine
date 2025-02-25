@@ -5,7 +5,7 @@
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <core/utilities/Range.hpp>
 #include <core/math/MathUtil.hpp>

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/Skeleton.hpp>
+#include <rendering/RenderSkeleton.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/ShaderGlobals.hpp>
 

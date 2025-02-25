@@ -4,7 +4,7 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Animation.hpp>
 
-#include <rendering/Skeleton.hpp>
+#include <rendering/RenderSkeleton.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/backend/RendererResult.hpp>
 

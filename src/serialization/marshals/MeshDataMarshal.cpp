@@ -4,7 +4,7 @@
 
 #include <core/object/HypData.hpp>
 
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderMesh.hpp>
 
 namespace hyperion::fbom {
 

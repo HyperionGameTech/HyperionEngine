@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderState.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderProbe.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 

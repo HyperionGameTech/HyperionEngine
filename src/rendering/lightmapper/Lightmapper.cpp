@@ -4,13 +4,14 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/Mesh.hpp>
-#include <rendering/BVH.hpp>
+#include <rendering/RenderMesh.hpp>
+
+#include <scene/BVH.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
@@ -25,8 +26,9 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <system/AppContext.hpp>
 #include <core/utilities/Time.hpp>
+
+#include <system/AppContext.hpp>
 
 #include <Engine.hpp>
 

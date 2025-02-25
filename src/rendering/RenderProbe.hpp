@@ -10,7 +10,7 @@
 
 #include <core/math/BoundingBox.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>

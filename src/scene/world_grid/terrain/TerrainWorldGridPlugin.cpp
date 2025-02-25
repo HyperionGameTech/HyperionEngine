@@ -11,9 +11,9 @@
 
 #include <core/math/Vertex.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <asset/Assets.hpp>
 

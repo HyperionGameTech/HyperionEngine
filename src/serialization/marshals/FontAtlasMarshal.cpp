@@ -13,7 +13,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 
 namespace hyperion::fbom {
 

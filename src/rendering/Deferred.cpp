@@ -6,10 +6,10 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/EnvProbe.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/World.hpp>
+#include <rendering/RenderProbe.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>

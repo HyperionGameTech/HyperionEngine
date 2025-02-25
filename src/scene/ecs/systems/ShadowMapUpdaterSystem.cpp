@@ -8,7 +8,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <core/math/MathUtil.hpp>
 

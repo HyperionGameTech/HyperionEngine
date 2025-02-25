@@ -5,7 +5,7 @@
 
 #include <ui/UIObject.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 
 namespace hyperion {
 

@@ -10,7 +10,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/Light.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Shadows.hpp>

@@ -14,8 +14,8 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <core/functional/Proc.hpp>
 

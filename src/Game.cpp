@@ -16,7 +16,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <rendering/Camera.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
 
 #include <dotnet/DotNetSystem.hpp>

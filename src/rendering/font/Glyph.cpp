@@ -4,7 +4,7 @@
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <core/logging/Logger.hpp>
 

@@ -21,7 +21,7 @@
 #include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <core/math/Color.hpp>
 #include <core/math/BlendVar.hpp>

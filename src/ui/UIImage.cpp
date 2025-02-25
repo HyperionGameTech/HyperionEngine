@@ -2,7 +2,7 @@
 
 #include <ui/UIImage.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <Engine.hpp>

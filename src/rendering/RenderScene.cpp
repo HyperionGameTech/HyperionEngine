@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/Scene.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderEnvironment.hpp>
 

@@ -7,7 +7,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <core/math/MathUtil.hpp>
 

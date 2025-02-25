@@ -11,7 +11,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 #include <rendering/backend/RendererShader.hpp>
 
 #include <HyperionEngine.hpp>

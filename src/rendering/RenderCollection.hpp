@@ -14,7 +14,6 @@
 
 #include <core/math/Transform.hpp>
 
-#include <rendering/DrawProxy.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>

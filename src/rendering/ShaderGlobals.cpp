@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/Skeleton.hpp>
-#include <rendering/Light.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderSkeleton.hpp>
+#include <rendering/RenderLight.hpp>
+#include <rendering/RenderProbe.hpp>
 #include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

@@ -2,8 +2,8 @@
 
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>

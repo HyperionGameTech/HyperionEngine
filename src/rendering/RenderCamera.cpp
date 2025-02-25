@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/Camera.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderState.hpp>
 

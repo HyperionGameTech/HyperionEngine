@@ -2,8 +2,8 @@
 
 #include <asset/model_loaders/OBJModelLoader.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <scene/World.hpp>
 

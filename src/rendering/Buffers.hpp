@@ -13,7 +13,6 @@
 
 #include <core/Defines.hpp>
 
-#include <rendering/DrawProxy.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>

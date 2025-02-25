@@ -4,7 +4,7 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>

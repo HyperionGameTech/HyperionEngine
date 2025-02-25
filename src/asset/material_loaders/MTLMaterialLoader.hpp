@@ -4,7 +4,7 @@
 #define HYPERION_MTL_MATERIAL_LOADER_HPP
 
 #include <asset/Assets.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <vector>
 #include <string>

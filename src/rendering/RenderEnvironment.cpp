@@ -4,7 +4,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 

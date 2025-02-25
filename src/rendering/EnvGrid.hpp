@@ -15,7 +15,7 @@
 
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderSubsystem.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 

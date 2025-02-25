@@ -13,7 +13,7 @@
 #include <util/img/Bitmap.hpp>
 
 #include <rendering/Shader.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

@@ -5,7 +5,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>

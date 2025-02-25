@@ -2,8 +2,8 @@
 
 #include <asset/model_loaders/PLYModelLoader.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 

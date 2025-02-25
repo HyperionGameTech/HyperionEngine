@@ -2,8 +2,8 @@
 
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>

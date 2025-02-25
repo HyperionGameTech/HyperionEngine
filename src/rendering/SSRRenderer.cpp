@@ -3,8 +3,8 @@
 #include <core/threading/Threads.hpp>
 
 #include <rendering/SSRRenderer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 

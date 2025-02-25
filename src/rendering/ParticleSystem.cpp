@@ -7,10 +7,10 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 

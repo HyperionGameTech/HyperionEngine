@@ -6,7 +6,7 @@
 #include <core/Handle.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <rendering/Light.hpp>
+#include <rendering/RenderLight.hpp>
 
 #include <HashCode.hpp>
 

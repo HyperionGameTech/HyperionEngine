@@ -11,7 +11,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderResource.hpp>
 
 #include <core/math/Vector3.hpp>

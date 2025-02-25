@@ -3,9 +3,9 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/Skeleton.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderSkeleton.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>

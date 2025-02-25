@@ -50,13 +50,13 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <rendering/Scene.hpp>
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/UIRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/subsystems/ScreenCapture.hpp>
 
-#include <rendering/Camera.hpp>
+#include <rendering/RenderCamera.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 

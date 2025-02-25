@@ -13,10 +13,10 @@
 
 #include <core/Defines.hpp>
 
-#include <rendering/Light.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderResource.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -92,14 +92,14 @@ class RenderState : public HypObject<RenderState>
     HYP_OBJECT_BODY(RenderState);
 
 public:
-    Array<SceneRenderResource *>                                                           scene_bindings;
-    Array<CameraRenderResource *>                                                          camera_bindings;
-    FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)>        bound_lights;
-    Stack<TResourceHandle<LightRenderResource>>                                            light_bindings;
-    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>                bound_env_probes; // map to texture slot
-    ID<EnvGrid>                                                                             bound_env_grid;
-    Stack<ID<EnvProbe>>                                                                     env_probe_bindings;
-    uint32                                                                                  frame_counter = ~0u;
+    Array<SceneRenderResource *>                                                    scene_bindings;
+    Array<CameraRenderResource *>                                                   camera_bindings;
+    FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
+    Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
+    FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>        bound_env_probes; // map to texture slot
+    ID<EnvGrid>                                                                     bound_env_grid;
+    Stack<ID<EnvProbe>>                                                             env_probe_bindings;
+    uint32                                                                          frame_counter = ~0u;
 
     HYP_API RenderState();
     RenderState(const RenderState &)                = delete;

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/World.hpp>
-#include <rendering/Camera.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderWorld.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

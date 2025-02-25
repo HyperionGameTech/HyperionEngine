@@ -1,7 +1,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/Skeleton.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderSkeleton.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <scene/Entity.hpp>
 

@@ -5,9 +5,9 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/Material.hpp>
-#include <rendering/Mesh.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
 #include <util/MeshBuilder.hpp>

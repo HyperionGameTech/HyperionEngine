@@ -13,7 +13,7 @@
 #include <system/MessageBox.hpp>
 
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <Game.hpp>
 

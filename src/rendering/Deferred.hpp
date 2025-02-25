@@ -6,7 +6,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/SSRRenderer.hpp>
@@ -14,7 +14,7 @@
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
-#include <rendering/Light.hpp>
+#include <rendering/RenderLight.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

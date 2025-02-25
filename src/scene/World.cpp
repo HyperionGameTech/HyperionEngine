@@ -23,8 +23,8 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/World.hpp>
-#include <rendering/Scene.hpp>
+#include <rendering/RenderWorld.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

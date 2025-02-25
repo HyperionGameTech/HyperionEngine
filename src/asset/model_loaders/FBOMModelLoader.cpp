@@ -5,8 +5,8 @@
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 
-#include <rendering/Mesh.hpp>
-#include <rendering/Material.hpp>
+#include <rendering/RenderMesh.hpp>
+#include <rendering/RenderMaterial.hpp>
 
 #include <core/object/HypData.hpp>
 

@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/font/FontAtlas.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>

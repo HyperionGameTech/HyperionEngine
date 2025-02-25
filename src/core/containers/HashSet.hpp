@@ -18,7 +18,7 @@ struct HashSetElement
 {
     HashSetElement      *next = nullptr;
     HashCode::ValueType hash_code;
-    Value           value;
+    Value               value;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { return hash_code; }

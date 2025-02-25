@@ -2,13 +2,13 @@
 
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/Scene.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
 

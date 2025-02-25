@@ -4,7 +4,7 @@
 #include <ui/UIStage.hpp>
 
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderConfig.hpp>

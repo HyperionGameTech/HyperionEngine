@@ -9,7 +9,7 @@
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderSubsystem.hpp>
-#include <rendering/EnvProbe.hpp>
+#include <rendering/RenderProbe.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

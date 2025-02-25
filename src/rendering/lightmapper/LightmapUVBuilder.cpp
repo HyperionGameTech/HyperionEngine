@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
-#include <rendering/Mesh.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <streaming/StreamedMeshData.hpp>
 

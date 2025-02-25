@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/Mesh.hpp>
-#include <rendering/BVH.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -13,6 +12,8 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <scene/BVH.hpp>
 
 #include <Engine.hpp>
 

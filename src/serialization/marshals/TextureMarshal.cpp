@@ -5,7 +5,7 @@
 
 #include <core/object/HypData.hpp>
 
-#include <rendering/Texture.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/backend/RendererImage.hpp>
 
 namespace hyperion::fbom {

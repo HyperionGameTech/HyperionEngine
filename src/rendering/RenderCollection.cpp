@@ -18,7 +18,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/Camera.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
