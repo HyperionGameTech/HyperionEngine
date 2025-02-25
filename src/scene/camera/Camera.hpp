@@ -32,7 +32,7 @@
 namespace hyperion {
 
 class Engine;
-class CameraRenderResources;
+class CameraRenderResource;
 
 HYP_ENUM()
 enum class CameraProjectionMode : uint32
@@ -235,8 +235,8 @@ public:
     HYP_FORCE_INLINE void SetMatchWindowSizeRatio(float match_window_size_ratio)
         { m_match_window_size_ratio = match_window_size_ratio; }
 
-    HYP_FORCE_INLINE CameraRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE CameraRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
@@ -524,7 +524,7 @@ private:
     Matrix4                     m_view_proj_mat;
     Matrix4                     m_previous_view_matrix;
 
-    CameraRenderResources       *m_render_resources;
+    CameraRenderResource        *m_render_resource;
 
     InputMouseLockScope         m_mouse_lock_scope;
 };

@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_RENDER_RESOURCES_HPP
-#define HYPERION_RENDER_RESOURCES_HPP
+#ifndef HYPERION_RENDER_RESOURCE_HPP
+#define HYPERION_RENDER_RESOURCE_HPP
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
@@ -24,18 +24,18 @@ class GPUBufferHolderBase;
 // Represents the objects an engine object (e.g Material) uses while it is currently being rendered.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
-class RenderResourcesBase : public ResourceBase
+class RenderResourceBase : public ResourceBase
 {
 public:
-    RenderResourcesBase();
+    RenderResourceBase();
 
-    RenderResourcesBase(const RenderResourcesBase &other)                   = delete;
-    RenderResourcesBase &operator=(const RenderResourcesBase &other)        = delete;
+    RenderResourceBase(const RenderResourceBase &other)                 = delete;
+    RenderResourceBase &operator=(const RenderResourceBase &other)      = delete;
 
-    RenderResourcesBase(RenderResourcesBase &&other) noexcept;
-    RenderResourcesBase &operator=(RenderResourcesBase &&other) noexcept    = delete;
+    RenderResourceBase(RenderResourceBase &&other) noexcept;
+    RenderResourceBase &operator=(RenderResourceBase &&other) noexcept  = delete;
 
-    virtual ~RenderResourcesBase() override;
+    virtual ~RenderResourceBase() override;
 
     /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
     HYP_FORCE_INLINE uint32 GetBufferIndex() const

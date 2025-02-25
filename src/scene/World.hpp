@@ -16,7 +16,7 @@
 
 namespace hyperion {
 
-class WorldRenderResources;
+class WorldRenderResource;
 class EditorDelegates;
 
 struct DetachedScenesContainer
@@ -77,8 +77,8 @@ public:
     World &operator=(World &&other) noexcept    = delete;
     ~World();
 
-    HYP_FORCE_INLINE WorldRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE WorldRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
      *  This version of the function allows the caller to specify the thread the Scene uses for entity management.
@@ -161,7 +161,7 @@ private:
 
     GameState                               m_game_state;
 
-    WorldRenderResources                    *m_render_resources;
+    WorldRenderResource                     *m_render_resource;
 };
 
 } // namespace hyperion

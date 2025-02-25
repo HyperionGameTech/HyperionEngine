@@ -288,8 +288,8 @@ void TemporalBlending::Render(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,

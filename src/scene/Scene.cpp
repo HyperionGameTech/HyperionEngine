@@ -89,7 +89,7 @@ Scene::Scene(
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_previous_delta(0.01667f),
     m_mutation_state(DataMutationState::DIRTY),
-    m_render_resources(nullptr)
+    m_render_resource(nullptr)
 {
     // Disable command execution if not on game thread
     if (m_owner_thread_id != g_game_thread) {
@@ -118,10 +118,10 @@ Scene::~Scene()
 
     SafeRelease(std::move(m_tlas));
 
-    if (m_render_resources != nullptr) {
-        FreeResource(m_render_resources);
+    if (m_render_resource != nullptr) {
+        FreeResource(m_render_resource);
 
-        m_render_resources = nullptr;
+        m_render_resource = nullptr;
     }
 
     HYP_SYNC_RENDER();
@@ -137,10 +137,10 @@ void Scene::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
-        if (m_render_resources != nullptr) {
-            FreeResource(m_render_resources);
+        if (m_render_resource != nullptr) {
+            FreeResource(m_render_resource);
 
-            m_render_resources = nullptr;
+            m_render_resource = nullptr;
         }
     }));
 
@@ -165,7 +165,7 @@ void Scene::Init()
     AddSystemIfApplicable<PhysicsSystem>();
     AddSystemIfApplicable<ScriptSystem>();
 
-    m_render_resources = AllocateResource<SceneRenderResources>(this);
+    m_render_resource = AllocateResource<SceneRenderResource>(this);
 
     if (IsForegroundScene()) {
         if (m_flags & SceneFlags::HAS_TLAS) {
@@ -179,7 +179,7 @@ void Scene::Init()
         }
 
         if (m_tlas) {
-            m_render_resources->GetEnvironment()->SetTLAS(m_tlas);
+            m_render_resource->GetEnvironment()->SetTLAS(m_tlas);
         }
     }
 
@@ -479,7 +479,7 @@ void Scene::EnqueueRenderUpdates()
     shader_data.fog_params = Vec4f(float(m_fog_params.color.Packed()), m_fog_params.start_distance, m_fog_params.end_distance, 0.0f);
     shader_data.game_time = m_world != nullptr ? m_world->GetGameState().game_time : 0.0f;
 
-    m_render_resources->SetBufferData(shader_data);
+    m_render_resource->SetBufferData(shader_data);
 
     m_mutation_state = DataMutationState::CLEAN;
 }
@@ -507,7 +507,7 @@ bool Scene::CreateTLAS()
     DeferCreate(m_tlas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
 
     if (IsReady()) {
-        m_render_resources->GetEnvironment()->SetTLAS(m_tlas);
+        m_render_resource->GetEnvironment()->SetTLAS(m_tlas);
     }
 
     m_flags |= SceneFlags::HAS_TLAS;

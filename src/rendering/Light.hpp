@@ -12,7 +12,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <rendering/Material.hpp>
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <core/math/Vector3.hpp>
 #include <core/math/BoundingBox.hpp>
@@ -65,12 +65,12 @@ static_assert(sizeof(LightShaderData) == 128);
 
 static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData);
 
-class LightRenderResources final : public RenderResourcesBase
+class LightRenderResource final : public RenderResourceBase
 {
 public:
-    LightRenderResources(Light *light);
-    LightRenderResources(LightRenderResources &&other) noexcept;
-    virtual ~LightRenderResources() override;
+    LightRenderResource(Light *light);
+    LightRenderResource(LightRenderResource &&other) noexcept;
+    virtual ~LightRenderResource() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE Light *GetLight() const
@@ -102,7 +102,7 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("LightRenderResources"); }
+        { return NAME("LightRenderResource"); }
 
 private:
     void UpdateBufferData();
@@ -110,7 +110,7 @@ private:
     Light                                       *m_light;
     Bitset                                      m_visibility_bits;
     Handle<Material>                            m_material;
-    TResourceHandle<MaterialRenderResources>    m_material_render_resources_handle;
+    TResourceHandle<MaterialRenderResource>    m_material_render_resources_handle;
     LightShaderData                             m_buffer_data;
 };
 
@@ -148,8 +148,8 @@ public:
 
     ~Light();
 
-    HYP_FORCE_INLINE LightRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE LightRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     /*! \brief Get the current mutation state of the light.
      *
@@ -414,26 +414,26 @@ public:
     void EnqueueRenderUpdates();
 
 protected:
-    LightType                       m_type;
-    Vec3f                           m_position;
-    Vec3f                           m_normal;
-    Vec2f                           m_area_size;
-    Color                           m_color;
-    float                           m_intensity;
-    float                           m_radius;
-    float                           m_falloff;
-    Vec2f                           m_spot_angles;
-    uint32                          m_shadow_map_index;
-    Handle<Material>                m_material;
+    LightType                   m_type;
+    Vec3f                       m_position;
+    Vec3f                       m_normal;
+    Vec2f                       m_area_size;
+    Color                       m_color;
+    float                       m_intensity;
+    float                       m_radius;
+    float                       m_falloff;
+    Vec2f                       m_spot_angles;
+    uint32                      m_shadow_map_index;
+    Handle<Material>            m_material;
 
 private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;
 
-    mutable DataMutationState       m_mutation_state;
+    mutable DataMutationState   m_mutation_state;
 
-    Bitset                          m_visibility_bits;
+    Bitset                      m_visibility_bits;
 
-    LightRenderResources            *m_render_resources;
+    LightRenderResource         *m_render_resource;
 };
 
 class HYP_API DirectionalLight : public Light

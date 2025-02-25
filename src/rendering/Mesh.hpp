@@ -15,7 +15,7 @@
 #include <core/math/Vertex.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 #include <rendering/Shader.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
@@ -36,12 +36,12 @@ struct RENDER_COMMAND(UploadMeshData);
 
 class BVHNode;
 
-class MeshRenderResources final : public RenderResourcesBase
+class MeshRenderResource final : public RenderResourceBase
 {
 public:
-    MeshRenderResources(Mesh *mesh);
-    MeshRenderResources(MeshRenderResources &&other) noexcept;
-    virtual ~MeshRenderResources() override;
+    MeshRenderResource(Mesh *mesh);
+    MeshRenderResource(MeshRenderResource &&other) noexcept;
+    virtual ~MeshRenderResource() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE const GPUBufferRef &GetVertexBuffer() const
@@ -64,7 +64,7 @@ protected:
     virtual void Update_Internal() override;
 
     virtual Name GetTypeName() const override
-        { return NAME("MeshRenderResources"); }
+        { return NAME("MeshRenderResource"); }
 
 private:
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
@@ -137,8 +137,8 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
-    HYP_FORCE_INLINE MeshRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE MeshRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     void SetVertices(Array<Vertex> vertices);
     void SetVertices(Array<Vertex> vertices, Array<Index> indices);
@@ -206,14 +206,14 @@ public:
 
     /*! \brief Set the mesh to be able to have Render* methods called without needing to have its resources claimed.
      *  \note Init() must be called before this method. */
-    void SetPersistentRenderResourcesEnabled(bool enabled)
+    void SetPersistentRenderResourceEnabled(bool enabled)
     {
         AssertIsInitCalled();
 
         HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resources_handle");
 
         if (enabled) {
-            m_always_claimed_render_resources_handle = ResourceHandle(*m_render_resources);
+            m_always_claimed_render_resources_handle = ResourceHandle(*m_render_resource);
         } else {
             m_always_claimed_render_resources_handle.Reset();
         }
@@ -232,7 +232,7 @@ private:
 
     mutable BoundingBox     m_aabb;
 
-    MeshRenderResources     *m_render_resources;
+    MeshRenderResource      *m_render_resource;
     ResourceHandle          m_always_claimed_render_resources_handle;
     
     HYP_DECLARE_MT_CHECK(m_data_race_detector);

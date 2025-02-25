@@ -37,7 +37,7 @@ class World;
 class Scene;
 class EntityManager;
 class WorldGrid;
-class SceneRenderResources;
+class SceneRenderResource;
 
 struct FogParams
 {
@@ -97,8 +97,8 @@ public:
     Scene &operator=(const Scene &other)    = delete;
     ~Scene();
 
-    HYP_FORCE_INLINE SceneRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE SceneRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     /*! \brief Get the thread ID that owns this Scene. */
     HYP_FORCE_INLINE ThreadID GetOwnerThreadID() const
@@ -234,37 +234,37 @@ private:
     template <class SystemType>
     void AddSystemIfApplicable();
 
-    Name                            m_name;
+    Name                        m_name;
 
-    ThreadID                        m_owner_thread_id;
+    ThreadID                    m_owner_thread_id;
 
-    EnumFlags<SceneFlags>           m_flags;
+    EnumFlags<SceneFlags>       m_flags;
 
-    World                           *m_world;
+    World                       *m_world;
 
-    Handle<Camera>                  m_camera;
-    RenderCollector                 m_render_collector;
+    Handle<Camera>              m_camera;
+    RenderCollector             m_render_collector;
 
-    FogParams                       m_fog_params;
+    FogParams                   m_fog_params;
 
-    NodeProxy                       m_root_node_proxy;
-    RC<EntityManager>               m_entity_manager;
+    NodeProxy                   m_root_node_proxy;
+    RC<EntityManager>           m_entity_manager;
 
-    Octree                          m_octree;
+    Octree                      m_octree;
 
-    TLASRef                         m_tlas;
+    TLASRef                     m_tlas;
 
-    Matrix4                         m_last_view_projection_matrix;
+    Matrix4                     m_last_view_projection_matrix;
 
-    bool                            m_is_audio_listener;
+    bool                        m_is_audio_listener;
 
-    GameCounter::TickUnit           m_previous_delta;
+    GameCounter::TickUnit       m_previous_delta;
                                  
-    mutable DataMutationState       m_mutation_state;
+    mutable DataMutationState   m_mutation_state;
 
-    SceneDrawProxy                  m_proxy;
+    SceneDrawProxy              m_proxy;
 
-    SceneRenderResources            *m_render_resources;
+    SceneRenderResource         *m_render_resource;
 };
 
 } // namespace hyperion

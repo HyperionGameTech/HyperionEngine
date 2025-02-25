@@ -75,7 +75,7 @@ void Game::Init_Internal()
     );
 
     InitObject(camera);
-    // camera->GetRenderResources().EnqueueBind();
+    // camera->GetRenderResource().EnqueueBind();
 
     m_scene = CreateObject<Scene>(
         SceneFlags::FOREGROUND | SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT

@@ -215,13 +215,13 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         proxy_list.Reserve(added_proxies.Size());
 
         // @TODO For changed proxies it would be more efficient
-        // to update the RenderResources rather than Destroy + Recreate.
+        // to update the RenderResource rather than Destroy + Recreate.
 
         for (const auto &it : changed_proxies) {
             const ID<Entity> entity = it.first;
             const RenderProxy &proxy = it.second;
 
-            proxy.UnclaimRenderResources();
+            proxy.UnclaimRenderResource();
 
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
@@ -237,7 +237,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResources();
+            proxy.ClaimRenderResource();
 
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
@@ -256,7 +256,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
-            proxy->UnclaimRenderResources();
+            proxy->UnclaimRenderResource();
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -346,7 +346,7 @@ RenderCollector::RenderCollector(const Handle<Camera> &camera)
     : m_camera(camera)
 {
     if (InitObject(m_camera)) {
-        m_camera_resource_handle = m_camera->GetRenderResources();
+        m_camera_resource_handle = m_camera->GetRenderResource();
     }
 }
 
@@ -359,7 +359,7 @@ void RenderCollector::SetCamera(const Handle<Camera> &camera)
     m_camera = camera;
 
     if (InitObject(m_camera)) {
-        m_camera_resource_handle = m_camera->GetRenderResources();
+        m_camera_resource_handle = m_camera->GetRenderResource();
     } else {
         m_camera_resource_handle.Reset();
     }

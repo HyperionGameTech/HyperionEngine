@@ -139,7 +139,7 @@ void DebugDrawer::Create()
         InitObject(shape);
 
         // Allow Render() to be called on it
-        shape->SetPersistentRenderResourcesEnabled(true);
+        shape->SetPersistentRenderResourceEnabled(true);
     }
 
     m_shader = g_shader_manager->GetOrCreate(
@@ -213,8 +213,8 @@ void DebugDrawer::Render(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     GPUBufferRef &instance_buffer = m_instance_buffers[frame_index];
     bool was_instance_buffer_rebuilt = false;

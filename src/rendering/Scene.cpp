@@ -12,33 +12,33 @@
 
 namespace hyperion {
 
-SceneRenderResources::SceneRenderResources(Scene *scene)
+SceneRenderResource::SceneRenderResource(Scene *scene)
     : m_scene(scene)
 {
     m_environment = CreateObject<RenderEnvironment>(m_scene);
     InitObject(m_environment);
 }
 
-SceneRenderResources::~SceneRenderResources() = default;
+SceneRenderResource::~SceneRenderResource() = default;
 
-void SceneRenderResources::Initialize_Internal()
+void SceneRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void SceneRenderResources::Destroy_Internal()
+void SceneRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SceneRenderResources::Update_Internal()
+void SceneRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-void SceneRenderResources::UpdateBufferData()
+void SceneRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -50,7 +50,7 @@ void SceneRenderResources::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void SceneRenderResources::SetBufferData(const SceneShaderData &buffer_data)
+void SceneRenderResource::SetBufferData(const SceneShaderData &buffer_data)
 {
     HYP_SCOPE;
 
@@ -64,7 +64,7 @@ void SceneRenderResources::SetBufferData(const SceneShaderData &buffer_data)
     });
 }
 
-GPUBufferHolderBase *SceneRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *SceneRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->scenes.Get();
 }

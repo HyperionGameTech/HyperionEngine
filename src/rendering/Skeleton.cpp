@@ -12,25 +12,25 @@
 
 namespace hyperion {
 
-#pragma region SkeletonRenderResources
+#pragma region SkeletonRenderResource
 
-SkeletonRenderResources::SkeletonRenderResources(Skeleton *skeleton)
+SkeletonRenderResource::SkeletonRenderResource(Skeleton *skeleton)
     : m_skeleton(skeleton),
       m_buffer_data { }
 {
 }
 
-SkeletonRenderResources::SkeletonRenderResources(SkeletonRenderResources &&other) noexcept
-    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+SkeletonRenderResource::SkeletonRenderResource(SkeletonRenderResource &&other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_skeleton(other.m_skeleton),
       m_buffer_data(std::move(other.m_buffer_data))
 {
     other.m_skeleton = nullptr;
 }
 
-SkeletonRenderResources::~SkeletonRenderResources() = default;
+SkeletonRenderResource::~SkeletonRenderResource() = default;
 
-void SkeletonRenderResources::Initialize_Internal()
+void SkeletonRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -39,22 +39,22 @@ void SkeletonRenderResources::Initialize_Internal()
     UpdateBufferData();
 }
 
-void SkeletonRenderResources::Destroy_Internal()
+void SkeletonRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SkeletonRenderResources::Update_Internal()
+void SkeletonRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *SkeletonRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *SkeletonRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->skeletons.Get();
 }
 
-void SkeletonRenderResources::UpdateBufferData()
+void SkeletonRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -64,7 +64,7 @@ void SkeletonRenderResources::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void SkeletonRenderResources::SetBufferData(const SkeletonShaderData &buffer_data)
+void SkeletonRenderResource::SetBufferData(const SkeletonShaderData &buffer_data)
 {
     HYP_SCOPE;
 
@@ -78,7 +78,7 @@ void SkeletonRenderResources::SetBufferData(const SkeletonShaderData &buffer_dat
     });
 }
 
-#pragma endregion SkeletonRenderResources
+#pragma endregion SkeletonRenderResource
 
 namespace renderer {
 

@@ -38,7 +38,7 @@ namespace hyperion {
 World::World()
     : HypObject(),
       m_detached_scenes(this),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     // AddSubsystem<WorldGridSubsystem>();
 }
@@ -67,12 +67,12 @@ World::~World()
 
     m_physics_world.Teardown();
 
-    if (m_render_resources != nullptr) {
-        m_render_resources->Unclaim();
+    if (m_render_resource != nullptr) {
+        m_render_resource->Unclaim();
 
-        FreeResource(m_render_resources);
+        FreeResource(m_render_resource);
 
-        m_render_resources = nullptr;
+        m_render_resource = nullptr;
     }
 }
     
@@ -84,16 +84,16 @@ void World::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
-        if (m_render_resources != nullptr) {
-            m_render_resources->Unclaim();
+        if (m_render_resource != nullptr) {
+            m_render_resource->Unclaim();
 
-            FreeResource(m_render_resources);
+            FreeResource(m_render_resource);
 
-            m_render_resources = nullptr;
+            m_render_resource = nullptr;
         }
     }));
 
-    m_render_resources = AllocateResource<WorldRenderResources>(this);
+    m_render_resource = AllocateResource<WorldRenderResource>(this);
 
     for (auto &it : m_subsystems) {
         it.second->Initialize();
@@ -111,14 +111,14 @@ void World::Init()
 
     // Add the now initialized scenes to the render resources
     // Note: call before Claim() so execution can happen inline and doesn't defer to the render thread.
-    m_render_resources->Execute([this]()
+    m_render_resource->Execute([this]()
     {
         for (const Handle<Scene> &scene : m_scenes) {
-            m_render_resources->GetRenderCollectorContainer().AddScene(scene.Get());
+            m_render_resource->GetRenderCollectorContainer().AddScene(scene.Get());
         }
     }, /* force_render_thread */ false);
 
-    m_render_resources->Claim();
+    m_render_resource->Claim();
     
     HypObject::Init();
 
@@ -189,7 +189,7 @@ void World::Update(GameCounter::TickUnit delta)
         AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
 
         if (scene->IsForegroundScene()) {
-            if (const Handle<RenderEnvironment> &render_environment = scene->GetRenderResources().GetEnvironment()) {
+            if (const Handle<RenderEnvironment> &render_environment = scene->GetRenderResource().GetEnvironment()) {
                 HYP_NAMED_SCOPE_FMT("Update RenderEnvironment for Scene with ID #{}", scene->GetID().Value());
 
                 render_environment->Update(delta);
@@ -243,7 +243,7 @@ void World::Update(GameCounter::TickUnit delta)
             // sanity check
             AssertThrow(scene->GetWorld() == this);
 
-            RenderCollector &render_collector = m_render_resources->GetRenderCollectorForScene(scene->GetID());
+            RenderCollector &render_collector = m_render_resource->GetRenderCollectorForScene(scene->GetID());
 
             scene->CollectEntities(render_collector, scene->GetCamera());
         }));
@@ -251,7 +251,7 @@ void World::Update(GameCounter::TickUnit delta)
         // sanity check
         AssertThrow(scene->GetWorld() == this);
 
-        RenderCollector &render_collector = m_render_resources->GetRenderCollectorForScene(scene->GetID());
+        RenderCollector &render_collector = m_render_resource->GetRenderCollectorForScene(scene->GetID());
 
         scene->CollectEntities(render_collector, scene->GetCamera());
 #endif
@@ -399,7 +399,7 @@ void World::AddScene(const Handle<Scene> &scene)
             it.second->OnSceneAttached(scene);
         }
 
-        m_render_resources->AddScene(scene);
+        m_render_resource->AddScene(scene);
     }
 
     m_scenes.PushBack(scene);
@@ -427,7 +427,7 @@ bool World::RemoveScene(const WeakHandle<Scene> &scene_weak)
                 it.second->OnSceneDetached(scene);
             }
 
-            Task<bool> task = m_render_resources->RemoveScene(scene->GetID());
+            Task<bool> task = m_render_resource->RemoveScene(scene->GetID());
             return task.Await();
         }
     }

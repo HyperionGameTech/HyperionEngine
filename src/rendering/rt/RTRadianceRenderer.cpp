@@ -181,8 +181,8 @@ void RTRadianceRenderer::Render(Frame *frame)
 {
     UpdateUniforms(frame);
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 

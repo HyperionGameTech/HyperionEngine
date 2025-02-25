@@ -156,7 +156,7 @@ Camera::Camera(int width, int height)
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY()),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
     m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
@@ -173,7 +173,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY()),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
     m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
@@ -192,7 +192,7 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY()),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
     m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
@@ -209,10 +209,10 @@ Camera::~Camera()
         camera_controller->OnRemoved();
     }
 
-    if (m_render_resources != nullptr) {
-        m_render_resources->EnqueueUnbind();
-        m_render_resources->Unclaim();
-        FreeResource(m_render_resources);
+    if (m_render_resource != nullptr) {
+        m_render_resource->EnqueueUnbind();
+        m_render_resource->Unclaim();
+        FreeResource(m_render_resource);
     }
 
     SafeRelease(std::move(m_framebuffer));
@@ -272,21 +272,21 @@ void Camera::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
-        if (m_render_resources != nullptr) {
-            m_render_resources->Unclaim();
-            FreeResource(m_render_resources);
+        if (m_render_resource != nullptr) {
+            m_render_resource->Unclaim();
+            FreeResource(m_render_resource);
 
-            m_render_resources = nullptr;
+            m_render_resource = nullptr;
         }
 
         SafeRelease(std::move(m_framebuffer));
     }));
 
-    m_render_resources = AllocateResource<CameraRenderResources>(this);
+    m_render_resource = AllocateResource<CameraRenderResource>(this);
 
     UpdateMatrices();
 
-    m_render_resources->SetBufferData(CameraShaderData {
+    m_render_resource->SetBufferData(CameraShaderData {
         .view               = m_view_mat,
         .projection         = m_proj_mat,
         .previous_view      = m_previous_view_matrix,
@@ -299,7 +299,7 @@ void Camera::Init()
         .id                 = GetID().Value()
     });
 
-    m_render_resources->Claim();
+    m_render_resource->Claim();
 
     DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 
@@ -574,7 +574,7 @@ void Camera::Update(GameCounter::TickUnit dt)
 
     UpdateMatrices();
 
-    m_render_resources->SetBufferData(CameraShaderData {
+    m_render_resource->SetBufferData(CameraShaderData {
         .view               = m_view_mat,
         .projection         = m_proj_mat,
         .previous_view      = m_previous_view_matrix,

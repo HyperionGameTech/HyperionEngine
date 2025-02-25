@@ -110,7 +110,7 @@ RendererResult AccelerationGeometry<Platform::VULKAN>::Create(Device<Platform::V
     }
 
     if (m_material.IsValid()) {
-        m_material->GetRenderResources().Claim();
+        m_material->GetRenderResource().Claim();
     }
 
     if (!device->GetFeatures().IsRaytracingSupported()) {
@@ -225,7 +225,7 @@ RendererResult AccelerationGeometry<Platform::VULKAN>::Destroy(Device<Platform::
     }
 
     if (m_material.IsValid()) {
-        m_material->GetRenderResources().Unclaim();
+        m_material->GetRenderResource().Unclaim();
     }
 
     RendererResult result;
@@ -867,13 +867,13 @@ RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescri
 
             if (material.IsValid()) {
                 // Must be initialized (AccelerationGeometry calls Claim() and Unclaim())
-                AssertThrow(material->GetRenderResources().GetBufferIndex() != ~0u);
+                AssertThrow(material->GetRenderResource().GetBufferIndex() != ~0u);
             }
 
             mesh_description.vertex_buffer_address = blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
             mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
             mesh_description.entity_index = entity_weak.IsValid() ? entity_weak.GetID().ToIndex() : 0;
-            mesh_description.material_index = material.IsValid() ? material->GetRenderResources().GetBufferIndex() : ~0u;
+            mesh_description.material_index = material.IsValid() ? material->GetRenderResource().GetBufferIndex() : ~0u;
             mesh_description.num_indices = uint32(blas->GetGeometries()[0]->GetPackedIndices().Size());
             mesh_description.num_vertices = uint32(blas->GetGeometries()[0]->GetPackedVertices().Size());
         }

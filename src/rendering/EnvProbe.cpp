@@ -536,7 +536,7 @@ void EnvProbe::Render(Frame *frame)
 
     BindToIndex(probe_index);
     
-    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
+    TResourceHandle<LightRenderResource> *light_render_resources_handle = nullptr;
 
     if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY) {
         // Find a directional light to use for the sky

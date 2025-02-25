@@ -33,7 +33,7 @@ void RenderCollectorContainer::AddScene(const Scene *scene)
     render_collector.SetCamera(scene->GetCamera());
 
     if (scene->IsForegroundScene()) {
-        render_collector.SetRenderEnvironment(scene->GetRenderResources().GetEnvironment());
+        render_collector.SetRenderEnvironment(scene->GetRenderResource().GetEnvironment());
     } else {
         render_collector.SetRenderEnvironment(WeakHandle<RenderEnvironment> { });
     }
@@ -56,16 +56,16 @@ void RenderCollectorContainer::RemoveScene(ID<Scene> id)
 
 #pragma endregion RenderCollectorContainer
 
-#pragma region WorldRenderResources
+#pragma region WorldRenderResource
 
-WorldRenderResources::WorldRenderResources(World *world)
+WorldRenderResource::WorldRenderResource(World *world)
     : m_world(world)
 {
 }
 
-WorldRenderResources::~WorldRenderResources() = default;
+WorldRenderResource::~WorldRenderResource() = default;
 
-void WorldRenderResources::AddScene(const Handle<Scene> &scene)
+void WorldRenderResource::AddScene(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
 
@@ -78,12 +78,12 @@ void WorldRenderResources::AddScene(const Handle<Scene> &scene)
         if (Handle<Scene> scene = scene_weak.Lock()) {
             m_render_collector_container.AddScene(scene.Get());
 
-            m_bound_scenes.PushBack(TResourceHandle(scene->GetRenderResources()));
+            m_bound_scenes.PushBack(TResourceHandle(scene->GetRenderResource()));
         }
     });          
 }
 
-Task<bool> WorldRenderResources::RemoveScene(ID<Scene> scene_id)
+Task<bool> WorldRenderResource::RemoveScene(ID<Scene> scene_id)
 {
     HYP_SCOPE;
 
@@ -94,7 +94,7 @@ Task<bool> WorldRenderResources::RemoveScene(ID<Scene> scene_id)
     {
         m_render_collector_container.RemoveScene(scene_id);
 
-        auto bound_scenes_it = m_bound_scenes.FindIf([&scene_id](const TResourceHandle<SceneRenderResources> &item)
+        auto bound_scenes_it = m_bound_scenes.FindIf([&scene_id](const TResourceHandle<SceneRenderResource> &item)
         {
             return item->GetScene()->GetID() == scene_id;
         });
@@ -111,12 +111,12 @@ Task<bool> WorldRenderResources::RemoveScene(ID<Scene> scene_id)
     return task;
 }
 
-void WorldRenderResources::Initialize_Internal()
+void WorldRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 }
 
-void WorldRenderResources::Destroy_Internal()
+void WorldRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -124,17 +124,17 @@ void WorldRenderResources::Destroy_Internal()
     m_bound_scenes.Clear();
 }
 
-void WorldRenderResources::Update_Internal()
+void WorldRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *WorldRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *WorldRenderResource::GetGPUBufferHolder() const
 {
     return nullptr;
 }
 
-void WorldRenderResources::PreRender(renderer::Frame *frame)
+void WorldRenderResource::PreRender(renderer::Frame *frame)
 {
     HYP_SCOPE;
 
@@ -146,12 +146,12 @@ void WorldRenderResources::PreRender(renderer::Frame *frame)
         RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
 
         if (const Handle<Camera> &camera = render_collector->GetCamera()) {
-            m_bound_cameras.PushBack(TResourceHandle<CameraRenderResources>(camera->GetRenderResources()));
+            m_bound_cameras.PushBack(TResourceHandle<CameraRenderResource>(camera->GetRenderResource()));
         }
     }
 }
 
-void WorldRenderResources::PostRender(renderer::Frame *frame)
+void WorldRenderResource::PostRender(renderer::Frame *frame)
 {
     HYP_SCOPE;
 
@@ -160,7 +160,7 @@ void WorldRenderResources::PostRender(renderer::Frame *frame)
     m_bound_cameras.Clear();
 }
 
-void WorldRenderResources::Render(renderer::Frame *frame)
+void WorldRenderResource::Render(renderer::Frame *frame)
 {
     HYP_SCOPE;
 
@@ -177,6 +177,6 @@ void WorldRenderResources::Render(renderer::Frame *frame)
     }
 }
 
-#pragma endregion WorldRenderResources
+#pragma endregion WorldRenderResource
 
 } // namespace hyperion

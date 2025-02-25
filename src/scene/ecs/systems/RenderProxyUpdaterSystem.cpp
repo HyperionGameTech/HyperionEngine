@@ -53,8 +53,8 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
                 .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),
                 .world_aabb_min         = Vec4f(proxy.aabb.min, 1.0f),
                 .entity_index           = proxy.entity.GetID().ToIndex(),
-                .material_index         = proxy.material.IsValid() ? proxy.material->GetRenderResources().GetBufferIndex() : ~0u,
-                .skeleton_index         = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResources().GetBufferIndex() : ~0u,
+                .material_index         = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u,
+                .skeleton_index         = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u,
                 .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
                 .flags                  = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
                 .user_data              = proxy.user_data.ReinterpretAs<EntityUserData>()

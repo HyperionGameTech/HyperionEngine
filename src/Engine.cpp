@@ -629,11 +629,11 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     PreFrameUpdate(frame);
     
-    m_world->GetRenderResources().PreRender(frame);
+    m_world->GetRenderResource().PreRender(frame);
 
     game->OnFrameBegin(frame);
 
-    m_world->GetRenderResources().Render(frame);
+    m_world->GetRenderResource().Render(frame);
 
     RenderDeferred(frame);
 
@@ -641,7 +641,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
 
-    m_world->GetRenderResources().PostRender(frame);
+    m_world->GetRenderResource().PostRender(frame);
 
     UpdateBuffersAndDescriptors((GetGPUInstance()->GetFrameHandler()->GetCurrentFrameIndex()));
 

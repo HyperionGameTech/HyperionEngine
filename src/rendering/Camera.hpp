@@ -6,7 +6,7 @@
 #include <core/math/Vector4.hpp>
 #include <core/math/Matrix4.hpp>
 
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <core/Handle.hpp>
 
@@ -37,12 +37,12 @@ static_assert(sizeof(CameraShaderData) == 512);
 
 static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderData);
 
-class CameraRenderResources final : public RenderResourcesBase
+class CameraRenderResource final : public RenderResourceBase
 {
 public:
-    CameraRenderResources(Camera *camera);
-    CameraRenderResources(CameraRenderResources &&other) noexcept;
-    virtual ~CameraRenderResources() override;
+    CameraRenderResource(Camera *camera);
+    CameraRenderResource(CameraRenderResource &&other) noexcept;
+    virtual ~CameraRenderResource() override;
 
     HYP_FORCE_INLINE Camera *GetCamera() const
         { return m_camera; }
@@ -66,7 +66,7 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("CameraRenderResources"); }
+        { return NAME("CameraRenderResource"); }
 
 private:
     void UpdateBufferData();

@@ -104,8 +104,8 @@ struct RenderProxy
     HYP_FORCE_INLINE uint32 NumInstances() const
         { return MathUtil::Max(instance_data.NumInstances(), 1); }
 
-    void ClaimRenderResources() const;
-    void UnclaimRenderResources() const;
+    void ClaimRenderResource() const;
+    void UnclaimRenderResource() const;
 
     bool operator==(const RenderProxy &other) const
     {

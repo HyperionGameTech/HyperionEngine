@@ -5,7 +5,7 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
 
@@ -91,12 +91,12 @@ enum class MaterialTextureKey : uint64
     TERRAIN_LEVEL2_PARALLAX_MAP     = 1 << 26
 };
 
-class MaterialRenderResources final : public RenderResourcesBase
+class MaterialRenderResource final : public RenderResourceBase
 {
 public:
-    MaterialRenderResources(Material *material);
-    MaterialRenderResources(MaterialRenderResources &&other) noexcept;
-    virtual ~MaterialRenderResources() override;
+    MaterialRenderResource(Material *material);
+    MaterialRenderResource(MaterialRenderResource &&other) noexcept;
+    virtual ~MaterialRenderResource() override;
 
     /*! \note Only call this method from the render thread or task initiated by the render thread */
     HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight> &GetDescriptorSets() const
@@ -117,7 +117,7 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("MaterialRenderResources"); }
+        { return NAME("MaterialRenderResource"); }
 
 private:
     void CreateDescriptorSets();
@@ -141,7 +141,7 @@ public:
     static constexpr uint32 max_parameters = 32u;
     static constexpr uint32 max_textures = 32u;
 
-    friend class MaterialRenderResources;
+    friend class MaterialRenderResource;
 
     struct Parameter
     {
@@ -409,8 +409,8 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
-    HYP_FORCE_INLINE MaterialRenderResources &GetRenderResources() const
-        { return *m_render_resources; }
+    HYP_FORCE_INLINE MaterialRenderResource &GetRenderResource() const
+        { return *m_render_resource; }
 
     /*! \brief Get the current mutation state of this Material.
         \return The current mutation state of this Material */
@@ -644,21 +644,21 @@ public:
     }
 
 private:
-    Name                                m_name;
+    Name                        m_name;
 
-    ShaderRef                           m_shader;
+    ShaderRef                   m_shader;
 
-    ParameterTable                      m_parameters;
-    TextureSet                          m_textures;
+    ParameterTable              m_parameters;
+    TextureSet                  m_textures;
 
-    MaterialAttributes                  m_render_attributes;
+    MaterialAttributes          m_render_attributes;
 
-    bool                                m_is_dynamic;
+    bool                        m_is_dynamic;
 
-    MaterialShaderData                  m_shader_data;
-    mutable DataMutationState           m_mutation_state;
+    MaterialShaderData          m_shader_data;
+    mutable DataMutationState   m_mutation_state;
 
-    MaterialRenderResources             *m_render_resources;
+    MaterialRenderResource      *m_render_resource;
 };
 
 HYP_CLASS()

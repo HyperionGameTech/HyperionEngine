@@ -24,16 +24,16 @@
 
 namespace hyperion {
 
-#pragma region MaterialRenderResources
+#pragma region MaterialRenderResource
 
-MaterialRenderResources::MaterialRenderResources(Material *material)
+MaterialRenderResource::MaterialRenderResource(Material *material)
     : m_material(material),
       m_buffer_data { }
 {
 }
 
-MaterialRenderResources::MaterialRenderResources(MaterialRenderResources &&other) noexcept
-    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+MaterialRenderResource::MaterialRenderResource(MaterialRenderResource &&other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_material(other.m_material),
       m_textures(std::move(other.m_textures)),
       m_bound_texture_ids(std::move(other.m_bound_texture_ids)),
@@ -42,9 +42,9 @@ MaterialRenderResources::MaterialRenderResources(MaterialRenderResources &&other
     other.m_material = nullptr;
 }
 
-MaterialRenderResources::~MaterialRenderResources() = default;
+MaterialRenderResource::~MaterialRenderResource() = default;
 
-void MaterialRenderResources::Initialize_Internal()
+void MaterialRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -57,7 +57,7 @@ void MaterialRenderResources::Initialize_Internal()
     }
 }
 
-void MaterialRenderResources::Destroy_Internal()
+void MaterialRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -68,7 +68,7 @@ void MaterialRenderResources::Destroy_Internal()
     }
 }
 
-void MaterialRenderResources::Update_Internal()
+void MaterialRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 
@@ -113,12 +113,12 @@ void MaterialRenderResources::Update_Internal()
     }
 }
 
-GPUBufferHolderBase *MaterialRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *MaterialRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->materials.Get();
 }
 
-void MaterialRenderResources::CreateDescriptorSets()
+void MaterialRenderResource::CreateDescriptorSets()
 {
     HYP_SCOPE;
 
@@ -141,7 +141,7 @@ void MaterialRenderResources::CreateDescriptorSets()
     m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager()->AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
 }
 
-void MaterialRenderResources::DestroyDescriptorSets()
+void MaterialRenderResource::DestroyDescriptorSets()
 {
     HYP_SCOPE;
 
@@ -151,7 +151,7 @@ void MaterialRenderResources::DestroyDescriptorSets()
     m_descriptor_sets = { };
 }
 
-void MaterialRenderResources::UpdateBufferData()
+void MaterialRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -181,7 +181,7 @@ void MaterialRenderResources::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
+void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Handle<Texture> &texture)
 {
     HYP_SCOPE;
 
@@ -195,7 +195,7 @@ void MaterialRenderResources::SetTexture(MaterialTextureKey texture_key, const H
     });
 }
 
-void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
+void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>> &&textures)
 {
     HYP_SCOPE;
 
@@ -209,7 +209,7 @@ void MaterialRenderResources::SetTextures(FlatMap<MaterialTextureKey, Handle<Tex
     });
 }
 
-void MaterialRenderResources::SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids)
+void MaterialRenderResource::SetBoundTextureIDs(const Array<ID<Texture>> &bound_texture_ids)
 {
     HYP_SCOPE;
 
@@ -223,7 +223,7 @@ void MaterialRenderResources::SetBoundTextureIDs(const Array<ID<Texture>> &bound
     });
 }
 
-void MaterialRenderResources::SetBufferData(const MaterialShaderData &buffer_data)
+void MaterialRenderResource::SetBufferData(const MaterialShaderData &buffer_data)
 {
     HYP_SCOPE;
 
@@ -237,7 +237,7 @@ void MaterialRenderResources::SetBufferData(const MaterialShaderData &buffer_dat
     });
 }
 
-#pragma endregion MaterialRenderResources
+#pragma endregion MaterialRenderResource
 
 #pragma region Material
 
@@ -277,7 +277,7 @@ Material::Material()
       },
       m_is_dynamic(false),
       m_mutation_state(DataMutationState::CLEAN),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     ResetParameters();
 }
@@ -293,7 +293,7 @@ Material::Material(Name name, Bucket bucket)
       },
       m_is_dynamic(false),
       m_mutation_state(DataMutationState::CLEAN),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
     ResetParameters();
 }
@@ -309,14 +309,14 @@ Material::Material(
     m_render_attributes(attributes),
     m_is_dynamic(false),
     m_mutation_state(DataMutationState::CLEAN),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
 }
 
 Material::~Material()
 {
-    if (m_render_resources != nullptr) {
-        FreeResource(m_render_resources);
+    if (m_render_resource != nullptr) {
+        FreeResource(m_render_resource);
     }
 
     SetReady(false);
@@ -336,7 +336,7 @@ void Material::Init()
 
     HypObject::Init();
 
-    m_render_resources = AllocateResource<MaterialRenderResources>(this);
+    m_render_resource = AllocateResource<MaterialRenderResource>(this);
 
     if (!m_shader.IsValid()) {
         if (m_render_attributes.shader_definition) {
@@ -360,7 +360,7 @@ void Material::Init()
         }
     }
 
-    m_render_resources->SetTextures(std::move(textures));
+    m_render_resource->SetTextures(std::move(textures));
 
     m_mutation_state |= DataMutationState::DIRTY;
 
@@ -395,7 +395,7 @@ void Material::EnqueueRenderUpdates()
         }
     }
 
-    m_render_resources->SetBoundTextureIDs(bound_texture_ids);
+    m_render_resource->SetBoundTextureIDs(bound_texture_ids);
 
     MaterialShaderData buffer_data {
         .albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO),
@@ -416,7 +416,7 @@ void Material::EnqueueRenderUpdates()
         .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
     };
 
-    m_render_resources->SetBufferData(buffer_data);
+    m_render_resource->SetBufferData(buffer_data);
 
     m_mutation_state = DataMutationState::CLEAN;
 }
@@ -508,7 +508,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture> &texture
     if (IsInitCalled()) {
         InitObject(texture);
 
-        m_render_resources->SetTexture(key, texture);
+        m_render_resource->SetTexture(key, texture);
 
         m_mutation_state |= DataMutationState::DIRTY;
     }
@@ -551,7 +551,7 @@ void Material::SetTextures(const TextureSet &textures)
                 }
             }
 
-            m_render_resources->SetTextures(std::move(textures));
+            m_render_resource->SetTextures(std::move(textures));
         }
 
         m_mutation_state |= DataMutationState::DIRTY;

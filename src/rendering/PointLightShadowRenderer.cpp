@@ -101,7 +101,7 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
         return;
     }
 
-    LightRenderResources &light_render_resources = m_light->GetRenderResources();
+    LightRenderResource &light_render_resources = m_light->GetRenderResource();
 
     if (light_render_resources.GetVisibilityBits().Test(GetParent()->GetScene()->GetCamera().GetID().ToIndex())) {
         if (!m_last_visibility_state) {

@@ -277,8 +277,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
     AssertThrow(IsReady());
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
@@ -794,8 +794,8 @@ void GaussianSplatting::Render(Frame *frame)
         return;
     }
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     const uint32 frame_index = frame->GetFrameIndex();
 

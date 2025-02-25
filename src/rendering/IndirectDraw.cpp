@@ -452,8 +452,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);

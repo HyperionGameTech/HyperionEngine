@@ -519,7 +519,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         AssertThrow(InitObject(m_camera));
 
         m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
-        m_scene->GetRenderResources().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
+        m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
 
         m_delegate_handlers.Remove("OnPackageAdded");
 
@@ -570,9 +570,9 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
             // @TODO Remove camera controller
 
-            project_scene->GetRenderResources().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
+            project_scene->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
 
-            project_scene->GetRenderResources().GetEnvironment()->RemoveRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"));
+            project_scene->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"));
 
             if (m_camera) {
                 m_camera.Reset();
@@ -828,7 +828,7 @@ void EditorSubsystem::InitViewport()
 
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_component = m_scene->GetRenderResources().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), Vec2u(viewport_size));
+        RC<ScreenCaptureRenderSubsystem> screen_capture_component = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), Vec2u(viewport_size));
         m_scene_texture = screen_capture_component->GetTexture();
         AssertThrow(m_scene_texture.IsValid());
         

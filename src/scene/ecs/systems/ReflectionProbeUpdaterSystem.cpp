@@ -43,7 +43,7 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     }
 
     if (GetEntityManager().GetScene()->IsForegroundScene()) {
-        reflection_probe_component.reflection_probe_renderer = GetEntityManager().GetScene()->GetRenderResources().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+        reflection_probe_component.reflection_probe_renderer = GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("reflection_probe"),
             world_aabb
         );
@@ -57,7 +57,7 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     ReflectionProbeComponent &reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
 
     if (reflection_probe_component.reflection_probe_renderer != nullptr) {
-        GetEntityManager().GetScene()->GetRenderResources().GetEnvironment()->RemoveRenderSubsystem<ReflectionProbeRenderer>(reflection_probe_component.reflection_probe_renderer->GetName());
+        GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ReflectionProbeRenderer>(reflection_probe_component.reflection_probe_renderer->GetName());
 
         reflection_probe_component.reflection_probe_renderer = nullptr;
     }

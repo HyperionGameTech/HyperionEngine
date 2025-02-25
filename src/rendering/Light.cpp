@@ -45,16 +45,16 @@ struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-#pragma region LightRenderResources
+#pragma region LightRenderResource
 
-LightRenderResources::LightRenderResources(Light *light)
+LightRenderResource::LightRenderResource(Light *light)
     : m_light(light),
       m_buffer_data { }
 {
 }
 
-LightRenderResources::LightRenderResources(LightRenderResources &&other) noexcept
-    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+LightRenderResource::LightRenderResource(LightRenderResource &&other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_light(other.m_light),
       m_visibility_bits(std::move(other.m_visibility_bits)),
       m_material(std::move(other.m_material)),
@@ -64,31 +64,31 @@ LightRenderResources::LightRenderResources(LightRenderResources &&other) noexcep
     other.m_light = nullptr;
 }
 
-LightRenderResources::~LightRenderResources() = default;
+LightRenderResource::~LightRenderResource() = default;
 
-void LightRenderResources::Initialize_Internal()
+void LightRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void LightRenderResources::Destroy_Internal()
+void LightRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void LightRenderResources::Update_Internal()
+void LightRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *LightRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *LightRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->lights.Get();
 }
 
-void LightRenderResources::UpdateBufferData()
+void LightRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -104,7 +104,7 @@ void LightRenderResources::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void LightRenderResources::SetMaterial(const Handle<Material> &material)
+void LightRenderResource::SetMaterial(const Handle<Material> &material)
 {
     HYP_SCOPE;
 
@@ -113,9 +113,9 @@ void LightRenderResources::SetMaterial(const Handle<Material> &material)
         m_material = material;
 
         if (m_material.IsValid()) {
-            m_material_render_resources_handle = TResourceHandle<MaterialRenderResources>(m_material->GetRenderResources());
+            m_material_render_resources_handle = TResourceHandle<MaterialRenderResource>(m_material->GetRenderResource());
         } else {
-            m_material_render_resources_handle = TResourceHandle<MaterialRenderResources>();
+            m_material_render_resources_handle = TResourceHandle<MaterialRenderResource>();
         }
 
         if (m_is_initialized) {
@@ -124,7 +124,7 @@ void LightRenderResources::SetMaterial(const Handle<Material> &material)
     });
 }
 
-void LightRenderResources::SetBufferData(const LightShaderData &buffer_data)
+void LightRenderResource::SetBufferData(const LightShaderData &buffer_data)
 {
     HYP_SCOPE;
 
@@ -138,7 +138,7 @@ void LightRenderResources::SetBufferData(const LightShaderData &buffer_data)
     });
 }
 
-void LightRenderResources::SetVisibilityBits(const Bitset &visibility_bits)
+void LightRenderResource::SetVisibilityBits(const Bitset &visibility_bits)
 {
     HYP_SCOPE;
 
@@ -161,7 +161,7 @@ void LightRenderResources::SetVisibilityBits(const Bitset &visibility_bits)
     }, /* force_render_thread */ true);
 }
 
-#pragma endregion LightRenderResources
+#pragma endregion LightRenderResource
 
 #pragma region Light
 
@@ -191,7 +191,7 @@ Light::Light(
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
     m_mutation_state(DataMutationState::CLEAN),
-    m_render_resources(nullptr)
+    m_render_resource(nullptr)
 {
 }
 
@@ -215,14 +215,14 @@ Light::Light(
     m_spot_angles(Vec2f::Zero()),
     m_shadow_map_index(~0u),
     m_mutation_state(DataMutationState::CLEAN),
-    m_render_resources(nullptr)
+    m_render_resource(nullptr)
 {
 }
 
 Light::~Light()
 {
-    if (m_render_resources != nullptr) {
-        FreeResource(m_render_resources);
+    if (m_render_resource != nullptr) {
+        FreeResource(m_render_resource);
     }
     
     // If material is set for this Light, defer its deletion for a few frames
@@ -239,12 +239,12 @@ void Light::Init()
 
     HypObject::Init();
 
-    m_render_resources = AllocateResource<LightRenderResources>(this);
+    m_render_resource = AllocateResource<LightRenderResource>(this);
 
     if (m_material.IsValid()) {
         InitObject(m_material);
 
-        m_render_resources->SetMaterial(m_material);
+        m_render_resource->SetMaterial(m_material);
     }
 
     m_mutation_state |= DataMutationState::DIRTY;
@@ -289,8 +289,8 @@ void Light::EnqueueRenderUpdates()
         .material_index     = ~0u // set later
     };
 
-    m_render_resources->SetBufferData(buffer_data);
-    m_render_resources->SetVisibilityBits(m_visibility_bits);
+    m_render_resource->SetBufferData(buffer_data);
+    m_render_resource->SetVisibilityBits(m_visibility_bits);
 
     m_mutation_state = DataMutationState::CLEAN;
 }
@@ -310,7 +310,7 @@ void Light::SetMaterial(Handle<Material> material)
     if (IsInitCalled()) {
         InitObject(m_material);
 
-        m_render_resources->SetMaterial(m_material);
+        m_render_resource->SetMaterial(m_material);
 
         m_mutation_state |= DataMutationState::DIRTY;
     }

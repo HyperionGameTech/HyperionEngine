@@ -372,8 +372,8 @@ void LightmapPathTracer::Trace(Frame *frame, const Array<LightmapRay> &rays, uin
     const uint32 frame_index = frame->GetFrameIndex();
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
     
     /*m_hits_buffers[previous_frame_index]->Read(
         g_engine->GetGPUDevice(),

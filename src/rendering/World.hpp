@@ -6,7 +6,7 @@
 #include <core/math/Vector4.hpp>
 #include <core/math/Matrix4.hpp>
 
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
@@ -25,8 +25,8 @@ namespace hyperion {
 
 class World;
 class Scene;
-class CameraRenderResources;
-class SceneRenderResources;
+class CameraRenderResource;
+class SceneRenderResource;
 
 class RenderCollectorContainer
 {
@@ -65,11 +65,11 @@ private:
     AtomicVar<uint32>                           m_num_render_collectors;
 };
 
-class WorldRenderResources final : public RenderResourcesBase
+class WorldRenderResource final : public RenderResourceBase
 {
 public:
-    WorldRenderResources(World *world);
-    virtual ~WorldRenderResources() override;
+    WorldRenderResource(World *world);
+    virtual ~WorldRenderResource() override;
 
     HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
@@ -101,17 +101,17 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("WorldRenderResources"); }
+        { return NAME("WorldRenderResource"); }
 
 private:
     World                                           *m_world;
-    Array<TResourceHandle<CameraRenderResources>>   m_bound_cameras;
-    Array<TResourceHandle<SceneRenderResources>>    m_bound_scenes;
+    Array<TResourceHandle<CameraRenderResource>>   m_bound_cameras;
+    Array<TResourceHandle<SceneRenderResource>>    m_bound_scenes;
     RenderCollectorContainer                        m_render_collector_container;
 };
 
 template <>
-struct ResourceMemoryPoolInitInfo<WorldRenderResources> : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo<WorldRenderResource> : MemoryPoolInitInfo
 {
     static constexpr uint32 num_elements_per_block = 16;
     static constexpr uint32 num_initial_elements = 16;

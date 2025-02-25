@@ -524,7 +524,7 @@ void EnvGrid::OnRender(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const CameraRenderResources &active_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const CameraRenderResource &active_camera = g_engine->GetRenderState()->GetActiveCamera();
 
     const BoundingBox grid_aabb = m_aabb;
 
@@ -1058,7 +1058,7 @@ void EnvGrid::RenderEnvProbe(
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     // Bind a directional light
-    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
+    TResourceHandle<LightRenderResource> *light_render_resources_handle = nullptr;
 
     {
         auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
@@ -1140,11 +1140,11 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     const AttachmentRef &normals_attachment = m_framebuffer->GetAttachment(1);
     const AttachmentRef &depth_attachment = m_framebuffer->GetAttachment(2);
 
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
 
     // Bind a directional light
-    TResourceHandle<LightRenderResources> *light_render_resources_handle = nullptr;
+    TResourceHandle<LightRenderResource> *light_render_resources_handle = nullptr;
 
     {
         auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
@@ -1351,8 +1351,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
 
     const uint32 probe_index = probe->m_grid_slot;
 
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
 
     { // Update uniform buffer
         LightFieldUniforms uniforms;

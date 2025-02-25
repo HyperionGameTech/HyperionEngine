@@ -3,7 +3,7 @@
 #ifndef HYPERION_RENDERING_SCENE_HPP
 #define HYPERION_RENDERING_SCENE_HPP
 
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <core/math/Vector4.hpp>
 
@@ -34,11 +34,11 @@ static_assert(sizeof(SceneShaderData) == 256);
 
 static constexpr uint32 max_scenes = (32ull * 1024ull) / sizeof(SceneShaderData);
 
-class SceneRenderResources final : public RenderResourcesBase
+class SceneRenderResource final : public RenderResourceBase
 {
 public:
-    SceneRenderResources(Scene *scene);
-    virtual ~SceneRenderResources() override;
+    SceneRenderResource(Scene *scene);
+    virtual ~SceneRenderResource() override;
 
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_scene; }
@@ -60,7 +60,7 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("SceneRenderResources"); }
+        { return NAME("SceneRenderResource"); }
 
 private:
     void UpdateBufferData();
@@ -71,7 +71,7 @@ private:
 };
 
 template <>
-struct ResourceMemoryPoolInitInfo<SceneRenderResources> : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo<SceneRenderResource> : MemoryPoolInitInfo
 {
     static constexpr uint32 num_elements_per_block = 16;
     static constexpr uint32 num_initial_elements = 16;

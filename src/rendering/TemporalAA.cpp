@@ -189,7 +189,7 @@ void TemporalAA::Render(Frame *frame)
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
     
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,

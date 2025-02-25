@@ -275,7 +275,7 @@ void FullScreenPass::CreateQuad()
     InitObject(m_full_screen_quad);
 
     // Allow Render() to be called directly without a RenderGroup
-    m_full_screen_quad->SetPersistentRenderResourcesEnabled(true);
+    m_full_screen_quad->SetPersistentRenderResourceEnabled(true);
 }
 
 void FullScreenPass::CreateCommandBuffers()
@@ -527,8 +527,8 @@ void FullScreenPass::Record(uint32 frame_index)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -574,8 +574,8 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     AssertThrow(m_render_texture_to_screen_pass != nullptr);
 
@@ -649,8 +649,8 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
 
     AssertThrow(m_merge_half_res_textures_pass != nullptr);
 

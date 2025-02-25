@@ -52,16 +52,16 @@ struct RENDER_COMMAND(SetStreamedMeshData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-#pragma region MeshRenderResources
+#pragma region MeshRenderResource
 
-MeshRenderResources::MeshRenderResources(Mesh *mesh)
+MeshRenderResource::MeshRenderResource(Mesh *mesh)
     : m_mesh(mesh),
       m_num_indices(0)
 {
 }
 
-MeshRenderResources::MeshRenderResources(MeshRenderResources &&other) noexcept
-    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+MeshRenderResource::MeshRenderResource(MeshRenderResource &&other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_mesh(other.m_mesh),
       m_vertex_attributes(other.m_vertex_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
@@ -72,9 +72,9 @@ MeshRenderResources::MeshRenderResources(MeshRenderResources &&other) noexcept
     other.m_mesh = nullptr;
 }
 
-MeshRenderResources::~MeshRenderResources() = default;
+MeshRenderResource::~MeshRenderResource() = default;
 
-void MeshRenderResources::Initialize_Internal()
+void MeshRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -83,7 +83,7 @@ void MeshRenderResources::Initialize_Internal()
     UploadMeshData();
 }
 
-void MeshRenderResources::Destroy_Internal()
+void MeshRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -91,7 +91,7 @@ void MeshRenderResources::Destroy_Internal()
     SafeRelease(std::move(m_ibo));
 }
 
-void MeshRenderResources::Update_Internal()
+void MeshRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 
@@ -100,7 +100,7 @@ void MeshRenderResources::Update_Internal()
     UploadMeshData();
 }
 
-void MeshRenderResources::UploadMeshData()
+void MeshRenderResource::UploadMeshData()
 {
     HYP_SCOPE;
     
@@ -190,7 +190,7 @@ void MeshRenderResources::UploadMeshData()
         }));
 }
 
-void MeshRenderResources::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
+void MeshRenderResource::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
 {
     HYP_SCOPE;
 
@@ -204,7 +204,7 @@ void MeshRenderResources::SetVertexAttributes(const VertexAttributeSet &vertex_a
     });
 }
 
-void MeshRenderResources::SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data)
+void MeshRenderResource::SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data)
 {
     HYP_SCOPE;
 
@@ -226,7 +226,7 @@ void MeshRenderResources::SetStreamedMeshData(const RC<StreamedMeshData> &stream
         current_offset += (arg_size);                                                            \
     } while (0)
 
-Array<float> MeshRenderResources::BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data)
+Array<float> MeshRenderResource::BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data)
 {
     const SizeType vertex_size = vertex_attributes.CalculateVertexSize();
 
@@ -275,7 +275,7 @@ Array<float> MeshRenderResources::BuildVertexBuffer(const VertexAttributeSet &ve
 
 #undef PACKED_SET_ATTR
 
-#pragma endregion MeshRenderResources
+#pragma endregion MeshRenderResource
 
 #pragma region Mesh
 
@@ -320,7 +320,7 @@ Mesh::Mesh()
           .topology             = Topology::TRIANGLES
       },
       m_aabb(BoundingBox::Empty()),
-      m_render_resources(nullptr)
+      m_render_resource(nullptr)
 {
 }
 
@@ -335,7 +335,7 @@ Mesh::Mesh(
     },
     m_streamed_mesh_data(std::move(streamed_mesh_data)),
     m_aabb(BoundingBox::Empty()),
-    m_render_resources(nullptr)
+    m_render_resource(nullptr)
 {
     CalculateAABB();
 }
@@ -379,7 +379,7 @@ Mesh::Mesh(
         std::move(indices)
     })),
     m_aabb(BoundingBox::Empty()),
-    m_render_resources(nullptr)
+    m_render_resource(nullptr)
 {
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
@@ -392,10 +392,10 @@ Mesh::Mesh(Mesh &&other) noexcept
       m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_aabb(other.m_aabb),
-      m_render_resources(other.m_render_resources)
+      m_render_resource(other.m_render_resource)
 {
     other.m_aabb = BoundingBox::Empty();
-    other.m_render_resources = nullptr;
+    other.m_render_resource = nullptr;
 }
 
 Mesh &Mesh::operator=(Mesh &&other) noexcept
@@ -404,17 +404,17 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
         return *this;
     }
 
-    if (m_render_resources != nullptr) {
-        FreeResource(m_render_resources);
+    if (m_render_resource != nullptr) {
+        FreeResource(m_render_resource);
     }
 
     m_mesh_attributes = other.m_mesh_attributes;
     m_streamed_mesh_data = std::move(other.m_streamed_mesh_data);
     m_aabb = other.m_aabb;
-    m_render_resources = other.m_render_resources;
+    m_render_resource = other.m_render_resource;
 
     other.m_aabb = BoundingBox::Empty();
-    other.m_render_resources = nullptr;
+    other.m_render_resource = nullptr;
 
     return *this;
 }
@@ -426,8 +426,8 @@ Mesh::~Mesh()
 
         m_always_claimed_render_resources_handle.Reset();
 
-        if (m_render_resources != nullptr) {
-            FreeResource(m_render_resources);
+        if (m_render_resource != nullptr) {
+            FreeResource(m_render_resource);
         }
     }
 }
@@ -442,16 +442,16 @@ void Mesh::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
-        if (m_render_resources != nullptr) {
-            FreeResource(m_render_resources);
+        if (m_render_resource != nullptr) {
+            FreeResource(m_render_resource);
 
-            m_render_resources = nullptr;
+            m_render_resource = nullptr;
         }
     }));
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    m_render_resources = AllocateResource<MeshRenderResources>(this);
+    m_render_resource = AllocateResource<MeshRenderResource>(this);
 
     {
         HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
@@ -460,8 +460,8 @@ void Mesh::Init()
             m_streamed_mesh_data.Emplace();
         }
 
-        m_render_resources->SetVertexAttributes(GetVertexAttributes());
-        m_render_resources->SetStreamedMeshData(m_streamed_mesh_data);
+        m_render_resource->SetVertexAttributes(GetVertexAttributes());
+        m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
     }
 
     SetReady(true);
@@ -513,7 +513,7 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
             });
         }
 
-        m_render_resources->SetStreamedMeshData(m_streamed_mesh_data);
+        m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
     }
 }
 
@@ -548,7 +548,7 @@ void Mesh::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
     m_mesh_attributes.vertex_attributes = vertex_attributes;
 
     if (IsInitCalled()) {
-        m_render_resources->SetVertexAttributes(vertex_attributes);
+        m_render_resource->SetVertexAttributes(vertex_attributes);
     }
 }
 
@@ -560,7 +560,7 @@ void Mesh::SetMeshAttributes(const MeshAttributes &attributes)
     m_mesh_attributes = attributes;
 
     if (IsInitCalled()) {
-        m_render_resources->SetVertexAttributes(attributes.vertex_attributes);
+        m_render_resource->SetVertexAttributes(attributes.vertex_attributes);
     }
 }
 
@@ -570,10 +570,10 @@ void Mesh::Render(CommandBuffer *cmd, uint32 num_instances, uint32 instance_inde
     AssertReady();
 #endif
 
-    cmd->BindVertexBuffer(m_render_resources->GetVertexBuffer());
-    cmd->BindIndexBuffer(m_render_resources->GetIndexBuffer());
+    cmd->BindVertexBuffer(m_render_resource->GetVertexBuffer());
+    cmd->BindIndexBuffer(m_render_resource->GetIndexBuffer());
 
-    cmd->DrawIndexed(m_render_resources->NumIndices(), num_instances, instance_index);
+    cmd->DrawIndexed(m_render_resource->NumIndices(), num_instances, instance_index);
 }
 
 void Mesh::RenderIndirect(
@@ -586,8 +586,8 @@ void Mesh::RenderIndirect(
     AssertReady();
 #endif
 
-    cmd->BindVertexBuffer(m_render_resources->GetVertexBuffer());
-    cmd->BindIndexBuffer(m_render_resources->GetIndexBuffer());
+    cmd->BindVertexBuffer(m_render_resource->GetVertexBuffer());
+    cmd->BindIndexBuffer(m_render_resource->GetIndexBuffer());
 
     cmd->DrawIndexedIndirect(
         indirect_buffer,
@@ -603,7 +603,7 @@ void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 
 #if HYP_VULKAN
     out.command = {
-        .indexCount = m_render_resources->NumIndices()
+        .indexCount = m_render_resource->NumIndices()
     };
 #else
     #error Not implemented for this platform!

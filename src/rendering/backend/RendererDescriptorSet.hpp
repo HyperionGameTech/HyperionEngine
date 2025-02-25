@@ -25,7 +25,7 @@
 
 namespace hyperion {
 
-class RenderResourcesBase;
+class RenderResourceBase;
 
 template <class T>
 struct ShaderDataOffset

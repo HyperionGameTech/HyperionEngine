@@ -1,4 +1,4 @@
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/backend/RenderCommand.hpp>
 
@@ -9,23 +9,23 @@
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_SUBCHANNEL(RenderResources, Rendering);
+HYP_DECLARE_LOG_CHANNEL(Resource);
+HYP_DEFINE_LOG_SUBCHANNEL(RenderResource, Resource);
 
-#pragma region RenderResourcesBase
+#pragma region RenderResourceBase
 
-RenderResourcesBase::RenderResourcesBase()
+RenderResourceBase::RenderResourceBase()
     : m_buffer_index(~0u),
       m_buffer_address(nullptr)
 {
 }
 
-RenderResourcesBase::RenderResourcesBase(RenderResourcesBase &&other) noexcept
+RenderResourceBase::RenderResourceBase(RenderResourceBase &&other) noexcept
     : ResourceBase(static_cast<ResourceBase &&>(other)),
       m_buffer_index(other.m_buffer_index),
       m_buffer_address(other.m_buffer_address)
@@ -34,11 +34,11 @@ RenderResourcesBase::RenderResourcesBase(RenderResourcesBase &&other) noexcept
     other.m_buffer_address = nullptr;
 }
 
-RenderResourcesBase::~RenderResourcesBase()
+RenderResourceBase::~RenderResourceBase()
 {
 }
 
-IThread *RenderResourcesBase::GetOwnerThread() const
+IThread *RenderResourceBase::GetOwnerThread() const
 {
     IThread *render_thread = Threads::GetThread(g_render_thread);
     AssertThrow(render_thread != nullptr);
@@ -46,7 +46,7 @@ IThread *RenderResourcesBase::GetOwnerThread() const
     return render_thread;
 }
 
-void RenderResourcesBase::Initialize()
+void RenderResourceBase::Initialize()
 {
     AssertThrow(m_buffer_index == ~0u);
     AcquireBufferIndex();
@@ -54,7 +54,7 @@ void RenderResourcesBase::Initialize()
     Initialize_Internal();
 }
 
-void RenderResourcesBase::Destroy()
+void RenderResourceBase::Destroy()
 {
     if (m_buffer_index != ~0u) {
         ReleaseBufferIndex();
@@ -63,22 +63,22 @@ void RenderResourcesBase::Destroy()
     Destroy_Internal();
 }
 
-void RenderResourcesBase::Update()
+void RenderResourceBase::Update()
 {
     Update_Internal();
 }
 
-bool RenderResourcesBase::CanExecuteInline() const
+bool RenderResourceBase::CanExecuteInline() const
 {
     return Threads::IsOnThread(g_render_thread);
 }
 
-void RenderResourcesBase::FlushScheduledTasks()
+void RenderResourceBase::FlushScheduledTasks()
 {
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 }
 
-void RenderResourcesBase::EnqueueOp(Proc<void> &&proc)
+void RenderResourceBase::EnqueueOp(Proc<void> &&proc)
 {
     struct RENDER_COMMAND(RenderResourceOperation) : renderer::RenderCommand
     {
@@ -102,7 +102,7 @@ void RenderResourcesBase::EnqueueOp(Proc<void> &&proc)
     PUSH_RENDER_COMMAND(RenderResourceOperation, std::move(proc));
 }
 
-void RenderResourcesBase::AcquireBufferIndex()
+void RenderResourceBase::AcquireBufferIndex()
 {
     HYP_SCOPE;
 
@@ -119,7 +119,7 @@ void RenderResourcesBase::AcquireBufferIndex()
     m_buffer_index = holder->AcquireIndex(&m_buffer_address);
 }
 
-void RenderResourcesBase::ReleaseBufferIndex()
+void RenderResourceBase::ReleaseBufferIndex()
 {
     HYP_SCOPE;
 
@@ -136,6 +136,6 @@ void RenderResourcesBase::ReleaseBufferIndex()
     m_buffer_address = nullptr;
 }
 
-#pragma endregion RenderResourcesBase
+#pragma endregion RenderResourceBase
 
 } // namespace hyperion

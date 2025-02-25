@@ -241,14 +241,14 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             const ID<Entity> entity = it.first;
             const RenderProxy &proxy = it.second;
 
-            proxy.UnclaimRenderResources();
+            proxy.UnclaimRenderResource();
 
             // Remove it, then add it back (changed proxies will be included in the added proxies list)
             AssertThrow(RemoveRenderProxy(proxy_list, entity));
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResources();
+            proxy.ClaimRenderResource();
 
             proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
@@ -257,7 +257,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
-            proxy->UnclaimRenderResources();
+            proxy->UnclaimRenderResource();
 
             proxy_list.MarkToRemove(entity);
         }

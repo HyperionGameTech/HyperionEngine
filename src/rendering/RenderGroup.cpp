@@ -503,9 +503,9 @@ static HYP_FORCE_INLINE void RenderAll(
         return;
     }
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResources> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -566,8 +566,8 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.material != nullptr ? draw_call.material->GetRenderResources().GetBufferIndex() : 0) },
-                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResources().GetBufferIndex() : 0) }
+                        { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.material != nullptr ? draw_call.material->GetRenderResource().GetBufferIndex() : 0) },
+                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResource().GetBufferIndex() : 0) }
                     },
                     entity_descriptor_set_index
                 );
@@ -576,7 +576,7 @@ static HYP_FORCE_INLINE void RenderAll(
                     frame->GetCommandBuffer(),
                     pipeline,
                     {
-                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResources().GetBufferIndex() : 0) }
+                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResource().GetBufferIndex() : 0) }
                     },
                     entity_descriptor_set_index
                 );
@@ -596,7 +596,7 @@ static HYP_FORCE_INLINE void RenderAll(
 
         // Bind material descriptor set
         if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-            const DescriptorSetRef &material_descriptor_set = draw_call.material->GetRenderResources().GetDescriptorSets()[frame_index];
+            const DescriptorSetRef &material_descriptor_set = draw_call.material->GetRenderResource().GetDescriptorSets()[frame_index];
             AssertThrow(material_descriptor_set.IsValid());
 
             material_descriptor_set->Bind(frame->GetCommandBuffer(), pipeline, material_descriptor_set_index);
@@ -662,9 +662,9 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
 
-    const SceneRenderResources *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResources *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResources> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
+    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
 
     if (divided_draw_calls.Size() == 1) {
         RenderAll<IsIndirect>(
@@ -732,8 +732,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     secondary,
                                     pipeline,
                                     {
-                                        { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.material != nullptr ? draw_call.material->GetRenderResources().GetBufferIndex() : 0) },
-                                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResources().GetBufferIndex() : 0) }
+                                        { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.material != nullptr ? draw_call.material->GetRenderResource().GetBufferIndex() : 0) },
+                                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResource().GetBufferIndex() : 0) }
                                     },
                                     entity_descriptor_set_index
                                 );
@@ -742,7 +742,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                                     secondary,
                                     pipeline,
                                     {
-                                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResources().GetBufferIndex() : 0) }
+                                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.skeleton != nullptr ? draw_call.skeleton->GetRenderResource().GetBufferIndex() : 0) }
                                     },
                                     entity_descriptor_set_index
                                 );
@@ -762,7 +762,7 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
                         // Bind material descriptor set
                         if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                            const DescriptorSetRef &material_descriptor_set = draw_call.material->GetRenderResources().GetDescriptorSets()[frame_index];
+                            const DescriptorSetRef &material_descriptor_set = draw_call.material->GetRenderResource().GetDescriptorSets()[frame_index];
                             AssertThrow(material_descriptor_set.IsValid());
 
                             material_descriptor_set->Bind(secondary, pipeline, material_descriptor_set_index);

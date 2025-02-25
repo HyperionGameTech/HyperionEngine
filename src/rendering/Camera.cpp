@@ -17,47 +17,47 @@
 
 namespace hyperion {
 
-#pragma region CameraRenderResources
+#pragma region CameraRenderResource
 
-CameraRenderResources::CameraRenderResources(Camera *camera)
+CameraRenderResource::CameraRenderResource(Camera *camera)
     : m_camera(camera),
       m_buffer_data { }
 {
 }
 
-CameraRenderResources::CameraRenderResources(CameraRenderResources &&other) noexcept
-    : RenderResourcesBase(static_cast<RenderResourcesBase &&>(other)),
+CameraRenderResource::CameraRenderResource(CameraRenderResource &&other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_camera(other.m_camera),
       m_buffer_data(std::move(other.m_buffer_data))
 {
     other.m_camera = nullptr;
 }
 
-CameraRenderResources::~CameraRenderResources() = default;
+CameraRenderResource::~CameraRenderResource() = default;
 
-void CameraRenderResources::Initialize_Internal()
+void CameraRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void CameraRenderResources::Destroy_Internal()
+void CameraRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void CameraRenderResources::Update_Internal()
+void CameraRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *CameraRenderResources::GetGPUBufferHolder() const
+GPUBufferHolderBase *CameraRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->cameras.Get();
 }
 
-void CameraRenderResources::UpdateBufferData()
+void CameraRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -66,7 +66,7 @@ void CameraRenderResources::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void CameraRenderResources::SetBufferData(const CameraShaderData &buffer_data)
+void CameraRenderResource::SetBufferData(const CameraShaderData &buffer_data)
 {
     HYP_SCOPE;
 
@@ -80,7 +80,7 @@ void CameraRenderResources::SetBufferData(const CameraShaderData &buffer_data)
     });
 }
 
-void CameraRenderResources::EnqueueBind()
+void CameraRenderResource::EnqueueBind()
 {
     HYP_SCOPE;
 
@@ -90,7 +90,7 @@ void CameraRenderResources::EnqueueBind()
     }, /* force_render_thread */ true);
 }
 
-void CameraRenderResources::EnqueueUnbind()
+void CameraRenderResource::EnqueueUnbind()
 {
     HYP_SCOPE;
 
@@ -100,7 +100,7 @@ void CameraRenderResources::EnqueueUnbind()
     }, /* force_render_thread */ true);
 }
 
-#pragma endregion CameraRenderResources
+#pragma endregion CameraRenderResource
 
 namespace renderer {
 

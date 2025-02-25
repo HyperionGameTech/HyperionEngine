@@ -3,7 +3,7 @@
 #ifndef HYPERION_RENDERING_SKELETON_HPP
 #define HYPERION_RENDERING_SKELETON_HPP
 
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <core/math/Matrix4.hpp>
 
@@ -24,12 +24,12 @@ static_assert(sizeof(SkeletonShaderData) % 256 == 0);
 
 static constexpr uint32 max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);
 
-class SkeletonRenderResources final : public RenderResourcesBase
+class SkeletonRenderResource final : public RenderResourceBase
 {
 public:
-    SkeletonRenderResources(Skeleton *skeleton);
-    SkeletonRenderResources(SkeletonRenderResources &&other) noexcept;
-    virtual ~SkeletonRenderResources() override;
+    SkeletonRenderResource(Skeleton *skeleton);
+    SkeletonRenderResource(SkeletonRenderResource &&other) noexcept;
+    virtual ~SkeletonRenderResource() override;
 
     void SetBufferData(const SkeletonShaderData &buffer_data);
 
@@ -41,7 +41,7 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
     virtual Name GetTypeName() const override
-        { return NAME("SkeletonRenderResources"); }
+        { return NAME("SkeletonRenderResource"); }
 
 private:
     void UpdateBufferData();

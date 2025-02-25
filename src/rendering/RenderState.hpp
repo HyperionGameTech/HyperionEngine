@@ -15,7 +15,7 @@
 
 #include <rendering/Light.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/RenderResources.hpp>
+#include <rendering/RenderResource.hpp>
 #include <rendering/EnvProbe.hpp>
 
 #include <scene/Scene.hpp>
@@ -27,7 +27,7 @@ namespace hyperion {
 class RenderEnvironment;
 class EnvGrid;
 class Camera;
-class CameraRenderResources;
+class CameraRenderResource;
 
 using RenderStateMask = uint32;
 
@@ -92,10 +92,10 @@ class RenderState : public HypObject<RenderState>
     HYP_OBJECT_BODY(RenderState);
 
 public:
-    Array<SceneRenderResources *>                                                           scene_bindings;
-    Array<CameraRenderResources *>                                                          camera_bindings;
-    FixedArray<Array<TResourceHandle<LightRenderResources>>, uint32(LightType::MAX)>        bound_lights;
-    Stack<TResourceHandle<LightRenderResources>>                                            light_bindings;
+    Array<SceneRenderResource *>                                                           scene_bindings;
+    Array<CameraRenderResource *>                                                          camera_bindings;
+    FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)>        bound_lights;
+    Stack<TResourceHandle<LightRenderResource>>                                            light_bindings;
     FixedArray<ArrayMap<ID<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>                bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                                             bound_env_grid;
     Stack<ID<EnvProbe>>                                                                     env_probe_bindings;
@@ -150,7 +150,7 @@ public:
     void BindLight(Light *light);
     void UnbindLight(Light *light);
 
-    void SetActiveLight(LightRenderResources &light_render_resources);
+    void SetActiveLight(LightRenderResource &light_render_resources);
 
     HYP_FORCE_INLINE void UnsetActiveLight()
     {
@@ -159,20 +159,20 @@ public:
         }
     }
 
-    const TResourceHandle<LightRenderResources> &GetActiveLight() const;
+    const TResourceHandle<LightRenderResource> &GetActiveLight() const;
 
     HYP_FORCE_INLINE void BindScene(const Scene *scene)
     {
         if (scene == nullptr) {
             scene_bindings.PushBack(nullptr);
         } else {
-            scene_bindings.PushBack(&scene->GetRenderResources());
+            scene_bindings.PushBack(&scene->GetRenderResource());
         }
     }
 
     void UnbindScene(const Scene *scene);
 
-    HYP_FORCE_INLINE SceneRenderResources *GetActiveScene() const
+    HYP_FORCE_INLINE SceneRenderResource *GetActiveScene() const
     {
         return scene_bindings.Empty()
             ? nullptr
@@ -182,7 +182,7 @@ public:
     void BindCamera(Camera *camera);
     void UnbindCamera(Camera *camera);
 
-    const CameraRenderResources &GetActiveCamera() const;
+    const CameraRenderResource &GetActiveCamera() const;
 
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);
     void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);
