@@ -2,11 +2,13 @@
 
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderLight.hpp>
 #include <rendering/RenderProbe.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
+
+#include <scene/Light.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

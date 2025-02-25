@@ -13,12 +13,12 @@
 
 #include <core/Defines.hpp>
 
-#include <rendering/RenderLight.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderProbe.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Light.hpp> // For LightType
 
 #include <Types.hpp>
 

@@ -1,9 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderProbe.hpp>
+#include <rendering/RenderLight.hpp>
+#include <rendering/RenderState.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
-#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 

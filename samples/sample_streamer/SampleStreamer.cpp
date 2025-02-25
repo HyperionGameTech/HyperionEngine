@@ -23,6 +23,7 @@
 #include <scene/ecs/components/ScriptComponent.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Light.hpp>
 
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>

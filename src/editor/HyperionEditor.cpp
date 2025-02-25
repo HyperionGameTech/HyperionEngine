@@ -10,6 +10,7 @@
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Light.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

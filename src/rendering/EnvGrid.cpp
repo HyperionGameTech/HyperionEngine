@@ -4,9 +4,10 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderState.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderState.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 

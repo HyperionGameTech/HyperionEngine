@@ -4,8 +4,9 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderProbe.hpp>
+#include <rendering/EnvGrid.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 

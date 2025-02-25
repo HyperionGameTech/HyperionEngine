@@ -4,6 +4,7 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Light.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

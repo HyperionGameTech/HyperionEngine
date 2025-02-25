@@ -6,11 +6,11 @@
 #include <core/Handle.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <rendering/RenderLight.hpp>
-
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+class Light;
 
 enum class LightComponentFlags : uint32
 {

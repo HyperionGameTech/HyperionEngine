@@ -3,6 +3,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderProbe.hpp>
+#include <rendering/RenderLight.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 

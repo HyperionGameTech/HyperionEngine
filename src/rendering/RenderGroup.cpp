@@ -8,8 +8,9 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderSkeleton.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/EnvGrid.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>

@@ -14,9 +14,10 @@
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
-#include <rendering/RenderLight.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
+
+#include <scene/Light.hpp> // For LightType
 
 namespace hyperion {
 

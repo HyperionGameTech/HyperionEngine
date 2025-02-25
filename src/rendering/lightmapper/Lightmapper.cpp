@@ -8,6 +8,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/EnvGrid.hpp>
 
 #include <scene/BVH.hpp>

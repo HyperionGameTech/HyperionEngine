@@ -7,7 +7,6 @@
 #include <core/object/HypObject.hpp>
 
 #include <rendering/PostFX.hpp>
-#include <rendering/RenderLight.hpp>
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderProbe.hpp>
 
