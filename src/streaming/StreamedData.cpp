@@ -125,51 +125,34 @@ bool StreamedData::IsInMemory() const
 bool StreamedData::IsNull() const
 {
     m_loading_semaphore.Acquire();
-    m_pre_init_semaphore.Produce(1);
 
-    bool result = IsNull_Internal();
-
-    m_pre_init_semaphore.Release(1);
-
-    return result;
+    return IsNull_Internal();
 }
 
 const ByteBuffer &StreamedData::Load() const
 {
+    if (IsInMemory()) {
+        return GetByteBuffer();
+    }
+
     HYP_NAMED_SCOPE("Load streamed data");
 
-    m_pre_init_semaphore.Acquire();
-    m_loading_semaphore.Acquire();
-
-    const ByteBuffer *buffer_ptr = &GetByteBuffer();
-
-    m_loading_semaphore.Produce(1, [this, &buffer_ptr]()
-    {
-        buffer_ptr = &Load_Internal();
-    });
+    m_loading_semaphore.Produce(1);
+    
+    const ByteBuffer &buffer = Load_Internal();
 
     m_loading_semaphore.Release(1);
 
-    AssertDebug(buffer_ptr != nullptr);
-
-    return *buffer_ptr;
+    return buffer;
 }
 
 void StreamedData::Unpage()
 {
-    if (!IsInMemory()) {
-        return;
-    }
-
     HYP_NAMED_SCOPE("Unpage streamed data");
 
-    m_pre_init_semaphore.Acquire();
-    m_loading_semaphore.Acquire();
-    
-    m_loading_semaphore.Produce(1, [this]()
-    {
-        Unpage_Internal();
-    });
+    m_loading_semaphore.Produce(1);
+
+    Unpage_Internal();
 
     m_loading_semaphore.Release(1);
 }

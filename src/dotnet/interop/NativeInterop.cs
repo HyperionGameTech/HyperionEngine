@@ -515,20 +515,13 @@ namespace Hyperion
 
         public static unsafe void InvokeMethod(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
         {
-            Console.WriteLine("Debug: InvokeMethod called");
-
             MethodInfo methodInfo = BasicCache<MethodInfo>.Instance.Get(managedMethodGuid);
 
             Type returnType = methodInfo.ReturnType;
             Type thisType = methodInfo.DeclaringType;
-            
-            Console.WriteLine("Debug: before HandleParameters");
-
 
             object[]? parameters;
             HandleParameters(argsHypDataPtr, methodInfo, out parameters);
-
-            Console.WriteLine("Debug: after HandleParameters");
 
             object? thisObject = null;
 
@@ -544,20 +537,12 @@ namespace Hyperion
 
             if (returnType == typeof(void))
             {
-
-                Console.WriteLine("Debug: before methodInfo.Invoke (void)");
                 methodInfo.Invoke(thisObject, parameters);
-
-                Console.WriteLine("Debug: after methodInfo.Invoke (void)");
 
                 return;
             }
 
-            Console.WriteLine("Debug: before methodInfo.Invoke");
-
             object? returnValue = methodInfo.Invoke(thisObject, parameters);
-
-            Console.WriteLine("Debug: after methodInfo.Invoke");
 
             ((HypDataBuffer*)outReturnHypDataPtr)->SetValue(returnValue);
         }
