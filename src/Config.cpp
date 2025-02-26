@@ -106,29 +106,34 @@ String Option::GetString() const
 
 #pragma region Configuration
 
-const FlatMap<OptionName, String> Configuration::option_name_strings = {
-    { CONFIG_DEBUG_MODE, "DebugMode" },
-    { CONFIG_SHADER_COMPILATION, "ShaderCompilation" },
-    { CONFIG_PATHTRACER,  "PathTracer" },
-    { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
-    { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
-    { CONFIG_ENV_GRID_GI_MODE, "EnvGridGlobalIlluminationMode" },
-    { CONFIG_HBAO, "HBAO" },
-    { CONFIG_HBIL, "HBIL" },
-    { CONFIG_TEMPORAL_AA, "TemporalAA" },
-    { CONFIG_LIGHT_RAYS, "LightRays" },
-    { CONFIG_DEBUG_SSR, "DebugSSR" },
-    { CONFIG_DEBUG_HBAO, "DebugHBAO" },
-    { CONFIG_DEBUG_HBIL, "DebugHBIL" },
-    { CONFIG_DEBUG_REFLECTIONS, "DebugReflections" },
-    { CONFIG_DEBUG_IRRADIANCE, "DebugIrradiance" },
-    { CONFIG_DEBUG_REFLECTION_PROBES, "DebugReflectionProbes" },
-    { CONFIG_DEBUG_ENV_GRID_PROBES, "DebugEnvGridProbes" }
-};
+static const FlatMap<OptionName, String> &GetOptionNameStrings()
+{
+    static const FlatMap<OptionName, String> option_name_strings {
+        { CONFIG_DEBUG_MODE, "DebugMode" },
+        { CONFIG_SHADER_COMPILATION, "ShaderCompilation" },
+        { CONFIG_PATHTRACER,  "PathTracer" },
+        { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
+        { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
+        { CONFIG_ENV_GRID_GI_MODE, "EnvGridGlobalIlluminationMode" },
+        { CONFIG_HBAO, "HBAO" },
+        { CONFIG_HBIL, "HBIL" },
+        { CONFIG_TEMPORAL_AA, "TemporalAA" },
+        { CONFIG_LIGHT_RAYS, "LightRays" },
+        { CONFIG_DEBUG_SSR, "DebugSSR" },
+        { CONFIG_DEBUG_HBAO, "DebugHBAO" },
+        { CONFIG_DEBUG_HBIL, "DebugHBIL" },
+        { CONFIG_DEBUG_REFLECTIONS, "DebugReflections" },
+        { CONFIG_DEBUG_IRRADIANCE, "DebugIrradiance" },
+        { CONFIG_DEBUG_REFLECTION_PROBES, "DebugReflectionProbes" },
+        { CONFIG_DEBUG_ENV_GRID_PROBES, "DebugEnvGridProbes" }
+    };
+
+    return option_name_strings;
+}
 
 OptionName Configuration::StringToOptionName(const String &str)
 {
-    for (auto &it : option_name_strings) {
+    for (auto &it : GetOptionNameStrings()) {
         if (it.second == str) {
             return it.first;
         }
@@ -139,9 +144,9 @@ OptionName Configuration::StringToOptionName(const String &str)
 
 String Configuration::OptionNameToString(OptionName option)
 {
-    const auto it = option_name_strings.Find(option);
+    const auto it = GetOptionNameStrings().Find(option);
 
-    if (it == option_name_strings.End()) {
+    if (it == GetOptionNameStrings().End()) {
         return "Unknown";
     }
 

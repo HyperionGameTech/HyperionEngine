@@ -20,6 +20,7 @@ class BoundingBox;
 struct Triangle;
 class RayTestResults;
 struct RayHit;
+class Matrix4;
 
 using RayHitID = uint32;
 
@@ -43,6 +44,8 @@ struct HYP_API Ray
         return position != other.position
             || direction != other.direction;
     }
+
+    Ray operator*(const Matrix4 &transform) const;
 
     bool TestAABB(const BoundingBox &aabb) const;
     bool TestAABB(const BoundingBox &aabb, RayTestResults &out_results) const;

@@ -5,7 +5,11 @@
 
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
+#include <core/containers/HashMap.hpp>
+
 #include <core/threading/DataRaceDetector.hpp>
+#include <core/threading/Spinlock.hpp>
+
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
 
@@ -69,15 +73,35 @@ struct EntityData
         
         return it->second;
     }
+
+    template <class Component>
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::Iterator FindComponent()
+    {
+        return components.Find<Component>();
+    }
+
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::Iterator FindComponent(TypeID component_type_id)
+    {
+        return components.Find(component_type_id);
+    }
+
+    template <class Component>
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::ConstIterator FindComponent() const
+    {
+        return components.Find<Component>();
+    }
+
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::ConstIterator FindComponent(TypeID component_type_id) const
+    {
+        return components.Find(component_type_id);
+    }
 };
 
 class EntityContainer
 {
 public:
-    using Iterator = FlatMap<WeakHandle<Entity>, EntityData>::Iterator;
-    using ConstIterator = FlatMap<WeakHandle<Entity>, EntityData>::ConstIterator;
-
-    using KeyValuePairType = FlatMap<WeakHandle<Entity>, EntityData>::KeyValuePairType;
+    using Iterator = HashMap<WeakHandle<Entity>, EntityData>::Iterator;
+    using ConstIterator = HashMap<WeakHandle<Entity>, EntityData>::ConstIterator;
 
     HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle)
     {
@@ -87,6 +111,24 @@ public:
 
         auto it = m_entities.Insert(handle.ToWeak(), {});
         AssertThrow(it.second);
+    }
+
+    HYP_FORCE_INLINE EntityData *TryGetEntityData(ID<Entity> id)
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        auto it = m_entities.FindAs(id);
+
+        return it != m_entities.End() ? &it->second : nullptr;
+    }
+
+    HYP_FORCE_INLINE const EntityData *TryGetEntityData(ID<Entity> id) const
+    {
+        HYP_MT_CHECK_READ(m_data_race_detector);
+
+        auto it = m_entities.FindAs(id);
+
+        return it != m_entities.End() ? &it->second : nullptr;
     }
 
     HYP_FORCE_INLINE EntityData &GetEntityData(ID<Entity> id)
@@ -151,13 +193,6 @@ public:
         return m_entities.FindAs(id);
     }
 
-    HYP_FORCE_INLINE void Erase(Iterator it)
-    {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        m_entities.Erase(it);
-    }
-
     HYP_FORCE_INLINE void Erase(ConstIterator it)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
@@ -171,7 +206,7 @@ public:
     )
 
 private:
-    FlatMap<WeakHandle<Entity>, EntityData> m_entities;
+    HashMap<WeakHandle<Entity>, EntityData> m_entities;
     
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

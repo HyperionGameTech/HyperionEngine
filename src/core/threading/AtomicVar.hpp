@@ -83,6 +83,12 @@ public:
     HYP_FORCE_INLINE T Exchange(T new_value, MemoryOrder order)
         { return m_value.exchange(new_value, detail::ToCxxMemoryOrder(order)); }
 
+    HYP_FORCE_INLINE bool CompareExchangeWeak(T &expected, T desired, MemoryOrder order)
+        { return m_value.compare_exchange_weak(expected, desired, detail::ToCxxMemoryOrder(order)); }
+
+    HYP_FORCE_INLINE bool CompareExchangeStrong(T &expected, T desired, MemoryOrder order)
+        { return m_value.compare_exchange_strong(expected, desired, detail::ToCxxMemoryOrder(order)); }
+
     HYP_FORCE_INLINE T Increment(T amount, MemoryOrder order)
         { return m_value.fetch_add(amount, detail::ToCxxMemoryOrder(order)); }
 

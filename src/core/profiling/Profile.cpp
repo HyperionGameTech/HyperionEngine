@@ -33,10 +33,6 @@ Array<double> Profile::RunInterleved(Array<Profile *> &&profiles, SizeType runs_
         results[i] = profiles[i]->GetResult();
     }
 
-    for (Profile *profile : profiles) {
-        delete profile;
-    }
-
     return results;
 }
 
@@ -51,7 +47,7 @@ Profile &Profile::Run(SizeType num_iterations, SizeType runs_per_iteration)
         auto start = high_resolution_clock::now();
 
         for (int j = 0; j < runs_per_iteration; j++) {
-            m_lambda();
+            m_profile_function();
         }
 
         auto stop = high_resolution_clock::now();

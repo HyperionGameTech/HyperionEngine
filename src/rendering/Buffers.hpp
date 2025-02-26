@@ -328,8 +328,8 @@ public:
                 : index;
 
             SizeType count = (range_end < index + Base::num_elements_per_block)
-                ? range_end - (offset - index)
-                : Base::num_elements_per_block - (offset - index);
+                ? range_end - offset
+                : Base::num_elements_per_block - offset;
 
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());

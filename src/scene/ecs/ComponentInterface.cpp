@@ -4,10 +4,23 @@
 
 #include <core/containers/FixedArray.hpp>
 
+#include <core/object/HypClass.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {
+
+HYP_API bool ComponentInterface_CreateInstance(const HypClass *hyp_class, HypData &out_hyp_data)
+{
+    if (!hyp_class || !hyp_class->CanCreateInstance()) {
+        return false;
+    }
+
+    hyp_class->CreateInstance(out_hyp_data);
+
+    return true;
+}
 
 #pragma region ComponentInterfaceRegistry
 
@@ -45,7 +58,7 @@ void ComponentInterfaceRegistry::Shutdown()
     m_is_initialized = false;
 }
 
-void ComponentInterfaceRegistry::Register(TypeID type_id, ANSIStringView type_name, ComponentInterface(*fptr)())
+void ComponentInterfaceRegistry::Register(TypeID type_id, UniquePtr<IComponentInterface>(*fptr)())
 {
     m_factories.Set(type_id, fptr);
 }

@@ -153,8 +153,13 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
         UpdateVisbilityState(entity_id, visibility_state_component, bounding_box_component);
     }
 
-    for (ID<Entity> entity_id : updated_entity_ids) {
-        GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+    if (updated_entity_ids.Any()) {
+        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        {
+            for (const ID<Entity> &entity_id : entity_ids) {
+                GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+            }
+        });
     }
 }
 

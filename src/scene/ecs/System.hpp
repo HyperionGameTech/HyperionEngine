@@ -30,6 +30,7 @@ class HYP_API SystemBase
 {
 public:
     friend class EntityManager;
+    friend class SystemExecutionGroup;
 
     virtual ~SystemBase() = default;
 
@@ -150,6 +151,19 @@ protected:
     HYP_FORCE_INLINE EntityManager &GetEntityManager()
         { return m_entity_manager; }
 
+    /*! \brief Set a Proc<void> to be called once after the System has processed.
+     *  The Proc<void> will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
+     *  After the Proc<void> has been called, it will be reset.
+     *
+     *  \param proc The Proc<void> to call after the System has processed.
+     */
+    void AfterProcess(Proc<void> &&proc)
+    {
+        AssertThrowMsg(!m_after_process_proc.IsValid(), "After process proc already set!");
+
+        m_after_process_proc = std::move(proc);
+    }
+
     Scene *GetScene() const;
     World *GetWorld() const;
 
@@ -164,6 +178,8 @@ private:
 
     Array<TypeID>                                               m_component_type_ids;
     Array<ComponentInfo>                                        m_component_infos;
+
+    Proc<void>                                                  m_after_process_proc;
 };
 
 /*! \brief A System is a class that operates on a set of components.

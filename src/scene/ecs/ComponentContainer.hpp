@@ -17,6 +17,7 @@
 #include <core/object/HypData.hpp>
 
 #include <core/ID.hpp>
+#include <core/IDGenerator.hpp>
 #include <core/Util.hpp>
 
 namespace hyperion {
@@ -24,6 +25,7 @@ namespace hyperion {
 class Entity;
 
 using ComponentID = uint32;
+using ComponentTypeID = uint32;
 using ComponentRWFlags = uint32;
 
 enum ComponentRWFlagBits : ComponentRWFlags
@@ -59,6 +61,31 @@ struct ComponentInfo
 };
 
 class ComponentContainerFactoryBase;
+
+struct ComponentTypeIDGeneratorBase
+{
+    static ComponentTypeID NextID()
+    {
+        static IDGenerator generator;
+
+        return generator.NextID();
+    }
+};
+
+template <class Component>
+struct ComponentTypeIDGenerator final : ComponentTypeIDGeneratorBase
+{
+    static ComponentTypeID Next()
+    {
+        static ComponentTypeID id = ComponentTypeIDGeneratorBase::NextID();
+
+        return id;
+    }
+};
+
+template <class Component>
+static ComponentTypeID GetComponentTypeID()
+    { return ComponentTypeIDGenerator<Component>::Next(); }
 
 class HYP_API ComponentContainerBase
 {
@@ -335,7 +362,7 @@ public:
 
 private:
     ComponentID                     m_component_id_counter = 0;
-    FlatMap<ComponentID, Component> m_components;
+    HashMap<ComponentID, Component> m_components;
 };
 
 template <class Component>

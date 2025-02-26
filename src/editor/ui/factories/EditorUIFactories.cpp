@@ -508,7 +508,7 @@ public:
             for (const auto &it : *all_components) {
                 const TypeID component_type_id = it.first;
 
-                const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
+                const IComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
                 if (!component_interface) {
                     HYP_LOG(Editor, Error, "No ComponentInterface registered for component with TypeID {}", component_type_id.Value());

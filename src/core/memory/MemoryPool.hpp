@@ -12,6 +12,8 @@
 
 #include <core/memory/Memory.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
+
 #include <core/IDGenerator.hpp>
 
 #include <Types.hpp>
@@ -262,6 +264,11 @@ protected:
 
     IDGenerator                     m_id_generator;
 };
+
+// struct MemoryPoolAllocator : Allocator<MemoryPoolAllocator>
+// {
+    
+// };
 
 } // namespace memory
 

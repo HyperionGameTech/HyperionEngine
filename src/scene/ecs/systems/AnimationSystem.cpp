@@ -39,8 +39,6 @@ void AnimationSystem::Process(GameCounter::TickUnit delta)
             }
 
             animation->ApplyBlended(playback_state.current_time, 0.5f);
-
-            // mesh_component.flags |= MESH_COMPONENT_FLAG_DIRTY;
         }
 
         mesh_component.skeleton->Update(delta);

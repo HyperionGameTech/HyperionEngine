@@ -102,17 +102,16 @@ if(MSVC)
         set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD")
     endif()
 else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
     # no exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
     # for full template backtrace
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
-    # if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer")
-    # else()
-    #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address")
-    # endif()
+    # # address sanitizer and other debugging utilities
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif()
 
 set(HYP_VERSION_MAJOR 1)

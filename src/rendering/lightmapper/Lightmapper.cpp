@@ -169,6 +169,8 @@ public:
 
                 const BVHNode *bvh_node = static_cast<const BVHNode *>(ray_hit.user_data);
 
+                // @FIXME! BVH has been changed to be local space, we'll need to multiply each hit by the transform matrix.
+
                 results.Insert(
                     ray_hit.distance,
                     LightmapRayHitData {

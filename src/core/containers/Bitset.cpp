@@ -17,7 +17,7 @@ namespace hyperion {
 
 namespace containers {
 
-static Array<Bitset::BlockType, 64> CreateBlocks_Internal(uint64 value)
+static Array<Bitset::BlockType, InlineAllocator<16>> CreateBlocks_Internal(uint64 value)
 {
     return { Bitset::BlockType(value & 0xFFFFFFFF), Bitset::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) };
 }

@@ -181,6 +181,8 @@ class HashMap : public ContainerBase<HashMap<Key, Value>, Key>
     static constexpr SizeType initial_bucket_size = 16;
     static constexpr double desired_load_factor = 0.75;
 
+    using HashMapBucketArray = Array<detail::HashMapBucket<Key, Value>, InlineAllocator<initial_bucket_size>>;
+
     template <class IteratorType>
     static inline void AdvanceIteratorBucket(IteratorType &iter)
     {
@@ -567,8 +569,8 @@ private:
     InsertResult Set_Internal(Pair<Key, Value> &&pair);
     InsertResult Insert_Internal(Pair<Key, Value> &&pair);
 
-    Array<detail::HashMapBucket<Key, Value>, initial_bucket_size * sizeof(detail::HashMapBucket<Key, Value>)> m_buckets;
-    SizeType m_size;
+    HashMapBucketArray  m_buckets;
+    SizeType            m_size;
 };
 
 template <class Key, class Value>
@@ -688,7 +690,7 @@ void HashMap<Key, Value>::Reserve(SizeType size)
         return;
     }
 
-    Array<detail::HashMapBucket<Key, Value>, initial_bucket_size * sizeof(detail::HashMapBucket<Key, Value>)> new_buckets;
+    HashMapBucketArray new_buckets;
     new_buckets.Resize(new_bucket_count);
 
     for (auto &bucket : m_buckets) {

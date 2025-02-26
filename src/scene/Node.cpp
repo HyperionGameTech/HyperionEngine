@@ -916,7 +916,10 @@ void Node::RefreshEntityTransform()
             });
         }
 
-        m_scene->GetEntityManager()->AddTags<EntityTag::UPDATE_AABB, EntityTag::UPDATE_BVH>(m_entity);
+        m_scene->GetEntityManager()->AddTags<
+            EntityTag::UPDATE_AABB,
+            EntityTag::UPDATE_LIGHT_TRANSFORM
+        >(m_entity);
     } else {
         SetEntityAABB(BoundingBox::Empty());
     }
@@ -981,20 +984,44 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
     if (ray.TestAABB(world_aabb)) {
         if (m_entity.IsValid()) {
             BVHNode *bvh = nullptr;
+            Matrix4 model_matrix = Matrix4::Identity();
 
             if (use_bvh && m_scene && m_scene->GetEntityManager()) {
+
                 if (BVHComponent *bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity.GetID())) {
                     bvh = &bvh_component->bvh;
+                }
+                
+                if (TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity.GetID())) {
+                    model_matrix = transform_component->transform.GetMatrix();
                 }
             }
 
             if (bvh) {
-                RayTestResults bvh_results = bvh->TestRay(ray);
+                const Ray local_space_ray = ray * model_matrix.Inverted();
 
-                if (bvh_results.Any()) {
-                    for (RayHit &hit : bvh_results) {
+                RayTestResults local_bvh_results = bvh->TestRay(local_space_ray);
+
+                if (local_bvh_results.Any()) {
+                    Matrix4 normal_matrix = model_matrix.Transpose().Inverted();
+
+                    RayTestResults bvh_results;
+
+                    for (RayHit hit : local_bvh_results) {
                         hit.id = m_entity.GetID().Value();
                         hit.user_data = nullptr;
+                        
+                        Vec4f transformed_normal = Vec4f(hit.normal, 0.0f) * normal_matrix;
+                        hit.normal = transformed_normal.GetXYZ().Normalized();
+
+                        Vec4f transformed_position = Vec4f(hit.hitpoint, 1.0f) * model_matrix;
+                        transformed_position /= transformed_position.w;
+
+                        hit.hitpoint = transformed_position.GetXYZ();
+
+                        hit.distance = (hit.hitpoint - ray.position).Length();
+
+                        bvh_results.AddHit(hit);
                     }
 
                     out_results.Merge(std::move(bvh_results));

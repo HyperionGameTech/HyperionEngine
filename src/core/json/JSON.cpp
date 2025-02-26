@@ -880,7 +880,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
         const bool is_integer = MathUtil::Fract(number) < MathUtil::epsilon_d;
 
-        CharArray chars;
+        Array<char> chars;
 
         if (is_integer) {
             int n = std::snprintf(nullptr, 0, "%lld", (long long)number);
@@ -896,7 +896,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
             }
         }
 
-        return String(chars);
+        return String(chars.ToByteView());
     }
 
     if (IsArray()) {

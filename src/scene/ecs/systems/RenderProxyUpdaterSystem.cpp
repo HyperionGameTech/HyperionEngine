@@ -143,8 +143,13 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
     }
 
-    for (const ID<Entity> &entity_id : updated_entity_ids) {
-        GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
+    if (updated_entity_ids.Any()) {
+        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        {
+            for (const ID<Entity> &entity_id : entity_ids) {
+                GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
+            }
+        });
     }
 
     if (render_proxies.Any()) {

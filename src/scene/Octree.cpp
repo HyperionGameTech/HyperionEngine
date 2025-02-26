@@ -6,6 +6,7 @@
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/BVHComponent.hpp>
+#include <scene/ecs/components/TransformComponent.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -1187,12 +1188,42 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
 
                     // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                     if (BVHComponent *bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.entity.GetID())) {
-                        RayTestResults bvh_results = bvh_component->bvh.TestRay(ray);
+                        Matrix4 model_matrix = Matrix4::Identity();
+                        Matrix4 normal_matrix = Matrix4::Identity();
 
-                        if (bvh_results.Any()) {
-                            for (RayHit &hit : bvh_results) {
+                        Ray local_space_ray = ray;
+
+                        if (TransformComponent *transform_component = m_entity_manager->TryGetComponent<TransformComponent>(entry.entity.GetID())) {
+                            model_matrix = transform_component->transform.GetMatrix();
+                            normal_matrix = model_matrix.Transpose().Inverted();
+                            
+                            local_space_ray = ray * model_matrix.Inverted();
+                        }
+
+                        HYP_LOG(Octree, Debug, "Testing ray against BVH for entity #{}", entry.entity.GetID().Value());
+                        HYP_LOG(Octree, Debug, "Ray: origin: {}, direction: {}", ray.position, ray.direction);
+                        HYP_LOG(Octree, Debug, "Local space ray: origin: {}, direction: {}", local_space_ray.position, local_space_ray.direction);
+
+                        RayTestResults local_bvh_results = bvh_component->bvh.TestRay(local_space_ray);
+
+                        if (local_bvh_results.Any()) {
+                            RayTestResults bvh_results;
+
+                            for (RayHit hit : local_bvh_results) {
                                 hit.id = entry.entity.GetID().Value();
                                 hit.user_data = nullptr;
+
+                                Vec4f transformed_normal = Vec4f(hit.normal, 0.0f) * normal_matrix;
+                                hit.normal = transformed_normal.GetXYZ().Normalized();
+
+                                Vec4f transformed_position = Vec4f(hit.hitpoint, 1.0f) * model_matrix;
+                                transformed_position /= transformed_position.w;
+
+                                hit.hitpoint = transformed_position.GetXYZ();
+
+                                hit.distance = (hit.hitpoint - ray.position).Length();
+
+                                bvh_results.AddHit(hit);
                             }
                             
                             out_results.Merge(std::move(bvh_results));

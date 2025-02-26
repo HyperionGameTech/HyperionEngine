@@ -93,7 +93,7 @@ struct EntitySetView;
  *  \tparam Components The components that the entities in this set have.
  */
 template <class... Components>
-class EntitySet : public EntitySetBase
+class EntitySet final : public EntitySetBase
 {
 public:
     friend struct EntitySetIterator<Components...>;
@@ -103,8 +103,6 @@ public:
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
-
-    static const EntitySetTypeID type_id;
 
     EntitySet(EntityContainer &entities, ComponentContainer<Components> &... component_containers)
         : m_entities(entities),
@@ -330,9 +328,6 @@ struct EntitySetView
         entity_set.End()
     )
 };
-
-template <class... Components>
-const EntitySetTypeID EntitySet<Components...>::type_id = EntitySetBase::GenerateEntitySetTypeID<Components...>();
 
 } // namespace hyperion
 

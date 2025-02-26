@@ -136,7 +136,7 @@ public:
      *  \note Init() must be called before this method. */
     void SetPersistentRenderResourceEnabled(bool enabled);
 
-    bool BuildBVH(const Matrix4 &transform, BVHNode &out_bvh_node, int max_depth = 3);
+    bool BuildBVH(BVHNode &out_bvh_node, int max_depth = 3);
 
 private:
     void CalculateAABB();

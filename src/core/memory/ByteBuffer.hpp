@@ -13,14 +13,12 @@
 
 namespace hyperion {
 
-using ByteArray = Array<ubyte>;
-
 namespace memory {
 
 HYP_STRUCT()
 class ByteBuffer
 {
-    using InternalArray = Array<ubyte, 1024u>;
+    using InternalArray = Array<ubyte, InlineAllocator<1024>>;
 
 public:
     ByteBuffer() = default;
@@ -99,12 +97,12 @@ public:
         { return const_cast<ByteBuffer *>(this)->GetInternalArray(); }
 
     /*! \brief Returns a copy of the ByteBuffer's data. */
-    ByteArray ToByteArray() const
+    Array<ubyte> ToArray() const
     {
         const SizeType size = GetInternalArray().Size();
         const ubyte *data = GetInternalArray().Data();
 
-        ByteArray byte_array;
+        Array<ubyte> byte_array;
         byte_array.Resize(size);
         Memory::MemCpy(byte_array.Data(), data, size);
 

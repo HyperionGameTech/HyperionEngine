@@ -28,7 +28,7 @@ void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    if (mesh_component.mesh->BuildBVH(transform_component.transform.GetMatrix(), bvh_component.bvh, /* max_depth */ 3)) {
+    if (mesh_component.mesh->BuildBVH(bvh_component.bvh, /* max_depth */ 3)) {
         HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
             mesh_component.mesh->GetID().Value(),
             mesh_component.mesh->GetName());
@@ -55,7 +55,7 @@ void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        if (mesh_component.mesh->BuildBVH(transform_component.transform.GetMatrix(), bvh_component.bvh, /* max_depth */ 3)) {
+        if (mesh_component.mesh->BuildBVH(bvh_component.bvh, /* max_depth */ 3)) {
             HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
                 mesh_component.mesh->GetID().Value(),
                 mesh_component.mesh->GetName());
@@ -68,8 +68,13 @@ void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
     }
 
-    for (const ID<Entity> &entity_id : updated_entity_ids) {
-        GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity_id);
+    if (updated_entity_ids.Any()) {
+        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        {
+            for (const ID<Entity> &entity_id : entity_ids) {
+                GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity_id);
+            }
+        });
     }
 }
 

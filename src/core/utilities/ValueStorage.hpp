@@ -99,10 +99,10 @@ struct ValueStorageArray
         { return data[index]; }
     
     HYP_FORCE_INLINE T *GetPointer()
-        { return static_cast<T *>(&data[0]); }
+        { return reinterpret_cast<T *>(&data[0]); }
     
     HYP_FORCE_INLINE const T *GetPointer() const
-        { return static_cast<const T *>(&data[0]); }
+        { return reinterpret_cast<const T *>(&data[0]); }
     
     HYP_FORCE_INLINE void *GetRawPointer()
         { return static_cast<void *>(&data[0]); }

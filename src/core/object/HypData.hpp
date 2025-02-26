@@ -1462,35 +1462,35 @@ struct HypDataHelper<WeakName> : HypDataHelper<Name>
 {
 };
 
-template <class T, SizeType NumInlineBytes>
-struct HypDataHelperDecl<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v<T>>> {};
+template <class T, class AllocatorType>
+struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> {};
 
-template <class T, SizeType NumInlineBytes>
-struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
+template <class T, class AllocatorType>
+struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any &value) const
     {
-        return value.Is<Array<T, NumInlineBytes>>();
+        return value.Is<Array<T, AllocatorType>>();
     }
 
-    HYP_FORCE_INLINE Array<T, NumInlineBytes> &Get(const Any &value) const
+    HYP_FORCE_INLINE Array<T, AllocatorType> &Get(const Any &value) const
     {
-        return value.Get<Array<T, NumInlineBytes>>();
+        return value.Get<Array<T, AllocatorType>>();
     }
 
-    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Array<T, NumInlineBytes> &value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Array<T, AllocatorType> &value) const
     {
-        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(value));
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, AllocatorType>>(value));
     }
 
-    HYP_FORCE_INLINE void Set(HypData &hyp_data, Array<T, NumInlineBytes> &&value) const
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Array<T, AllocatorType> &&value) const
     {
-        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, NumInlineBytes>>(std::move(value)));
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Array<T, AllocatorType>>(std::move(value)));
     }
 
-    static fbom::FBOMResult Serialize(const Array<T, NumInlineBytes> &value, fbom::FBOMData &out_data)
+    static fbom::FBOMResult Serialize(const Array<T, AllocatorType> &value, fbom::FBOMData &out_data)
     {
         HYP_SCOPE;
 
@@ -1529,7 +1529,7 @@ struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v
 
         const SizeType size = array.Size();
 
-        Array<T, NumInlineBytes> result;
+        Array<T, AllocatorType> result;
         result.Reserve(size);
 
         for (SizeType i = 0; i < size; i++) {
@@ -1542,7 +1542,7 @@ struct HypDataHelper<Array<T, NumInlineBytes>, std::enable_if_t<!std::is_const_v
             result.PushBack(std::move(element.Get<T>()));
         }
 
-        HypDataHelper<Array<T, NumInlineBytes>>{}.Set(out, std::move(result));
+        HypDataHelper<Array<T, AllocatorType>>{}.Set(out, std::move(result));
 
         return { fbom::FBOMResult::FBOM_OK };
     }

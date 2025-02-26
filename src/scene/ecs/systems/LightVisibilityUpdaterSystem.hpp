@@ -4,6 +4,8 @@
 #define HYPERION_ECS_LIGHT_VISIBILITY_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
+#include <scene/ecs/EntityTag.hpp>
+
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -22,7 +24,9 @@ class LightVisibilityUpdaterSystem : public System<
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
     // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:

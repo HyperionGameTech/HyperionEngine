@@ -6,7 +6,7 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/containers/FlatMap.hpp>
+#include <core/containers/HashMap.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
 
@@ -175,8 +175,6 @@ public:
 
 class HYP_API Configuration
 {
-    static const FlatMap<OptionName, String> option_name_strings;
-
 public:
     Configuration();
     ~Configuration() = default;

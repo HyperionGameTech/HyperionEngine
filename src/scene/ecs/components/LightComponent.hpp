@@ -4,7 +4,6 @@
 #define HYPERION_ECS_LIGHT_COMPONENT_HPP
 
 #include <core/Handle.hpp>
-#include <core/utilities/EnumFlags.hpp>
 
 #include <HashCode.hpp>
 
@@ -12,24 +11,11 @@ namespace hyperion {
 
 class Light;
 
-enum class LightComponentFlags : uint32
-{
-    NONE    = 0x0
-};
-
-HYP_MAKE_ENUM_FLAGS(LightComponentFlags)
-
-HYP_STRUCT(Component, Label="Light Component", Description="Controls the rendering of an object acting as a light source.", Editor=true)
+HYP_STRUCT(Component, Size=8, Label="Light Component", Description="Controls the rendering of an object acting as a light source.", Editor=true)
 struct LightComponent
 {
     HYP_FIELD(Property="Light", Serialize=true, Editor=true)
-    Handle<Light>                   light;
-
-    HYP_FIELD()
-    HashCode                        transform_hash_code;
-
-    HYP_FIELD()
-    EnumFlags<LightComponentFlags>  flags = LightComponentFlags::NONE;
+    Handle<Light>   light;
 
     const Handle<Light> &GetLight() const
         { return light; }
@@ -46,8 +32,6 @@ struct LightComponent
         return hash_code;
     }
 };
-
-static_assert(sizeof(LightComponent) == 24, "LightComponent size mismatch with C#");
 
 } // namespace hyperion
 

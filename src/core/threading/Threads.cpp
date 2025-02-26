@@ -9,6 +9,10 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#if defined(__x86_64__) || defined(__i386__)
+#include <immintrin.h>
+#endif
+
 namespace hyperion {
 
 HYP_API const StaticThreadID g_main_thread = StaticThreadID(NAME("Main"));

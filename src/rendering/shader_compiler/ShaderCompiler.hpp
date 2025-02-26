@@ -530,16 +530,16 @@ HYP_STRUCT()
 struct DescriptorUsageType
 {
     HYP_FIELD(Property="Name", Serialize=true)
-    Name                            name; 
+    Name                                            name; 
 
     HYP_FIELD(Property="Size", Serialize=true)
-    uint32                          size = ~0u;
+    uint32                                          size = ~0u;
 
     HYP_FIELD(Property="FieldNames", Serialize=true)
-    Array<Name>                     field_names;
+    Array<Name>                                     field_names;
 
     HYP_FIELD(Property="FieldTypes", Serialize=true)
-    Array<DescriptorUsageType, 0>   field_types;
+    Array<DescriptorUsageType, DynamicAllocator>    field_types;
 
     DescriptorUsageType()                                                   = default;
 

@@ -36,19 +36,16 @@ namespace detail {
     
 using namespace utf;
 
-template <class CharType>
-using CharArray = Array<CharType, 64u>;
-
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 template <int TStringType>
-class String : Array<typename StringTypeImpl<TStringType>::CharType, 64u>
+class String : Array<typename StringTypeImpl<TStringType>::CharType, InlineAllocator<64>>
 {
 public:
     using CharType = typename StringTypeImpl<TStringType>::CharType;
     using WidestCharType = typename StringTypeImpl<TStringType>::WidestCharType;
 
 protected:
-    using Base = Array<CharType, 64u>;
+    using Base = Array<CharType, InlineAllocator<64>>;
 
 public:
     using ValueType = typename Base::ValueType;
@@ -92,7 +89,7 @@ public:
     String(const String &other);
     String(const CharType *str);
     String(const CharType *_begin, const CharType *_end);
-    explicit String(const CharArray<CharType> &char_array);
+    
     explicit String(ConstByteView byte_view);
 
     template <int TOtherStringType>
@@ -392,8 +389,8 @@ public:
     HYP_NODISCARD String Escape() const;
     HYP_NODISCARD String ReplaceAll(const String &search, const String &replace) const;
 
-    template <class ... SeparatorType>
-    HYP_NODISCARD Array<String> Split(SeparatorType ... separators) const 
+    template <class... SeparatorType>
+    HYP_NODISCARD Array<String> Split(SeparatorType... separators) const 
     {
         hyperion::FixedArray<WidestCharType, sizeof...(separators)> separator_values { WidestCharType(separators)... };
 
@@ -813,23 +810,6 @@ String<TStringType>::String(String &&other) noexcept
     other.Clear();
 }
 
-
-template <int TStringType>
-String<TStringType>::String(const CharArray<CharType> &char_array)
-    : Base(),
-      m_length(0)
-{
-    Base::Resize(char_array.Size());
-    Memory::MemCpy(Data(), char_array.Data(), char_array.Size());
-    
-    // add null terminator char if it does not exist yet.
-    if (char_array.Empty() || char_array.Back() != 0) {
-        Base::PushBack(0);
-    }
-
-    m_length = utf::utf_strlen<CharType, is_utf8>(Base::Data());
-}
-
 template <int TStringType>
 String<TStringType>::String(ConstByteView byte_view)
     : Base(),
@@ -1025,11 +1005,11 @@ auto String<TStringType>::GetChar(SizeType index) const -> WidestCharType
 template <int TStringType>
 void String<TStringType>::Append(const utilities::detail::StringView<TStringType> &string_view)
 {
-    if (Size() + string_view.Size() + 1 >= Base::m_capacity) {
-        if (Base::m_capacity >= Size() + string_view.Size() + 1) {
+    if (Size() + string_view.Size() + 1 >= Base::Capacity()) {
+        if (Base::Capacity() >= Size() + string_view.Size() + 1) {
             Base::ResetOffsets();
         } else {
-            Base::SetCapacity(Base::GetCapacity(Size() + string_view.Size() + 1));
+            Base::SetCapacity(Base::CalculateDesiredCapacity(Size() + string_view.Size() + 1));
         }
     }
 
@@ -1063,11 +1043,11 @@ template <int TStringType>
 void String<TStringType>::Append(CharType value)
 {
     // @FIXME: Don't actually need +2 if null char exists
-    if (Size() + 2 >= Base::m_capacity) {
-        if (Base::m_capacity >= Size() + 2) {
+    if (Size() + 2 >= Base::Capacity()) {
+        if (Base::Capacity() >= Size() + 2) {
             Base::ResetOffsets();
         } else {
-            Base::SetCapacity(Base::GetCapacity(Size() + 2));
+            Base::SetCapacity(Base::CalculateDesiredCapacity(Size() + 2));
         }
     }
 
@@ -1540,8 +1520,6 @@ constexpr bool operator==(const utilities::detail::StringView<TStringType> &lhs,
 
 } // namespace detail
 } // namespace containers
-
-using CharArray = containers::detail::CharArray<char>;
 
 // StringView + String
 template <int TStringType>

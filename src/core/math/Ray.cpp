@@ -2,12 +2,27 @@
 #include <core/math/Ray.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Triangle.hpp>
+#include <core/math/Matrix4.hpp>
 #include <core/math/MathUtil.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {
+
+Ray Ray::operator*(const Matrix4 &transform) const
+{
+    Vec4f transformed_position = Vec4f(position, 1.0f) * transform;
+    transformed_position /= transformed_position.w;
+
+    Vec4f transformed_direction = Vec4f(direction, 0.0f) * transform;
+
+    Ray result;
+    result.position = transformed_position.GetXYZ();
+    result.direction = transformed_direction.GetXYZ().Normalized();
+
+    return result;
+}
 
 bool Ray::TestAABB(const BoundingBox &aabb) const
 {

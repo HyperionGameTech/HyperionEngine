@@ -499,8 +499,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         m_scene = project_scene;
         AssertThrow(InitObject(m_scene));
 
-        // TEMP: disabled while debugging memory usage
-        if (false) { // Ensure nodes with entities have BVH for ray testing on mouse click
+        { // Ensure nodes with entities have BVH for ray testing on mouse click
             for (Node *child : m_scene->GetRoot()->GetDescendants()) {
                 child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
             }

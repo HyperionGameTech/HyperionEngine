@@ -3,21 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum LightComponentFlags : uint
-    {
-        None = 0x0
-    }
-
     [HypClassBinding(Name="LightComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct LightComponent : IComponent
     {
         [FieldOffset(0)]
         private Handle<Light> lightHandle;
-        [FieldOffset(8)]
-        private HashCode transformHashCode;
-        [FieldOffset(16)]
-        private LightComponentFlags lightComponentFlags;
 
         public Light? Light
         {

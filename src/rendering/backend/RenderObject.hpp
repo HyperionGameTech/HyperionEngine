@@ -938,8 +938,8 @@ static inline void SafeRelease(renderer::RenderObjectHandle_Strong<T, PLATFORM> 
     RenderObjectDeleter<PLATFORM>::template GetQueue<T>().Push(std::move(handle));
 }
 
-template <class T, SizeType Sz, renderer::PlatformType PLATFORM>
-static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T, PLATFORM>, Sz> &&handles)
+template <class T, class AllocatorType, renderer::PlatformType PLATFORM>
+static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T, PLATFORM>, AllocatorType> &&handles)
 {
     for (auto &it : handles) {
         if (!it.IsValid()) {

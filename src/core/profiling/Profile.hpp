@@ -3,7 +3,6 @@
 #ifndef HYPERION_PROFILE_HPP
 #define HYPERION_PROFILE_HPP
 
-#include <core/functional/Proc.hpp>
 #include <core/containers/Array.hpp>
 
 #include <Types.hpp>
@@ -16,12 +15,12 @@ namespace profiling {
 class Profile
 {
 public:
-    using ProfileFunction = Proc<void>;
+    using ProfileFunction = void(*)(void);
 
     static Array<double> RunInterleved(Array<Profile *> &&, SizeType runs_per = 5, SizeType num_iterations = 100, SizeType runs_per_iteration = 100);
     
-    Profile(ProfileFunction &&lambda)
-        : m_lambda(std::move(lambda)),
+    Profile(ProfileFunction profile_function)
+        : m_profile_function(profile_function),
           m_result(0.0),
           m_iteration(0)
     {
@@ -47,7 +46,7 @@ public:
     }
 
 private:
-    ProfileFunction m_lambda;
+    ProfileFunction m_profile_function;
     double          m_result;
     SizeType        m_iteration;
 };

@@ -4,47 +4,22 @@
 #define HYPERION_ECS_ENTITY_SET_BASE_HPP
 
 #include <core/ID.hpp>
+#include <core/IDGenerator.hpp>
 
 #include <Types.hpp>
-
-#include <atomic>
 
 namespace hyperion {
 
 class Entity;
-
-using EntitySetTypeID = uint32;
 
 class EntitySetBase;
 class ComponentContainerBase;
 
 // @TODO Ensure it is safe across DLLs
 
-struct EntitySetIDGeneratorBase
-{
-    static inline std::atomic<uint32> counter { 0u };
-};
-
-template <class... Components>
-struct EntitySetIDGenerator : EntitySetIDGeneratorBase
-{
-    static EntitySetTypeID GetID()
-    {
-        static EntitySetTypeID id = ++EntitySetIDGeneratorBase::counter;
-
-        return id;
-    }
-};
-
 class EntitySetBase
 {
 public:
-    template <class... Components>
-    static EntitySetTypeID GenerateEntitySetTypeID()
-    {
-        return EntitySetIDGenerator<Components...>::GetID();
-    }
-
     EntitySetBase()                                             = default;
     EntitySetBase(const EntitySetBase &other)                   = delete;
     EntitySetBase &operator=(const EntitySetBase &other)        = delete;

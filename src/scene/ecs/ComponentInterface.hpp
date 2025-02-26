@@ -23,19 +23,26 @@
 #include <core/math/Matrix4.hpp>
 #include <core/math/Quaternion.hpp>
 
+#include <core/object/HypData.hpp>
+
 #include <scene/ecs/ComponentFactory.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
 
 namespace hyperion {
 
-
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
 
-struct HypData;
+enum class EntityTag : uint32;
+
+template <EntityTag Tag>
+struct EntityTagComponent;
+
 class HypClass;
 
 extern HYP_API const HypClass *GetClass(TypeID);
+
+extern HYP_API bool ComponentInterface_CreateInstance(const HypClass *hyp_class, HypData &out_hyp_data);
 
 enum class ComponentInterfaceFlags : uint32
 {
@@ -45,42 +52,47 @@ enum class ComponentInterfaceFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ComponentInterfaceFlags)
 
-class ComponentInterface
+class IComponentInterface
+{
+public:
+    virtual ~IComponentInterface() = default;
+
+    virtual TypeID GetTypeID() const = 0;
+    virtual ANSIStringView GetTypeName() const = 0;
+    virtual const HypClass *GetClass() const = 0;
+    virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const = 0;
+
+    virtual bool CreateInstance(HypData &out) const = 0;
+
+    virtual bool IsEntityTag() const = 0;
+    virtual EntityTag GetEntityTag() const = 0;
+};
+
+template <class Component>
+class ComponentInterface : public IComponentInterface
 {
 public:
     ComponentInterface()
-        : m_type_id(TypeID::Void()),
-          m_component_factory(nullptr),
-          m_component_container_factory(nullptr),
-          m_flags(ComponentInterfaceFlags::NONE)
+        : m_component_factory(nullptr),
+          m_component_container_factory(nullptr)
     {
     }
 
-    ComponentInterface(TypeID type_id, ANSIStringView type_name, UniquePtr<IComponentFactory> &&component_factory, ComponentContainerFactoryBase *component_container_factory, EnumFlags<ComponentInterfaceFlags> flags)
-        : m_type_id(type_id),
-          m_type_name(type_name),
-          m_component_factory(std::move(component_factory)),
-          m_component_container_factory(component_container_factory),
-          m_flags(flags)
+    ComponentInterface(UniquePtr<IComponentFactory> &&component_factory, ComponentContainerFactoryBase *component_container_factory)
+        : m_component_factory(std::move(component_factory)),
+          m_component_container_factory(component_container_factory)
     {
-        if (!(m_flags & ComponentInterfaceFlags::ENTITY_TAG)) {
-            AssertThrowMsg(::hyperion::GetClass(m_type_id) != nullptr, "No HypClass registered for Component of type %s", type_name.Data());
-        }
+        AssertThrowMsg(::hyperion::GetClass(TypeID::ForType<Component>()) != nullptr, "No HypClass registered for Component of type %s", TypeName<Component>().Data());
     }
 
     ComponentInterface(const ComponentInterface &)                  = delete;
     ComponentInterface &operator=(const ComponentInterface &)       = delete;
 
     ComponentInterface(ComponentInterface &&other) noexcept
-        : m_type_id(other.m_type_id),
-          m_type_name(std::move(other.m_type_name)),
-          m_component_factory(std::move(other.m_component_factory)),
-          m_component_container_factory(other.m_component_container_factory),
-          m_flags(other.m_flags)
+        : m_component_factory(std::move(other.m_component_factory)),
+          m_component_container_factory(other.m_component_container_factory)
     {
-        other.m_type_id = TypeID::Void();
         other.m_component_container_factory = nullptr;
-        other.m_flags = ComponentInterfaceFlags::NONE;
     }
 
     ComponentInterface &operator=(ComponentInterface &&other) noexcept
@@ -89,42 +101,112 @@ public:
             return *this;
         }
 
-        m_type_id = other.m_type_id;
-        m_type_name = std::move(other.m_type_name);
         m_component_factory = std::move(other.m_component_factory);
         m_component_container_factory = other.m_component_container_factory;
-        m_flags = other.m_flags;
 
-        other.m_type_id = TypeID::Void();
         other.m_component_container_factory = nullptr;
-        other.m_flags = ComponentInterfaceFlags::NONE;
 
         return *this;
     }
 
-    ~ComponentInterface()                                           = default;
+    virtual ~ComponentInterface() override = default;
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return m_type_id; }
+    virtual TypeID GetTypeID() const override
+        { return TypeID::ForType<Component>(); }
 
-    HYP_FORCE_INLINE ANSIStringView GetTypeName() const
-        { return m_type_name; }
+    virtual ANSIStringView GetTypeName() const override
+        { return TypeNameHelper<Component, true>::value; }
 
-    HYP_FORCE_INLINE const HypClass *GetClass() const
-        { return ::hyperion::GetClass(m_type_id); }
+    virtual const HypClass *GetClass() const override
+        { return ::hyperion::GetClass(TypeID::ForType<Component>()); }
 
-    HYP_FORCE_INLINE ComponentContainerFactoryBase *GetComponentContainerFactory() const
+    virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const override
         { return m_component_container_factory; }
 
-    HYP_FORCE_INLINE EnumFlags<ComponentInterfaceFlags> GetFlags() const
-        { return m_flags; }
+    virtual bool CreateInstance(HypData &out) const override
+        { return ComponentInterface_CreateInstance(GetClass(), out); }
+
+    virtual bool IsEntityTag() const override
+        { return false; }
+
+    virtual EntityTag GetEntityTag() const override
+        { return (EntityTag)-1; }
 
 private:
-    TypeID                              m_type_id;
-    ANSIStringView                      m_type_name;
-    UniquePtr<IComponentFactory>        m_component_factory;
-    ComponentContainerFactoryBase       *m_component_container_factory;
-    EnumFlags<ComponentInterfaceFlags>  m_flags;
+    UniquePtr<IComponentFactory>    m_component_factory;
+    ComponentContainerFactoryBase   *m_component_container_factory;
+};
+
+template <EntityTag Tag>
+class EntityTagComponentInterface : public IComponentInterface
+{
+public:
+    EntityTagComponentInterface()
+        : m_component_factory(nullptr),
+          m_component_container_factory(nullptr)
+    {
+    }
+
+    EntityTagComponentInterface(UniquePtr<IComponentFactory> &&component_factory, ComponentContainerFactoryBase *component_container_factory)
+        : m_component_factory(std::move(component_factory)),
+          m_component_container_factory(component_container_factory)
+    {
+    }
+
+    EntityTagComponentInterface(const EntityTagComponentInterface &)                  = delete;
+    EntityTagComponentInterface &operator=(const EntityTagComponentInterface &)       = delete;
+
+    EntityTagComponentInterface(EntityTagComponentInterface &&other) noexcept
+        : m_component_factory(std::move(other.m_component_factory)),
+          m_component_container_factory(other.m_component_container_factory)
+    {
+        other.m_component_container_factory = nullptr;
+    }
+
+    EntityTagComponentInterface &operator=(EntityTagComponentInterface &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        m_component_factory = std::move(other.m_component_factory);
+        m_component_container_factory = other.m_component_container_factory;
+
+        other.m_component_container_factory = nullptr;
+
+        return *this;
+    }
+
+    virtual ~EntityTagComponentInterface() override = default;
+
+    virtual TypeID GetTypeID() const override
+        { return TypeID::ForType<EntityTagComponent<Tag>>(); }
+
+    virtual ANSIStringView GetTypeName() const override
+        { return TypeNameHelper<EntityTagComponent<Tag>, true>::value; }
+
+    virtual const HypClass *GetClass() const override
+        { return ::hyperion::GetClass(TypeID::ForType<EntityTagComponent<Tag>>()); }
+
+    virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const override
+        { return m_component_container_factory; }
+
+    virtual bool CreateInstance(HypData &out) const override
+    {
+        out = HypData(EntityTagComponent<Tag> { });
+
+        return true;
+    }
+
+    virtual bool IsEntityTag() const override
+        { return true; }
+
+    virtual EntityTag GetEntityTag() const override
+        { return Tag; }
+
+private:
+    UniquePtr<IComponentFactory>    m_component_factory;
+    ComponentContainerFactoryBase   *m_component_container_factory;
 };
 
 class ComponentInterfaceRegistry
@@ -137,9 +219,9 @@ public:
     void Initialize();
     void Shutdown();
 
-    void Register(TypeID type_id, ANSIStringView type_name, ComponentInterface(*fptr)());
+    void Register(TypeID type_id, UniquePtr<IComponentInterface>(*fptr)());
 
-    HYP_FORCE_INLINE const ComponentInterface *GetComponentInterface(TypeID type_id) const
+    const IComponentInterface *GetComponentInterface(TypeID type_id) const
     {
         AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
 
@@ -149,55 +231,82 @@ public:
             return nullptr;
         }
 
-        return &it->second;
+        return it->second.Get();
     }
 
-    HYP_FORCE_INLINE Array<const ComponentInterface *> GetComponentInterfaces() const
+    Array<const IComponentInterface *> GetComponentInterfaces() const
     {
         AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
 
-        Array<const ComponentInterface *> interfaces;
+        Array<const IComponentInterface *> interfaces;
         interfaces.Resize(m_interfaces.Size());
 
         uint32 interface_index = 0;
 
         for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it, ++interface_index) {
-            interfaces[interface_index] = &it->second;
+            interfaces[interface_index] = it->second.Get();
         }
 
         return interfaces;
     }
 
+    const IComponentInterface *GetEntityTagComponentInterface(EntityTag tag) const
+    {
+        AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
+
+        for (auto it = m_interfaces.Begin(); it != m_interfaces.End(); ++it) {
+            if (it->second->IsEntityTag() && it->second->GetEntityTag() == tag) {
+                return it->second.Get();
+            }
+        }
+
+        return nullptr;
+    }
+
 private:
-    bool                                m_is_initialized;
-    TypeMap<ComponentInterface(*)()>    m_factories;
-    TypeMap<ComponentInterface>         m_interfaces;
+    bool                                            m_is_initialized;
+    TypeMap<UniquePtr<IComponentInterface>(*)()>    m_factories;
+    TypeMap<UniquePtr<IComponentInterface>>         m_interfaces;
 };
 
-template <class ComponentType, ComponentInterfaceFlags... Flags>
+template <class ComponentType>
 struct ComponentInterfaceRegistration
 {
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
             TypeID::ForType<ComponentType>(),
-            TypeNameHelper<ComponentType, true>::value,
-            []() -> ComponentInterface
+            []() -> UniquePtr<IComponentInterface>
             {
-                return ComponentInterface(
-                    TypeID::ForType<ComponentType>(),
-                    TypeNameHelper<ComponentType, true>::value,
+                return MakeUnique<ComponentInterface<ComponentType>>(
                     MakeUnique<ComponentFactory<ComponentType>>(),
-                    ComponentContainer<ComponentType>::GetFactory(),
-                    MergeEnumFlags<ComponentInterfaceFlags, Flags...>::value
+                    ComponentContainer<ComponentType>::GetFactory()
                 );
             }
         );
     }
 };
 
-#define HYP_REGISTER_COMPONENT(type, ...) static ComponentInterfaceRegistration< type, ##__VA_ARGS__ > type##_ComponentInterface_Registration { }
-#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent<EntityTag::tag>, ComponentInterfaceFlags::ENTITY_TAG > tag##_EntityTag_ComponentInterface_Registration { }
+template <EntityTag Tag>
+struct ComponentInterfaceRegistration<EntityTagComponent<Tag>>
+{
+    ComponentInterfaceRegistration()
+    {
+        ComponentInterfaceRegistry::GetInstance().Register(
+            TypeID::ForType<EntityTagComponent<Tag>>(),
+            []() -> UniquePtr<IComponentInterface>
+            {
+                return MakeUnique<EntityTagComponentInterface<Tag>>(
+                    MakeUnique<ComponentFactory<EntityTagComponent<Tag>>>(),
+                    ComponentContainer<EntityTagComponent<Tag>>::GetFactory()
+                );
+            }
+        );
+    }
+};
+
+#define HYP_REGISTER_COMPONENT(type) static ComponentInterfaceRegistration< type > type##_ComponentInterface_Registration { }
+#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag > > tag##_EntityTag_ComponentInterface_Registration { }
 
 } // namespace hyperion
 

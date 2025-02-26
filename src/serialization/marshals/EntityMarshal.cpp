@@ -63,7 +63,7 @@ public:
             for (const auto &it : *all_components) {
                 const TypeID component_type_id = it.first;
 
-                const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
+                const IComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
                 if (!component_interface) {
                     result = { FBOMResult::FBOM_ERR, HYP_FORMAT("No ComponentInterface registered for component with TypeID {}", component_type_id.Value()) };
@@ -154,7 +154,7 @@ public:
                 continue;
             }
             
-            const ComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(subobject_type_id);
+            const IComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(subobject_type_id);
 
             if (!component_interface) {
                 HYP_LOG(Serialization, Warning, "No ComponentInterface registered for component with TypeID {} (serialized object type name: {})", subobject_type_id.Value(), subobject.GetType().name);

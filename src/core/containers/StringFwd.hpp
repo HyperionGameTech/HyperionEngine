@@ -27,9 +27,6 @@ namespace detail {
     
 using namespace utf;
 
-template <class CharType>
-using CharArray = Array<CharType, 64u>;
-
 template <int StringType>
 struct StringTypeImpl { };
 

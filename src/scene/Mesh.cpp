@@ -588,7 +588,7 @@ void Mesh::CalculateAABB()
     m_aabb = aabb;
 }
 
-bool Mesh::BuildBVH(const Matrix4 &transform, BVHNode &out_bvh_node, int max_depth)
+bool Mesh::BuildBVH(BVHNode &out_bvh_node, int max_depth)
 {
     if (!m_streamed_mesh_data) {
         return false;
@@ -597,9 +597,7 @@ bool Mesh::BuildBVH(const Matrix4 &transform, BVHNode &out_bvh_node, int max_dep
     auto ref = m_streamed_mesh_data->AcquireRef();
     const MeshData &mesh_data = ref->GetMeshData();
     
-    out_bvh_node = BVHNode(m_aabb * transform);
-
-    const Matrix4 normal_matrix = transform.Inverted().Transpose();
+    out_bvh_node = BVHNode(m_aabb);
 
     for (uint32 i = 0; i < mesh_data.indices.Size(); i += 3) {
         Triangle triangle {
@@ -608,21 +606,21 @@ bool Mesh::BuildBVH(const Matrix4 &transform, BVHNode &out_bvh_node, int max_dep
             mesh_data.vertices[mesh_data.indices[i + 2]]
         };
 
-        triangle[0].position = transform * triangle[0].position;
-        triangle[1].position = transform * triangle[1].position;
-        triangle[2].position = transform * triangle[2].position;
+        triangle[0].position = triangle[0].position;
+        triangle[1].position = triangle[1].position;
+        triangle[2].position = triangle[2].position;
 
-        triangle[0].normal = (transform * Vec4f(triangle[0].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[1].normal = (transform * Vec4f(triangle[1].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[2].normal = (transform * Vec4f(triangle[2].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[0].normal = (Vec4f(triangle[0].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[1].normal = (Vec4f(triangle[1].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[2].normal = (Vec4f(triangle[2].normal.Normalized(), 0.0f)).GetXYZ().Normalize();
 
-        triangle[0].tangent = (transform * Vec4f(triangle[0].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[1].tangent = (transform * Vec4f(triangle[1].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[2].tangent = (transform * Vec4f(triangle[2].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[0].tangent = (Vec4f(triangle[0].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[1].tangent = (Vec4f(triangle[1].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[2].tangent = (Vec4f(triangle[2].tangent.Normalized(), 0.0f)).GetXYZ().Normalize();
 
-        triangle[0].bitangent = (transform * Vec4f(triangle[0].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[1].bitangent = (transform * Vec4f(triangle[1].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
-        triangle[2].bitangent = (transform * Vec4f(triangle[2].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[0].bitangent = (Vec4f(triangle[0].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[1].bitangent = (Vec4f(triangle[1].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
+        triangle[2].bitangent = (Vec4f(triangle[2].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
 
         out_bvh_node.AddTriangle(triangle);
     }

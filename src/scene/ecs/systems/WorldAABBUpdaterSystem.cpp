@@ -43,9 +43,14 @@ void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
     }
 
-    for (const ID<Entity> &entity_id : updated_entity_ids) {
-        GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
-        GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_id);
+    if (updated_entity_ids.Any()) {
+        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        {
+            for (const ID<Entity> &entity_id : entity_ids) {
+                GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+                GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_id);
+            }
+        });
     }
 }
 

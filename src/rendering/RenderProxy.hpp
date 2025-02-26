@@ -28,16 +28,16 @@ struct MeshInstanceData
     static constexpr uint32 max_buffers = 8;
 
     HYP_FIELD(Property="NumInstances", Serialize=true)
-    uint32                          num_instances = 0;
+    uint32                                  num_instances = 0;
 
     HYP_FIELD(Property="Buffers", Serialize=true)
-    Array<Array<ubyte>, 0>          buffers;
+    Array<Array<ubyte>, DynamicAllocator>   buffers;
 
     HYP_FIELD(Property="BufferStructSizes", Serialize=true)
-    FixedArray<uint32, max_buffers> buffer_struct_sizes;
+    FixedArray<uint32, max_buffers>         buffer_struct_sizes;
 
     HYP_FIELD(Property="BufferStructAlignments", Serialize=true)
-    FixedArray<uint32, max_buffers> buffer_struct_alignments;
+    FixedArray<uint32, max_buffers>         buffer_struct_alignments;
 
     HYP_FORCE_INLINE bool operator==(const MeshInstanceData &other) const
     {
