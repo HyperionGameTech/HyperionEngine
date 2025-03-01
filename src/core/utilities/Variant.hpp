@@ -3,17 +3,15 @@
 #ifndef HYPERION_VARIANT_HPP
 #define HYPERION_VARIANT_HPP
 
-#include <core/containers/StaticArray.hpp>
-
 #include <core/memory/Memory.hpp>
 
 #include <core/utilities/TypeID.hpp>
 
 #include <core/debug/Debug.hpp>
 
-#include <core/Traits.hpp>
-
 #include <core/math/MathUtil.hpp>
+
+#include <core/Traits.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>

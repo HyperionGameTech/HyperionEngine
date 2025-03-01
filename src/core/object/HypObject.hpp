@@ -50,6 +50,60 @@ extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotne
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
 
+template <class ExpectedType>
+bool IsInstanceOfHypClass(const HypClass *instance_hyp_class)
+{
+    if (!instance_hyp_class) {
+        return false;
+    }
+
+    const HypClass *hyp_class = GetClass(TypeID::ForType<ExpectedType>());
+
+    if (!hyp_class) {
+        return false;
+    }
+
+    return IsInstanceOfHypClass(hyp_class, instance_hyp_class);
+}
+
+template <class ExpectedType, class InstanceType>
+bool IsInstanceOfHypClass(const InstanceType *instance)
+{
+    static_assert(
+        std::is_convertible_v<ExpectedType *, InstanceType *>,
+        "IsInstanceOfHypClass() check will never return true as the compared types are fundamentally different."
+    );
+
+    if (!instance) {
+        return false;
+    }
+
+    const HypClass *instance_hyp_class = GetClass(TypeID::ForType<InstanceType>());
+
+    if (!instance_hyp_class) {
+        return false;
+    }
+
+    const HypClass *hyp_class = GetClass(TypeID::ForType<ExpectedType>());
+
+    if (!hyp_class) {
+        return false;
+    }
+
+    // Short-circuit with compile time checking
+    if constexpr (std::is_same_v<ExpectedType, InstanceType> || std::is_base_of_v<ExpectedType, InstanceType>) {
+        return true;
+    }
+
+    return IsInstanceOfHypClass(hyp_class, instance_hyp_class);
+}
+
+template <class ExpectedType, class InstanceType, typename = std::enable_if_t<!std::is_pointer_v<InstanceType>>>
+bool IsInstanceOfHypClass(const InstanceType &instance)
+{
+    return IsInstanceOfHypClass<ExpectedType, InstanceType>(&instance);
+}
+
 template <class T>
 class HypObjectInitializer final : public IHypObjectInitializer
 {

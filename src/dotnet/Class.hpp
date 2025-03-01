@@ -59,22 +59,6 @@ struct ManagedClass
 
 } // extern "C"
 
-namespace detail {
-
-template <class T>
-constexpr inline T *ToPointerType(T *value)
-{
-    return value;
-}
-
-template <class T>
-constexpr inline T *ToPointerType(T **value)
-{
-    return *value;
-}
-
-} // namespace detail
-
 class HYP_API Class
 {
 public:

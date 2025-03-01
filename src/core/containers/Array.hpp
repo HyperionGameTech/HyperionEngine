@@ -57,15 +57,12 @@ struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<implementation_exists<T
 
 } // namespace detail
 
-template <class T, class AllocatorType = typename detail::ArrayDefaultAllocatorSelector<T>::Type>
-class Array;
-
 /*! \brief Array class with smart front removal and inline storage so small lists
     do not require any heap allocation
     \details Average speed is about the same as std::vector in most cases
     \note will use a bit more memory than std::vector, partially because of inline storage in the class,
     and partially due to the front offset member, used to have fewer deallocations/shifting on PopFront(). */
-template <class T, class AllocatorType>
+template <class T, class AllocatorType = typename detail::ArrayDefaultAllocatorSelector<T>::Type>
 class Array : public ContainerBase<Array<T, AllocatorType>, SizeType>
 {
 public:
@@ -1253,7 +1250,7 @@ void Array<T, AllocatorType>::Clear()
 
 } // namespace containers
 
-template <class T, class AllocatorType = containers::detail::ArrayDefaultAllocatorSelector<T>::Type>
+template <class T, class AllocatorType = typename containers::detail::ArrayDefaultAllocatorSelector<T>::Type>
 using Array = containers::Array<T, AllocatorType>;
 
 // traits

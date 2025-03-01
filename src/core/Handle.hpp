@@ -240,13 +240,6 @@ public:
         return WeakHandle<T>(*this);
     }
     
-    static Name GetTypeName()
-    {
-        static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());
-
-        return type_name;
-    }
-    
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         // Hashcode must be same as ID<T> hashcode
@@ -469,13 +462,6 @@ struct WeakHandle final
         }
 
         ptr = nullptr;
-    }
-    
-    static Name GetTypeName()
-    {
-        static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());
-
-        return type_name;
     }
     
     HYP_FORCE_INLINE HashCode GetHashCode() const

@@ -3,7 +3,6 @@
 #ifndef HYPERION_TYPE_ID_HPP
 #define HYPERION_TYPE_ID_HPP
 
-#include <core/threading/Mutex.hpp>
 #include <core/Name.hpp>
 #include <core/Util.hpp>
 

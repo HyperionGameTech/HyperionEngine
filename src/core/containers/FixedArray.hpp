@@ -9,8 +9,6 @@
 
 #include <core/Defines.hpp>
 
-#include <core/math/MathUtil.hpp>
-
 #include <Types.hpp>
 
 #include <algorithm>
@@ -38,7 +36,7 @@ class FixedArray
 public:
     static constexpr bool is_contiguous = true;
 
-    T m_values[MathUtil::Max(Sz, 1)];
+    T m_values[Sz > 1 ? Sz : 1];
 
     using Iterator = T *;
     using ConstIterator = const T *;

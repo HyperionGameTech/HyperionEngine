@@ -59,9 +59,9 @@ struct DDGIInfo
     static constexpr uint32 depth_octahedron_size = 16;
     static constexpr Vec3u  probe_border = Vec3u { 2, 0, 2 };
 
-    BoundingBox                 aabb;
-    float                       probe_distance = 3.2f;
-    uint32                      num_rays_per_probe = 64;
+    BoundingBox aabb;
+    float       probe_distance = 3.2f;
+    uint32      num_rays_per_probe = 64;
 
     HYP_FORCE_INLINE const Vec3f &GetOrigin() const
         { return aabb.min; }

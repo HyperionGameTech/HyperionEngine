@@ -30,6 +30,11 @@ static void AppendCommandLineArgumentValue(Array<Pair<String, CommandLineArgumen
     });
 
     if (it != values.End()) {
+        // Don't overwrite or append the value if it is null or undefined
+        if (value.IsNullOrUndefined()) {
+            return;
+        }
+
         if (allow_multiple) {
             if (it->second.IsArray()) {
                 it->second.AsArray().PushBack(std::move(value));

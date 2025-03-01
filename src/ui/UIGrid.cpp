@@ -83,7 +83,7 @@ bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    if (ui_object->InstanceClass() == UIGridColumn::Class()) {
+    if (IsInstanceOfHypClass<UIGridColumn>(ui_object)) {
         auto it = m_columns.FindAs(ui_object);
 
         if (it != m_columns.End()) {

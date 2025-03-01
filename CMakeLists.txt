@@ -92,14 +92,16 @@ if(MSVC)
     # no exceptions
     add_definitions("/D_HAS_EXCEPTIONS=0")
 
+    # add_definitions("/constexpr:depth1024")
+
     if(HYP_DEBUG_MODE)
         message(STATUS "Generating PDB for Hyperion library")
 
-        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD /Zi")
+        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD /Zi /constexpr:depth1024")
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
-        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD")
+        set(CMAKE_CXX_FLAGS_RELEASE "/Zc:preprocessor /O2 /MD /constexpr:depth1024")
     endif()
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
