@@ -58,34 +58,7 @@ struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<implementation_exists<T
 template <class T, class AllocatorType, class T2 = void>
 struct ArrayStorage
 {
-    static constexpr bool use_inline_storage = false;
-    static constexpr SizeType default_capacity = 0;
-
-    typename AllocatorType::template Allocation<T>  allocation;
-
-    ArrayStorage()
-        : allocation()
-    {
-    }
-};
-
-template <class T, class DynamicAllocatorType>
-struct ArrayStorage<T, InlineAllocator<0, DynamicAllocatorType>> : public ArrayStorage<T, DynamicAllocatorType, void>
-{
-};
-
-template <class T, SizeType NumInlineElements, class DynamicAllocatorType>
-struct ArrayStorage<T, InlineAllocator<NumInlineElements, DynamicAllocatorType>, std::enable_if_t< NumInlineElements != 0 > >
-{
-    static constexpr bool use_inline_storage = true;
-    static constexpr SizeType default_capacity = NumInlineElements;
-    
-    typename InlineAllocator<NumInlineElements, DynamicAllocatorType>::template Allocation<T>   allocation;
-
-    ArrayStorage()
-        : allocation()
-    {
-    }
+    Allocation<T, AllocatorType>    allocation;
 };
 
 } // namespace detail
@@ -109,8 +82,6 @@ public:
     using ArrayStorageType = detail::ArrayStorage<T, AllocatorType>;
 
     static constexpr bool is_contiguous = true;
-    
-    static constexpr bool use_inline_storage = ArrayStorageType::use_inline_storage;
 
 protected:
     // on PushFront() we can pad the start with this number,
@@ -610,6 +581,7 @@ Array<T, AllocatorType>::Array()
     : m_size(0),
       m_start_offset(0)
 {
+    m_storage.allocation.SetToInitialState();
 }
 
 template <class T, class AllocatorType>
@@ -617,14 +589,16 @@ Array<T, AllocatorType>::Array(const Array &other)
     : m_size(other.m_size - other.m_start_offset),
       m_start_offset(0)
 {
+    m_storage.allocation.SetToInitialState();
     m_storage.allocation.Allocate(m_size);
     m_storage.allocation.InitFromRangeCopy(other.Begin(), other.End());
 }
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(Array &&other) noexcept
-    : Array()
 {
+    m_storage.allocation.SetToInitialState();
+
     if (other.m_storage.allocation.IsDynamic()) {
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
@@ -640,7 +614,8 @@ Array<T, AllocatorType>::Array(Array &&other) noexcept
 
     other.m_size = 0;
     other.m_start_offset = 0;
-    other.m_storage.allocation = typename AllocatorType::template Allocation<T>();
+
+    other.m_storage.allocation.SetToInitialState();
 }
 
 template <class T, class AllocatorType>
@@ -697,7 +672,8 @@ auto Array<T, AllocatorType>::operator=(Array &&other) noexcept -> Array&
 
     other.m_size = 0;
     other.m_start_offset = 0;
-    other.m_storage.allocation = typename AllocatorType::template Allocation<T>();
+
+    other.m_storage.allocation.SetToInitialState();
 
     return *this;
 }
@@ -739,7 +715,8 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
     AssertDebug(capacity <= SIZE_MAX / sizeof(T));
 
     // delete and copy all over again
-    typename AllocatorType::template Allocation<T> new_allocation;
+    Allocation<T, AllocatorType> new_allocation;
+    new_allocation.SetToInitialState();
     new_allocation.Allocate(capacity);
     new_allocation.InitFromRangeMove(Begin(), End(), offset);
 
@@ -751,11 +728,7 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
 
     m_start_offset = offset;
     
-    m_storage.allocation = std::move(new_allocation);
-
-    // testing
-    AssertDebug(m_size <= m_storage.allocation.GetCapacity());
-    AssertDebug(m_storage.allocation.GetCapacity() == capacity);
+    m_storage.allocation = new_allocation;
 }
 
 template <class T, class AllocatorType>

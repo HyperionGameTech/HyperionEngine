@@ -44,35 +44,6 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
         T           *buffer;
         SizeType    capacity;
 
-        Allocation()
-        {
-            SetToInitialState();
-        }
-
-        Allocation(const Allocation &other)                 = delete;
-        Allocation &operator=(const Allocation &other)      = delete;
-
-        Allocation(Allocation &&other) noexcept
-            : buffer(other.buffer),
-              capacity(other.capacity)
-        {
-            other.SetToInitialState();
-        }
-
-        Allocation &operator=(Allocation &&other) noexcept
-        {
-            if (this == std::addressof(other)) {
-                return *this;
-            }
-
-            buffer = other.buffer;
-            capacity = other.capacity;
-
-            other.SetToInitialState();
-
-            return *this;
-        }
-
         void Allocate(SizeType count)
         {
             AssertDebug(buffer == nullptr);
@@ -170,46 +141,6 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
     template <class T>
     struct Allocation : AllocationBase<Allocation<T>>
     {
-        Allocation()
-        {
-            SetToInitialState();
-        }
-
-        Allocation(const Allocation &other)                 = delete;
-        Allocation &operator=(const Allocation &other)      = delete;
-        
-        Allocation(Allocation &&other) noexcept
-        {
-            if (other.is_dynamic) {
-                dynamic_allocation = std::move(other.dynamic_allocation);
-                is_dynamic = true;
-            } else {
-                storage = std::move(other.storage);
-                is_dynamic = false;
-            }
-
-            other.SetToInitialState();
-        }
-
-        Allocation &operator=(Allocation &&other) noexcept
-        {
-            if (this == std::addressof(other)) {
-                return *this;
-            }
-
-            if (other.is_dynamic) {
-                dynamic_allocation = std::move(other.dynamic_allocation);
-                is_dynamic = true;
-            } else {
-                storage = std::move(other.storage);
-                is_dynamic = false;
-            }
-
-            other.SetToInitialState();
-
-            return *this;
-        }
-
         HYP_FORCE_INLINE T *GetBuffer()
         {
             return reinterpret_cast<T *>(is_dynamic ? dynamic_allocation.GetBuffer() : storage.GetRawPointer());
@@ -239,6 +170,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             }
     
             dynamic_allocation = typename DynamicAllocatorType::template Allocation<T>();
+            dynamic_allocation.SetToInitialState();
             dynamic_allocation.Allocate(count);
 
             is_dynamic = true;
@@ -258,7 +190,9 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             AssertDebug(!is_dynamic);
             
             dynamic_allocation = typename DynamicAllocatorType::template Allocation<T>();
+            dynamic_allocation.SetToInitialState();
             dynamic_allocation.TakeOwnership(begin, end);
+
             is_dynamic = true;
         }
 
@@ -314,21 +248,27 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             is_dynamic = false;
         }
 
-        // union {
-            ValueStorageArray<T, Count> storage;
+        union {
+            ValueStorageArray<T, Count>                             storage;
 
             typename DynamicAllocatorType::template Allocation<T>   dynamic_allocation;
-        // };
+        };
 
         bool is_dynamic;
     };
 };
+
+template <class T, class AllocatorType>
+using Allocation = typename AllocatorType::template Allocation<T>;
 
 } // namespace memory
 
 using memory::Allocator;
 using memory::DynamicAllocator;
 using memory::InlineAllocator;
+
+template <class T, class AllocatorType>
+using Allocation = typename AllocatorType::template Allocation<T>;
 
 } // namespace hyperion
 
