@@ -32,6 +32,9 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/String.hpp>
 
+#include <core/algorithm/Map.hpp>
+#include <core/algorithm/FindIf.hpp>
+
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 #include <core/object/HypProperty.hpp>
@@ -228,6 +231,7 @@ static Optional<Color> ParseColor(const String &str)
             values[value_index] = uint8(value);
         }
     } else {
+        auto fn = FunctionWrapper<String(String::*)() const>(&String::Trimmed);
 
         // Parse rgba if csv
         Array<String> split = Map(str.Split(','), &String::Trimmed);

@@ -5,11 +5,13 @@
 
 #include <rendering/RenderTexture.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 #include <core/filesystem/FsUtil.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -64,7 +66,7 @@ static void AddMaterial(MaterialLibrary &library, const String &tag)
     String unique_tag(tag);
     int counter = 0;
 
-    while (library.materials.Any([&unique_tag](const MaterialDef &material_def) { return material_def.tag == unique_tag; })) {
+    while (AnyOf(library.materials, [&unique_tag](const MaterialDef &material_def) { return material_def.tag == unique_tag; })) {
         unique_tag = tag + String::ToString(++counter);
     }
 
@@ -278,8 +280,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 it.second.values.Size()
             ));
 
-            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; }))
-            {
+            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && AnyOf(it.second.values, [](float value) { return value > 0.0f; })) {
                 attributes.blend_function = BlendFunction::AlphaBlending();
                 attributes.bucket = BUCKET_TRANSLUCENT;
             }

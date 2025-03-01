@@ -209,14 +209,6 @@ public:
     HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
         { AssertDebugMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
 
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
-        { return Base::Any(std::forward<Lambda>(lambda)); }
-
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
-        { return Base::Every(std::forward<Lambda>(lambda)); }
-
     HYP_FORCE_INLINE Value &operator[](const Key &key)
     {
         const auto it = Find(key);

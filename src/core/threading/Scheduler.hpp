@@ -11,6 +11,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/StaticMessage.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/threading/SchedulerFwd.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
@@ -295,16 +297,21 @@ public:
 
         std::unique_lock lock(m_mutex);
 
-        if (!m_queue.Any() || !m_queue.Any([id](const auto &item) { return item.executor->GetTaskID() == id; })) {
+        if (m_queue.Empty()) {
+            return;
+        }
+
+        if (!AnyOf(m_queue, [id](const auto &item) { return item.executor->GetTaskID() == id; })) {
             return;
         }
 
         m_task_executed.wait(lock, [this, id]
         {
-            return !m_queue.Any() || !m_queue.Any([id](const auto &item)
-            {
-                return item.executor->GetTaskID() == id;
-            });
+            if (m_queue.Empty()) {
+                return true;
+            }
+
+            return !AnyOf(m_queue, [id](const auto &item) { return item.executor->GetTaskID() == id; });
         });
     }
     
@@ -373,7 +380,7 @@ public:
     {
         std::unique_lock lock(m_mutex);
 
-        return m_queue.Any([thread_id](const ScheduledTask &item)
+        return AnyOf(m_queue, [thread_id](const ScheduledTask &item)
         {
             return item.executor->GetInitiatorThreadID() == thread_id;
         });

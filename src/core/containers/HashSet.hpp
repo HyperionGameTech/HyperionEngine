@@ -6,6 +6,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/ContainerBase.hpp>
 
+#include <core/functional/FunctionWrapper.hpp>
+
 #include <core/memory/allocator/Allocator.hpp>
 
 #include <HashCode.hpp>
@@ -29,6 +31,8 @@ struct HashSetElement
 template <class Value, auto KeyBy>
 struct HashSetBucket
 {
+    static constexpr FunctionWrapper<decltype(KeyBy)> key_by_fn { KeyBy };
+
     struct ConstIterator;
 
     struct Iterator
@@ -116,7 +120,7 @@ struct HashSetBucket
     Iterator Find(const TFindAsType &value)
     {
         for (auto it = head; it != nullptr; it = it->next) {
-            if (MapFunction<KeyBy>()(it->value) == value) {
+            if (key_by_fn(it->value) == value) {
                 return Iterator { this, it };
             }
         }
@@ -128,7 +132,7 @@ struct HashSetBucket
     ConstIterator Find(const TFindAsType &value) const
     {
        for (auto it = head; it != nullptr; it = it->next) {
-            if (MapFunction<KeyBy>()(it->value) == value) {
+            if (key_by_fn(it->value) == value) {
                 return ConstIterator { this, it };
             }
         }
@@ -152,12 +156,14 @@ struct HashSetBucket
 } // namespace detail
 
 template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class AllocatorType = DynamicAllocator>
-class HashSet : public ContainerBase<HashSet<Value, KeyBy, AllocatorType>, decltype(std::declval<MapFunction<KeyBy>>()(std::declval<Value>()))>
+class HashSet : public ContainerBase<HashSet<Value, KeyBy, AllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<Value>()))>
 {   
     static constexpr bool is_contiguous = false;
 
     static constexpr SizeType initial_bucket_size = 16;
     static constexpr double desired_load_factor = 0.75;
+
+    static constexpr FunctionWrapper<decltype(KeyBy)> key_by_fn { KeyBy };
 
     using HashSetBucketArray = Array<detail::HashSetBucket<Value, KeyBy>, InlineAllocator<initial_bucket_size>>;
 
@@ -184,7 +190,7 @@ class HashSet : public ContainerBase<HashSet<Value, KeyBy, AllocatorType>, declt
     }
 
 public:
-    using KeyType = decltype(std::declval<MapFunction<KeyBy>>()(std::declval<Value>()));
+    using KeyType = decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<Value>()));
     using ValueType = Value;
 
     using Base = ContainerBase<HashSet<Value, KeyBy, AllocatorType>, KeyType>;
@@ -462,7 +468,7 @@ public:
 
 private:
     HYP_FORCE_INLINE static HashCode GetHashCode(const Value &value)
-        { return HashCode::GetHashCode(MapFunction<KeyBy>()(value)); }
+        { return HashCode::GetHashCode(key_by_fn(value)); }
 
     void CheckAndRebuildBuckets();
 
@@ -711,7 +717,7 @@ auto HashSet<Value, KeyBy, AllocatorType>::Set(const Value &value) -> InsertResu
 
     detail::HashSetBucket<Value, KeyBy> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(MapFunction<KeyBy>()(value));
+    auto it = bucket->Find(key_by_fn(value));
 
     Iterator insert_it(this, it);
 
@@ -745,7 +751,7 @@ auto HashSet<Value, KeyBy, AllocatorType>::Set(Value &&value) -> InsertResult
 
     detail::HashSetBucket<Value, KeyBy> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(MapFunction<KeyBy>()(value));
+    auto it = bucket->Find(key_by_fn(value));
 
     Iterator insert_it(this, it);
 
@@ -782,7 +788,7 @@ auto HashSet<Value, KeyBy, AllocatorType>::Insert(const Value &value) -> InsertR
 
     detail::HashSetBucket<Value, KeyBy> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(MapFunction<KeyBy>()(value));
+    auto it = bucket->Find(key_by_fn(value));
 
     Iterator insert_it(this, it);
 
@@ -815,7 +821,7 @@ auto HashSet<Value, KeyBy, AllocatorType>::Insert(Value &&value) -> InsertResult
 
     detail::HashSetBucket<Value, KeyBy> *bucket = GetBucketForHash(hash_code);
 
-    auto it = bucket->Find(MapFunction<KeyBy>()(value));
+    auto it = bucket->Find(key_by_fn(value));
 
     Iterator insert_it(this, it);
 

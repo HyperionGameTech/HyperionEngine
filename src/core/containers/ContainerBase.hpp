@@ -5,100 +5,25 @@
 
 #include <core/memory/Memory.hpp>
 
+#include <core/functional/FunctionWrapper.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Constants.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
 
-#include <algorithm>
+#include <algorithm> // for std::lower_bound, std::upper_bound
 
 namespace hyperion {
-
-template <auto KeyByFunction>
-struct MapFunction;
-
-template <class TargetType, class ReturnType, ReturnType(TargetType::*func)()>
-struct MapFunction<func>
-{
-    using Type = decltype(func);
-
-    constexpr decltype(auto) operator()(TargetType &value) const
-    {
-        return (value.*func)();
-    }
-
-    constexpr decltype(auto) operator()(const TargetType &value) const
-    {
-        return (value.*func)();
-    }
-};
-
-template <class TargetType, class ReturnType, ReturnType(TargetType::*func)() const>
-struct MapFunction<func>
-{
-    using Type = decltype(func);
-
-    constexpr decltype(auto) operator()(const TargetType &value) const
-    {
-        return (value.*func)();
-    }
-};
-
-template <class TargetType, class ReturnType, ReturnType TargetType::*member>
-struct MapFunction<member>
-{
-    using Type = decltype(member);
-
-    constexpr decltype(auto) operator()(TargetType &value) const
-    {
-        return value.*member;
-    }
-
-    constexpr decltype(auto) operator()(const TargetType &value) const
-    {
-        return value.*member;
-    }
-};
-
-template <class TargetType, class ReturnType, ReturnType(*func)(TargetType)>
-struct MapFunction<func>
-{
-    using Type = decltype(func);
-
-    constexpr decltype(auto) operator()(const TargetType &value) const
-    {
-        return func(value);
-    }
-};
-
-template <class TargetType, class ReturnType, ReturnType(*func)(TargetType &)>
-struct MapFunction<func>
-{
-    using Type = decltype(func);
-
-    constexpr decltype(auto) operator()(TargetType &value) const
-    {
-        return func(value);
-    }
-};
-
-template <class TargetType, class ReturnType, ReturnType(*func)(const TargetType &)>
-struct MapFunction<func>
-{
-    using Type = decltype(func);
-
-    constexpr decltype(auto) operator()(const TargetType &value) const
-    {
-        return func(value);
-    }
-};
 
 template <class ValueType>
 constexpr decltype(auto) KeyBy_Identity(const ValueType &value)
 {
     return value;
 }
+
+namespace containers {
 
 template <class Container, class Key>
 class ContainerBase
@@ -214,14 +139,16 @@ public:
         return _begin;
     }
 
-    template <class Function>
-    auto FindIf(Function &&pred)
+    template <class Func>
+    auto FindIf(Func &&pred)
     {
+        FunctionWrapper<NormalizedType<Func>> fn { std::forward<Func>(pred) };
+
         typename Container::Iterator _begin = static_cast<Container *>(this)->Begin();
         const typename Container::Iterator _end = static_cast<Container *>(this)->End();
 
         for (; _begin != _end; ++_begin) {
-            if (pred(*_begin)) {
+            if (fn(*_begin)) {
                 return _begin;
             }
         }
@@ -229,14 +156,16 @@ public:
         return _begin;
     }
 
-    template <class Function>
-    auto FindIf(Function &&pred) const
+    template <class Func>
+    auto FindIf(Func &&pred) const
     {
+        FunctionWrapper<NormalizedType<Func>> fn { std::forward<Func>(pred) };
+
         typename Container::ConstIterator _begin = static_cast<const Container *>(this)->Begin();
         const typename Container::ConstIterator _end = static_cast<const Container *>(this)->End();
 
         for (; _begin != _end; ++_begin) {
-            if (pred(*_begin)) {
+            if (fn(*_begin)) {
                 return _begin;
             }
         }
@@ -301,36 +230,6 @@ public:
     {
         return static_cast<const Container *>(this)->Find(value)
             != static_cast<const Container *>(this)->End();
-    }
-
-    template <class Lambda>
-    bool Any(Lambda &&lambda) const
-    {
-        const auto _begin = static_cast<const Container *>(this)->Begin();
-        const auto _end = static_cast<const Container *>(this)->End();
-
-        for (auto it = _begin; it != _end; ++it) {
-            if (lambda(*it)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    template <class Lambda>
-    bool Every(Lambda &&lambda) const
-    {
-        const auto _begin = static_cast<const Container *>(this)->Begin();
-        const auto _end = static_cast<const Container *>(this)->End();
-
-        for (auto it = _begin; it != _end; ++it) {
-            if (!lambda(*it)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     auto Sum() const
@@ -420,9 +319,9 @@ public:
 
         return hc;
     }
-
 };
 
+} // namespace containers
 } // namespace hyperion
 
 #endif

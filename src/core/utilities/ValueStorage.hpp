@@ -52,7 +52,7 @@ struct alignas(Alignment) ValueStorage
     ValueStorage &operator=(ValueStorage &&other) noexcept  = default;
     ~ValueStorage()                                         = default;
 
-    template <class ...Args>
+    template <class... Args>
     HYP_FORCE_INLINE T *Construct(Args &&... args)
     {
         Memory::Construct<T>(data_buffer, std::forward<Args>(args)...);

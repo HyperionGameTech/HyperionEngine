@@ -35,19 +35,6 @@ public:
     HeapArray &operator=(HeapArray &&other) noexcept;
     ~HeapArray();
 
-    template <class Function>
-    HeapArray Map(Function &&fn) const
-    {
-        HeapArray result;
-        SizeType index = 0;
-
-        for (auto it = Begin(); it != End(); ++it) {
-            result[index++] = fn(*it);
-        }
-
-        return result;
-    }
-
     HYP_FORCE_INLINE
     T &operator[](typename HeapArray::Base::KeyType index)
         { return m_values[index]; }
@@ -70,18 +57,6 @@ public:
     HYP_FORCE_INLINE
     bool Any() const
         { return Sz != 0; }
-
-    template <class Lambda>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any(Lambda &&lambda) const
-        { return Base::Any(std::forward<Lambda>(lambda)); }
-
-    template <class Lambda>
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Every(Lambda &&lambda) const
-        { return Base::Every(std::forward<Lambda>(lambda)); }
 
     [[nodiscard]]
     HYP_FORCE_INLINE

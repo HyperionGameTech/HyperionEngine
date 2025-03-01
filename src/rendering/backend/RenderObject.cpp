@@ -4,6 +4,8 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -73,7 +75,7 @@ void RenderObjectDeleter<Platform::CURRENT>::RemoveAllNow(bool force)
     }
 
     // Loop until all queues are empty
-    while (queue_num_items.Any([](AtomicVar<int32> *count) { return count != nullptr && count->Get(MemoryOrder::ACQUIRE) > 0; })) {
+    while (AnyOf(queue_num_items, [](AtomicVar<int32> *count) { return count != nullptr && count->Get(MemoryOrder::ACQUIRE) > 0; })) {
         for (DeletionQueueBase **queue = queues.Data(); *queue; ++queue) {
             (*queue)->RemoveAllNow(force);
         }

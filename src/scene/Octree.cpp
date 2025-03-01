@@ -10,6 +10,8 @@
 
 #include <scene/camera/Camera.hpp>
 
+#include <core/algorithm/Every.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -137,7 +139,7 @@ bool Octree::EmptyDeep(int depth, uint8 octant_mask) const
     }
 
     if (depth != 0) {
-        return m_octants.Every([depth, octant_mask](const Octant &octant)
+        return Every(m_octants, [depth, octant_mask](const Octant &octant)
         {
             if (octant_mask & (1u << octant.octree->m_octant_id.GetIndex())) {
                 return octant.octree->EmptyDeep(depth - 1);

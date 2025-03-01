@@ -14,6 +14,8 @@
 
 #include <core/containers/HashMap.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -63,7 +65,7 @@ static void AddMesh(OBJModel &model, const String &name, const String &material)
     String unique_name(name);
     int counter = 0;
 
-    while (model.meshes.Any([&unique_name](const OBJMesh &obj_mesh) { return obj_mesh.name == unique_name; })) {
+    while (AnyOf(model.meshes, [&unique_name](const OBJMesh &obj_mesh) { return obj_mesh.name == unique_name; })) {
         unique_name = name + String::ToString(++counter);
     }
 

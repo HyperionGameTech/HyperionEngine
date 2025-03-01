@@ -55,12 +55,6 @@ struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<implementation_exists<T
     using Type = DynamicAllocator;
 };
 
-template <class T, class AllocatorType, class T2 = void>
-struct ArrayStorage
-{
-    Allocation<T, AllocatorType>    allocation;
-};
-
 } // namespace detail
 
 template <class T, class AllocatorType = typename detail::ArrayDefaultAllocatorSelector<T>::Type>
@@ -78,8 +72,6 @@ public:
     using Base = ContainerBase<Array<T, AllocatorType>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
-
-    using ArrayStorageType = detail::ArrayStorage<T, AllocatorType>;
 
     static constexpr bool is_contiguous = true;
 
@@ -307,7 +299,7 @@ public:
     void SetCapacity(SizeType capacity, SizeType copy_offset = 0);
 
     HYP_FORCE_INLINE SizeType Capacity() const
-        { return m_storage.allocation.GetCapacity(); }
+        { return m_allocation.GetCapacity(); }
 
     /*! \brief Push an item to the back of the container.
      *  \param value The value to push back.
@@ -429,16 +421,6 @@ public:
     
     void Clear();
 
-    /*! \brief Returns true if any elements in the array satisfy the given lambda. */
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
-        { return Base::Any(std::forward<Lambda>(lambda)); }
-
-    /*! \brief Returns true if all elements in the array satisfy the given lambda. */
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
-        { return Base::Every(std::forward<Lambda>(lambda)); }
-
     template <class OtherAllocatorType>
     HYP_FORCE_INLINE bool operator==(const Array<T, OtherAllocatorType> &other) const
     {
@@ -547,12 +529,12 @@ public:
 protected:
     HYP_FORCE_INLINE T *GetBuffer()
     {
-        return m_storage.allocation.GetBuffer();
+        return m_allocation.GetBuffer();
     }
 
     HYP_FORCE_INLINE const T *GetBuffer() const
     {
-        return m_storage.allocation.GetBuffer();
+        return m_allocation.GetBuffer();
     }
 
     void ResetOffsets();
@@ -567,13 +549,10 @@ protected:
 
     SizeType m_size;
 
-    // static_assert(sizeof(Storage) == sizeof(Storage::data_buffer), "Storage struct should not be padded");
-    // static_assert(alignof(Storage) == alignof(Storage::data_buffer), "Storage struct should not be padded");
-
 protected:
-    SizeType            m_start_offset;
+    SizeType                        m_start_offset;
 
-    ArrayStorageType    m_storage;
+    Allocation<T, AllocatorType>    m_allocation;
 };
 
 template <class T, class AllocatorType>
@@ -581,7 +560,7 @@ Array<T, AllocatorType>::Array()
     : m_size(0),
       m_start_offset(0)
 {
-    m_storage.allocation.SetToInitialState();
+    m_allocation.SetToInitialState();
 }
 
 template <class T, class AllocatorType>
@@ -589,40 +568,40 @@ Array<T, AllocatorType>::Array(const Array &other)
     : m_size(other.m_size - other.m_start_offset),
       m_start_offset(0)
 {
-    m_storage.allocation.SetToInitialState();
-    m_storage.allocation.Allocate(m_size);
-    m_storage.allocation.InitFromRangeCopy(other.Begin(), other.End());
+    m_allocation.SetToInitialState();
+    m_allocation.Allocate(m_size);
+    m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 }
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(Array &&other) noexcept
 {
-    m_storage.allocation.SetToInitialState();
+    m_allocation.SetToInitialState();
 
-    if (other.m_storage.allocation.IsDynamic()) {
+    if (other.m_allocation.IsDynamic()) {
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
 
-        m_storage.allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+        m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
     } else {
         m_size = other.m_size - other.m_start_offset;
         m_start_offset = 0;
 
-        m_storage.allocation.Allocate(m_size);
-        m_storage.allocation.InitFromRangeMove(other.Begin(), other.End());
+        m_allocation.Allocate(m_size);
+        m_allocation.InitFromRangeMove(other.Begin(), other.End());
     }
 
     other.m_size = 0;
     other.m_start_offset = 0;
 
-    other.m_storage.allocation.SetToInitialState();
+    other.m_allocation.SetToInitialState();
 }
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::~Array()
 {
-    m_storage.allocation.DestructInRange(m_start_offset, m_size);
-    m_storage.allocation.Free();
+    m_allocation.DestructInRange(m_start_offset, m_size);
+    m_allocation.Free();
 }
 
 template <class T, class AllocatorType>
@@ -632,14 +611,14 @@ auto Array<T, AllocatorType>::operator=(const Array &other) -> Array&
         return *this;
     }
 
-    m_storage.allocation.DestructInRange(m_start_offset, m_size);
-    m_storage.allocation.Free();
+    m_allocation.DestructInRange(m_start_offset, m_size);
+    m_allocation.Free();
 
     m_size = other.m_size - other.m_start_offset;
     m_start_offset = 0;
 
-    m_storage.allocation.Allocate(m_size);
-    m_storage.allocation.InitFromRangeCopy(other.Begin(), other.End());
+    m_allocation.Allocate(m_size);
+    m_allocation.InitFromRangeCopy(other.Begin(), other.End());
 
     return *this;
 }
@@ -651,29 +630,29 @@ auto Array<T, AllocatorType>::operator=(Array &&other) noexcept -> Array&
         return *this;
     }
 
-    m_storage.allocation.DestructInRange(m_start_offset, m_size);
-    m_storage.allocation.Free();
+    m_allocation.DestructInRange(m_start_offset, m_size);
+    m_allocation.Free();
     
-    if (other.m_storage.allocation.IsDynamic()) {
+    if (other.m_allocation.IsDynamic()) {
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
         
-        m_storage.allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+        m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
     } else {
         m_size = other.m_size - other.m_start_offset;
         m_start_offset = 0;
 
-        m_storage.allocation.Allocate(m_size);
-        m_storage.allocation.InitFromRangeMove(other.Begin(), other.End());
+        m_allocation.Allocate(m_size);
+        m_allocation.InitFromRangeMove(other.Begin(), other.End());
 
-        other.m_storage.allocation.DestructInRange(other.m_start_offset, other.m_size);
-        other.m_storage.allocation.Free();
+        other.m_allocation.DestructInRange(other.m_start_offset, other.m_size);
+        other.m_allocation.Free();
     }
 
     other.m_size = 0;
     other.m_start_offset = 0;
 
-    other.m_storage.allocation.SetToInitialState();
+    other.m_allocation.SetToInitialState();
 
     return *this;
 }
@@ -720,15 +699,15 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
     new_allocation.Allocate(capacity);
     new_allocation.InitFromRangeMove(Begin(), End(), offset);
 
-    m_storage.allocation.DestructInRange(m_start_offset, m_size);
-    m_storage.allocation.Free();
+    m_allocation.DestructInRange(m_start_offset, m_size);
+    m_allocation.Free();
 
     m_size -= m_start_offset;
     m_size += offset;
 
     m_start_offset = offset;
     
-    m_storage.allocation = new_allocation;
+    m_allocation = new_allocation;
 }
 
 template <class T, class AllocatorType>
@@ -774,10 +753,12 @@ void Array<T, AllocatorType>::Resize(SizeType new_size)
             }
         }
     } else {
+        T *buffer = GetBuffer();
+
         const SizeType diff = current_size - new_size;
 
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(GetBuffer()[--i]);
+            Memory::Destruct(buffer[--i]);
         }
 
         m_size -= diff;
@@ -806,10 +787,12 @@ void Array<T, AllocatorType>::ResizeUninitialized(SizeType new_size)
 
         m_size += diff;
     } else {
+        T *buffer = GetBuffer();
+
         const SizeType diff = current_size - new_size;
 
         for (SizeType i = m_size; i > m_start_offset;) {
-            Memory::Destruct(GetBuffer()[--i]);
+            Memory::Destruct(buffer[--i]);
         }
 
         m_size -= diff;
@@ -1268,81 +1251,10 @@ void Array<T, AllocatorType>::Clear()
     //Refit();
 }
 
-/*! \brief A map function that applies a function to each element in a container.
- *  \param container The container to map over.
- *  \param func The function to apply to each element.
- *  \return A new array with the results of the function applied to each element. */
-template <class ContainerType, class Function, typename = std::enable_if_t<!std::is_member_pointer_v<NormalizedType<Function>> && !std::is_member_function_pointer_v<NormalizedType<Function>>>>
-auto Map(ContainerType &&container, Function &&func)
-{
-    Array<decltype(std::declval<NormalizedType<Function>>()(std::declval<typename NormalizedType<ContainerType>::ValueType>()))> result;
-    result.Reserve(container.Size());
-
-    for (auto it = container.Begin(); it != container.End(); ++it) {
-        result.PushBack(func(*it));
-    }
-
-    return result;
-}
-
-template <class ContainerType, class ResultType>
-auto Map(ContainerType &&container, ResultType(NormalizedType<ContainerType>::ValueType::*MemFn)())
-{
-    Array<ResultType> result;
-    result.Reserve(container.Size());
-
-    for (auto it = container.Begin(); it != container.End(); ++it) {
-        result.PushBack(((*it).*MemFn)());
-    }
-
-    return result;
-}
-
-template <class ContainerType, class ResultType>
-auto Map(ContainerType &&container, ResultType(NormalizedType<ContainerType>::ValueType::*MemFn)() const)
-{
-    Array<ResultType> result;
-    result.Reserve(container.Size());
-
-    for (auto it = container.Begin(); it != container.End(); ++it) {
-        result.PushBack(((*it).*MemFn)());
-    }
-
-    return result;
-}
-
-template <class ContainerType, class ResultType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ResultType NormalizedType<ContainerType>::ValueType::*>>>
-auto Map(ContainerType &&container, ResultType NormalizedType<ContainerType>::ValueType::*member)
-{
-    Array<ResultType> result;
-    result.Reserve(container.Size());
-
-    for (auto it = container.Begin(); it != container.End(); ++it) {
-        result.PushBack((*it).*member);
-    }
-
-    return result;
-}
-
-template <class ContainerType, class ResultType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ResultType const NormalizedType<ContainerType>::ValueType::*>>>
-auto Map(ContainerType &&container, ResultType const NormalizedType<ContainerType>::ValueType::*member)
-{
-    Array<ResultType> result;
-    result.Reserve(container.Size());
-
-    for (auto it = container.Begin(); it != container.End(); ++it) {
-        result.PushBack((*it).*member);
-    }
-
-    return result;
-}
-
 } // namespace containers
 
 template <class T, class AllocatorType = containers::detail::ArrayDefaultAllocatorSelector<T>::Type>
 using Array = containers::Array<T, AllocatorType>;
-
-using containers::Map;
 
 // traits
 template <class T>

@@ -96,13 +96,6 @@ public:
         return false;
     }
 
-    template <class Function>
-    HYP_FORCE_INLINE FixedArray Map(Function &&fn) const
-    {
-        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
-        return impl.Map(std::forward<Function>(fn));
-    }
-
     HYP_FORCE_INLINE bool Contains(const T &value) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
@@ -126,24 +119,6 @@ public:
 
     HYP_FORCE_INLINE constexpr bool Any() const
         { return Sz != 0; }
-        
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Any(Lambda &&lambda) const
-    {
-        if constexpr (Sz == 0) {
-            return false;
-        } else {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
-            return impl.Any(std::forward<Lambda>(lambda));
-        }
-    }
-
-    template <class Lambda>
-    HYP_FORCE_INLINE bool Every(Lambda &&lambda) const
-    {
-        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
-        return impl.Every(std::forward<Lambda>(lambda));
-    }
 
     HYP_FORCE_INLINE auto Sum() const
     {

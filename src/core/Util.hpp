@@ -307,34 +307,6 @@ HYP_FORCE_INLINE void Swap(T &a, T &b)
     b = TryMove(temp);
 }
 
-#pragma region Algorithms
-
-template <class IteratorType, class ValueType>
-HYP_FORCE_INLINE IteratorType Find(IteratorType _begin, IteratorType _end, ValueType &&value)
-{
-    for (auto it = _begin; it != _end; ++it) {
-        if (*it == value) {
-            return it;
-        }
-    }
-
-    return _end;
-}
-
-template <class IteratorType, class PredicateType>
-HYP_FORCE_INLINE IteratorType FindIf(IteratorType _begin, IteratorType _end, PredicateType &&predicate)
-{
-    for (auto it = _begin; it != _end; ++it) {
-        if (predicate(*it)) {
-            return it;
-        }
-    }
-
-    return _end;
-}
-
-#pragma endregion Algorithms
-
 } // namespace hyperion
 
 #endif

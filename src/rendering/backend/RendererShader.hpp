@@ -4,9 +4,13 @@
 #define HYPERION_BACKEND_RENDERER_SHADER_HPP
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/Defines.hpp>
 
 #include <rendering/backend/Platform.hpp>
@@ -103,10 +107,7 @@ public:
 
     HYP_FORCE_INLINE bool IsRaytracing() const
     {
-        return m_shader_modules.Any([](const ShaderModule<PLATFORM> &it)
-        {
-            return it.IsRaytracing();
-        });
+        return AnyOf(m_shader_modules, &ShaderModule<PLATFORM>::IsRaytracing);
     }
 
     HYP_API bool IsCreated() const;

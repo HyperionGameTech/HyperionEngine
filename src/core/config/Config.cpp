@@ -4,18 +4,20 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
-
 #include <core/object/HypClass.hpp>
 #include <core/object/HypProperty.hpp>
 #include <core/object/HypField.hpp>
 #include <core/object/HypConstant.hpp>
 
+#include <core/algorithm/FindIf.hpp>
+
 #include <core/utilities/Format.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
 
 namespace hyperion {
 namespace config {

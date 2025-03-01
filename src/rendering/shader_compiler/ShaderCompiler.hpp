@@ -10,6 +10,9 @@
 
 #include <core/containers/HeapArray.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+#include <core/algorithm/Every.hpp>
+
 #include <core/math/Vertex.hpp>
 
 #include <rendering/backend/RendererShader.hpp>
@@ -1002,7 +1005,7 @@ struct CompiledShader
     HYP_FORCE_INLINE bool IsValid() const
     {
         return definition.IsValid()
-            && modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); });
+            && AnyOf(modules, &ByteBuffer::Any);
     }
     
     HYP_FORCE_INLINE Name GetName() const
@@ -1217,7 +1220,7 @@ public:
 
         bool HasRTShaders() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
+            return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
                 return ShaderModule::IsRaytracingType(item.first);
             });
@@ -1225,7 +1228,7 @@ public:
 
         bool IsComputeShader() const
         {
-            return sources.Every([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
+            return Every(sources, [](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
                 return item.first == ShaderModuleType::COMPUTE;
             });
@@ -1233,7 +1236,7 @@ public:
 
         bool HasVertexShader() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
+            return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
                 return item.first == ShaderModuleType::VERTEX;
             });

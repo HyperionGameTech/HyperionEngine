@@ -74,7 +74,8 @@ public:
 
         std::lock_guard guard(m_update_mutex);
 
-        auto it = m_items_pending_addition.FindIf([&id](const auto &item) {
+        auto it = m_items_pending_addition.FindIf([&id](const auto &item)
+        {
             return item->GetID() == id;
         });
 

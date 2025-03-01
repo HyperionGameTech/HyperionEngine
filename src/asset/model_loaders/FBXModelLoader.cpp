@@ -16,6 +16,8 @@
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 
+#include <core/algorithm/AnyOf.hpp>
+
 #include <core/functional/Proc.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -52,7 +54,8 @@ struct FBXProperty
 
     explicit operator bool() const
     {
-        return value.IsValid() || array_elements.Any([](const FBXPropertyValue &item) { return item.IsValid(); });
+        return value.IsValid()
+            || AnyOf(array_elements, &FBXPropertyValue::IsValid);
     }
 };
 
