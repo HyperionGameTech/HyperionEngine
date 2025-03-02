@@ -72,6 +72,8 @@ public:
 
     static constexpr bool is_contiguous = true;
 
+private:
+
 protected:
     // on PushFront() we can pad the start with this number,
     // so when multiple successive calls to PushFront() happen,

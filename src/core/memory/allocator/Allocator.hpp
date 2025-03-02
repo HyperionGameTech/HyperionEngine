@@ -16,24 +16,21 @@
 namespace hyperion {
 namespace memory {
 
+// Helper metadata for natvis navigation
+enum AllocationType
+{
+    AT_DYNAMIC  = 1,
+    AT_INLINE   = 2
+};
+
 template <class Derived>
 struct AllocationBase
 {
-
 };
 
 template <class Derived>
 struct Allocator
 {
-    // HYP_FORCE_INLINE void *Allocate(SizeType size)
-    // {
-    //     return static_cast<Derived *>(this)->Allocate(size);
-    // }
-
-    // HYP_FORCE_INLINE void Free(void *ptr)
-    // {
-    //     static_cast<Derived *>(this)->Free(ptr);
-    // }
 };
 
 struct DynamicAllocator : Allocator<DynamicAllocator>
@@ -41,6 +38,10 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
     template <class T>
     struct Allocation
     {
+        // These fields are used for natvis views only.
+        static constexpr AllocationType allocation_type = AT_DYNAMIC;
+        static constexpr bool is_dynamic = true;
+
         T           *buffer;
         SizeType    capacity;
 
@@ -141,6 +142,9 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
     template <class T>
     struct Allocation : AllocationBase<Allocation<T>>
     {
+        static constexpr AllocationType allocation_type = AT_INLINE;
+        static constexpr SizeType capacity = Count;
+
         HYP_FORCE_INLINE T *GetBuffer()
         {
             return reinterpret_cast<T *>(is_dynamic ? dynamic_allocation.GetBuffer() : storage.GetRawPointer());
@@ -252,6 +256,8 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             ValueStorageArray<T, Count>                             storage;
 
             typename DynamicAllocatorType::template Allocation<T>   dynamic_allocation;
+
+            T                                                       *buffer; // for natvis
         };
 
         bool is_dynamic;

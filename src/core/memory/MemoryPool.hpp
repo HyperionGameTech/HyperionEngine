@@ -27,6 +27,40 @@ struct MemoryPoolInitInfo
     static constexpr uint32 num_initial_elements = 16 * num_elements_per_block;
 };
 
+template <class ElementType, class TInitInfo, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
+struct MemoryPoolBlock
+{
+    static constexpr uint32 num_elements_per_block = TInitInfo::num_elements_per_block;
+
+    FixedArray<ElementType, num_elements_per_block>         elements;
+    AtomicVar<uint32>                                       num_elements { 0 };
+
+#ifdef HYP_ENABLE_MT_CHECK
+    FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
+#endif
+
+    MemoryPoolBlock(void *ctx, uint32 block_index)
+    {
+        // Allow overloading assignment of elements
+        if (OnBlockAllocated != nullptr) {
+            OnBlockAllocated(ctx, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
+        } else {
+            if constexpr (IsPODType<ElementType>) {
+                // Default initialization for POD types - zero it out
+                Memory::MemSet(elements.Data(), 0, elements.ByteSize());
+            } else if constexpr (std::is_copy_assignable_v<ElementType> || std::is_move_assignable_v<ElementType>) {
+                // For non-POD types, default assign each element
+                for (uint32 i = 0; i < num_elements_per_block; i++) {
+                    elements[i] = ElementType();
+                }
+            }
+        }
+    }
+
+    HYP_FORCE_INLINE bool IsEmpty() const
+        { return num_elements.Get(MemoryOrder::ACQUIRE) == 0; }
+};
+
 template <class ElementType, class TInitInfo = MemoryPoolInitInfo, void(*OnBlockAllocated)(void *ctx, ElementType *elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool
 {
@@ -36,36 +70,7 @@ public:
     static constexpr uint32 num_elements_per_block = InitInfo::num_elements_per_block;
 
 protected:
-    struct Block
-    {
-        FixedArray<ElementType, num_elements_per_block>         elements;
-        AtomicVar<uint32>                                       num_elements { 0 };
-
-#ifdef HYP_ENABLE_MT_CHECK
-        FixedArray<DataRaceDetector, num_elements_per_block>    data_race_detectors;
-#endif
-
-        Block(void *ctx, uint32 block_index)
-        {
-            // Allow overloading assignment of elements
-            if (OnBlockAllocated != nullptr) {
-                OnBlockAllocated(ctx, elements.Data(), block_index * num_elements_per_block, num_elements_per_block);
-            } else {
-                if constexpr (IsPODType<ElementType>) {
-                    // Default initialization for POD types - zero it out
-                    Memory::MemSet(elements.Data(), 0, elements.ByteSize());
-                } else if constexpr (std::is_copy_assignable_v<ElementType> || std::is_move_assignable_v<ElementType>) {
-                    // For non-POD types, default assign each element
-                    for (uint32 i = 0; i < num_elements_per_block; i++) {
-                        elements[i] = ElementType();
-                    }
-                }
-            }
-        }
-
-        HYP_FORCE_INLINE bool IsEmpty() const
-            { return num_elements.Get(MemoryOrder::ACQUIRE) == 0; }
-    };
+    using Block = MemoryPoolBlock<ElementType, TInitInfo, OnBlockAllocated>;
 
 protected:
     void CreateInitialBlocks()
