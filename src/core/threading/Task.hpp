@@ -838,6 +838,8 @@ protected:
     void Reset()
     {
         if (m_owns_executor) {
+            delete m_executor;
+        } else {
             // Wait for the task to complete when not in debug mode
             if (IsValid() && !IsCompleted()) {
 #ifdef HYP_DEBUG_MODE
@@ -846,8 +848,6 @@ protected:
                 Base::Await_Internal();
 #endif
             }
-
-            delete m_executor;
         }
 
         m_executor = nullptr;

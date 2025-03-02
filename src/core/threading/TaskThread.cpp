@@ -17,6 +17,8 @@ namespace threading {
 static const double g_task_thread_lag_spike_threshold = 50.0;
 static const double g_task_thread_single_task_lag_spike_threshold = 10.0;
 
+// #define HYP_ENABLE_LAG_SPIKE_DETECTION
+
 TaskThread::TaskThread(const ThreadID &thread_id, ThreadPriorityValue priority)
     : Thread(thread_id, priority),
       m_is_running(false),
@@ -69,19 +71,24 @@ void TaskThread::operator()()
         {
             HYP_NAMED_SCOPE("Executing tasks");
 
+#ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
             uint32 num_executed_tasks = 0;
 
             PerformanceClock performance_clock;
             performance_clock.Start();
+#endif
         
             // execute all tasks outside of lock
             while (m_task_queue.Any()) {
+#ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
                 PerformanceClock task_performance_clock;
                 task_performance_clock.Start();
+#endif
 
                 Scheduler::ScheduledTask scheduled_task = m_task_queue.Pop();
                 scheduled_task.Execute();
 
+#ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
                 task_performance_clock.Stop();
 
                 ++num_executed_tasks;
@@ -92,13 +99,16 @@ void TaskThread::operator()()
                         scheduled_task.debug_name.value ? scheduled_task.debug_name.value : "<unnamed task>",
                         task_performance_clock.Elapsed() / 1000.0);
                 }
+#endif
             }
 
+#ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
             performance_clock.Stop();
 
             if (performance_clock.Elapsed() / 1000.0 > g_task_thread_lag_spike_threshold) {
                 HYP_LOG(TaskThread, Warning, "Task thread {} lag spike detected executing {} tasks: {}ms", GetID().GetName(), num_executed_tasks, performance_clock.Elapsed() / 1000.0);
             }
+#endif
             
             m_num_tasks.Decrement(num_tasks, MemoryOrder::RELEASE);
         }

@@ -65,10 +65,10 @@ struct LightmapUV
 
 struct LightmapUVMap
 {
-    uint32                          width = 0;
-    uint32                          height = 0;
-    Array<LightmapUV>               uvs;
-    HashMap<ID<Mesh>, Array<uint32>>  mesh_to_uv_indices;
+    uint32                              width = 0;
+    uint32                              height = 0;
+    Array<LightmapUV>                   uvs;
+    HashMap<ID<Mesh>, Array<uint32>>    mesh_to_uv_indices;
     
     /*! \brief Write the UV map radiance data to RGBA32F format. */
     Bitmap<4, float> ToBitmapRadiance() const;

@@ -86,13 +86,15 @@ struct RenderBinding<Scene>
         { return bool(id); }
 };
 
+// @TODO: Refactor
 HYP_CLASS()
 class RenderState : public HypObject<RenderState>
 {
     HYP_OBJECT_BODY(RenderState);
 
 public:
-    Array<SceneRenderResource *>                                                    scene_bindings;
+    Array<SceneRenderResource *>                                                    bound_scenes;
+    Stack<TResourceHandle<SceneRenderResource>>                                     scene_bindings;
     Array<CameraRenderResource *>                                                   camera_bindings;
     FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
     Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
@@ -161,22 +163,27 @@ public:
 
     const TResourceHandle<LightRenderResource> &GetActiveLight() const;
 
-    HYP_FORCE_INLINE void BindScene(const Scene *scene)
-    {
-        if (scene == nullptr) {
-            scene_bindings.PushBack(nullptr);
-        } else {
-            scene_bindings.PushBack(&scene->GetRenderResource());
-        }
-    }
-
-    void UnbindScene(const Scene *scene);
-
     HYP_FORCE_INLINE SceneRenderResource *GetActiveScene() const
     {
         return scene_bindings.Empty()
             ? nullptr
-            : scene_bindings.Back();
+            : scene_bindings.Top().Get();
+    }
+
+    HYP_FORCE_INLINE void SetActiveScene(const Scene *scene)
+    {
+        if (scene == nullptr) {
+            scene_bindings.Push(TResourceHandle<SceneRenderResource>());
+        } else {
+            scene_bindings.Push(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
+        }
+    }
+
+    HYP_FORCE_INLINE void UnsetActiveScene()
+    {
+        if (scene_bindings.Any()) {
+            scene_bindings.Pop();
+        }
     }
 
     void BindCamera(Camera *camera);

@@ -327,9 +327,8 @@ public:
     TResourceHandle()   = default;
 
     TResourceHandle(T &resource)
-        : handle(resource)
+        : handle(reinterpret_cast<IResource &>(resource))
     {
-        static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
     }
 
     TResourceHandle(const TResourceHandle &other)
@@ -404,7 +403,7 @@ public:
         }
 
         // can safely cast to T since we know it's not NullResource
-        return static_cast<T *>(&ptr);
+        return reinterpret_cast<T *>(&ptr);
     }
 
     HYP_FORCE_INLINE T *operator->() const

@@ -130,11 +130,11 @@
   </Type>
 
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ref->value} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)m_ref.m_ptr->value} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Count]">(m_ref->strong_count)</Item>
-      <Item Name="[Weak Count]">(m_ref->weak_count)</Item>
-      <ExpandedItem>($T1 *)m_ref->value</ExpandedItem>
+      <Item Name="[Strong Count]">(m_ref.m_ptr->strong_count)</Item>
+      <Item Name="[Weak Count]">(m_ref.m_ptr->weak_count)</Item>
+      <ExpandedItem>($T1 *)m_ref.m_ptr->value</ExpandedItem>
     </Expand>
   </Type>
 
@@ -146,10 +146,12 @@
   </Type>
 
   <Type Name="hyperion::threading::ThreadID">
-    <DisplayString>{name}</DisplayString>
+    <DisplayString>{m_name}</DisplayString>
     <Expand>
-      <Item Name="[Name]">name</Item>
-      <Item Name="[Value]">value</Item>
+      <Item Name="[Name]">m_name</Item>
+      <Item Name="[ID]">m_value &amp; g_thread_id_mask</Item>
+      <Item Name="[Category]">(hyperion::threading::ThreadCategory)(m_value &amp; g_thread_category_mask)</Item>
+      <Item Name="[IsDynamic]">(bool)(m_value &amp; g_thread_dynamic_mask)</Item>
     </Expand>
   </Type>
 

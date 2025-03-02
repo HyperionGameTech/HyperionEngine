@@ -3,6 +3,8 @@
 #include <rendering/lightmapper/LightmapperSubsystem.hpp>
 #include <rendering/lightmapper/Lightmapper.hpp>
 
+#include <rendering/backend/RenderConfig.hpp>
+
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -83,8 +85,7 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
 
     LightmapTraceMode trace_mode;
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()
-        && g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.gpu").ToBool(true)) {
+    if (renderer::RenderConfig::IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.gpu").ToBool(true)) {
         // trace on GPU if the card supports ray tracing
         trace_mode = LIGHTMAP_TRACE_MODE_GPU;
     } else {

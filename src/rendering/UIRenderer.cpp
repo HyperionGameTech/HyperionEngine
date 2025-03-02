@@ -567,12 +567,12 @@ void UIRenderer::OnRender(Frame *frame)
 {
     HYP_SCOPE;
 
-    g_engine->GetRenderState()->BindScene(m_ui_stage->GetScene());
+    g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
 
     m_render_collector.CollectDrawCalls(frame);
     m_render_collector.ExecuteDrawCalls(frame);
 
-    g_engine->GetRenderState()->UnbindScene(m_ui_stage->GetScene());
+    g_engine->GetRenderState()->UnsetActiveScene();
 }
 
 #pragma endregion UIRenderer

@@ -561,7 +561,7 @@ void EnvProbe::Render(Frame *frame)
             g_engine->GetRenderState()->SetActiveLight(**light_render_resources_handle);
         }
 
-        g_engine->GetRenderState()->BindScene(m_parent_scene.Get());
+        g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
         g_engine->GetRenderState()->BindCamera(m_camera.Get());
 
         m_render_collector.CollectDrawCalls(
@@ -576,7 +576,7 @@ void EnvProbe::Render(Frame *frame)
         );
 
         g_engine->GetRenderState()->UnbindCamera(m_camera.Get());
-        g_engine->GetRenderState()->UnbindScene(m_parent_scene.Get());
+        g_engine->GetRenderState()->UnsetActiveScene();
 
         if (light_render_resources_handle != nullptr) {
             g_engine->GetRenderState()->UnsetActiveLight();

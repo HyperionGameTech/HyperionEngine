@@ -107,6 +107,12 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
 
                 path_tracer_irradiance->ReadHitsBuffer(hits_buffer.Get(), frame_index);
                 job->IntegrateRayHits(previous_rays.Data(), hits_buffer->hits.Data(), previous_rays.Size(), LIGHTMAP_SHADING_TYPE_IRRADIANCE);
+
+
+                //// DEBUGGING
+                //for (SizeType i = 0; i < hits_buffer->hits.Size(); i++) {
+                //    AssertThrow(MathUtil::ApproxEqual(hits_buffer->hits[i].color.GetXYZ(), Vec3f(float(i), 0, 0)));//previous_rays[i].ray.position));
+                //}
             }
 
             ray_offset = job->GetTexelIndex() % MathUtil::Max(job->GetTexelIndices().Size(), 1u);
@@ -115,8 +121,25 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
         }
 
         if (rays.Any()) {
+            // Bind sky if it exists
+            bool is_sky_set = false;
+
+            if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
+                g_engine->GetRenderState()->SetActiveEnvProbe(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
+
+                is_sky_set = true;
+            }
+
+            g_engine->GetRenderState()->SetActiveScene(job->GetScene());
+
             path_tracer_radiance->Trace(frame, rays, ray_offset);
             path_tracer_irradiance->Trace(frame, rays, ray_offset);
+
+            g_engine->GetRenderState()->UnsetActiveScene();
+
+            if (is_sky_set) {
+                g_engine->GetRenderState()->UnsetActiveEnvProbe();
+            }
         }
 
         HYPERION_RETURN_OK;
@@ -496,8 +519,7 @@ private:
 
 LightmapJob::LightmapJob(LightmapJobParams &&params)
     : m_params(std::move(params)),
-      m_texel_index(0),
-      m_task_thread_pool(MakeUnique<LightmapTaskThreadPool>())
+      m_texel_index(0)
 {
 }
 
@@ -539,12 +561,7 @@ void LightmapJob::Start()
 
 void LightmapJob::Stop()
 {
-    m_running_semaphore.Release(1, [this](bool)
-    {
-        if (m_task_thread_pool->IsRunning()) {
-            m_task_thread_pool->Stop();
-        }
-    });
+    m_running_semaphore.Release(1);
 }
 
 bool LightmapJob::IsCompleted() const
@@ -587,9 +604,6 @@ void LightmapJob::Process()
                         m_texel_indices.PushBack(it.second[i]);
                     }
                 }
-
-                // start our thread pool for tracing rays
-                m_task_thread_pool->Start();
             } else {
                 HYP_LOG(Lightmap, Error, "Failed to build UV map for lightmap job {}", m_uuid);
 
@@ -678,6 +692,7 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
 {
     HYP_LOG(Lightmap, Info, "Gathering rays for lightmap job {}", m_uuid);
 
+    // @FIXME race conditions caused when Mesh::SetStreamedMeshData gets called while we are reading the streamed mesh data here
     Optional<Pair<ID<Mesh>, StreamedDataRef<StreamedMeshData>>> streamed_mesh_data_refs { };
 
     uint32 ray_index = 0;
@@ -718,6 +733,9 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
             continue;
         }
 
+        // temp
+        AssertThrow(mesh->GetStreamedMeshData()->IsInMemory());
+
         if (!streamed_mesh_data_refs.HasValue() || streamed_mesh_data_refs->first != mesh.GetID()) {
             streamed_mesh_data_refs.Set({ mesh.GetID(), mesh->GetStreamedMeshData()->AcquireRef() });
         }
@@ -752,21 +770,21 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
         };
 
         const Vec3f vertex_normals[3] = {
-            (Vec4f(mesh_data.vertices[triangle_indices[0]].normal, 0.0f)).GetXYZ(),
-            (Vec4f(mesh_data.vertices[triangle_indices[1]].normal, 0.0f)).GetXYZ(),
-            (Vec4f(mesh_data.vertices[triangle_indices[2]].normal, 0.0f)).GetXYZ()
+            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[0]].normal, 0.0f)).GetXYZ(),
+            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[1]].normal, 0.0f)).GetXYZ(),
+            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[2]].normal, 0.0f)).GetXYZ()
         };
 
         const Vec3f position = vertex_positions[0] * uv.barycentric_coords.x
             + vertex_positions[1] * uv.barycentric_coords.y
             + vertex_positions[2] * uv.barycentric_coords.z;
         
-        const Vec3f normal = (uv.transform * Vec4f((vertex_normals[0] * uv.barycentric_coords.x
+        const Vec3f normal = (Vec4f((vertex_normals[0] * uv.barycentric_coords.x
             + vertex_normals[1] * uv.barycentric_coords.y
             + vertex_normals[2] * uv.barycentric_coords.z), 0.0f)).GetXYZ().Normalize();
 
         out_rays.PushBack(LightmapRay {
-            Ray { position, normal },
+            Ray { position + normal * 0.01f, normal },
             mesh.GetID(),
             uv.triangle_index,
             uv_index
@@ -877,7 +895,9 @@ void LightmapJob::TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayl
 
 void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type)
 {
-    m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_task_thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
+    AssertThrow(m_params.thread_pool != nullptr);
+
+    m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_params.thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
     {
         uint32 seed = (uint32)rand();//index * m_texel_index;
 
@@ -989,6 +1009,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
 Lightmapper::Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scene)
     : m_trace_mode(trace_mode),
+      m_thread_pool(MakeRefCountedPtr<LightmapTaskThreadPool>()),
       m_scene(scene),
       m_num_jobs { 0 }
 {
@@ -1007,6 +1028,14 @@ Lightmapper::Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scen
 
 Lightmapper::~Lightmapper()
 {
+    if (m_thread_pool) {
+        if (m_thread_pool->IsRunning()) {
+            m_thread_pool->Stop();
+        }
+
+        m_thread_pool.Reset();
+    }
+
     m_path_tracer_radiance.Reset();
     m_path_tracer_irradiance.Reset();
 
@@ -1028,6 +1057,7 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
 {
     LightmapJobParams job_params {
         m_trace_mode,
+        m_thread_pool,
         m_scene,
         m_lightmap_elements.ToSpan().Slice(start_index, end_index),
         &m_all_elements_map
@@ -1049,6 +1079,8 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
 
 void Lightmapper::PerformLightmapping()
 {
+    HYP_LOG(Lightmap, Info, "Starting lightmapper...");
+
     const uint32 ideal_triangles_per_job = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.ideal_triangles_per_job").ToUInt32(8192);
 
     AssertThrowMsg(m_num_jobs.Get(MemoryOrder::ACQUIRE) == 0, "Cannot initialize lightmap renderer -- jobs currently running!");

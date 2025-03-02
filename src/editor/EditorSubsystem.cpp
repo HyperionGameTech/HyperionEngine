@@ -1579,46 +1579,47 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
     RunningEditorTask &running_task = m_tasks_by_thread_type[thread_type].EmplaceBack(task);
 
     RC<UIMenuItem> tasks_menu_item = m_ui_stage->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
-    AssertThrow(tasks_menu_item != nullptr);
 
-    if (UIObjectSpawnContext context { tasks_menu_item }) {
-        RC<UIGrid> task_grid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-        task_grid->SetNumColumns(12);
+    if (tasks_menu_item != nullptr) {
+        if (UIObjectSpawnContext context { tasks_menu_item }) {
+            RC<UIGrid> task_grid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            task_grid->SetNumColumns(12);
 
-        RC<UIGridRow> task_grid_row = task_grid->AddRow();
-        task_grid_row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            RC<UIGridRow> task_grid_row = task_grid->AddRow();
+            task_grid_row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
-        RC<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
-        task_grid_column_left->SetColumnSize(8);
-        task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(m_ui_stage));
+            RC<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
+            task_grid_column_left->SetColumnSize(8);
+            task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(m_ui_stage));
 
-        RC<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
-        task_grid_column_right->SetColumnSize(4);
+            RC<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
+            task_grid_column_right->SetColumnSize(4);
 
-        RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        cancel_button->SetText("Cancel");
-        cancel_button->OnClick.Bind([task_weak = task.ToWeak()](...)
-        {
-            if (RC<IEditorTask> task = task_weak.Lock()) {
-                task->Cancel();
+            RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            cancel_button->SetText("Cancel");
+            cancel_button->OnClick.Bind([task_weak = task.ToWeak()](...)
+            {
+                if (RC<IEditorTask> task = task_weak.Lock()) {
+                    task->Cancel();
+                }
+
+                return UIEventHandlerResult::OK;
+            }).Detach();
+            task_grid_column_right->AddChildUIObject(cancel_button);
+
+            running_task.m_ui_object = task_grid;
+
+            tasks_menu_item->AddChildUIObject(task_grid);
+
+            // testing
+            Handle<Texture> dummy_icon_texture;
+
+            if (auto dummy_icon_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png")) {
+                dummy_icon_texture = dummy_icon_texture_asset.Result();
             }
 
-            return UIEventHandlerResult::OK;
-        }).Detach();
-        task_grid_column_right->AddChildUIObject(cancel_button);
-
-        running_task.m_ui_object = task_grid;
-
-        tasks_menu_item->AddChildUIObject(task_grid);
-
-        // testing
-        Handle<Texture> dummy_icon_texture;
-
-        if (auto dummy_icon_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png")) {
-            dummy_icon_texture = dummy_icon_texture_asset.Result();
+            tasks_menu_item->SetIconTexture(dummy_icon_texture);
         }
-
-        tasks_menu_item->SetIconTexture(dummy_icon_texture);
     }
 
     // For long running tasks, enqueues the task in the scheduler
@@ -1753,21 +1754,25 @@ void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
         for (auto it = tasks.Begin(); it != tasks.End();) {
             auto &task = it->GetTask();
 
-            // Can only tick tasks that run on the game thread
-            if (task->GetRunnableThreadType() == ThreadType::THREAD_TYPE_GAME) {
-                task->Tick(delta);
-            }
-
-            if (task->IsCompleted()) {
-                // Remove the UIObject for the task from this stage
-                if (const RC<UIObject> &task_ui_object = it->GetUIObject()) {
-                    task_ui_object->RemoveFromParent();
+            if (task->IsCommitted()) {
+                // Can only tick tasks that run on the game thread
+                if (task->GetRunnableThreadType() == ThreadType::THREAD_TYPE_GAME) {
+                    task->Tick(delta);
                 }
 
-                it = tasks.Erase(it);
-            } else {
-                ++it;
+                if (task->IsCompleted()) {
+                    // Remove the UIObject for the task from this stage
+                    if (const RC<UIObject> &task_ui_object = it->GetUIObject()) {
+                        task_ui_object->RemoveFromParent();
+                    }
+
+                    it = tasks.Erase(it);
+
+                    continue;
+                }
             }
+
+            ++it;
         }
     }
 }

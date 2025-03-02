@@ -311,7 +311,7 @@ void Game::OnFrameBegin(Frame *frame)
     Threads::AssertOnThread(g_render_thread);
 
     g_engine->GetRenderState()->AdvanceFrameCounter();
-    g_engine->GetRenderState()->BindScene(m_scene.Get());
+    g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
 
     // temp
     if (m_scene.IsValid() && m_scene->IsReady()) {
@@ -325,7 +325,7 @@ void Game::OnFrameEnd(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    g_engine->GetRenderState()->UnbindScene(m_scene.Get());
+    g_engine->GetRenderState()->UnsetActiveScene();
 
     // temp
     if (m_scene.IsValid() && m_scene->IsReady()) {

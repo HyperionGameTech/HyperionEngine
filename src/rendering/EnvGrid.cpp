@@ -1072,7 +1072,7 @@ void EnvGrid::RenderEnvProbe(
     }
 
     g_engine->GetRenderState()->SetActiveEnvProbe(probe.GetID());
-    g_engine->GetRenderState()->BindScene(scene);
+    g_engine->GetRenderState()->SetActiveScene(scene);
 
     m_render_collector.CollectDrawCalls(
         frame,
@@ -1086,7 +1086,7 @@ void EnvGrid::RenderEnvProbe(
         nullptr
     );
 
-    g_engine->GetRenderState()->UnbindScene(scene);
+    g_engine->GetRenderState()->UnsetActiveScene();
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
     if (light_render_resources_handle != nullptr) {

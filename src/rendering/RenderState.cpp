@@ -50,7 +50,7 @@ void RenderState::Init()
     SetReady(true);
 }
 
-void RenderState::UnbindScene(const Scene *scene)
+/*void RenderState::UnbindScene(const Scene *scene)
 {
     AssertThrow(scene != nullptr);
     AssertThrow(scene->IsReady());
@@ -69,7 +69,7 @@ void RenderState::UnbindScene(const Scene *scene)
             ++it;
         }
     }
-}
+}*/
 
 void RenderState::BindCamera(Camera *camera)
 {

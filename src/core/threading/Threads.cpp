@@ -65,6 +65,10 @@ public:
         auto it = m_threads.Find(thread->GetID());
 
         if (it != m_threads.End()) {
+            for (auto &it : m_threads) {
+                HYP_LOG(Threading, Debug, "Thread: {}\t{}", it->GetID().GetValue(), it->GetID().GetName());
+            }
+
             return false;
         }
 
@@ -132,6 +136,9 @@ void Threads::RegisterThread(const ThreadID &id, IThread *thread)
 {
     AssertThrow(id.IsValid());
     AssertThrow(thread != nullptr);
+
+    HYP_LOG(Threading, Debug, "Registering ThreadID {} ({}) to Thread {}",
+        id.GetValue(), id.GetName(), (void *)thread);
 
     bool success = false;
 

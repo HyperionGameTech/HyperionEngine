@@ -372,7 +372,7 @@ void ShadowPass::Render(Frame *frame)
 
     AssertThrow(m_parent_scene.IsValid());
 
-    g_engine->GetRenderState()->BindScene(m_parent_scene.Get());
+    g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
 
     { // Render each shadow map as needed
         if (m_rerender_semaphore->IsInSignalState()) {
@@ -426,7 +426,7 @@ void ShadowPass::Render(Frame *frame)
         }
     }
 
-    g_engine->GetRenderState()->UnbindScene(m_parent_scene.Get());
+    g_engine->GetRenderState()->UnsetActiveScene();
 
     { // Combine static and dynamic shadow maps
         const AttachmentRef &attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);

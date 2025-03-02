@@ -85,7 +85,7 @@ void MeshRenderResource::UploadMeshData()
         vertex_buffer = BuildVertexBuffer(m_vertex_attributes, mesh_data);
         index_buffer = mesh_data.indices;
         
-        m_streamed_mesh_data->Unpage();
+        //m_streamed_mesh_data->Unpage();
     }
 
     // Ensure vertex buffer is not empty

@@ -142,6 +142,7 @@ struct LightmapJobCPUParams
 struct LightmapJobParams
 {
     LightmapTraceMode                                   trace_mode;
+    RC<LightmapTaskThreadPool>                          thread_pool;
     Handle<Scene>                                       scene;
     Span<LightmapElement>                               elements_view;
     HashMap<Handle<Entity>, LightmapElement *>          *all_elements_map;
@@ -242,7 +243,7 @@ private:
 
     UUID                                                    m_uuid;
 
-    Array<uint32>                                             m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
+    Array<uint32>                                           m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
 
     Array<LightmapRay>                                      m_current_rays;
 
@@ -252,7 +253,6 @@ private:
     Optional<LightmapUVMap>                                 m_uv_map;
     Task<Result<LightmapUVMap>>                             m_build_uv_map_task;
     Array<Task<void>>                                       m_current_tasks;
-    UniquePtr<LightmapTaskThreadPool>                       m_task_thread_pool;
 
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
@@ -294,6 +294,8 @@ private:
     void HandleCompletedJob(LightmapJob *job);
 
     LightmapTraceMode                           m_trace_mode;
+
+    RC<LightmapTaskThreadPool>                  m_thread_pool;
 
     Handle<Scene>                               m_scene;
 
