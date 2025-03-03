@@ -29,7 +29,7 @@
 
 namespace hyperion {
 
-static constexpr int max_bounces_cpu = 2;
+static constexpr int max_bounces_cpu = 1;
 
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;

@@ -859,15 +859,12 @@ void LightmapJob::TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayl
             continue;
         }
 
-        if (!hit_data.second.entity.IsValid()) {
-            continue;
-        }
+        AssertThrow(hit_data.second.entity.IsValid());
 
         auto element_it = m_params.all_elements_map->Find(hit_data.second.entity);
 
-        if (element_it == m_params.all_elements_map->End() || element_it->second == nullptr) {
-            continue;
-        }
+        AssertThrow(element_it != m_params.all_elements_map->End());
+        AssertThrow(element_it->second != nullptr);
 
         const LightmapElement &element = *element_it->second;
 
@@ -903,7 +900,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
     m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_params.thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
     {
-        // debugging
+         // debugging
         LightmapUVMap &uv_map = GetUVMap();
 
         AssertThrowMsg(
@@ -930,8 +927,8 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
         uint32 seed = (uint32)rand();//index * m_texel_index;
 
         FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
-        
         FixedArray<LightmapRayHitPayload, max_bounces_cpu + 1> bounces;
+
         int num_bounces = 0;
 
         Vec3f direction = first_ray.ray.direction;
@@ -996,27 +993,28 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
             ++num_bounces;
         }
 
-        for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
-            Vec4f radiance = bounces[bounce_index].emissive;
+        // for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
+        //     Vec4f radiance = bounces[bounce_index].emissive;
 
-            if (bounce_index != num_bounces - 1) {
-                radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
-            }
+        //     if (bounce_index != num_bounces - 1) {
+        //         radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
+        //     }
 
-            float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
+        //     float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
 
-            if (MathUtil::RandomFloat(seed) > p) {
-                break;
-            }
+        //     if (MathUtil::RandomFloat(seed) > p) {
+        //         break;
+        //     }
 
-            radiance /= MathUtil::Max(p, 0.0001f);
+        //     radiance /= MathUtil::Max(p, 0.0001f);
 
-            bounces[bounce_index].radiance = radiance;
-        }
+        //     bounces[bounce_index].radiance = radiance;
+        // }
 
         if (num_bounces != 0) {
             LightmapHit hit;
-            hit.color = bounces[0].radiance;
+            hit.color = bounces[0].throughput; // debugging
+            // hit.color = bounces[0].radiance;
 
             if (MathUtil::IsNaN(hit.color) || !MathUtil::IsFinite(hit.color)) {
                 HYP_LOG_ONCE(Lightmap, Warning, "NaN or infinite color detected while tracing rays");
