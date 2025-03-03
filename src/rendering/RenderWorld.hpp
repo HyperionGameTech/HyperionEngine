@@ -100,9 +100,6 @@ protected:
 
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
-    virtual Name GetTypeName() const override
-        { return NAME("WorldRenderResource"); }
-
 private:
     World                                           *m_world;
     Array<TResourceHandle<CameraRenderResource>>   m_bound_cameras;

@@ -66,7 +66,7 @@ struct LightmapRay
 };
 
 constexpr uint32 max_ray_hits_gpu = 512 * 512;
-constexpr uint32 max_ray_hits_cpu = 512 * 512;
+constexpr uint32 max_ray_hits_cpu = 16 * 16;
 
 struct alignas(16) LightmapHit
 {
@@ -154,7 +154,7 @@ class HYP_API LightmapJob
 public:
     friend struct RenderCommand_LightmapTraceRaysOnGPU;
 
-    static constexpr uint32 num_multisamples = 4;
+    static constexpr uint32 num_multisamples = 1;
 
     LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;

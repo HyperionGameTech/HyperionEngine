@@ -40,9 +40,6 @@ protected:
     
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
-    virtual Name GetTypeName() const override
-        { return NAME("SkeletonRenderResource"); }
-
 private:
     void UpdateBufferData();
 

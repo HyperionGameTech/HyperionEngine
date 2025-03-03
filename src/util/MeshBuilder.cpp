@@ -213,17 +213,17 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
 {
     AssertThrow(mesh != nullptr);
 
-    const RC<StreamedMeshData> &streamed_mesh_data = mesh->GetStreamedMeshData();
+    StreamedMeshData *streamed_mesh_data = mesh->GetStreamedMeshData();
 
     if (!streamed_mesh_data) {
         return Handle<Mesh> { };
     }
 
-    auto mesh_data_ref = streamed_mesh_data->AcquireRef();
+    ResourceHandle resource_handle(*streamed_mesh_data);
 
     const Matrix4 normal_matrix = transform.GetMatrix().Inverted().Transposed();
 
-    Array<Vertex> new_vertices = mesh_data_ref->GetMeshData().vertices;
+    Array<Vertex> new_vertices = streamed_mesh_data->GetMeshData().vertices;
 
     for (Vertex &vertex : new_vertices) {
         vertex.SetPosition(transform.GetMatrix() * vertex.GetPosition());
@@ -234,7 +234,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
 
     return CreateObject<Mesh>(
         std::move(new_vertices),
-        mesh_data_ref->GetMeshData().indices,
+        streamed_mesh_data->GetMeshData().indices,
         mesh->GetTopology(),
         mesh->GetVertexAttributes()
     );
@@ -250,7 +250,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
         ApplyTransform(b, b_transform)
     };
 
-    RC<StreamedMeshData> streamed_mesh_datas[] = {
+    StreamedMeshData *streamed_mesh_datas[] = {
         transformed_meshes[0]->GetStreamedMeshData(),
         transformed_meshes[1]->GetStreamedMeshData()
     };
@@ -258,9 +258,9 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
     AssertThrow(streamed_mesh_datas[0] != nullptr);
     AssertThrow(streamed_mesh_datas[1] != nullptr);
 
-    StreamedDataRef<StreamedMeshData> streamed_mesh_data_refs[] = {
-        streamed_mesh_datas[0]->AcquireRef(),
-        streamed_mesh_datas[1]->AcquireRef()
+    TResourceHandle<StreamedMeshData> streamed_mesh_data_refs[] = {
+        *streamed_mesh_datas[0],
+        *streamed_mesh_datas[1]
     };
 
     const VertexAttributeSet merged_vertex_attributes = a->GetVertexAttributes() | b->GetVertexAttributes();

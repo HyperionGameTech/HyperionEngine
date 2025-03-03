@@ -84,12 +84,6 @@ StreamedTextureData::StreamedTextureData(TextureData &&texture_data)
 {
 }
 
-bool StreamedTextureData::IsNull_Internal() const
-{
-    return m_streamed_data == nullptr
-        || m_streamed_data->IsNull();
-}
-
 bool StreamedTextureData::IsInMemory_Internal() const
 {
     return m_texture_data.HasValue();

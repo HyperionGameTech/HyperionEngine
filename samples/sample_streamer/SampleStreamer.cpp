@@ -1202,11 +1202,11 @@ Optional<Vec3f> SampleStreamer::GetWorldRay(const Vec2f &screen_position) const
                         continue;
                     }
 
-                    auto ref = streamed_mesh_data->AcquireRef();
+                    ResourceHandle resource_handle(*streamed_mesh_data);
 
                     ray.TestTriangleList(
-                        ref->GetMeshData().vertices,
-                        ref->GetMeshData().indices,
+                        streamed_mesh_data->GetMeshData().vertices,
+                        streamed_mesh_data->GetMeshData().indices,
                         transform_component->transform,
                         entity_id.Value(),
                         triangle_mesh_results

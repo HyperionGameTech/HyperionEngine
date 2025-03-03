@@ -522,7 +522,7 @@ class LightmapTaskThreadPool : public TaskThreadPool
 {
 public:
     LightmapTaskThreadPool()
-        : TaskThreadPool(TypeWrapper<LightmapTaskThread>(), NAME("LightmapperTracingThread"), NumThreadsToCreate())
+        : TaskThreadPool(TypeWrapper<LightmapTaskThread>(), Name::Unique("LightmapperTracingThread"), NumThreadsToCreate())
     {
         HYP_LOG(Lightmap, Info, "Tracing lightmap rays using {} threads", m_threads.Size());
     }
@@ -602,8 +602,6 @@ void LightmapJob::Process()
 {
     AssertThrow(IsRunning());
 
-    HYP_LOG(Lightmap, Info, "Processing lightmap job {}", m_uuid);
-
     if (!m_uv_map.HasValue()) {
         // wait for uv map to finish building
         
@@ -611,38 +609,31 @@ void LightmapJob::Process()
         AssertThrow(m_build_uv_map_task.IsValid());
 
         if (!m_build_uv_map_task.IsCompleted()) {
-            HYP_LOG(Lightmap, Info, "Lightmap job {}: Waiting on UV map to finish building", m_uuid);
-
             return;
-        } else {
-            if (Result<LightmapUVMap> &uv_map_result = m_build_uv_map_task.Await()) {
-                m_uv_map = std::move(*uv_map_result);
-            }
+        }
 
-            if (m_uv_map.HasValue()) {
-                // Flatten texel indices, grouped by mesh IDs
-                m_texel_indices.Reserve(m_uv_map->uvs.Size());
+        if (Result<LightmapUVMap> &uv_map_result = m_build_uv_map_task.Await()) {
+            m_uv_map = std::move(*uv_map_result);
+        }
 
-                for (const auto &it : m_uv_map->mesh_to_uv_indices) {
-                    for (uint32 i = 0; i < it.second.Size(); i++) {
-                        m_texel_indices.PushBack(it.second[i]);
-                    }
+        if (m_uv_map.HasValue()) {
+            // Flatten texel indices, grouped by mesh IDs
+            m_texel_indices.Reserve(m_uv_map->uvs.Size());
+
+            for (const auto &it : m_uv_map->mesh_to_uv_indices) {
+                for (uint32 i = 0; i < it.second.Size(); i++) {
+                    m_texel_indices.PushBack(it.second[i]);
                 }
-            } else {
-                HYP_LOG(Lightmap, Error, "Failed to build UV map for lightmap job {}", m_uuid);
-
-                // Mark as ready to stop further processing
-                Stop();
-                
-                return;
             }
+        } else {
+            HYP_LOG(Lightmap, Error, "Failed to build UV map for lightmap job {}", m_uuid);
+
+            // Mark as ready to stop further processing
+            Stop();
         }
 
         return;
     }
-
-    HYP_LOG(Lightmap, Info, "Processing lightmap job {} ({} current tasks, {} current rays)",
-        m_uuid, m_current_tasks.Size(), m_current_rays.Size());
 
     if (m_current_tasks.Any()) {
         for (Task<void> &task : m_current_tasks) {
@@ -671,18 +662,14 @@ void LightmapJob::Process()
     case LightmapTraceMode::LIGHTMAP_TRACE_MODE_CPU:
         GatherRays(max_ray_hits_cpu, m_current_rays);
 
-        HYP_LOG(Lightmap, Info, "Lightmap job {}: Found {} rays", m_uuid, m_current_rays.Size());
-
         if (m_current_rays.Empty()) {
             Stop();
 
             return;
         }
 
-        TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_IRRADIANCE);
+        // TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_IRRADIANCE);
         TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_RADIANCE);
-
-        HYP_LOG(Lightmap, Info, "Lightmap job {}: Found {} more tasks", m_uuid, m_current_tasks.Size());
 
         if (m_current_tasks.Empty()) {
             Stop();
@@ -714,17 +701,12 @@ void LightmapJob::Process()
 
 void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
 {
-    HYP_LOG(Lightmap, Info, "Gathering rays for lightmap job {}", m_uuid);
-
-    // @FIXME race conditions caused when Mesh::SetStreamedMeshData gets called while we are reading the streamed mesh data here
-    Optional<Pair<ID<Mesh>, StreamedDataRef<StreamedMeshData>>> streamed_mesh_data_refs { };
+    Optional<Pair<ID<Mesh>, TResourceHandle<StreamedMeshData>>> streamed_mesh_data_refs { };
 
     uint32 ray_index = 0;
 
     while (ray_index < max_ray_hits) {
         if (m_texel_index >= m_texel_indices.Size() * num_multisamples) {
-            HYP_LOG(Lightmap, Info, "Lightmap job {}: stopping gathering, texel index = {}, texel_indices count = {}", m_uuid, m_texel_index, m_texel_indices.Size());
-
             break;
         }
 
@@ -761,7 +743,7 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
         AssertThrow(mesh->GetStreamedMeshData()->IsInMemory());
 
         if (!streamed_mesh_data_refs.HasValue() || streamed_mesh_data_refs->first != mesh.GetID()) {
-            streamed_mesh_data_refs.Set({ mesh.GetID(), mesh->GetStreamedMeshData()->AcquireRef() });
+            streamed_mesh_data_refs.Set({ mesh.GetID(), TResourceHandle<StreamedMeshData>(*mesh->GetStreamedMeshData()) });
         }
 
         // Convert UV to world space
@@ -817,8 +799,6 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
         ++m_texel_index;
         ++ray_index;
     }
-
-    HYP_LOG(Lightmap, Info, "Lightmap job {}: Gathered {} rays", m_uuid, ray_index);
 }
 
 void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint32 num_hits, LightmapShadingType shading_type)
@@ -923,6 +903,30 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
     m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_params.thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
     {
+        // debugging
+        LightmapUVMap &uv_map = GetUVMap();
+
+        AssertThrowMsg(
+            first_ray.texel_index < uv_map.uvs.Size(),
+            "Texel index (%llu) out of range of UV map (size: %llu)",
+            first_ray.texel_index,
+            uv_map.uvs.Size()
+        );
+
+        LightmapUV &uv = uv_map.uvs[first_ray.texel_index];
+
+        if (!uv.material) {
+            return;
+        }
+
+        const Vec4f color = Vec4f(uv.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+
+        LightmapHit hit;
+        hit.color = color;
+
+        IntegrateRayHits(&first_ray, &hit, 1, shading_type);
+        return;
+
         uint32 seed = (uint32)rand();//index * m_texel_index;
 
         FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
@@ -1176,8 +1180,6 @@ void Lightmapper::PerformLightmapping()
 
         if (ideal_triangles_per_job != 0 && num_triangles != 0 && num_triangles + element.mesh->NumIndices() / 3 > ideal_triangles_per_job) {
             if (end_index - start_index != 0) {
-                HYP_LOG(Lightmap, Info, "Adding lightmap job for {} entities", end_index - start_index);
-
                 UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index, std::move(acceleration_structure)));
 
                 start_index = end_index;
@@ -1209,19 +1211,13 @@ void Lightmapper::PerformLightmapping()
             ));
         }
 
-        HYP_LOG(Lightmap, Info, "Add Entity (#{}) to be processed for lightmap", element.entity.GetID().Value());
-
         num_triangles += element.mesh->NumIndices() / 3;
     }
 
     if (end_index - start_index != 0) {
-        HYP_LOG(Lightmap, Info, "Adding final lightmap job for {} entities", end_index - start_index);
-
         UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index, std::move(acceleration_structure)));
 
         AddJob(std::move(job));
-    } else {
-        HYP_LOG(Lightmap, Info, "Skipping adding lightmap job, no entities to process");
     }
 }
 
@@ -1230,6 +1226,10 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
     uint32 num_jobs = m_num_jobs.Get(MemoryOrder::ACQUIRE);
 
     if (num_jobs == 0) {
+        if (m_thread_pool->IsRunning()) {
+            m_thread_pool->Stop();
+        }
+
         return;
     }
 
@@ -1351,7 +1351,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     for (LightmapElement &element : job->GetElements()) {
         bool is_new_material = false;
 
-        element.material = CreateObject<Material>();
+        element.material = element.material.IsValid() ? element.material->Clone() : CreateObject<Material>();
         is_new_material = true;
 
         // if (!element.material) {

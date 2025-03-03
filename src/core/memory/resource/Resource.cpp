@@ -59,6 +59,11 @@ ResourceBase::~ResourceBase()
     AssertThrowMsg(m_completion_semaphore.IsInSignalState(), "Resource destroyed while still in use, was WaitForCompletion() called?");
 }
 
+int ResourceBase::ClaimWithoutInitialize()
+{
+    return m_init_semaphore.Produce(1);
+}
+
 int ResourceBase::Claim()
 {
     IThread *owner_thread = GetOwnerThread();
@@ -210,7 +215,7 @@ void ResourceBase::WaitForCompletion()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Resource, Debug, "Waiting for completion of Resource with pool index {} from thread {}", m_pool_handle.index, Threads::CurrentThreadID().GetName());
+    HYP_LOG(Resource, Debug, "Waiting for completion of Resource from thread {}", Threads::CurrentThreadID().GetName());
 
     if (CanExecuteInline()) {
         // Wait for any threads that are using this Resource pre-initialization to stop
@@ -222,7 +227,7 @@ void ResourceBase::WaitForCompletion()
         if (!m_completion_semaphore.IsInSignalState()) {
             HYP_NAMED_SCOPE("Flushing scheduler tasks");
 
-            HYP_LOG(Resource, Debug, "Flushing scheduler tasks for Resource with pool index {}", m_pool_handle.index);
+            HYP_LOG(Resource, Debug, "Flushing scheduler tasks for Resource");
             
             FlushScheduledTasks();
         
@@ -325,11 +330,6 @@ public:
     NullResource()                              = default;
     NullResource(NullResource &&other) noexcept = default;
     virtual ~NullResource() override            = default;
-
-    virtual Name GetTypeName() const override
-    {
-        return NAME("NullResource");
-    }
 
     virtual bool IsNull() const override
     {

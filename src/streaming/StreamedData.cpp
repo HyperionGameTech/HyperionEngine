@@ -14,94 +14,13 @@
 
 namespace hyperion {
 
-#pragma region StreamedDataRefBase
-
-StreamedDataRefBase::StreamedDataRefBase(RC<StreamedData> &&owner)
-    : m_owner(std::move(owner))
-{
-    LoadStreamedData();
-}
-
-StreamedDataRefBase::StreamedDataRefBase(const StreamedDataRefBase &other)
-    : m_owner(other.m_owner)
-{
-    LoadStreamedData();
-}
-
-StreamedDataRefBase &StreamedDataRefBase::operator=(const StreamedDataRefBase &other)
-{
-    if (this == &other) {
-        return *this;
-    }
-
-    UnpageStreamedData();
-
-    m_owner = other.m_owner;
-
-    LoadStreamedData();
-
-    return *this;
-}
-
-StreamedDataRefBase::StreamedDataRefBase(StreamedDataRefBase &&other) noexcept
-    : m_owner(std::move(other.m_owner))
-{
-}
-
-StreamedDataRefBase &StreamedDataRefBase::operator=(StreamedDataRefBase &&other) noexcept
-{
-    if (this == &other) {
-        return *this;
-    }
-
-    UnpageStreamedData();
-
-    m_owner = std::move(other.m_owner);
-
-    return *this;
-}
-
-StreamedDataRefBase::~StreamedDataRefBase()
-{
-    UnpageStreamedData();
-}
-
-void StreamedDataRefBase::LoadStreamedData()
-{
-    if (!m_owner) {
-        return;
-    }
-
-    m_owner->m_use_count.Increment(1, MemoryOrder::RELAXED);
-    (void)m_owner->Load();
-}
-
-void StreamedDataRefBase::UnpageStreamedData()
-{
-    if (!m_owner) {
-        return;
-    }
-
-    const int use_count = m_owner->m_use_count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
-
-#ifdef HYP_DEBUG_MODE
-    AssertThrowMsg(use_count > 0, "Use count should never be less than 1");
-#endif
-
-    if (use_count == 1) {
-        m_owner->Unpage();
-    }
-}
-
-#pragma endregion StreamedDataRefBase
-
 #pragma region StreamedData
 
 StreamedData::StreamedData(StreamedDataState initial_state)
 {
     switch (initial_state) {
     case StreamedDataState::LOADED:
-        m_use_count.Set(1, MemoryOrder::RELAXED);
+        ClaimWithoutInitialize();
 
         break;
     default:
@@ -110,51 +29,60 @@ StreamedData::StreamedData(StreamedDataState initial_state)
     }
 }
 
+void StreamedData::Initialize()
+{
+    (void)Load_Internal();
+}
+
+void StreamedData::Destroy()
+{
+    Unpage_Internal();
+}
+
+void StreamedData::Update()
+{
+}
+
 bool StreamedData::IsInMemory() const
 {
-    m_loading_semaphore.Acquire();
-    m_pre_init_semaphore.Produce(1);
+    bool result = false;
 
-    bool result = IsInMemory_Internal();
-
-    m_pre_init_semaphore.Release(1);
+    const_cast<StreamedData *>(this)->Execute([this, &result]()
+    {
+        result = IsInMemory_Internal();
+    });
 
     return result;
 }
 
-bool StreamedData::IsNull() const
-{
-    m_loading_semaphore.Acquire();
-
-    return IsNull_Internal();
-}
-
 const ByteBuffer &StreamedData::Load() const
 {
-    if (IsInMemory()) {
-        return GetByteBuffer();
-    }
+    const ByteBuffer *buffer = nullptr;
 
-    HYP_NAMED_SCOPE("Load streamed data");
+    const_cast<StreamedData *>(this)->Execute([this, &buffer]()
+    {
+        if (IsInMemory_Internal()) {
+            buffer = &GetByteBuffer();
 
-    m_loading_semaphore.Produce(1);
-    
-    const ByteBuffer &buffer = Load_Internal();
+            return;
+        }
 
-    m_loading_semaphore.Release(1);
+        HYP_NAMED_SCOPE("Load streamed data");
+        
+        buffer = &Load_Internal();
+    });
 
-    return buffer;
+    return *buffer;
 }
 
 void StreamedData::Unpage()
 {
-    HYP_NAMED_SCOPE("Unpage streamed data");
+    Execute([this]()
+    {
+        HYP_NAMED_SCOPE("Unpage streamed data");
 
-    m_loading_semaphore.Produce(1);
-
-    Unpage_Internal();
-
-    m_loading_semaphore.Release(1);
+        Unpage_Internal();
+    });
 }
 
 const ByteBuffer &StreamedData::GetByteBuffer() const
@@ -167,11 +95,6 @@ const ByteBuffer &StreamedData::GetByteBuffer() const
 #pragma endregion StreamedData
 
 #pragma region NullStreamedData
-
-bool NullStreamedData::IsNull_Internal() const
-{
-    return true;
-}
 
 bool NullStreamedData::IsInMemory_Internal() const
 {
@@ -265,11 +188,6 @@ MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) no
     m_load_from_memory_proc = std::move(other.m_load_from_memory_proc);
 
     return *this;
-}
-
-bool MemoryStreamedData::IsNull_Internal() const
-{
-    return false;
 }
 
 bool MemoryStreamedData::IsInMemory_Internal() const

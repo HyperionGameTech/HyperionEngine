@@ -16,6 +16,7 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderProbe.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp> // For LightType
@@ -84,6 +85,61 @@ struct RenderBinding<Scene>
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return bool(id); }
+};
+
+template <class RenderResourceType>
+struct RenderResourceState_StackBased
+{
+    Stack<TResourceHandle<RenderResourceType>>  stack;
+
+    const TResourceHandle<RenderResourceType> &Current()
+    {
+        static const TResourceHandle<RenderResourceType> empty;
+
+        if (stack.Empty()) {
+            return empty;
+        }
+
+        return stack.Top();
+    }
+
+    void Bind(RenderResourceType &resource)
+    {
+        stack.Push(TResourceHandle<RenderResourceType>(resource));
+    }
+
+    void Unbind()
+    {
+        stack.Pop();
+    }
+};
+
+template <class RenderResourceType>
+struct RenderResourceState_PoolBased
+{
+    HashSet<RenderResourceType *>   elements;
+
+    void Enable(RenderResourceType *resource)
+    {
+        if (!resource) {
+            return;
+        }
+
+        elements.Insert(resource);
+    }
+
+    void Disable(RenderResourceType *resource)
+    {
+        elements.Erase(resource);
+    }
+};
+
+template <class RenderResourceType>
+struct RenderResourceState;
+
+template <>
+struct RenderResourceState<SceneRenderResource> : RenderResourceState_StackBased<SceneRenderResource>, RenderResourceState_PoolBased<SceneRenderResource>
+{
 };
 
 // @TODO: Refactor

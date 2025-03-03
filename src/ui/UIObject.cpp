@@ -80,18 +80,21 @@ const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
 
             // Hack to make vertices be from 0..1 rather than -1..1
 
-            auto mesh_data = tmp->GetStreamedMeshData();
-            auto ref = mesh_data->AcquireRef();
+            ResourceHandle resource_handle(*tmp->GetStreamedMeshData());
 
-            Array<Vertex> vertices = ref->GetMeshData().vertices;
-            const Array<uint32> &indices = ref->GetMeshData().indices;
+            Array<Vertex> vertices = tmp->GetStreamedMeshData()->GetMeshData().vertices;
+            const Array<uint32> &indices = tmp->GetStreamedMeshData()->GetMeshData().indices;
 
             for (Vertex &vert : vertices) {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            mesh = CreateObject<Mesh>(StreamedMeshData::FromMeshData({ std::move(vertices), indices }));
+            mesh = CreateObject<Mesh>(StreamedMeshData::FromMeshData({
+                std::move(vertices),
+                indices
+            }));
+
             InitObject(mesh);
         }
 

@@ -182,7 +182,6 @@ public:
     HYP_API Image(const TextureDesc &texture_desc);
     
     HYP_API Image(const RC<StreamedTextureData> &streamed_data);
-    HYP_API Image(RC<StreamedTextureData> &&streamed_data);
 
     Image(const Image &other)               = delete;
     Image &operator=(const Image &other)    = delete;
@@ -429,6 +428,7 @@ private:
     ImagePlatformImpl<PLATFORM>                 m_platform_impl;
 
     TextureDesc                                 m_texture_desc;
+
     RC<StreamedTextureData>                     m_streamed_data;
 
     bool                                        m_is_blended;

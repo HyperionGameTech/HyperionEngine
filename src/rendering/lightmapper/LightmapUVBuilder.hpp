@@ -39,28 +39,30 @@ struct LightmapUVBuilderParams
 
 struct LightmapMeshData
 {
-    Handle<Mesh>    mesh;
+    Handle<Mesh>        mesh;
+    Handle<Material>    material;
 
-    Matrix4         transform;
+    Matrix4             transform;
 
-    Array<float>    vertex_positions;
-    Array<float>    vertex_normals;
-    Array<float>    vertex_uvs;
+    Array<float>        vertex_positions;
+    Array<float>        vertex_normals;
+    Array<float>        vertex_uvs;
 
-    Array<uint32>   indices;
+    Array<uint32>       indices;
 
-    Array<Vec2f>    lightmap_uvs;
+    Array<Vec2f>        lightmap_uvs;
 };
 
 struct LightmapUV
 {
-    Handle<Mesh>    mesh;
-    Matrix4         transform = Matrix4::identity;
-    uint32          triangle_index = ~0u;
-    Vec3f           barycentric_coords = Vec3f::Zero();
-    Vec2f           lightmap_uv = Vec2f::Zero();
-    Vec4f           radiance = Vec4f::Zero();
-    Vec4f           irradiance = Vec4f::Zero();
+    Handle<Mesh>        mesh;
+    Handle<Material>    material;
+    Matrix4             transform = Matrix4::identity;
+    uint32              triangle_index = ~0u;
+    Vec3f               barycentric_coords = Vec3f::Zero();
+    Vec2f               lightmap_uv = Vec2f::Zero();
+    Vec4f               radiance = Vec4f::Zero();
+    Vec4f               irradiance = Vec4f::Zero();
 };
 
 struct LightmapUVMap

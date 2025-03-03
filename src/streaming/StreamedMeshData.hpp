@@ -47,15 +47,15 @@ class HYP_API StreamedMeshData final : public StreamedData
 
 public:
     static RC<StreamedMeshData> FromMeshData(MeshData);
-    
+
     StreamedMeshData();
     StreamedMeshData(const MeshData &mesh_data);
     StreamedMeshData(MeshData &&mesh_data);
-    // StreamedMeshData(const StreamedMeshData &other)                 = default;
-    // StreamedMeshData &operator=(const StreamedMeshData &other)      = default;
-    // StreamedMeshData(StreamedMeshData &&other) noexcept             = default;
-    // StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = default;
-    virtual ~StreamedMeshData() override                            = default;
+    StreamedMeshData(const StreamedMeshData &other)                 = delete;
+    StreamedMeshData &operator=(const StreamedMeshData &other)      = delete;
+    StreamedMeshData(StreamedMeshData &&other) noexcept             = delete;
+    StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = delete;
+    virtual ~StreamedMeshData() override;
 
     const MeshData &GetMeshData() const;
 
@@ -65,11 +65,7 @@ public:
     HYP_FORCE_INLINE SizeType NumIndices() const
         { return m_num_indices; }
 
-    HYP_FORCE_INLINE StreamedDataRef<StreamedMeshData> AcquireRef()
-        { return { RefCountedPtrFromThis().CastUnsafe<StreamedMeshData>() }; }
-
 protected:
-    virtual bool IsNull_Internal() const override;
     virtual bool IsInMemory_Internal() const override;
     
     virtual const ByteBuffer &Load_Internal() const override;

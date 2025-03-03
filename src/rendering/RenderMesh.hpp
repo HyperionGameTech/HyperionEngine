@@ -73,9 +73,6 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual Name GetTypeName() const override
-        { return NAME("MeshRenderResource"); }
-
 private:
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
 
@@ -84,7 +81,9 @@ private:
     Mesh                    *m_mesh;
 
     VertexAttributeSet      m_vertex_attributes;
+
     RC<StreamedMeshData>    m_streamed_mesh_data;
+    mutable ResourceHandle  m_streamed_mesh_data_handle;
 
     GPUBufferRef            m_vbo;
     GPUBufferRef            m_ibo;

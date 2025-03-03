@@ -96,9 +96,6 @@ protected:
 
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
-    virtual Name GetTypeName() const override
-        { return NAME("LightRenderResource"); }
-
 private:
     void UpdateBufferData();
 

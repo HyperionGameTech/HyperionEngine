@@ -74,9 +74,6 @@ protected:
     
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
-    virtual Name GetTypeName() const override
-        { return NAME("MaterialRenderResource"); }
-
 private:
     void CreateDescriptorSets();
     void DestroyDescriptorSets();

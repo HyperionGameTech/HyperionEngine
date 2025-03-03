@@ -18,8 +18,7 @@ using ImageFlags = uint32;
 
 enum ImageFlagBits : ImageFlags
 {
-    IMAGE_FLAGS_NONE            = 0x0,
-    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
+    IMAGE_FLAGS_NONE            = 0x0
 };
 
 enum class ImageType : uint32

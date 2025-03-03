@@ -61,8 +61,6 @@ protected:
 
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const { return nullptr; }
 
-    virtual Name GetTypeName() const override = 0;
-
     uint32  m_buffer_index;
     void    *m_buffer_address;
 

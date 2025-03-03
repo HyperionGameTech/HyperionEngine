@@ -129,9 +129,9 @@ void RenderState::BindLight(Light *light)
     });
 
     if (it != array.End()) {
-        *it = TResourceHandle(light->GetRenderResource());
+        *it = TResourceHandle<LightRenderResource>(light->GetRenderResource());
     } else {
-        array.PushBack(TResourceHandle(light->GetRenderResource()));
+        array.PushBack(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
     }
 }
 
@@ -169,7 +169,7 @@ void RenderState::SetActiveLight(LightRenderResource &light_render_resources)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    light_bindings.Push(TResourceHandle(light_render_resources));
+    light_bindings.Push(TResourceHandle<LightRenderResource>(light_render_resources));
 }
 
 void RenderState::BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)

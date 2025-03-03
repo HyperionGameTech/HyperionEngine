@@ -47,8 +47,6 @@ class IResource
 public:
     virtual ~IResource() = default;
 
-    virtual Name GetTypeName() const = 0;
-
     virtual bool IsNull() const = 0;
 
     virtual int Claim() = 0;
@@ -79,8 +77,6 @@ public:
 
     virtual ~ResourceBase() override;
 
-    virtual Name GetTypeName() const override = 0;
-
     virtual bool IsNull() const override final
         { return false; }
 
@@ -107,6 +103,8 @@ public:
 #endif
 
 protected:
+    int ClaimWithoutInitialize();
+
     HYP_FORCE_INLINE bool IsInitialized() const
         { return m_is_initialized; }
 
@@ -191,7 +189,7 @@ public:
         ptr->WaitForCompletion();
 
         const ResourceMemoryPoolHandle pool_handle = ptr->GetPoolHandle();
-        AssertThrow(pool_handle);
+        AssertThrowMsg(pool_handle, "Resource has no pool handle set - the resource was likely not allocated using the pool");
 
         // Invoke the destructor
         ValueStorage<T> &element = Base::GetElement(pool_handle.index);
@@ -316,23 +314,24 @@ public:
     HYP_FORCE_INLINE IResource &operator*() const
         { return *resource; }
 
-private:
+protected:
     IResource   *resource;
 };
 
-template <class T>
-class TResourceHandle
+template <class ResourceType>
+class TResourceHandle : public ResourceHandle
 {
 public:
-    TResourceHandle()   = default;
+    TResourceHandle() = default;
 
+    template <class T, typename = std::enable_if_t< (std::is_same_v<NormalizedType<T>, ResourceType> || std::is_base_of_v<ResourceType, NormalizedType<T>>) && (std::is_base_of_v<IResource, NormalizedType<T>>) > >
     TResourceHandle(T &resource)
-        : handle(reinterpret_cast<IResource &>(resource))
+        : ResourceHandle(static_cast<IResource &>(resource))
     {
     }
 
     TResourceHandle(const TResourceHandle &other)
-        : handle(other.handle)
+        : ResourceHandle(static_cast<const ResourceHandle &>(other))
     {
     }
 
@@ -342,13 +341,13 @@ public:
             return *this;
         }
 
-        handle = other.handle;
+        ResourceHandle::operator=(static_cast<const ResourceHandle &>(other));
 
         return *this;
     }
 
     TResourceHandle(TResourceHandle &&other) noexcept
-        : handle(std::move(other.handle))
+        : ResourceHandle(static_cast<ResourceHandle &&>(std::move(other)))
     {
     }
 
@@ -358,73 +357,38 @@ public:
             return *this;
         }
 
-        handle = std::move(other.handle);
+        ResourceHandle::operator=(static_cast<ResourceHandle &&>(std::move(other)));
 
         return *this;
     }
 
     ~TResourceHandle()  = default;
 
-    HYP_FORCE_INLINE void Reset()
+    HYP_FORCE_INLINE ResourceType *Get() const
     {
-        handle.Reset();
-    }
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        // Check if the handle is not null and not the null resource.
-        return bool(handle);
-    }
-
-    HYP_FORCE_INLINE operator ResourceHandle &() &
-        { return handle; }
-
-    HYP_FORCE_INLINE operator const ResourceHandle &() const &
-        { return handle; }
-
-    HYP_FORCE_INLINE operator ResourceHandle &&() &&
-        { return std::move(handle); }
-
-    HYP_FORCE_INLINE bool operator!() const
-        { return !handle; }
-
-    HYP_FORCE_INLINE bool operator==(const TResourceHandle &other) const
-        { return handle == other.handle; }
-
-    HYP_FORCE_INLINE bool operator!=(const TResourceHandle &other) const
-        { return handle != other.handle; }
-
-    HYP_FORCE_INLINE T *Get() const
-    {
-        IResource &ptr = *handle;
-
-        if (ptr.IsNull()) {
+        if (resource->IsNull()) {
             return nullptr;
         }
 
-        // can safely cast to T since we know it's not NullResource
-        return reinterpret_cast<T *>(&ptr);
+        // can safely cast to ResourceType since we know it's not NullResource
+        return static_cast<ResourceType *>(resource);
     }
 
-    HYP_FORCE_INLINE T *operator->() const
+    HYP_FORCE_INLINE ResourceType *operator->() const
     {
         return Get();
     }
 
-    HYP_FORCE_INLINE T &operator*() const
+    HYP_FORCE_INLINE ResourceType &operator*() const
     {
-        T *ptr = Get();
+        ResourceType *ptr = Get();
 
         if (!ptr) {
             HYP_FAIL("Dereferenced null resource handle");
         }
 
-        // can safely cast to T since we know it's not null
         return *ptr;
     }
-
-private:
-    ResourceHandle  handle;
 };
 
 } // namespace hyperion

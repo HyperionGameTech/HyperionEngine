@@ -59,6 +59,8 @@ void MeshRenderResource::Destroy_Internal()
 
     SafeRelease(std::move(m_vbo));
     SafeRelease(std::move(m_ibo));
+
+    m_streamed_mesh_data_handle.Reset();
 }
 
 void MeshRenderResource::Update_Internal()
@@ -79,13 +81,16 @@ void MeshRenderResource::UploadMeshData()
     Array<uint32> index_buffer;
     
     if (m_streamed_mesh_data != nullptr) {
-        auto ref = m_streamed_mesh_data->AcquireRef();
-        const MeshData &mesh_data = ref->GetMeshData();
+        if (!m_streamed_mesh_data_handle) {
+            m_streamed_mesh_data_handle = ResourceHandle(*m_streamed_mesh_data);
+        }
+
+        const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
 
         vertex_buffer = BuildVertexBuffer(m_vertex_attributes, mesh_data);
         index_buffer = mesh_data.indices;
         
-        //m_streamed_mesh_data->Unpage();
+        m_streamed_mesh_data_handle.Reset();
     }
 
     // Ensure vertex buffer is not empty
@@ -178,9 +183,12 @@ void MeshRenderResource::SetStreamedMeshData(const RC<StreamedMeshData> &streame
 {
     HYP_SCOPE;
 
-    Execute([this, streamed_mesh_data]()
+
+    Execute([this, streamed_mesh_data, streamed_mesh_data_handle = streamed_mesh_data ? ResourceHandle(*streamed_mesh_data) : ResourceHandle()]()
     {
         m_streamed_mesh_data = streamed_mesh_data;
+
+        m_streamed_mesh_data_handle = std::move(streamed_mesh_data_handle);
 
         if (IsInitialized()) {
             SetNeedsUpdate();
@@ -249,8 +257,13 @@ Array<PackedVertex> MeshRenderResource::BuildPackedVertices() const
 {
     HYP_SCOPE;
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    const MeshData &mesh_data = ref->GetMeshData();
+    if (!m_streamed_mesh_data) {
+        return { };
+    }
+
+    ResourceHandle streamed_mesh_data_handle(*m_streamed_mesh_data);
+
+    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
 
     Array<PackedVertex> packed_vertices;
     packed_vertices.Resize(mesh_data.vertices.Size());
@@ -277,8 +290,13 @@ Array<uint32> MeshRenderResource::BuildPackedIndices() const
 {
     HYP_SCOPE;
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    const MeshData &mesh_data = ref->GetMeshData();
+    if (!m_streamed_mesh_data) {
+        return { };
+    }
+
+    ResourceHandle streamed_mesh_data_handle(*m_streamed_mesh_data);
+
+    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
 
     AssertThrow(mesh_data.indices.Size() % 3 == 0);
 

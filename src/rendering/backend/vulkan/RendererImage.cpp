@@ -56,8 +56,9 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
     const InternalFormat new_format = FormatChangeNumComponents(current_desc.format, new_bpp);
 
     if (self->HasAssignedImageData()) {
-        const auto ref = self->GetStreamedData()->AcquireRef();
-        const TextureData &texture_data = ref->GetTextureData();
+        ResourceHandle resource_handle(*self->GetStreamedData());
+        
+        const TextureData &texture_data = self->GetStreamedData()->GetTextureData();
 
         AssertThrow(texture_data.buffer.Size() == size);
 
@@ -516,25 +517,6 @@ Image<Platform::VULKAN>::Image(
 }
 
 template <>
-Image<Platform::VULKAN>::Image(
-    RC<StreamedTextureData> &&streamed_data
-) : m_platform_impl { this },
-    m_streamed_data(std::move(streamed_data)),
-    m_is_blended(false),
-    m_is_rw_texture(false),
-    m_is_attachment_texture(false),
-    m_bpp(0),
-    m_flags(IMAGE_FLAGS_NONE)
-{
-    AssertThrow(m_streamed_data != nullptr);
-
-    m_texture_desc = m_streamed_data->GetTextureDesc();
-    m_bpp = NumComponents(GetBaseFormat(m_texture_desc.format));
-
-    m_size = GetByteSize();
-}
-
-template <>
 Image<Platform::VULKAN>::Image(Image &&other) noexcept
     : m_texture_desc(other.m_texture_desc),
       m_is_blended(other.m_is_blended),
@@ -708,10 +690,6 @@ RendererResult Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
         m_platform_impl.handle = VK_NULL_HANDLE;
     }
 
-    if (m_streamed_data) {
-        m_streamed_data->Unpage();
-    }
-
     return result;
 }
 
@@ -756,8 +734,9 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     if (HasAssignedImageData()) {
-        auto ref = m_streamed_data->AcquireRef();
-        const TextureData &texture_data = ref->GetTextureData();
+        ResourceHandle resource_handle(*m_streamed_data);
+        
+        const TextureData &texture_data = m_streamed_data->GetTextureData();
 
         AssertThrowMsg(
             m_size == texture_data.buffer.Size(),
@@ -861,10 +840,6 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
             HYPERION_PASS_ERRORS(staging_buffer.Destroy(device), result);
         } else {
             HYPERION_IGNORE_ERRORS(staging_buffer.Destroy(device));
-        }
-
-        if (!(m_flags & IMAGE_FLAGS_KEEP_IMAGE_DATA)) {
-            m_streamed_data->Unpage();
         }
     }
 

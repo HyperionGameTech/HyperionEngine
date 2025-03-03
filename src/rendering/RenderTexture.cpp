@@ -578,8 +578,9 @@ Vec4f Texture::Sample(Vec2f uv) const
         }
     }
 
-    auto ref = streamed_data->AcquireRef();
-    const TextureData &texture_data = ref->GetTextureData();
+    ResourceHandle resource_handle(*streamed_data);
+
+    const TextureData &texture_data = streamed_data->GetTextureData();
 
     if (texture_data.buffer.Size() == 0) {
         HYP_LOG_ONCE(Texture, Warning, "Texture buffer is empty");

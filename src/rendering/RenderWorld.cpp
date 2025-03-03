@@ -78,7 +78,7 @@ void WorldRenderResource::AddScene(const Handle<Scene> &scene)
         if (Handle<Scene> scene = scene_weak.Lock()) {
             m_render_collector_container.AddScene(scene.Get());
 
-            m_bound_scenes.PushBack(TResourceHandle(scene->GetRenderResource()));
+            m_bound_scenes.PushBack(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
         }
     });          
 }

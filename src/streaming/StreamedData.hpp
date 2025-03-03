@@ -44,81 +44,8 @@ enum class StreamedDataState : uint32
     UNPAGED
 };
 
-/*! \brief Interface for a reference to a streamed data object.
-
-    Used sort of like an RC pointer, but with some additional functionality.
-    Keeps track of the use count of the underlying streamed data object and
-    ensures that the data is loaded into memory when the reference is created.
-
-    When the reference is destroyed, the use count of the underlying streamed
-    data object is decremented. When the use count reaches zero, the data is
-    unpaged from memory.
- */
-class HYP_API StreamedDataRefBase
-{
-protected:
-    RC<StreamedData>    m_owner { nullptr };
-
-public:
-    StreamedDataRefBase(RC<StreamedData> &&owner);
-    StreamedDataRefBase(const StreamedDataRefBase &other);
-    StreamedDataRefBase &operator=(const StreamedDataRefBase &other);
-    StreamedDataRefBase(StreamedDataRefBase &&other) noexcept;
-    StreamedDataRefBase &operator=(StreamedDataRefBase &&other) noexcept;
-    virtual ~StreamedDataRefBase();
-
-protected:
-    void LoadStreamedData();
-    void UnpageStreamedData();
-};
-
-template <class T>
-class StreamedDataRef : public StreamedDataRefBase
-{
-public:
-    StreamedDataRef()
-        : StreamedDataRefBase(nullptr)
-    {
-    }
-
-    StreamedDataRef(RC<T> &&owner)
-        : StreamedDataRefBase(std::move(owner))
-    {
-    }
-
-    StreamedDataRef(const StreamedDataRef &other)
-        : StreamedDataRefBase(static_cast<const StreamedDataRefBase &>(other))
-    {
-    }
-
-    StreamedDataRef &operator=(const StreamedDataRef &other)
-    {
-        StreamedDataRefBase::operator=(static_cast<const StreamedDataRefBase &>(other));
-        return *this;
-    }
-
-    StreamedDataRef(StreamedDataRef &&other) noexcept
-        : StreamedDataRefBase(static_cast<StreamedDataRefBase &&>(other))
-    {
-    }
-
-    StreamedDataRef &operator=(StreamedDataRef &&other) noexcept
-    {
-        StreamedDataRefBase::operator=(static_cast<StreamedDataRefBase &&>(other));
-        return *this;
-    }
-
-    virtual ~StreamedDataRef() override = default;
-
-    T *operator->()
-        { return static_cast<T *>(m_owner.Get()); }
-
-    const T *operator->() const
-        { return static_cast<const T *>(m_owner.Get()); }
-};
-
 HYP_CLASS(Abstract)
-class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>
+class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>, public ResourceBase
 {
     HYP_OBJECT_BODY(StreamedData);
 
@@ -129,8 +56,6 @@ protected:
     StreamedData(StreamedDataState initial_state);
 
 public:
-    friend class StreamedDataRefBase; // allow it to manipulate m_use_count
-
     StreamedData()                                      = default;
     StreamedData(const StreamedData &)                  = delete;
     StreamedData &operator=(const StreamedData &)       = delete;
@@ -139,23 +64,21 @@ public:
     virtual ~StreamedData()                             = default;
 
     bool IsInMemory() const;
-    bool IsNull() const;
 
     void Unpage();
     const ByteBuffer &Load() const;
 
 protected:
+    virtual void Initialize() override final;
+    virtual void Destroy() override final;
+    virtual void Update() override final;
+
     virtual bool IsInMemory_Internal() const = 0;
-    virtual bool IsNull_Internal() const = 0;
 
     virtual const ByteBuffer &Load_Internal() const = 0;
     virtual void Unpage_Internal() = 0;
 
     virtual const ByteBuffer &GetByteBuffer() const;
-
-    mutable AtomicVar<int>      m_use_count { 0 };
-    mutable PreInitSemaphore    m_pre_init_semaphore;
-    mutable LoadingSemaphore    m_loading_semaphore;
 };
 
 HYP_CLASS()
@@ -167,11 +90,7 @@ public:
     NullStreamedData()                      = default;
     virtual ~NullStreamedData() override    = default;
 
-    StreamedDataRef<NullStreamedData> AcquireRef()
-        { return { RefCountedPtrFromThis().CastUnsafe<NullStreamedData>() }; }
-
 protected:
-    virtual bool IsNull_Internal() const override;
     virtual bool IsInMemory_Internal() const override;
 
     virtual const ByteBuffer &Load_Internal() const override;
@@ -197,11 +116,7 @@ public:
 
     virtual ~MemoryStreamedData() override                          = default;
 
-    StreamedDataRef<MemoryStreamedData> AcquireRef()
-        { return { RefCountedPtrFromThis().CastUnsafe<MemoryStreamedData>() }; }
-
 protected:
-    virtual bool IsNull_Internal() const override;
     virtual bool IsInMemory_Internal() const override;
 
     virtual const ByteBuffer &Load_Internal() const override;

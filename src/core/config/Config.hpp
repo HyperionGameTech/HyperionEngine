@@ -99,10 +99,6 @@ public:
     bool Read(json::JSONValue &out_value) const;
     bool Write(const json::JSONValue &value) const;
 
-protected:
-    virtual Name GetTypeName() const override
-        { return NAME("ConfigurationDataStore"); }
-
 private:
     String  m_config_name;
 };

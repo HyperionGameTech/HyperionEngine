@@ -102,8 +102,6 @@ public:
         { m_pool_handle = pool_handle; }
 
 protected:
-    virtual Name GetTypeName() const override = 0;
-
     virtual bool IsNull() const override
         { return false; }
 
@@ -129,10 +127,6 @@ public:
     }
 
     virtual ~DataStore() override = default;
-
-protected:
-    virtual Name GetTypeName() const override
-        { return NAME("DataStore"); }
 };
 
 class ReadOnlyDataStore : public DataStore
@@ -144,10 +138,6 @@ public:
     }
 
     virtual ~ReadOnlyDataStore() override = default;
-
-protected:
-    virtual Name GetTypeName() const override
-        { return NAME("ReadOnlyDataStore"); }
 };
 
 class ReadWriteDataStore : public DataStore
@@ -159,10 +149,6 @@ public:
     }
 
     virtual ~ReadWriteDataStore() override = default;
-
-protected:
-    virtual Name GetTypeName() const override
-        { return NAME("ReadWriteDataStore"); }
 };
 
 template <auto Prefix, DataStoreFlags Flags>

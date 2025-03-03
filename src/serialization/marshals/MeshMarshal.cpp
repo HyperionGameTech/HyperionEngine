@@ -29,11 +29,12 @@ public:
         out.SetProperty("Topology", uint32(in_object.GetTopology()));
         out.SetProperty("Attributes", FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
 
-        const RC<StreamedMeshData> &streamed_mesh_data = in_object.GetStreamedMeshData();
+        StreamedMeshData *streamed_mesh_data = in_object.GetStreamedMeshData();
 
-        if (streamed_mesh_data) {
-            auto ref = streamed_mesh_data->AcquireRef();
-            const MeshData &mesh_data = ref->GetMeshData();
+        if (streamed_mesh_data != nullptr) {
+            ResourceHandle resource_handle(*streamed_mesh_data);
+            
+            const MeshData &mesh_data = streamed_mesh_data->GetMeshData();
 
             if (FBOMResult err = out.AddChild(mesh_data)) {
                 return err;

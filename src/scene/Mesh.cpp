@@ -126,9 +126,6 @@ Mesh::Mesh(
     m_aabb(BoundingBox::Empty()),
     m_render_resource(nullptr)
 {
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    const MeshData &mesh_data = ref->GetMeshData();
-
     CalculateAABB();
 }
 
@@ -175,6 +172,13 @@ Mesh::~Mesh()
             FreeResource(m_render_resource);
         }
     }
+
+    // @NOTE Must be after we free the m_render_resource,
+    // since m_render_resource would be using our streamed mesh data
+    if (m_streamed_mesh_data != nullptr) {
+        m_streamed_mesh_data->WaitForCompletion();
+        m_streamed_mesh_data.Reset();
+    }
 }
 
 void Mesh::Init()
@@ -191,6 +195,11 @@ void Mesh::Init()
             FreeResource(m_render_resource);
 
             m_render_resource = nullptr;
+        }
+
+        if (m_streamed_mesh_data != nullptr) {
+            m_streamed_mesh_data->WaitForCompletion();
+            m_streamed_mesh_data.Reset();
         }
     }));
 
@@ -248,13 +257,23 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
+    if (m_streamed_mesh_data != nullptr) {
+        // Set render resource's streamed mesh data to null first
+        // -- FreeResource will wait for usage to finish
+        if (m_render_resource != nullptr) {
+            m_render_resource->SetStreamedMeshData(nullptr);
+        }
+
+        m_streamed_mesh_data->WaitForCompletion();
+    }
+
     m_streamed_mesh_data = std::move(streamed_mesh_data);
 
     CalculateAABB();
 
     if (IsInitCalled()) {
         if (!m_streamed_mesh_data) {
-            // Create empty buffers
+            // Create empty streamed data if set to null.
             m_streamed_mesh_data = StreamedMeshData::FromMeshData({
                 Array<Vertex> { },
                 Array<uint32> { }
@@ -323,8 +342,9 @@ void Mesh::CalculateNormals(bool weighted)
         return;
     }
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    MeshData mesh_data = ref->GetMeshData();
+    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
     if (mesh_data.indices.Empty()) {
         HYP_LOG(Mesh, Warning, "Cannot calculate normals before indices are generated!");
@@ -362,6 +382,9 @@ void Mesh::CalculateNormals(bool weighted)
     }
 
     if (!weighted) {
+        resource_handle.Reset();
+        
+        m_streamed_mesh_data->WaitForCompletion();
         m_streamed_mesh_data.Emplace(std::move(mesh_data));
 
         return;
@@ -457,6 +480,9 @@ void Mesh::CalculateNormals(bool weighted)
 
     normals.clear();
 
+    resource_handle.Reset();
+    
+    m_streamed_mesh_data->WaitForCompletion();
     m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
@@ -471,8 +497,9 @@ void Mesh::CalculateTangents()
         return;
     }
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    MeshData mesh_data = ref->GetMeshData();
+    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
     struct TangentBitangentPair
     {
@@ -541,6 +568,9 @@ void Mesh::CalculateTangents()
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
 
+    resource_handle.Reset();
+
+    m_streamed_mesh_data->WaitForCompletion();
     m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
@@ -555,13 +585,17 @@ void Mesh::InvertNormals()
         return;
     }
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    MeshData mesh_data = ref->GetMeshData();
+    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
     for (Vertex &vertex : mesh_data.vertices) {
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
+    
+    resource_handle.Reset();
 
+    m_streamed_mesh_data->WaitForCompletion();
     m_streamed_mesh_data.Emplace(std::move(mesh_data));
 }
 
@@ -573,11 +607,14 @@ void Mesh::CalculateAABB()
     if (!m_streamed_mesh_data) {
         HYP_LOG(Mesh, Warning, "Cannot calculate Mesh bounds before mesh data is set!");
 
+        m_aabb = BoundingBox::Empty();
+
         return;
     }
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    const MeshData &mesh_data = ref->GetMeshData();
+    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    
+    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
 
     BoundingBox aabb = BoundingBox::Empty();
 
@@ -594,8 +631,9 @@ bool Mesh::BuildBVH(BVHNode &out_bvh_node, int max_depth)
         return false;
     }
 
-    auto ref = m_streamed_mesh_data->AcquireRef();
-    const MeshData &mesh_data = ref->GetMeshData();
+    ResourceHandle resource_handle(*m_streamed_mesh_data);
+
+    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
     
     out_bvh_node = BVHNode(m_aabb);
 

@@ -38,11 +38,7 @@ public:
     HYP_FORCE_INLINE SizeType GetBufferSize() const
         { return m_buffer_size; }
 
-    HYP_FORCE_INLINE StreamedDataRef<StreamedTextureData> AcquireRef()
-        { return { RefCountedPtrFromThis().CastUnsafe<StreamedTextureData>() }; }
-
 protected:
-    virtual bool IsNull_Internal() const override;
     virtual bool IsInMemory_Internal() const override;
     
     virtual const ByteBuffer &Load_Internal() const override;
