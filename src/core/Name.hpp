@@ -15,29 +15,17 @@
 
 namespace hyperion {
 
+class NameRegistry;
+
 /*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
 extern HYP_API Name CreateNameFromDynamicString(const ANSIString &str);
 
 /*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
 extern HYP_API WeakName CreateWeakNameFromDynamicString(const ANSIStringView &str);
 
-class NameRegistry
-{
-public:
-    NameRegistry()                                          = default;
-    NameRegistry(const NameRegistry &other)                 = delete;
-    NameRegistry &operator=(const NameRegistry &other)      = delete;
-    NameRegistry(NameRegistry &&other) noexcept             = delete;
-    NameRegistry &operator=(NameRegistry &&other) noexcept  = delete;
-    ~NameRegistry()                                         = default;
+extern HYP_API Name RegisterName(NameRegistry *name_registry, NameID id, const ANSIString &str, bool lock);
 
-    HYP_API Name RegisterName(NameID id, const ANSIString &str, bool lock);
-    HYP_API const ANSIString &LookupStringForName(Name name) const;
-
-private:
-    HashMap<NameID, ANSIString> m_name_map;
-    mutable Mutex               m_mutex;
-};
+extern HYP_API const ANSIString &LookupStringForName(const NameRegistry *name_registry, Name name);
 
 struct NameRegistration
 {
@@ -61,7 +49,7 @@ struct NameRegistration
     {
         static constexpr NameID name_id = HashedName::hash_code.Value();
 
-        Name::GetRegistry()->RegisterName(name_id, hashed_name.data, lock);
+        RegisterName(Name::GetRegistry(), name_id, hashed_name.data, lock);
         
         return NameRegistration { name_id };
     }
@@ -71,7 +59,7 @@ struct NameRegistration
     {
         static constexpr NameID name_id = HashCode;
 
-        Name::GetRegistry()->RegisterName(name_id, str, lock);
+        RegisterName(Name::GetRegistry(), name_id, str, lock);
 
         return NameRegistration { name_id };
     }

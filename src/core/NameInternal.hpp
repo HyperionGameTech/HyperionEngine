@@ -106,8 +106,6 @@ struct Name
 
     HYP_API static NameRegistry *GetRegistry();
 
-    /*! \brief Generates a unique name via UUID. */
-    HYP_API static Name Unique();
     /*! \brief Generates a unique name with a prefix. */
     HYP_API static Name Unique(const char *prefix);
 
