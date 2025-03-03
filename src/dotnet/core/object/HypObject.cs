@@ -40,6 +40,11 @@ namespace Hyperion
                     throw new Exception("Invalid HypClass returned from HypClassBinding attribute");
                 }
 
+                if (!hypClass.IsReferenceCounted)
+                {
+                    throw new Exception("Can only create instances of reference counted HypClass objects (using RC<T> or Handle<T>) from managed code");
+                }
+
                 // Need to add this to managed object cache,
                 // pass to CreateInstance() so the HypObject in C++ knows not to create another of this..
                 GCHandle gcHandle = GCHandle.Alloc(this, GCHandleType.Normal);
@@ -92,7 +97,14 @@ namespace Hyperion
 #endif
             }
 
-            controlBlockPtr = HypObject_IncRef(_hypClassPtr, _nativeAddress, isWeak);
+            if (HypClass.IsReferenceCounted)
+            {
+                controlBlockPtr = HypObject_IncRef(_hypClassPtr, _nativeAddress, isWeak);
+            }
+            else
+            {
+                controlBlockPtr = IntPtr.Zero;
+            }
 
             // Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
         }
@@ -103,7 +115,12 @@ namespace Hyperion
 
             if (IsValid)
             {
-                HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+                if (HypClass.IsReferenceCounted)
+                {
+                    HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+
+                    controlBlockPtr = IntPtr.Zero;
+                }
 
                 _hypClassPtr = IntPtr.Zero;
                 _nativeAddress = IntPtr.Zero;
@@ -114,14 +131,18 @@ namespace Hyperion
         {
             if (IsValid)
             {
-                HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+                if (HypClass.IsReferenceCounted)
+                {
+                    HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
 
-                _hypClassPtr = IntPtr.Zero;
-                _nativeAddress = IntPtr.Zero;
+                    controlBlockPtr = IntPtr.Zero;
+                }
 
-                // @FIXME: potential issue her if the object gets used after being disposed
                 GC.SuppressFinalize(this);
             }
+
+            _hypClassPtr = IntPtr.Zero;
+            _nativeAddress = IntPtr.Zero;
         }
 
         public bool IsValid

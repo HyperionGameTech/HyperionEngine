@@ -987,7 +987,6 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
             Matrix4 model_matrix = Matrix4::Identity();
 
             if (use_bvh && m_scene && m_scene->GetEntityManager()) {
-
                 if (BVHComponent *bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity.GetID())) {
                     bvh = &bvh_component->bvh;
                 }
@@ -998,12 +997,12 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
             }
 
             if (bvh) {
-                const Ray local_space_ray = ray * model_matrix.Inverted();
+                const Ray local_space_ray = model_matrix.Inverted() * ray;
 
                 RayTestResults local_bvh_results = bvh->TestRay(local_space_ray);
 
                 if (local_bvh_results.Any()) {
-                    Matrix4 normal_matrix = model_matrix.Transpose().Inverted();
+                    const Matrix4 normal_matrix = model_matrix.Transposed().Inverted();
 
                     RayTestResults bvh_results;
 
@@ -1011,10 +1010,10 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
                         hit.id = m_entity.GetID().Value();
                         hit.user_data = nullptr;
                         
-                        Vec4f transformed_normal = Vec4f(hit.normal, 0.0f) * normal_matrix;
+                        Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
                         hit.normal = transformed_normal.GetXYZ().Normalized();
 
-                        Vec4f transformed_position = Vec4f(hit.hitpoint, 1.0f) * model_matrix;
+                        Vec4f transformed_position = model_matrix * Vec4f(hit.hitpoint, 1.0f);
                         transformed_position /= transformed_position.w;
 
                         hit.hitpoint = transformed_position.GetXYZ();

@@ -303,4 +303,6 @@ CMakeFiles/**/*
 src/gen/**/*
 src/dotnet/runtime/gen/**/*
 
+res/projects/**/*
+
 submodules/**/*

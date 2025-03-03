@@ -503,7 +503,7 @@ public:
             size = Size();
         }
 
-        return ByteView(reinterpret_cast<ubyte *>(Data()) + offset, size);
+        return ByteView(reinterpret_cast<ubyte *>(Data()) + offset, size * sizeof(T));
     }
 
     /*! \brief Returns a ConstByteView of the Array's data. */
@@ -517,7 +517,7 @@ public:
             size = Size();
         }
 
-        return ConstByteView(reinterpret_cast<const ubyte *>(Data()) + offset, size);
+        return ConstByteView(reinterpret_cast<const ubyte *>(Data()) + offset, size * sizeof(T));
     }
     
     HYP_DEF_STL_BEGIN_END(

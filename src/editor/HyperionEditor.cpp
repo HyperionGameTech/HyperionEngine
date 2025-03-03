@@ -605,6 +605,7 @@ void HyperionEditor::Init()
             NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
             reflection_probe_node.SetEntity(reflection_probe_entity);
             reflection_probe_node.SetName("ReflectionProbeTest");
+            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 6.0f, 0.0f));
         }
 
 #endif

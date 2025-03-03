@@ -167,13 +167,12 @@ public:
     virtual LightmapRayTestResults TestRay(const Ray &ray) const = 0;
 };
 
-/// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
-
 class LightmapBottomLevelAccelerationStructure final : public ILightmapAccelerationStructure
 {
 public:
-    LightmapBottomLevelAccelerationStructure(const Handle<Entity> &entity, BVHNode &bvh)
+    LightmapBottomLevelAccelerationStructure(const Handle<Entity> &entity, const Transform &transform, BVHNode &bvh)
         : m_entity(entity),
+          m_transform(transform),
           m_root(&bvh)
     {
     }
@@ -185,23 +184,47 @@ public:
         LightmapRayTestResults results;
 
         if (m_root != nullptr) {
-            const RayTestResults triangle_ray_test_results = m_root->TestRay(ray);
+            const Matrix4 model_matrix = m_transform.GetMatrix();
 
-            for (const RayHit &ray_hit : triangle_ray_test_results) {
-                AssertThrow(ray_hit.user_data != nullptr);
+            const Ray local_space_ray = ray * model_matrix.Inverted();
 
-                const BVHNode *bvh_node = static_cast<const BVHNode *>(ray_hit.user_data);
+            RayTestResults local_bvh_results = m_root->TestRay(local_space_ray);
 
-                // @FIXME! BVH has been changed to be local space, we'll need to multiply each hit by the transform matrix.
+            if (local_bvh_results.Any()) {
+                const Matrix4 normal_matrix = model_matrix.Transposed().Inverted();
 
-                results.Insert(
-                    ray_hit.distance,
-                    LightmapRayHitData {
-                        m_entity,
-                        bvh_node->GetTriangles()[ray_hit.id],
-                        ray_hit
-                    }
-                );
+                RayTestResults bvh_results;
+
+                for (RayHit hit : local_bvh_results) {
+                    Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
+                    hit.normal = transformed_normal.GetXYZ().Normalized();
+
+                    Vec4f transformed_position = model_matrix * Vec4f(hit.hitpoint, 1.0f);
+                    transformed_position /= transformed_position.w;
+
+                    hit.hitpoint = transformed_position.GetXYZ();
+
+                    hit.distance = hit.hitpoint.Distance(ray.position);
+
+                    bvh_results.AddHit(hit);
+                }
+
+                for (const RayHit &ray_hit : bvh_results) {
+                    AssertThrow(ray_hit.user_data != nullptr);
+    
+                    const BVHNode *bvh_node = static_cast<const BVHNode *>(ray_hit.user_data);
+                    
+                    const Triangle &triangle = bvh_node->GetTriangles()[ray_hit.id];
+
+                    results.Insert(
+                        ray_hit.distance,
+                        LightmapRayHitData {
+                            m_entity,
+                            triangle,
+                            ray_hit
+                        }
+                    );
+                }
             }
         }
 
@@ -213,6 +236,7 @@ public:
 
 private:
     Handle<Entity>  m_entity;
+    Transform       m_transform;
     BVHNode         *m_root;
 };
 
@@ -770,21 +794,21 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
         };
 
         const Vec3f vertex_normals[3] = {
-            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[0]].normal, 0.0f)).GetXYZ(),
-            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[1]].normal, 0.0f)).GetXYZ(),
-            (normal_matrix * Vec4f(mesh_data.vertices[triangle_indices[2]].normal, 0.0f)).GetXYZ()
+            mesh_data.vertices[triangle_indices[0]].normal,
+            mesh_data.vertices[triangle_indices[1]].normal,
+            mesh_data.vertices[triangle_indices[2]].normal
         };
 
         const Vec3f position = vertex_positions[0] * uv.barycentric_coords.x
             + vertex_positions[1] * uv.barycentric_coords.y
             + vertex_positions[2] * uv.barycentric_coords.z;
         
-        const Vec3f normal = (Vec4f((vertex_normals[0] * uv.barycentric_coords.x
+        const Vec3f normal = (normal_matrix * Vec4f((vertex_normals[0] * uv.barycentric_coords.x
             + vertex_normals[1] * uv.barycentric_coords.y
             + vertex_normals[2] * uv.barycentric_coords.z), 0.0f)).GetXYZ().Normalize();
 
         out_rays.PushBack(LightmapRay {
-            Ray { position + normal * 0.01f, normal },
+            Ray { position, normal },
             mesh.GetID(),
             uv.triangle_index,
             uv_index
@@ -1079,7 +1103,9 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
 
 void Lightmapper::PerformLightmapping()
 {
-    HYP_LOG(Lightmap, Info, "Starting lightmapper...");
+    HYP_LOG(Lightmap, Info, "Starting lightmapper thread pool...");
+
+    m_thread_pool->Start();
 
     const uint32 ideal_triangles_per_job = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.ideal_triangles_per_job").ToUInt32(8192);
 
@@ -1178,6 +1204,7 @@ void Lightmapper::PerformLightmapping()
 
             acceleration_structure->Add(MakeUnique<LightmapBottomLevelAccelerationStructure>(
                 element.entity,
+                element.transform,
                 bvh_component->bvh
             ));
         }
@@ -1312,7 +1339,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 WrapMode::TEXTURE_WRAP_REPEAT
             },
-            bitmaps[i].ToByteBuffer()
+            ByteBuffer(bitmaps[i].GetUnpackedFloats().ToByteView())
         });
 
         Handle<Texture> texture = CreateObject<Texture>(std::move(streamed_data));
@@ -1324,17 +1351,21 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     for (LightmapElement &element : job->GetElements()) {
         bool is_new_material = false;
 
-        if (!element.material) {
-            // @TODO: Set to default material
-            continue;
-        }
+        element.material = CreateObject<Material>();
+        is_new_material = true;
 
-        if (!element.material->IsDynamic()) {
-            element.material = element.material->Clone();
+        // if (!element.material) {
+        //     // @TODO: Set to default material
+        //     continue;
+        // }
 
-            is_new_material = true;
-        }
+        // if (!element.material->IsDynamic()) {
+        //     element.material = element.material->Clone();
+
+        //     is_new_material = true;
+        // }
         
+        // temp; not thread safe
         element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, textures[0]);
         element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, textures[1]);
 

@@ -28,7 +28,7 @@ public:
     StreamedTextureData();
     StreamedTextureData(const TextureData &texture_data);
     StreamedTextureData(TextureData &&texture_data);
-    virtual ~StreamedTextureData() override                                 = default;
+    virtual ~StreamedTextureData() override = default;
 
     const TextureData &GetTextureData() const;
 

@@ -550,18 +550,36 @@ public:
         return byte_buffer;
     }
 
-    Array<ubyte> GetUnpackedBytes(uint32 bytes_per_pixel) const
+    ByteBuffer GetUnpackedBytes(uint32 bytes_per_pixel) const
     {
-        Array<ubyte> bytes;
-        bytes.Resize(m_pixels.Size() * bytes_per_pixel);
+        ByteBuffer byte_buffer;
+        byte_buffer.SetSize(m_pixels.Size() * bytes_per_pixel);
 
-        for (uint32 i = 0; i < m_pixels.Size(); i++) {
-            for (uint32 j = 0; j < MathUtil::Min(PixelType::num_components, bytes_per_pixel); j++) {
-                bytes[i * bytes_per_pixel + j] = ubyte(m_pixels[i].GetComponent(j) * 255.0f);
+        ubyte *bytes = byte_buffer.Data();
+
+        if (bytes_per_pixel == 1) {
+            for (uint32 i = 0; i < m_pixels.Size(); i++) {
+                Vec4f pixel;
+                
+                for (uint32 j = 0; j < PixelType::num_components; j++) {
+                    pixel[j] = m_pixels[i].GetComponent(j);
+                }
+
+                const Color color { pixel };
+
+                for (uint32 j = 0; j < MathUtil::Min(PixelType::num_components, bytes_per_pixel); j++) {
+                    bytes[i * bytes_per_pixel + j] = color.bytes[j];
+                }
+            }
+        } else {
+            for (uint32 i = 0; i < m_pixels.Size(); i++) {
+                for (uint32 j = 0; j < MathUtil::Min(PixelType::num_components, bytes_per_pixel); j++) {
+                    bytes[i * bytes_per_pixel + j] = ubyte(m_pixels[i].GetComponent(j) * 255.0f);
+                }
             }
         }
 
-        return bytes;
+        return byte_buffer;
     }
 
     Array<float> GetUnpackedFloats() const
@@ -580,7 +598,8 @@ public:
 
     bool Write(const String &filepath) const
     {
-        Array<ubyte> unpacked_bytes = GetUnpackedBytes(3 /* WriteBitmap uses 3 bytes per pixel */);
+        // WriteBitmap uses 3 bytes per pixel
+        ByteBuffer unpacked_bytes = GetUnpackedBytes(3);
 
         // BMP stores in BGR format, so swap R and B
         for (uint32 i = 0; i < unpacked_bytes.Size(); i += 3) {

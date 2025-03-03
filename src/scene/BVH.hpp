@@ -17,8 +17,7 @@
 
 namespace hyperion {
 
-class BVHNode;
-
+/// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
 class BVHNode
 {
 public:

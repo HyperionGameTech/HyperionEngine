@@ -359,6 +359,14 @@ public:
         CreateInstance_Internal(out);
     }
 
+    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeID.
+     *  The underlying data will be moved or have ownership taken.
+     *  \param memory A view to the memory of the underlying object.
+     *  \param control_block_ptr For objects that use reference counting, the pointer to the control block (may be nullptr for non RC<T> types)
+     *  \returns True if the operation was successful. */
+    virtual bool ToHypData(ByteView memory, void *control_block_ptr, HypData &out_hyp_data) const
+        { return false; }
+
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {
         AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
@@ -421,10 +429,10 @@ public:
     {
         if constexpr (std::is_base_of_v<HypObjectBase, T>) {
             return HypClassAllocationMethod::HANDLE;
-        } else {
-            static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>, "HypObject must inherit EnableRefCountedPtrFromThis<T> if it does not use ObjectPool (Handle<T>)");
-            
+        } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
             return HypClassAllocationMethod::REF_COUNTED_PTR;
+        } else {
+            return HypClassAllocationMethod::NONE;
         }
     }
 
@@ -445,6 +453,38 @@ public:
         } else {
             return false;
         }
+    }
+
+    virtual bool ToHypData(ByteView memory, void *control_block_ptr, HypData &out_hyp_data) const override
+    {
+        AssertThrow(memory.Size() == sizeof(T));
+
+        if (UseHandles()) {
+            HypObjectBase *hyp_object_ptr = reinterpret_cast<HypObjectBase *>(memory.Data());
+
+            out_hyp_data = HypData(AnyHandle(hyp_object_ptr));
+
+            return true;
+        } else if (UseRefCountedPtr()) {
+            AssertThrow(control_block_ptr != nullptr);
+
+            typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
+
+            RC<void> rc;
+            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
+
+            out_hyp_data = HypData(std::move(rc));
+
+            return true;
+        } else {
+            T *ptr = reinterpret_cast<T *>(memory.Data());
+    
+            out_hyp_data = HypData(Any(ptr));
+
+            return true;
+        }
+
+        return false;
     }
     
 protected:

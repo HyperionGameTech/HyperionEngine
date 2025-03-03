@@ -14,7 +14,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#define HYP_GAME_THREAD_LOCKED 1
+// #define HYP_GAME_THREAD_LOCKED 1
 
 namespace hyperion {
 

@@ -1197,9 +1197,9 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
 
                         if (TransformComponent *transform_component = m_entity_manager->TryGetComponent<TransformComponent>(entry.entity.GetID())) {
                             model_matrix = transform_component->transform.GetMatrix();
-                            normal_matrix = model_matrix.Transpose().Inverted();
+                            normal_matrix = model_matrix.Transposed().Inverted();
                             
-                            local_space_ray = ray * model_matrix.Inverted();
+                            local_space_ray = model_matrix.Inverted() * ray;
                         }
 
                         HYP_LOG(Octree, Debug, "Testing ray against BVH for entity #{}", entry.entity.GetID().Value());
@@ -1215,10 +1215,10 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
                                 hit.id = entry.entity.GetID().Value();
                                 hit.user_data = nullptr;
 
-                                Vec4f transformed_normal = Vec4f(hit.normal, 0.0f) * normal_matrix;
+                                Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
                                 hit.normal = transformed_normal.GetXYZ().Normalized();
 
-                                Vec4f transformed_position = Vec4f(hit.hitpoint, 1.0f) * model_matrix;
+                                Vec4f transformed_position = model_matrix * Vec4f(hit.hitpoint, 1.0f);
                                 transformed_position /= transformed_position.w;
 
                                 hit.hitpoint = transformed_position.GetXYZ();

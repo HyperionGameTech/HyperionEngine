@@ -340,35 +340,16 @@ HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, dotnet::ObjectRefe
     return false;
 }
 
-HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *native_address, void *control_block_ptr)
+HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *address, void *control_block_ptr)
 {
-    if (!hyp_data || !hyp_class || !native_address) {
+    if (!hyp_data || !hyp_class || !address) {
         return false;
     }
 
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->IsClassType()) {
-        if (hyp_class->UseHandles()) {
-            HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
-
-            *hyp_data = HypData(AnyHandle(hyp_object_ptr));
-
-            return true;
-        } else if (hyp_class->UseRefCountedPtr()) {
-            AssertThrow(control_block_ptr != nullptr);
-
-            typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
-
-            RC<void> rc;
-            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
-
-            *hyp_data = HypData(std::move(rc));
-
-            return true;
-        } else {
-            HYP_FAIL("Unhandled HypClass allocation method");
-        }
+        return hyp_class->ToHypData(ByteView(reinterpret_cast<ubyte *>(address), hyp_class->GetSize()), control_block_ptr, *hyp_data);
     }
 
     return false;
@@ -431,9 +412,7 @@ HYP_EXPORT int8 HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
     const HypStruct *hyp_struct = dynamic_cast<const HypStruct *>(hyp_class);
     AssertThrow(hyp_struct != nullptr);
 
-    hyp_struct->ConstructFromBytes(ConstByteView(reinterpret_cast<const ubyte *>(object_ptr), size), *hyp_data);
-
-    return true;
+    return hyp_struct->ToHypData(ByteView(reinterpret_cast<ubyte *>(object_ptr), size), nullptr, *hyp_data);
 }
 
 

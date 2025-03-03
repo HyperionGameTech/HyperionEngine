@@ -10,6 +10,20 @@
 
 namespace hyperion {
 
+Ray operator*(const Matrix4 &transform, const Ray &ray)
+{
+    Vec4f transformed_position = transform * Vec4f(ray.position, 1.0f);
+    transformed_position /= transformed_position.w;
+
+    Vec4f transformed_direction = transform * Vec4f(ray.direction, 0.0f);
+
+    Ray result;
+    result.position = transformed_position.GetXYZ();
+    result.direction = transformed_direction.GetXYZ().Normalized();
+
+    return result;
+}
+
 Ray Ray::operator*(const Matrix4 &transform) const
 {
     Vec4f transformed_position = Vec4f(position, 1.0f) * transform;

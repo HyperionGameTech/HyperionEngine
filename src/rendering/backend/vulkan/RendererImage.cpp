@@ -761,9 +761,9 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
 
         AssertThrowMsg(
             m_size == texture_data.buffer.Size(),
-            "Invalid image size -- loaded data size (%llu) does not match image size (%llu)",
-            texture_data.buffer.Size(),
-            m_size
+            "Invalid image size --  image size (%llu) does not match loaded data size (%llu)",
+            m_size,
+            texture_data.buffer.Size()
         );
 
         AssertThrowMsg(m_size % m_bpp == 0, "Invalid image size");

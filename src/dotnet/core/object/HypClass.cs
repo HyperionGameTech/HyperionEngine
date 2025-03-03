@@ -17,6 +17,15 @@ namespace Hyperion
         Dynamic = 0x20
     }
 
+    public enum HypClassAllocationMethod : byte
+    {
+        Invalid = 0xFF,
+
+        None = 0,
+        Handle = 1,
+        RefCountedPtr = 2
+    }
+
     public struct HypClass
     {
         public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
@@ -131,6 +140,29 @@ namespace Hyperion
             get
             {
                 return (Flags & HypClassFlags.Dynamic) != 0;
+            }
+        }
+
+        public HypClassAllocationMethod AllocationMethod
+        {
+            get
+            {
+                return (HypClassAllocationMethod)HypClass_GetAllocationMethod(ptr);
+            }
+        }
+
+        public bool IsReferenceCounted
+        {
+            get
+            {
+                HypClassAllocationMethod allocationMethod = AllocationMethod;
+
+                if (allocationMethod == HypClassAllocationMethod.Handle || allocationMethod == HypClassAllocationMethod.RefCountedPtr)
+                {
+                    return true;
+                }
+
+                return false;
             }
         }
 
@@ -414,6 +446,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetFlags")]
         private static extern uint HypClass_GetFlags([In] IntPtr hypClassPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetAllocationMethod")]
+        private static extern byte HypClass_GetAllocationMethod([In] IntPtr hypClassPtr);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetAttributes")]
         private static extern uint HypClass_GetAttributes([In] IntPtr hypClassPtr, [Out] out IntPtr outAttributesPtr);

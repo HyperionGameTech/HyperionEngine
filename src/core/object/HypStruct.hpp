@@ -41,8 +41,8 @@ public:
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
-    
-    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const = 0;
+
+    virtual bool ToHypData(ByteView memory, void *, HypData &out_hyp_data) const override = 0;
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef value, fbom::FBOMObject &out) const = 0;
     virtual fbom::FBOMResult DeserializeStruct(const fbom::FBOMObject &in, HypData &out) const = 0;
@@ -104,14 +104,13 @@ public:
         }
     }
 
-    virtual void ConstructFromBytes(ConstByteView view, HypData &out) const override
+    virtual bool ToHypData(ByteView memory, void *, HypData &out_hyp_data) const override
     {
-        AssertThrow(view.Size() == sizeof(T));
+        AssertThrow(memory.Size() == sizeof(T));
 
-        ValueStorage<T> result_storage;
-        Memory::MemCpy(result_storage.GetPointer(), view.Data(), sizeof(T));
+        out_hyp_data = HypData(std::move(*reinterpret_cast<T *>(memory.Data())));
 
-        out = HypData(std::move(result_storage.Get()));
+        return true;
     }
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override

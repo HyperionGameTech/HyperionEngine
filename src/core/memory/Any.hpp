@@ -59,6 +59,15 @@ public:
     {
     }
 
+    /*! \brief Construct an Any by taking ownership of \ref{ptr}. The object pointed to will be deleted when the Any is destructed. */
+    template <class T>
+    explicit Any(T *ptr)
+        : m_type_id(TypeID::ForType<NormalizedType<T>>()),
+          m_ptr(ptr),
+          m_dtor(&Memory::Delete<NormalizedType<T>>)
+    {
+    }
+
     /*! \brief Construct a new T into the Any, without needing to use any move or copy constructors. */
     template <class T, class ...Args>
     static Any Construct(Args &&... args)

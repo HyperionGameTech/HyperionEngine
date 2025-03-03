@@ -64,6 +64,15 @@ HYP_EXPORT uint32 HypClass_GetFlags(const HypClass *hyp_class)
     return uint32(hyp_class->GetFlags());
 }
 
+HYP_EXPORT uint8 HypClass_GetAllocationMethod(const HypClass *hyp_class)
+{
+    if (!hyp_class) {
+        return uint8(HypClassAllocationMethod::INVALID);
+    }
+
+    return uint8(hyp_class->GetAllocationMethod());
+}
+
 HYP_EXPORT uint32 HypClass_GetAttributes(const HypClass *hyp_class, const void **out_attributes)
 {
     if (!hyp_class || !out_attributes) {
