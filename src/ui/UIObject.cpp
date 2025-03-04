@@ -1397,10 +1397,10 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
             transform = node->GetWorldTransform();
         }
 
-        bounding_box_component.world_aabb = aabb * transform;
+        bounding_box_component.world_aabb = transform * aabb;
     }
 
-    m_aabb = aabb * transform;
+    m_aabb = transform * aabb;
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY);
 }

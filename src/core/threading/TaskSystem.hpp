@@ -158,13 +158,13 @@ protected:
     TaskThreadPool();
     TaskThreadPool(Array<UniquePtr<TaskThread>> &&threads);
 
-    TaskThreadPool(Name base_name, uint32 num_threads)
+    TaskThreadPool(ANSIStringView base_name, uint32 num_threads)
         : TaskThreadPool(TypeWrapper<TaskThread>(), base_name, num_threads)
     {
     }
 
     template <class TaskThreadType>
-    TaskThreadPool(TypeWrapper<TaskThreadType>, Name base_name, uint32 num_threads)
+    TaskThreadPool(TypeWrapper<TaskThreadType>, ANSIStringView base_name, uint32 num_threads)
     {
         static_assert(std::is_base_of_v<TaskThread, TaskThreadType>, "TaskThreadType must be a subclass of TaskThread");
 
@@ -236,7 +236,7 @@ protected:
     ThreadMask                      m_thread_mask;
 
 private:
-    static ThreadID CreateTaskThreadID(Name base_name, uint32 thread_index);
+    static ThreadID CreateTaskThreadID(ANSIStringView base_name, uint32 thread_index);
 };
 
 class TaskSystem

@@ -8,6 +8,30 @@
 
 namespace hyperion {
 
+HYP_API BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb)
+{
+    if (!aabb.IsValid()) {
+        return aabb;
+    }
+
+    FixedArray<Vec3f, 8> corners = aabb.GetCorners();
+
+    BoundingBox result;
+
+    for (Vec3f &corner : corners) {
+        corner = transform * corner;
+
+        result = result.Union(corner);
+    }
+
+    return result;
+}
+
+HYP_API BoundingBox operator*(const Transform &transform, const BoundingBox &aabb)
+{
+    return transform.GetMatrix() * aabb;
+}
+
 BoundingBox::BoundingBox()
     : min(MathUtil::MaxSafeValue<Vec3f>()),
       max(MathUtil::MinSafeValue<Vec3f>())
@@ -157,40 +181,6 @@ BoundingBox &BoundingBox::operator*=(const Vec3f &scale)
     max *= scale;
 
     return *this;
-}
-
-BoundingBox &BoundingBox::operator*=(const Matrix4 &transform)
-{
-    if (!IsValid()) {
-        return *this;
-    }
-
-    FixedArray<Vec3f, 8> corners = GetCorners();
-
-    Clear();
-
-    for (Vec3f &corner : corners) {
-        corner = transform * corner;
-
-        *this = Union(corner);
-    }
-
-    return *this;
-}
-
-BoundingBox BoundingBox::operator*(const Matrix4 &transform) const
-{
-    return BoundingBox(*this) *= transform;
-}
-
-BoundingBox &BoundingBox::operator*=(const Transform &transform)
-{
-    return *this *= transform.GetMatrix();
-}
-
-BoundingBox BoundingBox::operator*(const Transform &transform) const
-{
-    return BoundingBox(*this) *= transform;
 }
 
 BoundingBox &BoundingBox::Clear()

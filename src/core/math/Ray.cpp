@@ -90,11 +90,11 @@ bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_da
     const Vec3f hitpoint = position + (direction * distance);
 
     out_results.AddHit(RayHit {
-        .hitpoint = hitpoint,
-        .normal = -direction.Normalized(), // TODO: change to be box normal
-        .distance = distance,
-        .id = hit_id,
-        .user_data = user_data
+        .hitpoint   = hitpoint,
+        .normal     = -direction.Normalized(), // TODO: change to be box normal
+        .distance   = distance,
+        .id         = hit_id,
+        .user_data  = user_data
     });
 
     return true;

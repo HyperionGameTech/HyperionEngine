@@ -346,7 +346,7 @@ void UIText::UpdateMeshData_Internal()
         character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * text_size;
         character_transform.UpdateMatrix();
 
-        BoundingBox character_aabb = BoundingBox(Vec3f::Zero(), Vec3f::One()) * character_transform;
+        BoundingBox character_aabb = character_transform * BoundingBox(Vec3f::Zero(), Vec3f::One());
         character_aabb.min += Vec3f(position, 0.0f);
         character_aabb.max += Vec3f(position, 0.0f);
 

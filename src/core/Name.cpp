@@ -146,9 +146,9 @@ NameRegistry *Name::GetRegistry()
     return g_name_registry;
 }
 
-Name Name::Unique(const char *prefix)
+Name Name::Unique(ANSIStringView prefix)
 {
-    return GetRegistry()->RegisterUniqueName(ANSIString(prefix), /* lock */ true);
+    return GetRegistry()->RegisterUniqueName(prefix, /* lock */ true);
 }
 
 const char *Name::LookupString() const

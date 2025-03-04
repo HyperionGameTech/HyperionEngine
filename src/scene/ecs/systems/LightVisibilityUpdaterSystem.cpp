@@ -58,7 +58,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         case LightType::POINT: // fallthrough
         case LightType::AREA_RECT:
             bounding_box_component->local_aabb = light->GetAABB();
-            bounding_box_component->world_aabb = bounding_box_component->local_aabb * transform;
+            bounding_box_component->world_aabb = transform * bounding_box_component->local_aabb;
             break;
         default:
             break;

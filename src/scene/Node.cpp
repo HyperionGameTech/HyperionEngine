@@ -778,7 +778,7 @@ BoundingBox Node::GetLocalAABBExcludingSelf() const
         }
 
         if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-            aabb = aabb.Union(child->GetLocalAABB() * child->GetLocalTransform());
+            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
         }
     }
 
@@ -795,7 +795,7 @@ BoundingBox Node::GetLocalAABB() const
         }
 
         if (!(child->GetFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB)) {
-            aabb = aabb.Union(child->GetLocalAABB() * child->GetLocalTransform());
+            aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalAABB());
         }
     }
 
@@ -804,8 +804,7 @@ BoundingBox Node::GetLocalAABB() const
 
 BoundingBox Node::GetWorldAABB() const
 {
-    BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
-    aabb *= m_world_transform;
+    BoundingBox aabb = m_world_transform * (m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero());
 
     for (const NodeProxy &child : GetChildren()) {
         if (!child.IsValid()) {

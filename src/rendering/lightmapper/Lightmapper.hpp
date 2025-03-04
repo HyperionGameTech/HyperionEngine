@@ -16,6 +16,8 @@
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/Result.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/math/Ray.hpp>
 
 #include <scene/Scene.hpp>
@@ -24,15 +26,20 @@
 
 namespace hyperion {
 
-static constexpr int max_bounces_cpu = 1;
+static constexpr int max_bounces_cpu = 2;
 
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
+class ILightmapAccelerationStructure;
+class LightmapJob;
 
-enum class LightmapTraceMode
+enum class LightmapTraceMode : int
 {
-    PATH_TRACING,
-    RASTERIZATION
+    GPU_PATH_TRACING = 0,
+    CPU_PATH_TRACING,
+    RASTERIZATION,
+
+    MAX
 };
 
 enum class LightmapShadingType
@@ -40,6 +47,69 @@ enum class LightmapShadingType
     IRRADIANCE,
     RADIANCE,
     MAX
+};
+
+HYP_STRUCT(ConfigName="app", ConfigPath="lightmapper")
+struct LightmapperConfig : public ConfigBase<LightmapperConfig>
+{
+    HYP_FIELD()
+    LightmapTraceMode   trace_mode = LightmapTraceMode::GPU_PATH_TRACING;
+
+    HYP_FIELD()
+    bool                radiance = true;
+
+    HYP_FIELD()
+    bool                irradiance = true;
+
+    HYP_FIELD()
+    uint32              num_samples = 16;
+
+    HYP_FIELD()
+    uint32              max_rays_per_frame = 512 * 512;
+
+    HYP_FIELD()
+    uint32              ideal_triangles_per_job = 8192;
+
+    virtual ~LightmapperConfig() override = default;
+
+    HYP_API void PostLoadCallback();
+
+    bool Validate()
+    {
+        bool valid = true;
+
+        if (uint32(trace_mode) >= uint32(LightmapTraceMode::MAX)) {
+            AddError(HYP_MAKE_ERROR(Error, "Invalid trace mode"));
+
+            valid = false;
+        }
+
+        if (!radiance && !irradiance) {
+            AddError(HYP_MAKE_ERROR(Error, "At least one of radiance or irradiance must be enabled"));
+
+            valid = false;
+        }
+
+        if (num_samples == 0) {
+            AddError(HYP_MAKE_ERROR(Error, "Number of samples must be greater than zero"));
+
+            valid = false;
+        }
+
+        if (max_rays_per_frame == 0 || max_rays_per_frame > 1024 * 1024) {
+            AddError(HYP_MAKE_ERROR(Error, "Max rays per frame must be greater than zero and less than or equal to 1024*1024"));
+
+            valid = false;
+        }
+
+        if (ideal_triangles_per_job == 0 || ideal_triangles_per_job > 100000) {
+            AddError(HYP_MAKE_ERROR(Error, "Ideal triangles per job must be greater than zero and less than or equal to 100000"));
+
+            valid = false;
+        }
+        
+        return valid;
+    }
 };
 
 struct LightmapRay
@@ -89,28 +159,30 @@ public:
 
     virtual uint32 MaxRaysPerFrame() const = 0;
 
+    virtual LightmapShadingType GetShadingType() const = 0;
+
     virtual void Create() = 0;
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) = 0;
-    virtual void Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
+    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
 };
 
 struct LightmapJobParams
 {
-    LightmapTraceMode                                                   trace_mode;
-    Handle<Scene>                                                       scene;
-    Span<LightmapElement>                                               elements_view;
-    HashMap<Handle<Entity>, LightmapElement *>                          *all_elements_map;
+    LightmapperConfig                           *config;
 
-    FixedArray<ILightmapRenderer *, uint32(LightmapShadingType::MAX)>   renderers;
+    Handle<Scene>                               scene;
+    Span<LightmapElement>                       elements_view;
+    HashMap<Handle<Entity>, LightmapElement *>  *all_elements_map;
+    LightmapTopLevelAccelerationStructure       *acceleration_structure;
+
+    Array<ILightmapRenderer *>                  renderers;
 };
 
 class HYP_API LightmapJob
 {
 public:
-    friend struct RenderCommand_LightmapTraceRaysOnGPU;
-
-    static constexpr uint32 num_multisamples = 1;
+    friend struct RenderCommand_LightmapRender;
 
     LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;
@@ -158,10 +230,12 @@ public:
     }
 
     void Start();
-
+    
     void Process();
-
+    
     void GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays);
+    
+    void AddTask(Task<void> &&task);
 
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
@@ -190,10 +264,14 @@ private:
 
     Optional<LightmapUVMap>                                 m_uv_map;
     Task<Result<LightmapUVMap>>                             m_build_uv_map_task;
+
     Array<Task<void>>                                       m_current_tasks;
+    mutable Mutex                                           m_current_tasks_mutex;
 
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
+
+    double                                                  m_last_logged_percentage;
 
     AtomicVar<uint32>                                       m_num_concurrent_rendering_tasks;
 };
@@ -201,7 +279,7 @@ private:
 class HYP_API Lightmapper
 {
 public:
-    Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scene);
+    Lightmapper(LightmapperConfig &&config, const Handle<Scene> &scene);
     Lightmapper(const Lightmapper &other)                   = delete;
     Lightmapper &operator=(const Lightmapper &other)        = delete;
     Lightmapper(Lightmapper &&other) noexcept               = delete;
@@ -218,7 +296,8 @@ public:
 private:
     LightmapJobParams CreateLightmapJobParams(
         SizeType start_index,
-        SizeType end_index
+        SizeType end_index,
+        LightmapTopLevelAccelerationStructure *acceleration_structure
     );
 
     void AddJob(UniquePtr<LightmapJob> &&job)
@@ -232,18 +311,20 @@ private:
 
     void HandleCompletedJob(LightmapJob *job);
 
-    LightmapTraceMode                                                           m_trace_mode;
+    LightmapperConfig                                   m_config;
 
-    Handle<Scene>                                                               m_scene;
+    Handle<Scene>                                       m_scene;
 
-    FixedArray<UniquePtr<ILightmapRenderer>, uint32(LightmapShadingType::MAX)>  m_lightmap_renderers;
+    Array<UniquePtr<ILightmapRenderer>>                 m_lightmap_renderers;
 
-    Queue<UniquePtr<LightmapJob>>                                               m_queue;
-    Mutex                                                                       m_queue_mutex;
-    AtomicVar<uint32>                                                           m_num_jobs;
+    UniquePtr<LightmapTopLevelAccelerationStructure>    m_acceleration_structure;
 
-    Array<LightmapElement>                                                      m_lightmap_elements;
-    HashMap<Handle<Entity>, LightmapElement *>                                  m_all_elements_map;
+    Queue<UniquePtr<LightmapJob>>                       m_queue;
+    Mutex                                               m_queue_mutex;
+    AtomicVar<uint32>                                   m_num_jobs;
+
+    Array<LightmapElement>                              m_lightmap_elements;
+    HashMap<Handle<Entity>, LightmapElement *>          m_all_elements_map;
 };
 
 } // namespace hyperion
