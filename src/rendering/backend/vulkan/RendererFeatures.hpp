@@ -404,8 +404,10 @@ public:
             return HYP_MAKE_ERROR(RendererError, "Cannot find supported format; physical device is not initialized.");
         }
 
-        if (vkGetPhysicalDeviceImageFormatProperties(m_physical_device, format, type, tiling, usage, flags, out_properties) != VK_SUCCESS) {
-            return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties");
+        VkResult vk_result;
+
+        if ((vk_result = vkGetPhysicalDeviceImageFormatProperties(m_physical_device, format, type, tiling, usage, flags, out_properties)) != VK_SUCCESS) {
+            return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties", vk_result);
         }
 
         HYPERION_RETURN_OK;

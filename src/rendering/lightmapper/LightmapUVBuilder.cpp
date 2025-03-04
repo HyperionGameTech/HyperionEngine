@@ -160,7 +160,7 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
 
     xatlas::PackOptions pack_options { };
     pack_options.maxChartSize = 128; // testing
-    // pack_options.maxChartSize = 4096;
+    pack_options.resolution = 32; // testing
     // pack_options.padding = 8;
     // pack_options.texelsPerUnit = 128.0f;
     pack_options.bilinear = true;
@@ -246,7 +246,7 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
                         Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) }  // lightmap_uv
                     };
 
-                    uv_map.mesh_to_uv_indices[mesh_index].PushBack(index);
+                    uv_map.mesh_to_uv_indices[m_mesh_data[mesh_index].mesh.GetID()].PushBack(index);
                 } 
             }
         }

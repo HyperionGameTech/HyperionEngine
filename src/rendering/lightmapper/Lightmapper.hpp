@@ -6,8 +6,6 @@
 #include <core/Base.hpp>
 
 #include <core/containers/Queue.hpp>
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/HeapArray.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/AtomicVar.hpp>
@@ -18,14 +16,11 @@
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/Result.hpp>
 
-#include <core/math/Triangle.hpp>
 #include <core/math/Ray.hpp>
 
 #include <scene/Scene.hpp>
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
-
-#include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
 
@@ -34,16 +29,17 @@ static constexpr int max_bounces_cpu = 1;
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
 
-enum LightmapTraceMode
+enum class LightmapTraceMode
 {
-    LIGHTMAP_TRACE_MODE_GPU,
-    LIGHTMAP_TRACE_MODE_CPU
+    PATH_TRACING,
+    RASTERIZATION
 };
 
-enum LightmapShadingType
+enum class LightmapShadingType
 {
-    LIGHTMAP_SHADING_TYPE_IRRADIANCE,
-    LIGHTMAP_SHADING_TYPE_RADIANCE
+    IRRADIANCE,
+    RADIANCE,
+    MAX
 };
 
 struct LightmapRay
@@ -65,22 +61,12 @@ struct LightmapRay
         { return !(*this == other); }
 };
 
-constexpr uint32 max_ray_hits_gpu = 512 * 512;
-constexpr uint32 max_ray_hits_cpu = 16 * 16;
-
 struct alignas(16) LightmapHit
 {
     Vec4f   color;
 };
 
 static_assert(sizeof(LightmapHit) == 16);
-
-struct alignas(16) LightmapHitsBuffer
-{
-    FixedArray<LightmapHit, max_ray_hits_gpu>   hits;
-};
-
-static_assert(sizeof(LightmapHitsBuffer) == max_ray_hits_gpu * 16);
 
 class LightmapTopLevelAccelerationStructure;
 
@@ -96,57 +82,27 @@ struct LightmapRayHitPayload
     uint32      triangle_index = ~0u;
 };
 
-class HYP_API LightmapPathTracer
+class ILightmapRenderer
 {
 public:
-    LightmapPathTracer(const TLASRef &tlas, LightmapShadingType shading_type);
-    LightmapPathTracer(const LightmapPathTracer &other)                 = delete;
-    LightmapPathTracer &operator=(const LightmapPathTracer &other)      = delete;
-    LightmapPathTracer(LightmapPathTracer &&other) noexcept             = delete;
-    LightmapPathTracer &operator=(LightmapPathTracer &&other) noexcept  = delete;
-    ~LightmapPathTracer();
+    virtual ~ILightmapRenderer() = default;
 
-    HYP_FORCE_INLINE const RaytracingPipelineRef &GetPipeline() const
-        { return m_raytracing_pipeline; }
+    virtual uint32 MaxRaysPerFrame() const = 0;
 
-    void Create();
-    
-    void ReadHitsBuffer(LightmapHitsBuffer *ptr, uint32 frame_index);
-    void Trace(Frame *frame, const Array<LightmapRay> &rays, uint32 ray_offset);
-
-private:
-    void CreateUniformBuffer();
-    void UpdateUniforms(Frame *frame, uint32 ray_offset);
-
-    TLASRef                                             m_tlas;
-    LightmapShadingType                                 m_shading_type;
-    
-    FixedArray<GPUBufferRef, max_frames_in_flight>      m_uniform_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight>      m_rays_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight>      m_hits_buffers;
-    HeapArray<LightmapHitsBuffer, max_frames_in_flight> m_previous_hits_buffers;
-    RaytracingPipelineRef                               m_raytracing_pipeline;
-};
-
-struct LightmapJobGPUParams
-{
-    RC<LightmapPathTracer>  path_tracer_radiance;
-    RC<LightmapPathTracer>  path_tracer_irradiance;
-};
-
-struct LightmapJobCPUParams
-{
-    UniquePtr<LightmapTopLevelAccelerationStructure>    acceleration_structure;
+    virtual void Create() = 0;
+    virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
+    virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) = 0;
+    virtual void Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
 };
 
 struct LightmapJobParams
 {
-    LightmapTraceMode                                   trace_mode;
-    RC<LightmapTaskThreadPool>                          thread_pool;
-    Handle<Scene>                                       scene;
-    Span<LightmapElement>                               elements_view;
-    HashMap<Handle<Entity>, LightmapElement *>          *all_elements_map;
-    Variant<LightmapJobCPUParams, LightmapJobGPUParams> params;
+    LightmapTraceMode                                                   trace_mode;
+    Handle<Scene>                                                       scene;
+    Span<LightmapElement>                                               elements_view;
+    HashMap<Handle<Entity>, LightmapElement *>                          *all_elements_map;
+
+    FixedArray<ILightmapRenderer *, uint32(LightmapShadingType::MAX)>   renderers;
 };
 
 class HYP_API LightmapJob
@@ -187,18 +143,18 @@ public:
     HYP_FORCE_INLINE const Array<uint32> &GetTexelIndices() const
         { return m_texel_indices; }
 
-    HYP_FORCE_INLINE void GetPreviousFrameRays(uint32 frame_index, Array<LightmapRay> &out_rays) const
+    HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay> &out_rays) const
     {
         Mutex::Guard guard(m_previous_frame_rays_mutex);
 
-        out_rays = m_previous_frame_rays[frame_index];
+        out_rays = m_previous_frame_rays;
     }
         
-    HYP_FORCE_INLINE void SetPreviousFrameRays(uint32 frame_index, const Array<LightmapRay> &rays)
+    HYP_FORCE_INLINE void SetPreviousFrameRays(const Array<LightmapRay> &rays)
     {
         Mutex::Guard guard(m_previous_frame_rays_mutex);
 
-        m_previous_frame_rays[frame_index] = rays;
+        m_previous_frame_rays = rays;
     }
 
     void Start();
@@ -210,9 +166,8 @@ public:
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
      *  \param hits The hits to integrate.
-     *  \param num_hits The number of hits (must be the same as the number of rays).
      */
-    void IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint32 num_hits, LightmapShadingType shading_type);
+    void IntegrateRayHits(Span<const LightmapRay> rays, Span<const LightmapHit> hits, LightmapShadingType shading_type);
     
     bool IsCompleted() const;
 
@@ -222,22 +177,7 @@ public:
 private:
     void Stop();
 
-    /*! \brief Trace rays on the CPU.
-     *  \param rays The rays to trace.    
-     */
-    void TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShadingType shading_type);
-    void TraceSingleRayOnCPU(const LightmapRay &ray, LightmapRayHitPayload &out_payload);
-
     Result<LightmapUVMap> BuildUVMap();
-
-    HYP_FORCE_INLINE LightmapTopLevelAccelerationStructure *GetAccelerationStructure() const
-    {
-        if (m_params.trace_mode == LIGHTMAP_TRACE_MODE_CPU) {
-            return m_params.params.Get<LightmapJobCPUParams>().acceleration_structure.Get();
-        }
-
-        return nullptr;
-    }
     
     LightmapJobParams                                       m_params;
 
@@ -245,9 +185,7 @@ private:
 
     Array<uint32>                                           m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
 
-    Array<LightmapRay>                                      m_current_rays;
-
-    FixedArray<Array<LightmapRay>, max_frames_in_flight>    m_previous_frame_rays;
+    Array<LightmapRay>                                      m_previous_frame_rays;
     mutable Mutex                                           m_previous_frame_rays_mutex;
 
     Optional<LightmapUVMap>                                 m_uv_map;
@@ -256,6 +194,8 @@ private:
 
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
+
+    AtomicVar<uint32>                                       m_num_concurrent_rendering_tasks;
 };
 
 class HYP_API Lightmapper
@@ -278,8 +218,7 @@ public:
 private:
     LightmapJobParams CreateLightmapJobParams(
         SizeType start_index,
-        SizeType end_index,
-        UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure = nullptr
+        SizeType end_index
     );
 
     void AddJob(UniquePtr<LightmapJob> &&job)
@@ -293,21 +232,18 @@ private:
 
     void HandleCompletedJob(LightmapJob *job);
 
-    LightmapTraceMode                           m_trace_mode;
+    LightmapTraceMode                                                           m_trace_mode;
 
-    RC<LightmapTaskThreadPool>                  m_thread_pool;
+    Handle<Scene>                                                               m_scene;
 
-    Handle<Scene>                               m_scene;
+    FixedArray<UniquePtr<ILightmapRenderer>, uint32(LightmapShadingType::MAX)>  m_lightmap_renderers;
 
-    RC<LightmapPathTracer>                      m_path_tracer_radiance;
-    RC<LightmapPathTracer>                      m_path_tracer_irradiance;
+    Queue<UniquePtr<LightmapJob>>                                               m_queue;
+    Mutex                                                                       m_queue_mutex;
+    AtomicVar<uint32>                                                           m_num_jobs;
 
-    Queue<UniquePtr<LightmapJob>>               m_queue;
-    Mutex                                       m_queue_mutex;
-    AtomicVar<uint32>                             m_num_jobs;
-
-    Array<LightmapElement>                      m_lightmap_elements;
-    HashMap<Handle<Entity>, LightmapElement *>  m_all_elements_map;
+    Array<LightmapElement>                                                      m_lightmap_elements;
+    HashMap<Handle<Entity>, LightmapElement *>                                  m_all_elements_map;
 };
 
 } // namespace hyperion

@@ -1158,39 +1158,45 @@ void Image<Platform::VULKAN>::CopyToBuffer(
 template <>
 ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const
 {
+    if (m_size == 0) {
+        return ByteBuffer(0, nullptr);
+    }
+
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     SingleTimeCommands<Platform::VULKAN> commands { device };
 
     RendererResult result = RendererResult { };
 
-    if (HasAssignedImageData()) {
-        HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
+    HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
 
-        if (!result) {
-            return ByteBuffer(0, nullptr);
-        }
-
-        commands.Push([this, &staging_buffer](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-        {
-            CopyToBuffer(command_buffer, &staging_buffer);
-
-            HYPERION_RETURN_OK;
-        });
+    if (!result) {
+        return ByteBuffer(0, nullptr);
     }
+
+    commands.Push([non_const_this = const_cast<Image *>(this), &staging_buffer](const CommandBufferRef<Platform::VULKAN> &command_buffer)
+    {
+        const ResourceState previous_resource_state = non_const_this->GetResourceState();
+
+        non_const_this->InsertBarrier(command_buffer.Get(), ResourceState::COPY_SRC);
+        non_const_this->CopyToBuffer(command_buffer, &staging_buffer);
+        non_const_this->InsertBarrier(command_buffer.Get(), previous_resource_state);
+
+        HYPERION_RETURN_OK;
+    });
 
     // execute command stack
     HYPERION_PASS_ERRORS(commands.Execute(), result);
-    
+
+    ByteBuffer byte_buffer(m_size);
+    staging_buffer.Read(device, m_size, byte_buffer.Data());
+
     if (result) {
         // destroy staging buffer
         HYPERION_PASS_ERRORS(staging_buffer.Destroy(device), result);
     } else {
         HYPERION_IGNORE_ERRORS(staging_buffer.Destroy(device));
     }
-
-    ByteBuffer byte_buffer(m_size);
-    staging_buffer.Read(device, m_size, byte_buffer.Data());
 
     return byte_buffer;
 }
