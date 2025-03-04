@@ -402,7 +402,6 @@ void Camera::SetTranslation(const Vec3f &translation)
     }
 
     UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
 }
 
 void Camera::SetNextTranslation(const Vec3f &translation)
@@ -430,8 +429,7 @@ void Camera::SetDirection(const Vec3f &direction)
         }
     }
 
-    // UpdateViewMatrix();
-    // UpdateViewProjectionMatrix();
+    UpdateViewMatrix();
 }
 
 void Camera::SetUpVector(const Vec3f &up)
@@ -446,8 +444,7 @@ void Camera::SetUpVector(const Vec3f &up)
         }
     }
 
-    // UpdateViewMatrix();
-    // UpdateViewProjectionMatrix();
+    UpdateViewMatrix();
 }
 
 void Camera::Rotate(const Vec3f &axis, float radians)

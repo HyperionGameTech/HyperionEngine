@@ -638,7 +638,6 @@ void LightmapRasterizer::Create()
         );
 
         m_camera->SetName(NAME("LightmapRasterizerCamera"));
-        m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), Vec3f::Zero(), Vec3f(0.0f, 1.0f, 0.0f)));
         m_camera->SetFramebuffer(m_framebuffer);
 
         InitObject(m_camera);
@@ -657,9 +656,13 @@ void LightmapRasterizer::UpdateRays(Span<const LightmapRay> rays)
 
     // wait for it to reach zero (all rendering tasks completed)
     m_render_semaphore.Acquire();
+
+    m_camera->SetViewMatrix(Matrix4::LookAt(
+        rays[0].ray.position,
+        rays[0].ray.direction,
+        rays[0].ray.direction.Cross(Vec3f(0.0f, 1.0f, 0.0f))
+    ));
     
-    m_camera->SetTranslation(rays[0].ray.position);
-    m_camera->SetDirection(rays[0].ray.direction);
     m_camera->Update(0.016f);
 
     // Compute visible objects
@@ -874,6 +877,7 @@ void LightmapJob::Process()
         }
     }
 
+#if 0
     if (!has_remaining_rays && m_texel_index >= m_texel_indices.Size() * num_multisamples) {
         Stop();
 
@@ -895,6 +899,11 @@ void LightmapJob::Process()
         m_uuid.ToString(), m_texel_index, m_texel_indices.Size(), double(m_texel_index) / double(m_texel_indices.Size()) * 100.0);
 
     PUSH_RENDER_COMMAND(LightmapTraceRaysOnGPU, this, std::move(rays));
+#else
+    Stop();
+
+    return;
+#endif
 }
 
 void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
