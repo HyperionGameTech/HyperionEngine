@@ -29,7 +29,7 @@
 
 namespace hyperion {
 
-static constexpr int max_bounces_cpu = 1;
+static constexpr int max_bounces_cpu = 2;
 
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
@@ -154,7 +154,7 @@ class HYP_API LightmapJob
 public:
     friend struct RenderCommand_LightmapTraceRaysOnGPU;
 
-    static constexpr uint32 num_multisamples = 1;
+    static constexpr uint32 num_multisamples = 4;
 
     LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;
@@ -256,6 +256,8 @@ private:
 
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
+
+    Mutex                                                   m_integrate_ray_hits_mutex;
 };
 
 class HYP_API Lightmapper
@@ -304,7 +306,7 @@ private:
 
     Queue<UniquePtr<LightmapJob>>               m_queue;
     Mutex                                       m_queue_mutex;
-    AtomicVar<uint32>                             m_num_jobs;
+    AtomicVar<uint32>                           m_num_jobs;
 
     Array<LightmapElement>                      m_lightmap_elements;
     HashMap<Handle<Entity>, LightmapElement *>  m_all_elements_map;

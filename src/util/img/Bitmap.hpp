@@ -462,19 +462,13 @@ public:
 
     ~Bitmap() = default;
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetWidth() const
+    HYP_FORCE_INLINE uint32 GetWidth() const
         { return m_width; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    uint32 GetHeight() const
+    HYP_FORCE_INLINE uint32 GetHeight() const
         { return m_height; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    SizeType GetByteSize() const
+    HYP_FORCE_INLINE SizeType GetByteSize() const
     {
         return SizeType(m_width)
             * SizeType(m_height)
@@ -482,19 +476,13 @@ public:
             * sizeof(PixelComponentType);
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    PixelType &GetPixelAtIndex(uint32 index)
+    HYP_FORCE_INLINE PixelType &GetPixelAtIndex(uint32 index)
         { return m_pixels[index]; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const PixelType &GetPixelAtIndex(uint32 index) const
+    HYP_FORCE_INLINE const PixelType &GetPixelAtIndex(uint32 index) const
         { return m_pixels[index]; }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    PixelType &GetPixel(uint32 x, uint32 y)
+    HYP_FORCE_INLINE PixelType &GetPixel(uint32 x, uint32 y)
     {
         const uint32 index = ((x + m_width) % m_width)
             + (((m_height - y) + m_height) % m_height) * m_width;
@@ -502,9 +490,7 @@ public:
         return m_pixels[index];
     }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    const PixelType &GetPixel(uint32 x, uint32 y) const
+    HYP_FORCE_INLINE const PixelType &GetPixel(uint32 x, uint32 y) const
     {
         const uint32 index = ((x + m_width) % m_width)
             + (((m_height - y) + m_height) % m_height) * m_width;
@@ -512,8 +498,7 @@ public:
         return m_pixels[index];
     }
 
-    HYP_FORCE_INLINE
-    void SetPixel(uint32 x, uint32 y, PixelType pixel)
+    HYP_FORCE_INLINE void SetPixel(uint32 x, uint32 y, PixelType pixel)
     {
         const uint32 index = ((x + m_width) % m_width)
             + (((m_height - y) + m_height) % m_height) * m_width;
@@ -531,7 +516,7 @@ public:
 
         for (SizeType i = 0, j = 0; i < byte_buffer.Size() && j < m_pixels.Size(); i += num_components, j++) {
             for (uint32 k = 0; k < num_components; k++) {
-                m_pixels[j].SetComponent(k, byte_buffer.Data()[i + k]);
+                m_pixels[j].SetComponent(k, float(byte_buffer.Data()[i + k] / 255.0f));
             }
         }
     }

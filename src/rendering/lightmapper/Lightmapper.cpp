@@ -186,7 +186,7 @@ public:
         if (m_root != nullptr) {
             const Matrix4 model_matrix = m_transform.GetMatrix();
 
-            const Ray local_space_ray = ray * model_matrix.Inverted();
+            const Ray local_space_ray = model_matrix.Inverted() * ray;
 
             RayTestResults local_bvh_results = m_root->TestRay(local_space_ray);
 
@@ -668,7 +668,7 @@ void LightmapJob::Process()
             return;
         }
 
-        // TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_IRRADIANCE);
+        TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_IRRADIANCE);
         TraceRaysOnCPU(m_current_rays, LIGHTMAP_SHADING_TYPE_RADIANCE);
 
         if (m_current_tasks.Empty()) {
@@ -803,6 +803,8 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
 
 void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *hits, uint32 num_hits, LightmapShadingType shading_type)
 {
+    Mutex::Guard guard(m_integrate_ray_hits_mutex);
+
     for (uint32 i = 0; i < num_hits; i++) {
         const LightmapRay &ray = rays[i];
         const LightmapHit &hit = hits[i];
@@ -820,10 +822,10 @@ void LightmapJob::IntegrateRayHits(const LightmapRay *rays, const LightmapHit *h
 
         switch (shading_type) {
         case LIGHTMAP_SHADING_TYPE_RADIANCE:
-            uv.radiance = (uv.radiance * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
+            uv.radiance += Vec4f(hit.color.GetXYZ(), 1.0f);
             break;
         case LIGHTMAP_SHADING_TYPE_IRRADIANCE:
-            uv.irradiance = (uv.irradiance * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
+            uv.irradiance = Vec4f(hit.color.GetXYZ(), 1.0f);
             break;
         }
     }
@@ -900,29 +902,29 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
     m_current_tasks.Concat(TaskSystem::GetInstance().ParallelForEach_Async(*m_params.thread_pool, rays, [this, shading_type](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
     {
-         // debugging
-        LightmapUVMap &uv_map = GetUVMap();
+        //  // debugging
+        // LightmapUVMap &uv_map = GetUVMap();
 
-        AssertThrowMsg(
-            first_ray.texel_index < uv_map.uvs.Size(),
-            "Texel index (%llu) out of range of UV map (size: %llu)",
-            first_ray.texel_index,
-            uv_map.uvs.Size()
-        );
+        // AssertThrowMsg(
+        //     first_ray.texel_index < uv_map.uvs.Size(),
+        //     "Texel index (%llu) out of range of UV map (size: %llu)",
+        //     first_ray.texel_index,
+        //     uv_map.uvs.Size()
+        // );
 
-        LightmapUV &uv = uv_map.uvs[first_ray.texel_index];
+        // LightmapUV &uv = uv_map.uvs[first_ray.texel_index];
 
-        if (!uv.material) {
-            return;
-        }
+        // if (!uv.material) {
+        //     return;
+        // }
 
-        const Vec4f color = Vec4f(uv.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+        // const Vec4f color = Vec4f(uv.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
 
-        LightmapHit hit;
-        hit.color = color;
+        // LightmapHit hit;
+        // hit.color = color;
 
-        IntegrateRayHits(&first_ray, &hit, 1, shading_type);
-        return;
+        // IntegrateRayHits(&first_ray, &hit, 1, shading_type);
+        // return;
 
         uint32 seed = (uint32)rand();//index * m_texel_index;
 
@@ -931,7 +933,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
         int num_bounces = 0;
 
-        Vec3f direction = first_ray.ray.direction;
+        Vec3f direction = first_ray.ray.direction.Normalized();
 
         if (shading_type == LightmapShadingType::LIGHTMAP_SHADING_TYPE_IRRADIANCE) {
             direction = MathUtil::RandomInHemisphere(
@@ -940,7 +942,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
             );
         }
 
-        Vec3f origin = first_ray.ray.position + first_ray.ray.direction * 0.05f;
+        Vec3f origin = first_ray.ray.position + direction * 0.01f;
 
         for (int bounce_index = 0; bounce_index < max_bounces_cpu; bounce_index++) {
             LightmapRay bounce_ray = first_ray;
@@ -970,8 +972,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
                 // testing!! @FIXME
                 const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
                 payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
-
-                // payload.emissive += Vec4f(1.0f);
+                payload.throughput = Vec4f(0.0f);
 
                 ++num_bounces;
 
@@ -979,7 +980,6 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
             }
 
             Vec3f hit_position = origin + direction * payload.distance;
-            origin = hit_position + payload.normal * 0.05f;
 
             if (shading_type == LightmapShadingType::LIGHTMAP_SHADING_TYPE_IRRADIANCE) {
                 direction = MathUtil::RandomInHemisphere(
@@ -987,34 +987,36 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
                     payload.normal
                 );
             } else {
-                // @TODO
+                direction = payload.normal.Normalized(); // @TODO use roughness
             }
+
+            origin = hit_position + direction * 0.01f;
 
             ++num_bounces;
         }
 
-        // for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
-        //     Vec4f radiance = bounces[bounce_index].emissive;
+        for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
+            Vec4f radiance = bounces[bounce_index].emissive;
 
-        //     if (bounce_index != num_bounces - 1) {
-        //         radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
-        //     }
+            if (bounce_index != num_bounces - 1) {
+                radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
+            }
 
-        //     float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
+            float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
 
-        //     if (MathUtil::RandomFloat(seed) > p) {
-        //         break;
-        //     }
+            if (MathUtil::RandomFloat(seed) > p) {
+                break;
+            }
 
-        //     radiance /= MathUtil::Max(p, 0.0001f);
+            radiance /= MathUtil::Max(p, 0.0001f);
 
-        //     bounces[bounce_index].radiance = radiance;
-        // }
+            bounces[bounce_index].radiance = radiance;
+        }
 
         if (num_bounces != 0) {
             LightmapHit hit;
-            hit.color = bounces[0].throughput; // debugging
-            // hit.color = bounces[0].radiance;
+            hit.color = bounces[0].radiance;
+            // hit.color = bounces[0].throughput; // debugging
 
             if (MathUtil::IsNaN(hit.color) || !MathUtil::IsFinite(hit.color)) {
                 HYP_LOG_ONCE(Lightmap, Warning, "NaN or infinite color detected while tracing rays");
@@ -1024,7 +1026,7 @@ void LightmapJob::TraceRaysOnCPU(const Array<LightmapRay> &rays, LightmapShading
 
             hit.color.w = 1.0f;
 
-            IntegrateRayHits(&recursive_rays[0], &hit, 1, shading_type);
+            IntegrateRayHits(&first_ray, &hit, 1, shading_type);
         }
     }));
 }

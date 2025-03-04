@@ -61,6 +61,7 @@ struct LightmapUV
     uint32              triangle_index = ~0u;
     Vec3f               barycentric_coords = Vec3f::Zero();
     Vec2f               lightmap_uv = Vec2f::Zero();
+
     Vec4f               radiance = Vec4f::Zero();
     Vec4f               irradiance = Vec4f::Zero();
 };

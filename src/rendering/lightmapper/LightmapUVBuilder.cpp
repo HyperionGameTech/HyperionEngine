@@ -25,11 +25,17 @@ Bitmap<4, float> LightmapUVMap::ToBitmapRadiance() const
         for (uint32 y = 0; y < height; y++) {
             const uint32 index = x + y * width;
 
+            Vec4f color = uvs[index].radiance;
+
+            if (color.w >= 1.0f) {
+                color /= color.w;
+            }
+
             bitmap.GetPixelAtIndex(index).SetRGBA({
-                uvs[index].radiance.x,
-                uvs[index].radiance.y,
-                uvs[index].radiance.z,
-                uvs[index].radiance.w
+                color.x,
+                color.y,
+                color.z,
+                color.w
             });
         }
     }
@@ -47,11 +53,17 @@ Bitmap<4, float> LightmapUVMap::ToBitmapIrradiance() const
         for (uint32 y = 0; y < height; y++) {
             const uint32 index = x + y * width;
 
+            Vec4f color = uvs[index].irradiance;
+
+            if (color.w >= 1.0f) {
+                color /= color.w;
+            }
+
             bitmap.GetPixelAtIndex(index).SetRGBA({
-                uvs[index].irradiance.x,
-                uvs[index].irradiance.y,
-                uvs[index].irradiance.z,
-                uvs[index].irradiance.w
+                color.x,
+                color.y,
+                color.z,
+                color.w
             });
         }
     }
