@@ -27,8 +27,6 @@ using RayHitID = uint32;
 HYP_STRUCT(Size=32, Serialize="bitwise")
 struct HYP_API Ray
 {
-    friend Ray operator*(const Matrix4 &transform, const Ray &ray);
-
     HYP_FIELD(Property="Position")
     Vec3f   position;
 

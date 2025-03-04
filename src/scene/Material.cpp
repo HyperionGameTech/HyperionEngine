@@ -68,8 +68,7 @@ Material::Material(Name name, Bucket bucket)
       m_render_attributes {
         .shader_definition = ShaderDefinition {
             NAME("Forward"),
-            static_mesh_vertex_attributes
-        },
+            static_mesh_vertex_attributes },
         .bucket = Bucket::BUCKET_OPAQUE
       },
       m_is_dynamic(false),

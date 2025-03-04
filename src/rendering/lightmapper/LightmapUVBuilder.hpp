@@ -39,18 +39,18 @@ struct LightmapUVBuilderParams
 
 struct LightmapMeshData
 {
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
+    Handle<Mesh>                    mesh;
+    Handle<Material>                material;
 
-    Matrix4             transform;
+    Matrix4                         transform;
 
-    Array<float>        vertex_positions;
-    Array<float>        vertex_normals;
-    Array<float>        vertex_uvs;
+    Array<float, DynamicAllocator>  vertex_positions;
+    Array<float, DynamicAllocator>  vertex_normals;
+    Array<float, DynamicAllocator>  vertex_uvs;
 
-    Array<uint32>       indices;
+    Array<uint32, DynamicAllocator> indices;
 
-    Array<Vec2f>        lightmap_uvs;
+    Array<Vec2f, DynamicAllocator>  lightmap_uvs;
 };
 
 struct LightmapUV

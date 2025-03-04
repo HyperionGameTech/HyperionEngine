@@ -96,11 +96,11 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
 
         {
             // Read ray hits from last time this frame was rendered
-            Array<LightmapRay> previous_rays;
+            Span<const LightmapRay> previous_rays;
             job->GetPreviousFrameRays(previous_rays);
             
             // Read previous frame hits into CPU buffer
-            if (previous_rays.Any()) {
+            if (previous_rays.Size() != 0) {
                 Array<LightmapHit, DynamicAllocator> hits_buffer;
                 hits_buffer.Resize(previous_rays.Size());
 
@@ -503,6 +503,8 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 
 void LightmapGPUPathTracer::Create()
 {
+    AssertThrow(m_scene->GetTLAS() != nullptr);
+
     CreateUniformBuffer();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -632,7 +634,7 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
         Array<float> ray_float_data;
         ray_float_data.Resize(rays.Size() * 8);
 
-        for (uint32 i = 0; i < rays.Size(); i++) {
+        for (SizeType i = 0; i < rays.Size(); i++) {
             ray_float_data[i * 8 + 0] = rays[i].ray.position.x;
             ray_float_data[i * 8 + 1] = rays[i].ray.position.y;
             ray_float_data[i * 8 + 2] = rays[i].ray.position.z;
@@ -1844,19 +1846,19 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     for (LightmapElement &element : job->GetElements()) {
         bool is_new_material = false;
 
-        element.material = element.material.IsValid() ? element.material->Clone() : CreateObject<Material>();
-        is_new_material = true;
+        //element.material = element.material.IsValid() ? element.material->Clone() : CreateObject<Material>();
+        //is_new_material = true;
 
-        // if (!element.material) {
-        //     // @TODO: Set to default material
-        //     continue;
-        // }
+        if (!element.material) {
+            // @TODO: Set to default material
+            continue;
+        }
 
-        // if (!element.material->IsDynamic()) {
-        //     element.material = element.material->Clone();
+        if (!element.material->IsDynamic()) {
+            element.material = element.material->Clone();
 
-        //     is_new_material = true;
-        // }
+            is_new_material = true;
+        }
         
         // temp; not thread safe
         element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, textures[0]);
