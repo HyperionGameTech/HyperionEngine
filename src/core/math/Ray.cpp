@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-Ray operator*(const Matrix4 &transform, const Ray &ray)
+HYP_API Ray operator*(const Matrix4 &transform, const Ray &ray)
 {
     Vec4f transformed_position = transform * Vec4f(ray.position, 1.0f);
     transformed_position /= transformed_position.w;

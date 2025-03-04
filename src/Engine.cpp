@@ -27,6 +27,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <asset/Assets.hpp>
 
@@ -439,17 +440,17 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         // m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("EntityInstanceBatchesBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GetGPUDevice(), GPUBufferType::STORAGE_BUFFER, sizeof(EntityInstanceBatch)));
 
         // Material
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-        for (uint32 texture_index = 0; texture_index < max_bindless_resources; texture_index++) {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Material"), frame_index)
-                ->SetElement(NAME("Textures"), texture_index, GetPlaceholderData()->GetImageView2D1x1R8());
+        if (renderer::RenderConfig::IsBindlessSupported()) {
+            for (uint32 texture_index = 0; texture_index < max_bindless_resources; texture_index++) {
+                m_global_descriptor_table->GetDescriptorSet(NAME("Material"), frame_index)
+                    ->SetElement(NAME("Textures"), texture_index, GetPlaceholderData()->GetImageView2D1x1R8());
+            }
+        } else {
+            for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
+                m_global_descriptor_table->GetDescriptorSet(NAME("Material"), frame_index)
+                    ->SetElement(NAME("Textures"), texture_index, GetPlaceholderData()->GetImageView2D1x1R8());
+            }
         }
-#else
-        for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Material"), frame_index)
-                ->SetElement(NAME("Textures"), texture_index, GetPlaceholderData()->GetImageView2D1x1R8());
-        }
-#endif
     }
 
     // m_global_descriptor_set_manager.Initialize(this);

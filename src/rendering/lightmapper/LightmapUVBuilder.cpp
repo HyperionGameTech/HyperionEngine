@@ -176,9 +176,9 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
     // pack_options.padding = 8;
     // pack_options.texelsPerUnit = 128.0f;
     pack_options.bilinear = true;
-    pack_options.blockAlign = true;
-    // pack_options.bruteForce = true;
-    // pack_options.rotateCharts = true;
+    //pack_options.blockAlign = true;
+    pack_options.bruteForce = true;
+    pack_options.rotateCharts = true;
 
     xatlas::ComputeCharts(atlas);
     xatlas::PackCharts(atlas, pack_options);

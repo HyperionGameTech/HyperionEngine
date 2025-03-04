@@ -99,7 +99,7 @@
           <If Condition="current_head != nullptr">
             <Loop>
               <Break Condition="current_head == nullptr" />
-              <Item Name="[{ current_head-&gt;pair.first }]">current_head-&gt;pair.second</Item>
+              <Item Name="{ current_head-&gt;pair.first }">current_head-&gt;pair.second</Item>
               <Exec>current_head = current_head-&gt;next</Exec>
             </Loop>
           </If>
