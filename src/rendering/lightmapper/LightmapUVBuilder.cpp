@@ -171,8 +171,8 @@ Result<LightmapUVMap> LightmapUVBuilder::Build()
     }
 
     xatlas::PackOptions pack_options { };
-    pack_options.maxChartSize = 2048;
-    // pack_options.resolution = 32; // testing
+    // pack_options.maxChartSize = 2048;
+    pack_options.resolution = 1024; // testing
     // pack_options.padding = 8;
     // pack_options.texelsPerUnit = 128.0f;
     pack_options.bilinear = true;

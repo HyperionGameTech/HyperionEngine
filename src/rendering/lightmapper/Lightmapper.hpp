@@ -16,6 +16,8 @@
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/Result.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/math/Ray.hpp>
 
 #include <scene/Scene.hpp>
@@ -24,18 +26,20 @@
 
 namespace hyperion {
 
-static constexpr int max_bounces_cpu = 3;
+static constexpr int max_bounces_cpu = 2;
 
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
 class ILightmapAccelerationStructure;
 class LightmapJob;
 
-enum class LightmapTraceMode
+enum class LightmapTraceMode : int
 {
-    GPU_PATH_TRACING,
+    GPU_PATH_TRACING = 0,
     CPU_PATH_TRACING,
-    RASTERIZATION
+    RASTERIZATION,
+
+    MAX
 };
 
 enum class LightmapShadingType
@@ -43,6 +47,41 @@ enum class LightmapShadingType
     IRRADIANCE,
     RADIANCE,
     MAX
+};
+
+HYP_STRUCT(ConfigName="app", ConfigPath="lightmapper")
+struct LightmapperConfig : public ConfigBase<LightmapperConfig>
+{
+    HYP_FIELD()
+    LightmapTraceMode   trace_mode = LightmapTraceMode::GPU_PATH_TRACING;
+
+    HYP_FIELD()
+    bool                radiance = true;
+
+    HYP_FIELD()
+    bool                irradiance = true;
+
+    HYP_FIELD()
+    uint32              num_samples = 16;
+
+    HYP_FIELD()
+    uint32              max_rays_per_frame = 512 * 512;
+
+    HYP_FIELD()
+    uint32              ideal_triangles_per_job = 8192;
+
+    virtual ~LightmapperConfig() override = default;
+
+    HYP_API void PostLoadCallback();
+
+    bool Validate() const
+    {
+        return uint32(trace_mode) < uint32(LightmapTraceMode::MAX)
+            && (radiance || irradiance)
+            && num_samples > 0
+            && max_rays_per_frame > 0 && max_rays_per_frame <= 1024 * 1024
+            && ideal_triangles_per_job > 0 && ideal_triangles_per_job <= 100000;
+    }
 };
 
 struct LightmapRay
@@ -92,6 +131,8 @@ public:
 
     virtual uint32 MaxRaysPerFrame() const = 0;
 
+    virtual LightmapShadingType GetShadingType() const = 0;
+
     virtual void Create() = 0;
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) = 0;
@@ -100,21 +141,20 @@ public:
 
 struct LightmapJobParams
 {
-    LightmapTraceMode                                                   trace_mode;
-    Handle<Scene>                                                       scene;
-    Span<LightmapElement>                                               elements_view;
-    HashMap<Handle<Entity>, LightmapElement *>                          *all_elements_map;
-    UniquePtr<LightmapTopLevelAccelerationStructure>                    acceleration_structure;
+    LightmapperConfig                           *config;
 
-    FixedArray<ILightmapRenderer *, uint32(LightmapShadingType::MAX)>   renderers;
+    Handle<Scene>                               scene;
+    Span<LightmapElement>                       elements_view;
+    HashMap<Handle<Entity>, LightmapElement *>  *all_elements_map;
+    LightmapTopLevelAccelerationStructure       *acceleration_structure;
+
+    Array<ILightmapRenderer *>                  renderers;
 };
 
 class HYP_API LightmapJob
 {
 public:
     friend struct RenderCommand_LightmapRender;
-
-    static constexpr uint32 num_multisamples = 4;
 
     LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;
@@ -161,7 +201,6 @@ public:
         m_previous_frame_rays = rays;
     }
 
-    
     void Start();
     
     void Process();
@@ -204,13 +243,15 @@ private:
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
 
+    double                                                  m_last_logged_percentage;
+
     AtomicVar<uint32>                                       m_num_concurrent_rendering_tasks;
 };
 
 class HYP_API Lightmapper
 {
 public:
-    Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scene);
+    Lightmapper(LightmapperConfig &&config, const Handle<Scene> &scene);
     Lightmapper(const Lightmapper &other)                   = delete;
     Lightmapper &operator=(const Lightmapper &other)        = delete;
     Lightmapper(Lightmapper &&other) noexcept               = delete;
@@ -228,7 +269,7 @@ private:
     LightmapJobParams CreateLightmapJobParams(
         SizeType start_index,
         SizeType end_index,
-        UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure
+        LightmapTopLevelAccelerationStructure *acceleration_structure
     );
 
     void AddJob(UniquePtr<LightmapJob> &&job)
@@ -242,18 +283,20 @@ private:
 
     void HandleCompletedJob(LightmapJob *job);
 
-    LightmapTraceMode                                                           m_trace_mode;
+    LightmapperConfig                                   m_config;
 
-    Handle<Scene>                                                               m_scene;
+    Handle<Scene>                                       m_scene;
 
-    FixedArray<UniquePtr<ILightmapRenderer>, uint32(LightmapShadingType::MAX)>  m_lightmap_renderers;
+    Array<UniquePtr<ILightmapRenderer>>                 m_lightmap_renderers;
 
-    Queue<UniquePtr<LightmapJob>>                                               m_queue;
-    Mutex                                                                       m_queue_mutex;
-    AtomicVar<uint32>                                                           m_num_jobs;
+    UniquePtr<LightmapTopLevelAccelerationStructure>    m_acceleration_structure;
 
-    Array<LightmapElement>                                                      m_lightmap_elements;
-    HashMap<Handle<Entity>, LightmapElement *>                                  m_all_elements_map;
+    Queue<UniquePtr<LightmapJob>>                       m_queue;
+    Mutex                                               m_queue_mutex;
+    AtomicVar<uint32>                                   m_num_jobs;
+
+    Array<LightmapElement>                              m_lightmap_elements;
+    HashMap<Handle<Entity>, LightmapElement *>          m_all_elements_map;
 };
 
 } // namespace hyperion

@@ -122,7 +122,7 @@ public:
      *  The texture data will be copied to the CPU and the image will have its StreamedTextureData recreated. */
     void Readback() const;
 
-    Vec4f Sample(Vec2f uv) const;
+    Vec4f Sample2D(Vec2f uv) const;
 
 protected:
     Name            m_name;

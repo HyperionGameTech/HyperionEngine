@@ -1202,10 +1202,6 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
                             local_space_ray = model_matrix.Inverted() * ray;
                         }
 
-                        HYP_LOG(Octree, Debug, "Testing ray against BVH for entity #{}", entry.entity.GetID().Value());
-                        HYP_LOG(Octree, Debug, "Ray: origin: {}, direction: {}", ray.position, ray.direction);
-                        HYP_LOG(Octree, Debug, "Local space ray: origin: {}, direction: {}", local_space_ray.position, local_space_ray.direction);
-
                         RayTestResults local_bvh_results = bvh_component->bvh.TestRay(local_space_ray);
 
                         if (local_bvh_results.Any()) {

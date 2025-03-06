@@ -25,6 +25,12 @@ struct HYP_API Triangle
     Triangle &operator=(const Triangle &other) = default;
     ~Triangle() = default;
 
+    HYP_FORCE_INLINE bool operator==(const Triangle &other) const
+        { return points == other.points; }
+
+    HYP_FORCE_INLINE bool operator!=(const Triangle &other) const
+        { return points != other.points; }
+
     HYP_FORCE_INLINE Vertex &operator[](SizeType index)
         { return points[index]; }
 

@@ -558,12 +558,6 @@ Vec4f Texture::Sample(Vec2f uv) const
         return Vec4f::Zero();
     }
 
-    if (GetType() != ImageType::TEXTURE_TYPE_2D) {
-        HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type for sampling directly: {}", GetType());
-
-        return Vec4f::Zero();
-    }
-
     const RC<StreamedTextureData> &streamed_data = m_image->GetStreamedData();
 
     if (!streamed_data) {
@@ -576,6 +570,12 @@ Vec4f Texture::Sample(Vec2f uv) const
 
             return Vec4f::Zero();
         }
+    }
+
+    if (GetType() != ImageType::TEXTURE_TYPE_2D) {
+        HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to sample on CPU: {}", GetType());
+
+        return Vec4f::Zero();
     }
 
     ResourceHandle resource_handle(*streamed_data);

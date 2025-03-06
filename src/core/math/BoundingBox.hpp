@@ -20,9 +20,12 @@ struct Triangle;
 HYP_STRUCT(Size=32)
 class HYP_API BoundingBox
 {
-    friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
+    friend std::ostream &operator<<(std::ostream &out, const BoundingBox &aabb);
 
 public:
+    friend BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb);
+    friend BoundingBox operator*(const Transform &transform, const BoundingBox &aabb);
+
     BoundingBox();
     BoundingBox(const Vec3f &min, const Vec3f &max);
 
@@ -75,10 +78,6 @@ public:
     BoundingBox &operator/=(const Vec3f &scale);
     BoundingBox operator*(const Vec3f &scale) const;
     BoundingBox &operator*=(const Vec3f &scale);
-    BoundingBox operator*(const Matrix4 &transform) const;
-    BoundingBox &operator*=(const Matrix4 &transform);
-    BoundingBox operator*(const Transform &transform) const;
-    BoundingBox &operator*=(const Transform &transform);
     
     HYP_FORCE_INLINE bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
@@ -145,6 +144,9 @@ public:
     HYP_FIELD(Property="Max", Serialize=true, Editor=true)
     Vec3f   max;
 };
+
+extern HYP_API BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb);
+extern HYP_API BoundingBox operator*(const Transform &transform, const BoundingBox &aabb);
 
 namespace utilities {
 
