@@ -13,6 +13,7 @@
 #include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RenderConfig.hpp>
 
 #include <scene/BVH.hpp>
 #include <scene/Mesh.hpp>
@@ -33,6 +34,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/utilities/Time.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/math/Triangle.hpp>
 
@@ -44,16 +46,16 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateLightmapPathTracerUniformBuffer) : renderer::RenderCommand
+struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer) : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
 
-    RENDER_COMMAND(CreateLightmapPathTracerUniformBuffer)(GPUBufferRef uniform_buffer)
+    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)(GPUBufferRef uniform_buffer)
         : uniform_buffer(std::move(uniform_buffer))
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateLightmapPathTracerUniformBuffer)() override = default;
+    virtual ~RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)() override = default;
 
     virtual RendererResult operator()() override
     {
@@ -64,12 +66,12 @@ struct RENDER_COMMAND(CreateLightmapPathTracerUniformBuffer) : renderer::RenderC
     }
 };
 
-struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
+struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
 {
     LightmapJob         *job;
     Array<LightmapRay>  rays;
 
-    RENDER_COMMAND(LightmapTraceRaysOnGPU)(
+    RENDER_COMMAND(LightmapRender)(
         LightmapJob *job,
         Array<LightmapRay> &&rays
     ) : job(job),
@@ -78,7 +80,7 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
         job->m_num_concurrent_rendering_tasks.Increment(1, MemoryOrder::RELEASE);
     }
 
-    virtual ~RENDER_COMMAND(LightmapTraceRaysOnGPU)() override
+    virtual ~RENDER_COMMAND(LightmapRender)() override
     {
         job->m_num_concurrent_rendering_tasks.Decrement(1, MemoryOrder::RELEASE);
     }
@@ -137,7 +139,7 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
                 ILightmapRenderer *lightmap_renderer = job->GetParams().renderers[i];
                 AssertThrow(lightmap_renderer != nullptr);
 
-                lightmap_renderer->Render(frame, rays, ray_offset);
+                lightmap_renderer->Render(frame, job, rays, ray_offset);
             }
 
             g_engine->GetRenderState()->UnsetActiveScene();
@@ -154,7 +156,6 @@ struct RENDER_COMMAND(LightmapTraceRaysOnGPU) : renderer::RenderCommand
 #pragma endregion Render commands
 
 #pragma region LightmapAccelerationStructure
-
 struct LightmapRayHitData
 {
     Handle<Entity>  entity;
@@ -191,7 +192,7 @@ public:
         if (m_root != nullptr) {
             const Matrix4 model_matrix = m_transform.GetMatrix();
 
-            const Ray local_space_ray = ray * model_matrix.Inverted();
+            const Ray local_space_ray = model_matrix.Inverted() * ray;
 
             RayTestResults local_bvh_results = m_root->TestRay(local_space_ray);
 
@@ -270,23 +271,66 @@ public:
         m_acceleration_structures.PushBack(std::move(acceleration_structure));
     }
 
+    void RemoveAll()
+    {
+        m_acceleration_structures.Clear();
+    }
+
 private:
     Array<UniquePtr<LightmapBottomLevelAccelerationStructure>>  m_acceleration_structures;
 };
 
 #pragma endregion LightmapAccelerationStructure
 
-#pragma region LightmapPathTracer
+#pragma region LightmapJobThread
 
-class HYP_API LightmapPathTracer : public ILightmapRenderer
+class LightmapTaskThread : public TaskThread
 {
 public:
-    LightmapPathTracer(const TLASRef &tlas, LightmapShadingType shading_type);
-    LightmapPathTracer(const LightmapPathTracer &other)                 = delete;
-    LightmapPathTracer &operator=(const LightmapPathTracer &other)      = delete;
-    LightmapPathTracer(LightmapPathTracer &&other) noexcept             = delete;
-    LightmapPathTracer &operator=(LightmapPathTracer &&other) noexcept  = delete;
-    virtual ~LightmapPathTracer() override;
+    LightmapTaskThread(ThreadID id)
+        : TaskThread(id)
+    {
+    }
+
+    virtual ~LightmapTaskThread() override = default;
+};
+
+#pragma endregion LightmapJobThread
+
+#pragma region LightmapTaskThreadPool
+
+class LightmapTaskThreadPool : public TaskThreadPool
+{
+public:
+    LightmapTaskThreadPool()
+        : TaskThreadPool(TypeWrapper<LightmapTaskThread>(), "LightmapperTask", NumThreadsToCreate())
+    {
+        HYP_LOG(Lightmap, Info, "Tracing lightmap rays using {} threads", m_threads.Size());
+    }
+
+    virtual ~LightmapTaskThreadPool() override = default;
+
+private:
+    static uint32 NumThreadsToCreate()
+    {
+        uint32 num_threads = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.num_threads_per_job").ToUInt32(4);
+        return MathUtil::Clamp(num_threads, 1u, 128u);
+    }
+};
+
+#pragma endregion LightmapTaskThreadPool
+
+#pragma region LightmapGPUPathTracer
+
+class HYP_API LightmapGPUPathTracer : public ILightmapRenderer
+{
+public:
+    LightmapGPUPathTracer(const Handle<Scene> &scene, LightmapShadingType shading_type);
+    LightmapGPUPathTracer(const LightmapGPUPathTracer &other)                 = delete;
+    LightmapGPUPathTracer &operator=(const LightmapGPUPathTracer &other)      = delete;
+    LightmapGPUPathTracer(LightmapGPUPathTracer &&other) noexcept             = delete;
+    LightmapGPUPathTracer &operator=(LightmapGPUPathTracer &&other) noexcept  = delete;
+    virtual ~LightmapGPUPathTracer() override;
 
     HYP_FORCE_INLINE const RaytracingPipelineRef &GetPipeline() const
         { return m_raytracing_pipeline; }
@@ -297,13 +341,13 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     void CreateUniformBuffer();
     void UpdateUniforms(Frame *frame, uint32 ray_offset);
 
-    TLASRef                                             m_tlas;
+    Handle<Scene>                                       m_scene;
     LightmapShadingType                                 m_shading_type;
     
     FixedArray<GPUBufferRef, max_frames_in_flight>      m_uniform_buffers;
@@ -313,8 +357,8 @@ private:
     RaytracingPipelineRef                               m_raytracing_pipeline;
 };
 
-LightmapPathTracer::LightmapPathTracer(const TLASRef &tlas, LightmapShadingType shading_type)
-    : m_tlas(tlas),
+LightmapGPUPathTracer::LightmapGPUPathTracer(const Handle<Scene> &scene, LightmapShadingType shading_type)
+    : m_scene(scene),
       m_shading_type(shading_type),
       m_uniform_buffers({
           MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER),
@@ -333,7 +377,7 @@ LightmapPathTracer::LightmapPathTracer(const TLASRef &tlas, LightmapShadingType 
     
 }
 
-LightmapPathTracer::~LightmapPathTracer()
+LightmapGPUPathTracer::~LightmapGPUPathTracer()
 {
     SafeRelease(std::move(m_uniform_buffers));
     SafeRelease(std::move(m_rays_buffers));
@@ -341,16 +385,16 @@ LightmapPathTracer::~LightmapPathTracer()
     SafeRelease(std::move(m_raytracing_pipeline));
 }
 
-void LightmapPathTracer::CreateUniformBuffer()
+void LightmapGPUPathTracer::CreateUniformBuffer()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_uniform_buffers[frame_index] = MakeRenderObject<GPUBuffer>(UniformBuffer());
 
-        PUSH_RENDER_COMMAND(CreateLightmapPathTracerUniformBuffer, m_uniform_buffers[frame_index]);
+        PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, m_uniform_buffers[frame_index]);
     }
 }
 
-void LightmapPathTracer::Create()
+void LightmapGPUPathTracer::Create()
 {
     CreateUniformBuffer();
 
@@ -381,19 +425,22 @@ void LightmapPathTracer::Create()
         HYP_UNREACHABLE();
     }
 
-    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("LightmapPathTracer"), shader_properties);
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("LightmapGPUPathTracer"), shader_properties);
     AssertThrow(shader.IsValid());
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
+    const TLASRef &tlas = m_scene->GetTLAS();
+    AssertThrow(tlas != nullptr);
+
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("TLAS"), m_tlas);
-        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
+        descriptor_set->SetElement(NAME("TLAS"), tlas);
+        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), tlas->GetMeshDescriptionsBuffer());
         descriptor_set->SetElement(NAME("HitsBuffer"), m_hits_buffers[frame_index]);
         descriptor_set->SetElement(NAME("RaysBuffer"), m_rays_buffers[frame_index]);
 
@@ -419,7 +466,7 @@ void LightmapPathTracer::Create()
     );
 }
 
-void LightmapPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
+void LightmapGPUPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
 {
     RTRadianceUniforms uniforms { };
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -448,11 +495,11 @@ void LightmapPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
     m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
 }
 
-void LightmapPathTracer::UpdateRays(Span<const LightmapRay> rays)
+void LightmapGPUPathTracer::UpdateRays(Span<const LightmapRay> rays)
 {
 }
 
-void LightmapPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
+void LightmapGPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
 {
     m_hits_buffers[frame->GetFrameIndex()]->Read(
         g_engine->GetGPUDevice(),
@@ -461,7 +508,7 @@ void LightmapPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits
     );
 }
 
-void LightmapPathTracer::Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -537,7 +584,290 @@ void LightmapPathTracer::Render(Frame *frame, Span<const LightmapRay> rays, uint
     );
 }
 
-#pragma endregion LightmapPathTracer
+#pragma endregion LightmapGPUPathTracer
+
+
+#pragma region LightmapCPUPathTracer
+
+class HYP_API LightmapCPUPathTracer : public ILightmapRenderer
+{
+public:
+    LightmapCPUPathTracer(const Handle<Scene> &scene, LightmapShadingType shading_type);
+    LightmapCPUPathTracer(const LightmapCPUPathTracer &other)                 = delete;
+    LightmapCPUPathTracer &operator=(const LightmapCPUPathTracer &other)      = delete;
+    LightmapCPUPathTracer(LightmapCPUPathTracer &&other) noexcept             = delete;
+    LightmapCPUPathTracer &operator=(LightmapCPUPathTracer &&other) noexcept  = delete;
+    virtual ~LightmapCPUPathTracer() override;
+
+    virtual uint32 MaxRaysPerFrame() const override
+        { return 64 * 64; }
+
+    virtual void Create() override;
+    virtual void UpdateRays(Span<const LightmapRay> rays) override;
+    virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
+    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
+
+private:
+    void TraceSingleRayOnCPU(LightmapJob *job, const LightmapRay &ray, LightmapRayHitPayload &out_payload);
+
+    Handle<Scene>                           m_scene;
+    LightmapShadingType                     m_shading_type;
+
+    Array<LightmapHit, DynamicAllocator>    m_hits_buffer;
+
+    LightmapTaskThreadPool                  m_thread_pool;
+
+    AtomicVar<uint32>                       m_num_tracing_tasks;
+};
+
+LightmapCPUPathTracer::LightmapCPUPathTracer(const Handle<Scene> &scene, LightmapShadingType shading_type)
+    : m_scene(scene),
+      m_shading_type(shading_type),
+      m_num_tracing_tasks(0)
+{
+}
+
+LightmapCPUPathTracer::~LightmapCPUPathTracer()
+{
+    if (m_thread_pool.IsRunning()) {
+        m_thread_pool.Stop();
+    }
+}
+
+void LightmapCPUPathTracer::Create()
+{
+    m_thread_pool.Start();
+}
+
+void LightmapCPUPathTracer::UpdateRays(Span<const LightmapRay> rays)
+{
+}
+
+void LightmapCPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
+{
+    Threads::AssertOnThread(g_render_thread);
+    
+    AssertThrowMsg(m_num_tracing_tasks.Get(MemoryOrder::ACQUIRE) == 0,
+        "Cannot read hits buffer while tracing is in progress");
+
+    AssertThrow(out_hits.Size() == m_hits_buffer.Size());
+
+    Memory::MemCpy(out_hits.Data(), m_hits_buffer.Data(), m_hits_buffer.ByteSize());
+}
+
+void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertThrowMsg(m_num_tracing_tasks.Get(MemoryOrder::ACQUIRE) == 0,
+        "Trace is already in progress");
+
+    m_hits_buffer.Resize(rays.Size());
+
+    m_num_tracing_tasks.Increment(rays.Size(), MemoryOrder::RELEASE);
+
+    Array<Task<void>> tasks = TaskSystem::GetInstance().ParallelForEach_Async(m_thread_pool, rays, [this, job](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
+    {
+        HYP_DEFER({ m_num_tracing_tasks.Decrement(1, MemoryOrder::RELEASE); });
+
+        // { // debugging
+        //     const LightmapUVMap &uv_map = job->GetUVMap();
+
+        //     AssertThrowMsg(
+        //         first_ray.texel_index < uv_map.uvs.Size(),
+        //         "Texel index (%llu) out of range of UV map (size: %llu)",
+        //         first_ray.texel_index,
+        //         uv_map.uvs.Size()
+        //     );
+
+        //     const LightmapUV &uv = uv_map.uvs[first_ray.texel_index];
+
+        //     if (!uv.material) {
+        //         return;
+        //     }
+
+        //     const Vec4f color = Vec4f(uv.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+
+        //     LightmapHit &hit = m_hits_buffer[index];
+        //     hit.color = color;
+
+        //     return;
+        // }
+
+#if 1
+        uint32 seed = (uint32)rand();//index * m_texel_index;
+
+        FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
+        FixedArray<LightmapRayHitPayload, max_bounces_cpu + 1> bounces;
+
+        int num_bounces = 0;
+
+        Vec3f direction = first_ray.ray.direction.Normalized();
+
+        if (m_shading_type == LightmapShadingType::IRRADIANCE) {
+            direction = MathUtil::RandomInHemisphere(
+                Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
+                first_ray.ray.direction
+            );
+        }
+
+        Vec3f origin = first_ray.ray.position + direction * 0.25f;
+
+        for (int bounce_index = 0; bounce_index < max_bounces_cpu; bounce_index++) {
+            LightmapRay bounce_ray = first_ray;
+
+            if (bounce_index != 0) {
+                bounce_ray.mesh_id = bounces[bounce_index - 1].mesh_id;
+                bounce_ray.triangle_index = bounces[bounce_index - 1].triangle_index;
+            }
+
+            bounce_ray.ray = Ray {
+                origin,
+                direction
+            };
+
+            recursive_rays[bounce_index] = bounce_ray;
+
+            LightmapRayHitPayload &payload = bounces[bounce_index];
+            payload = { };
+
+            TraceSingleRayOnCPU(job, bounce_ray, payload);
+
+            if (payload.distance < 0.0f) {
+                // @TODO Sample environment map
+                const Vec3f normal = bounce_index == 0 ? first_ray.ray.direction : bounces[bounce_index - 1].normal;
+
+                // testing!! @FIXME
+                const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
+                payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+                payload.throughput = Vec4f(0.0f);
+
+                ++num_bounces;
+
+                break;
+            }
+
+            Vec3f hit_position = origin + direction * payload.distance;
+
+            if (m_shading_type == LightmapShadingType::IRRADIANCE) {
+                direction = MathUtil::RandomInHemisphere(
+                    Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
+                    payload.normal
+                );
+            } else {
+                direction = payload.normal.Normalized(); // @TODO use roughness
+            }
+
+            origin = hit_position + direction * 0.25f;
+
+            ++num_bounces;
+        }
+
+        for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
+            Vec4f radiance = bounces[bounce_index].emissive;
+
+            if (bounce_index != num_bounces - 1) {
+                radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
+            }
+
+            float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
+
+            if (MathUtil::RandomFloat(seed) > p) {
+                break;
+            }
+
+            radiance /= MathUtil::Max(p, 0.0001f);
+
+            bounces[bounce_index].radiance = radiance;
+        }
+#endif
+
+        LightmapHit &hit = m_hits_buffer[index];
+
+        if (num_bounces != 0) {
+            hit.color = bounces[0].radiance;
+            // hit.color = bounces[0].throughput; // debug
+            // hit.color = Vec4f(direction * 0.5f + 0.5f, 1.0f); // debugging
+
+            if (MathUtil::IsNaN(hit.color) || !MathUtil::IsFinite(hit.color)) {
+                HYP_LOG_ONCE(Lightmap, Warning, "NaN or infinite color detected while tracing rays");
+
+                hit.color = Vec4f(0.0f);
+            }
+
+            hit.color.w = 1.0f;
+        }
+    });
+
+    for (Task<void> &task : tasks) {
+        job->AddTask(std::move(task));
+    }
+}
+
+void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob *job, const LightmapRay &ray, LightmapRayHitPayload &out_payload)
+{
+    out_payload.throughput = Vec4f(0.0f);
+    out_payload.emissive = Vec4f(0.0f);
+    out_payload.radiance = Vec4f(0.0f);
+    out_payload.normal = Vec3f(0.0f);
+    out_payload.distance = -1.0f;
+    out_payload.barycentric_coords = Vec3f(0.0f);
+    out_payload.mesh_id = ID<Mesh>::invalid;
+    out_payload.triangle_index = 0;
+
+    ILightmapAccelerationStructure *acceleration_structure = job->GetParams().acceleration_structure.Get();
+
+    if (!acceleration_structure) {
+        HYP_LOG(Lightmap, Warning, "No acceleration structure set while tracing on CPU, cannot perform trace");
+
+        return;
+    }
+
+    LightmapRayTestResults results = acceleration_structure->TestRay(ray.ray);
+    
+    if (!results.Any()) {
+        return;
+    }
+    
+    for (const Pair<float, LightmapRayHitData> &hit_data : results) {
+        if (hit_data.first < 0.0f) {
+            continue;
+        }
+
+        AssertThrow(hit_data.second.entity.IsValid());
+
+        auto element_it = job->GetParams().all_elements_map->Find(hit_data.second.entity);
+
+        AssertThrow(element_it != job->GetParams().all_elements_map->End());
+        AssertThrow(element_it->second != nullptr);
+
+        const LightmapElement &element = *element_it->second;
+
+        const ID<Mesh> mesh_id = element.mesh.GetID();
+
+        const Vec3f barycentric_coords = hit_data.second.hit.barycentric_coords;
+
+        const Triangle &triangle = hit_data.second.triangle;
+
+        const Vec2f uv = triangle.GetPoint(0).GetTexCoord0() * barycentric_coords.x
+            + triangle.GetPoint(1).GetTexCoord0() * barycentric_coords.y
+            + triangle.GetPoint(2).GetTexCoord0() * barycentric_coords.z;
+
+        const Vec4f color = Vec4f(element.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+
+        // @TODO sample textures
+
+        out_payload.emissive = Vec4f(0.0f);
+        out_payload.throughput = color;
+        out_payload.barycentric_coords = barycentric_coords;
+        out_payload.mesh_id = mesh_id;
+        out_payload.triangle_index = hit_data.second.hit.id;
+        out_payload.normal = hit_data.second.hit.normal;
+        out_payload.distance = hit_data.first;
+    }
+}
+
+#pragma endregion LightmapCPUPathTracer
 
 #pragma region LightmapRasterizer
 
@@ -557,7 +887,7 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     using RenderSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
@@ -713,7 +1043,7 @@ void LightmapRasterizer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits
     out_hits[0].color = avg;
 }
 
-void LightmapRasterizer::Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -763,9 +1093,13 @@ LightmapJob::LightmapJob(LightmapJobParams &&params)
 
 LightmapJob::~LightmapJob()
 {
-    for (Task<void> &task : m_current_tasks) {
-        if (!task.Cancel()) {
-            task.Await();
+    {
+        Mutex::Guard guard(m_current_tasks_mutex);
+
+        for (Task<void> &task : m_current_tasks) {
+            if (!task.Cancel()) {
+                task.Await();
+            }
         }
     }
 
@@ -810,6 +1144,13 @@ Result<LightmapUVMap> LightmapJob::BuildUVMap()
     return LightmapUVBuilder { { m_params.elements_view } }.Build();
 }
 
+void LightmapJob::AddTask(Task<void> &&task)
+{
+    Mutex::Guard guard(m_current_tasks_mutex);
+
+    m_current_tasks.PushBack(std::move(task));
+}
+
 void LightmapJob::Process()
 {
     AssertThrow(IsRunning());
@@ -852,19 +1193,23 @@ void LightmapJob::Process()
         return;
     }
 
-    if (m_current_tasks.Any()) {
-        for (Task<void> &task : m_current_tasks) {
-            if (!task.IsCompleted()) {
-                // Wait for next call
-                return;
+    {
+        Mutex::Guard guard(m_current_tasks_mutex);
+
+        if (m_current_tasks.Any()) {
+            for (Task<void> &task : m_current_tasks) {
+                if (!task.IsCompleted()) {
+                    // Wait for next call
+                    return;
+                }
             }
-        }
 
-        for (Task<void> &task : m_current_tasks) {
-            task.Await();
-        }
+            for (Task<void> &task : m_current_tasks) {
+                task.Await();
+            }
 
-        m_current_tasks.Clear();
+            m_current_tasks.Clear();
+        }
     }
 
     bool has_remaining_rays = false;
@@ -877,8 +1222,10 @@ void LightmapJob::Process()
         }
     }
 
-#if 0
-    if (!has_remaining_rays && m_texel_index >= m_texel_indices.Size() * num_multisamples) {
+    if (!has_remaining_rays
+        && m_texel_index >= m_texel_indices.Size() * num_multisamples
+        && m_num_concurrent_rendering_tasks.Get(MemoryOrder::ACQUIRE) == 0)
+    {
         Stop();
 
         return;
@@ -895,15 +1242,13 @@ void LightmapJob::Process()
         lightmap_renderer->UpdateRays(rays);
     }
 
+    // debugging
+    AssertThrow(m_num_concurrent_rendering_tasks.Get(MemoryOrder::ACQUIRE) == 0);
+
     HYP_LOG(Lightmap, Debug, "Lightmap job {}: Texel {} / {} ({}%)",
         m_uuid.ToString(), m_texel_index, m_texel_indices.Size(), double(m_texel_index) / double(m_texel_indices.Size()) * 100.0);
 
-    PUSH_RENDER_COMMAND(LightmapTraceRaysOnGPU, this, std::move(rays));
-#else
-    Stop();
-
-    return;
-#endif
+    PUSH_RENDER_COMMAND(LightmapRender, this, std::move(rays));
 }
 
 void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
@@ -1029,10 +1374,10 @@ void LightmapJob::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
         switch (shading_type) {
         case LightmapShadingType::RADIANCE:
-            uv.radiance = (uv.radiance * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
+            uv.radiance += Vec4f(hit.color.GetXYZ(), 1.0f);
             break;
         case LightmapShadingType::IRRADIANCE:
-            uv.irradiance = (uv.irradiance * (Vec4f(1.0f) - Vec4f(hit.color.w))) + Vec4f(hit.color * hit.color.w);
+            uv.irradiance = Vec4f(hit.color.GetXYZ(), 1.0f);
             break;
         }
     }
@@ -1051,8 +1396,11 @@ Lightmapper::Lightmapper(LightmapTraceMode trace_mode, const Handle<Scene> &scen
         UniquePtr<ILightmapRenderer> &lightmap_renderer = m_lightmap_renderers[i];
 
         switch (m_trace_mode) {
-        case LightmapTraceMode::PATH_TRACING:
-            lightmap_renderer.EmplaceAs<LightmapPathTracer>(m_scene->GetTLAS(), LightmapShadingType(i));
+        case LightmapTraceMode::GPU_PATH_TRACING:
+            lightmap_renderer.EmplaceAs<LightmapGPUPathTracer>(m_scene, LightmapShadingType(i));
+            break;
+        case LightmapTraceMode::CPU_PATH_TRACING:
+            lightmap_renderer.EmplaceAs<LightmapCPUPathTracer>(m_scene, LightmapShadingType(i));
             break;
         case LightmapTraceMode::RASTERIZATION:
             lightmap_renderer.EmplaceAs<LightmapRasterizer>(m_scene, LightmapShadingType(i));
@@ -1079,13 +1427,14 @@ bool Lightmapper::IsComplete() const
     return m_num_jobs.Get(MemoryOrder::ACQUIRE) == 0;
 }
 
-LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType start_index, SizeType end_index)
+LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType start_index, SizeType end_index, UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure)
 {
     LightmapJobParams job_params {
         m_trace_mode,
         m_scene,
         m_lightmap_elements.ToSpan().Slice(start_index, end_index),
-        &m_all_elements_map
+        &m_all_elements_map,
+        std::move(acceleration_structure)
     };
 
     for (SizeType i = 0; i < m_lightmap_renderers.Size(); i++) {
@@ -1129,8 +1478,8 @@ void Lightmapper::PerformLightmapping()
             continue;
         }
 
-        // path tracing lightmap mode requires a raytracing BLAS to be attached
-        if (m_trace_mode == LightmapTraceMode::PATH_TRACING) {
+        // GPU path tracing mode requires a raytracing BLAS to be attached
+        if (m_trace_mode == LightmapTraceMode::GPU_PATH_TRACING) {
             BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity_id);
 
             if (!blas_component || !blas_component->blas) {
@@ -1152,6 +1501,8 @@ void Lightmapper::PerformLightmapping()
         });
     }
 
+    UniquePtr<LightmapTopLevelAccelerationStructure> acceleration_structure;
+
     uint32 num_triangles = 0;
 
     SizeType start_index;
@@ -1164,7 +1515,7 @@ void Lightmapper::PerformLightmapping()
 
         if (ideal_triangles_per_job != 0 && num_triangles != 0 && num_triangles + element.mesh->NumIndices() / 3 > ideal_triangles_per_job) {
             if (end_index - start_index != 0) {
-                UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index));
+                UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index, std::move(acceleration_structure)));
 
                 start_index = end_index;
 
@@ -1174,11 +1525,30 @@ void Lightmapper::PerformLightmapping()
             num_triangles = 0;
         }
 
+        if (!acceleration_structure) {
+            acceleration_structure = MakeUnique<LightmapTopLevelAccelerationStructure>();
+        }
+
+        BVHComponent *bvh_component = mgr.TryGetComponent<BVHComponent>(element.entity);
+
+        if (!bvh_component) {
+            // BVHUpdaterSystem will calculate BVH when added
+            mgr.AddComponent<BVHComponent>(element.entity, BVHComponent { });
+
+            bvh_component = &mgr.GetComponent<BVHComponent>(element.entity);
+        }
+
+        acceleration_structure->Add(MakeUnique<LightmapBottomLevelAccelerationStructure>(
+            element.entity,
+            element.transform,
+            bvh_component->bvh
+        ));
+
         num_triangles += element.mesh->NumIndices() / 3;
     }
 
     if (end_index - start_index != 0) {
-        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index));
+        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, end_index, std::move(acceleration_structure)));
 
         AddJob(std::move(job));
     }

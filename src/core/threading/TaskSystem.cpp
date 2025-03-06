@@ -168,9 +168,9 @@ TaskThread *TaskThreadPool::GetNextTaskThread()
     return task_thread;
 }
 
-ThreadID TaskThreadPool::CreateTaskThreadID(Name base_name, uint32 thread_index)
+ThreadID TaskThreadPool::CreateTaskThreadID(ANSIStringView base_name, uint32 thread_index)
 {
-    return ThreadID(CreateNameFromDynamicString(HYP_FORMAT("{}_{}", base_name, thread_index)), THREAD_CATEGORY_TASK);
+    return ThreadID(Name::Unique(HYP_FORMAT("{}{}", base_name, thread_index).Data()), THREAD_CATEGORY_TASK);
 }
 
 #pragma endregion TaskThreadPool
@@ -181,7 +181,7 @@ class GenericTaskThreadPool final : public TaskThreadPool
 {
 public:
     GenericTaskThreadPool(uint32 num_task_threads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), NAME("GenericTask"), num_task_threads)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "GenericTask", num_task_threads)
     {
     }
 
@@ -196,7 +196,7 @@ class RenderTaskThreadPool final : public TaskThreadPool
 {
 public:
     RenderTaskThreadPool(uint32 num_task_threads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), NAME("RenderTask"), num_task_threads)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "RenderTask", num_task_threads)
     {
     }
 
@@ -211,7 +211,7 @@ class BackgroundTaskThreadPool final : public TaskThreadPool
 {
 public:
     BackgroundTaskThreadPool(uint32 num_task_threads, ThreadPriorityValue priority)
-        : TaskThreadPool(TypeWrapper<TaskThread>(), NAME("BackgroundTask"), num_task_threads)
+        : TaskThreadPool(TypeWrapper<TaskThread>(), "BackgroundTask", num_task_threads)
     {
     }
 

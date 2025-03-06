@@ -24,14 +24,17 @@
 
 namespace hyperion {
 
-static constexpr int max_bounces_cpu = 1;
+static constexpr int max_bounces_cpu = 3;
 
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
+class ILightmapAccelerationStructure;
+class LightmapJob;
 
 enum class LightmapTraceMode
 {
-    PATH_TRACING,
+    GPU_PATH_TRACING,
+    CPU_PATH_TRACING,
     RASTERIZATION
 };
 
@@ -92,7 +95,7 @@ public:
     virtual void Create() = 0;
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) = 0;
-    virtual void Render(Frame *frame, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
+    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
 };
 
 struct LightmapJobParams
@@ -101,6 +104,7 @@ struct LightmapJobParams
     Handle<Scene>                                                       scene;
     Span<LightmapElement>                                               elements_view;
     HashMap<Handle<Entity>, LightmapElement *>                          *all_elements_map;
+    UniquePtr<LightmapTopLevelAccelerationStructure>                    acceleration_structure;
 
     FixedArray<ILightmapRenderer *, uint32(LightmapShadingType::MAX)>   renderers;
 };
@@ -108,9 +112,9 @@ struct LightmapJobParams
 class HYP_API LightmapJob
 {
 public:
-    friend struct RenderCommand_LightmapTraceRaysOnGPU;
+    friend struct RenderCommand_LightmapRender;
 
-    static constexpr uint32 num_multisamples = 1;
+    static constexpr uint32 num_multisamples = 4;
 
     LightmapJob(LightmapJobParams &&params);
     LightmapJob(const LightmapJob &other)                   = delete;
@@ -157,11 +161,14 @@ public:
         m_previous_frame_rays = rays;
     }
 
+    
     void Start();
-
+    
     void Process();
-
+    
     void GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays);
+    
+    void AddTask(Task<void> &&task);
 
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
@@ -190,7 +197,9 @@ private:
 
     Optional<LightmapUVMap>                                 m_uv_map;
     Task<Result<LightmapUVMap>>                             m_build_uv_map_task;
+
     Array<Task<void>>                                       m_current_tasks;
+    mutable Mutex                                           m_current_tasks_mutex;
 
     Semaphore<int32>                                        m_running_semaphore;
     uint32                                                  m_texel_index;
@@ -218,7 +227,8 @@ public:
 private:
     LightmapJobParams CreateLightmapJobParams(
         SizeType start_index,
-        SizeType end_index
+        SizeType end_index,
+        UniquePtr<LightmapTopLevelAccelerationStructure> &&acceleration_structure
     );
 
     void AddJob(UniquePtr<LightmapJob> &&job)

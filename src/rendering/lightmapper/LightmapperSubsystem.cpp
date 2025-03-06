@@ -85,8 +85,12 @@ Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
 
     LightmapTraceMode trace_mode = LightmapTraceMode::RASTERIZATION;
 
-    if (renderer::RenderConfig::IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.path_tracing").ToBool(true)) {
-        trace_mode = LightmapTraceMode::PATH_TRACING;
+    if (g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.path_tracing").ToBool(true)) {
+        if (renderer::RenderConfig::IsRaytracingSupported()) {
+            trace_mode = LightmapTraceMode::GPU_PATH_TRACING;
+        } else {
+            trace_mode = LightmapTraceMode::CPU_PATH_TRACING;
+        }
     }
 
     UniquePtr<Lightmapper> lightmapper = MakeUnique<Lightmapper>(trace_mode, scene);

@@ -107,7 +107,7 @@ struct Name
     HYP_API static NameRegistry *GetRegistry();
 
     /*! \brief Generates a unique name with a prefix. */
-    HYP_API static Name Unique(const char *prefix);
+    HYP_API static Name Unique(ANSIStringView prefix);
 
     HYP_FORCE_INLINE static constexpr Name Invalid()
         { return Name { 0 }; };
