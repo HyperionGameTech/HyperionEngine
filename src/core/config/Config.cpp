@@ -768,6 +768,39 @@ const String &ConfigurationTable::GetDefaultConfigName(const HypClass *hyp_class
     return String::empty;
 }
 
+void ConfigurationTable::AddError(const Error &error)
+{
+    m_errors.PushBack(error);
+}
+
+void ConfigurationTable::LogErrors() const
+{
+    if (m_errors.Empty()) {
+        return;
+    }
+
+    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):",
+        m_data_store ? m_data_store->GetConfigName() : "<unknown>",
+        m_data_store ? m_data_store->GetFilePath() : "<unknown>");
+
+    for (const Error &error : m_errors) {
+        HYP_LOG(Config, Error, "  <{}> {}", error.GetFunctionName(), error.GetMessage());
+    }
+}
+
+void ConfigurationTable::LogErrors(UTF8StringView message) const
+{
+    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):",
+        m_data_store ? m_data_store->GetConfigName() : "<unknown>",
+        m_data_store ? m_data_store->GetFilePath() : "<unknown>");
+
+    for (const Error &error : m_errors) {
+        HYP_LOG(Config, Error, "  <{}> {}", error.GetFunctionName(), error.GetMessage());
+    }
+
+    HYP_LOG(Config, Error, "{}", message);
+}
+
 bool ConfigurationTable::SetHypClassFields(const HypClass *hyp_class, const void *ptr)
 {
     AssertThrow(hyp_class != nullptr);

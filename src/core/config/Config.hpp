@@ -132,12 +132,18 @@ public:
     void Set(UTF8StringView key, const ConfigurationValue &value);
 
     bool Save();
+    
+    void AddError(const Error &error);
 
     HYP_FORCE_INLINE String ToString() const
         { return GetSubobject().ToString(true); }
 
 protected:
     static const String &GetDefaultConfigName(const HypClass *hyp_class);
+
+    void LogErrors() const;
+    void LogErrors(UTF8StringView message) const;
+
     bool SetHypClassFields(const HypClass *hyp_class, const void *ptr);
 
     bool Validate() const { return true; }
@@ -152,6 +158,8 @@ private:
 
     ConfigurationDataStore                  *m_data_store;
     TResourceHandle<ConfigurationDataStore> m_data_store_resource_handle;
+
+    Array<Error>                            m_errors;
 
     mutable HashCode                        m_cached_hash_code;
 };
@@ -209,7 +217,8 @@ public:
         result.PostLoadCallback();
 
         if (!result.Validate()) {
-            // @TODO Log validation error
+            result.LogErrors("Validation failed");
+
             return { };
         }
 
@@ -217,8 +226,7 @@ public:
             const bool save_result = result.Save();
 
             if (!save_result) {
-                // @TODO Log save error
-                HYP_BREAKPOINT;
+                result.LogErrors("Failed to save configuration");
             }
         }
 

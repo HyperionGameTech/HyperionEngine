@@ -74,13 +74,41 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 
     HYP_API void PostLoadCallback();
 
-    bool Validate() const
+    bool Validate()
     {
-        return uint32(trace_mode) < uint32(LightmapTraceMode::MAX)
-            && (radiance || irradiance)
-            && num_samples > 0
-            && max_rays_per_frame > 0 && max_rays_per_frame <= 1024 * 1024
-            && ideal_triangles_per_job > 0 && ideal_triangles_per_job <= 100000;
+        bool valid = true;
+
+        if (uint32(trace_mode) >= uint32(LightmapTraceMode::MAX)) {
+            AddError(HYP_MAKE_ERROR(Error, "Invalid trace mode"));
+
+            valid = false;
+        }
+
+        if (!radiance && !irradiance) {
+            AddError(HYP_MAKE_ERROR(Error, "At least one of radiance or irradiance must be enabled"));
+
+            valid = false;
+        }
+
+        if (num_samples == 0) {
+            AddError(HYP_MAKE_ERROR(Error, "Number of samples must be greater than zero"));
+
+            valid = false;
+        }
+
+        if (max_rays_per_frame == 0 || max_rays_per_frame > 1024 * 1024) {
+            AddError(HYP_MAKE_ERROR(Error, "Max rays per frame must be greater than zero and less than or equal to 1024*1024"));
+
+            valid = false;
+        }
+
+        if (ideal_triangles_per_job == 0 || ideal_triangles_per_job > 100000) {
+            AddError(HYP_MAKE_ERROR(Error, "Ideal triangles per job must be greater than zero and less than or equal to 100000"));
+
+            valid = false;
+        }
+        
+        return valid;
     }
 };
 

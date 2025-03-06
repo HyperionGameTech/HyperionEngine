@@ -873,12 +873,11 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
                 // @TODO Sample environment map
                 const Vec3f normal = bounce_index == 0 ? first_ray.ray.direction : bounces[bounce_index - 1].normal;
 
-                if (env_probe_texture.IsValid()) {
-                    // @TODO Use SampleCube() instead
-                    Vec4f env_probe_sample = env_probe_texture->Sample(Vec2f(0.5f, 0.5f));
+                // if (env_probe_texture.IsValid()) {
+                //     Vec4f env_probe_sample = env_probe_texture->SampleCube(normal);
 
-                    payload.emissive += env_probe_sample;
-                }
+                //     payload.emissive += env_probe_sample;
+                // }
 
                 // // testing!! @FIXME
                 // const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
@@ -927,7 +926,7 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
         LightmapHit &hit = m_hits_buffer[index];
 
         if (num_bounces != 0) {
-            hit.color = bounces[0].radiance;
+            hit.color = bounces[0].throughput;
             // hit.color = Vec4f(first_ray.ray.direction * 0.5f + 0.5f, 1.0f); // debug
             // hit.color = Vec4f(bounces[0].throughput.GetXYZ(), 1.0f); // debugging
 
@@ -955,7 +954,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob *job, const Lightmap
     out_payload.distance = -1.0f;
     out_payload.barycentric_coords = Vec3f(0.0f);
     out_payload.mesh_id = ID<Mesh>::invalid;
-    out_payload.triangle_index = 0;
+    out_payload.triangle_index = ~0u;
 
     ILightmapAccelerationStructure *acceleration_structure = job->GetParams().acceleration_structure;
 

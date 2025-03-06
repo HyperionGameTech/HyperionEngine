@@ -550,7 +550,7 @@ void Texture::Readback() const
     m_image->SetStreamedData(streamed_data);
 }
 
-Vec4f Texture::Sample(Vec2f uv) const
+Vec4f Texture::Sample(Vec3f uvw, uint32 face_index) const
 {
     if (!IsReady()) {
         HYP_LOG_ONCE(Texture, Warning, "Texture is not ready, cannot sample");
@@ -572,12 +572,6 @@ Vec4f Texture::Sample(Vec2f uv) const
         }
     }
 
-    if (GetType() != ImageType::TEXTURE_TYPE_2D) {
-        HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to sample on CPU: {}", GetType());
-
-        return Vec4f::Zero();
-    }
-
     ResourceHandle resource_handle(*streamed_data);
 
     const TextureData &texture_data = streamed_data->GetTextureData();
@@ -588,9 +582,10 @@ Vec4f Texture::Sample(Vec2f uv) const
         return Vec4f::Zero();
     }
 
-    const Vec2u coord = {
-        uint32(uv.x * (texture_data.desc.extent.x - 1)),
-        uint32(uv.y * (texture_data.desc.extent.y - 1))
+    const Vec3u coord = {
+        uint32(uvw.x * (texture_data.desc.extent.x - 1)),
+        uint32(uvw.y * (texture_data.desc.extent.y - 1)),
+        uint32(uvw.z * (texture_data.desc.extent.z - 1))
     };
 
     const uint32 bytes_per_pixel = renderer::NumBytes(texture_data.desc.format);
@@ -603,11 +598,14 @@ Vec4f Texture::Sample(Vec2f uv) const
 
     const uint32 num_components = renderer::NumComponents(m_image->GetTextureFormat());
 
-    const uint32 index = coord.y * texture_data.desc.extent.x * bytes_per_pixel * num_components + coord.x * bytes_per_pixel * num_components;
+    const uint32 index = face_index * (texture_data.desc.extent.x * texture_data.desc.extent.y * bytes_per_pixel * num_components)
+        + coord.z * (texture_data.desc.extent.x * texture_data.desc.extent.y * bytes_per_pixel * num_components)
+        + coord.y * (texture_data.desc.extent.x * bytes_per_pixel * num_components)
+        + coord.x * bytes_per_pixel * num_components;
 
     if (index >= texture_data.buffer.Size()) {
-        HYP_LOG(Texture, Warning, "Index out of bounds, index: {}, buffer size: {}, x: {}, y: {}, width: {}, height: {}", index, texture_data.buffer.Size(),
-            coord.x, coord.y, texture_data.desc.extent.x, texture_data.desc.extent.y);
+        HYP_LOG(Texture, Warning, "Index out of bounds, index: {}, buffer size: {}, coord: {}, dimensions: {}, num faces: {}", index, texture_data.buffer.Size(),
+            coord, texture_data.desc.extent, texture_data.desc.num_faces);
 
         return Vec4f::Zero();
     }
@@ -628,6 +626,71 @@ Vec4f Texture::Sample(Vec2f uv) const
 
         return Vec4f::Zero();
     }
+}
+
+Vec4f Texture::Sample2D(Vec2f uv) const
+{
+    if (GetType() != ImageType::TEXTURE_TYPE_2D) {
+        HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to use with Sample2D(): {}", GetType());
+
+        return Vec4f::Zero();
+    }
+
+    return Sample(Vec3f { uv.x, uv.y, 0.0f }, 0);
+}
+
+Vec4f Texture::SampleCube(Vec3f direction) const
+{
+    if (GetType() != ImageType::TEXTURE_TYPE_CUBEMAP) {
+        HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to use with SampleCube(): {}", GetType());
+
+        return Vec4f::Zero();
+    }
+
+    Vec3f abs_dir = MathUtil::Abs(direction);
+    uint32 face_index = 0;
+    float ma, sc, tc;
+
+    // Determine which of the 3 axes has the greatest absolute value
+    if (abs_dir.x > abs_dir.y && abs_dir.x > abs_dir.z) {
+        ma = abs_dir.x;
+        if (direction.x > 0.0f) {
+            face_index = 0; // +X face
+            sc = -direction.z;
+            tc =  direction.y;
+        } else {
+            face_index = 1; // -X face
+            sc =  direction.z;
+            tc =  direction.y;
+        }
+    } else if (abs_dir.y > abs_dir.z) {
+        ma = abs_dir.y;
+        if (direction.y > 0.0f) {
+            face_index = 2; // +Y face
+            sc =  direction.x;
+            tc = -direction.z;
+        } else {
+            face_index = 3; // -Y face
+            sc =  direction.x;
+            tc =  direction.z;
+        }
+    } else {
+        ma = abs_dir.z;
+        if (direction.z > 0.0f) {
+            face_index = 4; // +Z face
+            sc =  direction.x;
+            tc =  direction.y;
+        } else {
+            face_index = 5; // -Z face
+            sc = -direction.x;
+            tc =  direction.y;
+        }
+    }
+
+    float s = 0.5f * (sc / ma + 1.0f);
+    float t = 0.5f * (tc / ma + 1.0f);
+
+    return Sample(Vec3f { s, t, 0.0f }, face_index);
 }
 
 #pragma endregion Texture
