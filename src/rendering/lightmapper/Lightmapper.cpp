@@ -829,8 +829,11 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
 
         uint32 seed = (uint32)rand();//index * m_texel_index;
 
-        FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
-        FixedArray<LightmapRayHitPayload, max_bounces_cpu + 1> bounces;
+        Array<LightmapRay> recursive_rays;
+        recursive_rays.Resize(max_bounces_cpu + 1);
+
+        Array<LightmapRayHitPayload> bounces;
+        bounces.Resize(max_bounces_cpu + 1);
 
         int num_bounces = 0;
 
@@ -879,9 +882,9 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
                 //     payload.emissive += env_probe_sample;
                 // }
 
-                // // testing!! @FIXME
-                // const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
-                // payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+                // testing!! @FIXME
+                const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
+                payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
 
                 ++num_bounces;
 
@@ -926,7 +929,7 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
         LightmapHit &hit = m_hits_buffer[index];
 
         if (num_bounces != 0) {
-            hit.color = bounces[0].throughput;
+            hit.color = bounces[0].radiance;
             // hit.color = Vec4f(first_ray.ray.direction * 0.5f + 0.5f, 1.0f); // debug
             // hit.color = Vec4f(bounces[0].throughput.GetXYZ(), 1.0f); // debugging
 
