@@ -238,10 +238,11 @@ struct alignas(16) Vertex
     Vertex(Vertex &&other) noexcept             = default;
     Vertex &operator=(Vertex &&other) noexcept  = default;
 
-    bool operator==(const Vertex &other) const;
-    // Vertex &operator=(const Vertex &other);
-    Vertex operator*(float scalar) const;
-    Vertex &operator*=(float scalar);
+    HYP_API bool operator==(const Vertex &other) const;
+    HYP_API bool operator!=(const Vertex &other) const;
+
+    HYP_API Vertex operator*(float scalar) const;
+    HYP_API Vertex &operator*=(float scalar);
 
     HYP_FORCE_INLINE void SetPosition(const Vec3f &vec)
         { position = vec; }

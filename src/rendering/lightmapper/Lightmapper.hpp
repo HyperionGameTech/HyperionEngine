@@ -215,7 +215,7 @@ public:
     HYP_FORCE_INLINE const Array<uint32> &GetTexelIndices() const
         { return m_texel_indices; }
 
-    HYP_FORCE_INLINE void GetPreviousFrameRays(Span<const LightmapRay> &out_rays) const
+    HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay> &out_rays) const
     {
         Mutex::Guard guard(m_previous_frame_rays_mutex);
 

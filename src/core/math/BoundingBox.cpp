@@ -14,14 +14,10 @@ HYP_API BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb)
         return aabb;
     }
 
-    FixedArray<Vec3f, 8> corners = aabb.GetCorners();
-
     BoundingBox result;
 
-    for (Vec3f &corner : corners) {
-        corner = transform * corner;
-
-        result = result.Union(corner);
+    for (Vec3f corner : aabb.GetCorners()) {
+        result = result.Union(transform * corner);
     }
 
     return result;

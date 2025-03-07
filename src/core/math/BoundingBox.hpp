@@ -23,9 +23,6 @@ class HYP_API BoundingBox
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &aabb);
 
 public:
-    friend BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb);
-    friend BoundingBox operator*(const Transform &transform, const BoundingBox &aabb);
-
     BoundingBox();
     BoundingBox(const Vec3f &min, const Vec3f &max);
 
