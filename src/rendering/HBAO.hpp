@@ -49,6 +49,8 @@ public:
 
     virtual void Record(uint32 frame_index) override;
     virtual void Render(Frame *frame) override;
+    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+        { HYP_NOT_IMPLEMENTED(); }
 
 protected:
     virtual bool UsesTemporalBlending() const override

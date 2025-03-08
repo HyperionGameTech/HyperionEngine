@@ -96,6 +96,8 @@ public:
 
     virtual void Create() override;
     virtual void Render(Frame *frame) override;
+    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+        { HYP_NOT_IMPLEMENTED(); }
 
 private:
     void CreateShadowMap();

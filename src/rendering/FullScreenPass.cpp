@@ -670,13 +670,7 @@ void FullScreenPass::Render(Frame *frame)
 
     m_framebuffer->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
-    // render previous frame's result to screen
-    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
-        RenderPreviousTextureToScreen(frame);
-    }
-
-    const CommandBufferRef &secondary_command_buffer = m_command_buffers[frame_index];
-    HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
+    RenderToFramebuffer(frame, m_framebuffer);
 
     m_framebuffer->EndCapture(frame->GetCommandBuffer(), frame_index);
 
@@ -691,6 +685,22 @@ void FullScreenPass::Render(Frame *frame)
 
         m_temporal_blending->Render(frame);
     }
+}
+
+void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertThrow(framebuffer->IsCapturing());
+
+    // render previous frame's result to screen
+    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
+        RenderPreviousTextureToScreen(frame);
+    }
+
+    const CommandBufferRef &secondary_command_buffer = m_command_buffers[frame->GetFrameIndex()];
+    HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
 
     m_is_first_frame = false;
 }

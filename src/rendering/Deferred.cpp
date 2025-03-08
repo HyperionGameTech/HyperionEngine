@@ -114,14 +114,6 @@ static ShaderProperties GetDeferredShaderProperties()
         g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
             && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
     );
-
-    properties.Set(
-        "SSR_ENABLED",
-        !g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
-            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool()
-    );
-
-    properties.Set("REFLECTION_PROBE_ENABLED", true);
     
     properties.Set(
         "ENV_GRID_ENABLED",
@@ -658,9 +650,9 @@ void EnvGridPass::Render(Frame *frame)
 
 #pragma endregion Env grid pass
 
-#pragma region Reflection probe pass
+#pragma region ReflectionsPass
 
-ReflectionProbePass::ReflectionProbePass()
+ReflectionsPass::ReflectionsPass()
     : FullScreenPass(InternalFormat::RGBA8_SRGB),
       m_is_first_frame(true)
 {
@@ -670,23 +662,28 @@ ReflectionProbePass::ReflectionProbePass()
     ));
 }
 
-ReflectionProbePass::~ReflectionProbePass()
+ReflectionsPass::~ReflectionsPass()
 {
+    m_ssr_renderer->Destroy();
+    m_ssr_renderer.Reset();
+
     for (auto &it : m_command_buffers) {
         SafeRelease(std::move(it));
     }
 }
 
-void ReflectionProbePass::Create()
+void ReflectionsPass::Create()
 {
     HYP_SCOPE;
 
     FullScreenPass::Create();
 
+    CreateSSRRenderer();
+
     AddToGlobalDescriptorSet();
 }
 
-void ReflectionProbePass::CreatePipeline()
+void ReflectionsPass::CreatePipeline()
 {
     HYP_SCOPE;
 
@@ -703,7 +700,7 @@ void ReflectionProbePass::CreatePipeline()
     ));
 }
 
-void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
+void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -751,7 +748,7 @@ void ReflectionProbePass::CreatePipeline(const RenderableAttributeSet &renderabl
     m_render_group = m_render_groups[ApplyReflectionProbeMode::DEFAULT];
 }
 
-void ReflectionProbePass::CreateCommandBuffers()
+void ReflectionsPass::CreateCommandBuffers()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -772,7 +769,49 @@ void ReflectionProbePass::CreateCommandBuffers()
     }
 }
 
-void ReflectionProbePass::AddToGlobalDescriptorSet()
+bool ReflectionsPass::ShouldRenderSSR() const
+{
+    return g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool(true)
+        && !g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool(false);
+}
+
+void ReflectionsPass::CreateSSRRenderer()
+{
+    m_ssr_renderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig());
+    m_ssr_renderer->Create();
+    
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetImageView());
+    }
+
+    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+
+    m_render_ssr_to_screen_pass = MakeUnique<FullScreenPass>(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        m_image_format,
+        m_extent
+    );
+
+    // Use alpha blending to blend SSR into the reflection probes
+    m_render_ssr_to_screen_pass->SetBlendFunction(BlendFunction(
+        BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA
+    ));
+
+    m_render_ssr_to_screen_pass->Create();
+}
+
+void ReflectionsPass::AddToGlobalDescriptorSet()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
@@ -780,7 +819,7 @@ void ReflectionProbePass::AddToGlobalDescriptorSet()
     }
 }
 
-void ReflectionProbePass::Resize_Internal(Vec2u new_size)
+void ReflectionsPass::Resize_Internal(Vec2u new_size)
 {
     HYP_SCOPE;
 
@@ -789,11 +828,11 @@ void ReflectionProbePass::Resize_Internal(Vec2u new_size)
     AddToGlobalDescriptorSet();
 }
 
-void ReflectionProbePass::Record(uint32 frame_index)
+void ReflectionsPass::Record(uint32 frame_index)
 {
 }
 
-void ReflectionProbePass::Render(Frame *frame)
+void ReflectionsPass::Render(Frame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -802,6 +841,10 @@ void ReflectionProbePass::Render(Frame *frame)
 
     const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
+
+    if (ShouldRenderSSR()) { // screen space reflection
+        m_ssr_renderer->Render(frame);
+    }
 
     // Sky renders first
     static const FixedArray<EnvProbeType, ApplyReflectionProbeMode::MAX> reflection_probe_types {
@@ -909,6 +952,11 @@ void ReflectionProbePass::Render(Frame *frame)
         HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
     }
 
+    if (ShouldRenderSSR()) {
+        m_render_ssr_to_screen_pass->Record(frame->GetFrameIndex());
+        m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, GetFramebuffer());
+    }
+
     GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame_index);
 
     if (ShouldRenderHalfRes()) {
@@ -926,7 +974,7 @@ void ReflectionProbePass::Render(Frame *frame)
     m_is_first_frame = false;
 }
 
-#pragma endregion Reflection probe pass
+#pragma endregion ReflectionsPass
 
 #pragma region Deferred renderer
 
@@ -993,8 +1041,8 @@ void DeferredRenderer::Create()
     m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE);
     m_env_grid_irradiance_pass->Create();
 
-    m_reflection_probe_pass = MakeUnique<ReflectionProbePass>();
-    m_reflection_probe_pass->Create();
+    m_reflections_pass = MakeUnique<ReflectionsPass>();
+    m_reflections_pass->Create();
 
     m_post_processing.Create();
 
@@ -1023,11 +1071,6 @@ void DeferredRenderer::Create()
 
     CreateBlueNoiseBuffer();
     CreateSphereSamplesBuffer();
-
-    { // screenspace reflections
-        m_ssr = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig());
-        m_ssr->Create();
-    }
 
     // m_dof_blur = MakeUnique<DOFBlur>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
     // m_dof_blur->Create();
@@ -1086,9 +1129,6 @@ void DeferredRenderer::Destroy()
 
     m_depth_pyramid_renderer.Reset();
 
-    m_ssr->Destroy();
-    m_ssr.Reset();
-
     m_hbao.Reset();
 
     m_temporal_aa.Reset();
@@ -1102,7 +1142,7 @@ void DeferredRenderer::Destroy()
     m_env_grid_radiance_pass.Reset();
     m_env_grid_irradiance_pass.Reset();
 
-    m_reflection_probe_pass.Reset();
+    m_reflections_pass.Reset();
 
     m_mip_chain.Reset();
 
@@ -1146,9 +1186,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool do_particles = true;
     const bool do_gaussian_splatting = false;//environment && environment->IsReady();
 
-    const bool use_ssr = !g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
-        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool();
-
     const bool use_rt_radiance = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
         && (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             || g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
@@ -1180,7 +1217,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
 
-    deferred_data.flags |= use_ssr && m_ssr->IsRendered() ? DEFERRED_FLAGS_SSR_ENABLED : 0;
     deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
     deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
@@ -1242,12 +1278,12 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_env_grid_radiance_pass->Render(frame);
     }
 
-    if (use_reflection_probes) { // submit reflection probes command buffer
-        DebugMarker marker(primary, "Apply reflection probes");
+    if (use_reflection_probes) {
+        DebugMarker marker(primary, "Apply reflections");
 
-        m_reflection_probe_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_reflection_probe_pass->Record(frame_index);
-        m_reflection_probe_pass->Render(frame);
+        m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_reflections_pass->Record(frame_index);
+        m_reflections_pass->Render(frame);
     }
 
     if (is_render_environment_ready) {
@@ -1261,16 +1297,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             DebugMarker marker(primary, "DDGI");
 
             environment->RenderDDGIProbes(frame);
-        }
-    }
-
-    if (use_ssr) { // screen space reflection
-        DebugMarker marker(primary, "Screen space reflection");
-
-        Image *mipmapped_result = m_mip_chain->GetImage();
-
-        if (mipmapped_result->GetResourceState() != renderer::ResourceState::UNDEFINED) {
-            m_ssr->Render(frame);
         }
     }
 

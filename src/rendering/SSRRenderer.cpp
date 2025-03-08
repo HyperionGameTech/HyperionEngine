@@ -79,11 +79,10 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 
 struct RENDER_COMMAND(CreateSSRDescriptors) : renderer::RenderCommand
 {
-    FixedArray<ImageViewRef, max_frames_in_flight> image_views;
+    ImageViewRef    image_view;
 
-    RENDER_COMMAND(CreateSSRDescriptors)(
-        const FixedArray<ImageViewRef, max_frames_in_flight> &image_views
-    ) : image_views(image_views)
+    RENDER_COMMAND(CreateSSRDescriptors)(const ImageViewRef &image_view)
+        : image_view(image_view)
     {
     }
 
@@ -93,7 +92,7 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : renderer::RenderCommand
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("SSRResultTexture"), image_views[frame_index]);
+                ->SetElement(NAME("SSRResultTexture"), image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -144,7 +143,7 @@ SSRRenderer::~SSRRenderer()
 
 void SSRRenderer::Create()
 {
-    m_image_outputs[0] = CreateObject<Texture>(TextureDesc {
+    m_uvs_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
         Vec3u(m_config.extent, 1),
@@ -153,10 +152,10 @@ void SSRRenderer::Create()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_image_outputs[0]->GetImage()->SetIsRWTexture(true);
-    InitObject(m_image_outputs[0]);
+    m_uvs_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_uvs_texture);
 
-    m_image_outputs[1] = CreateObject<Texture>(TextureDesc {
+    m_sampled_result_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         ssr_format,
         Vec3u(m_config.extent, 1),
@@ -165,32 +164,8 @@ void SSRRenderer::Create()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_image_outputs[1]->GetImage()->SetIsRWTexture(true);
-    InitObject(m_image_outputs[1]);
-
-    m_image_outputs[2] = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        ssr_format,
-        Vec3u(m_config.extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    });
-
-    m_image_outputs[2]->GetImage()->SetIsRWTexture(true);
-    InitObject(m_image_outputs[2]);
-
-    m_image_outputs[3] = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        ssr_format,
-        Vec3u(m_config.extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    });
-
-    m_image_outputs[3]->GetImage()->SetIsRWTexture(true);
-    InitObject(m_image_outputs[3]);
+    m_sampled_result_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_sampled_result_texture);
 
     CreateUniformBuffers();
 
@@ -200,7 +175,7 @@ void SSRRenderer::Create()
             InternalFormat::RGBA8,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::MEDIUM,
-            m_image_outputs[1]->GetImageView()
+            m_sampled_result_texture->GetImageView()
         );
 
         m_temporal_blending->Create();
@@ -223,6 +198,13 @@ void SSRRenderer::Destroy()
     SafeRelease(std::move(m_uniform_buffer));
 
     PUSH_RENDER_COMMAND(RemoveSSRDescriptors);
+}
+
+const Handle<Texture> &SSRRenderer::GetFinalResultTexture() const
+{
+    return m_temporal_blending
+        ? m_temporal_blending->GetResultTexture()
+        : m_sampled_result_texture;
 }
 
 ShaderProperties SSRRenderer::GetShaderProperties() const
@@ -281,7 +263,7 @@ void SSRRenderer::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("UVImage"), m_image_outputs[0]->GetImageView());
+        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetImageView());
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
@@ -306,8 +288,8 @@ void SSRRenderer::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = sample_gbuffer_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("UVImage"), m_image_outputs[0]->GetImageView());
-        descriptor_set->SetElement(NAME("SampleImage"), m_image_outputs[1]->GetImageView());
+        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetImageView());
+        descriptor_set->SetElement(NAME("SampleImage"), m_sampled_result_texture->GetImageView());
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
@@ -322,10 +304,7 @@ void SSRRenderer::CreateComputePipelines()
 
     PUSH_RENDER_COMMAND(
         CreateSSRDescriptors,
-        FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : m_image_outputs[1]->GetImageView(),
-            m_temporal_blending ? m_temporal_blending->GetResultTexture()->GetImageView() : m_image_outputs[1]->GetImageView()
-        }
+        GetFinalResultTexture()->GetImageView()
     );
 }
 
@@ -350,7 +329,7 @@ void SSRRenderer::Render(Frame *frame)
 
     // PASS 1 -- write UVs
 
-    m_image_outputs[0]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_uvs_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_write_uvs->Bind(command_buffer);
 
@@ -371,12 +350,12 @@ void SSRRenderer::Render(Frame *frame)
     m_write_uvs->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition the UV image back into read state
-    m_image_outputs[0]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_uvs_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_image_outputs[1]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_sampled_result_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_sample_gbuffer->Bind(command_buffer);
 
@@ -397,7 +376,7 @@ void SSRRenderer::Render(Frame *frame)
     m_sample_gbuffer->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition sample image back into read state
-    m_image_outputs[1]->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_sampled_result_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
         m_temporal_blending->Render(frame);

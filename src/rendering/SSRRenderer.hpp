@@ -79,6 +79,14 @@ public:
     SSRRenderer(SSRRendererConfig &&config);
     ~SSRRenderer();
 
+    HYP_FORCE_INLINE const Handle<Texture> &GetUVsTexture() const
+        { return m_uvs_texture; }
+
+    HYP_FORCE_INLINE const Handle<Texture> &GetSampledResultTexture() const
+        { return m_sampled_result_texture; }
+
+    const Handle<Texture> &GetFinalResultTexture() const;
+
     HYP_FORCE_INLINE bool IsRendered() const
         { return m_is_rendered; }
 
@@ -94,7 +102,8 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
 
-    FixedArray<Handle<Texture>, 4>  m_image_outputs;
+    Handle<Texture>                 m_uvs_texture;
+    Handle<Texture>                 m_sampled_result_texture;
     
     GPUBufferRef                    m_uniform_buffer;
     

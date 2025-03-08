@@ -201,6 +201,9 @@ public:
 
     HYP_API bool IsCreated() const;
 
+    HYP_FORCE_INLINE bool IsCapturing() const
+        { return m_is_capturing; }
+
     HYP_API RendererResult Create(Device<PLATFORM> *device);
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
 
@@ -216,6 +219,8 @@ private:
 
     RenderPassRef<PLATFORM>             m_render_pass;
     AttachmentMap<PLATFORM>             m_attachment_map;
+
+    bool                                m_is_capturing;
 };
 
 } // namespace platform

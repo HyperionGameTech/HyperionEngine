@@ -111,6 +111,7 @@ public:
     virtual void Create();
 
     virtual void Render(Frame *frame);
+    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer);
     virtual void Record(uint32 frame_index);
 
     void Begin(Frame *frame);
@@ -169,6 +170,7 @@ private:
     // Used for half-res rendering
     UniquePtr<FullScreenPass>                           m_merge_half_res_textures_pass;
 };
+
 } // namespace hyperion
 
 #endif

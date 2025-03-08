@@ -105,7 +105,8 @@ Framebuffer<Platform::VULKAN>::Framebuffer(
     uint32 num_multiview_layers
 ) : m_platform_impl { this, VK_NULL_HANDLE },
     m_extent(extent),
-    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers))
+    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers)),
+    m_is_capturing(false)
 {
 }
 
@@ -269,13 +270,21 @@ bool Framebuffer<Platform::VULKAN>::RemoveAttachment(uint32 binding)
 template <>
 void Framebuffer<Platform::VULKAN>::BeginCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
 {
+    AssertThrow(!m_is_capturing);
+
     m_render_pass->Begin(command_buffer, this, frame_index);
+
+    m_is_capturing = true;
 }
 
 template <>
 void Framebuffer<Platform::VULKAN>::EndCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
 {
+    AssertThrow(m_is_capturing);
+
     m_render_pass->End(command_buffer);
+    
+    m_is_capturing = false;
 }
 
 #pragma endregion Framebuffer

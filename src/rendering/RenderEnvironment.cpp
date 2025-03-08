@@ -70,7 +70,7 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_frame_counter(0),
       m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
-      m_ddgi({
+      m_ddgi(DDGIInfo {
           .aabb = {{-50.0f, -5.0f, -50.0f}, {50.0f, 60.0f, 50.0f}}
       }),
       m_has_rt_radiance(false),
