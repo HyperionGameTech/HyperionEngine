@@ -21,6 +21,7 @@
 #include <scene/ecs/systems/EnvGridUpdaterSystem.hpp>
 #include <scene/ecs/systems/ReflectionProbeUpdaterSystem.hpp>
 #include <scene/ecs/systems/AnimationSystem.hpp>
+#include <scene/ecs/systems/LightmapSystem.hpp>
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
@@ -160,6 +161,7 @@ void Scene::Init()
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<EnvGridUpdaterSystem>();
     AddSystemIfApplicable<ReflectionProbeUpdaterSystem>();
+    AddSystemIfApplicable<LightmapSystem>();
     AddSystemIfApplicable<AnimationSystem>();
     AddSystemIfApplicable<SkySystem>();
     AddSystemIfApplicable<AudioSystem>();

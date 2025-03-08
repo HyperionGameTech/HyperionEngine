@@ -21,9 +21,14 @@
 #include <scene/BVH.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+
+#include <scene/lightmapper/LightmapVolume.hpp>
+
 #include <scene/camera/Camera.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/components/LightmapVolumeComponent.hpp>
+#include <scene/ecs/components/LightmapElementComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
@@ -1650,6 +1655,20 @@ Lightmapper::Lightmapper(LightmapperConfig &&config, const Handle<Scene> &scene)
     }
 
     AssertThrow(m_lightmap_renderers.Any());
+    
+    // @TODO AABB for volume
+    m_volume = CreateObject<LightmapVolume>();
+    InitObject(m_volume);
+
+    NodeProxy lightmap_volume_node = m_scene->GetRoot()->AddChild();
+    lightmap_volume_node->SetName("LightmapVolume");
+
+    Handle<Entity> lightmap_volume_entity = m_scene->GetEntityManager()->AddEntity();
+    lightmap_volume_node->SetEntity(lightmap_volume_entity);
+
+    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmap_volume_entity, LightmapVolumeComponent {
+        m_volume    
+    });
 }
 
 Lightmapper::~Lightmapper()
@@ -1666,11 +1685,18 @@ bool Lightmapper::IsComplete() const
     return m_num_jobs.Get(MemoryOrder::ACQUIRE) == 0;
 }
 
-LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType start_index, SizeType end_index, LightmapTopLevelAccelerationStructure *acceleration_structure)
+LightmapJobParams Lightmapper::CreateLightmapJobParams(
+    uint32 job_index,
+    SizeType start_index,
+    SizeType end_index,
+    LightmapTopLevelAccelerationStructure *acceleration_structure
+)
 {
     LightmapJobParams job_params {
         &m_config,
         m_scene,
+        m_volume,
+        job_index,
         m_lightmap_elements.ToSpan().Slice(start_index, end_index - start_index),
         &m_all_elements_map,
         acceleration_structure
@@ -1762,6 +1788,7 @@ void Lightmapper::PerformLightmapping()
         m_acceleration_structure->Add(&element, &bvh_component->bvh);
     }
 
+    uint32 job_index = 0;
     uint32 num_triangles = 0;
     SizeType start_index = 0;
 
@@ -1771,12 +1798,13 @@ void Lightmapper::PerformLightmapping()
         m_all_elements_map.Set(element.entity, &element);
 
         if (ideal_triangles_per_job != 0 && num_triangles != 0 && num_triangles + element.mesh->NumIndices() / 3 > ideal_triangles_per_job) {
-            UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, index + 1, m_acceleration_structure.Get()));
+            UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(job_index, start_index, index + 1, m_acceleration_structure.Get()));
 
             start_index = index + 1;
 
             AddJob(std::move(job));
 
+            ++job_index;
             num_triangles = 0;
         }
 
@@ -1784,7 +1812,7 @@ void Lightmapper::PerformLightmapping()
     }
 
     if (start_index < m_lightmap_elements.Size() - 1) {
-        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(start_index, m_lightmap_elements.Size(), m_acceleration_structure.Get()));
+        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(job_index, start_index, m_lightmap_elements.Size(), m_acceleration_structure.Get()));
 
         AddJob(std::move(job));
     }
@@ -1929,23 +1957,36 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
         element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, textures[0]);
         element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, textures[1]);
 
-        if (is_new_material) {
-            InitObject(element.material);
 
-            m_scene->GetEntityManager()->PushCommand([entity = element.entity, mesh = element.mesh, new_material = element.material](EntityManager &mgr, GameCounter::TickUnit)
-            {
+        m_scene->GetEntityManager()->PushCommand([job_index = job->GetParams().job_index, volume = job->GetParams().volume, element, new_material = (is_new_material ? element.material : Handle<Material>::empty)](EntityManager &mgr, GameCounter::TickUnit)
+        {
+            const Handle<Entity> &entity = element.entity;
+
+            if (mgr.HasComponent<LightmapElementComponent>(entity)) {
+                mgr.RemoveComponent<LightmapElementComponent>(entity);
+            }
+
+            mgr.AddComponent<LightmapElementComponent>(entity, LightmapElementComponent {
+                job_index,
+                volume->GetUUID(),
+                volume.ToWeak()
+            });
+
+            if (new_material.IsValid()) {
+                InitObject(new_material);
+
                 if (MeshComponent *mesh_component = mgr.TryGetComponent<MeshComponent>(entity)) {
                     mesh_component->material = std::move(new_material);
                 } else {
                     mgr.AddComponent<MeshComponent>(entity, MeshComponent {
-                        mesh,
+                        element.mesh,
                         new_material
                     });
                 }
 
                 mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
-            });
-        }
+            }
+        });
     }
 
     m_queue.Pop();

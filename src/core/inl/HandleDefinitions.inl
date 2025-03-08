@@ -24,6 +24,7 @@ DEF_HANDLE(AssetCollector)
 DEF_HANDLE(AssetPackage)
 DEF_HANDLE(AssetRegistry)
 DEF_HANDLE(AssetObject)
+DEF_HANDLE(LightmapVolume)
 DEF_HANDLE_NS(physics, RigidBody)
 
 DEF_HANDLE(GaussianSplattingInstance)

@@ -20,20 +20,12 @@ namespace hyperion {
 class UIObject;
 class InputManager;
 
-HYP_STRUCT(Component)
+HYP_STRUCT(Component, Size=8)
 struct UIComponent
 {
     HYP_FIELD()
     UIObject    *ui_object = nullptr;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        // @TODO
-        return HashCode();
-    }
 };
-
-static_assert(sizeof(UIComponent) == 8, "UIComponent should be 8 bytes to match C# struct size");
 
 } // namespace hyperion
 

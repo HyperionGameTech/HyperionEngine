@@ -23,7 +23,12 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resourc
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_COLOR) },    // color
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_NORMALS) },  // normal
     GBufferResource { GBufferFormat(InternalFormat::RGBA8) },           // material
-    GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_COLOR) },    // lightmapped color
+    GBufferResource {                                                   // lightmap
+        GBufferFormat(Array<InternalFormat> {
+            InternalFormat::R11G11B10F,
+            InternalFormat::RGBA16F
+        })
+    },
     GBufferResource { GBufferFormat(InternalFormat::RG16F) },           // velocity
     GBufferResource {                                                   // objects mask
         GBufferFormat(Array<InternalFormat> {

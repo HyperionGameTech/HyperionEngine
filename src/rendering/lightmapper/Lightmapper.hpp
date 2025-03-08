@@ -32,6 +32,7 @@ struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
 class ILightmapAccelerationStructure;
 class LightmapJob;
+class LightmapVolume;
 
 enum class LightmapTraceMode : int
 {
@@ -172,8 +173,13 @@ struct LightmapJobParams
     LightmapperConfig                           *config;
 
     Handle<Scene>                               scene;
+    Handle<LightmapVolume>                      volume;
+
+    uint32                                      job_index; // corresponds to element index in the lightmap volume
+
     Span<LightmapElement>                       elements_view;
     HashMap<Handle<Entity>, LightmapElement *>  *all_elements_map;
+
     LightmapTopLevelAccelerationStructure       *acceleration_structure;
 
     Array<ILightmapRenderer *>                  renderers;
@@ -295,6 +301,7 @@ public:
 
 private:
     LightmapJobParams CreateLightmapJobParams(
+        uint32 job_index,
         SizeType start_index,
         SizeType end_index,
         LightmapTopLevelAccelerationStructure *acceleration_structure
@@ -314,6 +321,8 @@ private:
     LightmapperConfig                                   m_config;
 
     Handle<Scene>                                       m_scene;
+
+    Handle<LightmapVolume>                              m_volume;
 
     Array<UniquePtr<ILightmapRenderer>>                 m_lightmap_renderers;
 
