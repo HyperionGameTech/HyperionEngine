@@ -1278,7 +1278,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_hbao->Render(frame);
     }
 
-    // Redirect indirect and direct lighting into the same framebuffer
+    // render indirect and direct lighting into the same framebuffer
     const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
 
     m_post_processing.RenderPre(frame);
