@@ -10,21 +10,21 @@
 
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(Vec4f)
+HYP_BEGIN_STRUCT(Vec4f, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
     HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec4i)
+HYP_BEGIN_STRUCT(Vec4i, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),
     HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec4u)
+HYP_BEGIN_STRUCT(Vec4u, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z)),

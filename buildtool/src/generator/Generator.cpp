@@ -14,7 +14,7 @@ namespace buildtool {
 
 HYP_DECLARE_LOG_CHANNEL(BuildTool);
     
-Result<void> GeneratorBase::Generate(const Analyzer &analyzer, const Module &mod) const
+Result GeneratorBase::Generate(const Analyzer &analyzer, const Module &mod) const
 {
     const FilePath output_file_path = GetOutputFilePath(analyzer, mod);
 
@@ -36,7 +36,7 @@ Result<void> GeneratorBase::Generate(const Analyzer &analyzer, const Module &mod
 
     MemoryByteWriter memory_writer;
 
-    Result<void> res = Generate_Internal(analyzer, mod, memory_writer);
+    Result res = Generate_Internal(analyzer, mod, memory_writer);
     
     if (!res.HasError()) {
         FileByteWriter file_writer { output_file_path };

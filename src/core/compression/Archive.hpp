@@ -46,7 +46,7 @@ public:
     HYP_FORCE_INLINE SizeType GetUncompressedSize() const
         { return m_uncompressed_size; }
 
-    Result<void> Decompress(ByteBuffer &out) const;
+    Result Decompress(ByteBuffer &out) const;
 
 private:
     ByteBuffer  m_compressed_buffer;

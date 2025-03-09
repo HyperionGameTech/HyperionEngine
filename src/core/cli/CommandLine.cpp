@@ -89,7 +89,7 @@ CommandLineArguments CommandLineArguments::Merge(const CommandLineArgumentDefini
     return result;
 }
 
-Result<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const CommandLineArgumentDefinition &definition, const String &str)
+TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const CommandLineArgumentDefinition &definition, const String &str)
 {
     const CommandLineArgumentType type = definition.type;
 
@@ -247,7 +247,7 @@ CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
 
 #pragma region CommandLineParser
 
-Result<CommandLineArguments> CommandLineParser::Parse(const String &command_line) const
+TResult<CommandLineArguments> CommandLineParser::Parse(const String &command_line) const
 {
     String command;
     Array<String> args;
@@ -297,7 +297,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command_line
     return Parse(command, args);
 }
 
-Result<CommandLineArguments> CommandLineParser::Parse(int argc, char **argv) const
+TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char **argv) const
 {
     Array<String> args;
 
@@ -308,7 +308,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(int argc, char **argv) con
     return Parse(argv[0], args);
 }
 
-Result<CommandLineArguments> CommandLineParser::Parse(const String &command, const Array<String> &args) const
+TResult<CommandLineArguments> CommandLineParser::Parse(const String &command, const Array<String> &args) const
 {
     CommandLineArguments result;
 
@@ -340,7 +340,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
         const bool allow_multiple = it->flags[CommandLineArgumentFlags::ALLOW_MULTIPLE];
 
         if (parts.Size() > 1) {
-            Result<CommandLineArgumentValue> parsed_value = CommandLineArguments::ParseArgumentValue(*it, parts[1]);
+            TResult<CommandLineArgumentValue> parsed_value = CommandLineArguments::ParseArgumentValue(*it, parts[1]);
 
             if (parsed_value.HasError()) {
                 return parsed_value.GetError();
@@ -361,7 +361,7 @@ Result<CommandLineArguments> CommandLineParser::Parse(const String &command, con
             return HYP_MAKE_ERROR(Error, "Missing value for argument");
         }
 
-        Result<CommandLineArgumentValue> parsed_value = CommandLineArguments::ParseArgumentValue(*it, args[++i]);
+        TResult<CommandLineArgumentValue> parsed_value = CommandLineArguments::ParseArgumentValue(*it, args[++i]);
 
         if (parsed_value.HasError()) {
             return parsed_value.GetError();

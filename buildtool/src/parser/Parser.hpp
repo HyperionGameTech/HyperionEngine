@@ -27,7 +27,7 @@ struct QualifiedName
 };
 
 class ASTType;
-Result<String> MapToCSharpType(const ASTType *type);
+TResult<String> MapToCSharpType(const ASTType *type);
 
 struct ASTNode
 {

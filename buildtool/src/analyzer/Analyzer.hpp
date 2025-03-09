@@ -97,7 +97,7 @@ public:
 
     Module *AddModule(const FilePath &path);
 
-    Result<void, AnalyzerError> ProcessModule(Module &mod);
+    TResult<void, AnalyzerError> ProcessModule(Module &mod);
 
 private:
     FilePath                    m_working_directory;

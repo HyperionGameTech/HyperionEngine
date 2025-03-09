@@ -8,17 +8,17 @@
 
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(Vec2f)
+HYP_BEGIN_STRUCT(Vec2f, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec2i)
+HYP_BEGIN_STRUCT(Vec2i, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec2u)
+HYP_BEGIN_STRUCT(Vec2u, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
 HYP_END_STRUCT

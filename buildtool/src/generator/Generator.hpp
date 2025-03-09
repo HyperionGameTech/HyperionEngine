@@ -23,12 +23,12 @@ class GeneratorBase
 public:
     virtual ~GeneratorBase() = default;
 
-    Result<void> Generate(const Analyzer &analyzer, const Module &mod) const;
+    Result Generate(const Analyzer &analyzer, const Module &mod) const;
 
 protected:
     virtual FilePath GetOutputFilePath(const Analyzer &analyzer, const Module &mod) const = 0;
 
-    virtual Result<void> Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const = 0;
+    virtual Result Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const = 0;
 };
 
 } // namespace buildtool

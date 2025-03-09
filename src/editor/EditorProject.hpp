@@ -70,6 +70,14 @@ public:
     HYP_FORCE_INLINE void SetLastSavedTime(Time last_saved_time)
         { m_last_saved_time = last_saved_time; }
 
+    HYP_METHOD(Property="FilePath", Serialize=true)
+    HYP_FORCE_INLINE const FilePath &GetFilePath() const
+        { return m_filepath; }
+    
+    HYP_METHOD(Property="FilePath", Serialize=true)
+    HYP_FORCE_INLINE void SetFilePath(const FilePath &filepath)
+        { m_filepath = filepath; }
+
     HYP_METHOD(Property="AssetRegistry")
     HYP_FORCE_INLINE const Handle<AssetRegistry> &GetAssetRegistry() const
         { return m_asset_registry; }
@@ -77,10 +85,13 @@ public:
     HYP_METHOD()
     bool IsSaved() const;
 
-    Result<void> Save();
-    Result<void> Save(const FilePath &filepath);
+    HYP_METHOD()
+    Result Save();
 
-    static Result<RC<EditorProject>> Load(const FilePath &filepath);
+    HYP_METHOD()
+    Result SaveAs(FilePath filepath);
+
+    static TResult<RC<EditorProject>> Load(const FilePath &filepath);
 
     HYP_METHOD()
     void Close();

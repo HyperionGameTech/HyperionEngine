@@ -131,7 +131,7 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
     }
 }
 
-Result<LightmapUVMap> LightmapUVBuilder::Build()
+TResult<LightmapUVMap> LightmapUVBuilder::Build()
 {
     if (!m_params.elements) {
         return HYP_MAKE_ERROR(Error, "No elements to build lightmap");

@@ -69,7 +69,7 @@ static const String &HypMemberTypeToString(HypMemberType type)
     return String::empty;
 }
 
-static Result<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttributes(const String &attributes_string)
+static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttributes(const String &attributes_string)
 {
     Array<Pair<String, HypClassAttributeValue>> results;
 
@@ -228,7 +228,7 @@ static Result<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribut
 }
 
 template <class MacroEnumType>
-static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, MacroEnumType> &usable_macros, const String &line, SizeType &out_start_index, SizeType &out_end_index, bool require_parentheses = true)
+static TResult<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, MacroEnumType> &usable_macros, const String &line, SizeType &out_start_index, SizeType &out_end_index, bool require_parentheses = true)
 {
     out_start_index = String::not_found;
     out_end_index = String::not_found;
@@ -288,7 +288,7 @@ static Result<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> 
     return Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>> { MacroEnumType::NONE, { } };
 }
 
-static Result<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const Analyzer &analyzer, Module &mod)
+static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const Analyzer &analyzer, Module &mod)
 {
     BufferedReader reader;
 
@@ -398,7 +398,7 @@ static Result<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const An
     return results;
 }
 
-static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer &analyzer, const Module &mod, const HypClassDefinition &hyp_class_definition)
+static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer &analyzer, const Module &mod, const HypClassDefinition &hyp_class_definition)
 {
     Array<HypMemberDefinition> results;
 
@@ -500,7 +500,7 @@ static Result<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(co
         CompilationUnit unit;
         unit.SetPreprocessorDefinitions(analyzer.GetGlobalDefines());
 
-        const auto CheckParseErrors = [&]() -> Result<void, AnalyzerError>
+        const auto CheckParseErrors = [&]() -> TResult<void, AnalyzerError>
         {
             String error_message;
 
@@ -558,7 +558,7 @@ Module *Analyzer::AddModule(const FilePath &path)
     return m_modules.PushBack(MakeUnique<Module>(path)).Get();
 }
 
-Result<void, AnalyzerError> Analyzer::ProcessModule(Module &mod)
+TResult<void, AnalyzerError> Analyzer::ProcessModule(Module &mod)
 {
     auto res = BuildHypClasses(*this, mod);
 

@@ -31,7 +31,7 @@ public:
     HYP_FORCE_INLINE const HashMap<String, HypClassDefinition> &GetHypClasses() const
         { return m_hyp_classes; }
 
-    Result<void> AddHypClassDefinition(HypClassDefinition &&hyp_class_definition);
+    Result AddHypClassDefinition(HypClassDefinition &&hyp_class_definition);
 
     const HypClassDefinition *FindHypClassDefinition(UTF8StringView class_name) const;
  

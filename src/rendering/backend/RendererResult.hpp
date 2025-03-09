@@ -42,7 +42,7 @@ private:
     int m_error_code;
 };
 
-using RendererResult = Result<void, RendererError>;
+using RendererResult = TResult<void, RendererError>;
 
 #define HYPERION_RETURN_OK \
     do { \

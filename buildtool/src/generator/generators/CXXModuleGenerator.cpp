@@ -41,7 +41,7 @@ FilePath CXXModuleGenerator::GetOutputFilePath(const Analyzer &analyzer, const M
     return analyzer.GetCXXOutputDirectory() / relative_path.BasePath() / StringUtil::StripExtension(relative_path.Basename()) + ".generated.cpp";
 }
 
-Result<void> CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
+Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
 {
     FilePath relative_path = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
 

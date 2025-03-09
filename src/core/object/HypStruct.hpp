@@ -106,11 +106,15 @@ public:
 
     virtual bool ToHypData(ByteView memory, void *, HypData &out_hyp_data) const override
     {
-        AssertThrow(memory.Size() == sizeof(T));
+        if constexpr (std::is_abstract_v<T>) {
+            return false;
+        } else {
+            AssertThrow(memory.Size() == sizeof(T));
 
-        out_hyp_data = HypData(std::move(*reinterpret_cast<T *>(memory.Data())));
+            out_hyp_data = HypData(std::move(*reinterpret_cast<T *>(memory.Data())));
 
-        return true;
+            return true;
+        }
     }
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override
@@ -131,19 +135,21 @@ public:
         }
 
         if (GetSerializationMode() & HypClassSerializationMode::BITWISE) {
-            fbom::FBOMData struct_data = fbom::FBOMData::FromStructUnchecked(in.Get<T>());
+            if constexpr (std::is_abstract_v<T>) {
+                return { fbom::FBOMResult::FBOM_ERR, "Cannot use bitwise serialization with abstract type!" };
+            } else {
+                fbom::FBOMData struct_data = fbom::FBOMData::FromStructUnchecked(in.Get<T>());
             
-            fbom::FBOMObject struct_wrapper_object(fbom::FBOMObjectType(this));
-            struct_wrapper_object.SetProperty("StructData", std::move(struct_data));
+                fbom::FBOMObject struct_wrapper_object(fbom::FBOMObjectType(this));
+                struct_wrapper_object.SetProperty("StructData", std::move(struct_data));
 
-            out = std::move(struct_wrapper_object);
+                out = std::move(struct_wrapper_object);
 
-            return { fbom::FBOMResult::FBOM_OK };
+                return { fbom::FBOMResult::FBOM_OK };
+            }
         }
 
         return { fbom::FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };
-
-        // return HypDataHelper<T>::Serialize(HypData(AnyRef(value.GetTypeID(), const_cast<void *>(value.GetPointer()))), out);
     }
 
     virtual fbom::FBOMResult DeserializeStruct(const fbom::FBOMObject &in, HypData &out) const override
@@ -167,16 +173,20 @@ public:
         }
 
         if (GetSerializationMode() & HypClassSerializationMode::BITWISE) {
-            // Read StructData property
-            T result;
+            if constexpr (std::is_abstract_v<T>) {
+                return { fbom::FBOMResult::FBOM_ERR, "Cannot use bitwise serialization with abstract type!" };
+            } else {
+                // Read StructData property
+                T result { };
             
-            if (fbom::FBOMResult err = in.GetProperty("StructData").ReadStruct<T, /* CompileTimeChecked */ false>(&result)) {
-                return err;
+                if (fbom::FBOMResult err = in.GetProperty("StructData").ReadStruct<T, /* CompileTimeChecked */ false>(&result)) {
+                    return err;
+                }
+
+                out = HypData(std::move(result));
+
+                return { fbom::FBOMResult::FBOM_OK };
             }
-
-            out = HypData(std::move(result));
-
-            return { fbom::FBOMResult::FBOM_OK };
         }
 
         return { fbom::FBOMResult::FBOM_ERR, "Type does not have an associated marshal class registered, and is not marked as bitwise serializable" };

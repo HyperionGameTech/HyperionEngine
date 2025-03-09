@@ -19,7 +19,7 @@ FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer &analyzer, cons
     return analyzer.GetCSharpOutputDirectory() / relative_path.BasePath() / StringUtil::StripExtension(relative_path.Basename()) + ".cs";
 }
 
-Result<void> CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
+Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const
 {
     writer.WriteString("using System;\n");
     writer.WriteString("using System.Runtime.InteropServices;\n");
@@ -61,7 +61,7 @@ Result<void> CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, 
 
             String return_type_name;
             
-            if (Result<String> res = MapToCSharpType(function_type->return_type); res.HasError()) {
+            if (TResult<String> res = MapToCSharpType(function_type->return_type); res.HasError()) {
                 return res.GetError();
             } else {
                 return_type_name = res.GetValue();
@@ -75,7 +75,7 @@ Result<void> CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, 
 
                 String parameter_type_name;
 
-                if (Result<String> res = MapToCSharpType(parameter->type); res.HasError()) {
+                if (TResult<String> res = MapToCSharpType(parameter->type); res.HasError()) {
                     return res.GetError();
                 } else {
                     parameter_type_name = res.GetValue();

@@ -258,7 +258,7 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
 
         CommandLineParser arg_parse { DefaultCommandLineArgumentDefinitions() };
 
-        Result parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
+        TResult<CommandLineArguments> parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
 
         if (parse_result.HasValue()) { 
             new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(arg_parse.GetDefinitions(), *parse_result, arguments));

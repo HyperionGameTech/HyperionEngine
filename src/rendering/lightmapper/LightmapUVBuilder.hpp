@@ -87,7 +87,7 @@ public:
     HYP_FORCE_INLINE const Array<LightmapMeshData> &GetMeshData() const
         { return m_mesh_data; }
     
-    Result<LightmapUVMap> Build();
+    TResult<LightmapUVMap> Build();
 
 private:
     LightmapUVBuilderParams m_params;

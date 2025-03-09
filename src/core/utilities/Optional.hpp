@@ -338,7 +338,7 @@ public:
 private:
     ValueStorage<T> m_storage;
 
-    bool m_has_value;
+    bool            m_has_value;
 };
 
 template <class T>

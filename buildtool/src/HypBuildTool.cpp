@@ -80,7 +80,7 @@ public:
         m_thread_pool.Stop();
     }
 
-    Result<void> Run()
+    Result Run()
     {
         FindModules();
 
@@ -229,11 +229,11 @@ private:
 
             batch->AddTask([this, cxx_module_generator, csharp_module_generator, mod = mod.Get()]()
             {
-                if (Result<void> res = cxx_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                if (Result res = cxx_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
 
-                if (Result<void> res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
+                if (Result res = csharp_module_generator->Generate(m_analyzer, *mod); res.HasError()) {
                     m_analyzer.AddError(AnalyzerError(res.GetError(), mod->GetPath()));
                 }
             });
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
             exclude_files
         };
         
-        Result<void> res = build_tool.Run();
+        Result res = build_tool.Run();
 
         TaskSystem::GetInstance().Stop();
 

@@ -87,7 +87,7 @@ SystemMessageBox &SystemMessageBox::Button(const String &text, Proc<void> &&on_c
 
 void SystemMessageBox::Show() const
 {
-    const char *button_texts[3];
+    const char *button_texts[3] = { };
 
     for (int i = 0; i < int(m_buttons.Size()); i++) {
         button_texts[i] = m_buttons[i].text.Data();

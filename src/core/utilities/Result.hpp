@@ -18,6 +18,7 @@
 namespace hyperion {
 namespace utilities {
 
+HYP_STRUCT()
 class IError
 {
 public:
@@ -29,16 +30,16 @@ public:
     virtual ANSIStringView GetFunctionName() const = 0;
 };
 
+HYP_STRUCT(Size=128)
 class Error : public IError
 {
-protected:
+public:
     Error()
         : m_message(String::empty),
           m_current_function("<unknown>")
     {
     }
 
-public:
     template <auto FormatString, class... Args>
     Error(const StaticMessage &current_function, ValueWrapper<FormatString>, Args &&... args)
         : m_message(Format<FormatString>(std::forward<Args>(args)...)),
@@ -52,12 +53,12 @@ public:
     {
         return true;
     }
-
+    
     virtual const String &GetMessage() const override
     {
         return m_message;
     }
-
+    
     virtual ANSIStringView GetFunctionName() const override
     {
         return m_current_function;
@@ -95,39 +96,39 @@ public:
  *  The value and error types are specified by the template parameters.
  *  The error type defaults to Error if not specified. */
 template <class T = void, class ErrorType = Error>
-class Result;
+class TResult;
 
 template <class T, class ErrorType>
-class Result
+class TResult
 {
 public:
     static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
 
-    Result(const T &value)
+    TResult(const T &value)
         : m_value(value)
     {
     }
 
-    Result(T &&value)
+    TResult(T &&value)
         : m_value(std::move(value))
     {
     }
 
-    Result(const ErrorType &error)
+    TResult(const ErrorType &error)
         : m_value(error)
     {
     }
 
-    Result(ErrorType &&error)
+    TResult(ErrorType &&error)
         : m_value(std::move(error))
     {
     }
 
-    Result(const Result &other)                 = default;
-    Result &operator=(const Result &other)      = default;
-    Result(Result &&other) noexcept             = default;
-    Result &operator=(Result &&other) noexcept  = default;
-    ~Result()                                   = default;
+    TResult(const TResult &other)                   = default;
+    TResult &operator=(const TResult &other)        = default;
+    TResult(TResult &&other) noexcept               = default;
+    TResult &operator=(TResult &&other) noexcept    = default;
+    ~TResult()                                      = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return m_value.template Is<T>(); }
@@ -201,7 +202,8 @@ public:
     HYP_FORCE_INLINE const T *operator->() const
         { return &GetValue(); }
 
-    HYP_FORCE_INLINE bool operator==(const Result &other) const
+    template <class OtherT, class OtherErrorType>
+    HYP_FORCE_INLINE bool operator==(const TResult<OtherT, OtherErrorType> &other) const
     {
         if (HasValue() != other.HasValue()) {
             return false;
@@ -213,8 +215,9 @@ public:
 
         return true;
     }
-
-    HYP_FORCE_INLINE bool operator!=(const Result &other) const
+    
+    template <class OtherT, class OtherErrorType>
+    HYP_FORCE_INLINE bool operator!=(const TResult<OtherT, OtherErrorType> &other) const
     {
         if (HasValue() != other.HasValue()) {
             return true;
@@ -241,28 +244,28 @@ private:
 };
 
 template <class ErrorType>
-class Result<void, ErrorType>
+class TResult<void, ErrorType>
 {
 public:
     static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
 
-    Result()                                    = default;
+    TResult()                                       = default;
 
-    Result(const ErrorType &error)
+    TResult(const ErrorType &error)
         : m_error(error)
     {
     }
 
-    Result(ErrorType &&error)
+    TResult(ErrorType &&error)
         : m_error(std::move(error))
     {
     }
 
-    Result(const Result &other)                 = default;
-    Result &operator=(const Result &other)      = default;
-    Result(Result &&other) noexcept             = default;
-    Result &operator=(Result &&other) noexcept  = default;
-    ~Result()                                   = default;
+    TResult(const TResult &other)                   = default;
+    TResult &operator=(const TResult &other)        = default;
+    TResult(TResult &&other) noexcept               = default;
+    TResult &operator=(TResult &&other) noexcept    = default;
+    ~TResult()                                      = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return !m_error.HasValue(); }
@@ -285,10 +288,12 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE bool operator==(const Result &other) const
+    template <class OtherErrorType>
+    HYP_FORCE_INLINE bool operator==(const TResult<void, OtherErrorType> &other) const
         { return m_error.HasValue() == other.m_error.HasValue(); }
-
-    HYP_FORCE_INLINE bool operator!=(const Result &other) const
+    
+    template <class OtherErrorType>
+    HYP_FORCE_INLINE bool operator!=(const TResult<void, OtherErrorType> &other) const
         { return m_error.HasValue() != other.m_error.HasValue(); }
 
     HYP_FORCE_INLINE bool operator==(const ErrorType &error) const = delete;
@@ -298,8 +303,50 @@ private:
     Optional<ErrorType> m_error;
 };
 
+/*! \brief Default Result class - see TResult<T, ErrorType> for custom T or Error type. */
+HYP_STRUCT(Size=136)
+class Result : public TResult<void, Error>
+{
+public:
+    using TResult::operator bool;
+    using TResult::operator!;
+    using TResult::operator==;
+    using TResult::operator!=;
+
+    Result()                                    = default;
+
+    Result(const Error &error)
+        : TResult(error)
+    {
+    }
+
+    Result(Error &&error)
+        : TResult(std::move(error))
+    {
+    }
+
+    Result(const Result &other)                 = default;
+    Result &operator=(const Result &other)      = default;
+    Result(Result &&other) noexcept             = default;
+    Result &operator=(Result &&other) noexcept  = default;
+    ~Result()                                   = default;
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool HasValue() const
+        { return TResult::HasValue(); }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE bool HasError() const
+        { return TResult::HasError(); }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Error &GetError() const
+        { return TResult::GetError(); }
+};
+
 } // namespace utilities
 
+using utilities::TResult;
 using utilities::Result;
 using utilities::IError;
 using utilities::Error;

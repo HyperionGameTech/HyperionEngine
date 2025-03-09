@@ -10,7 +10,7 @@ Module::Module(const FilePath &path)
 {
 }
 
-Result<void> Module::AddHypClassDefinition(HypClassDefinition &&hyp_class_definition)
+Result Module::AddHypClassDefinition(HypClassDefinition &&hyp_class_definition)
 {
     Mutex::Guard guard(m_mutex);
 

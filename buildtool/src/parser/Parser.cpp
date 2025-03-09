@@ -26,7 +26,7 @@ const ASTType *ExtractInnerType(const ASTType *type)
     }
 }
 
-Result<String> MapToCSharpType(const ASTType *type)
+TResult<String> MapToCSharpType(const ASTType *type)
 {
     if (type->is_pointer && type->ptr_to->IsVoid()) {
         return String("IntPtr");

@@ -68,35 +68,27 @@ void EditorProject::Close()
     HYP_SCOPE;
 }
 
-Result<void> EditorProject::Save()
+Result EditorProject::Save()
 {
-    if (m_filepath.Any()) {
-        return Save(m_filepath);
-    }
-
-    return Save(AssetManager::GetInstance()->GetBasePath() / "projects" / *m_name);
+    return SaveAs(m_filepath);
 }
 
-Result<void> EditorProject::Save(const FilePath &filepath)
+Result EditorProject::SaveAs(FilePath filepath)
 {
     HYP_SCOPE;
 
-    if (filepath.Any()) {
-        m_filepath = filepath;
+    if (filepath.Empty()) {
+        filepath = AssetManager::GetInstance()->GetBasePath() / "projects" / *m_name;
     }
 
-    if (m_filepath.Empty()) {
-        return HYP_MAKE_ERROR(Error, "No filepath set");
-    }
-
-    if (!m_filepath.Exists() && !m_filepath.MkDir()) {
+    if (!filepath.Exists() && !filepath.MkDir()) {
         return HYP_MAKE_ERROR(Error, "Failed to create directory");
     }
 
     const Time previous_last_saved_time = m_last_saved_time;
     m_last_saved_time = Time::Now();
 
-    const FilePath project_filepath = m_filepath / (String(*m_name) + ".hypproj");
+    const FilePath project_filepath = filepath / (String(*m_name) + ".hypproj");
 
     FileByteWriter byte_writer(project_filepath);
 
@@ -113,9 +105,9 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         return HYP_MAKE_ERROR(Error, "Failed to write project to disk");
     }
 
-    Proc<Result<void>, const FilePath &, const Handle<AssetPackage> &> CreateAssetPackageDirectory;
+    Proc<Result, const FilePath &, const Handle<AssetPackage> &> CreateAssetPackageDirectory;
 
-    CreateAssetPackageDirectory = [&CreateAssetPackageDirectory](const FilePath &parent_directory, const Handle<AssetPackage> &package) -> Result<void>
+    CreateAssetPackageDirectory = [&CreateAssetPackageDirectory](const FilePath &parent_directory, const Handle<AssetPackage> &package) -> Result
     {
         const FilePath directory = parent_directory / package->GetName().LookupString();
 
@@ -128,7 +120,7 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         }
 
         for (const Handle<AssetPackage> &subpackage : package->GetSubpackages()) {
-            Result<void> subpackage_result = CreateAssetPackageDirectory(directory, subpackage);
+            Result subpackage_result = CreateAssetPackageDirectory(directory, subpackage);
 
             if (subpackage_result.HasError()) {
                 return subpackage_result;
@@ -138,11 +130,11 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         return { };
     };
 
-    Result<void> result;
+    Result result;
 
     m_asset_registry->ForEachPackage([&](const Handle<AssetPackage> &package)
     {
-        if (Result<void> package_result = CreateAssetPackageDirectory(m_filepath, package); package_result.HasError()) {
+        if (Result package_result = CreateAssetPackageDirectory(m_filepath, package); package_result.HasError()) {
             result = package_result;
 
             return IterationResult::STOP;
@@ -151,10 +143,15 @@ Result<void> EditorProject::Save(const FilePath &filepath)
         return IterationResult::CONTINUE;
     });
 
+    if (result) {
+        // Update m_filepath when save was successful.
+        m_filepath = filepath;
+    }
+
     return result;
 }
 
-Result<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
+TResult<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
 {
     HYP_SCOPE;
 
@@ -199,9 +196,9 @@ Result<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
 
     RC<EditorProject> project = *project_opt;
 
-    Proc<Result<Handle<AssetPackage>>, const FilePath &> InitializePackage;
+    Proc<TResult<Handle<AssetPackage>>, const FilePath &> InitializePackage;
 
-    InitializePackage = [&InitializePackage](const FilePath &directory) -> Result<Handle<AssetPackage>>
+    InitializePackage = [&InitializePackage](const FilePath &directory) -> TResult<Handle<AssetPackage>>
     {
         HYP_NAMED_SCOPE_FMT("InitializePackage(%s)", *directory);
 
@@ -212,7 +209,7 @@ Result<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
         AssetPackageSet subpackages;
 
         for (const FilePath &subdirectory : directory.GetSubdirectories()) {
-            Result<Handle<AssetPackage>> subpackage_result = InitializePackage(subdirectory);
+            TResult<Handle<AssetPackage>> subpackage_result = InitializePackage(subdirectory);
 
             if (subpackage_result.HasError()) {
                 return subpackage_result;
@@ -231,7 +228,7 @@ Result<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
     AssetPackageSet packages;
 
     for (const FilePath &subdirectory : directory.GetSubdirectories()) {
-        Result<Handle<AssetPackage>> package_result = InitializePackage(subdirectory);
+        TResult<Handle<AssetPackage>> package_result = InitializePackage(subdirectory);
 
         if (package_result.HasError()) {
             return package_result.GetError();

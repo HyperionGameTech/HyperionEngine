@@ -1538,10 +1538,10 @@ void EditorSubsystem::NewProject()
     OpenProject(MakeRefCountedPtr<EditorProject>());
 
     // test
-    if (auto res = m_current_project->Save()) {
+    if (Result result = m_current_project->Save()) {
 
     } else {
-        HYP_FAIL("Failed to save project : %s", res.GetError().GetMessage().Data());
+        HYP_FAIL("Failed to save project : %s", result.GetError().GetMessage().Data());
     }
 }
 

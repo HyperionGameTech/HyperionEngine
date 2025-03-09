@@ -255,7 +255,7 @@ void HyperionEditor::Init()
         LightType::DIRECTIONAL,
         Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
         Color(Vec4f(1.0f)),
-        10.0f,
+        4.0f,
         0.0f
     );
 
@@ -308,8 +308,8 @@ void HyperionEditor::Init()
 #if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
-    //batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    //batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
@@ -328,8 +328,8 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        //node.Scale(3.0f);
-        node->Scale(0.05f);
+        node.Scale(3.0f);
+        //node->Scale(0.05f);
         node.SetName("test_model");
         node.LockTransform();
 

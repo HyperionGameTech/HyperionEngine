@@ -257,7 +257,7 @@ public:
 private:
     void Stop();
 
-    Result<LightmapUVMap> BuildUVMap();
+    TResult<LightmapUVMap> BuildUVMap();
     
     LightmapJobParams                                       m_params;
 
@@ -269,7 +269,7 @@ private:
     mutable Mutex                                           m_previous_frame_rays_mutex;
 
     Optional<LightmapUVMap>                                 m_uv_map;
-    Task<Result<LightmapUVMap>>                             m_build_uv_map_task;
+    Task<TResult<LightmapUVMap>>                             m_build_uv_map_task;
 
     Array<Task<void>>                                       m_current_tasks;
     mutable Mutex                                           m_current_tasks_mutex;

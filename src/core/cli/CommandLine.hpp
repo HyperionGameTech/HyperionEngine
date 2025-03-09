@@ -158,7 +158,7 @@ public:
         { return Find(key) != values.End(); }
 
     HYP_NODISCARD static CommandLineArguments Merge(const CommandLineArgumentDefinitions &definitions, const CommandLineArguments &a, const CommandLineArguments &b);
-    HYP_NODISCARD static Result<CommandLineArgumentValue> ParseArgumentValue(const CommandLineArgumentDefinition &definition, const String &str);
+    HYP_NODISCARD static TResult<CommandLineArgumentValue> ParseArgumentValue(const CommandLineArgumentDefinition &definition, const String &str);
 
     HYP_DEF_STL_BEGIN_END(
         values.Begin(),
@@ -208,9 +208,9 @@ public:
         m_definitions.Add(name, shorthand, description, flags, enum_values, default_value);
     }
 
-    HYP_API Result<CommandLineArguments> Parse(const String &command_line) const;
-    HYP_API Result<CommandLineArguments> Parse(int argc, char **argv) const;
-    HYP_API Result<CommandLineArguments> Parse(const String &command, const Array<String> &args) const;
+    HYP_API TResult<CommandLineArguments> Parse(const String &command_line) const;
+    HYP_API TResult<CommandLineArguments> Parse(int argc, char **argv) const;
+    HYP_API TResult<CommandLineArguments> Parse(const String &command, const Array<String> &args) const;
 
 private:
     CommandLineArgumentDefinitions      m_definitions;

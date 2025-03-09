@@ -35,7 +35,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
 
-#define HYP_BEGIN_STRUCT(cls, ...) static struct HypClassInitializer_##cls \
+#define HYP_BEGIN_STRUCT(cls, parent_class, ...) static struct HypClassInitializer_##cls \
     { \
         using Type = cls; \
         \
@@ -44,7 +44,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT } } };
 

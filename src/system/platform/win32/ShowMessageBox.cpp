@@ -77,8 +77,9 @@ int ShowMessageBox(int type, const char *title, const char *message, int buttons
     MultiByteToWideChar(CP_UTF8, 0, title, -1, wideTitle, titleLength);
     MultiByteToWideChar(CP_UTF8, 0, message, -1, wideMessage, messageLength);
 
-    wchar_t* wideButtonTexts[3];
-    for (int i = 0; i < 3; i++) {
+    wchar_t* wideButtonTexts[3] = { };
+
+    for (int i = 0; i < buttons; i++) {
         int buttonTextLength = MultiByteToWideChar(CP_UTF8, 0, buttonTexts[i], -1, nullptr, 0);
         wideButtonTexts[i] = new wchar_t[buttonTextLength];
         MultiByteToWideChar(CP_UTF8, 0, buttonTexts[i], -1, wideButtonTexts[i], buttonTextLength);
@@ -135,7 +136,8 @@ int ShowMessageBox(int type, const char *title, const char *message, int buttons
 
     delete[] wideTitle;
     delete[] wideMessage;
-    for (int i = 0; i < 3; i++) {
+
+    for (int i = 0; i < buttons; i++) {
         delete[] wideButtonTexts[i];
     }
 

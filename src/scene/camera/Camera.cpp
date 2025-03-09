@@ -227,7 +227,7 @@ void Camera::Init()
     HypObject::Init();
 
     if (m_flags & CameraFlags::MATCH_WINDOW_SIZE) {
-        auto InitMatchWindowSize = [this]() -> Result<>
+        auto InitMatchWindowSize = [this]() -> TResult<>
         {
             const RC<AppContext> &app_context = g_engine->GetAppContext();
 

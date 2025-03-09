@@ -10,6 +10,8 @@ namespace Hyperion
 {
     public class ScriptCompiler
     {
+        private static LogChannel logChannel = new LogChannel("ScriptCompiler");
+
         private string sourceDirectory;
         private string intermediateDirectory;
         private string binaryOutputDirectory;
@@ -19,6 +21,28 @@ namespace Hyperion
             this.sourceDirectory = sourceDirectory;
             this.intermediateDirectory = intermediateDirectory;
             this.binaryOutputDirectory = binaryOutputDirectory;
+
+            // Make the directories if they don't exist.
+            
+            foreach (string directory in new string[] { sourceDirectory, intermediateDirectory, binaryOutputDirectory })
+            {
+                try
+                {
+                    CreateDirectoryIfNotExist(directory);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(logChannel, LogType.Error, "Failed to create directory {0}: {1}", directory, e.Message);
+                }
+            }
+        }
+
+        private void CreateDirectoryIfNotExist(string directory)
+        {
+            if (!System.IO.Directory.Exists(directory))
+            {
+                System.IO.Directory.CreateDirectory(directory);
+            }
         }
 
         public void BuildAllProjects()
@@ -35,7 +59,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(LogType.Error, "Failed to delete symlink: {0}", e.Message);
+                    Logger.Log(logChannel, LogType.Error, "Failed to delete symlink: {0}", e.Message);
                 }
             }
 
@@ -64,15 +88,11 @@ namespace Hyperion
 
             string[] files = System.IO.Directory.GetFiles(scriptDirectory, "*.cs", System.IO.SearchOption.AllDirectories);
 
-            Console.WriteLine("Files: {0}", string.Join(", ", files));
-
             long maxTimestamp = 0;
 
             foreach (string file in files)
             {
                 long timestamp = System.IO.File.GetLastWriteTime(file).ToFileTime();
-
-                Console.WriteLine("Timestamp for {0}: {1}", file, timestamp);
 
                 if (timestamp > maxTimestamp)
                 {
@@ -80,12 +100,15 @@ namespace Hyperion
                 }
             }
 
-            Console.WriteLine("Checking if {0}.dll needs rebuild...", moduleName);
+            if (!System.IO.Directory.Exists(binaryOutputDirectory))
+            {
+                // Directory does not exist, needs rebuild
+                return true;
+            }
 
-            // Try to find the DLL in the output directory
+            Logger.Log(logChannel, LogType.Info, "binaryOutputDirectory: {0}", binaryOutputDirectory);
+
             string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, $"{moduleName}.dll", System.IO.SearchOption.AllDirectories);
-
-            Console.WriteLine("DLLs: {0}", string.Join(", ", dlls));
 
             if (dlls.Length == 0)
             {
@@ -95,6 +118,7 @@ namespace Hyperion
 
             foreach (string dll in dlls)
             {
+                Logger.Log(logChannel, LogType.Info, "Checking DLL: {0}", dll);
                 if (System.IO.File.GetLastWriteTime(dll).ToFileTime() < maxTimestamp)
                 {
                     return true;
@@ -111,9 +135,9 @@ namespace Hyperion
                 .Replace(" ", "")
                 .Replace(".", "");
 
-            Logger.Log(LogType.Info, $"Relative path: {relativePath}");
+            Logger.Log(logChannel, LogType.Info, $"Relative path: {relativePath}");
 
-            while (relativePath.EndsWith("/"))
+            while (relativePath.EndsWith("/") || relativePath.EndsWith("\\"))
             {
                 relativePath = relativePath.Substring(0, relativePath.Length - 1);
             }
@@ -123,7 +147,7 @@ namespace Hyperion
 
             if (relativePath.Length != 0)
             {
-                moduleName = relativePath.Replace("/", ".");
+                moduleName = relativePath.Replace("/", ".").Replace("\\", ".");
             }
 
             while (moduleName.StartsWith("."))
@@ -172,6 +196,8 @@ namespace Hyperion
 
         private bool BuildProject(string scriptDirectory, bool forceRebuild, out string moduleName, out int hotReloadVersion)
         {
+            Logger.Log(logChannel, LogType.Info, "Building project in directory {0}", scriptDirectory);
+
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
             hotReloadVersion = -1;
 
@@ -179,19 +205,19 @@ namespace Hyperion
             {
                 if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
                 {
-                    Logger.Log(LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
+                    Logger.Log(logChannel, LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
 
                     return true;
                 }
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, "Failed to detect if module {0} needs rebuild: {1}", moduleName, e.Message);
+                Logger.Log(logChannel, LogType.Error, "Failed to detect if module {0} needs rebuild: {1}", moduleName, e.Message);
 
                 return false;
             }
 
-            Logger.Log(LogType.Info, "Rebuilding module {0}...", moduleName);
+            Logger.Log(logChannel, LogType.Info, "Rebuilding module {0}...", moduleName);
 
             string projectOutputDirectory = GetProjectOutputDirectory(
                 moduleName: moduleName,
@@ -246,7 +272,7 @@ namespace Hyperion
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, "Failed to write project file: {0}", e.Message);
+                Logger.Log(logChannel, LogType.Error, "Failed to write project file: {0}", e.Message);
 
                 return false;
             }
@@ -268,11 +294,11 @@ namespace Hyperion
             process.StartInfo.CreateNoWindow = true;
             process.OutputDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
-                Logger.Log(LogType.Info, "{0}", eventArgs.Data);
+                Logger.Log(logChannel, LogType.Info, "{0}", eventArgs.Data);
             };
             process.ErrorDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
-                Logger.Log(LogType.Error, "{0}", eventArgs.Data);
+                Logger.Log(logChannel, LogType.Error, "{0}", eventArgs.Data);
             };
             process.Start();
 
@@ -283,18 +309,18 @@ namespace Hyperion
 
             if (process.ExitCode != 0)
             {
-                Logger.Log(LogType.Error, "Failed to compile script. Check the output log for more information.");
+                Logger.Log(logChannel, LogType.Error, "Failed to compile script. Check the output log for more information.");
 
                 MessageBox.Critical()
                     .Title("Script Compilation Error")
                     .Text("Failed to compile script. Check the output log for more information.")
-                    .Button("OK", () => { Logger.Log(LogType.Info, "OK clicked"); })
+                    .Button("OK", () => { Logger.Log(logChannel, LogType.Info, "OK clicked"); })
                     .Show();
 
                 return false;
             }
 
-            Logger.Log(LogType.Info, "Script compiled successfully");
+            Logger.Log(logChannel, LogType.Info, "Script compiled successfully");
 
             // Grep all DLLs in the output directory
             string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
@@ -311,7 +337,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(LogType.Error, "Failed to copy DLL: {0}", e.Message);
+                    Logger.Log(logChannel, LogType.Error, "Failed to copy DLL: {0}", e.Message);
 
                     return false;
                 }
@@ -333,7 +359,16 @@ namespace Hyperion
 
             foreach (string dll in dlls)
             {
-                directories.Add(System.IO.Path.GetDirectoryName(dll));
+                string? directoryName = System.IO.Path.GetDirectoryName(dll);
+
+                if (directoryName == null)
+                {
+                    Logger.Log(logChannel, LogType.Error, "Failed to get directory name for DLL {0}", dll);
+
+                    continue;
+                }
+
+                directories.Add(directoryName);
             }
 
             HashSet<string> files = new HashSet<string>();
@@ -383,7 +418,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(LogType.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
+                    Logger.Log(logChannel, LogType.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
 
                     return false;
                 }
@@ -397,8 +432,17 @@ namespace Hyperion
             string moduleName;
             int hotReloadVersion;
 
+            string? scriptDirectory = System.IO.Path.GetDirectoryName(managedScript.Path);
+
+            if (scriptDirectory == null)
+            {
+                Logger.Log(logChannel, LogType.Error, "Failed to get script directory for script {0}", managedScript.Path);
+
+                return false;
+            }
+
             if (BuildProject(
-                scriptDirectory: System.IO.Path.GetDirectoryName(managedScript.Path),
+                scriptDirectory: (string)scriptDirectory,
                 forceRebuild: true,
                 moduleName: out moduleName,
                 hotReloadVersion: out hotReloadVersion

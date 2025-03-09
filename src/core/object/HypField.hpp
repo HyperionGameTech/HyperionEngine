@@ -126,7 +126,7 @@ public:
                 }
             };
 
-            m_deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> Result<void>
+            m_deserialize_proc = [member](HypData &target_data, const fbom::FBOMData &data) -> Result
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                     return HYP_MAKE_ERROR(Error, "Cannot deserialize non-copy-assignable field");
@@ -245,7 +245,7 @@ public:
     HYP_FORCE_INLINE bool CanDeserialize() const
         { return IsValid() && m_deserialize_proc.IsValid(); }
 
-    HYP_FORCE_INLINE Result<void> Deserialize(HypData &target_data, const fbom::FBOMData &data) const
+    HYP_FORCE_INLINE Result Deserialize(HypData &target_data, const fbom::FBOMData &data) const
     {
         if (!CanDeserialize()) {
             return HYP_MAKE_ERROR(Error, "Cannot deserialize field");
@@ -277,7 +277,7 @@ private:
     Proc<void, HypData &, const HypData &>                  m_set_proc;
 
     Proc<fbom::FBOMData, const HypData &>                   m_serialize_proc;
-    Proc<Result<void>, HypData &, const fbom::FBOMData &>   m_deserialize_proc;
+    Proc<Result, HypData &, const fbom::FBOMData &>   m_deserialize_proc;
 };
 
 } // namespace hyperion

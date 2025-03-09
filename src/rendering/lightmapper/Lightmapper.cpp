@@ -1337,7 +1337,7 @@ void LightmapJob::Start()
 
             HYP_LOG(Lightmap, Info, "Lightmap job {}: Enqueue task to build UV map", m_uuid);
 
-            m_build_uv_map_task = TaskSystem::GetInstance().Enqueue([this]() -> Result<LightmapUVMap>
+            m_build_uv_map_task = TaskSystem::GetInstance().Enqueue([this]() -> TResult<LightmapUVMap>
             {
                 return BuildUVMap();
             }, TaskThreadPoolName::THREAD_POOL_BACKGROUND);
@@ -1355,7 +1355,7 @@ bool LightmapJob::IsCompleted() const
     return !m_running_semaphore.IsInSignalState();
 }
 
-Result<LightmapUVMap> LightmapJob::BuildUVMap()
+TResult<LightmapUVMap> LightmapJob::BuildUVMap()
 {
     return LightmapUVBuilder { { m_params.elements_view } }.Build();
 }
@@ -1386,7 +1386,7 @@ void LightmapJob::Process()
             return;
         }
 
-        if (Result<LightmapUVMap> &uv_map_result = m_build_uv_map_task.Await()) {
+        if (TResult<LightmapUVMap> &uv_map_result = m_build_uv_map_task.Await()) {
             m_uv_map = std::move(*uv_map_result);
         }
 

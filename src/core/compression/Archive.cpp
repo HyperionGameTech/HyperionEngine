@@ -115,7 +115,7 @@ Archive &Archive::operator=(Archive &&other) noexcept
 
 Archive::~Archive() = default;
 
-Result<void> Archive::Decompress(ByteBuffer &out_buffer) const
+Result Archive::Decompress(ByteBuffer &out_buffer) const
 {
 #ifdef HYP_ZLIB
     out_buffer.SetSize(m_uncompressed_size);
