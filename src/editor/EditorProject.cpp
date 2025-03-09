@@ -23,9 +23,8 @@
 namespace hyperion {
 
 EditorProject::EditorProject()
-    : EditorProject(Name::Unique("Project_"))
+    : EditorProject(Name::Invalid())
 {
-
 }
 
 EditorProject::EditorProject(Name name)
@@ -58,6 +57,11 @@ EditorProject::~EditorProject()
 {
 }
 
+FilePath EditorProject::GetProjectsDirectory() const
+{
+    return AssetManager::GetInstance()->GetBasePath() / "projects";
+}
+
 bool EditorProject::IsSaved() const
 {
     return uint64(m_last_saved_time) != ~0ull;
@@ -77,8 +81,16 @@ Result EditorProject::SaveAs(FilePath filepath)
 {
     HYP_SCOPE;
 
+    if (!m_name.IsValid()) {
+        m_name = GetNextDefaultProjectName();
+    }
+
+    if (!m_name.IsValid()) {
+        return HYP_MAKE_ERROR(Error, "Failed to generate a project name");
+    }
+
     if (filepath.Empty()) {
-        filepath = AssetManager::GetInstance()->GetBasePath() / "projects" / *m_name;
+        filepath = GetProjectsDirectory() / *m_name;
     }
 
     if (!filepath.Exists() && !filepath.MkDir()) {
@@ -240,6 +252,11 @@ TResult<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
     project->m_asset_registry->SetPackages(std::move(packages));
 
     return project;
+}
+
+Name EditorProject::GetNextDefaultProjectName_Impl() const
+{
+    return Name::Invalid();
 }
 
 } // namespace hyperion

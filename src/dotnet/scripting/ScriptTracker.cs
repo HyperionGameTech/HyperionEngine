@@ -8,7 +8,7 @@ namespace Hyperion
 
     public class ScriptTracker
     {
-        private static LogChannel logChannel = new LogChannel("ScriptTracker");
+        private static LogChannel logChannel = LogChannel.ByName("ScriptTracker");
 
         private FileSystemWatcher watcher;
 

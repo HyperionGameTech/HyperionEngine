@@ -43,6 +43,15 @@ HYP_EXPORT void Logger_Log(LogChannel *channel, uint32 log_level, const char *fu
     }
 }
 
+HYP_EXPORT const LogChannel *Logger_FindLogChannel(WeakName *name)
+{
+    if (!name) {
+        return nullptr;
+    }
+
+    return Logger::GetInstance().FindLogChannel(*name);
+}
+
 HYP_EXPORT LogChannel *Logger_CreateLogChannel(const char *name)
 {
     const Name channel_name = CreateNameFromDynamicString(name);

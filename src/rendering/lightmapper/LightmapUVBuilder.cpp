@@ -78,29 +78,29 @@ Bitmap<4, float> LightmapUVMap::ToBitmapIrradiance() const
 LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
     : m_params(params)
 {
-    m_mesh_data.Resize(params.elements.Size());
+    m_mesh_data.Resize(params.sub_elements.Size());
 
-    for (SizeType i = 0; i < params.elements.Size(); i++) {
-        const LightmapElement &element = params.elements[i];
+    for (SizeType i = 0; i < params.sub_elements.Size(); i++) {
+        const LightmapSubElement &sub_element = params.sub_elements[i];
 
         LightmapMeshData &lightmap_mesh_data = m_mesh_data[i];
 
-        if (!element.mesh || !element.mesh->GetStreamedMeshData()) {
+        if (!sub_element.mesh || !sub_element.mesh->GetStreamedMeshData()) {
             continue;
         }
 
-        const Handle<Mesh> &mesh = element.mesh;
+        const Handle<Mesh> &mesh = sub_element.mesh;
 
         StreamedMeshData *streamed_mesh_data = mesh->GetStreamedMeshData();
         AssertThrow(streamed_mesh_data != nullptr);
 
         ResourceHandle resource_handle(*streamed_mesh_data);
 
-        lightmap_mesh_data.mesh = element.mesh;
+        lightmap_mesh_data.mesh = sub_element.mesh;
 
-        lightmap_mesh_data.material = element.material;
+        lightmap_mesh_data.material = sub_element.material;
 
-        lightmap_mesh_data.transform = element.transform.GetMatrix();
+        lightmap_mesh_data.transform = sub_element.transform.GetMatrix();
 
         lightmap_mesh_data.vertex_positions.Resize(streamed_mesh_data->GetMeshData().vertices.Size() * 3);
         lightmap_mesh_data.vertex_normals.Resize(streamed_mesh_data->GetMeshData().vertices.Size() * 3);
@@ -110,10 +110,10 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
         lightmap_mesh_data.lightmap_uvs.Resize(streamed_mesh_data->GetMeshData().vertices.Size());
 
-        const Matrix4 normal_matrix = element.transform.GetMatrix().Inverted().Transpose();
+        const Matrix4 normal_matrix = sub_element.transform.GetMatrix().Inverted().Transpose();
 
         for (SizeType i = 0; i < streamed_mesh_data->GetMeshData().vertices.Size(); i++) {
-            const Vec3f position = element.transform.GetMatrix() * streamed_mesh_data->GetMeshData().vertices[i].GetPosition();
+            const Vec3f position = sub_element.transform.GetMatrix() * streamed_mesh_data->GetMeshData().vertices[i].GetPosition();
             const Vec3f normal = (normal_matrix * Vec4f(streamed_mesh_data->GetMeshData().vertices[i].GetNormal(), 0.0f)).GetXYZ().Normalize();
             const Vec2f uv = streamed_mesh_data->GetMeshData().vertices[i].GetTexCoord0();
 
@@ -133,8 +133,8 @@ LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams &params)
 
 TResult<LightmapUVMap> LightmapUVBuilder::Build()
 {
-    if (!m_params.elements) {
-        return HYP_MAKE_ERROR(Error, "No elements to build lightmap");
+    if (!m_params.sub_elements) {
+        return HYP_MAKE_ERROR(Error, "No subelements to build lightmap");
     }
 
     LightmapUVMap uv_map;
@@ -266,9 +266,9 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
     for (SizeType mesh_index = 0; mesh_index < m_mesh_data.Size(); mesh_index++) {
         const LightmapMeshData &lightmap_mesh_data = m_mesh_data[mesh_index];
-        const LightmapElement &element = m_params.elements[mesh_index];
+        const LightmapSubElement &sub_element = m_params.sub_elements[mesh_index];
 
-        const Handle<Mesh> &mesh = element.mesh;
+        const Handle<Mesh> &mesh = sub_element.mesh;
         AssertThrow(mesh.IsValid());
 
         ResourceHandle resource_handle(*mesh->GetStreamedMeshData());

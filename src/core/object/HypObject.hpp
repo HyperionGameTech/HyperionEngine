@@ -28,6 +28,8 @@ namespace hyperion {
 class HypClass;
 struct HypData;
 
+enum class HypClassFlags : uint32;
+
 template <class T>
 struct Handle;
 
@@ -176,29 +178,12 @@ private:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
-// template <class T>
-// const void (*HypObjectInitializer<T>::s_fixup_fptr)(void *, IHypObjectInitializer *) = [](void *_this, IHypObjectInitializer *_ptr)
-// {
-// };
-
-// template <class T>
-// struct HypObjectInitializerRef
-// {
-//     Variant<HypObjectInitializer<T>, IHypObjectInitializer *>   value;
-//     IHypObjectInitializer                                       *ptr;
-
-//     HypObjectInitializerRef()
-//         : ptr(nullptr)
-//     {
-//     }
-
-//     HypObjectInitializerRef
-// };
-
 #define HYP_OBJECT_BODY(T, ...) \
     private: \
         friend class HypObjectInitializer<T>; \
         friend struct HypClassInitializer_##T; \
+        \
+        friend struct detail::HypClassRegistration<T>; \
         \
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \
         IHypObjectInitializer   *m_hyp_object_initializer_ptr = &m_hyp_object_initializer; \

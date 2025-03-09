@@ -16,22 +16,6 @@
 
 namespace hyperion {
 
-template <class T, class T2 = void>
-struct DefaultHypClassFlags;
-
-template <class T>
-struct DefaultHypClassFlags<T, std::enable_if_t<std::is_class_v<T>>>
-{
-    static constexpr EnumFlags<HypClassFlags> value = (IsPODType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
-        | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
-};
-
-template <class T>
-struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
-{
-    static constexpr EnumFlags<HypClassFlags> value = HypClassFlags::ENUM_TYPE;
-};
-
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
 
@@ -39,7 +23,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
     { \
         using Type = cls; \
         \
-        using RegistrationType = ::hyperion::detail::HypStructRegistration<Type, HypClassFlags::STRUCT_TYPE | DefaultHypClassFlags<Type>::value>; \
+        using RegistrationType = ::hyperion::detail::HypStructRegistration<Type>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
@@ -52,7 +36,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
     { \
         using Type = cls; \
         \
-        using RegistrationType = ::hyperion::detail::HypClassRegistration<Type, HypClassFlags::CLASS_TYPE | DefaultHypClassFlags<Type>::value>; \
+        using RegistrationType = ::hyperion::detail::HypClassRegistration<Type>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
@@ -65,7 +49,7 @@ struct DefaultHypClassFlags<T, std::enable_if_t<std::is_enum_v<T>>>
     { \
         using Type = cls; \
         \
-        using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type, DefaultHypClassFlags<Type>::value>; \
+        using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \

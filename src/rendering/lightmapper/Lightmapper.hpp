@@ -170,19 +170,19 @@ public:
 
 struct LightmapJobParams
 {
-    LightmapperConfig                           *config;
+    LightmapperConfig                               *config;
 
-    Handle<Scene>                               scene;
-    Handle<LightmapVolume>                      volume;
+    Handle<Scene>                                   scene;
+    Handle<LightmapVolume>                          volume;
 
-    uint32                                      job_index; // corresponds to element index in the lightmap volume
+    uint32                                          element_index; // corresponds to element index in the lightmap volume
 
-    Span<LightmapElement>                       elements_view;
-    HashMap<Handle<Entity>, LightmapElement *>  *all_elements_map;
+    Span<LightmapSubElement>                        sub_elements_view;
+    HashMap<Handle<Entity>, LightmapSubElement *>   *sub_elements_by_entity;
 
-    LightmapTopLevelAccelerationStructure       *acceleration_structure;
+    LightmapTopLevelAccelerationStructure           *acceleration_structure;
 
-    Array<ILightmapRenderer *>                  renderers;
+    Array<ILightmapRenderer *>                      renderers;
 };
 
 class HYP_API LightmapJob
@@ -212,8 +212,8 @@ public:
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_params.scene.Get(); }
 
-    HYP_FORCE_INLINE Span<LightmapElement> GetElements() const
-        { return m_params.elements_view; }
+    HYP_FORCE_INLINE Span<LightmapSubElement> GetSubElements() const
+        { return m_params.sub_elements_view; }
 
     HYP_FORCE_INLINE uint32 GetTexelIndex() const
         { return m_texel_index; }
@@ -301,7 +301,7 @@ public:
 
 private:
     LightmapJobParams CreateLightmapJobParams(
-        uint32 job_index,
+        uint32 element_index,
         SizeType start_index,
         SizeType end_index,
         LightmapTopLevelAccelerationStructure *acceleration_structure
@@ -332,8 +332,8 @@ private:
     Mutex                                               m_queue_mutex;
     AtomicVar<uint32>                                   m_num_jobs;
 
-    Array<LightmapElement>                              m_lightmap_elements;
-    HashMap<Handle<Entity>, LightmapElement *>          m_all_elements_map;
+    Array<LightmapSubElement>                           m_sub_elements;
+    HashMap<Handle<Entity>, LightmapSubElement *>       m_sub_elements_by_entity;
 };
 
 } // namespace hyperion

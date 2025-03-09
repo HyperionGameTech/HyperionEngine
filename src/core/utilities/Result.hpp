@@ -18,6 +18,10 @@
 namespace hyperion {
 namespace utilities {
 
+// @TODO: Global, thread-local Stack<T> of IError*.
+// Will be needed to change Result to hold ptr to IError.
+// This is necessary for C# interop with Result.
+
 HYP_STRUCT()
 class IError
 {

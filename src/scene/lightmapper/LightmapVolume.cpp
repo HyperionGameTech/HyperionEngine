@@ -2,7 +2,11 @@
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
+#include <rendering/RenderTexture.hpp>
+
 #include <core/logging/Logger.hpp>
+
+#include <core/threading/Threads.hpp>
 
 #include <Engine.hpp>
 
@@ -22,9 +26,48 @@ LightmapVolume::~LightmapVolume()
 {
 }
 
-void LightmapVolume::SetAABB(const BoundingBox &aabb)
+bool LightmapVolume::AddElement(LightmapElement element)
 {
-    HYP_NOT_IMPLEMENTED();
+    Threads::AssertOnThread(g_game_thread);
+
+    if (IsInitCalled()) {
+        for (LightmapElementTextureEntry &entry : element.entries) {
+            InitObject(entry.texture);
+        }
+    }
+
+    if (element.index == ~0u) {
+        element.index = uint32(m_elements.Size());
+
+        m_elements.PushBack(std::move(element));
+
+        return true;
+    }
+
+    const uint32 index = element.index;
+
+    if (index < m_elements.Size()) {
+        if (m_elements[index].IsValid()) {
+            return false; // cannot overwrite existing element at that index.
+        }
+    } else {
+        m_elements.Resize(index + 1);
+    }
+
+    Swap(m_elements[index], element);
+
+    return true;
+}
+
+const LightmapElement *LightmapVolume::GetElement(uint32 index) const
+{
+    Threads::AssertOnThread(g_game_thread);
+
+    if (index >= m_elements.Size()) {
+        return nullptr;
+    }
+
+    return &m_elements[index];
 }
 
 void LightmapVolume::Init()
@@ -38,6 +81,16 @@ void LightmapVolume::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
     }));
+
+    for (LightmapElement &element : m_elements) {
+        if (!element.IsValid()) {
+            continue;
+        }
+
+        for (LightmapElementTextureEntry &entry : element.entries) {
+            InitObject(entry.texture);
+        }
+    }
 
     SetReady(true);
 }

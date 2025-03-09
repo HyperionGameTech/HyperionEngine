@@ -10,7 +10,7 @@ namespace Hyperion
 {
     public class ScriptCompiler
     {
-        private static LogChannel logChannel = new LogChannel("ScriptCompiler");
+        private static LogChannel logChannel = LogChannel.ByName("ScriptCompiler");
 
         private string sourceDirectory;
         private string intermediateDirectory;

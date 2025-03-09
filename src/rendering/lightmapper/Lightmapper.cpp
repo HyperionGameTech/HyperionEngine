@@ -263,11 +263,11 @@ public:
 class LightmapBottomLevelAccelerationStructure final : public ILightmapAccelerationStructure
 {
 public:
-    LightmapBottomLevelAccelerationStructure(const LightmapElement *element, const BVHNode *bvh)
-        : m_element(element),
+    LightmapBottomLevelAccelerationStructure(const LightmapSubElement *sub_element, const BVHNode *bvh)
+        : m_sub_element(sub_element),
           m_root(bvh)
     {
-        AssertThrow(m_element != nullptr);
+        AssertThrow(m_sub_element != nullptr);
         AssertThrow(m_root != nullptr);
     }
 
@@ -275,10 +275,10 @@ public:
     LightmapBottomLevelAccelerationStructure &operator=(const LightmapBottomLevelAccelerationStructure &other)  = delete;
 
     LightmapBottomLevelAccelerationStructure(LightmapBottomLevelAccelerationStructure &&other) noexcept
-        : m_element(other.m_element),
+        : m_sub_element(other.m_sub_element),
           m_root(other.m_root)
     {
-        other.m_element = nullptr;
+        other.m_sub_element = nullptr;
         other.m_root = nullptr;
     }
 
@@ -288,10 +288,10 @@ public:
             return *this;
         }
 
-        m_element = other.m_element;
+        m_sub_element = other.m_sub_element;
         m_root = std::move(other.m_root);
 
-        other.m_element = nullptr;
+        other.m_sub_element = nullptr;
         other.m_root = nullptr;
 
         return *this;
@@ -300,10 +300,10 @@ public:
     virtual ~LightmapBottomLevelAccelerationStructure() override = default;
 
     HYP_FORCE_INLINE const Handle<Entity> &GetEntity() const
-        { return m_element->entity; }
+        { return m_sub_element->entity; }
 
     virtual const Transform &GetTransform() const override
-        { return m_element->transform; }
+        { return m_sub_element->transform; }
 
     virtual LightmapRayTestResults TestRay(const Ray &ray) const override
     {
@@ -311,7 +311,7 @@ public:
 
         LightmapRayTestResults results;
 
-        const Matrix4 &model_matrix = m_element->transform.GetMatrix();
+        const Matrix4 &model_matrix = m_sub_element->transform.GetMatrix();
 
         const Ray local_space_ray = model_matrix.Inverted() * ray;
 
@@ -343,7 +343,7 @@ public:
                 
                 const Triangle &triangle = bvh_node->GetTriangles()[ray_hit.id];
 
-                results.Emplace(ray_hit, m_element->entity, triangle);
+                results.Emplace(ray_hit, m_sub_element->entity, triangle);
             }
         }
 
@@ -354,8 +354,8 @@ public:
         { return m_root; }
 
 private:
-    const LightmapElement   *m_element;
-    const BVHNode           *m_root;
+    const LightmapSubElement    *m_sub_element;
+    const BVHNode               *m_root;
 };
 
 class LightmapTopLevelAccelerationStructure final : public ILightmapAccelerationStructure
@@ -381,9 +381,9 @@ public:
         return results;
     }
 
-    void Add(const LightmapElement *element, const BVHNode *bvh)
+    void Add(const LightmapSubElement *sub_element, const BVHNode *bvh)
     {
-        m_acceleration_structures.EmplaceBack(element, bvh);
+        m_acceleration_structures.EmplaceBack(sub_element, bvh);
     }
 
     void RemoveAll()
@@ -1046,14 +1046,14 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob *job, const Lightmap
 
         AssertThrow(hit.entity.IsValid());
 
-        auto element_it = job->GetParams().all_elements_map->Find(hit.entity);
+        auto it = job->GetParams().sub_elements_by_entity->Find(hit.entity);
 
-        AssertThrow(element_it != job->GetParams().all_elements_map->End());
-        AssertThrow(element_it->second != nullptr);
+        AssertThrow(it != job->GetParams().sub_elements_by_entity->End());
+        AssertThrow(it->second != nullptr);
 
-        const LightmapElement &element = *element_it->second;
+        const LightmapSubElement &sub_element = *it->second;
 
-        const ID<Mesh> mesh_id = element.mesh.GetID();
+        const ID<Mesh> mesh_id = sub_element.mesh.GetID();
 
         const Vec3f barycentric_coords = hit.barycentric_coords;
 
@@ -1063,7 +1063,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob *job, const Lightmap
             + triangle.GetPoint(1).GetTexCoord0() * barycentric_coords.y
             + triangle.GetPoint(2).GetTexCoord0() * barycentric_coords.z;
 
-        const Vec4f color = Vec4f(element.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
+        const Vec4f color = Vec4f(sub_element.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
 
         // @TODO sample textures
 
@@ -1329,7 +1329,7 @@ void LightmapJob::Start()
     {
         if (!m_uv_map.HasValue()) {
             // No elements to process
-            if (!m_params.elements_view) {
+            if (!m_params.sub_elements_view) {
                 m_uv_map = LightmapUVMap { };
 
                 return;
@@ -1357,7 +1357,7 @@ bool LightmapJob::IsCompleted() const
 
 TResult<LightmapUVMap> LightmapJob::BuildUVMap()
 {
-    return LightmapUVBuilder { { m_params.elements_view } }.Build();
+    return LightmapUVBuilder { { m_params.sub_elements_view } }.Build();
 }
 
 void LightmapJob::AddTask(Task<void> &&task)
@@ -1686,7 +1686,7 @@ bool Lightmapper::IsComplete() const
 }
 
 LightmapJobParams Lightmapper::CreateLightmapJobParams(
-    uint32 job_index,
+    uint32 element_index,
     SizeType start_index,
     SizeType end_index,
     LightmapTopLevelAccelerationStructure *acceleration_structure
@@ -1696,9 +1696,9 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
         &m_config,
         m_scene,
         m_volume,
-        job_index,
-        m_lightmap_elements.ToSpan().Slice(start_index, end_index - start_index),
-        &m_all_elements_map,
+        element_index,
+        m_sub_elements.ToSpan().Slice(start_index, end_index - start_index),
+        &m_sub_elements_by_entity,
         acceleration_structure
     };
 
@@ -1722,8 +1722,8 @@ void Lightmapper::PerformLightmapping()
 
     EntityManager &mgr = *m_scene->GetEntityManager();
 
-    m_lightmap_elements.Clear();
-    m_all_elements_map.Clear();
+    m_sub_elements.Clear();
+    m_sub_elements_by_entity.Clear();
 
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
         if (!mesh_component.mesh.IsValid()) {
@@ -1759,7 +1759,7 @@ void Lightmapper::PerformLightmapping()
         Handle<Entity> entity { entity_id };
         AssertThrow(entity.IsValid());
 
-        m_lightmap_elements.PushBack(LightmapElement {
+        m_sub_elements.PushBack(LightmapSubElement {
             entity,
             mesh_component.mesh,
             mesh_component.material,
@@ -1771,48 +1771,48 @@ void Lightmapper::PerformLightmapping()
     AssertThrow(m_acceleration_structure == nullptr);
     m_acceleration_structure = MakeUnique<LightmapTopLevelAccelerationStructure>();
 
-    if (m_lightmap_elements.Empty()) {
+    if (m_sub_elements.Empty()) {
         return;
     }
 
-    for (LightmapElement &element : m_lightmap_elements) {
-        BVHComponent *bvh_component = mgr.TryGetComponent<BVHComponent>(element.entity);
+    for (LightmapSubElement &sub_element : m_sub_elements) {
+        BVHComponent *bvh_component = mgr.TryGetComponent<BVHComponent>(sub_element.entity);
 
         if (!bvh_component) {
             // BVHUpdaterSystem will calculate BVH when added
-            mgr.AddComponent<BVHComponent>(element.entity, BVHComponent { });
+            mgr.AddComponent<BVHComponent>(sub_element.entity, BVHComponent { });
 
-            bvh_component = &mgr.GetComponent<BVHComponent>(element.entity);
+            bvh_component = &mgr.GetComponent<BVHComponent>(sub_element.entity);
         }
 
-        m_acceleration_structure->Add(&element, &bvh_component->bvh);
+        m_acceleration_structure->Add(&sub_element, &bvh_component->bvh);
     }
 
-    uint32 job_index = 0;
+    uint32 element_index = 0;
     uint32 num_triangles = 0;
     SizeType start_index = 0;
 
-    for (SizeType index = 0; index < m_lightmap_elements.Size(); index++) {
-        LightmapElement &element = m_lightmap_elements[index];
+    for (SizeType index = 0; index < m_sub_elements.Size(); index++) {
+        LightmapSubElement &sub_element = m_sub_elements[index];
 
-        m_all_elements_map.Set(element.entity, &element);
+        m_sub_elements_by_entity.Set(sub_element.entity, &sub_element);
 
-        if (ideal_triangles_per_job != 0 && num_triangles != 0 && num_triangles + element.mesh->NumIndices() / 3 > ideal_triangles_per_job) {
-            UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(job_index, start_index, index + 1, m_acceleration_structure.Get()));
+        if (ideal_triangles_per_job != 0 && num_triangles != 0 && num_triangles + sub_element.mesh->NumIndices() / 3 > ideal_triangles_per_job) {
+            UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(element_index, start_index, index + 1, m_acceleration_structure.Get()));
 
             start_index = index + 1;
 
             AddJob(std::move(job));
 
-            ++job_index;
+            ++element_index;
             num_triangles = 0;
         }
 
-        num_triangles += element.mesh->NumIndices() / 3;
+        num_triangles += sub_element.mesh->NumIndices() / 3;
     }
 
-    if (start_index < m_lightmap_elements.Size() - 1) {
-        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(job_index, start_index, m_lightmap_elements.Size(), m_acceleration_structure.Get()));
+    if (start_index < m_sub_elements.Size() - 1) {
+        UniquePtr<LightmapJob> job = MakeUnique<LightmapJob>(CreateLightmapJobParams(element_index, start_index, m_sub_elements.Size(), m_acceleration_structure.Get()));
 
         AddJob(std::move(job));
     }
@@ -1841,14 +1841,14 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
 
 void Lightmapper::HandleCompletedJob(LightmapJob *job)
 {
-    HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} elements)", job->GetUUID(), job->GetElements().Size());
+    Threads::AssertOnThread(g_game_thread);
+
+    HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
 
     const LightmapUVMap &uv_map = job->GetUVMap();
 
-    FixedArray<Bitmap<4, float>, 2> bitmaps = {
-        uv_map.ToBitmapRadiance(),
-        uv_map.ToBitmapIrradiance()
-    };
+    Bitmap<4, float> radiance_bitmap = uv_map.ToBitmapRadiance();
+    Bitmap<4, float> irradiance_bitmap = uv_map.ToBitmapIrradiance();
 
     // for (auto &bitmap : bitmaps) {
     //     Bitmap<4, float> bitmap_dilated = bitmap;
@@ -1911,36 +1911,66 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     
     // Temp; write to rgb8 bitmap
     uint32 num = rand() % 150;
-    bitmaps[0].Write("lightmap_" + String::ToString(num) + "_radiance.bmp");
-    bitmaps[1].Write("lightmap_" + String::ToString(num) + "_irradiance.bmp");
+    radiance_bitmap.Write("lightmap_" + String::ToString(num) + "_radiance.bmp");
+    irradiance_bitmap.Write("lightmap_" + String::ToString(num) + "_irradiance.bmp");
 
-    FixedArray<Handle<Texture>, 2> textures;
+    Handle<Texture> irradiance_texture;
+    Handle<Texture> radiance_texture;
+    
+    irradiance_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+        TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
+            InternalFormat::RGBA32F,
+            Vec3u { uv_map.width, uv_map.height, 1 },
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_REPEAT
+        },
+        ByteBuffer(irradiance_bitmap.GetUnpackedFloats().ToByteView())
+    }));
 
-    for (uint32 i = 0; i < 2; i++) {
-        Handle<Texture> texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
-            TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA32F,
-                Vec3u { uv_map.width, uv_map.height, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_REPEAT
-            },
-            ByteBuffer(bitmaps[i].GetUnpackedFloats().ToByteView())
-        }));
+    InitObject(irradiance_texture);
+    
+    radiance_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+        TextureDesc {
+            ImageType::TEXTURE_TYPE_2D,
+            InternalFormat::RGBA32F,
+            Vec3u { uv_map.width, uv_map.height, 1 },
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_REPEAT
+        },
+        ByteBuffer(radiance_bitmap.GetUnpackedFloats().ToByteView())
+    }));
 
-        InitObject(texture);
+    InitObject(radiance_texture);
 
-        textures[i] = std::move(texture);
+    LightmapElement element;
+    element.index = job->GetParams().element_index;
+
+    element.entries.PushBack(LightmapElementTextureEntry {
+        LightmapElementTextureType::RADIANCE,
+        radiance_texture
+    });
+
+    element.entries.PushBack(LightmapElementTextureEntry {
+        LightmapElementTextureType::IRRADIANCE,
+        irradiance_texture
+    });
+
+    if (!job->GetParams().volume->AddElement(std::move(element))) {
+        HYP_LOG(Lightmap, Error, "Failed to add LightmapElement with index {} to LightmapVolume", job->GetParams().element_index);
+
+        return;
     }
 
-    for (LightmapElement &element : job->GetElements()) {
+    for (LightmapSubElement &sub_element : job->GetSubElements()) {
         bool is_new_material = false;
 
-        element.material = element.material.IsValid() ? element.material->Clone() : CreateObject<Material>();
+        sub_element.material = sub_element.material.IsValid() ? sub_element.material->Clone() : CreateObject<Material>();
         is_new_material = true;
 
-        HYP_LOG(Lightmap, Debug, "Setting material #{} on Entity #{}", element.material.GetID().Value(), element.entity.GetID().Value());
+        HYP_LOG(Lightmap, Debug, "Setting material #{} on Entity #{}", sub_element.material.GetID().Value(), sub_element.entity.GetID().Value());
 
         // if (!element.material) {
         //     // @TODO: Set to default material
@@ -1954,20 +1984,19 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
         // }
         
         // temp; not thread safe
-        element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, textures[0]);
-        element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, textures[1]);
+        sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, radiance_texture);
+        sub_element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, irradiance_texture);
 
-
-        m_scene->GetEntityManager()->PushCommand([job_index = job->GetParams().job_index, volume = job->GetParams().volume, element, new_material = (is_new_material ? element.material : Handle<Material>::empty)](EntityManager &mgr, GameCounter::TickUnit)
+        m_scene->GetEntityManager()->PushCommand([element_index = job->GetParams().element_index, volume = job->GetParams().volume, sub_element, new_material = (is_new_material ? sub_element.material : Handle<Material>::empty)](EntityManager &mgr, GameCounter::TickUnit)
         {
-            const Handle<Entity> &entity = element.entity;
+            const Handle<Entity> &entity = sub_element.entity;
 
             if (mgr.HasComponent<LightmapElementComponent>(entity)) {
                 mgr.RemoveComponent<LightmapElementComponent>(entity);
             }
 
             mgr.AddComponent<LightmapElementComponent>(entity, LightmapElementComponent {
-                job_index,
+                element_index,
                 volume->GetUUID(),
                 volume.ToWeak()
             });
@@ -1979,7 +2008,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
                     mesh_component->material = std::move(new_material);
                 } else {
                     mgr.AddComponent<MeshComponent>(entity, MeshComponent {
-                        element.mesh,
+                        sub_element.mesh,
                         new_material
                     });
                 }

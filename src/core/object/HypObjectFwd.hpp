@@ -36,6 +36,8 @@ struct HypObjectHeader;
 template <class T>
 struct HypObjectMemory;
 
+enum class HypClassFlags : uint32;
+
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 
 /*! \brief A base class for all HypObject classes that use memory pooling. */
@@ -241,6 +243,9 @@ struct HypObjectType_Impl<T, std::true_type>
 {
     using Type = T;
 };
+
+template <class T>
+struct HypClassRegistration;
 
 } // namespace detail
 

@@ -127,6 +127,8 @@ public:
 
     void RegisterChannel(LogChannel *channel);
 
+    const LogChannel *FindLogChannel(WeakName name) const;
+
     LogChannel *CreateDynamicLogChannel(Name name, LogChannel *parent_channel = nullptr);
     void DestroyDynamicLogChannel(Name name);
     void DestroyDynamicLogChannel(LogChannel *channel);
@@ -141,7 +143,7 @@ private:
     AtomicVar<uint64>                       m_log_mask;
     FixedArray<LogChannel *, max_channels>  m_log_channels;
     LinkedList<LogChannel>                  m_dynamic_log_channels;
-    Mutex                                   m_dynamic_log_channels_mutex;
+    mutable Mutex                           m_dynamic_log_channels_mutex;
     NotNullPtr<ILoggerOutputStream>         m_output_stream;
 };
 

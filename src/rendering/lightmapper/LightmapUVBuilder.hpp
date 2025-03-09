@@ -23,7 +23,7 @@ class Mesh;
 class Material;
 class Entity;
 
-struct LightmapElement
+struct LightmapSubElement
 {
     Handle<Entity>      entity;
     Handle<Mesh>        mesh;
@@ -34,7 +34,7 @@ struct LightmapElement
 
 struct LightmapUVBuilderParams
 {
-    Span<const LightmapElement> elements;
+    Span<const LightmapSubElement>  sub_elements;
 };
 
 struct LightmapMeshData

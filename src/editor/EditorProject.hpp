@@ -83,6 +83,9 @@ public:
         { return m_asset_registry; }
 
     HYP_METHOD()
+    FilePath GetProjectsDirectory() const;
+
+    HYP_METHOD()
     bool IsSaved() const;
 
     HYP_METHOD()
@@ -91,12 +94,17 @@ public:
     HYP_METHOD()
     Result SaveAs(FilePath filepath);
 
+    HYP_METHOD(Scriptable)
+    Name GetNextDefaultProjectName() const;
+
     static TResult<RC<EditorProject>> Load(const FilePath &filepath);
 
     HYP_METHOD()
     void Close();
 
 private:
+    Name GetNextDefaultProjectName_Impl() const;
+
     UUID                            m_uuid;
 
     Name                            m_name;

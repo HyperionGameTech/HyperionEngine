@@ -124,6 +124,27 @@ Logger::Logger(NotNullPtr<ILoggerOutputStream> output_stream)
 
 Logger::~Logger() = default;
 
+const LogChannel *Logger::FindLogChannel(WeakName name) const
+{
+    for (LogChannel *channel : m_log_channels) {
+        if (!channel) {
+            break;
+        }
+
+        if (channel->GetName() == name) {
+            return channel;
+        }
+    }
+
+    Mutex::Guard guard(m_dynamic_log_channels_mutex);
+
+    for (const LogChannel &channel : m_dynamic_log_channels) {
+        return &channel;
+    }
+
+    return nullptr;
+}
+
 void Logger::RegisterChannel(LogChannel *channel)
 {
     AssertThrow(channel != nullptr);

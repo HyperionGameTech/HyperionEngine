@@ -153,29 +153,39 @@ protected:
     HypClassRegistrationBase(TypeID type_id, HypClass *hyp_class);
 };
 
-template <class T, EnumFlags<HypClassFlags> Flags>
+template <class T>
 struct HypClassRegistration : public HypClassRegistrationBase
 {   
+    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::CLASS_TYPE
+        | (IsPODType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
+        | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
+
     HypClassRegistration(Name name, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, parent_name, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
 
-template <class T, EnumFlags<HypClassFlags> Flags>
+template <class T>
 struct HypStructRegistration : public HypClassRegistrationBase
 {   
+    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::STRUCT_TYPE
+        | (IsPODType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
+        | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
+
     HypStructRegistration(Name name, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, parent_name, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
 
-template <class T, EnumFlags<HypClassFlags> Flags>
+template <class T>
 struct HypEnumRegistration : public HypClassRegistrationBase
-{   
+{
+    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::ENUM_TYPE;
+
     HypEnumRegistration(Name name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, {}, attributes, Flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, {}, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };

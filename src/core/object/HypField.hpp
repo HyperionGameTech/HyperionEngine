@@ -138,7 +138,7 @@ public:
                     }
 
                     if (!target_ref.Is<ThisType>()) {
-                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
+                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeID: {}), but got TypeID: {}",
                             TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
                     }
 
