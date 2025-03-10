@@ -240,12 +240,6 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
 
-    m_current_enabled_render_subsystems_mask = m_next_enabled_render_subsystems_mask;
-
-    for (const RC<RenderSubsystem> &render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER]) {
-        render_subsystem->ComponentRender(frame);
-    }
-
     if (GetUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_RENDER)) {
         m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER].Clear();
 
@@ -271,6 +265,12 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
         }
 
         RemoveUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_RENDER);
+    }
+
+    m_current_enabled_render_subsystems_mask = m_next_enabled_render_subsystems_mask;
+
+    for (const RC<RenderSubsystem> &render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER]) {
+        render_subsystem->ComponentRender(frame);
     }
 
     //if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {

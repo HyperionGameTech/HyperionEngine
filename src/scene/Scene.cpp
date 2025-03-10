@@ -209,6 +209,9 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
 
 void Scene::SetCamera(const Handle<Camera> &camera)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
     m_camera = camera;
 
     if (IsInitCalled()) {

@@ -157,10 +157,6 @@ void EditorCameraController::SetMode(EditorCameraControllerMode mode)
 {
     HYP_SCOPE;
 
-    if (m_mode == mode) {
-        return;
-    }
-
     switch (mode) {
     case EditorCameraControllerMode::INACTIVE:
     case EditorCameraControllerMode::FOCUSED: // fallthrough

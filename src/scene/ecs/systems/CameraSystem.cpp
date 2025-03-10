@@ -25,7 +25,11 @@ void CameraSystem::OnEntityAdded(const Handle<Entity> &entity)
     SystemBase::OnEntityAdded(entity);
 
     CameraComponent &camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
-    InitObject(camera_component.camera);
+
+    if (InitObject(camera_component.camera)) {
+        // @TODO: Temporary solution until m_camera is removed from Scene.
+        GetEntityManager().GetScene()->SetCamera(camera_component.camera);
+    }
 }
 
 void CameraSystem::OnEntityRemoved(ID<Entity> entity)

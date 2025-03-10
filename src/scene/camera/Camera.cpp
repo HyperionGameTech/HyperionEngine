@@ -102,10 +102,6 @@ void CameraController::SetIsMouseLockRequested(bool mouse_lock_requested)
 
     Threads::AssertOnThread(g_game_thread);
 
-    if (mouse_lock_requested == m_mouse_lock_requested) {
-        return;
-    }
-
     m_mouse_lock_requested = mouse_lock_requested;
 }
 
@@ -441,8 +437,9 @@ void Camera::SetTranslation(const Vec3f &translation)
             camera_controller->SetTranslation(translation);
         }
     }
-
+    
     UpdateViewMatrix();
+    UpdateViewProjectionMatrix();
 }
 
 void Camera::SetNextTranslation(const Vec3f &translation)
@@ -469,8 +466,9 @@ void Camera::SetDirection(const Vec3f &direction)
             camera_controller->SetDirection(direction);
         }
     }
-
+    
     UpdateViewMatrix();
+    UpdateViewProjectionMatrix();
 }
 
 void Camera::SetUpVector(const Vec3f &up)
@@ -484,8 +482,9 @@ void Camera::SetUpVector(const Vec3f &up)
             camera_controller->SetUpVector(up);
         }
     }
-
+    
     UpdateViewMatrix();
+    UpdateViewProjectionMatrix();
 }
 
 void Camera::Rotate(const Vec3f &axis, float radians)
@@ -494,11 +493,9 @@ void Camera::Rotate(const Vec3f &axis, float radians)
 
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
-    
-    // m_previous_view_matrix = m_view_mat;
 
-    // UpdateViewMatrix();
-    // UpdateViewProjectionMatrix();
+    UpdateViewMatrix();
+    UpdateViewProjectionMatrix();
 }
 
 void Camera::SetViewMatrix(const Matrix4 &view_mat)

@@ -99,7 +99,7 @@ void SkydomeRenderer::OnRemoved()
 
     Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Remove skydome scene from world"),
-        [scene = std::move(m_virtual_scene)]()
+        [scene = m_virtual_scene]()
         {
             g_engine->GetWorld()->RemoveScene(scene);
         },
@@ -109,7 +109,6 @@ void SkydomeRenderer::OnRemoved()
 
 void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    AssertThrow(m_virtual_scene.IsValid());
     AssertThrow(m_env_probe.IsValid());
 
     if (!m_env_probe->NeedsUpdate()) {

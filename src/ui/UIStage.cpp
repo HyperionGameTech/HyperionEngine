@@ -469,13 +469,15 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 if (it.second.held_time >= 0.05f) {
                     // signal mouse drag
                     if (RC<UIObject> ui_object = it.first.Lock()) {
-                        mouse_drag_event_handler_result |= ui_object->OnMouseDrag(MouseEvent {
+                        UIEventHandlerResult current_result = ui_object->OnMouseDrag(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                             .absolute_position  = mouse_position,
                             .mouse_buttons      = mouse_buttons
                         });
+
+                        mouse_drag_event_handler_result |= current_result;
 
                         if (mouse_drag_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                             break;
@@ -507,13 +509,15 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     if (m_hovered_ui_objects.Contains(ui_object)) {
                         // Already hovered, trigger mouse move event instead
-                        mouse_move_event_handler_result |= ui_object->OnMouseMove(MouseEvent {
+                        UIEventHandlerResult current_result = ui_object->OnMouseMove(MouseEvent {
                             .input_manager      = input_manager,
                             .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                             .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                             .absolute_position  = mouse_position,
                             .mouse_buttons      = mouse_buttons
                         });
+
+                        mouse_move_event_handler_result |= current_result;
 
                         if (mouse_move_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                             break;
@@ -542,13 +546,15 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
-                    mouse_hover_event_handler_result |= ui_object->OnMouseHover(MouseEvent {
+                    UIEventHandlerResult current_result = ui_object->OnMouseHover(MouseEvent {
                         .input_manager      = input_manager,
                         .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                         .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                         .absolute_position  = mouse_position,
                         .mouse_buttons      = mouse_buttons
                     });
+
+                    mouse_hover_event_handler_result |= current_result;
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
@@ -709,13 +715,15 @@ UIEventHandlerResult UIStage::OnInputEvent(
             if (RC<UIObject> ui_object = it.first.Lock()) {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
-                event_handler_result |= ui_object->OnMouseUp(MouseEvent {
+                UIEventHandlerResult current_result = ui_object->OnMouseUp(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
                     .absolute_position  = mouse_position,
                     .mouse_buttons      = it.second.mouse_buttons
                 });
+
+                event_handler_result |= current_result;
             }
         }
 
@@ -747,7 +755,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 //     first_hit = ui_object;
                 // }
 
-                event_handler_result |= ui_object->OnScroll(MouseEvent {
+                UIEventHandlerResult current_result = ui_object->OnScroll(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
                     .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
@@ -755,6 +763,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .mouse_buttons      = event.GetMouseButtons(),
                     .wheel              = Vec2i { wheel_x, wheel_y }
                 });
+
+                event_handler_result |= current_result;
 
                 if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
                     break;
@@ -771,10 +781,12 @@ UIEventHandlerResult UIStage::OnInputEvent(
         RC<UIObject> ui_object = m_focused_object;
 
         while (ui_object != nullptr) {
-            event_handler_result |= ui_object->OnKeyDown(KeyboardEvent {
+            UIEventHandlerResult current_result = ui_object->OnKeyDown(KeyboardEvent {
                 .input_manager  = input_manager,
                 .key_code       = key_code
             });
+
+            event_handler_result |= current_result;
 
             m_keyed_down_objects[key_code].PushBack(ui_object);
 

@@ -147,10 +147,6 @@ void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
 {
     HYP_SCOPE;
     
-    if (m_mode == mode) {
-        return;
-    }
-
     switch (mode) {
     case FirstPersonCameraControllerMode::MOUSE_FREE:
         CameraController::SetIsMouseLockRequested(false);

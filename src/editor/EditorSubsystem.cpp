@@ -897,6 +897,8 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Remove(&ui_image->OnMouseDrag);
         m_delegate_handlers.Add(ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
         {
+            HYP_LOG(Editor, Debug, "Mouse dragged");
+
             // prevent click being triggered on release once mouse has been dragged
             m_should_cancel_next_click = true;
 

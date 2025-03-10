@@ -1173,58 +1173,6 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 #endif
 }
 
-Optional<Vec3f> SampleStreamer::GetWorldRay(const Vec2f &screen_position) const
-{
-    const auto mouse_world = m_scene->GetCamera()->TransformScreenToWorld(screen_position);
-
-    auto ray_direction = mouse_world.Normalized();
-
-    // std::cout << "ray direction: " << ray_direction << "\n";
-
-    Ray ray { m_scene->GetCamera()->GetTranslation(), ray_direction.GetXYZ() };
-    RayTestResults results;
-
-    if (m_scene->GetOctree().TestRay(ray, results)) {
-        // std::cout << "hit with aabb : " << results.Front().hitpoint << "\n";
-        RayTestResults triangle_mesh_results;
-
-        for (const auto &hit : results) {
-            // now ray test each result as triangle mesh to find exact hit point
-            if (auto entity_id = ID<Entity>(hit.id)) {
-                MeshComponent *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity_id);
-                TransformComponent *transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity_id);
-
-                if (mesh_component != nullptr && mesh_component->mesh.IsValid() && transform_component != nullptr) {
-                    // @TODO: generate a BVH instead of using raw mesh data
-                    auto streamed_mesh_data = mesh_component->mesh->GetStreamedMeshData();
-
-                    if (!streamed_mesh_data) {
-                        continue;
-                    }
-
-                    ResourceHandle resource_handle(*streamed_mesh_data);
-
-                    ray.TestTriangleList(
-                        streamed_mesh_data->GetMeshData().vertices,
-                        streamed_mesh_data->GetMeshData().indices,
-                        transform_component->transform,
-                        entity_id.Value(),
-                        triangle_mesh_results
-                    );
-                }
-            }
-        }
-
-        if (!triangle_mesh_results.Empty()) {
-            const auto &mesh_hit = triangle_mesh_results.Front();
-
-            return mesh_hit.hitpoint;
-        }
-    }
-
-    return { };
-}
-
 void SampleStreamer::OnFrameEnd(Frame *frame)
 {
     if (!m_scene || !m_scene->IsReady()) {

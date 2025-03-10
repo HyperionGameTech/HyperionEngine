@@ -28,8 +28,6 @@ public:
     virtual void OnFrameEnd(Frame *frame) override;
 
 private:
-    Optional<Vec3f> GetWorldRay(const Vec2f &screen_position) const;
-
     void HandleCompletedAssetBatch(Name, const RC<AssetBatch> &);
     void HandleCameraMovement(GameCounter::TickUnit delta);
 

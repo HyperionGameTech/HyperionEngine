@@ -71,25 +71,9 @@ void Game::Init_Internal()
         window_size = m_app_context->GetMainWindow()->GetDimensions();
     }
 
-    Handle<Camera> camera = CreateObject<Camera>(
-        70.0f,
-        window_size.x, window_size.y,
-        0.01f, 30000.0f
-    );
-
-    InitObject(camera);
-    // camera->GetRenderResource().EnqueueBind();
-
-    m_scene = CreateObject<Scene>(
-        SceneFlags::FOREGROUND | SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT
-    );
-
-    m_scene->SetName(NAME("Scene_Main"));
-    m_scene->SetCamera(camera);
-
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
-        [this]() -> void
+        [this, window_size]() -> void
         {
             if (m_managed_game_info.HasValue()) {
                 if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
@@ -98,6 +82,21 @@ void Game::Init_Internal()
                     }
                 }
             }
+
+            Handle<Camera> camera = CreateObject<Camera>(
+                70.0f,
+                window_size.x, window_size.y,
+                0.01f, 30000.0f
+            );
+
+            InitObject(camera);
+
+            m_scene = CreateObject<Scene>(
+                SceneFlags::FOREGROUND | SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT
+            );
+
+            m_scene->SetName(NAME("Scene_Main"));
+            m_scene->SetCamera(camera);
 
             m_scene->SetIsAudioListener(true);
 

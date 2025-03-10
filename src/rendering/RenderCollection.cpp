@@ -354,17 +354,39 @@ RenderCollector::RenderCollector(const Handle<Camera> &camera)
 
 RenderCollector::~RenderCollector()
 {
+    HYP_SYNC_RENDER(); // Prevent dangling references to this from render commands
 }
 
 void RenderCollector::SetCamera(const Handle<Camera> &camera)
 {
-    m_camera = camera;
+    struct RENDER_COMMAND(RenderCollector_SetCamera) : renderer::RenderCommand
+    {
+        RenderCollector &render_collector;
+        Handle<Camera>  camera;
 
-    if (InitObject(m_camera)) {
-        m_camera_resource_handle = m_camera->GetRenderResource();
-    } else {
-        m_camera_resource_handle.Reset();
-    }
+        RENDER_COMMAND(RenderCollector_SetCamera)(RenderCollector &render_collector, const Handle<Camera> &camera)
+            : render_collector(render_collector),
+              camera(camera)
+        {
+        }
+
+        virtual RendererResult operator()() override
+        {
+            HYP_SCOPE;
+
+            render_collector.m_camera = camera;
+
+            if (InitObject(render_collector.m_camera)) {
+                render_collector.m_camera_resource_handle = render_collector.m_camera->GetRenderResource();
+            } else {
+                render_collector.m_camera_resource_handle.Reset();
+            }
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    PUSH_RENDER_COMMAND(RenderCollector_SetCamera, *this, camera);
 }
 
 RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
