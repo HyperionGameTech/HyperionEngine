@@ -2241,6 +2241,10 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
 
 void UIObject::SetNodeProxy(NodeProxy node_proxy)
 {
+    if (m_node_proxy == node_proxy) {
+        return;
+    }
+
     if (m_node_proxy.IsValid() && m_node_proxy.GetEntity().IsValid() && m_node_proxy->GetScene() != nullptr) {
         const Handle<Entity> &entity = m_node_proxy->GetEntity();
         const RC<EntityManager> &entity_manager = m_node_proxy->GetScene()->GetEntityManager();

@@ -90,9 +90,9 @@ void GraphicsPipelinePlatformImpl<Platform::VULKAN>::UpdateViewport(
     const Viewport &viewport
 )
 {
-    //if (viewport == this->viewport) {
+    // if (viewport == this->viewport) {
     //    return;
-    //}
+    // }
 
     VkViewport vk_viewport { };
     vk_viewport.x = float(viewport.position.x);
@@ -181,11 +181,13 @@ GraphicsPipeline<Platform::VULKAN>::~GraphicsPipeline()
 template <>
 void GraphicsPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd, Vec2i viewport_offset, Vec2i viewport_extent)
 {
-    Viewport viewport;
-    viewport.position = viewport_offset;
-    viewport.extent = viewport_extent;
+    if (viewport_extent != Vec2i::Zero()) {
+        Viewport viewport;
+        viewport.position = viewport_offset;
+        viewport.extent = viewport_extent;
 
-    m_platform_impl.UpdateViewport(cmd, viewport);
+        m_platform_impl.UpdateViewport(cmd, viewport);
+    }
 
     vkCmdBindPipeline(
         cmd->GetPlatformImpl().command_buffer,

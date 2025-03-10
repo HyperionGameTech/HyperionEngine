@@ -114,7 +114,7 @@ void World::Init()
     m_render_resource->Execute([this]()
     {
         for (const Handle<Scene> &scene : m_scenes) {
-            m_render_resource->GetRenderCollectorContainer().AddScene(scene.Get());
+            m_render_resource->GetRenderCollectorContainer().AddScene(scene.GetID());
         }
     }, /* force_render_thread */ false);
 

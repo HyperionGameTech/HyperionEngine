@@ -991,9 +991,6 @@ private:
             ptr = static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
         }
 
-        // @TODO Notify the system of all entities that have the components it needs
-        // Maybe not necessary, since systems are added at the start
-
         return ptr;
     }
 

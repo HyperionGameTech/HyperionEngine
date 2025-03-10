@@ -62,7 +62,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hyp_class->GetName());
 
-        for (IHypMember &member : hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD)) {
+        for (IHypMember &member : hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY)) {
             if (!member.CanSerialize()) {
                 continue;
             }
@@ -123,19 +123,19 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hyp_class->GetName());
 
         for (const KeyValuePair<ANSIString, FBOMData> &it : in.GetProperties()) {
-            if (const IHypMember *member = hyp_class->GetMember(it.first)) {
-                if (!member->GetAttribute("serialize")) {
+            if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
+                if (!property->GetAttribute("serialize")) {
                     continue;
                 }
 
-                if (!member->CanDeserialize()) {
-                    HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", member->GetName(), hyp_class->GetName());
+                if (!property->CanDeserialize()) {
+                    HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", property->GetName(), hyp_class->GetName());
 
                     continue;
                 }
 
-                if (!member->Deserialize(target_data, it.second)) {
-                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", member->GetName(), hyp_class->GetName()) };
+                if (!property->Deserialize(target_data, it.second)) {
+                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", property->GetName(), hyp_class->GetName()) };
                 }
             }
         }

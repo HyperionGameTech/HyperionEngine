@@ -50,7 +50,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
         HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
 
-        GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+        //GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     } else {
         HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity.GetID().Value(), insert_result.first.message);
     }
@@ -157,7 +157,7 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
         AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
         {
             for (const ID<Entity> &entity_id : entity_ids) {
-                GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+                //GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
             }
         });
     }

@@ -59,6 +59,8 @@ HypProperty HypProperty::MakeHypProperty(const HypField *field)
         field->Deserialize(target, value);
     };
 
+    result.m_original_member = field;
+
     return result;
 }
 
@@ -134,6 +136,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod *getter, const HypMetho
 
             return data;
         };
+        result.m_original_member = getter;
     }
 
     if (has_setter) {
@@ -148,6 +151,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod *getter, const HypMetho
         {
             AssertThrow(setter->Deserialize(target, value));
         };
+        result.m_original_member = setter;
     }
 
     return result;

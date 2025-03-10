@@ -185,7 +185,7 @@
 
   <Type Name="hyperion::Handle&lt;*&gt;">
     <Expand>
-      <CustomListItems>
+      <CustomListItems Condition="ptr != nullptr">
         <Variable Name="pool" InitialValue="&amp;(((hyperion::ObjectContainer&lt;$T1&gt; *)ptr-&gt;container)-&gt;m_pool)" />
         <Variable Name="block_index" InitialValue="0" />
         <Variable Name="current_head" InitialValue="(((hyperion::ObjectContainer&lt;$T1&gt; *)ptr-&gt;container)-&gt;m_pool).m_blocks.m_head" />
@@ -202,6 +202,7 @@
           <Exec>block_index++</Exec>
         </Loop>
       </CustomListItems>
+
     </Expand>
   </Type>
 

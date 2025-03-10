@@ -228,6 +228,8 @@ void EntityManager::Initialize()
                 const Handle<Entity> entity = entities_it->first.Lock();
 
                 if (!entity.IsValid()) {
+                    HYP_LOG(ECS, Warning, "Entity with ID #{} is expired or invalid", entities_it->first.GetID().Value());
+
                     continue;
                 }
 
@@ -352,7 +354,6 @@ bool EntityManager::RemoveEntity(ID<Entity> id)
         }
     }
     
-    HYP_LOG(ECS, Debug, "Remove entity #{} from entity manager {}", id.Value(), (void *)this);
     GetEntityToEntityManagerMap().Remove(id);
 
     m_entities.Erase(entities_it);
@@ -376,10 +377,6 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
     Threads::AssertOnThread(m_owner_thread_mask | other.m_owner_thread_mask);
 
     AssertThrow(entity.IsValid());
-
-    HYP_LOG(ECS, Debug, "Moving Entity #{} from EntityManager {} to {}", entity.GetID().Value(), (void *)this, (void *)&other);
-
-    // Threads::AssertOnThread(m_owner_thread_mask);
 
     const auto entities_it = m_entities.Find(entity);
     AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");

@@ -340,11 +340,15 @@ class HypProperty : public IHypMember
 public:
     friend class HypClass;
 
-    HypProperty() = default;
+    HypProperty()
+        : m_original_member(nullptr)
+    {
+    }
 
     HypProperty(Name name, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_attributes(attributes)
+          m_attributes(attributes),
+          m_original_member(nullptr)
     {
     }
 
@@ -352,7 +356,8 @@ public:
         : m_name(name),
           m_type_id(getter.type_info.value_type_id),
           m_attributes(attributes),
-          m_getter(std::move(getter))
+          m_getter(std::move(getter)),
+          m_original_member(nullptr)
     {
     }
 
@@ -361,7 +366,8 @@ public:
           m_type_id(getter.type_info.value_type_id),
           m_attributes(attributes),
           m_getter(std::move(getter)),
-          m_setter(std::move(setter))
+          m_setter(std::move(setter)),
+          m_original_member(nullptr)
     {
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(m_setter.type_info.value_type_id == m_type_id, "Setter value type id should match property type id");
@@ -373,7 +379,8 @@ public:
         : m_name(name),
           m_attributes(attributes),
           m_getter(HypPropertyGetter(member)),
-          m_setter(HypPropertySetter(member))
+          m_setter(HypPropertySetter(member)),
+          m_original_member(nullptr)
     {
         m_type_id = m_getter.type_info.value_type_id;
     }
@@ -480,6 +487,10 @@ public:
     HYP_FORCE_INLINE void Set(HypData &target, const HypData &value) const
         { m_setter.Invoke(target, value); }
 
+    /*! \brief Get the original member that this property was synthesized from, if applicable. */
+    HYP_FORCE_INLINE const IHypMember *GetOriginalMember() const
+        { return m_original_member; }
+
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
     HYP_API const HypClass *GetHypClass() const;
 
@@ -495,6 +506,8 @@ private:
     HypPropertyGetter       m_getter;
     HypPropertySetter       m_setter;
 
+    // Set when this property is synthesized from a field or method
+    const IHypMember        *m_original_member;
 };
 
 } // namespace hyperion

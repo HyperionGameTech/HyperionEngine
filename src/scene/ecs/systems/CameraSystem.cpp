@@ -26,7 +26,10 @@ void CameraSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     CameraComponent &camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
 
+    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityAdded: CameraComponent added to scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+
     if (InitObject(camera_component.camera)) {
+        HYP_LOG(Camera, Info, "CameraSystem::OnEntityAdded: Set scene {} camera to {}", GetEntityManager().GetScene()->GetName(), camera_component.camera->GetName());
         // @TODO: Temporary solution until m_camera is removed from Scene.
         GetEntityManager().GetScene()->SetCamera(camera_component.camera);
     }
@@ -35,6 +38,8 @@ void CameraSystem::OnEntityAdded(const Handle<Entity> &entity)
 void CameraSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
+
+    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityRemoved: CameraComponent removed from scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity.Value());
 }
 
 void CameraSystem::Process(GameCounter::TickUnit delta)

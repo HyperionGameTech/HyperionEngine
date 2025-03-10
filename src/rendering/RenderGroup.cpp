@@ -674,17 +674,6 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
 
-    if (divided_draw_calls.Size() == 1) {
-        RenderAll<IsIndirect>(
-            frame,
-            pipeline,
-            indirect_renderer,
-            draw_state
-        );
-
-        return;
-    }
-
     // HYP_LOG(Rendering, Debug, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
 
     TaskSystem::GetInstance().ParallelForEach(

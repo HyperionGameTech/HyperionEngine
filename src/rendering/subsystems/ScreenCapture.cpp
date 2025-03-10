@@ -59,6 +59,9 @@ void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
     FinalPass *final_pass = g_engine->GetFinalPass();
     AssertThrow(final_pass != nullptr);
 
+    AssertThrow(m_texture.IsValid());
+    AssertThrow(m_texture->IsReady());
+
     const ImageRef &image_ref = final_pass->GetLastFrameImage();
     AssertThrow(image_ref.IsValid());
 

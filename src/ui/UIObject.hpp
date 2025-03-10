@@ -902,6 +902,8 @@ public:
      *  \return The child UIObject at the specified index. */
     RC<UIObject> GetChildUIObject(int index) const;
 
+    Array<UIObject *> GetChildUIObjects(bool deep) const;
+
     /*! \brief Gets the relevant script component for this UIObject, if one exists.
      *  The script component is the closest script component to this UIObject in the scene hierarchy, starting from the parent and moving up.
      *  \param deep If set to true, will find the closest parent ScriptComponent if none is attached to this UIObject.
@@ -1224,7 +1226,6 @@ protected:
 
     void UpdateMaterial(bool update_children = true);
 
-    Array<UIObject *> GetChildUIObjects(bool deep) const;
     Array<UIObject *> FilterChildUIObjects(ProcRef<bool, UIObject *> predicate, bool deep) const;
 
     virtual void SetStage_Internal(UIStage *stage);

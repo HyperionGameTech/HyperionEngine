@@ -10,13 +10,40 @@ namespace Hyperion
         {
         }
 
-        public abstract bool OnKeyDown(KeyboardEvent evt);
-        public abstract bool OnKeyUp(KeyboardEvent evt);
-        public abstract bool OnMouseDown(MouseEvent evt);
-        public abstract bool OnMouseUp(MouseEvent evt);
-        public abstract bool OnMouseMove(MouseEvent evt);
-        public abstract bool OnMouseDrag(MouseEvent evt);
-        public abstract bool OnClick(MouseEvent evt);
+        public virtual bool OnKeyDown(KeyboardEvent evt)
+        {
+            return this.OnKeyDown_Impl(evt);
+        }
+
+        public virtual bool OnKeyUp(KeyboardEvent evt)
+        {
+            return this.OnKeyUp_Impl(evt);
+        }
+
+        public virtual bool OnMouseDown(MouseEvent evt)
+        {
+            return this.OnMouseDown_Impl(evt);
+        }
+
+        public virtual bool OnMouseUp(MouseEvent evt)
+        {
+            return this.OnMouseUp_Impl(evt);
+        }
+
+        public virtual bool OnMouseMove(MouseEvent evt)
+        {
+            return this.OnMouseMove_Impl(evt);
+        }
+
+        public virtual bool OnMouseDrag(MouseEvent evt)
+        {
+            return this.OnMouseDrag_Impl(evt);
+        }
+
+        public virtual bool OnClick(MouseEvent evt)
+        {
+            return this.OnClick_Impl(evt);
+        }
     }
 
     [HypClassBinding(Name="NullInputHandler")]

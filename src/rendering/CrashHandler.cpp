@@ -23,6 +23,11 @@
 
 namespace hyperion {
 
+CrashHandler::CrashHandler()
+    : m_is_initialized(false)
+{
+}
+
 void CrashHandler::Initialize()
 {
     if (m_is_initialized) {

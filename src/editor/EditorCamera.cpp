@@ -75,6 +75,8 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent &evt)
 
     m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
 
+    HYP_LOG(Camera, Debug, "Mouse down on editor camera");
+
     return true;
 }
 

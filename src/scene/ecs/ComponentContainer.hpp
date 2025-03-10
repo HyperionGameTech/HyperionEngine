@@ -62,31 +62,6 @@ struct ComponentInfo
 
 class ComponentContainerFactoryBase;
 
-struct ComponentTypeIDGeneratorBase
-{
-    static ComponentTypeID NextID()
-    {
-        static IDGenerator generator;
-
-        return generator.NextID();
-    }
-};
-
-template <class Component>
-struct ComponentTypeIDGenerator final : ComponentTypeIDGeneratorBase
-{
-    static ComponentTypeID Next()
-    {
-        static ComponentTypeID id = ComponentTypeIDGeneratorBase::NextID();
-
-        return id;
-    }
-};
-
-template <class Component>
-static ComponentTypeID GetComponentTypeID()
-    { return ComponentTypeIDGenerator<Component>::Next(); }
-
 class HYP_API ComponentContainerBase
 {
 public:

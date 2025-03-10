@@ -21,27 +21,27 @@ namespace hyperion {
 
 #pragma region RenderCollectorContainer
 
-void RenderCollectorContainer::AddScene(const Scene *scene)
+void RenderCollectorContainer::AddScene(ID<Scene> scene_id)
 {
-    AssertThrow(scene != nullptr);
-    AssertThrowMsg(scene->GetCamera().IsValid(), "Cannot acquire RenderCollector for Scene with no Camera attached.");
+    if (!scene_id.IsValid()) {
+        return;
+    }
 
-    const uint32 scene_index = scene->GetID().ToIndex();
-    AssertThrow(scene_index < max_scenes);
+    AssertThrow(scene_id.ToIndex() < max_scenes);
 
-    RenderCollector &render_collector = m_render_collectors_by_id_index[scene_index];
+    RenderCollector &render_collector = m_render_collectors_by_id_index[scene_id.ToIndex()];
 
     const uint32 render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
     m_render_collectors[render_collector_index] = &render_collector;
 }
 
-void RenderCollectorContainer::RemoveScene(ID<Scene> id)
+void RenderCollectorContainer::RemoveScene(ID<Scene> scene_id)
 {
-    AssertThrow(id.IsValid());
+    AssertThrow(scene_id.IsValid());
     
     m_num_render_collectors.Decrement(1u, MemoryOrder::RELEASE);
 
-    RenderCollector &render_collector = m_render_collectors_by_id_index[id.ToIndex()];
+    RenderCollector &render_collector = m_render_collectors_by_id_index[scene_id.ToIndex()];
     render_collector.Reset();
 }
 
@@ -67,7 +67,7 @@ void WorldRenderResource::AddScene(const Handle<Scene> &scene)
     Execute([this, scene_weak = scene.ToWeak()]()
     {
         if (Handle<Scene> scene = scene_weak.Lock()) {
-            m_render_collector_container.AddScene(scene.Get());
+            m_render_collector_container.AddScene(scene.GetID());
 
             m_bound_scenes.PushBack(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
         }

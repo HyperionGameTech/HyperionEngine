@@ -307,7 +307,9 @@ void Node::SetScene(Scene *scene)
                 previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
             } else {
                 // Entity manager null - exiting engine is likely cause here
-                m_entity = Handle<Entity>::empty;
+
+                // Unset the entity
+                m_entity.Reset();
 
 #ifdef HYP_EDITOR
                 if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
@@ -900,7 +902,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
 
 void Node::RefreshEntityTransform()
 {
-    if (m_entity.IsValid() && m_scene->GetEntityManager() != nullptr) {
+    if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         if (BoundingBoxComponent *bounding_box_component = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity)) {
             SetEntityAABB(bounding_box_component->local_aabb);
         } else {

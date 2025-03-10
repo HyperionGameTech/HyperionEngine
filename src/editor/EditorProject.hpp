@@ -58,8 +58,7 @@ public:
 
     /*! \internal For serialization only. */
     HYP_METHOD(Property="Scene", Serialize=true)
-    HYP_FORCE_INLINE void SetScene(const Handle<Scene> &scene)
-        { m_scene = scene; }
+    void SetScene(const Handle<Scene> &scene);
 
     HYP_METHOD(Property="LastSavedTime", Serialize=true)
     HYP_FORCE_INLINE Time GetLastSavedTime() const

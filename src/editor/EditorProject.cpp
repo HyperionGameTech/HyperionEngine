@@ -2,16 +2,8 @@
 
 #include <editor/EditorProject.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMDeserializedObject.hpp>
-
-#include <core/utilities/DeferredScope.hpp>
 
 #include <scene/Scene.hpp>
 
@@ -20,7 +12,19 @@
 
 #include <scene/camera/Camera.hpp>
 
+#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <core/serialization/fbom/FBOMReader.hpp>
+#include <core/serialization/fbom/FBOMDeserializedObject.hpp>
+
+#include <core/utilities/DeferredScope.hpp>
+
+#include <core/logging/Logger.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
+
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorProject::EditorProject()
     : EditorProject(Name::Invalid())
@@ -41,6 +45,7 @@ EditorProject::EditorProject(Name name)
     camera->SetFar(30000.0f);
 
     m_scene = CreateObject<Scene>(nullptr, camera, SceneFlags::FOREGROUND | SceneFlags::HAS_TLAS);
+    InitObject(m_scene);
 
     NodeProxy camera_node = m_scene->GetRoot()->AddChild();
     camera_node->SetName("Camera");
@@ -55,6 +60,13 @@ EditorProject::EditorProject(Name name)
 
 EditorProject::~EditorProject()
 {
+}
+
+void EditorProject::SetScene(const Handle<Scene> &scene)
+{
+    HYP_LOG(Editor, Debug, "Setting scene for project: {} (ID: #{})", scene->GetName(), scene->GetID().Value());
+
+    m_scene = scene;
 }
 
 FilePath EditorProject::GetProjectsDirectory() const

@@ -47,8 +47,8 @@ public:
     uint32 NumRenderCollectors() const
         { return m_num_render_collectors.Get(MemoryOrder::ACQUIRE); }
 
-    void AddScene(const Scene *scene);
-    void RemoveScene(ID<Scene> id);
+    void AddScene(ID<Scene> scene_id);
+    void RemoveScene(ID<Scene> scene_id);
 
     RenderCollector &GetRenderCollectorForScene(ID<Scene> scene_id)
         { return m_render_collectors_by_id_index[scene_id.ToIndex()]; }

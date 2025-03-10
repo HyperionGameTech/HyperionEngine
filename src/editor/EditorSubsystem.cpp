@@ -18,6 +18,7 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/CameraComponent.hpp>
 
 // debugging
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
@@ -515,9 +516,11 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         }
 
         m_camera = m_scene->GetCamera();
-        AssertThrow(InitObject(m_camera));
+        AssertThrowMsg(InitObject(m_camera), "Failed to initialize editor camera for scene %s", *m_scene->GetName());
 
-        //m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
+        // // @TODO: Don't serialize the editor camera controller
+        // m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
+
         m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
 
         m_delegate_handlers.Remove("OnPackageAdded");
@@ -649,13 +652,13 @@ void EditorSubsystem::Initialize()
 
     NewProject();
 
-    // auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject1");
+    /*auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject1");
 
-    // if (!result) {
-    //     HYP_BREAKPOINT;
-    // }
+    if (!result) {
+        HYP_BREAKPOINT;
+    }
 
-    // OpenProject(*result);
+    OpenProject(*result);*/
 
     InitDetailView();
     InitDebugOverlays();
@@ -996,6 +999,8 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Remove(&ui_image->OnMouseDown);
         m_delegate_handlers.Add(ui_image->OnMouseDown.Bind([this, ui_image_weak = ui_image.ToWeak()](const MouseEvent &event)
         {
+            HYP_LOG(Editor, Debug, "Mouse down on scene image");
+
             if (IsHoveringManipulationWidget()) {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }

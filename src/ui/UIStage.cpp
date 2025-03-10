@@ -114,7 +114,8 @@ void UIStage::SetScene(const Handle<Scene> &scene)
         new_scene = CreateObject<Scene>(
             nullptr,
             camera,
-            m_owner_thread_id
+            m_owner_thread_id,
+            SceneFlags::FOREGROUND | SceneFlags::UI
         );
 
         NodeProxy camera_node = new_scene->GetRoot()->AddChild();

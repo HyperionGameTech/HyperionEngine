@@ -283,7 +283,7 @@ RendererResult Instance<Platform::VULKAN>::Initialize(const AppContext &app_cont
 
     VkInstanceCreateInfo create_info { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     create_info.pApplicationInfo = &app_info;
-    create_info.enabledLayerCount   = uint32(validation_layers.Size());
+    create_info.enabledLayerCount = uint32(validation_layers.Size());
     create_info.ppEnabledLayerNames = validation_layers.Data();
     create_info.flags = 0;
 

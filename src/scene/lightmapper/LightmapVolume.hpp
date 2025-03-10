@@ -40,20 +40,20 @@ enum class LightmapElementTextureType : uint32
 HYP_STRUCT()
 struct LightmapElementTextureEntry
 {
-    HYP_FIELD(Serialize=true)
+    HYP_FIELD(Property="TextureType", Serialize=true)
     LightmapElementTextureType  type = LightmapElementTextureType::INVALID;
 
-    HYP_FIELD(Serialize=true)
+    HYP_FIELD(Property="Texture", Serialize=true)
     Handle<Texture>             texture;
 };
 
 HYP_STRUCT()
 struct LightmapElement
 {
-    HYP_FIELD(Serialize=true)
+    HYP_FIELD(Property="Index", Serialize=true)
     uint32                              index = ~0u;
 
-    HYP_FIELD(Serialize=true)
+    HYP_FIELD(Property="Entries", Serialize = true)
     Array<LightmapElementTextureEntry>  entries;
 
     HYP_METHOD()

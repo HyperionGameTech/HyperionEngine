@@ -44,6 +44,7 @@ public:
     HYP_METHOD(Scriptable)
     bool OnClick(const MouseEvent &evt);
 
+protected:
     HYP_METHOD()
     virtual bool OnKeyDown_Impl(const KeyboardEvent &evt) = 0;
 

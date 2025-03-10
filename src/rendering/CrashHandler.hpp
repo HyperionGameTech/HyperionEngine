@@ -12,11 +12,13 @@ namespace hyperion {
 class HYP_API CrashHandler
 {
 public:
+    CrashHandler();
+
     void Initialize();
     void HandleGPUCrash(RendererResult result);
 
 private:
-    bool m_is_initialized = false;
+    bool    m_is_initialized;
 };
 
 } // namespace hyperion
