@@ -4,6 +4,8 @@
 #define HYPERION_VALUE_STORAGE_HPP
 
 #include <core/memory/Memory.hpp>
+
+#include <Constants.hpp>
 #include <Types.hpp>
 
 #include <type_traits>
@@ -11,7 +13,26 @@
 namespace hyperion {
 namespace utilities {
 
-template <class T, SizeType Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
+namespace detail {
+
+template <class T, class T2 = void>
+struct ValueStorageAlignment;
+
+template <class T>
+struct ValueStorageAlignment<T, typename std::enable_if_t<implementation_exists<T>>>
+{
+    static constexpr SizeType value = alignof(std::conditional_t<std::is_void_v<T>, ubyte, T>);
+};
+
+template <class T>
+struct ValueStorageAlignment<T, typename std::enable_if_t<!implementation_exists<T>>>
+{
+    static constexpr SizeType value = 1;
+};
+
+} // namespace detail
+
+template <class T, SizeType Alignment = detail::ValueStorageAlignment<T>::value>
 struct alignas(Alignment) ValueStorage
 {
     static constexpr SizeType alignment = Alignment;
@@ -87,15 +108,20 @@ struct ValueStorage<void>
     ~ValueStorage()                                     = default;
 };
 
-template <class T, SizeType Count, SizeType Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
-struct ValueStorageArray
+template <class T, SizeType Count, SizeType Alignment = detail::ValueStorageAlignment<T>::value, typename T2 = void>
+struct ValueStorageArray;
+
+template <class T, SizeType Count, SizeType Alignment>
+struct ValueStorageArray<T, Count, Alignment, typename std::enable_if_t<implementation_exists<T> && Count != 0>>
 {
-    alignas(Alignment) ValueStorage<T>  data[Count];
+    static constexpr SizeType alignment = detail::ValueStorageAlignment<T>::value;
+
+    alignas(alignment) ValueStorage<T>  data[Count];
     
-    HYP_FORCE_INLINE ValueStorage<T, Alignment> &operator[](SizeType index)
+    HYP_FORCE_INLINE ValueStorage<T, alignment> &operator[](SizeType index)
         { return data[index]; }
     
-    HYP_FORCE_INLINE const ValueStorage<T, Alignment> &operator[](SizeType index) const
+    HYP_FORCE_INLINE const ValueStorage<T, alignment> &operator[](SizeType index) const
         { return data[index]; }
     
     HYP_FORCE_INLINE T *GetPointer()
@@ -118,7 +144,7 @@ struct ValueStorageArray
 };
 
 template <class T, SizeType Alignment>
-struct ValueStorageArray<T, 0, Alignment>
+struct ValueStorageArray<T, 0, Alignment, void>
 {
     ValueStorage<char>  data[1];
     
@@ -137,11 +163,8 @@ struct ValueStorageArray<T, 0, Alignment>
 
 } // namespace utilities
 
-template <class T, SizeType Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
-using ValueStorage = utilities::ValueStorage<T, Alignment>;
-
-template <class T, SizeType Size, SizeType Alignment = std::alignment_of_v<std::conditional_t<std::is_void_v<T>, ubyte, T>>>
-using ValueStorageArray = utilities::ValueStorageArray<T, Size, Alignment>;
+using utilities::ValueStorage;
+using utilities::ValueStorageArray;
 
 } // namespace hyperion
 

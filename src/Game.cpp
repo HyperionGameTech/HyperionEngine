@@ -18,6 +18,7 @@
 
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderScene.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
@@ -33,13 +34,15 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 Game::Game()
-    : m_is_init(false)
+    : m_is_init(false),
+      m_scene_render_resource(nullptr)
 {
 }
 
 Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
-      m_managed_game_info(std::move(managed_game_info))
+      m_managed_game_info(std::move(managed_game_info)),
+      m_scene_render_resource(nullptr)
 {
 }
 
@@ -118,6 +121,37 @@ void Game::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
+    struct RENDER_COMMAND(UpdateGameSceneRenderResource) : public renderer::RenderCommand
+    {
+        Game                                    &game;
+        TResourceHandle<SceneRenderResource>    render_resource_handle;
+
+        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game &game, const TResourceHandle<SceneRenderResource> &render_resource_handle)
+            : game(game),
+              render_resource_handle(render_resource_handle)
+        {
+        }
+
+        virtual ~RENDER_COMMAND(UpdateGameSceneRenderResource)() override = default;
+
+        virtual RendererResult operator()() override
+        {
+            game.m_scene_render_resource_handle = render_resource_handle;
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_scene_render_resource) {
+        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>(m_scene->GetRenderResource()));
+
+        m_scene_render_resource = &m_scene->GetRenderResource();
+    } else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_scene_render_resource != nullptr) {
+        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>());
+
+        m_scene_render_resource = nullptr;
+    }
+
     g_engine->GetScriptingService()->Update();
     
     if (m_ui_stage) {
@@ -157,6 +191,8 @@ void Game::Init()
 void Game::Teardown()
 {
     HYP_SCOPE;
+
+    HYP_SYNC_RENDER(); // prevent dangling references to this
 
     if (m_scene) {
         g_engine->GetWorld()->RemoveScene(m_scene);
@@ -310,12 +346,17 @@ void Game::OnFrameBegin(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    g_engine->GetRenderState()->AdvanceFrameCounter();
-    g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
+    if (!m_scene_render_resource_handle) {
+        return;
+    }
 
-    // temp
-    if (m_scene.IsValid() && m_scene->IsReady()) {
-        g_engine->GetRenderState()->BindCamera(m_scene->GetCamera().Get());
+    SceneRenderResource &scene_render_resource = static_cast<SceneRenderResource &>(*m_scene_render_resource_handle);
+
+    g_engine->GetRenderState()->SetActiveScene(scene_render_resource.GetScene());
+
+    // @FIXME: CameraRenderResource should be held on SceneRenderResource so we don't need to read from the Scene*
+    if (scene_render_resource.GetScene()->GetCamera().IsValid()) {
+        g_engine->GetRenderState()->BindCamera(scene_render_resource.GetScene()->GetCamera().Get());
     }
 }
 
@@ -325,11 +366,17 @@ void Game::OnFrameEnd(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
+    if (!m_scene_render_resource_handle) {
+        return;
+    }
+
+    SceneRenderResource &scene_render_resource = static_cast<SceneRenderResource &>(*m_scene_render_resource_handle);
+
     g_engine->GetRenderState()->UnsetActiveScene();
 
-    // temp
-    if (m_scene.IsValid() && m_scene->IsReady()) {
-        g_engine->GetRenderState()->UnbindCamera(m_scene->GetCamera().Get());
+    // @FIXME: CameraRenderResource should be held on SceneRenderResource so we don't need to read from the Scene*
+    if (scene_render_resource.GetScene()->GetCamera().IsValid()) {
+        g_engine->GetRenderState()->UnbindCamera(scene_render_resource.GetScene()->GetCamera().Get());
     }
 }
 

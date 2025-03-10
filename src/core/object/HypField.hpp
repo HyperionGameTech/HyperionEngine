@@ -203,6 +203,43 @@ public:
     {
         return m_target_type_id;
     }
+
+    virtual bool CanSerialize() const override
+    {
+        return IsValid() && m_serialize_proc.IsValid();
+    }
+
+    virtual bool CanDeserialize() const override
+    {
+        return IsValid() && m_deserialize_proc.IsValid();
+    }
+
+    HYP_FORCE_INLINE bool Serialize(const HypData &target, fbom::FBOMData &out) const
+        { return Serialize(Span<HypData>(&const_cast<HypData &>(target), 1), out); }
+
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const override
+    {
+        if (!CanSerialize()) {
+            return false;
+        }
+
+        if (args.Size() != 1) {
+            return false;
+        }
+
+        out = m_serialize_proc(*args.Data());
+
+        return true;
+    }
+
+    virtual bool Deserialize(HypData &target, const fbom::FBOMData &data) const override
+    {
+        if (!CanDeserialize()) {
+            return false;
+        }
+
+        return bool(m_deserialize_proc(target, data));
+    }
     
     virtual const HypClassAttributeSet &GetAttributes() const override
     {
@@ -231,28 +268,6 @@ public:
 
     HYP_FORCE_INLINE uint32 GetOffset() const
         { return m_offset; }
-
-    HYP_FORCE_INLINE bool CanSerialize() const
-        { return IsValid() && m_serialize_proc.IsValid(); }
-
-    HYP_FORCE_INLINE fbom::FBOMData Serialize(const HypData &target_data) const
-    {
-        AssertThrow(CanSerialize());
-
-        return m_serialize_proc(target_data);
-    }
-
-    HYP_FORCE_INLINE bool CanDeserialize() const
-        { return IsValid() && m_deserialize_proc.IsValid(); }
-
-    HYP_FORCE_INLINE Result Deserialize(HypData &target_data, const fbom::FBOMData &data) const
-    {
-        if (!CanDeserialize()) {
-            return HYP_MAKE_ERROR(Error, "Cannot deserialize field");
-        }
-
-        return m_deserialize_proc(target_data, data);
-    }
 
     HYP_FORCE_INLINE HypData Get(const HypData &target_data) const
     {

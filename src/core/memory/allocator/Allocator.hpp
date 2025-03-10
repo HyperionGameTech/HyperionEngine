@@ -42,8 +42,16 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
         static constexpr AllocationType allocation_type = AT_DYNAMIC;
         static constexpr bool is_dynamic = true;
 
-        T           *buffer;
-        SizeType    capacity;
+        union
+        {
+            T                           *buffer;
+
+#ifdef HYP_DEBUG_MODE // for natvis; do not use these fields.
+            struct { void *buffer; }    dynamic_allocation;
+            ValueStorageArray<T, 0>     storage;
+#endif
+        };
+        SizeType                        capacity;
 
         void Allocate(SizeType count)
         {
@@ -257,7 +265,9 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
             typename DynamicAllocatorType::template Allocation<T>   dynamic_allocation;
 
+#ifdef HYP_DEBUG_MODE
             T                                                       *buffer; // for natvis
+#endif
         };
 
         bool is_dynamic;

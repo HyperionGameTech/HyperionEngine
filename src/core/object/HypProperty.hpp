@@ -406,6 +406,45 @@ public:
             : m_setter.IsValid() ? m_setter.type_info.target_type_id
             : TypeID::Void();
     }
+
+    virtual bool CanSerialize() const override
+    {
+        return m_getter.IsValid();
+    }
+
+    virtual bool CanDeserialize() const override
+    {
+        return m_setter.IsValid();
+    }
+
+    HYP_FORCE_INLINE bool Serialize(const HypData &target, fbom::FBOMData &out) const
+        { return Serialize(Span<HypData>(&const_cast<HypData &>(target), 1), out); }
+
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const override
+    {
+        if (!CanSerialize()) {
+            return false;
+        }
+
+        if (args.Size() != 1) {
+            return false;
+        }
+
+        out = m_getter.Serialize(*args.Data());
+
+        return true;
+    }
+
+    virtual bool Deserialize(HypData &target, const fbom::FBOMData &serialized_value) const override
+    {
+        if (!CanDeserialize()) {
+            return false;
+        }
+
+        m_setter.Deserialize(target, serialized_value);
+
+        return true;
+    }
     
     virtual const HypClassAttributeSet &GetAttributes() const override
     {
@@ -433,14 +472,6 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE HypData Get(const HypData &target) const
         { return m_getter.Invoke(target); }
 
-    // Serializing getter
-
-    HYP_FORCE_INLINE bool CanSerialize() const
-        { return m_getter.IsValid(); }
-
-    HYP_NODISCARD HYP_FORCE_INLINE fbom::FBOMData Serialize(const HypData &target) const
-        { return m_getter.Serialize(target); }
-
     // setter
 
     HYP_FORCE_INLINE bool CanSet() const
@@ -448,12 +479,6 @@ public:
 
     HYP_FORCE_INLINE void Set(HypData &target, const HypData &value) const
         { m_setter.Invoke(target, value); }
-
-    HYP_FORCE_INLINE bool CanDeserialize() const
-        { return m_setter.IsValid(); }
-
-    HYP_FORCE_INLINE void Deserialize(HypData &target, const fbom::FBOMData &serialized_value) const
-        { m_setter.Deserialize(target, serialized_value); }
 
     /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
     HYP_API const HypClass *GetHypClass() const;

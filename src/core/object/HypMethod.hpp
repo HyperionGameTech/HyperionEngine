@@ -361,6 +361,38 @@ public:
     {
         return m_target_type_id;
     }
+
+    virtual bool CanSerialize() const override
+    {
+        return m_serialize_proc.IsValid();
+    }
+
+    virtual bool CanDeserialize() const override
+    {
+        return m_deserialize_proc.IsValid();
+    }
+
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const override
+    {
+        if (!CanSerialize()) {
+            return false;
+        }
+
+        out = m_serialize_proc(args);
+
+        return true;
+    }
+
+    virtual bool Deserialize(HypData &target, const fbom::FBOMData &data) const override
+    {
+        if (!m_deserialize_proc.IsValid()) {
+            return false;
+        }
+
+        m_deserialize_proc(Span<HypData>(&target, 1), data);
+
+        return true;
+    }
     
     virtual const HypClassAttributeSet &GetAttributes() const override
     {
@@ -396,20 +428,6 @@ public:
     HYP_FORCE_INLINE HypData Invoke(const Array<HypData *> &args) const
     {
         return m_proc(const_cast<HypData **>(args.Data()), args.Size());
-    }
-
-    HYP_FORCE_INLINE fbom::FBOMData Invoke_Serialized(Span<HypData> args) const
-    {
-        AssertThrowMsg(m_serialize_proc.IsValid(), "Method %s does not support serialization", m_name.LookupString());
-
-        return m_serialize_proc(args);
-    }
-
-    HYP_FORCE_INLINE void Invoke_Deserialized(Span<HypData> args, const fbom::FBOMData &data) const
-    {
-        AssertThrowMsg(m_deserialize_proc.IsValid(), "Method %s does not support deserialization", m_name.LookupString());
-
-        m_deserialize_proc(args, data);
     }
 
 private:

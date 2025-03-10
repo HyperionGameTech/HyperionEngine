@@ -112,11 +112,11 @@ public:
     HYP_FORCE_INLINE EnumFlags<SceneFlags> GetFlags() const
         { return m_flags; }
 
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
 
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
@@ -150,13 +150,11 @@ public:
      *  The Scene must have had Init() called on it before calling this.
      */
     bool CreateTLAS();
-
+    
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
     HYP_FORCE_INLINE const NodeProxy &GetRoot() const
         { return m_root_node_proxy; }
 
-    /*! \brief Set the root node of this Scene, discarding the current.
-     *  \internal For internal use only. Should not be called from user code. */
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
     void SetRoot(const NodeProxy &root);
 
@@ -234,11 +232,15 @@ private:
     template <class SystemType>
     void AddSystemIfApplicable();
 
+    HYP_FIELD(Property="Name", Serialize=true, Editor=true)
     Name                        m_name;
 
-    ThreadID                    m_owner_thread_id;
-
+    HYP_FIELD(Property="Flags", Serialize=true)
     EnumFlags<SceneFlags>       m_flags;
+
+    NodeProxy                   m_root_node_proxy;
+
+    ThreadID                    m_owner_thread_id;
 
     World                       *m_world;
 
@@ -247,7 +249,6 @@ private:
 
     FogParams                   m_fog_params;
 
-    NodeProxy                   m_root_node_proxy;
     RC<EntityManager>           m_entity_manager;
 
     Octree                      m_octree;

@@ -247,9 +247,9 @@ public:
     HYP_FORCE_INLINE const Array<RC<CameraController>> &GetCameraControllers() const
         { return m_camera_controllers; }
 
+    /*! \internal For serialization only. */
     HYP_METHOD(Property="CameraControllers", Serialize=true)
-    HYP_FORCE_INLINE void SetCameraControllers(const Array<RC<CameraController>> &camera_controllers)
-        { m_camera_controllers = camera_controllers; }
+    void SetCameraControllers(const Array<RC<CameraController>> &camera_controllers);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const RC<CameraController> &GetCameraController() const

@@ -14,25 +14,34 @@
 
     <Expand>
       <Item Name="[Size]">(m_size - m_start_offset)</Item>
-      <Item Name="[Capacity]" Condition="m_allocation.allocation_type == 1">m_allocation.capacity</Item>
-      <Item Name="[Capacity]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">m_allocation.capacity</Item>
-      <Item Name="[Capacity]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">m_allocation.dynamic_allocation.capacity</Item>
+      <!--<Item Name="[Capacity]" Condition="m_allocation.allocation_type == 1">m_allocation.capacity</Item>-->
+      <!--<Item Name="[Capacity]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">m_allocation.capacity</Item>-->
+      <!--<Item Name="[Capacity]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">m_allocation.dynamic_allocation.capacity</Item>-->
       <Item Name="[Dynamic]">(m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic)</Item>
       <Item Name="[StartOffset]">(m_start_offset)</Item>
 
-      <ArrayItems Condition="m_allocation.allocation_type == 1">
-        <Size>(m_size - m_start_offset)</Size>
-        <ValuePointer>(($T1 *)m_allocation.buffer + m_start_offset)</ValuePointer>
-      </ArrayItems>
-      <ArrayItems Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">
-        <Size>(m_size - m_start_offset)</Size>
-        <ValuePointer>(($T1 *)m_allocation.dynamic_allocation.buffer + m_start_offset)</ValuePointer>
-      </ArrayItems>
-      <ArrayItems Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">
-        <Size>(m_size - m_start_offset)</Size>
-        <ValuePointer>((($T1 *)&amp;m_allocation.storage.data[0]) + m_start_offset)</ValuePointer>
-      </ArrayItems>
 
+      <CustomListItems>
+        <Variable Name="idx" InitialValue="0" />
+        
+        <Loop>
+          <Break Condition="idx == (m_size - m_start_offset)" />
+          
+          <If Condition="m_allocation.allocation_type == 1">
+            <Item Name="[{ idx }]">((($T1 *)m_allocation.buffer) + m_start_offset + idx)</Item>
+          </If>
+          
+          <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">
+            <Item Name="[{ idx }]">((($T1 *)&amp;m_allocation.storage.data[0]) + m_start_offset + idx)</Item>
+          </If>
+          
+          <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">
+            <Item Name="[{ idx }]">((($T1 *)m_allocation.dynamic_allocation.buffer) + m_start_offset + idx)</Item>
+          </If>
+        
+          <Exec>idx++</Exec>
+        </Loop>
+      </CustomListItems>
     </Expand>
   </Type>
 
@@ -280,6 +289,17 @@
       <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
 
       <ExpandedItem>($T1 *)(&amp;(s_container->m_data.m_values[index - 1].storage))</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="hyperion::utilities::TypeID">
+    <DisplayString Condition="value == 0">Void</DisplayString>
+    <DisplayString Condition="value != 0">{{ Value={value} }}</DisplayString>
+
+    <Expand>
+      <Item Name="[Value]">value</Item>
+      <Item Name="[Flags]">value &amp; 3</Item>
+      <Item Name="[DynamicType]">bool((value &amp; 3) &amp; 1)</Item>
     </Expand>
   </Type>
 

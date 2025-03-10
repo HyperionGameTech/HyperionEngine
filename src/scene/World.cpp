@@ -266,7 +266,7 @@ void World::Update(GameCounter::TickUnit delta)
     m_game_state.game_time += delta;
 }
 
-Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
+Subsystem *World::AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem)
 {
     HYP_SCOPE;
 
@@ -285,7 +285,7 @@ Subsystem *World::AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem)
     const auto it = m_subsystems.Find(type_id);
     AssertThrowMsg(it == m_subsystems.End(), "Subsystem already exists in World");
 
-    auto insert_result = m_subsystems.Set(type_id, std::move(subsystem));
+    auto insert_result = m_subsystems.Set(type_id, subsystem);
 
     // If World is already initialized, initialize the subsystem
     // otherwise, it will be initialized when World::Init() is called

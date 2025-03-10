@@ -688,8 +688,9 @@ void Engine::PreFrameUpdate(Frame *frame)
     RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();
 
     g_safe_deleter->PerformEnqueuedDeletions();
-
+    
     m_render_state->ResetStates(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_ACTIVE_LIGHT);
+    m_render_state->AdvanceFrameCounter();
 }
 
 void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
@@ -709,7 +710,13 @@ void Engine::RenderDeferred(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    m_deferred_renderer->Render(frame, m_render_state->GetActiveScene()->GetEnvironment().Get());
+    SceneRenderResource *scene_render_resource = m_render_state->GetActiveScene();
+
+    if (!scene_render_resource) {
+        return;
+    }
+
+    m_deferred_renderer->Render(frame, scene_render_resource->GetEnvironment().Get());
 }
 
 #pragma endregion Engine

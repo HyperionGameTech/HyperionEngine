@@ -306,6 +306,47 @@ void Camera::Init()
     SetReady(true);
 }
 
+void Camera::SetCameraControllers(const Array<RC<CameraController>> &camera_controllers)
+{
+    HYP_SCOPE;
+
+    if (HasActiveCameraController()) {
+        if (const RC<CameraController> &current_camera_controller = GetCameraController()) {
+            current_camera_controller->OnDeactivated();
+        }
+
+        for (SizeType i = m_camera_controllers.Size(); i > 1; --i) {
+            m_camera_controllers[i]->OnRemoved();
+        }
+
+        m_camera_controllers.Resize(1); // Keep the null camera controller
+    }
+
+    CameraController *active_camera_controller = nullptr;
+
+    for (const RC<CameraController> &camera_controller : camera_controllers) {
+        if (!camera_controller || camera_controller->IsInstanceOf<NullCameraController>()) {
+            continue;
+        }
+
+        camera_controller->OnAdded(this);
+
+        m_camera_controllers.PushBack(camera_controller);
+
+        active_camera_controller = camera_controller.Get();
+    }
+
+    if (active_camera_controller != nullptr) {
+        active_camera_controller->OnActivated();
+
+        UpdateMouseLocked();
+
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+        UpdateViewProjectionMatrix();
+    }
+}
+
 void Camera::AddCameraController(const RC<CameraController> &camera_controller)
 {
     HYP_SCOPE;

@@ -83,6 +83,39 @@ public:
     {
         return TypeID::Void();
     }
+
+    virtual bool CanSerialize() const override
+    {
+        return IsValid() && m_serialize_proc.IsValid();
+    }
+
+    virtual bool CanDeserialize() const override
+    {
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool Serialize(fbom::FBOMData &out) const
+        { return Serialize({}, out); }
+
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const override
+    {
+        if (!CanSerialize()) {
+            return false;
+        }
+
+        if (args.Size() != 0) {
+            return false;
+        }
+
+        out = m_serialize_proc();
+
+        return true;
+    }
+
+    virtual bool Deserialize(HypData &target, const fbom::FBOMData &data) const override
+    {
+        return false;
+    }
     
     virtual const HypClassAttributeSet &GetAttributes() const override
     {
@@ -107,16 +140,6 @@ public:
         return m_name.IsValid()
             && m_type_id != TypeID::Void()
             && m_size != 0;
-    }
-
-    HYP_FORCE_INLINE bool CanSerialize() const
-        { return IsValid() && m_serialize_proc.IsValid(); }
-
-    HYP_FORCE_INLINE fbom::FBOMData Serialize() const
-    {
-        AssertThrow(CanSerialize());
-
-        return m_serialize_proc();
     }
 
     HYP_FORCE_INLINE HypData Get() const

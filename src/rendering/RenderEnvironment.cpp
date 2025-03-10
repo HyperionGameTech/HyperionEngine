@@ -33,7 +33,7 @@ struct RENDER_COMMAND(RemoveAllRenderSubsystems) : renderer::RenderCommand
     {
     }
 
-    virtual RendererResult operator()()
+    virtual RendererResult operator()() override
     {
         RendererResult result;
 

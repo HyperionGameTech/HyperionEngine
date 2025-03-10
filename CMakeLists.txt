@@ -505,12 +505,16 @@ endif()
 
 # if aftermath lib exists on windows, link to it
 if(WIN32)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
         add_definitions(-DHYP_AFTERMATH=1)
 
         # copy the dll to the build directory
-        file(COPY "${CMAKE_SOURCE_DIR}/lib/${CMAKE_PLATFORM_NAME}/${CMAKE_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+        message(STATUS "Aftermath found, linking to it")
+    else()
+        message(WARNING "Aftermath lib not found at ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
     endif()
 endif()
 

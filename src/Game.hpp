@@ -6,9 +6,13 @@
 #include <GameCounter.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/utilities/Optional.hpp>
-#include <system/AppContext.hpp>
+
 #include <core/Defines.hpp>
+
+#include <system/AppContext.hpp>
 
 #include <input/InputManager.hpp>
 
@@ -28,6 +32,7 @@ using dotnet::Assembly;
 
 class Engine;
 class GameThread;
+class SceneRenderResource;
 
 struct ManagedGameInfo
 {
@@ -93,6 +98,9 @@ private:
     Optional<ManagedGameInfo>   m_managed_game_info;
 
     UniquePtr<GameThread>       m_game_thread;
+
+    SceneRenderResource         *m_scene_render_resource;
+    ResourceHandle              m_scene_render_resource_handle;
 };
 
 } // namespace hyperion

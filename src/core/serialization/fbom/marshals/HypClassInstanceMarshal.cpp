@@ -62,20 +62,24 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject &out) c
     {
         HYP_NAMED_SCOPE_FMT("Serializing properties for HypClass '{}'", hyp_class->GetName());
 
-        for (HypProperty *property : hyp_class->GetPropertiesInherited()) {
-            AssertThrow(property != nullptr);
-
-            if (!property->CanSerialize()) {
+        for (IHypMember &member : hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD)) {
+            if (!member.CanSerialize()) {
                 continue;
             }
 
-            if (!property->GetAttribute("serialize")) {
+            if (!member.GetAttribute("serialize")) {
                 continue;
             }
 
-            HYP_NAMED_SCOPE_FMT("Serializing property '{}' for HypClass '{}'", property->GetName(), hyp_class->GetName());
+            HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hyp_class->GetName());
 
-            out.SetProperty(property->GetName().LookupString(), property->Serialize(target_data));
+            fbom::FBOMData data;
+
+            if (!member.Serialize(Span<HypData>(&target_data, 1), data)) {
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to serialize member '{}' of HypClass '{}'", member.GetName(), hyp_class->GetName()) };
+            }
+
+            out.SetProperty(member.GetName().LookupString(), std::move(data));
         }
     }
 
@@ -119,18 +123,20 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(const FBOMObject &in, c
         HYP_NAMED_SCOPE_FMT("Deserializing properties for HypClass '{}'", hyp_class->GetName());
 
         for (const KeyValuePair<ANSIString, FBOMData> &it : in.GetProperties()) {
-            if (const HypProperty *property = hyp_class->GetProperty(it.first)) {
-                if (!property->GetAttribute("serialize")) {
+            if (const IHypMember *member = hyp_class->GetMember(it.first)) {
+                if (!member->GetAttribute("serialize")) {
                     continue;
                 }
 
-                if (!property->CanDeserialize()) {
-                    HYP_NAMED_SCOPE_FMT("Deserializing property '{}' on object, skipping setter for HypClass '{}'", it.first, hyp_class->GetName());
+                if (!member->CanDeserialize()) {
+                    HYP_NAMED_SCOPE_FMT("Deserializing member '{}' on object, skipping setter for HypClass '{}'", member->GetName(), hyp_class->GetName());
 
                     continue;
                 }
 
-                property->Deserialize(target_data, it.second);
+                if (!member->Deserialize(target_data, it.second)) {
+                    return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to deserialize member '{}' of HypClass '{}'", member->GetName(), hyp_class->GetName()) };
+                }
             }
         }
     }

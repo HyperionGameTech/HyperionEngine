@@ -97,71 +97,17 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    struct TestStruct
-    {
-        int a = 0;
-        float b = 0.0f;
-        double c = 0.0;
-        String str = "Hello World";
-
-        bool operator==(const TestStruct &other) const
-        {
-            return a == other.a && b == other.b && c == other.c && str == other.str;
-        }
-
-        bool operator!=(const TestStruct &other) const
-        {
-            return !(*this == other);
-        }
-
-        bool operator<(const TestStruct &other) const
-        {
-            if (a < other.a) {
-                return true;
-            }
-
-            if (a == other.a) {
-                if (b < other.b) {
-                    return true;
-                }
-
-                if (b == other.b) {
-                    if (c < other.c) {
-                        return true;
-                    }
-
-                    if (c == other.c) {
-                        return str < other.str;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        HashCode GetHashCode() const
-        {
-            HashCode hc;
-            hc.Add(a);
-            hc.Add(b);
-            hc.Add(c);
-            hc.Add(str);
-
-            return hc;
-        }
-    };
-
-    EditorSubsystem *editor_subsystem = g_engine->GetWorld()->AddSubsystem<EditorSubsystem>(
-        GetAppContext(),
-        GetUIStage()
-    );
-
-    m_scene = editor_subsystem->GetScene();
-
+    RC<EditorSubsystem> editor_subsystem = MakeRefCountedPtr<EditorSubsystem>(GetAppContext(), GetUIStage());
     editor_subsystem->OnProjectOpened.Bind([this](EditorProject *project)
     {
         m_scene = project->GetScene();
     }).Detach();
+
+    g_engine->GetWorld()->AddSubsystem(editor_subsystem);
+
+    m_scene = editor_subsystem->GetScene();
+
+    return;
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(

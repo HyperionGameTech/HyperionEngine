@@ -33,8 +33,9 @@ namespace Hyperion
     public class DynamicHypStruct
     {
         private static readonly Dictionary<Type, DynamicHypStruct> cache = new Dictionary<Type, DynamicHypStruct>();
-        private static readonly ConcurrentDictionary<TypeID, DynamicHypStruct> typeIdCache = new ConcurrentDictionary<TypeID, DynamicHypStruct>();
         private static readonly object cacheLock = new object();
+        private static readonly ConcurrentDictionary<TypeID, DynamicHypStruct> typeIdCache = new ConcurrentDictionary<TypeID, DynamicHypStruct>();
+        private static readonly object typeIdCacheLock = new object();
 
         private HypClass hypClass;
         private Type type;
@@ -46,7 +47,21 @@ namespace Hyperion
             this.type = type;
 
             TypeID typeId = TypeID.ForType(type);
-            typeIdCache[typeId] = this;
+
+            lock (typeIdCacheLock)
+            {
+                if (typeIdCache.ContainsKey(typeId))
+                {
+                    DynamicHypStruct existingDynamicHypStruct = typeIdCache[typeId];
+
+                    hypClass = existingDynamicHypStruct.hypClass;
+
+                    return;
+                }
+
+                // Add this to cache
+                typeIdCache[typeId] = this;
+            }
 
             DestructDynamicHypStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
@@ -59,6 +74,11 @@ namespace Hyperion
             }
 
             hypClass = new HypClass(hypClassPtr);
+
+            lock (cacheLock)
+            {
+                cache[type] = this;
+            }
         }
 
         ~DynamicHypStruct()

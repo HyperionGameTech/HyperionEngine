@@ -82,9 +82,9 @@ Scene::Scene(
     const Handle<Camera> &camera,
     ThreadID owner_thread_id,
     EnumFlags<SceneFlags> flags
-) : m_name(Name::Unique("Scene_")),
-    m_owner_thread_id(owner_thread_id),
+) : m_name(Name::Unique("Scene")),
     m_flags(flags),
+    m_owner_thread_id(owner_thread_id),
     m_world(world),
     m_camera(std::move(camera)),
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),

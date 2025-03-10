@@ -102,7 +102,15 @@ public:
         return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), MakeRefCountedPtr<T>(std::forward<Args>(args)...)));
     }
 
-    Subsystem *AddSubsystem(TypeID type_id, RC<Subsystem> &&subsystem);
+    template <class T>
+    HYP_FORCE_INLINE T *AddSubsystem(const RC<T> &subsystem)
+    {
+        static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
+
+        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), subsystem));
+    }
+
+    Subsystem *AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T *GetSubsystem()

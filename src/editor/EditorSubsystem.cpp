@@ -517,7 +517,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         m_camera = m_scene->GetCamera();
         AssertThrow(InitObject(m_camera));
 
-        m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
+        //m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
         m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
 
         m_delegate_handlers.Remove("OnPackageAdded");
@@ -647,7 +647,15 @@ void EditorSubsystem::Initialize()
 
     InitContentBrowser();
 
-    NewProject();
+    //NewProject();
+
+    auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject1");
+
+    if (!result) {
+        HYP_BREAKPOINT;
+    }
+
+    OpenProject(*result);
 
     InitDetailView();
     InitDebugOverlays();

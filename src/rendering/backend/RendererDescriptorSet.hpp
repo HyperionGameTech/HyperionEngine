@@ -32,20 +32,22 @@ struct ShaderDataOffset
 {
     static_assert(IsPODType<T>, "T must be POD to use with ShaderDataOffset");
 
+    static constexpr uint32 invalid_index = ~0u;
+
     ShaderDataOffset(uint32 index)
         : index(index)
     {
     }
 
     template <class RenderResourceType>
-    ShaderDataOffset(const RenderResourceType *render_resource)
-        : index(render_resource != nullptr ? render_resource->GetBufferIndex() : ~0u)
+    ShaderDataOffset(const RenderResourceType *render_resource, uint32 index_if_null = invalid_index)
+        : index(render_resource != nullptr ? render_resource->GetBufferIndex() : index_if_null)
     {
     }
 
     HYP_FORCE_INLINE operator uint32() const
     {
-        AssertDebugMsg(index != ~0u, "Index was ~0u when converting to uint32");
+        AssertDebugMsg(index != invalid_index, "Index was ~0u when converting to uint32");
 
         return uint32(sizeof(T) * index);
     }

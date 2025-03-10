@@ -38,7 +38,13 @@ HypProperty HypProperty::MakeHypProperty(const HypField *field)
     };
     result.m_getter.serialize_proc = [field](const HypData &target) -> fbom::FBOMData
     {
-        return field->Serialize(target);
+        fbom::FBOMData data;
+
+        if (!field->Serialize(target, data)) {
+            return fbom::FBOMData();
+        }
+
+        return data;
     };
 
     result.m_setter = HypPropertySetter();
@@ -123,7 +129,10 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod *getter, const HypMetho
         };
         result.m_getter.serialize_proc = [getter](const HypData &target) -> fbom::FBOMData
         {
-            return getter->Invoke_Serialized(Span<HypData> { const_cast<HypData *>(&target), 1 });
+            fbom::FBOMData data;
+            AssertThrow(getter->Serialize(Span<HypData> { const_cast<HypData *>(&target), 1 }, data));
+
+            return data;
         };
     }
 
@@ -137,7 +146,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod *getter, const HypMetho
         };
         result.m_setter.deserialize_proc = [setter](HypData &target, const fbom::FBOMData &value) -> void
         {
-            setter->Invoke_Deserialized(Span<HypData> { const_cast<HypData *>(&target), 1 }, value);
+            AssertThrow(setter->Deserialize(target, value));
         };
     }
 

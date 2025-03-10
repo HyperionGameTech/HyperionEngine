@@ -27,7 +27,7 @@ void LightmapSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     if (!lightmap_element_component.volume.IsValid()) {
         if (!AssignVolumeToLightmapElement(lightmap_element_component)) {
-            HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} but no LightmapVolume could be found with that UUID",
+            HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} could not be assigned to a LightmapVolume",
                 lightmap_element_component.volume_uuid);
         }
     }
@@ -50,7 +50,7 @@ void LightmapSystem::Process(GameCounter::TickUnit delta)
 
         if (!lightmap_element_component.volume.IsValid()) {
             if (!AssignVolumeToLightmapElement(lightmap_element_component)) {
-                HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} but no LightmapVolume could be found with that UUID",
+                HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} could not be assigned to a LightmapVolume",
                     lightmap_element_component.volume_uuid);
             }
         }
@@ -66,6 +66,12 @@ bool LightmapSystem::AssignVolumeToLightmapElement(LightmapElementComponent &lig
 
         if (lightmap_volume_component.volume->GetUUID() == lightmap_element_component.volume_uuid) {
             lightmap_element_component.volume = lightmap_volume_component.volume.ToWeak();
+
+            const LightmapElement *lightmap_element = lightmap_volume_component.volume->GetElement(lightmap_element_component.element_index);
+
+            if (!lightmap_element) {
+                return false;
+            }
 
             return true;
         }

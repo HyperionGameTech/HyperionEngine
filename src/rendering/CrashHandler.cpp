@@ -3,6 +3,9 @@
 #include <rendering/CrashHandler.hpp>
 
 #include <core/debug/Debug.hpp>
+
+#include <core/utilities/Format.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -165,7 +168,7 @@ void CrashHandler::Initialize()
 
             Memory::MemCpy(bytes.data(), info, size);
 
-            FileByteWriter writer("shader-" + str + ".nvdbg");
+            FileByteWriter writer(FilePath::Current() / HYP_FORMAT("shader-{}.nvdbg", str.c_str()));
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
         },

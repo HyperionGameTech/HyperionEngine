@@ -228,7 +228,9 @@ public:
     ResourceHandle(IResource &resource)
         : resource(&resource)
     {
-        resource.Claim();
+        if (!resource.IsNull()) {
+            resource.Claim();
+        }
     }
 
     ResourceHandle(const ResourceHandle &other)

@@ -9,6 +9,7 @@
 
 namespace hyperion {
 namespace utilities {
+
 template <SizeType Size, SizeType Alignment = alignof(ubyte)>
 struct alignas(Alignment) UserData
 {
