@@ -359,34 +359,39 @@ RenderCollector::~RenderCollector()
 
 void RenderCollector::SetCamera(const Handle<Camera> &camera)
 {
-    struct RENDER_COMMAND(RenderCollector_SetCamera) : renderer::RenderCommand
+    struct RENDER_COMMAND(RenderCollector_SetCameraResourceHandle) : renderer::RenderCommand
     {
-        RenderCollector &render_collector;
-        Handle<Camera>  camera;
+        RenderCollector                         &render_collector;
+        TResourceHandle<CameraRenderResource>   camera_resource_handle;
 
-        RENDER_COMMAND(RenderCollector_SetCamera)(RenderCollector &render_collector, const Handle<Camera> &camera)
+        RENDER_COMMAND(RenderCollector_SetCameraResourceHandle)(RenderCollector &render_collector, const TResourceHandle<CameraRenderResource> &camera_resource_handle)
             : render_collector(render_collector),
-              camera(camera)
+              camera_resource_handle(camera_resource_handle)
         {
         }
 
+        virtual ~RENDER_COMMAND(RenderCollector_SetCameraResourceHandle)() override = default;
+
         virtual RendererResult operator()() override
         {
-            HYP_SCOPE;
-
-            render_collector.m_camera = camera;
-
-            if (InitObject(render_collector.m_camera)) {
-                render_collector.m_camera_resource_handle = render_collector.m_camera->GetRenderResource();
-            } else {
-                render_collector.m_camera_resource_handle.Reset();
-            }
+            render_collector.m_camera_resource_handle = camera_resource_handle;
 
             HYPERION_RETURN_OK;
         }
     };
 
-    PUSH_RENDER_COMMAND(RenderCollector_SetCamera, *this, camera);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+
+    InitObject(camera);
+    m_camera = camera;
+
+    TResourceHandle<CameraRenderResource> camera_resource_handle;
+
+    if (m_camera.IsValid()) {
+        camera_resource_handle = TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource());
+    }
+
+    PUSH_RENDER_COMMAND(RenderCollector_SetCameraResourceHandle, *this, camera_resource_handle);
 }
 
 RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
@@ -536,28 +541,18 @@ void RenderCollector::ExecuteDrawCalls(
     PushConstantData push_constant
 ) const
 {
-    AssertThrow(m_camera.IsValid());
-    AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer attached");
+    AssertThrow(m_camera_resource_handle);
 
-    ExecuteDrawCalls(frame, m_camera, m_camera->GetFramebuffer(), bucket_bits, cull_data, push_constant);
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
+    const FramebufferRef &framebuffer = camera_render_resource.GetCamera()->GetFramebuffer();
+    AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
+
+    ExecuteDrawCalls(frame, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
-    const FramebufferRef &framebuffer,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
-{
-    AssertThrow(m_camera.IsValid());
-
-    ExecuteDrawCalls(frame, m_camera, framebuffer, bucket_bits, cull_data, push_constant);
-}
-
-void RenderCollector::ExecuteDrawCalls(
-    Frame *frame,
-    const Handle<Camera> &camera,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -572,7 +567,9 @@ void RenderCollector::ExecuteDrawCalls(
     
     AssertThrow(m_draw_collection != nullptr);
 
-    AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
+    AssertThrowMsg(m_camera_resource_handle, "Cannot render with invalid Camera");
+
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
@@ -595,7 +592,7 @@ void RenderCollector::ExecuteDrawCalls(
             framebuffer->BeginCapture(command_buffer, frame_index);
         }
 
-        g_engine->GetRenderState()->BindCamera(camera.Get());
+        g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
 
         for (const auto &it : render_groups_by_attributes) {
             const RenderableAttributeSet &attributes = it.first;
@@ -614,7 +611,7 @@ void RenderCollector::ExecuteDrawCalls(
             }
         }
 
-        g_engine->GetRenderState()->UnbindCamera(camera.Get());
+        g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
 
         if (framebuffer) {
             framebuffer->EndCapture(command_buffer, frame_index);
@@ -638,7 +635,7 @@ void RenderCollector::ExecuteDrawCalls(
             framebuffer->BeginCapture(command_buffer, frame_index);
         }
 
-        g_engine->GetRenderState()->BindCamera(camera.Get());
+        g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
 
         for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
             for (const auto &it : render_groups_by_attributes) {
@@ -665,7 +662,7 @@ void RenderCollector::ExecuteDrawCalls(
             }
         }
 
-        g_engine->GetRenderState()->UnbindCamera(camera.Get());
+        g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
 
         if (framebuffer) {
             framebuffer->EndCapture(command_buffer, frame_index);
