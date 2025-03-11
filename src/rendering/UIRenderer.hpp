@@ -30,7 +30,6 @@ class UIRenderCollector : public RenderCollector
 {
 public:
     UIRenderCollector();
-    UIRenderCollector(const Handle<Camera> &camera);
     UIRenderCollector(const UIRenderCollector &other)                 = delete;
     UIRenderCollector &operator=(const UIRenderCollector &other)      = delete;
     UIRenderCollector(UIRenderCollector &&other) noexcept             = default;

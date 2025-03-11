@@ -302,11 +302,6 @@ UIRenderCollector::UIRenderCollector()
 {
 }
 
-UIRenderCollector::UIRenderCollector(const Handle<Camera> &camera)
-    : RenderCollector(camera)
-{
-}
-
 UIRenderCollector::~UIRenderCollector() = default;
 
 void UIRenderCollector::ResetOrdering()

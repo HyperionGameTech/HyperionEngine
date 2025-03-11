@@ -511,9 +511,9 @@ static HYP_FORCE_INLINE void RenderAll(
         return;
     }
 
-    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResource> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -551,10 +551,10 @@ static HYP_FORCE_INLINE void RenderAll(
             frame->GetCommandBuffer(),
             pipeline,
             {
-                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources ? light_render_resources->GetBufferIndex() : 0) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource ? light_render_resource->GetBufferIndex() : 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
             },
             scene_descriptor_set_index
@@ -670,9 +670,9 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
 
-    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResource> &light_render_resources = g_engine->GetRenderState()->GetActiveLight();
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
 
     if (divided_draw_calls.Size() == 1) {
         RenderAll<IsIndirect>(
@@ -716,10 +716,10 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         secondary,
                         pipeline,
                         {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resources) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resources) },
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resources ? light_render_resources->GetBufferIndex() : 0) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource ? light_render_resource->GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
                         },
                         scene_descriptor_set_index

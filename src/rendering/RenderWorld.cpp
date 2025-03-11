@@ -30,13 +30,6 @@ void RenderCollectorContainer::AddScene(const Scene *scene)
     AssertThrow(scene_index < max_scenes);
 
     RenderCollector &render_collector = m_render_collectors_by_id_index[scene_index];
-    render_collector.SetCamera(scene->GetCamera());
-
-    if (scene->IsForegroundScene()) {
-        render_collector.SetRenderEnvironment(scene->GetRenderResource().GetEnvironment());
-    } else {
-        render_collector.SetRenderEnvironment(WeakHandle<RenderEnvironment> { });
-    }
 
     const uint32 render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
     m_render_collectors[render_collector_index] = &render_collector;
@@ -49,8 +42,6 @@ void RenderCollectorContainer::RemoveScene(ID<Scene> id)
     m_num_render_collectors.Decrement(1u, MemoryOrder::RELEASE);
 
     RenderCollector &render_collector = m_render_collectors_by_id_index[id.ToIndex()];
-    render_collector.SetCamera(Handle<Camera>::empty);
-    render_collector.SetRenderEnvironment(WeakHandle<RenderEnvironment> { });
     render_collector.Reset();
 }
 
@@ -120,7 +111,6 @@ void WorldRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
-    m_bound_cameras.Clear();
     m_bound_scenes.Clear();
 }
 
@@ -140,15 +130,15 @@ void WorldRenderResource::PreRender(renderer::Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
+    // const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
 
-    for (uint32 i = 0; i < num_render_collectors; i++) {
-        RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
+    // for (uint32 i = 0; i < num_render_collectors; i++) {
+    //     RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
 
-        if (const Handle<Camera> &camera = render_collector->GetCamera()) {
-            m_bound_cameras.PushBack(TResourceHandle<CameraRenderResource>(camera->GetRenderResource()));
-        }
-    }
+    //     if (const Handle<Camera> &camera = render_collector->GetCamera()) {
+    //         m_bound_cameras.PushBack(TResourceHandle<CameraRenderResource>(camera->GetRenderResource()));
+    //     }
+    // }
 }
 
 void WorldRenderResource::PostRender(renderer::Frame *frame)
@@ -156,8 +146,6 @@ void WorldRenderResource::PostRender(renderer::Frame *frame)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
-
-    m_bound_cameras.Clear();
 }
 
 void WorldRenderResource::Render(renderer::Frame *frame)
@@ -166,14 +154,8 @@ void WorldRenderResource::Render(renderer::Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
-
-    for (uint32 i = 0; i < num_render_collectors; i++) {
-        RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
-
-        if (const WeakHandle<RenderEnvironment> &render_environment = render_collector->GetRenderEnvironment()) {
-            render_environment.GetUnsafe()->RenderSubsystems(frame);
-        }
+    for (TResourceHandle<SceneRenderResource> &scene_resource_handle : m_bound_scenes) {
+        scene_resource_handle->GetEnvironment()->RenderSubsystems(frame);
     }
 }
 

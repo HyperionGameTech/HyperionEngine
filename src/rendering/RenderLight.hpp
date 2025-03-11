@@ -102,7 +102,7 @@ private:
     Light                                   *m_light;
     Bitset                                  m_visibility_bits;
     Handle<Material>                        m_material;
-    TResourceHandle<MaterialRenderResource> m_material_render_resources_handle;
+    TResourceHandle<MaterialRenderResource> m_material_render_resource_handle;
     LightShaderData                         m_buffer_data;
 };
 

@@ -210,7 +210,7 @@ public:
     void BindLight(Light *light);
     void UnbindLight(Light *light);
 
-    void SetActiveLight(LightRenderResource &light_render_resources);
+    void SetActiveLight(LightRenderResource &light_render_resource);
 
     HYP_FORCE_INLINE void UnsetActiveLight()
     {

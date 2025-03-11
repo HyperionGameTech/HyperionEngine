@@ -148,7 +148,6 @@ void Scene::Init()
     }));
 
     InitObject(m_camera);
-    m_render_collector.SetCamera(m_camera);
 
     m_entity_manager->Initialize();
 
@@ -216,8 +215,6 @@ void Scene::SetCamera(const Handle<Camera> &camera)
 
     if (IsInitCalled()) {
         InitObject(m_camera);
-
-        m_render_collector.SetCamera(m_camera);
     }
 }
 

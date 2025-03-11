@@ -144,9 +144,9 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     Result result;
 
-    m_asset_registry->ForEachPackage([&](const Handle<AssetPackage> &package)
+    m_asset_registry->ForEachPackage([&CreateAssetPackageDirectory, &filepath, &result](const Handle<AssetPackage> &package)
     {
-        if (Result package_result = CreateAssetPackageDirectory(m_filepath, package); package_result.HasError()) {
+        if (Result package_result = CreateAssetPackageDirectory(filepath, package); package_result.HasError()) {
             result = package_result;
 
             return IterationResult::STOP;

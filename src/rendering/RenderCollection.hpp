@@ -44,7 +44,6 @@ class Scene;
 class Camera;
 class Entity;
 class RenderGroup;
-class RenderEnvironment;
 class CameraRenderResource;
 
 using renderer::PushConstantData;
@@ -91,30 +90,17 @@ public:
     };
 
     RenderCollector();
-    RenderCollector(const Handle<Camera> &camera);
     RenderCollector(const RenderCollector &other)                 = delete;
     RenderCollector &operator=(const RenderCollector &other)      = delete;
     RenderCollector(RenderCollector &&other) noexcept             = default;
     RenderCollector &operator=(RenderCollector &&other) noexcept  = default;
     ~RenderCollector();
 
-    HYP_FORCE_INLINE const WeakHandle<RenderEnvironment> &GetRenderEnvironment() const
-        { return m_render_environment; }
-
-    HYP_FORCE_INLINE void SetRenderEnvironment(const WeakHandle<RenderEnvironment> &render_environment)
-        { m_render_environment = render_environment; }
-
-    HYP_FORCE_INLINE const RC<EntityDrawCollection> &GetEntityCollection() const
-        { return m_draw_collection; }
-
     /*! \brief Pushes an entity to the RenderCollector.
      *  \param entity The entity the proxy is used for
      *  \param proxy A RenderProxy associated with the entity
      */
-    void PushEntityToRender(
-        ID<Entity> entity,
-        const RenderProxy &proxy
-    );
+    void PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy);
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
@@ -150,7 +136,6 @@ public:
     void Reset();
 
 protected:
-    WeakHandle<RenderEnvironment>   m_render_environment;
     RC<EntityDrawCollection>        m_draw_collection;
 };
 

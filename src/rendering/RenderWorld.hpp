@@ -101,10 +101,9 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
 private:
-    World                                           *m_world;
-    Array<TResourceHandle<CameraRenderResource>>   m_bound_cameras;
-    Array<TResourceHandle<SceneRenderResource>>    m_bound_scenes;
-    RenderCollectorContainer                        m_render_collector_container;
+    World                                       *m_world;
+    Array<TResourceHandle<SceneRenderResource>> m_bound_scenes;
+    RenderCollectorContainer                    m_render_collector_container;
 };
 
 template <>

@@ -57,10 +57,10 @@ void RenderState::Init()
 
     Threads::AssertOnThread(g_render_thread);
 
-    SceneRenderResource *scene_render_resources = &scene->GetRenderResource();
+    SceneRenderResource *scene_render_resource = &scene->GetRenderResource();
 
     for (auto it = scene_bindings.Begin(); it != scene_bindings.End();) {
-        if ((*it) == scene_render_resources) {
+        if ((*it) == scene_render_resource) {
             it = scene_bindings.Erase(it);
 
             // Stop iterating at first match
@@ -89,10 +89,10 @@ void RenderState::UnbindCamera(Camera *camera)
 
     Threads::AssertOnThread(g_render_thread);
 
-    CameraRenderResource *camera_render_resources = &camera->GetRenderResource();
+    CameraRenderResource *camera_render_resource = &camera->GetRenderResource();
 
     for (auto it = camera_bindings.Begin(); it != camera_bindings.End();) {
-        if ((*it) == camera_render_resources) {
+        if ((*it) == camera_render_resource) {
             it = camera_bindings.Erase(it);
 
             // Stop iterating at first match
@@ -165,11 +165,11 @@ const TResourceHandle<LightRenderResource> &RenderState::GetActiveLight() const
         : empty;
 }
 
-void RenderState::SetActiveLight(LightRenderResource &light_render_resources)
+void RenderState::SetActiveLight(LightRenderResource &light_render_resource)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    light_bindings.Push(TResourceHandle<LightRenderResource>(light_render_resources));
+    light_bindings.Push(TResourceHandle<LightRenderResource>(light_render_resource));
 }
 
 void RenderState::BindEnvProbe(EnvProbeType type, const Handle<EnvProbe> &probe)

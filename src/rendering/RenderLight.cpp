@@ -62,7 +62,7 @@ LightRenderResource::LightRenderResource(LightRenderResource &&other) noexcept
       m_light(other.m_light),
       m_visibility_bits(std::move(other.m_visibility_bits)),
       m_material(std::move(other.m_material)),
-      m_material_render_resources_handle(std::move(other.m_material_render_resources_handle)),
+      m_material_render_resource_handle(std::move(other.m_material_render_resource_handle)),
       m_buffer_data(std::move(other.m_buffer_data))
 {
     other.m_light = nullptr;
@@ -107,8 +107,8 @@ void LightRenderResource::UpdateBufferData()
     HYP_SCOPE;
 
     // override material buffer index
-    m_buffer_data.material_index = m_material_render_resources_handle
-        ? m_material_render_resources_handle->GetBufferIndex()
+    m_buffer_data.material_index = m_material_render_resource_handle
+        ? m_material_render_resource_handle->GetBufferIndex()
         : ~0u;
 
     // GetGPUBufferHolder()->Set(m_buffer_index, m_buffer_data);
@@ -127,9 +127,9 @@ void LightRenderResource::SetMaterial(const Handle<Material> &material)
         m_material = material;
 
         if (m_material.IsValid()) {
-            m_material_render_resources_handle = TResourceHandle<MaterialRenderResource>(m_material->GetRenderResource());
+            m_material_render_resource_handle = TResourceHandle<MaterialRenderResource>(m_material->GetRenderResource());
         } else {
-            m_material_render_resources_handle = TResourceHandle<MaterialRenderResource>();
+            m_material_render_resource_handle = TResourceHandle<MaterialRenderResource>();
         }
 
         if (IsInitialized()) {

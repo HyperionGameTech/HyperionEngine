@@ -166,7 +166,7 @@ Mesh::~Mesh()
     if (IsInitCalled()) {
         SetReady(false);
 
-        m_always_claimed_render_resources_handle.Reset();
+        m_always_claimed_render_resource_handle.Reset();
 
         if (m_render_resource != nullptr) {
             FreeResource(m_render_resource);
@@ -322,12 +322,12 @@ void Mesh::SetPersistentRenderResourceEnabled(bool enabled)
 {
     AssertIsInitCalled();
 
-    HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resources_handle");
+    HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resource_handle");
 
     if (enabled) {
-        m_always_claimed_render_resources_handle = ResourceHandle(*m_render_resource);
+        m_always_claimed_render_resource_handle = ResourceHandle(*m_render_resource);
     } else {
-        m_always_claimed_render_resources_handle.Reset();
+        m_always_claimed_render_resource_handle.Reset();
     }
 }
 
