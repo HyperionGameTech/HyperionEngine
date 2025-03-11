@@ -13,6 +13,8 @@
 
 #include <scene/Material.hpp>
 
+#include <rendering/RenderTexture.hpp>
+
 #include <rendering/backend/RendererShader.hpp>
 
 #include <HyperionEngine.hpp>
@@ -64,18 +66,18 @@ public:
         uint32 texture_keys[Material::max_textures];
         Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
-        // for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
-        //     const Material::TextureKey key = in_object.GetTextures().KeyAt(i);
-        //     const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
+        for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
+            const MaterialTextureKey key = in_object.GetTextures().KeyAt(i);
+            const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
 
-        //     if (value) {
-        //         if (FBOMResult err = out.AddChild(*value)) {
-        //             return err;
-        //         }
+            if (value) {
+                if (FBOMResult err = out.AddChild(*value, FBOMObjectSerializeFlags::EXTERNAL)) {
+                    return err;
+                }
 
-        //         texture_keys[texture_index++] = uint32(key);
-        //     }
-        // }
+                texture_keys[texture_index++] = uint32(key);
+            }
+        }
 
         if (const ShaderRef &shader = in_object.GetShader()) {
             if (shader.IsValid()) {

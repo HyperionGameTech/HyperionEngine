@@ -147,9 +147,9 @@ void Scene::Init()
         }
     }));
 
-    InitObject(m_camera);
+    m_render_resource = AllocateResource<SceneRenderResource>(this);
 
-    m_entity_manager->Initialize();
+    InitObject(m_camera);
 
     AddSystemIfApplicable<CameraSystem>();
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
@@ -169,7 +169,7 @@ void Scene::Init()
     AddSystemIfApplicable<PhysicsSystem>();
     AddSystemIfApplicable<ScriptSystem>();
 
-    m_render_resource = AllocateResource<SceneRenderResource>(this);
+    m_entity_manager->Initialize();
 
     if (IsForegroundScene()) {
         if (m_flags & SceneFlags::HAS_TLAS) {

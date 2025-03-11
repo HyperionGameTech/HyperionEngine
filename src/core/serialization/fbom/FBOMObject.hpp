@@ -115,6 +115,9 @@ public:
     HYP_FORCE_INLINE const FBOMType &GetType() const
         { return m_object_type; }
 
+    HYP_FORCE_INLINE FlatMap<ANSIString, FBOMData> &GetProperties()
+        { return properties; }
+
     HYP_FORCE_INLINE const FlatMap<ANSIString, FBOMData> &GetProperties() const
         { return properties; }
 

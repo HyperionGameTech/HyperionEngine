@@ -14,7 +14,7 @@ enum class FBOMDataAttributes : uint8
     NONE                = 0x0,
     COMPRESSED          = 0x1,
 
-    RESERVED0           = 0x2,
+    EXT_REF_PLACEHOLDER = 0x2,
     RESERVED1           = 0x4,
     RESERVED2           = 0x8,
     RESERVED3           = 0x10,

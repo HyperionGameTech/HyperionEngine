@@ -314,7 +314,87 @@ public:
     };
 
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
-    using TextureSet = EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>;
+
+    class TextureSet : public EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>
+    {
+    public:
+        TextureSet() = default;
+
+        TextureSet(std::initializer_list<KeyValuePairType> initializer_list)
+            : EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>(initializer_list)
+        {
+        }
+
+        TextureSet(const HashMap<MaterialTextureKey, Handle<Texture>> &textures)
+        {
+            for (const auto &it : textures) {
+                Set(it.first, it.second);
+            }
+        }
+
+        TextureSet(HashMap<MaterialTextureKey, Handle<Texture>> &&textures)
+        {
+            for (auto &it : textures) {
+                Set(it.first, std::move(it.second));
+            }
+        }
+
+        TextureSet(const TextureSet &other)
+            : EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>(other)
+        {
+        }
+
+        TextureSet &operator=(const TextureSet &other)
+        {
+            if (this == &other) {
+                return *this;
+            }
+
+            EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>::operator=(other);
+            return *this;
+        }
+
+        TextureSet(TextureSet &&other) noexcept
+            : EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>(std::move(other))
+        {
+        }
+
+        TextureSet &operator=(TextureSet &&other) noexcept
+        {
+            if (this == &other) {
+                return *this;
+            }
+
+            EnumOptions<MaterialTextureKey, Handle<Texture>, max_textures>::operator=(std::move(other));
+            return *this;
+        }
+
+        ~TextureSet() = default;
+
+        HashMap<MaterialTextureKey, Handle<Texture>> ToHashMap() const
+        {
+            HashMap<MaterialTextureKey, Handle<Texture>> result;
+            result.Reserve(Size());
+
+            for (SizeType index = 0; index < Size(); ++index) {
+                result.Insert(KeyValueAt(index));
+            }
+
+            return result;
+        }
+
+        Array<Handle<Texture>> ToArray() const
+        {
+            Array<Handle<Texture>> result;
+            result.Resize(Size());
+
+            for (SizeType index = 0; index < Size(); ++index) {
+                result[index] = ValueAt(index);
+            }
+
+            return result;
+        }
+    };
 
     /*! \brief Default parameters for a Material. */
     static const ParameterTable &DefaultParameters();

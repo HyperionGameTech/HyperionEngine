@@ -55,8 +55,9 @@ struct HypDataHelper;
 
 enum class FBOMDataFlags
 {
-    NONE        = 0x0,
-    COMPRESSED  = 0x1
+    NONE                = 0x0,
+    COMPRESSED          = 0x1,
+    EXT_REF_PLACEHOLDER = 0x2
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMDataFlags)

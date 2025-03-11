@@ -169,6 +169,11 @@ void FBOMObject::AddChild(FBOMObject &&object)
 
 FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
 {
+    if (IsExternal()) {
+        // Set the EXT_REF_PLACEHOLDER flag so when we iterate properties and children, we can update them
+        attributes |= FBOMDataAttributes::EXT_REF_PLACEHOLDER;
+    }
+
     return writer->Write(out, *this, id, attributes);
 }
 

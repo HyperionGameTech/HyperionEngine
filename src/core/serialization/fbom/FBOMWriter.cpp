@@ -187,6 +187,8 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out, bool write_header)
     return FBOMResult::FBOM_OK;
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter *out)
 {
     if (m_write_stream->m_object_libraries.Any()) {
@@ -284,12 +286,42 @@ void FBOMWriter::AddExternalObjects(FBOMObject &object)
         m_write_stream->AddToObjectLibrary(object);
     }
 
+    Array<Pair<ANSIString, FBOMData>> properties_to_set;
+
+    for (Pair<ANSIString, FBOMData> &it : object.GetProperties()) {
+        if (it.second.IsObject()) {
+            FBOMObject subobject;
+
+            if (FBOMResult err = it.second.ReadObject(subobject)) {
+                continue; // @TODO Return error
+            }
+
+            AddExternalObjects(subobject);
+
+            // Update the property in case it has changed (or any of its descendants have)
+            properties_to_set.EmplaceBack(it.first, FBOMData::FromObject(subobject));
+        }
+    }
+
+    for (Pair<ANSIString, FBOMData> &it : properties_to_set) {
+        object.SetProperty(it.first, std::move(it.second));
+    }
+
+    properties_to_set.Clear();
+
     for (SizeType index = 0; index < object.nodes->Size(); index++) {
         FBOMObject &subobject = object.nodes->Get(index);
+
+        // Debugging
+        if (subobject.GetType().name == "Texture") {
+            HYP_BREAKPOINT;
+        }
 
         AddExternalObjects(subobject);
     }
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
 {
@@ -465,6 +497,10 @@ FBOMResult FBOMWriter::Write(ByteWriter *out, const FBOMObject &object, UniqueID
             if (it.second.IsCompressed()) {
                 attributes |= FBOMDataAttributes::COMPRESSED;
             }
+
+            //if (it.second.GetFlags() & FBOMDataFlags::EXT_REF_PLACEHOLDER) {
+           ///     attributes |= FBOMDataAttributes::EXT_REF_PLACEHOLDER;
+            //}
 
             out->Write<uint8>(FBOM_DEFINE_PROPERTY);
 

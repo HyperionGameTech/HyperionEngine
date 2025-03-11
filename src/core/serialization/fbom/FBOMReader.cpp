@@ -932,6 +932,10 @@ FBOMResult FBOMReader::ReadObject(BufferedReader *reader, FBOMObject &out_object
         return FBOMResult(FBOMResult::FBOM_ERR, "Unknown object location type!");
     }
 
+    if (attributes & FBOMDataAttributes::EXT_REF_PLACEHOLDER) {
+        out_object.SetIsExternal(true);
+    }
+
     // if (unique_id != uint64(object.m_unique_id)) {
     //     DebugLog(
     //         LogType::Warn,
