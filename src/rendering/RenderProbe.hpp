@@ -302,7 +302,10 @@ private:
     Handle<Texture>         m_texture;
     FramebufferRef          m_framebuffer;
     ShaderRef               m_shader;
+    
     Handle<Camera>          m_camera;
+    ResourceHandle          m_camera_resource_handle;
+
     RenderCollector         m_render_collector;
 
     EnvProbeIndex           m_bound_index;

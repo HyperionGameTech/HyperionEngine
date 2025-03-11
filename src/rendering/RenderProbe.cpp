@@ -3,6 +3,7 @@
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
@@ -233,6 +234,7 @@ void EnvProbe::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
         m_render_collector.Reset();
+        m_camera_resource_handle.Reset();
         m_camera.Reset();
         m_texture.Reset();
         m_shader.Reset();
@@ -295,7 +297,7 @@ void EnvProbe::Init()
 
             InitObject(m_camera);
 
-            m_render_collector.SetCamera(m_camera);
+            m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
         }
     }
 
@@ -548,6 +550,8 @@ void EnvProbe::Render(Frame *frame)
     }
 
     BindToIndex(probe_index);
+
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
     
     TResourceHandle<LightRenderResource> *light_render_resources_handle = nullptr;
 
@@ -574,7 +578,7 @@ void EnvProbe::Render(Frame *frame)
         }
 
         g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
-        g_engine->GetRenderState()->BindCamera(m_camera.Get());
+        g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
 
         m_render_collector.CollectDrawCalls(
             frame,
@@ -584,10 +588,11 @@ void EnvProbe::Render(Frame *frame)
 
         m_render_collector.ExecuteDrawCalls(
             frame,
+            camera_render_resource,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
-        g_engine->GetRenderState()->UnbindCamera(m_camera.Get());
+        g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
         g_engine->GetRenderState()->UnsetActiveScene();
 
         if (light_render_resources_handle != nullptr) {

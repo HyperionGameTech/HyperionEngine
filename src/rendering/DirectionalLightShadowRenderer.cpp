@@ -6,6 +6,7 @@
 #include <rendering/Shadows.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderCamera.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
@@ -187,6 +188,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
 ShadowPass::ShadowPass(
     const Handle<Scene> &parent_scene,
+    const ResourceHandle &camera_resource_handle,
     const ShaderRef &shader,
     ShadowMode shadow_mode,
     Vec2u extent, 
@@ -195,6 +197,7 @@ ShadowPass::ShadowPass(
     RerenderShadowsSemaphore *rerender_semaphore
 ) : FullScreenPass(shadow_map_formats[uint32(shadow_mode)], extent),
     m_parent_scene(parent_scene),
+    m_camera_resource_handle(camera_resource_handle),
     m_shadow_mode(shadow_mode),
     m_shadow_map_index(~0u),
     m_render_collector_statics(render_collector_statics),
@@ -362,6 +365,12 @@ void ShadowPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
+    if (!m_camera_resource_handle) {
+        return;
+    }
+
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
     const ImageRef &framebuffer_image = GetFramebuffer()->GetAttachment(0)->GetImage();
 
     if (framebuffer_image == nullptr) {
@@ -386,6 +395,7 @@ void ShadowPass::Render(Frame *frame)
 
             m_render_collector_statics->ExecuteDrawCalls(
                 frame,
+                camera_render_resource,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -411,6 +421,7 @@ void ShadowPass::Render(Frame *frame)
 
             m_render_collector_dynamics->ExecuteDrawCalls(
                 frame,
+                camera_render_resource,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -494,6 +505,8 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Vec2u 
     m_camera->SetName(NAME("DirectionalLightShadowRendererCamera"));
     m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>());
 
+    InitObject(m_camera);
+
     CreateShader();
 }
 
@@ -514,6 +527,7 @@ void DirectionalLightShadowRenderer::Init()
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         GetParent()->GetScene()->HandleFromThis(),
+        ResourceHandle(m_camera->GetRenderResource()),
         m_shader,
         m_shadow_mode,
         m_resolution,
@@ -525,10 +539,6 @@ void DirectionalLightShadowRenderer::Init()
     m_shadow_pass->Create();
 
     m_camera->SetFramebuffer(m_shadow_pass->GetFramebuffer());
-    InitObject(m_camera);
-
-    m_render_collector_statics.SetCamera(m_camera);
-    m_render_collector_dynamics.SetCamera(m_camera);
 }
 
 // called from game thread

@@ -344,54 +344,9 @@ RenderCollector::RenderCollector()
 {
 }
 
-RenderCollector::RenderCollector(const Handle<Camera> &camera)
-    : m_camera(camera)
-{
-    if (InitObject(m_camera)) {
-        m_camera_resource_handle = m_camera->GetRenderResource();
-    }
-}
-
 RenderCollector::~RenderCollector()
 {
     HYP_SYNC_RENDER(); // Prevent dangling references to this from render commands
-}
-
-void RenderCollector::SetCamera(const Handle<Camera> &camera)
-{
-    struct RENDER_COMMAND(RenderCollector_SetCameraResourceHandle) : renderer::RenderCommand
-    {
-        RenderCollector                         &render_collector;
-        TResourceHandle<CameraRenderResource>   camera_resource_handle;
-
-        RENDER_COMMAND(RenderCollector_SetCameraResourceHandle)(RenderCollector &render_collector, const TResourceHandle<CameraRenderResource> &camera_resource_handle)
-            : render_collector(render_collector),
-              camera_resource_handle(camera_resource_handle)
-        {
-        }
-
-        virtual ~RENDER_COMMAND(RenderCollector_SetCameraResourceHandle)() override = default;
-
-        virtual RendererResult operator()() override
-        {
-            render_collector.m_camera_resource_handle = camera_resource_handle;
-
-            HYPERION_RETURN_OK;
-        }
-    };
-
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    InitObject(camera);
-    m_camera = camera;
-
-    TResourceHandle<CameraRenderResource> camera_resource_handle;
-
-    if (m_camera.IsValid()) {
-        camera_resource_handle = TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource());
-    }
-
-    PUSH_RENDER_COMMAND(RenderCollector_SetCameraResourceHandle, *this, camera_resource_handle);
 }
 
 RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
@@ -536,23 +491,21 @@ void RenderCollector::CollectDrawCalls(
 
 void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
+    const CameraRenderResource &camera_render_resource,
     const Bitset &bucket_bits,
     const CullData *cull_data,
     PushConstantData push_constant
 ) const
 {
-    AssertThrow(m_camera_resource_handle);
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
-
     const FramebufferRef &framebuffer = camera_render_resource.GetCamera()->GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, framebuffer, bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, camera_render_resource, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     Frame *frame,
+    const CameraRenderResource &camera_render_resource,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -566,10 +519,6 @@ void RenderCollector::ExecuteDrawCalls(
     static const bool is_indirect_rendering_enabled = renderer::RenderConfig::IsIndirectRenderingEnabled();
     
     AssertThrow(m_draw_collection != nullptr);
-
-    AssertThrowMsg(m_camera_resource_handle, "Cannot render with invalid Camera");
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();

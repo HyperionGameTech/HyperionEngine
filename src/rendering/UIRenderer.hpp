@@ -9,6 +9,8 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/object/HypObject.hpp>
 
 #include <rendering/RenderSubsystem.hpp>
@@ -22,6 +24,7 @@ namespace hyperion {
 
 class UIStage;
 class UIObject;
+class CameraRenderResource;
 
 class UIRenderCollector : public RenderCollector
 {
@@ -36,19 +39,15 @@ public:
 
     void ResetOrdering();
 
-    void PushEntityToRender(
-        ID<Entity> entity,
-        const RenderProxy &proxy,
-        int computed_depth
-    );
+    void PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy, int computed_depth);
 
-    RenderCollector::CollectionResult PushUpdatesToRenderThread(
+    CollectionResult PushUpdatesToRenderThread(
         const FramebufferRef &framebuffer = nullptr,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 
     void CollectDrawCalls(Frame *frame);
-    void ExecuteDrawCalls(Frame *frame) const;
+    void ExecuteDrawCalls(Frame *frame, const CameraRenderResource &camera_render_resource, const FramebufferRef &framebuffer) const;
 
 private:
     Array<Pair<ID<Entity>, int>>    m_proxy_depths;
@@ -83,6 +82,8 @@ private:
     FramebufferRef                              m_framebuffer;
     ShaderRef                                   m_shader;
     UIRenderCollector                           m_render_collector;
+
+    ResourceHandle                              m_camera_resource_handle;
 
     DelegateHandler                             m_on_gbuffer_resolution_changed_handle;
 };

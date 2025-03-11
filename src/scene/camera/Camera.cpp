@@ -420,6 +420,12 @@ bool Camera::RemoveCameraController(const RC<CameraController> &camera_controlle
 
 void Camera::SetFramebuffer(const FramebufferRef &framebuffer)
 {
+    if (m_framebuffer == framebuffer) {
+        return;
+    }
+
+    SafeRelease(std::move(m_framebuffer));
+
     m_framebuffer = framebuffer;
 }
 

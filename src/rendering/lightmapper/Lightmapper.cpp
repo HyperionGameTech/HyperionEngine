@@ -1114,6 +1114,8 @@ private:
     LightmapShadingType     m_shading_type;
 
     Handle<Camera>          m_camera;
+    ResourceHandle          m_camera_resource_handle;
+
     FramebufferRef          m_framebuffer;
     ShaderRef               m_shader;
     RenderCollector         m_render_collector;
@@ -1186,9 +1188,9 @@ void LightmapRasterizer::Create()
         m_camera->SetFramebuffer(m_framebuffer);
 
         InitObject(m_camera);
+        
+        m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
     }
-
-    m_render_collector.SetCamera(m_camera);
 }
 
 void LightmapRasterizer::UpdateRays(Span<const LightmapRay> rays)
@@ -1268,12 +1270,11 @@ void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const Light
     const uint32 frame_index = frame->GetFrameIndex();
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
-    g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
-    g_engine->GetRenderState()->BindCamera(m_camera.Get());
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
 
-    const SceneRenderResource *scene_render_resources = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resources = &g_engine->GetRenderState()->GetActiveCamera();
-    
+    g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
+    g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
+
     // Render the scene from the given texel
 
     m_render_collector.CollectDrawCalls(
@@ -1284,10 +1285,11 @@ void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const Light
 
     m_render_collector.ExecuteDrawCalls(
         frame,
+        camera_render_resource,
         Bitset(1 << BUCKET_OPAQUE)
     );
 
-    g_engine->GetRenderState()->UnbindCamera(m_camera.Get());
+    g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
     g_engine->GetRenderState()->UnsetActiveScene();
 
     m_render_semaphore.Release();

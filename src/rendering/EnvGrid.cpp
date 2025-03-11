@@ -405,21 +405,19 @@ void EnvGrid::Init()
 
     m_shader_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
 
-    {
-        m_camera = CreateObject<Camera>(
-            90.0f,
-            -int(probe_dimensions.x), int(probe_dimensions.y),
-            0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
-        );
-        
-        m_camera->SetName(NAME("EnvGridCamera"));
-        m_camera->SetTranslation(m_aabb.GetCenter());
-        m_camera->SetFramebuffer(m_framebuffer);
+    m_camera = CreateObject<Camera>(
+        90.0f,
+        -int(probe_dimensions.x), int(probe_dimensions.y),
+        0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
+    );
+    
+    m_camera->SetName(NAME("EnvGridCamera"));
+    m_camera->SetTranslation(m_aabb.GetCenter());
+    m_camera->SetFramebuffer(m_framebuffer);
 
-        InitObject(m_camera);
+    InitObject(m_camera);
 
-        m_render_collector.SetCamera(m_camera);
-    }
+    m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
 }
 
 // called from game thread
@@ -432,6 +430,7 @@ void EnvGrid::OnRemoved()
 {
     HYP_SCOPE;
 
+    m_camera_resource_handle.Reset();
     m_camera.Reset();
     m_render_collector.Reset();
     m_ambient_shader.Reset();
@@ -1058,16 +1057,18 @@ void EnvGrid::RenderEnvProbe(
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
     // Bind a directional light
-    TResourceHandle<LightRenderResource> *light_render_resources_handle = nullptr;
+    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     {
         auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
 
         if (directional_lights.Any()) {
-            light_render_resources_handle = &directional_lights[0];
+            light_render_resource_handle = &directional_lights[0];
 
-            g_engine->GetRenderState()->SetActiveLight(**light_render_resources_handle);
+            g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);
         }
     }
 
@@ -1082,6 +1083,7 @@ void EnvGrid::RenderEnvProbe(
 
     m_render_collector.ExecuteDrawCalls(
         frame,
+        camera_render_resource,
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr
     );
@@ -1089,7 +1091,7 @@ void EnvGrid::RenderEnvProbe(
     g_engine->GetRenderState()->UnsetActiveScene();
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
-    if (light_render_resources_handle != nullptr) {
+    if (light_render_resource_handle != nullptr) {
         g_engine->GetRenderState()->UnsetActiveLight();
     }
 

@@ -209,6 +209,8 @@ private:
     Vec3f                       m_offset;
     
     Handle<Camera>              m_camera;
+    ResourceHandle              m_camera_resource_handle;
+
     RenderCollector             m_render_collector;
 
     ShaderRef                   m_ambient_shader;

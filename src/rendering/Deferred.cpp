@@ -1546,8 +1546,8 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
     HYP_SCOPE;
 
-    WorldRenderResource &world_render_resources = g_engine->GetWorld()->GetRenderResource();
-    RenderCollectorContainer &render_collector_container = world_render_resources.GetRenderCollectorContainer();
+    WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
+    RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
 
     const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
 
@@ -1564,14 +1564,17 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
 {
     HYP_SCOPE;
 
-    WorldRenderResource &world_render_resources = g_engine->GetWorld()->GetRenderResource();
-    RenderCollectorContainer &render_collector_container = world_render_resources.GetRenderCollectorContainer();
+    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
+    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+
+    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
 
     const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
 
     for (uint32 index = 0; index < num_render_collectors; index++) {
         render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
+            camera_render_resource,
             nullptr,
             Bitset((1 << BUCKET_SKYBOX)),
             &m_cull_data
@@ -1583,14 +1586,17 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
     HYP_SCOPE;
 
-    WorldRenderResource &world_render_resources = g_engine->GetWorld()->GetRenderResource();
-    RenderCollectorContainer &render_collector_container = world_render_resources.GetRenderCollectorContainer();
+    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
+    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+
+    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
 
     const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
 
     for (uint32 index = 0; index < num_render_collectors; index++) {
         render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
+            camera_render_resource,
             nullptr,
             Bitset((1 << BUCKET_OPAQUE)),
             &m_cull_data
@@ -1602,14 +1608,17 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
     HYP_SCOPE;
 
-    WorldRenderResource &world_render_resources = g_engine->GetWorld()->GetRenderResource();
-    RenderCollectorContainer &render_collector_container = world_render_resources.GetRenderCollectorContainer();
+    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
+    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+
+    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
 
     const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
 
     for (uint32 index = 0; index < num_render_collectors; index++) {
         render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
             frame,
+            render_collector_container,
             nullptr,
             Bitset((1 << BUCKET_TRANSLUCENT)),
             &m_cull_data

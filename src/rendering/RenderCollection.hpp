@@ -45,6 +45,7 @@ class Camera;
 class Entity;
 class RenderGroup;
 class RenderEnvironment;
+class CameraRenderResource;
 
 using renderer::PushConstantData;
 
@@ -97,11 +98,6 @@ public:
     RenderCollector &operator=(RenderCollector &&other) noexcept  = default;
     ~RenderCollector();
 
-    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
-        { return m_camera; }
-
-    void SetCamera(const Handle<Camera> &camera);
-
     HYP_FORCE_INLINE const WeakHandle<RenderEnvironment> &GetRenderEnvironment() const
         { return m_render_environment; }
 
@@ -135,6 +131,7 @@ public:
 
     void ExecuteDrawCalls(
         Frame *frame,
+        const CameraRenderResource &camera_render_resource,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
@@ -142,6 +139,7 @@ public:
 
     void ExecuteDrawCalls(
         Frame *frame,
+        const CameraRenderResource &camera_render_resource,
         const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
@@ -152,11 +150,8 @@ public:
     void Reset();
 
 protected:
-    Handle<Camera>                  m_camera;
     WeakHandle<RenderEnvironment>   m_render_environment;
     RC<EntityDrawCollection>        m_draw_collection;
-
-    ResourceHandle                  m_camera_resource_handle;
 };
 
 } // namespace hyperion

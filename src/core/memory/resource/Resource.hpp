@@ -314,7 +314,7 @@ public:
         { return resource; }
 
     HYP_FORCE_INLINE IResource &operator*() const
-        { return *resource; }
+        { AssertDebug(!resource->IsNull()); return *resource; }
 
 protected:
     IResource   *resource;

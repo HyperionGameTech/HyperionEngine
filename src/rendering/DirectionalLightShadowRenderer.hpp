@@ -41,6 +41,7 @@ class ShadowPass final : public FullScreenPass
 public:
     ShadowPass(
         const Handle<Scene> &parent_scene,
+        const ResourceHandle &camera_resource_handle,
         const ShaderRef &shader,
         ShadowMode shadow_mode,
         Vec2u extent,
@@ -105,6 +106,8 @@ private:
     void CreateComputePipelines();
 
     Handle<Scene>               m_parent_scene;
+    ResourceHandle              m_camera_resource_handle;
+
     Handle<Light>               m_light;
     ShadowMode                  m_shadow_mode;
     Vec3f                       m_origin;
