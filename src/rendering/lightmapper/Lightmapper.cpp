@@ -1989,7 +1989,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
         sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, radiance_texture);
         sub_element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, irradiance_texture);
 
-        m_scene->GetEntityManager()->PushCommand([element_index = job->GetParams().element_index, volume = job->GetParams().volume, sub_element, new_material = (is_new_material ? sub_element.material : Handle<Material>::empty)](EntityManager &mgr, GameCounter::TickUnit)
+        m_scene->GetEntityManager()->PushCommand([=, element_index = job->GetParams().element_index, volume = job->GetParams().volume, sub_element = sub_element, new_material = (is_new_material ? sub_element.material : Handle<Material>::empty)](EntityManager &mgr, GameCounter::TickUnit)
         {
             const Handle<Entity> &entity = sub_element.entity;
 

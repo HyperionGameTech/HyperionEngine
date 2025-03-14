@@ -17,7 +17,7 @@ class Class;
 } // namespace dotnet
 
 namespace fbom {
-struct FBOMLoadContext;
+class FBOMLoadContext;
 } // namespace fbom
 
 class HypStruct : public HypClass

@@ -23,7 +23,7 @@ namespace hyperion::fbom {
 
 class FBOM;
 class FBOMObject;
-struct FBOMLoadContext;
+class FBOMLoadContext;
 
 class FBOMMarshalerBase
 {
