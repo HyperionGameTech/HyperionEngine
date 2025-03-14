@@ -67,7 +67,7 @@ namespace fbom {
 class FBOMObject;
 class FBOMArray;
 struct FBOMDeserializedObject;
-struct FBOMLoadContext;
+class FBOMLoadContext;
 
 template <class FBOMData, class T, class FBOMTypeClass, class T2 = void>
 struct FBOMDataTypeOps;

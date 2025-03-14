@@ -12,8 +12,9 @@
 namespace hyperion {
 namespace fbom {
 
-struct FBOMLoadContext
+class FBOMLoadContext
 {
+public:
     HashMap<UUID, FBOMObjectLibrary>    object_libraries;
 };
 

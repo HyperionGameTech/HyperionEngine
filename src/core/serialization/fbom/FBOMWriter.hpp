@@ -57,7 +57,7 @@ class FBOMReader;
 class FBOMWriter;
 class FBOMArray;
 class FBOMData;
-struct FBOMLoadContext;
+class FBOMLoadContext;
 
 struct FBOMWriteStream
 {

@@ -20,7 +20,7 @@ struct HypData;
 namespace fbom {
 
 class FBOMData;
-struct FBOMLoadContext;
+class FBOMLoadContext;
 
 } // namespace fbom
 
