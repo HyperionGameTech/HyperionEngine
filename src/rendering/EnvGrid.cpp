@@ -52,9 +52,9 @@ static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
 static const Vec2u framebuffer_dimensions { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-const InternalFormat light_field_color_format = InternalFormat::RGBA16F;
+const InternalFormat light_field_color_format = InternalFormat::RGBA8;
 const InternalFormat light_field_depth_format = InternalFormat::RG16F;
-static const uint32 irradiance_octahedron_size = 64;
+static const uint32 irradiance_octahedron_size = 32;
 static const Vec2u light_field_probe_dimensions { 256, 256 };
 
 #pragma endregion Globals
@@ -1456,8 +1456,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     m_compute_filtered_depth->Dispatch(
         frame->GetCommandBuffer(),
         Vec3u {
-            (irradiance_octahedron_size + 31) / 32,
-            (irradiance_octahedron_size + 31) / 32,
+            (irradiance_octahedron_size + 7) / 8,
+            (irradiance_octahedron_size + 7) / 8,
             1
         }
     );

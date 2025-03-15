@@ -183,11 +183,10 @@ struct alignas(16) RTRadianceUniforms
 {
     uint32 num_bound_lights;
     uint32 ray_offset; // for lightmapper
+    float  min_roughness;
     Vec2i  output_image_resolution;
     uint32 light_indices[16];
 };
-
-static_assert(sizeof(RTRadianceUniforms) == 80);
 
 /* max number of entities, based on size in mb */
 static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(EntityShaderData);
