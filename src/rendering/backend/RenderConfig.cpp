@@ -28,7 +28,7 @@ bool RenderConfig::IsRaytracingSupported()
 
 bool RenderConfig::IsIndirectRenderingEnabled()
 {
-    return true;
+    return false;
 }
 
 bool RenderConfig::IsParallelRenderingEnabled()

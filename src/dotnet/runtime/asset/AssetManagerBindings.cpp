@@ -24,7 +24,11 @@ HYP_EXPORT LoadedAsset *AssetManager_Load(AssetManager *asset_manager, AssetLoad
         return nullptr;
     }
 
-    return new LoadedAsset(loader->Load(*asset_manager, path));
+    if (AssetLoadResult result = loader->Load(*asset_manager, path)) {
+        return new LoadedAsset(std::move(result.GetValue()));
+    }
+
+    return nullptr;
 }
 
 } // extern "C"

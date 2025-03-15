@@ -109,7 +109,7 @@ private:
         { return m_mode == EnvGridPassMode::RADIANCE; }
 
     virtual bool ShouldRenderHalfRes() const override
-        { return true; }
+        { return false; /* temp */ }
 
     void AddToGlobalDescriptorSet();
     

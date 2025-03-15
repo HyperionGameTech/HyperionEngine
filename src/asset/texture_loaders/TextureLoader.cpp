@@ -97,7 +97,10 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState &state) const
 
     texture->SetName(CreateNameFromDynamicString(StringUtil::Basename(state.filepath.Data()).c_str()));
 
-    return LoadedAsset { std::move(texture) };
+    AssetLoadResult result = LoadedAsset { std::move(texture) };
+    AssertThrow(result.GetValue().value.Is<Handle<Texture>>());
+
+    return result;
 }
 
 } // namespace hyperion

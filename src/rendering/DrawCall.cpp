@@ -196,10 +196,10 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
                 void *dst_ptr = reinterpret_cast<void *>((uintptr_t(draw_call.batch)) + field_offset + (entity_index * buffer_struct_size));
                 void *src_ptr = reinterpret_cast<void *>(uintptr_t(mesh_instance_data.buffers[buffer_index].Data()) + (instance_index * buffer_struct_size));
 
-#ifdef HYP_DEBUG_MODE
                 // sanity checks
-                AssertThrow((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof);
-#endif
+                AssertDebug((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof);
+
+                // @FIXME: Src reading out of bounds
 
                 Memory::MemCpy(dst_ptr, src_ptr, buffer_struct_size);
 

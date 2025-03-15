@@ -238,7 +238,7 @@ void RTRadianceRenderer::CreateImages()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA16F,
+        InternalFormat::RGBA8,
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
@@ -341,10 +341,10 @@ void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_extent,
-        InternalFormat::RGBA16F,
+        InternalFormat::RGBA8,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
-            : TemporalBlendTechnique::TECHNIQUE_3,
+            : TemporalBlendTechnique::TECHNIQUE_1,
         IsPathTracer()
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::MEDIUM,

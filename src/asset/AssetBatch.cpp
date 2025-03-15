@@ -19,14 +19,16 @@ void AssetBatch::LoadAsync(uint32 num_batches)
 {
     HYP_SCOPE;
 
-    AssertThrowMsg(m_enqueued_assets != nullptr, "AssetBatch is in invalid state");
+    AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
 
-    if (m_enqueued_assets->Empty()) {
+    m_results.Clear();
+
+    if (m_asset_map->Empty()) {
         return;
     }
 
     // partition each proc
-    AssertThrow(m_procs.Size() == m_enqueued_assets->Size());
+    AssertThrow(m_procs.Size() == m_asset_map->Size());
 
     const uint32 num_items = uint32(m_procs.Size());
 
@@ -34,6 +36,8 @@ void AssetBatch::LoadAsync(uint32 num_batches)
     num_batches = MathUtil::Min(num_batches, num_items);
 
     const uint32 items_per_batch = num_items / num_batches;
+
+    m_results.Resize(num_batches);
 
     for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
         const uint32 offset_index = batch_index * items_per_batch;
@@ -50,13 +54,18 @@ void AssetBatch::LoadAsync(uint32 num_batches)
             batch_procs.PushBack(std::move(m_procs[i]));
         }
 
-        AddTask([asset_manager = m_asset_manager, batch_procs = std::move(batch_procs), asset_map = m_enqueued_assets.Get()]() mutable -> void
+        AddTask([this, batch_procs = std::move(batch_procs), batch_index]() mutable -> void
         {
             HYP_NAMED_SCOPE("Processing assets in batch");
 
+            Array<TResult<void, AssetLoadError>> batch_results;
+            batch_results.Reserve(batch_procs.Size());
+
             for (auto &proc : batch_procs) {
-                proc->operator()(asset_manager, asset_map);
+                batch_results.PushBack((*proc)(*m_asset_manager, *m_asset_map));
             }
+
+            m_results[batch_index] = std::move(batch_results);
         });
     }
 
@@ -69,24 +78,26 @@ void AssetBatch::LoadAsync(uint32 num_batches)
 
 AssetMap AssetBatch::AwaitResults()
 {
-    AssertThrowMsg(m_enqueued_assets != nullptr, "AssetBatch is in invalid state");
+    AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
 
     AwaitCompletion();
+    
+    // @TODO Handle m_results
 
-    return std::move(*m_enqueued_assets);
+    return std::move(*m_asset_map);
 }
 
 AssetMap AssetBatch::ForceLoad()
 {
-    AssertThrowMsg(m_enqueued_assets != nullptr, "AssetBatch is in invalid state");
+    AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
 
     for (auto &proc : m_procs) {
-        (*proc)(m_asset_manager, m_enqueued_assets.Get());
+        (*proc)(*m_asset_manager, *m_asset_map);
     }
 
     m_procs.Clear();
 
-    return std::move(*m_enqueued_assets);
+    return std::move(*m_asset_map);
 }
 
 void AssetBatch::Add(const String &key, const String &path)
@@ -96,12 +107,9 @@ void AssetBatch::Add(const String &key, const String &path)
         "Cannot add assets while loading!"
     );
 
-    AssertThrowMsg(
-        m_enqueued_assets != nullptr,
-        "AssetBatch is in invalid state"
-    );
+    AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
 
-    if (!m_enqueued_assets->Emplace(key).second) {
+    if (!m_asset_map->Emplace(key).second) {
         return;
     }
 
