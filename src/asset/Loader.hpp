@@ -6,6 +6,8 @@
 #include <core/io/ByteReader.hpp>
 #include <core/io/BufferedByteReader.hpp>
 
+#include <core/utilities/Result.hpp>
+
 #define HYP_LOADER_BUFFER_SIZE 2048
 
 namespace hyperion {
@@ -22,24 +24,44 @@ struct LoaderState
     Stream          stream;
 };
 
-struct LoaderResult
+class AssetLoadError final : public Error
 {
-    enum class Status
+public:
+    enum ErrorCode : int
     {
-        INVALID = -1,
-        OK,
-        ERR,
-        ERR_NOT_FOUND,
+        UNKNOWN = -1,
+        ERR_NOT_FOUND = 1,
         ERR_NO_LOADER,
         ERR_EOF
     };
 
-    Status  status = Status::INVALID;
-    String  message;
+    AssetLoadError()
+        : Error(),
+          m_error_code(UNKNOWN)
+    {
+    }
 
-    constexpr explicit operator bool() const { return status == Status::OK; }
-    constexpr bool operator==(Status status) const { return this->status == status; }
-    constexpr bool operator!=(Status status) const { return this->status != status; }
+    template <auto MessageString>
+    AssetLoadError(const StaticMessage &current_function, ValueWrapper<MessageString>, ErrorCode error_code)
+        : Error(current_function, ValueWrapper<MessageString>()),
+          m_error_code(error_code)
+    {
+    }
+
+    template <auto MessageString, class... Args>
+    AssetLoadError(const StaticMessage &current_function, ValueWrapper<MessageString>, Args &&... args)
+        : Error(current_function, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
+          m_error_code(UNKNOWN)
+    {
+    }
+
+    virtual ~AssetLoadError() override = default;
+
+    HYP_FORCE_INLINE ErrorCode GetErrorCode() const
+        { return m_error_code; }
+
+private:
+    ErrorCode   m_error_code;
 };
 
 } // namespace hyperion

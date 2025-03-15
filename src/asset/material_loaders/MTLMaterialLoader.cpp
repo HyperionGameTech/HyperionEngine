@@ -90,7 +90,7 @@ static bool IsTransparencyModel(IlluminationModel illum_model)
         || illum_model == ILLUM_TRANSPARENT_REFLECTIVE_GLASS;
 }
 
-LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
@@ -287,7 +287,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         }
 
         for (auto &it : item.textures) {
-            if (!loaded_textures[it.name].IsOK()) {
+            if (!loaded_textures[it.name].IsValid()) {
                 HYP_LOG(Assets, Warning, "OBJ material loader: Texture {} could not be used because it could not be loaded!", it.name);
 
                 continue;
@@ -313,7 +313,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         material_group_handle->Add(item.tag, std::move(material));
     }
 
-    return { { LoaderResult::Status::OK }, material_group_handle };
+    return LoadedAsset { material_group_handle };
 }
 
 } // namespace hyperion

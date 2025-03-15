@@ -209,10 +209,10 @@ void UIStage::Init()
     if (!m_default_font_atlas) {
         auto font_atlas_asset = g_asset_manager->Load<RC<FontAtlas>>("fonts/default.json");
 
-        if (font_atlas_asset.IsOK()) {
-            m_default_font_atlas = font_atlas_asset.Result();
+        if (font_atlas_asset.HasValue()) {
+            m_default_font_atlas = font_atlas_asset->Result();
         } else {
-            HYP_LOG(UI, Error, "Failed to load default font atlas! Error was: {}", font_atlas_asset.result.message);
+            HYP_LOG(UI, Error, "Failed to load default font atlas! Error was: {}", font_atlas_asset.GetError().GetMessage());
         }
     }
 

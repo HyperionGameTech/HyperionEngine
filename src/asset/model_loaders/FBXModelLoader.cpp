@@ -236,10 +236,10 @@ const FBXObject FBXObject::empty = { };
 
 using FBXVersion = uint32;
 
-static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_property);
-static LoaderResult ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXPropertyValue &out_value);
+static Result ReadFBXProperty(ByteReader &reader, FBXProperty &out_property);
+static Result ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXPropertyValue &out_value);
 static uint64 ReadFBXOffset(ByteReader &reader, FBXVersion version);
-static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out);
+static Result ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out);
 static SizeType PrimitiveSize(uint8 primitive_type);
 static bool ReadMagic(ByteReader &reader);
 
@@ -267,88 +267,88 @@ static bool ReadMagic(ByteReader &reader)
     return true;
 }
 
-static LoaderResult ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXPropertyValue &out_value)
+static Result ReadFBXPropertyValue(ByteReader &reader, uint8 type, FBXPropertyValue &out_value)
 {
     switch (type) {
     case 'R':
     case 'S':
-        {
-            uint32 length;
-            reader.Read(&length);
+    {
+        uint32 length;
+        reader.Read(&length);
 
-            ByteBuffer byte_buffer;
-            reader.Read(length, byte_buffer);
+        ByteBuffer byte_buffer;
+        reader.Read(length, byte_buffer);
 
-            if (type == 'R') {
-                out_value.Set(std::move(byte_buffer));
-            } else {
-                out_value.Set(String(byte_buffer.ToByteView()));
-            }
-
-            return { };
+        if (type == 'R') {
+            out_value.Set(std::move(byte_buffer));
+        } else {
+            out_value.Set(String(byte_buffer.ToByteView()));
         }
+
+        return { };
+    }
     case 'Y':
-        {
-            // int16 (signed)
-            int16 i;
-            reader.Read(&i);
+    {
+        // int16 (signed)
+        int16 i;
+        reader.Read(&i);
 
-            out_value.Set(i);
+        out_value.Set(i);
 
-            return { };
-        }
+        return { };
+    }
     case 'I':
-        {
-            // int32 (signed)
-            int32 i;
-            reader.Read(&i);
+    {
+        // int32 (signed)
+        int32 i;
+        reader.Read(&i);
 
-            out_value.Set(i);
+        out_value.Set(i);
 
-            return { };
-        }
+        return { };
+    }
     case 'L':
-        {
-            // int64 (Signed)
-            int64 i;
-            reader.Read(&i);
+    {
+        // int64 (Signed)
+        int64 i;
+        reader.Read(&i);
 
-            out_value.Set(i);
+        out_value.Set(i);
 
-            return { };
-        }
+        return { };
+    }
     case 'C': // fallthrough
     case 'B':
-        {
-            uint8 b;
-            reader.Read(&b);
+    {
+        uint8 b;
+        reader.Read(&b);
 
-            out_value.Set(bool(b != 0));
+        out_value.Set(bool(b != 0));
 
-            return { };
-        }
+        return { };
+    }
     case 'F':
-        {
-            // float
-            float f;
-            reader.Read(&f);
+    {
+        // float
+        float f;
+        reader.Read(&f);
 
-            out_value.Set(f);
+        out_value.Set(f);
 
-            return { };
-        }
+        return { };
+    }
     case 'D':
-        {
-            // double
-            double d;
-            reader.Read(&d);
+    {
+        // double
+        double d;
+        reader.Read(&d);
 
-            out_value.Set(d);
+        out_value.Set(d);
 
-            return { };
-        }
+        return { };
+    }
     default:
-        return { LoaderResult::Status::ERR, String("Invalid property type '") + String::ToString(int(type)) + "'" };
+        return HYP_MAKE_ERROR(Error, "Invalid property type '{}'", int(type));
     }
 }
 
@@ -373,13 +373,13 @@ static SizeType PrimitiveSize(uint8 primitive_type)
     }
 }
 
-static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_property)
+static Result ReadFBXProperty(ByteReader &reader, FBXProperty &out_property)
 {
     uint8 type;
     reader.Read(&type);
 
     if (type < 'Z') {
-        LoaderResult result = ReadFBXPropertyValue(reader, type, out_property.value);
+        Result result = ReadFBXPropertyValue(reader, type, out_property.value);
 
         if (!result) {
             return result;
@@ -424,7 +424,7 @@ static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_propert
             for (uint32 index = 0; index < num_elements; ++index) {
                 FBXPropertyValue value;
 
-                LoaderResult result = ReadFBXPropertyValue(memory_reader, array_held_type, value);
+                Result result = ReadFBXPropertyValue(memory_reader, array_held_type, value);
 
                 if (!result) {
                     return result;
@@ -437,7 +437,7 @@ static LoaderResult ReadFBXProperty(ByteReader &reader, FBXProperty &out_propert
             for (uint32 index = 0; index < num_elements; ++index) {
                 FBXPropertyValue value;
 
-                LoaderResult result = ReadFBXPropertyValue(reader, array_held_type, value);
+                Result result = ReadFBXPropertyValue(reader, array_held_type, value);
 
                 if (!result) {
                     return result;
@@ -466,7 +466,7 @@ static uint64 ReadFBXOffset(ByteReader &reader, FBXVersion version)
     }
 }
 
-static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out)
+static Result ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePtr<FBXObject> &out)
 {
     out = MakeUnique<FBXObject>();
 
@@ -485,7 +485,7 @@ static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePt
     for (uint32 index = 0; index < num_properties; ++index) {
         FBXProperty property;
 
-        LoaderResult result = ReadFBXProperty(reader, property);
+        Result result = ReadFBXProperty(reader, property);
 
         if (!result) {
             return result;
@@ -499,7 +499,7 @@ static LoaderResult ReadFBXNode(ByteReader &reader, FBXVersion version, UniquePt
     while (reader.Position() < end_position) {
         UniquePtr<FBXObject> child;
 
-        LoaderResult result = ReadFBXNode(reader, version, child);
+        Result result = ReadFBXNode(reader, version, child);
 
         if (!result) {
             return result;
@@ -544,7 +544,7 @@ static FBXVertexMappingType GetVertexMappingType(const FBXObject &object)
 }
 
 template <class T>
-static LoaderResult ReadBinaryArray(const FBXObject &object, Array<T> &ary)
+static Result ReadBinaryArray(const FBXObject &object, Array<T> &ary)
 {
     if (FBXProperty property = object.GetProperty(0)) {
         ary.Resize(property.array_elements.Size());
@@ -555,12 +555,12 @@ static LoaderResult ReadBinaryArray(const FBXObject &object, Array<T> &ary)
             if (const auto *value_ptr = item.TryGet<T>()) {
                 ary[index] = *value_ptr;
             } else {
-                return { LoaderResult::Status::ERR, "Type mismatch for array data" };
+                return HYP_MAKE_ERROR(Error, "Type mismatch for array data");
             }
         }
     }
 
-    return { LoaderResult::Status::OK };
+    return { };
 }
 
 template <class T>
@@ -600,7 +600,7 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping> &mapping,
 //     }
 // }
 
-LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
@@ -615,11 +615,11 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
     FileByteReader reader(FileSystem::Join(base_path, std::string(FilePath(path).Basename().Data())));
 
     if (reader.Eof()) {
-        return { { LoaderResult::Status::ERR, "File not open" } };
+        return HYP_MAKE_ERROR(AssetLoadError, "File not open", AssetLoadError::ERR_EOF);
     }
 
     if (!ReadMagic(reader)) {
-        return { { LoaderResult::Status::ERR, "Invalid magic header" } };
+        return HYP_MAKE_ERROR(AssetLoadError, "Invalid magic header");
     }
 
     FBXVersion version;
@@ -630,7 +630,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
     do {
         UniquePtr<FBXObject> object;
 
-        LoaderResult result = ReadFBXNode(reader, version, object);
+        Result result = ReadFBXNode(reader, version, object);
 
         if (!result) {
             return { result };
@@ -896,18 +896,18 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     }
 
                     if (const auto &indices_child = child->FindChild("Indexes")) {
-                        auto result = ReadBinaryArray<int32>(indices_child, cluster.vertex_indices);
+                        Result result = ReadBinaryArray<int32>(indices_child, cluster.vertex_indices);
 
                         if (!result) {
-                            return result;
+                            return HYP_MAKE_ERROR(AssetLoadError, "Failed to read bone indices: {}", result.GetError().GetMessage());
                         }
                     }
 
                     if (const auto &weights_child = child->FindChild("Weights")) {
-                        auto result = ReadBinaryArray<double>(weights_child, cluster.bone_weights);
+                        Result result = ReadBinaryArray<double>(weights_child, cluster.bone_weights);
 
                         if (!result) {
-                            return result;
+                            return HYP_MAKE_ERROR(AssetLoadError, "Failed to read bone weights: {}", result.GetError().GetMessage());
                         }
                     }
 
@@ -943,7 +943,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     const SizeType count = vertices_property.array_elements.Size();
 
                     if (count % 3 != 0) {
-                        return { { LoaderResult::Status::ERR, "Not a valid vertices array" } };
+                        return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
                     }
 
                     const SizeType num_vertices = count / 3;
@@ -963,7 +963,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                             } else if (array_elements.Get<double>(&double_value)) {
                                 position[sub_index] = float(double_value);
                             } else {
-                                return { { LoaderResult::Status::ERR, "Invalid type for vertex position element -- must be float or double" } };
+                                return HYP_MAKE_ERROR(AssetLoadError, "Invalid type for vertex position element -- must be float or double");
                             }
                         }
 
@@ -976,7 +976,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     const SizeType count = indices_property.array_elements.Size();
 
                     if (count % 3 != 0) {
-                        return { { LoaderResult::Status::ERR, "Not a valid triangle mesh" } };
+                        return HYP_MAKE_ERROR(AssetLoadError, "Not a valid triangle mesh");
                     }
 
                     model_indices.Resize(count);
@@ -985,7 +985,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                         int32 i = 0;
 
                         if (!indices_property.array_elements[index].Get<int32>(&i)) {
-                            return { { LoaderResult::Status::ERR, "Invalid index value" } };
+                            return HYP_MAKE_ERROR(AssetLoadError, "Invalid index value");
                         }
 
                         if (i < 0) {
@@ -993,7 +993,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                         }
 
                         if (SizeType(i) >= model_vertices.Size()) {
-                            return { { LoaderResult::Status::ERR, "Index out of range" } };
+                            return HYP_MAKE_ERROR(AssetLoadError, "Index out of range");
                         }
 
                         model_indices[index] = Mesh::Index(i);
@@ -1024,7 +1024,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                             const SizeType num_normals = normals_property.array_elements.Size() / 3;
 
                             if (num_normals % 3 != 0) {
-                                return { { LoaderResult::Status::ERR, "Invalid normals count, must be triangulated" } };
+                                return HYP_MAKE_ERROR(AssetLoadError, "Invalid normals count, must be triangulated");
                             }
 
                             for (SizeType triangle_index = 0; triangle_index < num_normals / 3; ++triangle_index) {
@@ -1041,7 +1041,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                                         } else if (array_elements.Get<double>(&double_value)) {
                                             normal[element_index] = float(double_value);
                                         } else {
-                                            return { { LoaderResult::Status::ERR, "Invalid type for vertex position element -- must be float or double" } };
+                                            return HYP_MAKE_ERROR(AssetLoadError, "Invalid type for vertex position element -- must be float or double");
                                         }
                                     }
 
@@ -1495,7 +1495,7 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
         }
     }
 
-    return { { LoaderResult::Status::OK }, top };
+    return LoadedAsset { top };
 }
 
 } // namespace hyperion

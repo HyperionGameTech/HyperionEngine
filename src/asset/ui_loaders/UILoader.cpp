@@ -673,7 +673,7 @@ private:
     Stack<UIObject *>   m_ui_object_stack;
 };
 
-LoadedAsset UILoader::LoadAsset(LoaderState &state) const
+AssetLoadResult UILoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
@@ -688,10 +688,10 @@ LoadedAsset UILoader::LoadAsset(LoaderState &state) const
     if (!sax_result) {
         HYP_LOG(Assets, Warning, "Failed to parse UI stage: {}", sax_result.message);
 
-        return { { LoaderResult::Status::ERR, sax_result.message } };
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", sax_result.message);
     }
 
-    return { { LoaderResult::Status::OK }, ui_stage };
+    return LoadedAsset { ui_stage };
 }
 
 } // namespace hyperion

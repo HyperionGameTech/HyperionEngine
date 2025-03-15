@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-LoadedAsset FontFaceLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult FontFaceLoader::LoadAsset(LoaderState &state) const
 {
     FontEngine &font_engine = FontEngine::GetInstance();
 
@@ -13,7 +13,7 @@ LoadedAsset FontFaceLoader::LoadAsset(LoaderState &state) const
         state.filepath
     );
 
-    return { { LoaderResult::Status::OK }, font_face };
+    return LoadedAsset { font_face };
 }
 
 } // namespace hyperion

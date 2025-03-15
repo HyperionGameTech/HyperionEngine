@@ -394,10 +394,10 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera> &camera
 
 NodeProxy TranslateEditorManipulationWidget::Load_Internal() const
 {
-    Asset<Node> asset = AssetManager::GetInstance()->Load<Node>("models/editor/axis_arrows.obj");
+    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/axis_arrows.obj");
 
-    if (asset.IsOK()) {
-        if (NodeProxy node = asset.Result()) {
+    if (result.HasValue()) {
+        if (NodeProxy node = result->Result()) {
             node->SetName("TranslateWidget");
             node->SetWorldScale(2.5f);
 
@@ -727,9 +727,9 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     m_ui_stage->SetDefaultFontAtlas(font_atlas);
 
     auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml");
-    AssertThrowMsg(loaded_ui_asset.IsOK(), "Failed to load editor UI definitions!");
+    AssertThrowMsg(loaded_ui_asset.HasValue(), "Failed to load editor UI definitions!");
     
-    RC<UIStage> loaded_ui = loaded_ui_asset.Result().Cast<UIStage>();
+    RC<UIStage> loaded_ui = loaded_ui_asset->Result().Cast<UIStage>();
     AssertThrowMsg(loaded_ui != nullptr, "Failed to load editor UI");
 
     loaded_ui->SetOwnerThreadID(ThreadID::Current());
@@ -1432,8 +1432,8 @@ void EditorSubsystem::InitContentBrowser()
         if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
             auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/FileBrowserDialog.ui.xml");
                     
-            if (loaded_ui_asset.IsOK()) {
-                auto loaded_ui = loaded_ui_asset.Result();
+            if (loaded_ui_asset.HasValue()) {
+                auto loaded_ui = loaded_ui_asset->Result();
 
                 if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog")) {
                     stage->AddChildUIObject(file_browser_dialog);
@@ -1442,7 +1442,7 @@ void EditorSubsystem::InitContentBrowser()
                 }
             }
 
-            HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.result.message);
+            HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
         }
 
         return UIEventHandlerResult::ERR;
@@ -1525,13 +1525,13 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
 
     auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
-    if (!font_face_asset.IsOK()) {
-        HYP_LOG(Editor, Error, "Failed to load font face!");
+    if (font_face_asset.HasError()) {
+        HYP_LOG(Editor, Error, "Failed to load font face! Error: {}", font_face_asset.GetError().GetMessage());
 
         return nullptr;
     }
 
-    RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(std::move(font_face_asset.Result()));
+    RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(std::move(font_face_asset->Result()));
     atlas->Render();
 
     FileByteWriter byte_writer { serialized_file_path };
@@ -1636,7 +1636,7 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
             Handle<Texture> dummy_icon_texture;
 
             if (auto dummy_icon_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png")) {
-                dummy_icon_texture = dummy_icon_texture_asset.Result();
+                dummy_icon_texture = dummy_icon_texture_asset->Result();
             }
 
             tasks_menu_item->SetIconTexture(dummy_icon_texture);

@@ -29,7 +29,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
 
 class AssetManager;
 
-using AssetValue = HypData;
+using HypData = HypData;
 
 template <class T>
 struct AssetLoaderWrapper;
@@ -39,28 +39,20 @@ struct Asset;
 
 struct LoadedAsset
 {
-    LoaderResult                result;
-    AssetValue                  value;
+    HypData                     value;
 
     Proc<void, LoadedAsset *>   OnPostLoadProc;
 
     LoadedAsset() = default;
 
-    LoadedAsset(LoaderResult result)
-        : result(std::move(result))
+    LoadedAsset(HypData &&value)
+        : value(std::move(value))
     {
     }
 
-    LoadedAsset(LoaderResult result, AssetValue &&value)
-        : result(std::move(result)),
-          value(std::move(value))
-    {
-    }
-
-    template <class T, typename = std::enable_if_t< !std::is_same_v<T, AssetValue> > >
-    LoadedAsset(LoaderResult result, T &&value)
-        : result(std::move(result)),
-          value(std::forward<T>(value))
+    template <class T, typename = std::enable_if_t< !std::is_same_v<T, HypData> > >
+    LoadedAsset(T &&value)
+        : value(std::forward<T>(value))
     {
     }
 
@@ -70,11 +62,20 @@ struct LoadedAsset
     LoadedAsset &operator=(LoadedAsset &&other) noexcept    = default;
     virtual ~LoadedAsset()                                  = default;
 
-    HYP_FORCE_INLINE operator bool() const
-        { return IsOK(); }
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return IsValid();
+    }
 
-    HYP_FORCE_INLINE bool IsOK() const
-        { return result.status == LoaderResult::Status::OK; }
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !IsValid();
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return value.IsValid();
+    }
 
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE auto &ExtractAs()
@@ -92,24 +93,14 @@ struct LoadedAsset
     }
 };
 
+using AssetLoadResult = TResult<LoadedAsset, AssetLoadError>;
+
 template <class T>
 struct Asset final : LoadedAsset
 {
     using Type = typename SerializationWrapper<T>::Type;
 
     Asset()
-    {
-        InitCallbacks();
-    }
-
-    Asset(LoaderResult result)
-        : LoadedAsset(std::move(result))
-    {
-        InitCallbacks();
-    }
-
-    Asset(LoaderResult result, AssetValue &&value)
-        : LoadedAsset(std::move(result), std::move(value))
     {
         InitCallbacks();
     }
@@ -148,7 +139,7 @@ struct Asset final : LoadedAsset
 
     HYP_FORCE_INLINE auto &Result()
     {
-        AssertThrowMsg(IsOK() && value.Is<typename SerializationWrapper<Type>::Type>(), "Asset did not load successfully");
+        AssertThrowMsg(value.Is<typename SerializationWrapper<Type>::Type>(), "Expected value of type %s", TypeNameWithoutNamespace<Type>().Data());
 
         return value.Get<typename SerializationWrapper<Type>::Type>();
     }
@@ -163,6 +154,9 @@ private:
     }
 };
 
+template <class T>
+using TAssetLoadResult = TResult<Asset<T>, AssetLoadError>;
+
 // static_assert(sizeof(Asset) == sizeof(LoadedAsset), "sizeof(Asset<T>) must match the size of its parent class, to enable type punning");
 
 class AssetLoaderBase
@@ -170,7 +164,7 @@ class AssetLoaderBase
 public:
     virtual ~AssetLoaderBase() = default;
 
-    virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const = 0;
+    virtual AssetLoadResult Load(AssetManager &asset_manager, const String &path) const = 0;
 };
 
 template <class T>
@@ -188,7 +182,7 @@ public:
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
     {   
         if constexpr (is_handle) {
             if (Handle<T> *handle_ptr = value.TryGet<Handle<T>>()) {
@@ -215,7 +209,7 @@ public:
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
     {   
         return value.Get<RC<T>>();
     }
@@ -233,7 +227,7 @@ struct AssetLoaderWrapper<Node>
 
     AssetLoaderBase &loader;
 
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(AssetValue &value)
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
     {
         auto result = value.TryGet<NodeProxy>();
 
@@ -263,10 +257,10 @@ protected:
 public:
     virtual ~AssetLoader() override = default;
 
-    HYP_API virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final;
+    HYP_API virtual AssetLoadResult Load(AssetManager &asset_manager, const String &path) const override final;
 
 protected:
-    virtual LoadedAsset LoadAsset(LoaderState &state) const = 0;
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const = 0;
 
     static FilePath GetRebasedFilepath(const FilePath &base_path, const FilePath &filepath);
 };

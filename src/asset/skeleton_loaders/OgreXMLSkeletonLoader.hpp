@@ -51,7 +51,7 @@ public:
 
     virtual ~OgreXMLSkeletonLoader() = default;
 
-    virtual LoadedAsset LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
 };
 
 } // namespace hyperion

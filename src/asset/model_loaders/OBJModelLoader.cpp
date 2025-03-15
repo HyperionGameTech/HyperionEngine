@@ -285,10 +285,10 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         auto material_library_asset = state.asset_manager->Load<MaterialGroup>(material_library_path);
 
-        if (material_library_asset.IsOK()) {
-            material_library = material_library_asset.Result();
+        if (material_library_asset.HasValue()) {
+            material_library = material_library_asset->Result();
         } else {
-            HYP_LOG(Assets, Warning, "Obj model loader: Could not load material library at {}: {}", material_library_path, material_library_asset.result.message);
+            HYP_LOG(Assets, Warning, "Obj model loader: Could not load material library at {}: {}", material_library_path, material_library_asset.GetError().GetMessage());
         }
     }
 
@@ -434,7 +434,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         node->SetLocalTranslation(mesh_aabb_center);
     }
 
-    return { { LoaderResult::Status::OK }, top };
+    return LoadedAsset { top };
 }
 
 } // namespace hyperion

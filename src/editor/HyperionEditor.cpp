@@ -145,7 +145,7 @@ void HyperionEditor::Init()
         Handle<Texture> dummy_light_texture;
 
         if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
-            dummy_light_texture = dummy_light_texture_asset.Result();
+            dummy_light_texture = dummy_light_texture_asset->Result();
         }
 
         light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
@@ -337,7 +337,7 @@ void HyperionEditor::Init()
 
 #endif
 
-        if (auto &zombie_asset = results["zombie"]; zombie_asset.IsOK()) {
+        if (auto &zombie_asset = results["zombie"]; zombie_asset.IsValid()) {
             auto zombie = NodeProxy(zombie_asset.ExtractAs<Node>());
             zombie.Scale(0.25f);
             zombie.Translate(Vec3f(0, 2.0f, -1.0f));
@@ -355,7 +355,7 @@ void HyperionEditor::Init()
                 }
 
                 m_scene->GetEntityManager()->AddComponent<AudioComponent>(zombie_entity, AudioComponent {
-                    .audio_source = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav").Result(),
+                    .audio_source = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(),
                     .playback_state = {
                         .loop_mode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE,
                         .speed = 2.0f

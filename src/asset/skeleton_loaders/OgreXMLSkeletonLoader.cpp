@@ -182,7 +182,7 @@ private:
     Stack<float>    m_keyframe_angles;
 };
 
-LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
 {
     OgreXMLSkeleton object;
 
@@ -192,7 +192,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
     xml::SAXParser::Result sax_result = parser.Parse(&state.stream);
 
     if (!sax_result) {
-        return { { LoaderResult::Status::ERR, sax_result.message } };
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", sax_result.message);
     }
 
     Handle<Skeleton> skeleton_handle = CreateObject<Skeleton>();
@@ -254,7 +254,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
         root_bone->UpdateBoneTransform();
     }
     
-    return { { LoaderResult::Status::OK }, skeleton_handle };
+    return LoadedAsset { skeleton_handle };
 }
 
 } // namespace hyperion

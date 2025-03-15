@@ -611,8 +611,8 @@ public:
             if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
                 auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/Component.Add.ui.xml");
                 
-                if (loaded_ui_asset.IsOK()) {
-                    auto loaded_ui = loaded_ui_asset.Result();
+                if (loaded_ui_asset.HasValue()) {
+                    auto loaded_ui = loaded_ui_asset->Result();
 
                     if (RC<UIObject> add_component_window = loaded_ui->FindChildUIObject("Add_Component_Window")) {
                         stage->AddChildUIObject(add_component_window);
@@ -621,7 +621,7 @@ public:
                     }
                 }
 
-                HYP_LOG(Editor, Error, "Failed to load add component ui dialog! Error: {}", loaded_ui_asset.result.message);
+                HYP_LOG(Editor, Error, "Failed to load add component ui dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
 
                 return UIEventHandlerResult::ERR;
 

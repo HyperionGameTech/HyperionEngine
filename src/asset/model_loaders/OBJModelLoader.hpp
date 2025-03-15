@@ -64,7 +64,7 @@ public:
 
     virtual ~OBJModelLoader() = default;
 
-    virtual LoadedAsset LoadAsset(LoaderState &state) const override
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const override
     {
         OBJModel model = LoadModel(state);
 
