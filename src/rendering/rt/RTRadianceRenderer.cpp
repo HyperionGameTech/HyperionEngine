@@ -143,6 +143,8 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
+    uniforms.min_roughness = 0.4f;
+
     uniforms.output_image_resolution = Vec2i(m_extent);
 
     const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
@@ -347,7 +349,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
             : TemporalBlendTechnique::TECHNIQUE_1,
         IsPathTracer()
             ? TemporalBlendFeedback::HIGH
-            : TemporalBlendFeedback::MEDIUM,
+            : TemporalBlendFeedback::HIGH,
         m_texture->GetImageView()
     );
 

@@ -286,7 +286,7 @@ public:
     
 private:
     bool OnlyCollectStaticEntities() const
-        { return IsReflectionProbe() || IsAmbientProbe(); }
+        { return IsAmbientProbe(); }
 
     void CreateShader();
     void CreateFramebuffer();

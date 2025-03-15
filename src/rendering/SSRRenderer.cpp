@@ -21,7 +21,7 @@ using renderer::GPUBufferType;
 
 static constexpr bool use_temporal_blending = true;
 
-static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
+static constexpr InternalFormat ssr_format = InternalFormat::RGBA8;
 
 struct SSRUniforms
 {
@@ -145,7 +145,7 @@ void SSRRenderer::Create()
 {
     m_uvs_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
-        ssr_format,
+        InternalFormat::RGBA16F,
         Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
@@ -174,7 +174,7 @@ void SSRRenderer::Create()
             m_config.extent,
             InternalFormat::RGBA8,
             TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::MEDIUM,
+            TemporalBlendFeedback::HIGH,
             m_sampled_result_texture->GetImageView()
         );
 
@@ -235,8 +235,8 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.ray_step = m_config.ray_step;
     uniforms.num_iterations = m_config.num_iterations;
     uniforms.max_ray_distance = 1000.0f;
-    uniforms.distance_bias = 0.01f;
-    uniforms.offset = 0.001f;
+    uniforms.distance_bias = 0.001f;
+    uniforms.offset = 0.01f;
     uniforms.eye_fade_start = m_config.eye_fade.x;
     uniforms.eye_fade_end = m_config.eye_fade.y;
     uniforms.screen_edge_fade_start = m_config.screen_edge_fade.x;
@@ -321,11 +321,9 @@ void SSRRenderer::Render(Frame *frame)
     /* ========== BEGIN SSR ========== */
     DebugMarker begin_ssr_marker(command_buffer, "Begin SSR");
 
-    // We will be dispatching half the number of pixels, due to checkerboarding
     const uint32 total_pixels_in_image = m_config.extent.Volume();
-    const uint32 total_pixels_in_image_div_2 = total_pixels_in_image / 2;
 
-    const uint32 num_dispatch_calls = (total_pixels_in_image_div_2 + 255) / 256;
+    const uint32 num_dispatch_calls = (total_pixels_in_image + 255) / 256;
 
     // PASS 1 -- write UVs
 
