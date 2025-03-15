@@ -28,8 +28,6 @@ class IError
 public:
     virtual ~IError() = default;
 
-    virtual operator bool() const = 0;
-
     virtual const String &GetMessage() const = 0;
     virtual ANSIStringView GetFunctionName() const = 0;
 };
@@ -52,11 +50,6 @@ public:
     }
 
     virtual ~Error() override = default;
-
-    virtual operator bool() const override
-    {
-        return true;
-    }
     
     virtual const String &GetMessage() const override
     {
@@ -73,27 +66,6 @@ protected:
     ANSIStringView  m_current_function;
 };
 
-template <class ErrorType>
-class NullError final : public ErrorType
-{
-public:
-    static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
-
-    static const NullError<ErrorType> &GetInstance()
-    {
-        static const NullError<ErrorType> instance;
-
-        return instance;
-    }
-
-    virtual ~NullError() override = default;
-
-    virtual operator bool() const override
-    {
-        return false;
-    }
-};
-
 #define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(HYP_PRETTY_FUNCTION_NAME), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)
 
 /*! \brief A class that represents a result that can either be a value or an error.
@@ -107,6 +79,10 @@ class TResult
 {
 public:
     static_assert(std::is_base_of_v<IError, ErrorType>, "ErrorType must implement IError");
+
+    // friend decl
+    template <class OtherT, class OtherErrorType>
+    friend class TResult;
 
     TResult(const T &value)
         : m_value(value)
@@ -130,8 +106,66 @@ public:
 
     TResult(const TResult &other)                   = default;
     TResult &operator=(const TResult &other)        = default;
+
+    template <class OtherT>
+    TResult(const TResult<OtherT, ErrorType> &other)
+    {
+        if (other.HasValue()) {
+            m_value = T(other.GetValue());
+        } else {
+            m_value = other.GetError();
+        }
+    }
+
+    template <class OtherT>
+    TResult &operator=(const TResult<OtherT, ErrorType> &other)
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (other.HasValue()) {
+            m_value = T(other.GetValue());
+        } else if (other.HasError()) {
+            m_value = other.GetError();
+        } else {
+            m_value.Reset();
+        }
+
+        return *this;
+    }
+
     TResult(TResult &&other) noexcept               = default;
     TResult &operator=(TResult &&other) noexcept    = default;
+
+    template <class OtherT>
+    TResult(TResult<OtherT, ErrorType> &&other) noexcept
+    {
+        if (other.HasValue()) {
+            m_value = T(std::move(other.GetValue()));
+        } else if (other.HasError()) {
+            m_value = std::move(other.GetError_NonConst());
+        }
+    }
+
+    template <class OtherT>
+    TResult &operator=(TResult<OtherT, ErrorType> &&other) noexcept
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        if (other.HasValue()) {
+            m_value = T(std::move(other.GetValue()));
+        } else if (other.HasError()) {
+            m_value = std::move(other.GetError_NonConst());
+        } else {
+            m_value.Reset();
+        }
+
+        return *this;
+    }
+
     ~TResult()                                      = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -186,13 +220,7 @@ public:
     }
 
     HYP_FORCE_INLINE const ErrorType &GetError() const
-    {
-        if (HasError()) {
-            return m_value.template GetUnchecked<ErrorType>();
-        } else {
-            return NullError<ErrorType>::GetInstance();
-        }
-    }
+        { return const_cast<TResult *>(this)->GetError_NonConst(); }
 
     HYP_FORCE_INLINE T &operator*()
         { return GetValue(); }
@@ -244,6 +272,17 @@ public:
     HYP_FORCE_INLINE bool operator!=(const ErrorType &error) const = delete;
 
 private:
+    HYP_FORCE_INLINE ErrorType &GetError_NonConst()
+    {
+        static const ErrorType null_error;
+
+        if (HasError()) {
+            return m_value.template GetUnchecked<ErrorType>();
+        } else {
+            return const_cast<ErrorType &>(null_error);
+        }
+    }
+
     Variant<T, ErrorType>   m_value;
 };
 
@@ -285,10 +324,12 @@ public:
 
     HYP_FORCE_INLINE const ErrorType &GetError() const
     {
+        static const ErrorType null_error;
+
         if (HasError()) {
             return m_error.Get();
         } else {
-            return NullError<ErrorType>::GetInstance();
+            return null_error;
         }
     }
 

@@ -46,7 +46,7 @@ public:
 
     virtual ~PLYModelLoader() = default;
 
-    virtual LoadedAsset LoadAsset(LoaderState &state) const override
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const override
     {
         PLYModel model = LoadModel(state);
 

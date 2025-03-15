@@ -18,7 +18,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
@@ -29,9 +29,9 @@ LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
     HYP_LOG(Assets, Debug, "Begin loading serialized object at {}", state.filepath);
 
     if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, result)) {
-        return { { LoaderResult::Status::ERR, err.message } };
+        return HYP_MAKE_ERROR(AssetLoadError, "Failed to read serialized object: {}", err.message);
     }
-    return { { LoaderResult::Status::OK }, std::move(result) };
+    return LoadedAsset { std::move(result) };
 }
 
 } // namespace hyperion

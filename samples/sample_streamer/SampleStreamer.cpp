@@ -181,8 +181,8 @@ void SampleStreamer::Init()
     // // Test freetype font rendering
     auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
-    if (font_face_asset.IsOK()) {
-        RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(font_face_asset.Result());
+    if (font_face_asset.HasValue()) {
+        RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(font_face_asset->Result());
         atlas->Render();
 
         // atlas.RenderSync();
@@ -246,8 +246,8 @@ void SampleStreamer::Init()
     if (false) {
         auto gun_asset = AssetManager::GetInstance()->Load<Node>("models/gun/AK47NoSubdiv.obj");
 
-        if (gun_asset.IsOK()) {
-            NodeProxy gun = gun_asset.Result();
+        if (gun_asset.HasValue()) {
+            NodeProxy gun = gun_asset->Result();
 
             auto gun_parent = m_scene->GetRoot()->AddChild();
             gun_parent.SetName("gun");
@@ -263,8 +263,8 @@ void SampleStreamer::Init()
     if (false) {
         auto box_asset = AssetManager::GetInstance()->Load<Node>("models/cube.obj");
 
-        if (box_asset.IsOK()) {
-            NodeProxy box = box_asset.Result();
+        if (box_asset.HasValue()) {
+            NodeProxy box = box_asset->Result();
 
             m_scene->GetRoot()->AddChild(box);
 

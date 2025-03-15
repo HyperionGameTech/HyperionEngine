@@ -210,20 +210,18 @@ public:
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    HYP_NODISCARD Asset<T> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD TAssetLoadResult<T> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
         const AssetLoaderDefinition *loader_definition = GetLoaderDefinition(path, TypeID::ForType<T>());
 
         if (!loader_definition) {
-            return Asset<T> {
-                { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given path" }
-            };
+            return HYP_MAKE_ERROR(AssetLoadError, "No registered loader for the given path", AssetLoadError::ERR_NO_LOADER);
         }
 
         AssetLoaderBase *loader = loader_definition->loader.Get();
         AssertThrow(loader != nullptr);
 
-        return Asset<T>(loader->Load(*this, path));
+        return TAssetLoadResult<T>(loader->Load(*this, path));
     }
 
     HYP_API const AssetLoaderDefinition *GetLoaderDefinition(const FilePath &path, TypeID desired_type_id = TypeID::Void());

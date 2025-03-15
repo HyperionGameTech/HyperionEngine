@@ -44,7 +44,7 @@ static const stbi_io_callbacks callbacks {
     }
 };
 
-LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult TextureLoader::LoadAsset(LoaderState &state) const
 {
     LoadedTextureData data;
 
@@ -71,7 +71,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         data.format = InternalFormat::R8;
         break;
     default:
-        return { { LoaderResult::Status::ERR, "Invalid format -- invalid number of components returned" } };
+        return HYP_MAKE_ERROR(AssetLoadError, "Invalid format -- invalid number of components returned");
     }
 
     //data.width = 1;
@@ -97,7 +97,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     texture->SetName(CreateNameFromDynamicString(StringUtil::Basename(state.filepath.Data()).c_str()));
 
-    return { { LoaderResult::Status::OK }, std::move(texture) };
+    return LoadedAsset { std::move(texture) };
 }
 
 } // namespace hyperion

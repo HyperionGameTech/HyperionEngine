@@ -61,16 +61,11 @@ Array<FilePath> AssetLoader::GetTryFilepaths(const FilePath &original_filepath) 
     return paths;
 }
 
-LoadedAsset AssetLoader::Load(AssetManager &asset_manager, const String &path) const
+AssetLoadResult AssetLoader::Load(AssetManager &asset_manager, const String &path) const
 {
     HYP_SCOPE;
 
-    LoadedAsset asset;
-
-    asset.result = LoaderResult {
-        LoaderResult::Status::ERR_NOT_FOUND,
-        "File could not be found"
-    };
+    static const AssetLoadError default_error = HYP_MAKE_ERROR(AssetLoadError, "File could not be found", AssetLoadError::ERR_NOT_FOUND);
 
     const FilePath original_filepath(path);
     
@@ -92,16 +87,23 @@ LoadedAsset AssetLoader::Load(AssetManager &asset_manager, const String &path) c
             std::move(reader)
         };
 
-        asset = LoadAsset(state);
+        auto result = LoadAsset(state);
 
         reader.Close();
 
-        if (asset.result) {
-            break; // stop searching when value result is found
+        if (result.HasError()) {
+            if (result.GetError().GetErrorCode() == AssetLoadError::ERR_NOT_FOUND) {
+                // Keep trying
+                continue;
+            }
+
+            return result;
+        } else if (result.HasValue()) {
+            return result;
         }
     }
 
-    return asset;
+    return default_error;
 }
 
 } // namespace hyperion

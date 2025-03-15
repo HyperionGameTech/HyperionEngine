@@ -7,24 +7,24 @@ namespace hyperion {
 
 using WAVAudio = WAVAudioLoader::WAVAudio;
 
-LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState &state) const
 {
     WAVAudio object;
 
     state.stream.Read(&object.riff_header);
 
     if (std::strncmp(reinterpret_cast<const char *>(object.riff_header.chunk_id), "RIFF", 4) != 0) {
-        return { { LoaderResult::Status::ERR, "invalid RIFF header"} };
+        return HYP_MAKE_ERROR(AssetLoadError, "invalid RIFF header");
     }
 
     if (std::strncmp(reinterpret_cast<const char *>(object.riff_header.format), "WAVE", 4) != 0) {
-        return { { LoaderResult::Status::ERR, "invalid WAVE header"} };
+        return HYP_MAKE_ERROR(AssetLoadError, "invalid WAVE header");
     }
     
     state.stream.Read(&object.wave_format);
 
     if (std::strncmp(reinterpret_cast<const char *>(object.wave_format.sub_chunk_id), "fmt ", 4) != 0) {
-        return { { LoaderResult::Status::ERR, "invalid wave sub chunk id"} };
+        return HYP_MAKE_ERROR(AssetLoadError, "invalid wave sub chunk id");
     }
 
     if (object.wave_format.sub_chunk_size > 16) {
@@ -34,7 +34,7 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
     state.stream.Read(&object.wave_data);
 
     if (std::strncmp(reinterpret_cast<const char *>(object.wave_data.sub_chunk_id), "data", 4) != 0) {
-        return { { LoaderResult::Status::ERR, "invalid data header" } };
+        return HYP_MAKE_ERROR(AssetLoadError, "invalid data header");
     }
     
     object.wave_bytes.SetSize(object.wave_data.sub_chunk_2_size);
@@ -66,7 +66,7 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
         object.frequency
     );
 
-    return { { LoaderResult::Status::OK }, audio_source };
+    return LoadedAsset { audio_source };
 }
 
 } // namespace hyperion

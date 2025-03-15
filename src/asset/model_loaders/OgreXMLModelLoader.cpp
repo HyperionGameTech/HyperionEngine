@@ -191,7 +191,7 @@ void BuildVertices(OgreXMLModel &model)
     model.vertices = std::move(vertices);
 }
 
-LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
@@ -204,7 +204,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     auto sax_result = parser.Parse(&state.stream);
 
     if (!sax_result) {
-        return { { LoaderResult::Status::ERR, sax_result.message } };
+        return HYP_MAKE_ERROR(AssetLoadError, "XML error: {}", sax_result.message);
     }
     
     BuildVertices(model);
@@ -218,8 +218,8 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 
         auto skeleton_asset = state.asset_manager->Load<Skeleton>(skeleton_path);
 
-        if (skeleton_asset.IsOK()) {
-            skeleton = skeleton_asset.Result();
+        if (skeleton_asset.HasValue()) {
+            skeleton = skeleton_asset->Result();
         } else {
             HYP_LOG(Assets, Warning, "Ogre XML parser: Could not load skeleton at {}", skeleton_path);
         }
@@ -305,7 +305,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         top->AddChild(std::move(node));
     }
 
-    return { { LoaderResult::Status::OK }, top };
+    return LoadedAsset { top };
 }
 
 } // namespace hyperion

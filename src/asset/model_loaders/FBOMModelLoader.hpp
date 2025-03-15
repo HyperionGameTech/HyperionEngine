@@ -15,7 +15,7 @@ class FBOMModelLoader : public AssetLoader
 public:
     virtual ~FBOMModelLoader() = default;
 
-    virtual LoadedAsset LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
 };
 
 } // namespace hyperion

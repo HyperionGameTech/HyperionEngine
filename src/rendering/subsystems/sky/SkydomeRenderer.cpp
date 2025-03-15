@@ -76,10 +76,10 @@ void SkydomeRenderer::InitGame()
     InitObject(m_env_probe);
     m_env_probe->EnqueueBind();
 
-    Asset<Node> dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
+    auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
-    if (dome_node_asset.IsOK()) {
-        NodeProxy dome_node = NodeProxy(dome_node_asset.Result());
+    if (dome_node_asset.HasValue()) {
+        NodeProxy dome_node = NodeProxy(dome_node_asset->Result());
         dome_node.Scale(Vec3f(10.0f));
         dome_node.LockTransform();
 

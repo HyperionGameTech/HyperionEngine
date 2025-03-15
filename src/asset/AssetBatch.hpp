@@ -73,7 +73,7 @@ struct LoadObjectWrapper
         LoadedAsset &asset = it->second;
         asset = asset_manager->template Load<T>(path);
 
-        if (asset.IsOK()) {
+        if (asset.IsValid()) {
             if (callbacks) {
                 callbacks->OnItemComplete(AssetBatchCallbackData(key, asset));
             }

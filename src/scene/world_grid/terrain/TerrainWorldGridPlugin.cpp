@@ -387,14 +387,14 @@ void TerrainWorldGridPlugin::Initialize()
     m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
 
     if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
-        Handle<Texture> albedo_texture = albedo_texture_asset.Result();
+        Handle<Texture> albedo_texture = albedo_texture_asset->Result();
         albedo_texture->GetImage()->SetIsSRGB(true);
         
         m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
     }
 
     if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png")) {
-        m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset.Result());
+        m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset->Result());
     }
 
     InitObject(m_material);

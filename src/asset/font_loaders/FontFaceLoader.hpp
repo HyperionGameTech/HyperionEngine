@@ -18,7 +18,7 @@ class FontFaceLoader : public AssetLoader
 public:
     virtual ~FontFaceLoader() = default;
 
-    virtual LoadedAsset LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
 };
 
 } // namespace hyperion
