@@ -54,8 +54,6 @@ namespace hyperion {
 
 #pragma region Render commands
 
-HYP_DISABLE_OPTIMIZATION;
-
 struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer) : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
@@ -155,8 +153,6 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
         HYPERION_RETURN_OK;
     }
 };
-
-HYP_DISABLE_OPTIMIZATION;
 
 #pragma endregion Render commands
 
@@ -625,6 +621,7 @@ void LightmapGPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_h
 
     GPUBufferRef staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
     HYPERION_ASSERT_RESULT(staging_buffer->Create(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit)));
+    staging_buffer->Memset(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit), 0);
     staging_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 
     renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };

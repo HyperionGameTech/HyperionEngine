@@ -479,6 +479,8 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     Threads::AssertOnThread(g_game_thread);
 
+    bool should_recollect_entites = false;
+
     Octree const *octree = &GetParent()->GetScene()->GetOctree();
     octree->GetFittingOctant(m_aabb, octree);
     
@@ -489,6 +491,13 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
         HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes",
             m_octant_hash_code.Value(), octant_hash_code.Value());
 
+        should_recollect_entites = true;
+    }
+
+    // debugging
+    should_recollect_entites = true;
+
+    if (should_recollect_entites) {
         m_octant_hash_code = octant_hash_code;
 
         AssertThrow(m_camera.IsValid());
@@ -1125,7 +1134,7 @@ void EnvGrid::RenderEnvProbe(
         VoxelizeProbe(frame, probe_index);
     }
 
-    probe->SetNeedsRender(false);
+    //probe->SetNeedsRender(false);
 }
 
 void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const Handle<EnvProbe> &probe)
@@ -1420,8 +1429,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     m_compute_irradiance->Dispatch(
         frame->GetCommandBuffer(),
         Vec3u {
-            (irradiance_octahedron_size + 31) / 32,
-            (irradiance_octahedron_size + 31) / 32,
+            (irradiance_octahedron_size + 7) / 8,
+            (irradiance_octahedron_size + 7) / 8,
             1
         }
     );

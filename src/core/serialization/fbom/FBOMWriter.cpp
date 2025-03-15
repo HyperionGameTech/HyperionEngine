@@ -202,8 +202,6 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out, bool write_header)
     return FBOMResult::FBOM_OK;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter *out, const FilePath &base_path, const FilePath &external_path)
 {
     if (m_write_stream->m_object_libraries.Empty()) {
@@ -413,8 +411,6 @@ FBOMResult FBOMWriter::AddExternalObjects(FBOMLoadContext &context, FBOMObject &
 
     return { };
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 FBOMResult FBOMWriter::WriteStaticData(ByteWriter *out)
 {

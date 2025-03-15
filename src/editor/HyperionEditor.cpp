@@ -107,28 +107,6 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-#if 0
-    Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
-
-    m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
-
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent {
-        m_scene->GetRoot()->GetWorldAABB() * 1.01f,
-        m_scene->GetRoot()->GetWorldAABB() * 1.01f
-    });
-
-    // Add env grid component
-    m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-        EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-        Vec3u { 12, 6, 12 },
-        EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
-    });
-
-    NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();
-    env_grid_node.SetEntity(env_grid_entity);
-    env_grid_node.SetName("EnvGrid2");
-#endif
-
     // return;
 
     if (false) { // add test area light
@@ -221,9 +199,9 @@ void HyperionEditor::Init()
     #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
-        Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
-        Color(Vec4f(1.0f)),
-        4.0f,
+        Vec3f(0.25f, 0.9f, 0.0f).Normalize(),
+        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
+        1.0f,
         0.0f
     );
 
@@ -242,8 +220,8 @@ void HyperionEditor::Init()
 
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
         .mode       = ShadowMode::PCF,
-        .radius     = 90.0f,
-        .resolution = { 1024, 1024 }
+        .radius     = 60.0f,
+        .resolution = { 2048, 2048 }
     });
     #endif
 
@@ -277,7 +255,8 @@ void HyperionEditor::Init()
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     //batch->Add("test_model", "models/sponza/sponza.obj");
-    batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    //batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
@@ -307,6 +286,28 @@ void HyperionEditor::Init()
 #endif
 
         GetScene()->GetRoot()->AddChild(node);
+
+#if 1
+        Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
+
+        m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
+
+        m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent {
+            node->GetWorldAABB() * 1.25f,
+            node->GetWorldAABB() * 1.25f
+        });
+
+        // Add env grid component
+        m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
+            EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
+            Vec3u { 12, 6, 12 },
+            EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
+        });
+
+        NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();
+        env_grid_node.SetEntity(env_grid_entity);
+        env_grid_node.SetName("EnvGrid2");
+#endif
         
         for (auto &node : node.GetChildren()) {
             if (auto child_entity = node.GetEntity()) {

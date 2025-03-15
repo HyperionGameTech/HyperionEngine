@@ -50,7 +50,7 @@ struct LoadedAsset
     {
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_same_v<T, HypData> > >
+    template <class T, typename = std::enable_if_t< !std::is_base_of_v<LoadedAsset, T> && !std::is_same_v<T, HypData> && !std::is_same_v< T, TResult<LoadedAsset, AssetLoadError> > > >
     LoadedAsset(T &&value)
         : value(std::forward<T>(value))
     {

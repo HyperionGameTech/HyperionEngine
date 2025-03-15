@@ -56,7 +56,7 @@ static const Vec2u hbao_extent { 512, 512 };
 static const Vec2u ssr_extent { 512, 512 };
 
 static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8_SRGB;
-static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B10F;
+static const InternalFormat env_grid_irradiance_format = InternalFormat::RGBA16F;//InternalFormat::R11G11B10F;
 static const Vec2u env_grid_irradiance_extent { 1024, 768 };
 static const Vec2u env_grid_radiance_extent { 1024, 768 };
 

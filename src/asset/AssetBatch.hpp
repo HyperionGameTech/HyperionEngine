@@ -71,7 +71,10 @@ struct LoadObjectWrapper
         AssertThrow(it != map->End());
 
         LoadedAsset &asset = it->second;
-        asset = asset_manager->template Load<T>(path);
+
+        if (AssetLoadResult result = asset_manager->template Load<T>(path)) {
+            asset = std::move(result.GetValue());
+        }
 
         if (asset.IsValid()) {
             if (callbacks) {
@@ -91,11 +94,11 @@ struct ProcessAssetFunctorBase
 {
     virtual ~ProcessAssetFunctorBase() = default;
 
-    virtual void operator()(AssetManager *asset_manager, AssetMap *asset_map) = 0;
+    virtual TResult<void, AssetLoadError> operator()(AssetManager &asset_manager, AssetMap &asset_map) = 0;
 };
 
 template <class T>
-struct ProcessAssetFunctor : public ProcessAssetFunctorBase
+struct ProcessAssetFunctor final : public ProcessAssetFunctorBase
 {
     String              key;
     String              path;
@@ -115,9 +118,39 @@ struct ProcessAssetFunctor : public ProcessAssetFunctorBase
 
     virtual ~ProcessAssetFunctor() override = default;
 
-    virtual void operator()(AssetManager *asset_manager, AssetMap *asset_map) override
+    virtual TResult<void, AssetLoadError> operator()(AssetManager &asset_manager, AssetMap &asset_map) override
     {
-        LoadObjectWrapper<T>{}.Process(asset_manager, asset_map, key, path, callbacks);
+        return Process_Internal(asset_manager, asset_map);
+    }
+
+private:
+    template <class AssetManagerType>
+    TResult<void, AssetLoadError> Process_Internal(AssetManagerType &asset_manager, AssetMap &asset_map)
+    {
+        auto it = asset_map.Find(key);
+        AssertThrow(it != asset_map.End());
+
+        LoadedAsset &asset = it->second;
+
+        if (AssetLoadResult result = asset_manager.template Load<T>(path)) {
+            asset = std::move(result.GetValue());
+        } else {
+            return result.GetError();
+        }
+
+        if (asset.IsValid()) {
+            if (callbacks) {
+                callbacks->OnItemComplete(AssetBatchCallbackData(key, asset));
+            }
+        } else {
+            if (callbacks) {
+                callbacks->OnItemFailed(AssetBatchCallbackData(key, asset));
+            }
+
+            asset.value.Reset();
+        }
+
+        return { };
     }
 };
 
@@ -125,14 +158,14 @@ class AssetBatch : private TaskBatch, public EnableRefCountedPtrFromThis<AssetBa
 {
 private:
     // make it be a ptr so this can be moved
-    UniquePtr<AssetMap> m_enqueued_assets;
+    UniquePtr<AssetMap> m_asset_map;
 
 public:
     using TaskBatch::IsCompleted;
 
     AssetBatch(AssetManager *asset_manager)
         : TaskBatch(),
-          m_enqueued_assets(MakeUnique<AssetMap>()),
+          m_asset_map(MakeUnique<AssetMap>()),
           m_asset_manager(asset_manager)
     {
         AssertThrow(asset_manager != nullptr);
@@ -145,11 +178,11 @@ public:
 
     ~AssetBatch()
     {
-        if (m_enqueued_assets != nullptr) {
+        if (m_asset_map != nullptr) {
             // all tasks must be completed or the destruction of enqueued_assets
             // will cause a dangling ptr issue.
             AssertThrowMsg(
-                m_enqueued_assets->Empty(),
+                m_asset_map->Empty(),
                 "All enqueued assets must be completed before the destructor of AssetBatch is called or else dangling pointer issues will occur."
             );
         }
@@ -172,15 +205,17 @@ public:
     HYP_API AssetMap AwaitResults();
     HYP_API AssetMap ForceLoad();
 
-    AssetManager                                *m_asset_manager;
+    AssetManager                                                    *m_asset_manager;
 
     /*! \brief Functions bound to this delegates are called in
      *  the game thread. */
-    Delegate<void, AssetMap &>                  OnComplete;
+    Delegate<void, AssetMap &>                                      OnComplete;
 
 private:
-    Array<UniquePtr<ProcessAssetFunctorBase>>   m_procs;
-    AssetBatchCallbacks                         m_callbacks;
+    Array<UniquePtr<ProcessAssetFunctorBase>>                       m_procs;
+    AssetBatchCallbacks                                             m_callbacks;
+
+    Array<Array<TResult<void, AssetLoadError>>, DynamicAllocator>   m_results;
 };
 
 } // namespace hyperion

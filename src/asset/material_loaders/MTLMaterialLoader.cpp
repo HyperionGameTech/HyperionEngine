@@ -292,6 +292,9 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
                 continue;
             }
+
+            // temp
+            AssertThrow(loaded_textures[it.name].value.Is<Handle<Texture>>());
             
             Handle<Texture> texture = loaded_textures[it.name].ExtractAs<Texture>();
 

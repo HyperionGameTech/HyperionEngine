@@ -132,7 +132,7 @@ struct LightmapRay
         { return !(*this == other); }
 };
 
-struct alignas(16) LightmapHit
+struct LightmapHit
 {
     Vec4f   color;
 };

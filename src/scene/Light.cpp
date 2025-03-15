@@ -123,7 +123,7 @@ void Light::EnqueueRenderUpdates()
     LightShaderData buffer_data {
         .light_id           = GetID().Value(),
         .light_type         = uint32(m_type),
-        .color_packed       = ~0u,//uint32(m_color), @FIXME
+        .color_packed       = uint32(m_color),
         .radius             = m_radius,
         .falloff            = m_falloff,
         .shadow_map_index   = m_shadow_map_index,

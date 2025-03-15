@@ -27,16 +27,13 @@ Bitmap<4, float> LightmapUVMap::ToBitmapRadiance() const
 
             Vec4f color = uvs[index].radiance;
 
-            if (color.w >= 1.0f) {
-                color /= color.w;
+            if (color.w < 1.0f) {
+                continue;
             }
 
-            bitmap.GetPixelAtIndex(index).SetRGBA({
-                color.x,
-                color.y,
-                color.z,
-                color.w
-            });
+            color /= color.w;
+
+            bitmap.GetPixelAtIndex(index).SetRGBA(color);
         }
     }
 
@@ -55,16 +52,13 @@ Bitmap<4, float> LightmapUVMap::ToBitmapIrradiance() const
 
             Vec4f color = uvs[index].irradiance;
 
-            if (color.w >= 1.0f) {
-                color /= color.w;
+            if (color.w < 1.0f) {
+                continue;
             }
 
-            bitmap.GetPixelAtIndex(index).SetRGBA({
-                color.x,
-                color.y,
-                color.z,
-                color.w
-            });
+            color /= color.w;
+
+            bitmap.GetPixelAtIndex(index).SetRGBA(color);
         }
     }
 
