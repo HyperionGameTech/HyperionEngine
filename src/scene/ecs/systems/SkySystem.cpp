@@ -15,6 +15,17 @@
 
 namespace hyperion {
 
+SkySystem::SkySystem(EntityManager &entity_manager)
+    : System(entity_manager)
+{
+    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
+    {
+        Threads::AssertOnThread(g_game_thread);
+
+        // @TODO Remove / re-add render subsystems
+    }));
+}
+
 void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);

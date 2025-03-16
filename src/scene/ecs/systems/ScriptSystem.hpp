@@ -39,8 +39,6 @@ private:
 
     void CallScriptMethod(UTF8StringView method_name);
     void CallScriptMethod(UTF8StringView method_name, ScriptComponent &target);
-
-    DelegateHandlerSet  m_delegate_handlers;
 };
 
 } // namespace hyperion

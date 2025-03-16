@@ -21,6 +21,17 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvProbe);
 
+ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager &entity_manager)
+    : System(entity_manager)
+{
+    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
+    {
+        Threads::AssertOnThread(g_game_thread);
+
+        // @TODO Remove / re-add render subsystems
+    }));
+}
+
 void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);

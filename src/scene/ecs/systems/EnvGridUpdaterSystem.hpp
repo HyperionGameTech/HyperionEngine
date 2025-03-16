@@ -19,11 +19,7 @@ class EnvGridUpdaterSystem : public System<
 >
 {
 public:
-    EnvGridUpdaterSystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    EnvGridUpdaterSystem(EntityManager &entity_manager);
     virtual ~EnvGridUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;

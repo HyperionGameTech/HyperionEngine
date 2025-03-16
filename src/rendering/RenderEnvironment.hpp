@@ -47,8 +47,6 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 HYP_CLASS()
 class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 {
-    using RenderSubsystemPendingRemovalEntry = Pair<TypeID, Name>;
-
     HYP_OBJECT_BODY(RenderEnvironment);
 
 public:
@@ -197,6 +195,8 @@ public:
 
         RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
+
+    void RemoveRenderSubsystem(const RC<RenderSubsystem> &render_subsystem);
 
     // only touch from render thread!
     uint32 GetEnabledRenderSubsystemsMask() const

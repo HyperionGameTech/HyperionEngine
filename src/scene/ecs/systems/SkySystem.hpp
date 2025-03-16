@@ -16,11 +16,7 @@ class SkySystem : public System<
 >
 {
 public:
-    SkySystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    SkySystem(EntityManager &entity_manager);
     virtual ~SkySystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;

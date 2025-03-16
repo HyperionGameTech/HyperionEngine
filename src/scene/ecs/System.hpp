@@ -174,6 +174,8 @@ protected:
 
     EntityManager                                               &m_entity_manager;
 
+    DelegateHandlerSet                                          m_delegate_handlers;
+
 private:
     void SetWorld(World *world);
 

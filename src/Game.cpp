@@ -7,7 +7,6 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <system/SystemEvent.hpp>
 #include <core/debug/Debug.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -20,12 +19,16 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderScene.hpp>
 
+#include <rendering/debug/DebugDrawer.hpp>
+
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
 #include <scripting/ScriptingService.hpp>
+
+#include <system/SystemEvent.hpp>
 
 #include <Engine.hpp>
 

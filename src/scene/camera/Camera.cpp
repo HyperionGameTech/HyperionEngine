@@ -351,8 +351,6 @@ void Camera::AddCameraController(const RC<CameraController> &camera_controller)
         return;
     }
 
-    Threads::AssertOnThread(g_game_thread);
-
     if (m_camera_controllers.Contains(camera_controller)) {
         return;
     }
@@ -382,8 +380,6 @@ bool Camera::RemoveCameraController(const RC<CameraController> &camera_controlle
     if (!camera_controller || camera_controller->IsInstanceOf<NullCameraController>()) {
         return false;
     }
-
-    Threads::AssertOnThread(g_game_thread);
 
     auto it = m_camera_controllers.Find(camera_controller);
 

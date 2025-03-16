@@ -11,12 +11,19 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderEnvironment.hpp>
+
+#include <rendering/UIRenderer.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Scene.hpp>
+
+#include <ui/UIStage.hpp>
+#include <ui/UIText.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -26,9 +33,29 @@
 
 namespace hyperion {
 
-#pragma region DebugDrawShapeBase
+#pragma region DebugDrawCommand_Probe
 
-DebugDrawShapeBase::DebugDrawShapeBase(DebugDrawCommandList &command_list, const Handle<Mesh> &mesh)
+struct DebugDrawCommand_Probe : DebugDrawCommand
+{
+    ID<EnvProbe>    env_probe_id;
+};
+
+#pragma endregion DebugDrawCommand_Probe
+
+#pragma region DebugDrawCommand_UI
+
+struct DebugDrawCommand_UI : DebugDrawCommand
+{
+    const HypClass  *ui_object_type;
+    Vec2f           position;
+    String          text;
+};
+
+#pragma endregion DebugDrawCommand_UI
+
+#pragma region MeshDebugDrawShapeBase
+
+MeshDebugDrawShapeBase::MeshDebugDrawShapeBase(IDebugDrawCommandList &command_list, const Handle<Mesh> &mesh)
     : m_command_list(command_list),
       m_mesh(mesh)
 {
@@ -37,23 +64,22 @@ DebugDrawShapeBase::DebugDrawShapeBase(DebugDrawCommandList &command_list, const
     }
 }
 
-#pragma endregion DebugDrawShapeBase
+#pragma endregion MeshDebugDrawShapeBase
 
 #pragma region SphereDebugDrawShape
 
-SphereDebugDrawShape::SphereDebugDrawShape(DebugDrawCommandList &command_list)
-    : DebugDrawShapeBase(command_list, MeshBuilder::NormalizedCubeSphere(4))
+SphereDebugDrawShape::SphereDebugDrawShape(IDebugDrawCommandList &command_list)
+    : MeshDebugDrawShapeBase(command_list, MeshBuilder::NormalizedCubeSphere(4))
 {
 }
 
 void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const Color &color)
 {
-    m_command_list.Push(DebugDrawCommand {
-        m_mesh,
-        DebugDrawType::DEFAULT,
+    m_command_list.Push(MakeUnique<DebugDrawCommand>(DebugDrawCommand {
+        this,
         Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         color
-    });
+    }));
 }
 
 #pragma endregion SphereDebugDrawShape
@@ -62,13 +88,13 @@ void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const
 
 void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
 {
-    m_command_list.Push(DebugDrawCommand {
-        m_mesh,
-        DebugDrawType::AMBIENT_PROBE,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        Color::White(),
-        env_probe_id
-    });
+    UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
+    command->shape = this;
+    command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
+    command->color = Color::White();
+    command->env_probe_id = env_probe_id;
+
+    m_command_list.Push(std::move(command));
 }
 
 #pragma endregion AmbientProbeDebugDrawShape
@@ -77,40 +103,39 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius,
 
 void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
 {
-    m_command_list.Push(DebugDrawCommand {
-        m_mesh,
-        DebugDrawType::REFLECTION_PROBE,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        Color::White(),
-        env_probe_id
-    });
+    UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
+    command->shape = this;
+    command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
+    command->color = Color::White();
+    command->env_probe_id = env_probe_id;
+
+    m_command_list.Push(std::move(command));
 }
 
 #pragma endregion ReflectionProbeDebugDrawShape
 
 #pragma region BoxDebugDrawShape
 
-BoxDebugDrawShape::BoxDebugDrawShape(DebugDrawCommandList &command_list)
-    : DebugDrawShapeBase(command_list, MeshBuilder::Cube())
+BoxDebugDrawShape::BoxDebugDrawShape(IDebugDrawCommandList &command_list)
+    : MeshDebugDrawShapeBase(command_list, MeshBuilder::Cube())
 {
 }
 
 void BoxDebugDrawShape::operator()(const Vec3f &position, const Vec3f &size, const Color &color)
 {
-    m_command_list.Push(DebugDrawCommand {
-        m_mesh,
-        DebugDrawType::DEFAULT,
+    m_command_list.Push(MakeUnique<DebugDrawCommand>(DebugDrawCommand {
+        this,
         Transform(position, size, Quaternion::Identity()).GetMatrix(),
         color
-    });
+    }));
 }
 
 #pragma endregion BoxDebugDrawShape
 
 #pragma region PlaneDebugDrawShape
 
-PlaneDebugDrawShape::PlaneDebugDrawShape(DebugDrawCommandList &command_list)
-    : DebugDrawShapeBase(command_list, MeshBuilder::Quad())
+PlaneDebugDrawShape::PlaneDebugDrawShape(IDebugDrawCommandList &command_list)
+    : MeshDebugDrawShapeBase(command_list, MeshBuilder::Quad())
 {
 }
 
@@ -123,20 +148,40 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const C
     const Vec3f center = points.Avg();
 
     Matrix4 transform_matrix;
-    transform_matrix.rows[0] = Vector4(x, 0.0f);
-    transform_matrix.rows[1] = Vector4(y, 0.0f);
-    transform_matrix.rows[2] = Vector4(z, 0.0f);
-    transform_matrix.rows[3] = Vector4(center, 1.0f);
+    transform_matrix.rows[0] = Vec4f(x, 0.0f);
+    transform_matrix.rows[1] = Vec4f(y, 0.0f);
+    transform_matrix.rows[2] = Vec4f(z, 0.0f);
+    transform_matrix.rows[3] = Vec4f(center, 1.0f);
 
-    m_command_list.Push(DebugDrawCommand {
-        m_mesh,
-        DebugDrawType::DEFAULT,
+    m_command_list.Push(MakeUnique<DebugDrawCommand>(DebugDrawCommand {
+        this,
         transform_matrix,
         color
-    });
+    }));
 }
 
 #pragma endregion PlaneDebugDrawShape
+
+#pragma region Text2DDebugDrawShape
+
+Text2DDebugDrawShape::Text2DDebugDrawShape(IDebugDrawCommandList &command_list)
+    : m_command_list(command_list)
+{
+}
+
+void Text2DDebugDrawShape::operator()(const Vec2f &position, const String &text, const Color &color)
+{
+    UniquePtr<DebugDrawCommand_UI> command = MakeUnique<DebugDrawCommand_UI>();
+    command->shape = this;
+    command->position = position;
+    command->text = text;
+    command->color = color;
+    command->ui_object_type = UIText::Class();
+
+    m_command_list.Push(std::move(command));
+}
+
+#pragma endregion Text2DDebugDrawShape
 
 #pragma region DebugDrawerRenderGroupProxy
 
@@ -225,15 +270,106 @@ void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
 
 #pragma endregion DebugDrawerRenderGroupProxy
 
+#pragma region UIDebugDrawer
+
+class UIDebugDrawer : public IDebugDrawer
+{
+public:
+    UIDebugDrawer();
+    virtual ~UIDebugDrawer() override = default;
+
+    virtual void Initialize() override;
+    virtual void Update(GameCounter::TickUnit delta) override;
+    virtual void Render(Frame *frame) override;
+
+    void HandleDrawCommand(const DebugDrawCommand &draw_command);
+
+private:
+    Handle<Scene>   m_scene;
+    RC<UIRenderer>  m_ui_renderer;
+    RC<UIStage>     m_ui_stage;
+};
+
+UIDebugDrawer::UIDebugDrawer()
+{
+}
+
+void UIDebugDrawer::Initialize()
+{
+    HYP_SCOPE;
+
+    m_scene = CreateObject<Scene>(nullptr, Handle<Camera>::empty, SceneFlags::FOREGROUND);
+    InitObject(m_scene);
+
+    m_ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
+    m_ui_stage->Init();
+
+    m_ui_renderer = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(Name::Unique("UIDebugDrawer"), m_ui_stage);
+}
+
+void UIDebugDrawer::Update(GameCounter::TickUnit delta)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
+    m_ui_stage->Update(delta);
+
+    m_scene->GetRenderResource().GetEnvironment()->Update(delta);
+}
+
+void UIDebugDrawer::Render(Frame *frame)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_render_thread);
+
+    m_ui_renderer->Render(frame, nullptr);
+}
+
+void UIDebugDrawer::HandleDrawCommand(const DebugDrawCommand &draw_command)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertThrow(draw_command.shape != nullptr);
+    AssertThrow(draw_command.shape->GetDebugDrawType() == DebugDrawType::UI);
+
+    const DebugDrawCommand_UI &ui_command = static_cast<const DebugDrawCommand_UI &>(draw_command);
+
+    Proc<void> command_proc;
+
+    if (ui_command.ui_object_type == UIText::Class()) {
+        command_proc = [ui_stage = m_ui_stage, ui_command]()
+        {
+            // @TEMP; Refactor -- needs to not create a new text object every frame, and should not create a managed object.
+            RC<UIText> element = ui_stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            element->SetText(ui_command.text);
+            element->SetTextColor(ui_command.color);
+            ui_stage->AddChildUIObject(element);
+        };
+    }
+
+    if (command_proc.IsValid()) {
+        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(std::move(command_proc), TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+}
+
+#pragma endregion UIDebugDrawer
+
 #pragma region DebugDrawer
 
 DebugDrawer::DebugDrawer()
     : m_default_command_list(*this),
+      m_ui_debug_drawer(MakeUnique<UIDebugDrawer>()),
+      m_is_initialized(false),
       Sphere(m_default_command_list.Sphere),
       AmbientProbe(m_default_command_list.AmbientProbe),
       ReflectionProbe(m_default_command_list.ReflectionProbe),
       Box(m_default_command_list.Box),
-      Plane(m_default_command_list.Plane)
+      Plane(m_default_command_list.Plane),
+      Text2D(m_default_command_list.Text2D)
 {
     m_draw_commands.Reserve(256);
 }
@@ -246,9 +382,15 @@ DebugDrawer::~DebugDrawer()
     SafeRelease(std::move(m_instance_buffers));
 }
 
-void DebugDrawer::Create()
+void DebugDrawer::Initialize()
 {
     HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
+    AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
+
+    m_ui_debug_drawer->Initialize();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
@@ -303,12 +445,28 @@ void DebugDrawer::Create()
     m_render_group->AddFramebuffer(framebuffer);
 
     InitObject(m_render_group);
+
+    m_is_initialized.Set(true, MemoryOrder::RELEASE);
+}
+
+void DebugDrawer::Update(GameCounter::TickUnit delta)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
+    m_ui_debug_drawer->Update(delta);
 }
 
 void DebugDrawer::Render(Frame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    // wait for initialization on the game thread
+    if (!m_is_initialized.Get(MemoryOrder::ACQUIRE)) {
+        return;
+    }
 
     if (!m_default_command_list.IsEmpty()) {
         CommitCommands(m_default_command_list);
@@ -348,22 +506,19 @@ void DebugDrawer::Render(Frame *frame)
     shader_data.Resize(m_draw_commands.Size());
 
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
-        const auto &draw_command = m_draw_commands[index];
+        const DebugDrawCommand &draw_command = *m_draw_commands[index];
 
         ID<EnvProbe> env_probe_id = ID<EnvProbe>::invalid;
         uint32 env_probe_type = uint32(ENV_PROBE_TYPE_INVALID);
 
-        switch (draw_command.type) {
-        case DebugDrawType::AMBIENT_PROBE:
+        if (draw_command.shape == &AmbientProbe) {
+            const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
+            env_probe_id = probe_command.env_probe_id;
             env_probe_type = uint32(ENV_PROBE_TYPE_AMBIENT);
-            env_probe_id = draw_command.env_probe_id;
-            break;
-        case DebugDrawType::REFLECTION_PROBE:
+        } else if (draw_command.shape == &ReflectionProbe) {
+            const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
+            env_probe_id = probe_command.env_probe_id;
             env_probe_type = uint32(ENV_PROBE_TYPE_REFLECTION);
-            env_probe_id = draw_command.env_probe_id;
-            break;
-        default:
-            break;
         }
 
        shader_data[index] = ImmediateDrawShaderData {
@@ -466,8 +621,10 @@ void DebugDrawer::Render(Frame *frame)
         );
     }
 
+    bool any_ui_objects = false;
+
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
-        const DebugDrawCommand &draw_command = m_draw_commands[index];
+        const DebugDrawCommand &draw_command = *m_draw_commands[index];
 
         proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index)->Bind(
             proxy.GetCommandBuffer(frame),
@@ -478,12 +635,31 @@ void DebugDrawer::Render(Frame *frame)
             debug_drawer_descriptor_set_index
         );
 
-        proxy.DrawMesh(frame, draw_command.mesh.Get());
+        switch (draw_command.shape->GetDebugDrawType()) {
+        case DebugDrawType::MESH:
+        {
+            MeshDebugDrawShapeBase *mesh_shape = static_cast<MeshDebugDrawShapeBase *>(draw_command.shape);
+            proxy.DrawMesh(frame, mesh_shape->GetMesh().Get());
+            break;
+        }
+        case DebugDrawType::UI:
+        {
+            m_ui_debug_drawer->HandleDrawCommand(draw_command);
+
+            any_ui_objects = true;
+
+            break;
+        }
+        }
     }
 
     proxy.Submit(frame);
 
     m_draw_commands.Clear();
+
+    if (any_ui_objects) {
+        m_ui_debug_drawer->Render(frame);
+    }
 }
 
 void DebugDrawer::UpdateDrawCommands()
@@ -521,7 +697,7 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
 
 #pragma region DebugDrawCommandList
 
-void DebugDrawCommandList::Push(DebugDrawCommand &&command)
+void DebugDrawCommandList::Push(UniquePtr<DebugDrawCommand> &&command)
 {
     HYP_SCOPE;
 

@@ -13,6 +13,8 @@
 
 #include <core/Handle.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/math/Transform.hpp>
 #include <core/math/Color.hpp>
 #include <core/math/Vector2.hpp>
@@ -24,6 +26,8 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
+#include <GameCounter.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -33,24 +37,30 @@ class RenderGroup;
 class Mesh;
 class DebugDrawer;
 class DebugDrawCommandList;
+class IDebugDrawShape;
+class UIObject;
+class UIStage;
 
-enum class DebugDrawType : uint32
+enum class DebugDrawType : int
 {
-    DEFAULT,
-
-    AMBIENT_PROBE,
-    REFLECTION_PROBE,
-
-    MAX
+    MESH = 0,
+    UI
 };
 
 struct DebugDrawCommand
 {
-    Handle<Mesh>    mesh;
-    DebugDrawType   type;
+    IDebugDrawShape *shape;
     Matrix4         transform_matrix;
     Color           color;
-    ID<EnvProbe>    env_probe_id = ID<EnvProbe>::invalid;
+};
+
+class IDebugDrawCommandList
+{
+public:
+    virtual ~IDebugDrawCommandList() = default;
+
+    virtual void Push(UniquePtr<DebugDrawCommand> &&command) = 0;
+    virtual void Commit() = 0;
 };
 
 class IDebugDrawShape
@@ -58,40 +68,56 @@ class IDebugDrawShape
 public:
     virtual ~IDebugDrawShape() = default;
 
-    virtual const Handle<Mesh> &GetMesh() const = 0;
+    virtual DebugDrawType GetDebugDrawType() const = 0;
 };
 
-class HYP_API DebugDrawShapeBase : public IDebugDrawShape
+class UIDebugDrawShapeBase : public IDebugDrawShape
 {
 public:
-    DebugDrawShapeBase(DebugDrawCommandList &command_list, const Handle<Mesh> &mesh);
+    virtual ~UIDebugDrawShapeBase() override = default;
 
-    virtual ~DebugDrawShapeBase() override = default;
+    virtual DebugDrawType GetDebugDrawType() const override final
+    {
+        return DebugDrawType::UI;
+    }
+};
 
-    virtual const Handle<Mesh> &GetMesh() const override final
+class HYP_API MeshDebugDrawShapeBase : public IDebugDrawShape
+{
+public:
+    MeshDebugDrawShapeBase(IDebugDrawCommandList &command_list, const Handle<Mesh> &mesh);
+
+    virtual ~MeshDebugDrawShapeBase() override = default;
+
+    virtual DebugDrawType GetDebugDrawType() const override
+    {
+        return DebugDrawType::MESH;
+    }
+
+    HYP_FORCE_INLINE const Handle<Mesh> &GetMesh() const
     {
         return m_mesh;
     }
 
 protected:
-    DebugDrawCommandList    &m_command_list;
+    IDebugDrawCommandList   &m_command_list;
     Handle<Mesh>            m_mesh;
 };
 
-class HYP_API SphereDebugDrawShape : public DebugDrawShapeBase
+class HYP_API SphereDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
-    SphereDebugDrawShape(DebugDrawCommandList &command_list);
+    SphereDebugDrawShape(IDebugDrawCommandList &command_list);
 
     virtual ~SphereDebugDrawShape() override = default;
 
-    virtual void operator()(const Vec3f &position, float radius, const Color &color);
+    void operator()(const Vec3f &position, float radius, const Color &color);
 };
 
 class HYP_API AmbientProbeDebugDrawShape : public SphereDebugDrawShape
 {
 public:
-    AmbientProbeDebugDrawShape(DebugDrawCommandList &command_list)
+    AmbientProbeDebugDrawShape(IDebugDrawCommandList &command_list)
         : SphereDebugDrawShape(command_list)
     {
     }
@@ -104,7 +130,7 @@ public:
 class HYP_API ReflectionProbeDebugDrawShape : public SphereDebugDrawShape
 {
 public:
-    ReflectionProbeDebugDrawShape(DebugDrawCommandList &command_list)
+    ReflectionProbeDebugDrawShape(IDebugDrawCommandList &command_list)
         : SphereDebugDrawShape(command_list)
     {
     }
@@ -114,42 +140,40 @@ public:
     void operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);
 };
 
-class HYP_API BoxDebugDrawShape : public DebugDrawShapeBase
+class HYP_API BoxDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
-    BoxDebugDrawShape(DebugDrawCommandList &command_list);
+    BoxDebugDrawShape(IDebugDrawCommandList &command_list);
 
     virtual ~BoxDebugDrawShape() override = default;
 
     void operator()(const Vec3f &position, const Vec3f &size, const Color &color);
 };
 
-class HYP_API PlaneDebugDrawShape : public DebugDrawShapeBase
+class HYP_API PlaneDebugDrawShape : public MeshDebugDrawShapeBase
 {
 public:
-    PlaneDebugDrawShape(DebugDrawCommandList &command_list);
+    PlaneDebugDrawShape(IDebugDrawCommandList &command_list);
 
     virtual ~PlaneDebugDrawShape() override = default;
 
     void operator()(const FixedArray<Vec3f, 4> &points, const Color &color);
 };
 
-class HYP_API OnScreenMessageDebugDrawShape : public IDebugDrawShape
+class HYP_API Text2DDebugDrawShape : public UIDebugDrawShapeBase
 {
 public:
-    OnScreenMessageDebugDrawShape(DebugDrawCommandList &command_list, UTF8StringView text, Color color);
+    Text2DDebugDrawShape(IDebugDrawCommandList &command_list);
 
-    virtual ~OnScreenMessageDebugDrawShape() override = default;
+    virtual ~Text2DDebugDrawShape() override = default;
 
-    virtual const Handle<Mesh> &GetMesh() const override final
-    {
-        return Handle<Mesh>::empty;
-    }
+    void operator()(const Vec2f &position, const String &text, const Color &color);
 
-    // @TODO Implement using same technique as UIText
+private:
+    IDebugDrawCommandList   &m_command_list;
 };
 
-class DebugDrawCommandList
+class DebugDrawCommandList final : public IDebugDrawCommandList
 {
 public:
     friend class DebugDrawer;
@@ -160,6 +184,7 @@ public:
           ReflectionProbe(*this),
           Box(*this),
           Plane(*this),
+          Text2D(*this),
           m_debug_drawer(debug_drawer)
     {
     }
@@ -167,36 +192,51 @@ public:
     DebugDrawCommandList(const DebugDrawCommandList &other)             = delete;
     DebugDrawCommandList &operator=(const DebugDrawCommandList &other)  = delete;
 
+    virtual ~DebugDrawCommandList() override = default;
+
     HYP_FORCE_INLINE bool IsEmpty() const
     {
         return m_num_draw_commands.Get(MemoryOrder::ACQUIRE) == 0;
     }
 
-    void Push(DebugDrawCommand &&command);
-    void Commit();
+    virtual void Push(UniquePtr<DebugDrawCommand> &&command) override;
+    virtual void Commit() override;
 
-    SphereDebugDrawShape            Sphere;
-    AmbientProbeDebugDrawShape      AmbientProbe;
-    ReflectionProbeDebugDrawShape   ReflectionProbe;
-    BoxDebugDrawShape               Box;
-    PlaneDebugDrawShape             Plane;
+    SphereDebugDrawShape                Sphere;
+    AmbientProbeDebugDrawShape          AmbientProbe;
+    ReflectionProbeDebugDrawShape       ReflectionProbe;
+    BoxDebugDrawShape                   Box;
+    PlaneDebugDrawShape                 Plane;
+    Text2DDebugDrawShape                Text2D;
 
 private:
-    DebugDrawer                     &m_debug_drawer;
-    Array<DebugDrawCommand>         m_draw_commands;
-    Mutex                           m_draw_commands_mutex;
-    AtomicVar<uint32>               m_num_draw_commands { 0 };
+    DebugDrawer                         &m_debug_drawer;
+    Array<UniquePtr<DebugDrawCommand>>  m_draw_commands;
+    Mutex                               m_draw_commands_mutex;
+    AtomicVar<uint32>                   m_num_draw_commands { 0 };
 };
 
-class DebugDrawer
+class IDebugDrawer
+{
+public:
+    virtual ~IDebugDrawer() = default;
+
+    virtual void Initialize() = 0;
+    virtual void Update(GameCounter::TickUnit delta) = 0;
+    virtual void Render(Frame *frame) = 0;
+};
+
+class UIDebugDrawer;
+
+class DebugDrawer final : public IDebugDrawer
 {
 public:
     DebugDrawer();
-    ~DebugDrawer();
+    virtual ~DebugDrawer() override;
 
-    void Create();
-
-    void Render(Frame *frame);
+    virtual void Initialize() override;
+    virtual void Update(GameCounter::TickUnit delta) override;
+    virtual void Render(Frame *frame) override;
 
     UniquePtr<DebugDrawCommandList> CreateCommandList();
     void CommitCommands(DebugDrawCommandList &command_list);
@@ -205,6 +245,8 @@ private:
     void UpdateDrawCommands();
 
     DebugDrawCommandList                            m_default_command_list;
+    UniquePtr<UIDebugDrawer>                        m_ui_debug_drawer;
+    AtomicVar<bool>                                 m_is_initialized;
 
 public: // Shapes
     SphereDebugDrawShape                            &Sphere;
@@ -212,13 +254,14 @@ public: // Shapes
     ReflectionProbeDebugDrawShape                   &ReflectionProbe;
     BoxDebugDrawShape                               &Box;
     PlaneDebugDrawShape                             &Plane;
+    Text2DDebugDrawShape                            &Text2D;
 
 private:
     ShaderRef                                       m_shader;
     Handle<RenderGroup>                             m_render_group;
 
-    Array<DebugDrawCommand>                         m_draw_commands;
-    Array<DebugDrawCommand>                         m_draw_commands_pending_addition;
+    Array<UniquePtr<DebugDrawCommand>>              m_draw_commands;
+    Array<UniquePtr<DebugDrawCommand>>              m_draw_commands_pending_addition;
     AtomicVar<uint32>                               m_num_draw_commands_pending_addition { 0 };
     Mutex                                           m_draw_commands_mutex;
 

@@ -65,6 +65,8 @@ public:
     UIRenderer &operator=(const UIRenderer &other)  = delete;
     virtual ~UIRenderer();
 
+    void Render(Frame *frame, const FramebufferRef &framebuffer = nullptr);
+
 private:
     virtual void Init() override;
     virtual void InitGame() override; // init on game thread

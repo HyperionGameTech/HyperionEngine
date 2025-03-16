@@ -414,9 +414,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const CameraRenderResourc
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
-    AssertThrow(framebuffer.IsValid());
-
-    framebuffer->BeginCapture(command_buffer, frame_index);
+    if (framebuffer.IsValid()) {
+        framebuffer->BeginCapture(command_buffer, frame_index);
+    }
 
     g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
 
@@ -456,8 +456,10 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const CameraRenderResourc
     }
 
     g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
-
-    framebuffer->EndCapture(command_buffer, frame_index);
+    
+    if (framebuffer.IsValid()) {
+        framebuffer->EndCapture(command_buffer, frame_index);
+    }
 }
 
 #pragma endregion UIRenderCollector
@@ -560,12 +562,21 @@ void UIRenderer::OnRender(Frame *frame)
 {
     HYP_SCOPE;
 
+    Render(frame, m_framebuffer);
+}
+
+
+void UIRenderer::Render(Frame *frame, const FramebufferRef &framebuffer)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
 
     g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
 
     m_render_collector.CollectDrawCalls(frame);
-    m_render_collector.ExecuteDrawCalls(frame, camera_render_resource, m_framebuffer);
+    m_render_collector.ExecuteDrawCalls(frame, camera_render_resource, framebuffer);
 
     g_engine->GetRenderState()->UnsetActiveScene();
 }

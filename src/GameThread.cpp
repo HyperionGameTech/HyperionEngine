@@ -6,13 +6,17 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <core/Defines.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/math/MathUtil.hpp>
+
+#include <core/Defines.hpp>
 
 #include <asset/Assets.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <rendering/debug/DebugDrawer.hpp>
+
+#include <Engine.hpp>
 
 // #define HYP_GAME_THREAD_LOCKED 1
 
@@ -46,6 +50,8 @@ void GameThread::operator()(Game *game)
 #endif
 
     m_is_running.Set(true, MemoryOrder::RELAXED);
+
+    g_engine->GetDebugDrawer()->Initialize();
     
     Queue<Scheduler::ScheduledTask> tasks;
 
@@ -69,6 +75,8 @@ void GameThread::operator()(Game *game)
             delta_time_accum = 0.0f;
             num_frames = 0;
         }
+
+        g_engine->GetDebugDrawer()->Update(counter.delta);
 
         AssetManager::GetInstance()->Update(counter.delta);
 
