@@ -35,13 +35,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-static float GetWindowDPIFactor()
-{
-    return g_engine->GetAppContext()->GetMainWindow()->IsHighDPI()
-        ? 2.0f
-        : 1.0f;
-}
-
 struct FontAtlasCharacterIterator
 {
     Vec2f           placement;

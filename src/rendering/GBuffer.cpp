@@ -218,7 +218,9 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
         if (window->IsHighDPI() && bucket != BUCKET_UI) {
             // if the window is high DPI like retina on mac, we need to scale it down
             // to avoid rendering at a resolution that will crush performance like a soda can
-            framebuffer_extent = framebuffer_extent / 2;
+            framebuffer_extent /= 2;
+        } else if (!window->IsHighDPI() && bucket == BUCKET_UI) {
+            framebuffer_extent *= 2;
         }
     }
 
