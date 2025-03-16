@@ -26,6 +26,118 @@
 
 namespace hyperion {
 
+#pragma region DebugDrawShapeBase
+
+DebugDrawShapeBase::DebugDrawShapeBase(DebugDrawCommandList &command_list, const Handle<Mesh> &mesh)
+    : m_command_list(command_list),
+      m_mesh(mesh)
+{
+    if (InitObject(mesh)) {
+        mesh->SetPersistentRenderResourceEnabled(true);
+    }
+}
+
+#pragma endregion DebugDrawShapeBase
+
+#pragma region SphereDebugDrawShape
+
+SphereDebugDrawShape::SphereDebugDrawShape(DebugDrawCommandList &command_list)
+    : DebugDrawShapeBase(command_list, MeshBuilder::NormalizedCubeSphere(4))
+{
+}
+
+void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const Color &color)
+{
+    m_command_list.Push(DebugDrawCommand {
+        m_mesh,
+        DebugDrawType::DEFAULT,
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
+        color
+    });
+}
+
+#pragma endregion SphereDebugDrawShape
+
+#pragma region AmbientProbeDebugDrawShape
+
+void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
+{
+    m_command_list.Push(DebugDrawCommand {
+        m_mesh,
+        DebugDrawType::AMBIENT_PROBE,
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
+        Color::White(),
+        env_probe_id
+    });
+}
+
+#pragma endregion AmbientProbeDebugDrawShape
+
+#pragma region ReflectionProbeDebugDrawShape
+
+void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
+{
+    m_command_list.Push(DebugDrawCommand {
+        m_mesh,
+        DebugDrawType::REFLECTION_PROBE,
+        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
+        Color::White(),
+        env_probe_id
+    });
+}
+
+#pragma endregion ReflectionProbeDebugDrawShape
+
+#pragma region BoxDebugDrawShape
+
+BoxDebugDrawShape::BoxDebugDrawShape(DebugDrawCommandList &command_list)
+    : DebugDrawShapeBase(command_list, MeshBuilder::Cube())
+{
+}
+
+void BoxDebugDrawShape::operator()(const Vec3f &position, const Vec3f &size, const Color &color)
+{
+    m_command_list.Push(DebugDrawCommand {
+        m_mesh,
+        DebugDrawType::DEFAULT,
+        Transform(position, size, Quaternion::Identity()).GetMatrix(),
+        color
+    });
+}
+
+#pragma endregion BoxDebugDrawShape
+
+#pragma region PlaneDebugDrawShape
+
+PlaneDebugDrawShape::PlaneDebugDrawShape(DebugDrawCommandList &command_list)
+    : DebugDrawShapeBase(command_list, MeshBuilder::Quad())
+{
+}
+
+void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const Color &color)
+{
+    Vec3f x = (points[1] - points[0]).Normalize();
+    Vec3f y = (points[2] - points[0]).Normalize();
+    Vec3f z = x.Cross(y).Normalize();
+
+    const Vec3f center = points.Avg();
+
+    Matrix4 transform_matrix;
+    transform_matrix.rows[0] = Vector4(x, 0.0f);
+    transform_matrix.rows[1] = Vector4(y, 0.0f);
+    transform_matrix.rows[2] = Vector4(z, 0.0f);
+    transform_matrix.rows[3] = Vector4(center, 1.0f);
+
+    m_command_list.Push(DebugDrawCommand {
+        m_mesh,
+        DebugDrawType::DEFAULT,
+        transform_matrix,
+        color
+    });
+}
+
+#pragma endregion PlaneDebugDrawShape
+
 #pragma region DebugDrawerRenderGroupProxy
 
 class DebugDrawerRenderGroupProxy
@@ -116,6 +228,12 @@ void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
 #pragma region DebugDrawer
 
 DebugDrawer::DebugDrawer()
+    : m_default_command_list(*this),
+      Sphere(m_default_command_list.Sphere),
+      AmbientProbe(m_default_command_list.AmbientProbe),
+      ReflectionProbe(m_default_command_list.ReflectionProbe),
+      Box(m_default_command_list.Box),
+      Plane(m_default_command_list.Plane)
 {
     m_draw_commands.Reserve(256);
 }
@@ -135,17 +253,6 @@ void DebugDrawer::Create()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
         DeferCreate(m_instance_buffers[frame_index], g_engine->GetGPUDevice(), m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
-    }
-
-    m_shapes[uint32(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(4);
-    m_shapes[uint32(DebugDrawShape::BOX)] = MeshBuilder::Cube();
-    m_shapes[uint32(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
-
-    for (Handle<Mesh> &shape_mesh : m_shapes) {
-        InitObject(shape_mesh);
-
-        // Allow Render() to be called on it
-        shape_mesh->SetPersistentRenderResourceEnabled(true);
     }
 
     m_shader = g_shader_manager->GetOrCreate(
@@ -202,6 +309,10 @@ void DebugDrawer::Render(Frame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    if (!m_default_command_list.IsEmpty()) {
+        CommitCommands(m_default_command_list);
+    }
 
     if (m_num_draw_commands_pending_addition.Get(MemoryOrder::ACQUIRE) != 0) {
         UpdateDrawCommands();
@@ -367,7 +478,7 @@ void DebugDrawer::Render(Frame *frame)
             debug_drawer_descriptor_set_index
         );
 
-        proxy.DrawMesh(frame, m_shapes[uint32(draw_command.shape)].Get());
+        proxy.DrawMesh(frame, draw_command.mesh.Get());
     }
 
     proxy.Submit(frame);
@@ -392,7 +503,7 @@ UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;
 
-    return MakeUnique<DebugDrawCommandList>(this);
+    return MakeUnique<DebugDrawCommandList>(*this);
 }
 
 void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
@@ -406,124 +517,19 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
     m_num_draw_commands_pending_addition.Increment(int64(num_added_items), MemoryOrder::RELEASE);
 }
 
-void DebugDrawer::Sphere(const Vec3f &position, float radius, Color color)
-{
-    HYP_SCOPE;
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::SPHERE,
-        DebugDrawType::DEFAULT,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        color
-    });
-}
-
-void DebugDrawer::AmbientProbeSphere(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
-{
-    HYP_SCOPE;
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::SPHERE,
-        DebugDrawType::AMBIENT_PROBE,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        Color { },
-        env_probe_id
-    });
-}
-
-void DebugDrawer::ReflectionProbeSphere(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
-{
-    HYP_SCOPE;
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::SPHERE,
-        DebugDrawType::REFLECTION_PROBE,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        Color { },
-        env_probe_id
-    });
-}
-
-void DebugDrawer::Box(const Vec3f &position, const Vec3f &size, Color color)
-{
-    HYP_SCOPE;
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::BOX,
-        DebugDrawType::DEFAULT,
-        Transform(position, size, Quaternion::Identity()).GetMatrix(),
-        color
-    });
-}
-
-void DebugDrawer::Plane(const FixedArray<Vec3f, 4> &points, Color color)
-{
-    HYP_SCOPE;
-
-    Vec3f x = (points[1] - points[0]).Normalize();
-    Vec3f y = (points[2] - points[0]).Normalize();
-    Vec3f z = x.Cross(y).Normalize();
-
-    const Vec3f center = points.Avg();
-
-    Matrix4 transform_matrix;
-    transform_matrix.rows[0] = Vector4(x, 0.0f);
-    transform_matrix.rows[1] = Vector4(y, 0.0f);
-    transform_matrix.rows[2] = Vector4(z, 0.0f);
-    transform_matrix.rows[3] = Vector4(center, 1.0f);
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::PLANE,
-        DebugDrawType::DEFAULT,
-        transform_matrix,
-        color
-    });
-}
-
 #pragma endregion DebugDrawer
 
 #pragma region DebugDrawCommandList
 
-void DebugDrawCommandList::Sphere(const Vec3f &position, float radius, Color color)
-{
-    HYP_SCOPE;
-
-    Mutex::Guard guard(m_draw_commands_mutex);
-    
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::SPHERE,
-        DebugDrawType::DEFAULT,
-        Transform(position, radius, Quaternion::Identity()).GetMatrix(),
-        color
-    });
-}
-
-void DebugDrawCommandList::Box(const Vec3f &position, const Vec3f &size, Color color)
+void DebugDrawCommandList::Push(DebugDrawCommand &&command)
 {
     HYP_SCOPE;
 
     Mutex::Guard guard(m_draw_commands_mutex);
 
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::BOX,
-        DebugDrawType::DEFAULT,
-        Transform(position, size, Quaternion::Identity()).GetMatrix(),
-        color
-    });
-}
+    m_draw_commands.PushBack(std::move(command));
 
-void DebugDrawCommandList::Plane(const Vec3f &position, const Vector2 &size, Color color)
-{
-    HYP_SCOPE;
-
-    Mutex::Guard guard(m_draw_commands_mutex);
-
-    m_draw_commands.PushBack(DebugDrawCommand {
-        DebugDrawShape::PLANE,
-        DebugDrawType::DEFAULT,
-        Transform(position, Vec3f(size.x, size.y, 1.0f), Quaternion::Identity()).GetMatrix(),
-        color
-    });
+    m_num_draw_commands.Increment(1, MemoryOrder::RELEASE);
 }
 
 void DebugDrawCommandList::Commit()
@@ -531,8 +537,12 @@ void DebugDrawCommandList::Commit()
     HYP_SCOPE;
     
     Mutex::Guard guard(m_draw_commands_mutex);
+
+    const SizeType num_added_items = m_draw_commands.Size();
     
-    m_debug_drawer->CommitCommands(*this);
+    m_debug_drawer.CommitCommands(*this);
+
+    m_num_draw_commands.Decrement(uint32(num_added_items), MemoryOrder::RELEASE);
 }
 
 #pragma endregion DebugDrawCommandList
