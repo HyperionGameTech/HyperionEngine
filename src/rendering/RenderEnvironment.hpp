@@ -64,17 +64,30 @@ public:
     const Handle<GaussianSplatting> &GetGaussianSplatting() const
         { return m_gaussian_splatting; }
 
-    template <class T>
-    RC<T> AddRenderSubsystem(const RC<T> &component)
+    RC<RenderSubsystem> AddRenderSubsystem(const RC<RenderSubsystem> &render_subsystem)
+    {
+        if (!render_subsystem) {
+            return nullptr;
+        }
+
+        AddRenderSubsystem(GetRenderSubsystemTypeID(render_subsystem->InstanceClass()), render_subsystem);
+
+        return render_subsystem;
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_same_v<T, RenderSubsystem>>>
+    RC<T> AddRenderSubsystem(const RC<T> &render_subsystem)
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
+        
+        if (!render_subsystem) {
+            return nullptr;
+        }
 
-        AssertThrow(component != nullptr);
+        AddRenderSubsystem(GetRenderSubsystemTypeID<T>(), render_subsystem);
 
-        AddRenderSubsystem(GetRenderSubsystemTypeID<T>(), component);
-
-        return component;
+        return render_subsystem;
     }
 
     template <class T, class... Args>
@@ -129,7 +142,7 @@ public:
         const TypeID type_id = GetRenderSubsystemTypeID<T>();
 
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         Mutex::Guard guard(m_render_subsystems_mutex);
 
@@ -156,7 +169,7 @@ public:
     bool HasRenderSubsystem(Name name) const
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         const TypeID type_id = GetRenderSubsystemTypeID<T>();
 
@@ -188,7 +201,7 @@ public:
     void RemoveRenderSubsystem(Name name = Name::Invalid())
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
@@ -233,7 +246,7 @@ private:
     template <class T>
     static TypeID GetRenderSubsystemTypeID()
     {
-        static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "Component should be a derived class of RenderSubsystem");
+        static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "T should be a derived class of RenderSubsystem");
         
         return GetRenderSubsystemTypeID(T::Class());
     }

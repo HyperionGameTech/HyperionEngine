@@ -8,6 +8,8 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <rendering/RenderSubsystem.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -25,7 +27,7 @@ class HYP_API PointLightShadowRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(PointLightShadowRenderer);
 
 public:
-    PointLightShadowRenderer(Name name, Handle<Light> light, const Vec2u &extent);
+    PointLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, const Handle<Light> &light, const Vec2u &extent);
     PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
     PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
     virtual ~PointLightShadowRenderer() override;
@@ -39,10 +41,13 @@ private:
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
+    Handle<Scene>       m_parent_scene;
     Handle<Light>       m_light;
     Vec2u               m_extent;
     BoundingBox         m_aabb;
     Handle<EnvProbe>    m_env_probe;
+
+    ResourceHandle      m_camera_resource_handle;
 
     bool                m_last_visibility_state = false;
 };

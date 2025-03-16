@@ -59,8 +59,8 @@ protected:
 private:
     void UpdateBufferData();
 
-    Scene                       *m_scene;
-    SceneShaderData             m_buffer_data;
+    Scene           *m_scene;
+    SceneShaderData m_buffer_data;
 };
 
 template <>

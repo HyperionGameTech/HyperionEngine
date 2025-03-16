@@ -9,6 +9,7 @@
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/EnvGrid.hpp>
 
@@ -21,6 +22,7 @@
 #include <scene/BVH.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/World.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
@@ -508,6 +510,11 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 
 void LightmapGPUPathTracer::Create()
 {
+    AssertThrow(m_scene.IsValid());
+
+    AssertThrow(m_scene->GetWorld() != nullptr);
+    AssertThrow(m_scene->GetWorld()->IsReady());
+
     const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTLAS();
     AssertThrow(tlas != nullptr);
 

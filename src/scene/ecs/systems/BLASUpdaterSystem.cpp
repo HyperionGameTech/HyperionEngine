@@ -5,6 +5,7 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/World.hpp>
 
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderWorld.hpp>
@@ -111,11 +112,11 @@ BLASUpdaterSystem::BLASUpdaterSystem(EntityManager &entity_manager)
 
         for (auto [entity_id, blas_component] : GetEntityManager().GetEntitySet<BLASComponent>().GetScopedView(GetComponentInfos())) {
             if (previous_world != nullptr && blas_component.blas != nullptr) {
-                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment(), blas_component.blas);
+                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
             }
 
             if (new_world != nullptr && blas_component.blas != nullptr) {
-                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment(), blas_component.blas);
+                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
             }
         }
     }));
@@ -160,7 +161,7 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment(), blas_component.blas);
+    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
 }
 
 void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -174,7 +175,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
 
     if (blas_component.blas.IsValid()) {
-        PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment(), blas_component.blas);
+        PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
 
         SafeRelease(std::move(blas_component.blas));
     }

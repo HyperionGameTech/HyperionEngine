@@ -496,8 +496,9 @@ void ShadowPass::Render(Frame *frame)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, Vec2u resolution, ShadowMode shadow_mode)
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMode shadow_mode)
     : RenderSubsystem(name),
+      m_parent_scene(parent_scene),
       m_resolution(resolution),
       m_shadow_mode(shadow_mode)
 {
@@ -526,7 +527,7 @@ void DirectionalLightShadowRenderer::Init()
     AssertThrow(IsValidComponent());
 
     m_shadow_pass = MakeUnique<ShadowPass>(
-        GetParent()->GetScene()->HandleFromThis(),
+        m_parent_scene,
         ResourceHandle(m_camera->GetRenderResource()),
         m_shader,
         m_shadow_mode,
@@ -557,7 +558,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     m_camera->Update(delta);
 
-    Octree &octree = GetParent()->GetScene()->GetOctree();
+    Octree &octree = m_parent_scene->GetOctree();
     octree.CalculateVisibility(m_camera);
 
     RenderableAttributeSet renderable_attribute_set(
@@ -588,7 +589,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
     Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
-        return GetParent()->GetScene()->CollectStaticEntities(
+        return m_parent_scene->CollectStaticEntities(
             m_render_collector_statics,
             m_camera,
             renderable_attribute_set
@@ -597,20 +598,20 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
-        GetParent()->GetScene()->CollectDynamicEntities(
+        m_parent_scene->CollectDynamicEntities(
             m_render_collector_dynamics,
             m_camera,
             renderable_attribute_set
         );
     });
 #else
-    RenderCollector::CollectionResult statics_collection_result = GetParent()->GetScene()->CollectStaticEntities(
+    RenderCollector::CollectionResult statics_collection_result = m_parent_scene->CollectStaticEntities(
         m_render_collector_statics,
         m_camera,
         renderable_attribute_set
     );
 
-    GetParent()->GetScene()->CollectDynamicEntities(
+    m_parent_scene->CollectDynamicEntities(
         m_render_collector_dynamics,
         m_camera,
         renderable_attribute_set

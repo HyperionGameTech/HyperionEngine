@@ -264,6 +264,8 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         CreateTLAS();
 
+        RTUpdateStateFlags update_state_flags;
+
         m_tlas->UpdateStructure(
             g_engine->GetGPUInstance(),
             update_state_flags
@@ -342,8 +344,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
             AssertDebug(index != SizeType(-1));
 
-            render_subsystem->SetParent(this);
-            
+            render_subsystem->SetParent(render_environment.Get());
             render_subsystem->SetComponentIndex(index);
 
             if (!render_subsystem->IsInitialized()) {

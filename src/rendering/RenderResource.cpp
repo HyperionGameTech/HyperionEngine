@@ -4,6 +4,7 @@
 
 #include <core/containers/TypeMap.hpp>
 
+#include <core/threading/Threads.hpp>
 #include <core/threading/Mutex.hpp>
 
 #include <core/utilities/DeferredScope.hpp>

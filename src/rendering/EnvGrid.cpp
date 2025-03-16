@@ -158,8 +158,9 @@ struct LightFieldUniforms
 
 #pragma endregion Uniform buffer structs
 
-EnvGrid::EnvGrid(Name name, EnvGridOptions options)
+EnvGrid::EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions options)
     : RenderSubsystem(name),
+      m_parent_scene(parent_scene),
       m_options(options),
       m_aabb(options.aabb),
       m_voxel_grid_aabb(options.aabb),
@@ -201,8 +202,8 @@ void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
 
     struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
     {
-        EnvGrid     *grid;
-        Array<uint32> updates;
+        EnvGrid         *grid;
+        Array<uint32>   updates;
 
         RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(EnvGrid *grid, Array<uint32> &&updates)
             : grid(grid),
@@ -319,11 +320,6 @@ void EnvGrid::Init()
 {
     HYP_SCOPE;
 
-    HYP_LOG(EnvGrid, Debug, "Init EnvGrid {}", (void *)this);
-
-    Handle<Scene> scene = GetParent()->GetScene()->HandleFromThis();
-    AssertThrow(scene.IsValid());
-
     const uint32 num_ambient_probes = m_options.density.Volume();
     const Vec3f aabb_extent = m_aabb.GetExtent();
 
@@ -353,7 +349,7 @@ void EnvGrid::Init()
                     );
 
                     Handle<EnvProbe> probe = CreateObject<EnvProbe>(
-                        scene,
+                        m_parent_scene,
                         env_probe_aabb,
                         probe_dimensions,
                         EnvProbeType::ENV_PROBE_TYPE_AMBIENT
@@ -481,7 +477,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     bool should_recollect_entites = false;
 
-    Octree const *octree = &GetParent()->GetScene()->GetOctree();
+    Octree const *octree = &m_parent_scene->GetOctree();
     octree->GetFittingOctant(m_aabb, octree);
     
     const HashCode octant_hash_code = octree->GetEntryListHash<EntityTag::STATIC>()
@@ -503,7 +499,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
 
-        GetParent()->GetScene()->CollectStaticEntities(
+        m_parent_scene->CollectStaticEntities(
             m_render_collector,
             m_camera,
             RenderableAttributeSet(
@@ -1056,8 +1052,6 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
 {
     HYP_SCOPE;
 
-    const Scene *scene = GetParent()->GetScene();
-
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
 
@@ -1079,7 +1073,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
     }
 
     g_engine->GetRenderState()->SetActiveEnvProbe(probe);
-    g_engine->GetRenderState()->SetActiveScene(scene);
+    g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
 
     m_render_collector.CollectDrawCalls(
         frame,

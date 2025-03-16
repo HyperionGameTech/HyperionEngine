@@ -285,9 +285,9 @@ public:
     void HandleDrawCommand(const DebugDrawCommand &draw_command);
 
 private:
-    Handle<Scene>   m_scene;
-    RC<UIRenderer>  m_ui_renderer;
-    RC<UIStage>     m_ui_stage;
+    Handle<RenderEnvironment>   m_environment;
+    RC<UIRenderer>              m_ui_renderer;
+    RC<UIStage>                 m_ui_stage;
 };
 
 UIDebugDrawer::UIDebugDrawer()
@@ -298,13 +298,13 @@ void UIDebugDrawer::Initialize()
 {
     HYP_SCOPE;
 
-    m_scene = CreateObject<Scene>(nullptr, Handle<Camera>::empty, SceneFlags::FOREGROUND);
-    InitObject(m_scene);
+    m_environment = CreateObject<RenderEnvironment>();
+    InitObject(m_environment);
 
     m_ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
     m_ui_stage->Init();
 
-    m_ui_renderer = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(Name::Unique("UIDebugDrawer"), m_ui_stage);
+    m_ui_renderer = m_environment->AddRenderSubsystem<UIRenderer>(Name::Unique("UIDebugDrawer"), m_ui_stage);
 }
 
 void UIDebugDrawer::Update(GameCounter::TickUnit delta)
@@ -315,7 +315,7 @@ void UIDebugDrawer::Update(GameCounter::TickUnit delta)
 
     m_ui_stage->Update(delta);
 
-    m_scene->GetRenderResource().GetEnvironment()->Update(delta);
+    m_environment->Update(delta);
 }
 
 void UIDebugDrawer::Render(Frame *frame)
@@ -324,7 +324,7 @@ void UIDebugDrawer::Render(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    m_ui_renderer->Render(frame, nullptr);
+    //m_ui_renderer->Render(frame, nullptr);
 }
 
 void UIDebugDrawer::HandleDrawCommand(const DebugDrawCommand &draw_command)
@@ -669,7 +669,7 @@ void DebugDrawer::UpdateDrawCommands()
     Mutex::Guard guard(m_draw_commands_mutex);
 
     SizeType size = m_draw_commands_pending_addition.Size();
-    int64 previous_value = m_num_draw_commands_pending_addition.Decrement(int64(size), MemoryOrder::ACQUIRE_RELEASE);
+    int64 previous_value = int64(m_num_draw_commands_pending_addition.Decrement(uint32(size), MemoryOrder::ACQUIRE_RELEASE));
     AssertThrow(previous_value - int64(size) >= 0);
 
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
@@ -690,7 +690,7 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
 
     const SizeType num_added_items = command_list.m_draw_commands.Size();
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
-    m_num_draw_commands_pending_addition.Increment(int64(num_added_items), MemoryOrder::RELEASE);
+    m_num_draw_commands_pending_addition.Increment(uint32(num_added_items), MemoryOrder::RELEASE);
 }
 
 #pragma endregion DebugDrawer

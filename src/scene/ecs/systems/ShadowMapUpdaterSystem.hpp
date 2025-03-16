@@ -27,6 +27,9 @@ public:
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    void AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component, World *world);
 };
 
 } // namespace hyperion

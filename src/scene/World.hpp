@@ -12,8 +12,6 @@
 
 #include <physics/PhysicsWorld.hpp>
 
-#include <rendering/backend/RenderObject.hpp>
-
 namespace hyperion {
 
 class WorldRenderResource;

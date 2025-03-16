@@ -24,11 +24,7 @@ class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 public:
     ReflectionProbeRenderer(
         Name name,
-        const Vec3f &origin
-    );
-
-    ReflectionProbeRenderer(
-        Name name,
+        const Handle<Scene> &parent_scene,
         const BoundingBox &aabb
     );
 
@@ -51,6 +47,7 @@ private:
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
+    Handle<Scene>       m_parent_scene;
     BoundingBox         m_aabb;
     Handle<EnvProbe>    m_env_probe;
 

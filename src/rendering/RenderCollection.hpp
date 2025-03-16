@@ -6,8 +6,6 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/ArrayMap.hpp>
 
-#include <core/threading/Threads.hpp>
-
 #include <core/memory/resource/Resource.hpp>
 
 #include <core/ID.hpp>

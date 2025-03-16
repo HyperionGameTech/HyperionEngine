@@ -25,6 +25,7 @@ namespace hyperion {
 
 class World;
 class Scene;
+class RenderEnvironment;
 class CameraRenderResource;
 class SceneRenderResource;
 
@@ -38,11 +39,11 @@ public:
     {
     }
 
-    RenderCollectorContainer(const RenderCollectorContainer &other)                   = delete;
-    RenderCollectorContainer &operator=(RenderCollectorContainer &other)              = delete;
-    RenderCollectorContainer(RenderCollectorContainer &&other) noexcept               = delete;
-    RenderCollectorContainer &operator=(RenderCollectorContainer &&other) noexcept    = delete;
-    ~RenderCollectorContainer()                                                  = default;
+    RenderCollectorContainer(const RenderCollectorContainer &other)                 = delete;
+    RenderCollectorContainer &operator=(RenderCollectorContainer &other)            = delete;
+    RenderCollectorContainer(RenderCollectorContainer &&other) noexcept             = delete;
+    RenderCollectorContainer &operator=(RenderCollectorContainer &&other) noexcept  = delete;
+    ~RenderCollectorContainer()                                                     = default;
 
     uint32 NumRenderCollectors() const
         { return m_num_render_collectors.Get(MemoryOrder::ACQUIRE); }

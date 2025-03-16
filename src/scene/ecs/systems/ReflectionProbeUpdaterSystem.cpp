@@ -4,6 +4,7 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <rendering/RenderProbe.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
@@ -70,9 +71,10 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    if (GetEntityManager().GetScene()->IsForegroundScene()) {
+    if (GetScene()->IsForegroundScene()) {
         reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("reflection_probe"),
+            GetScene()->HandleFromThis(),
             world_aabb
         );
     }
