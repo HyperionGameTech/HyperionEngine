@@ -500,7 +500,7 @@ void HyperionEditor::Teardown()
     
 void HyperionEditor::Logic(GameCounter::TickUnit delta)
 {
-    //g_engine->GetDebugDrawer()->Text2D(Vec2f(10.0f, 10.0f), "Test text here", Color::White());
+    g_engine->GetDebugDrawer()->Text2D(Vec2f(10.0f, 10.0f), "Test text here", Color::White());
 }
 
 void HyperionEditor::OnInputEvent(const SystemEvent &event)

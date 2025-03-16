@@ -285,7 +285,6 @@ public:
     void HandleDrawCommand(const DebugDrawCommand &draw_command);
 
 private:
-    Handle<RenderEnvironment>   m_environment;
     RC<UIRenderer>              m_ui_renderer;
     RC<UIStage>                 m_ui_stage;
 };
@@ -298,13 +297,11 @@ void UIDebugDrawer::Initialize()
 {
     HYP_SCOPE;
 
-    m_environment = CreateObject<RenderEnvironment>();
-    InitObject(m_environment);
-
     m_ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
     m_ui_stage->Init();
 
-    m_ui_renderer = m_environment->AddRenderSubsystem<UIRenderer>(Name::Unique("UIDebugDrawer"), m_ui_stage);
+    m_ui_renderer = MakeRefCountedPtr<UIRenderer>(m_ui_stage);
+    m_ui_renderer->Initialize();
 }
 
 void UIDebugDrawer::Update(GameCounter::TickUnit delta)
@@ -314,17 +311,15 @@ void UIDebugDrawer::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread);
 
     m_ui_stage->Update(delta);
-
-    m_environment->Update(delta);
+    m_ui_renderer->Update(delta);
 }
 
 void UIDebugDrawer::Render(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
-    //m_ui_renderer->Render(frame, nullptr);
+    m_ui_renderer->Render(frame, nullptr);
 }
 
 void UIDebugDrawer::HandleDrawCommand(const DebugDrawCommand &draw_command)
@@ -369,7 +364,8 @@ DebugDrawer::DebugDrawer()
       ReflectionProbe(m_default_command_list.ReflectionProbe),
       Box(m_default_command_list.Box),
       Plane(m_default_command_list.Plane),
-      Text2D(m_default_command_list.Text2D)
+      Text2D(m_default_command_list.Text2D),
+      m_num_draw_commands_pending_addition(0)
 {
     m_draw_commands.Reserve(256);
 }
@@ -469,7 +465,7 @@ void DebugDrawer::Render(Frame *frame)
     }
 
     if (!m_default_command_list.IsEmpty()) {
-        CommitCommands(m_default_command_list);
+        m_default_command_list.Commit();
     }
 
     if (m_num_draw_commands_pending_addition.Get(MemoryOrder::ACQUIRE) != 0) {
@@ -621,8 +617,6 @@ void DebugDrawer::Render(Frame *frame)
         );
     }
 
-    bool any_ui_objects = false;
-
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const DebugDrawCommand &draw_command = *m_draw_commands[index];
 
@@ -646,10 +640,10 @@ void DebugDrawer::Render(Frame *frame)
         {
             m_ui_debug_drawer->HandleDrawCommand(draw_command);
 
-            any_ui_objects = true;
-
             break;
         }
+        default:
+            HYP_UNREACHABLE();
         }
     }
 
@@ -657,10 +651,10 @@ void DebugDrawer::Render(Frame *frame)
 
     m_draw_commands.Clear();
 
-    if (any_ui_objects) {
-        m_ui_debug_drawer->Render(frame);
-    }
+    m_ui_debug_drawer->Render(frame);
 }
+
+HYP_DISABLE_OPTIMIZATION;
 
 void DebugDrawer::UpdateDrawCommands()
 {
@@ -673,6 +667,8 @@ void DebugDrawer::UpdateDrawCommands()
     AssertThrow(previous_value - int64(size) >= 0);
 
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
+
+    AssertThrow(m_draw_commands_pending_addition.Empty());
 }
 
 UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
@@ -689,9 +685,11 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
     Mutex::Guard guard(m_draw_commands_mutex);
 
     const SizeType num_added_items = command_list.m_draw_commands.Size();
-    m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
     m_num_draw_commands_pending_addition.Increment(uint32(num_added_items), MemoryOrder::RELEASE);
+    m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion DebugDrawer
 

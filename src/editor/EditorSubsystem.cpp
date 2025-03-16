@@ -522,7 +522,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
         // // @TODO: Don't serialize the editor camera controller
         m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
 
-        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"), m_ui_stage);
+        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(NAME("EditorUIRenderer"), m_ui_stage);
 
         m_delegate_handlers.Remove("OnPackageAdded");
 
@@ -575,7 +575,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
             GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
 
-            GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<UIRenderer>(NAME("EditorUIRenderer"));
+            GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<UIRenderSubsystem>(NAME("EditorUIRenderer"));
 
             if (m_camera) {
                 m_camera.Reset();

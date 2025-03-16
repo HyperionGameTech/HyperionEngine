@@ -262,7 +262,7 @@ private:
 
     Array<UniquePtr<DebugDrawCommand>>              m_draw_commands;
     Array<UniquePtr<DebugDrawCommand>>              m_draw_commands_pending_addition;
-    AtomicVar<uint32>                               m_num_draw_commands_pending_addition { 0 };
+    AtomicVar<uint32>                               m_num_draw_commands_pending_addition;
     Mutex                                           m_draw_commands_mutex;
 
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_instance_buffers;

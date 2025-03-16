@@ -117,6 +117,12 @@ void RenderEnvironment::Init()
             ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
             : RT_RADIANCE_RENDERER_OPTION_NONE
     );
+
+    if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
+    {
+        CreateTLAS();
+    }
     
     if (m_tlas) {
         m_rt_radiance->SetTLAS(m_tlas);
@@ -262,8 +268,6 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     }
     
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        CreateTLAS();
-
         RTUpdateStateFlags update_state_flags;
 
         m_tlas->UpdateStructure(
