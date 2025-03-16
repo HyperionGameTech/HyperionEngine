@@ -9,6 +9,7 @@
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/EnvGrid.hpp>
 
@@ -21,6 +22,7 @@
 #include <scene/BVH.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/World.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
@@ -508,7 +510,13 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 
 void LightmapGPUPathTracer::Create()
 {
-    AssertThrow(m_scene->GetTLAS() != nullptr);
+    AssertThrow(m_scene.IsValid());
+
+    AssertThrow(m_scene->GetWorld() != nullptr);
+    AssertThrow(m_scene->GetWorld()->IsReady());
+
+    const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTLAS();
+    AssertThrow(tlas != nullptr);
 
     CreateUniformBuffer();
 
@@ -545,9 +553,6 @@ void LightmapGPUPathTracer::Create()
     renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    const TLASRef &tlas = m_scene->GetTLAS();
-    AssertThrow(tlas != nullptr);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);

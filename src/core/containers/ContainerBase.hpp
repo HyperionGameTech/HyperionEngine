@@ -278,7 +278,7 @@ public:
     }
 
     template <class ConstIterator>
-    KeyType IndexOf(ConstIterator iter) const
+    SizeType IndexOf(ConstIterator iter) const
     {
         static_assert(Container::is_contiguous, "Container must be contiguous to perform IndexOf()");
 
@@ -286,8 +286,8 @@ public:
             typename Container::ConstIterator>, "Iterator type does not match container");
 
         return iter != static_cast<const Container *>(this)->End()
-            ? static_cast<KeyType>(iter - static_cast<const Container *>(this)->Begin())
-            : static_cast<KeyType>(-1);
+            ? SizeType(iter - static_cast<const Container *>(this)->Begin())
+            : SizeType(-1);
     }
 
     template <class OtherContainer>

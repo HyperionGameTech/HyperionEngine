@@ -302,7 +302,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
-    constexpr bool use_debug_layers = false;//true;
+    constexpr bool use_debug_layers = true;
 #else
     constexpr bool use_debug_layers = false;
 #endif
@@ -472,7 +472,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_final_pass->Create();
 
     m_debug_drawer = MakeUnique<DebugDrawer>();
-    m_debug_drawer->Create();
 
     m_world = CreateObject<World>();
     InitObject(m_world);
@@ -707,7 +706,6 @@ void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
 void Engine::RenderDeferred(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
     SceneRenderResource *scene_render_resource = m_render_state->GetActiveScene();
@@ -716,7 +714,7 @@ void Engine::RenderDeferred(Frame *frame)
         return;
     }
 
-    m_deferred_renderer->Render(frame, scene_render_resource->GetEnvironment().Get());
+    m_deferred_renderer->Render(frame, m_world->GetRenderResource().GetEnvironment().Get());
 }
 
 #pragma endregion Engine

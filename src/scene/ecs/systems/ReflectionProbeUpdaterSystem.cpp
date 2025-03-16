@@ -4,11 +4,13 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 
 #include <rendering/RenderProbe.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -20,6 +22,29 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvProbe);
+
+ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager &entity_manager)
+    : System(entity_manager)
+{
+    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
+    {
+        Threads::AssertOnThread(g_game_thread);
+
+        // Trigger removal and addition of render subsystems
+
+        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+            if (reflection_probe_component.reflection_probe_renderer) {
+                reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
+
+                if (new_world != nullptr) {
+                    new_world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
+                }
+            } else if (!previous_world) {
+                OnEntityAdded(Handle<Entity> { entity_id });
+            }
+        }
+    }));
+}
 
 void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
@@ -42,9 +67,14 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
-    if (GetEntityManager().GetScene()->IsForegroundScene()) {
-        reflection_probe_component.reflection_probe_renderer = GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+    if (!GetWorld()) {
+        return;
+    }
+
+    if (GetScene()->IsForegroundScene()) {
+        reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("reflection_probe"),
+            GetScene()->HandleFromThis(),
             world_aabb
         );
     }
@@ -57,7 +87,7 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     ReflectionProbeComponent &reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
 
     if (reflection_probe_component.reflection_probe_renderer != nullptr) {
-        GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ReflectionProbeRenderer>(reflection_probe_component.reflection_probe_renderer->GetName());
+        reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
 
         reflection_probe_component.reflection_probe_renderer = nullptr;
     }

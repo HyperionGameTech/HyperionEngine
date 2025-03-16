@@ -119,8 +119,6 @@ Scene::~Scene()
     RC<EntityManager> entity_manager = std::move(m_entity_manager);
     entity_manager.Reset();
 
-    SafeRelease(std::move(m_tlas));
-
     if (m_render_resource != nullptr) {
         FreeResource(m_render_resource);
 
@@ -170,22 +168,6 @@ void Scene::Init()
     AddSystemIfApplicable<ScriptSystem>();
 
     m_entity_manager->Initialize();
-
-    if (IsForegroundScene()) {
-        if (m_flags & SceneFlags::HAS_TLAS) {
-            if (!m_tlas) {
-                if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-                    CreateTLAS();
-                } else {
-                    m_flags &= ~SceneFlags::HAS_TLAS;
-                }
-            }
-        }
-
-        if (m_tlas) {
-            m_render_resource->GetEnvironment()->SetTLAS(m_tlas);
-        }
-    }
 
     SetReady(true);
 }
@@ -489,37 +471,6 @@ void Scene::EnqueueRenderUpdates()
     shader_data.game_time = m_world != nullptr ? m_world->GetGameState().game_time : 0.0f;
 
     m_render_resource->SetBufferData(shader_data);
-}
-
-bool Scene::CreateTLAS()
-{
-    HYP_SCOPE;
-
-    AssertThrowMsg(IsForegroundScene(), "Can only create TLAS for foreground");
-    AssertIsInitCalled();
-
-    if (m_tlas) {
-        // TLAS already exists
-        return true;
-    }
-    
-    if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        // cannot create TLAS if RT is not supported.
-        m_flags &= ~SceneFlags::HAS_TLAS;
-
-        return false;
-    }
-
-    m_tlas = MakeRenderObject<TLAS>();
-    DeferCreate(m_tlas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
-
-    if (IsReady()) {
-        m_render_resource->GetEnvironment()->SetTLAS(m_tlas);
-    }
-
-    m_flags |= SceneFlags::HAS_TLAS;
-
-    return true;
 }
 
 void Scene::SetRoot(const NodeProxy &root)

@@ -5,10 +5,15 @@
 #include <rendering/RenderProbe.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/Light.hpp>
+#include <scene/Scene.hpp>
+
+#include <scene/camera/Camera.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -21,10 +26,12 @@ namespace hyperion {
 
 PointLightShadowRenderer::PointLightShadowRenderer(
     Name name,
-    Handle<Light> light,
+    const Handle<Scene> &parent_scene,
+    const Handle<Light> &light,
     const Vec2u &extent
 ) : RenderSubsystem(name),
-    m_light(std::move(light)),
+    m_parent_scene(parent_scene),
+    m_light(light),
     m_extent(extent)
 {
 }
@@ -33,6 +40,8 @@ PointLightShadowRenderer::~PointLightShadowRenderer() = default;
 
 void PointLightShadowRenderer::Init()
 {
+    AssertThrow(m_parent_scene.IsValid());
+
     if (!InitObject(m_light)) {
         HYP_LOG(Shadows, Warning, "Point shadow renderer attached to invalid Light");
 
@@ -42,7 +51,7 @@ void PointLightShadowRenderer::Init()
     m_aabb = m_light->GetAABB();
 
     m_env_probe = CreateObject<EnvProbe>(
-        Handle<Scene>(GetParent()->GetScene()->GetID()),
+        m_parent_scene,
         m_aabb,
         m_extent,
         ENV_PROBE_TYPE_SHADOW
@@ -53,6 +62,11 @@ void PointLightShadowRenderer::Init()
     m_light->SetShadowMapIndex(m_env_probe->GetID().ToIndex());
     m_env_probe->EnqueueBind();
     m_last_visibility_state = true;
+
+    AssertThrow(m_parent_scene->GetCamera().IsValid());
+    AssertThrow(m_parent_scene->GetCamera()->IsReady());
+
+    m_camera_resource_handle = ResourceHandle(m_parent_scene->GetCamera()->GetRenderResource());
 }
 
 // called from game thread
@@ -103,9 +117,15 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
         return;
     }
 
+    if (!m_camera_resource_handle) {
+        return;
+    }
+   
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
     LightRenderResource &light_render_resource = m_light->GetRenderResource();
 
-    if (light_render_resource.GetVisibilityBits().Test(GetParent()->GetScene()->GetCamera().GetID().ToIndex())) {
+    if (light_render_resource.GetVisibilityBits().Test(camera_render_resource.GetCamera()->GetID().ToIndex())) {
         if (!m_last_visibility_state) {
             g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe);
 

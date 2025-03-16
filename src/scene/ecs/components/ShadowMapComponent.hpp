@@ -34,7 +34,7 @@ struct ShadowMapComponent
     Vec2u                   resolution = Vec2u { 512, 512 };
 
     HYP_FIELD()
-    RC<RenderSubsystem> render_subsystem;
+    RC<RenderSubsystem>     render_subsystem;
 
     HYP_FIELD()
     uint32                  update_counter = 0;

@@ -52,6 +52,8 @@ void RenderCollectorContainer::RemoveScene(ID<Scene> scene_id)
 WorldRenderResource::WorldRenderResource(World *world)
     : m_world(world)
 {
+    m_environment = CreateObject<RenderEnvironment>();
+    InitObject(m_environment);
 }
 
 WorldRenderResource::~WorldRenderResource() = default;
@@ -154,9 +156,7 @@ void WorldRenderResource::Render(renderer::Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    for (TResourceHandle<SceneRenderResource> &scene_resource_handle : m_bound_scenes) {
-        scene_resource_handle->GetEnvironment()->RenderSubsystems(frame);
-    }
+    m_environment->RenderSubsystems(frame);
 }
 
 #pragma endregion WorldRenderResource

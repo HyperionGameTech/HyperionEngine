@@ -19,17 +19,16 @@ class EnvGridUpdaterSystem : public System<
 >
 {
 public:
-    EnvGridUpdaterSystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    EnvGridUpdaterSystem(EntityManager &entity_manager);
     virtual ~EnvGridUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    void AddRenderSubsystemToEnvironment(EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component, World *world);
 };
 
 } // namespace hyperion

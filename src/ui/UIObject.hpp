@@ -33,7 +33,7 @@ struct ScriptComponent;
 
 class UIObject;
 class UIStage;
-class UIRenderer;
+class UIRenderSubsystem;
 class UIDataSourceBase;
 class UIDataSource;
 
@@ -506,7 +506,7 @@ protected:
     UIObject(UIObjectType type, const ThreadID &owner_thread_id = ThreadID::invalid);
 
 public:
-    friend class UIRenderer;
+    friend class UIRenderSubsystem;
     friend class UIStage;
     friend struct UILockedUpdatesScope;
 

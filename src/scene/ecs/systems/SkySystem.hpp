@@ -16,17 +16,16 @@ class SkySystem : public System<
 >
 {
 public:
-    SkySystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    SkySystem(EntityManager &entity_manager);
     virtual ~SkySystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    void AddRenderSubsystemToEnvironment(SkyComponent &sky_component, MeshComponent &mesh_component, World *world);
 };
 
 } // namespace hyperion

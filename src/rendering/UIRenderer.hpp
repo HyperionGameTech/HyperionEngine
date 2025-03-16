@@ -52,18 +52,44 @@ private:
     Array<Pair<ID<Entity>, int>>    m_proxy_depths;
 };
 
-HYP_CLASS()
-class HYP_API UIRenderer : public RenderSubsystem
+class UIRenderer : public EnableRefCountedPtrFromThis<UIRenderer>
 {
-    HYP_OBJECT_BODY(UIRenderer);
+public:
+    UIRenderer(const RC<UIStage> &ui_stage);
+    UIRenderer(const UIRenderer &other)                 = delete;
+    UIRenderer &operator=(const UIRenderer &other)      = delete;
+    UIRenderer(UIRenderer &&other) noexcept             = default;
+    UIRenderer &operator=(UIRenderer &&other) noexcept  = default;
+    ~UIRenderer();
+
+    void Initialize();
+    void Update(GameCounter::TickUnit delta);
+    void Render(Frame *frame);
+    void Render(Frame *frame, const FramebufferRef &framebuffer);
+
+private:
+    void CreateFramebuffer();
+
+    RC<UIStage>         m_ui_stage;
+    FramebufferRef      m_framebuffer;
+    ShaderRef           m_shader;
+    UIRenderCollector   m_render_collector;
+
+    ResourceHandle      m_camera_resource_handle;
+};
+
+HYP_CLASS()
+class HYP_API UIRenderSubsystem : public RenderSubsystem
+{
+    HYP_OBJECT_BODY(UIRenderSubsystem);
 
 public:
-    friend struct RenderCommand_CreateUIRendererFramebuffer;
+    UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage);
+    UIRenderSubsystem(const UIRenderSubsystem &other)             = delete;
+    UIRenderSubsystem &operator=(const UIRenderSubsystem &other)  = delete;
+    virtual ~UIRenderSubsystem();
 
-    UIRenderer(Name name, RC<UIStage> ui_stage);
-    UIRenderer(const UIRenderer &other)             = delete;
-    UIRenderer &operator=(const UIRenderer &other)  = delete;
-    virtual ~UIRenderer();
+    void Render(Frame *frame);
 
 private:
     virtual void Init() override;
@@ -77,14 +103,11 @@ private:
 
     void CreateFramebuffer();
 
-    RC<UIStage>                                 m_ui_stage;
-    FramebufferRef                              m_framebuffer;
-    ShaderRef                                   m_shader;
-    UIRenderCollector                           m_render_collector;
+    RC<UIStage>     m_ui_stage;
 
-    ResourceHandle                              m_camera_resource_handle;
+    RC<UIRenderer>  m_ui_renderer;
 
-    DelegateHandler                             m_on_gbuffer_resolution_changed_handle;
+    DelegateHandler m_on_gbuffer_resolution_changed_handle;
 };
 
 } // namespace hyperion

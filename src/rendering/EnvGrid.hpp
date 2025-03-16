@@ -9,6 +9,8 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -140,7 +142,7 @@ class HYP_API EnvGrid : public RenderSubsystem
     HYP_OBJECT_BODY(EnvGrid);
 
 public:
-    EnvGrid(Name name, EnvGridOptions options);
+    EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions options);
     EnvGrid(const EnvGrid &other)               = delete;
     EnvGrid &operator=(const EnvGrid &other)    = delete;
     virtual ~EnvGrid();
@@ -201,6 +203,8 @@ private:
         Frame *frame,
         uint32 probe_index
     );
+
+    Handle<Scene>               m_parent_scene;
 
     const EnvGridOptions        m_options;
 

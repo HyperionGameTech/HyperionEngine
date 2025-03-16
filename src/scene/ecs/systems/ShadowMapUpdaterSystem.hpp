@@ -20,17 +20,16 @@ class ShadowMapUpdaterSystem : public System<
 >
 {
 public:
-    ShadowMapUpdaterSystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    ShadowMapUpdaterSystem(EntityManager &entity_manager);
     virtual ~ShadowMapUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
+
+private:
+    void AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component, World *world);
 };
 
 } // namespace hyperion

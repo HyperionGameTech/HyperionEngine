@@ -18,16 +18,10 @@ namespace hyperion {
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
     Name name,
-    const Vec3f &origin
-) : RenderSubsystem(name),
-    m_aabb(BoundingBox(origin - 150.0f, origin + 150.0f))
-{
-}
-
-ReflectionProbeRenderer::ReflectionProbeRenderer(
-    Name name,
+    const Handle<Scene> &parent_scene,
     const BoundingBox &aabb
 ) : RenderSubsystem(name),
+    m_parent_scene(parent_scene),
     m_aabb(aabb)
 {
 }
@@ -39,7 +33,7 @@ ReflectionProbeRenderer::~ReflectionProbeRenderer()
 void ReflectionProbeRenderer::Init()
 {
     m_env_probe = CreateObject<EnvProbe>(
-        GetParent()->GetScene()->HandleFromThis(),
+        m_parent_scene,
         m_aabb,
         Vec2u { 256, 256 },
         ENV_PROBE_TYPE_REFLECTION

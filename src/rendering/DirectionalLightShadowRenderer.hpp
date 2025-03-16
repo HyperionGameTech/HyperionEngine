@@ -130,7 +130,7 @@ class DirectionalLightShadowRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);
 
 public:
-    DirectionalLightShadowRenderer(Name name, Vec2u resolution, ShadowMode shadow_mode);
+    DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMode shadow_mode);
     DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
     DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
     virtual ~DirectionalLightShadowRenderer() override;
@@ -156,9 +156,11 @@ private:
 
     void CreateShader();
 
+    Handle<Scene>               m_parent_scene;
     UniquePtr<ShadowPass>       m_shadow_pass;
     Vec2u                       m_resolution;
     ShadowMode                  m_shadow_mode;
+
     RerenderShadowsSemaphore    m_rerender_semaphore;
     
     ShaderRef                   m_shader;

@@ -47,21 +47,16 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 HYP_CLASS()
 class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 {
-    using RenderSubsystemPendingRemovalEntry = Pair<TypeID, Name>;
-
     HYP_OBJECT_BODY(RenderEnvironment);
 
 public:
     RenderEnvironment();
-    RenderEnvironment(Scene *scene);
     RenderEnvironment(const RenderEnvironment &other)               = delete;
     RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
     ~RenderEnvironment();
 
-    void SetTLAS(const TLASRef &tlas);
-
-    Scene *GetScene() const
-        { return m_scene; }
+    const TLASRef &GetTLAS() const
+        { return m_tlas; }
 
     const Handle<ParticleSystem> &GetParticleSystem() const
         { return m_particle_system; }
@@ -69,17 +64,30 @@ public:
     const Handle<GaussianSplatting> &GetGaussianSplatting() const
         { return m_gaussian_splatting; }
 
-    template <class T>
-    RC<T> AddRenderSubsystem(const RC<T> &component)
+    RC<RenderSubsystem> AddRenderSubsystem(const RC<RenderSubsystem> &render_subsystem)
+    {
+        if (!render_subsystem) {
+            return nullptr;
+        }
+
+        AddRenderSubsystem(GetRenderSubsystemTypeID(render_subsystem->InstanceClass()), render_subsystem);
+
+        return render_subsystem;
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_same_v<T, RenderSubsystem>>>
+    RC<T> AddRenderSubsystem(const RC<T> &render_subsystem)
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
+        
+        if (!render_subsystem) {
+            return nullptr;
+        }
 
-        AssertThrow(component != nullptr);
+        AddRenderSubsystem(GetRenderSubsystemTypeID<T>(), render_subsystem);
 
-        AddRenderSubsystem(GetRenderSubsystemTypeID<T>(), component);
-
-        return component;
+        return render_subsystem;
     }
 
     template <class T, class... Args>
@@ -134,7 +142,7 @@ public:
         const TypeID type_id = GetRenderSubsystemTypeID<T>();
 
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         Mutex::Guard guard(m_render_subsystems_mutex);
 
@@ -161,7 +169,7 @@ public:
     bool HasRenderSubsystem(Name name) const
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         const TypeID type_id = GetRenderSubsystemTypeID<T>();
 
@@ -193,10 +201,12 @@ public:
     void RemoveRenderSubsystem(Name name = Name::Invalid())
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
-            "Component should be a derived class of RenderSubsystem");
+            "T should be a derived class of RenderSubsystem");
 
         RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
+
+    void RemoveRenderSubsystem(const RenderSubsystem *render_subsystem);
 
     // only touch from render thread!
     uint32 GetEnabledRenderSubsystemsMask() const
@@ -236,7 +246,7 @@ private:
     template <class T>
     static TypeID GetRenderSubsystemTypeID()
     {
-        static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "Component should be a derived class of RenderSubsystem");
+        static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "T should be a derived class of RenderSubsystem");
         
         return GetRenderSubsystemTypeID(T::Class());
     }
@@ -249,8 +259,7 @@ private:
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
     void InitializeRT();
-
-    Scene                                                               *m_scene;
+    bool CreateTLAS();
 
     AtomicVar<RenderEnvironmentUpdates>                                 m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 

@@ -3,7 +3,6 @@
 #ifndef HYPERION_RENDER_RESOURCE_HPP
 #define HYPERION_RENDER_RESOURCE_HPP
 
-#include <core/threading/Threads.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>

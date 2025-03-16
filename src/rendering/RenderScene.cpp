@@ -1,10 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
+
+#include <scene/World.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -15,8 +18,6 @@ namespace hyperion {
 SceneRenderResource::SceneRenderResource(Scene *scene)
     : m_scene(scene)
 {
-    m_environment = CreateObject<RenderEnvironment>(m_scene);
-    InitObject(m_environment);
 }
 
 SceneRenderResource::~SceneRenderResource() = default;
@@ -42,8 +43,12 @@ void SceneRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    m_buffer_data.frame_counter = m_environment->GetFrameCounter();
-    m_buffer_data.enabled_render_subsystems_mask = m_environment->GetEnabledRenderSubsystemsMask();
+    // @FIXME: Use World* from Scene
+    const Handle<RenderEnvironment> &render_environment = g_engine->GetWorld()->GetRenderResource().GetEnvironment();
+    AssertThrow(render_environment.IsValid());
+
+    m_buffer_data.frame_counter = render_environment->GetFrameCounter();
+    m_buffer_data.enabled_render_subsystems_mask = render_environment->GetEnabledRenderSubsystemsMask();
 
     *static_cast<SceneShaderData *>(m_buffer_address) = m_buffer_data;
 

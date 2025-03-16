@@ -51,7 +51,6 @@ enum class SceneFlags : uint32
     NONE        = 0x0,
     FOREGROUND  = 0x1,
     DETACHED    = 0x2,
-    HAS_TLAS    = 0x4,
     UI          = 0x8
 };
 
@@ -140,16 +139,6 @@ public:
 
     HYP_METHOD()
     HYP_NODISCARD NodeProxy FindNodeByName(UTF8StringView name) const;
-    
-    /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
-    HYP_FORCE_INLINE const TLASRef &GetTLAS() const
-        { return m_tlas; }
-
-    /*! \brief Creates a top level acceleration structure for this Scene. If one already exists on this Scene,
-     *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
-     *  The Scene must have had Init() called on it before calling this.
-     */
-    bool CreateTLAS();
     
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
     HYP_FORCE_INLINE const NodeProxy &GetRoot() const
@@ -252,8 +241,6 @@ private:
     RC<EntityManager>           m_entity_manager;
 
     Octree                      m_octree;
-
-    TLASRef                     m_tlas;
 
     bool                        m_is_audio_listener;
 

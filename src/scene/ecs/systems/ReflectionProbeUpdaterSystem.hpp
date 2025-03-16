@@ -18,11 +18,7 @@ class ReflectionProbeUpdaterSystem : public System<
 >
 {
 public:
-    ReflectionProbeUpdaterSystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    ReflectionProbeUpdaterSystem(EntityManager &entity_manager);
     virtual ~ReflectionProbeUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
