@@ -43,9 +43,6 @@ public:
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_scene; }
 
-    HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
-        { return m_environment; }
-
     void SetBufferData(const SceneShaderData &buffer_data);
 
     /*! \note Only to be called from render thread or render task */
@@ -64,7 +61,6 @@ private:
 
     Scene                       *m_scene;
     SceneShaderData             m_buffer_data;
-    Handle<RenderEnvironment>   m_environment;
 };
 
 template <>

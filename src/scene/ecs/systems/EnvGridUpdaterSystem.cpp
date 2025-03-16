@@ -8,6 +8,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -29,7 +30,18 @@ EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager &entity_manager)
     {
         Threads::AssertOnThread(g_game_thread);
 
-        // @TODO Remove / re-add render subsystems
+        // Trigger removal and addition of render subsystems
+        for (auto [entity_id, env_grid_component] : GetEntityManager().GetEntitySet<EnvGridComponent>().GetScopedView(GetComponentInfos())) {
+            if (env_grid_component.env_grid) {
+                env_grid_component.env_grid->RemoveFromEnvironment();
+
+                if (new_world != nullptr) {
+                    new_world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(env_grid_component.env_grid);
+                }
+            } else if (!previous_world) {
+                OnEntityAdded(Handle<Entity> { entity_id });
+            }
+        }
     }));
 }
 
@@ -61,10 +73,14 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         HYP_LOG(EnvGrid, Warning, "EnvGridUpdaterSystem::OnEntityAdded: Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
+    if (!GetWorld()) {
+        return;
+    }
+
     if (GetEntityManager().GetScene()->IsForegroundScene()) {
         HYP_LOG(EnvGrid, Debug, "Adding EnvGrid render component to scene {}", GetEntityManager().GetScene()->GetName());
 
-        env_grid_component.env_grid = GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGrid>(
+        env_grid_component.env_grid = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGrid>(
             Name::Unique("env_grid_renderer"),
             EnvGridOptions {
                 env_grid_component.env_grid_type,
@@ -83,7 +99,7 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     EnvGridComponent &env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
     if (env_grid_component.env_grid != nullptr) {
-        GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<EnvGrid>(env_grid_component.env_grid->GetName());
+        env_grid_component.env_grid->RemoveFromEnvironment();
 
         env_grid_component.env_grid = nullptr;
     }

@@ -1052,10 +1052,7 @@ void EnvGrid::CreateFramebuffer()
     DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 }
 
-void EnvGrid::RenderEnvProbe(
-    Frame *frame,
-    uint32 probe_index
-)
+void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
 {
     HYP_SCOPE;
 

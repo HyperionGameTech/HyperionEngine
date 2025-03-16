@@ -60,13 +60,7 @@ struct RENDER_COMMAND(RemoveAllRenderSubsystems) : renderer::RenderCommand
 #pragma endregion Render commands
 
 RenderEnvironment::RenderEnvironment()
-    : RenderEnvironment(nullptr)
-{
-}
-
-RenderEnvironment::RenderEnvironment(Scene *scene)
     : HypObject(),
-      m_scene(scene),
       m_frame_counter(0),
       m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
@@ -101,13 +95,6 @@ RenderEnvironment::~RenderEnvironment()
     SafeRelease(std::move(m_tlas));
 
     HYP_SYNC_RENDER();
-}
-
-void RenderEnvironment::SetTLAS(const TLASRef &tlas)
-{
-    m_tlas = tlas;
-
-    AddUpdateMarker(RENDER_ENVIRONMENT_UPDATES_TLAS, ThreadType::THREAD_TYPE_RENDER);
 }
 
 void RenderEnvironment::Init()
@@ -273,22 +260,16 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     if (!m_rt_initialized) {
         InitializeRT();
     }
+    
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+        CreateTLAS();
 
-    AssertThrow(m_scene != nullptr);
-    AssertThrow(m_scene->IsReady());
-
-    if (const TLASRef &tlas = m_scene->GetTLAS()) {
-        RTUpdateStateFlags update_state_flags = renderer::RT_UPDATE_STATE_FLAGS_NONE;
-
-        tlas->UpdateStructure(
+        m_tlas->UpdateStructure(
             g_engine->GetGPUInstance(),
             update_state_flags
         );
 
-        if (update_state_flags) {
-            ApplyTLASUpdates(frame, update_state_flags);
-        }
-
+        ApplyTLASUpdates(frame, update_state_flags);
         RemoveUpdateMarker(RENDER_ENVIRONMENT_UPDATES_TLAS, ThreadType::THREAD_TYPE_RENDER);
     }
 
@@ -360,6 +341,8 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
             }
 
             AssertDebug(index != SizeType(-1));
+
+            render_subsystem->SetParent(this);
             
             render_subsystem->SetComponentIndex(index);
 
@@ -376,12 +359,10 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
     AssertThrow(render_subsystem != nullptr);
 
-    render_subsystem->SetParent(this);
-
     PUSH_RENDER_COMMAND(AddRenderSubsystem, WeakHandleFromThis(), type_id, render_subsystem);
 }
 
-void RenderEnvironment::RemoveRenderSubsystem(const RC<RenderSubsystem> &render_subsystem)
+void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem *render_subsystem)
 {
     if (!render_subsystem) {
         return;
@@ -439,8 +420,12 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass *hy
                         const RC<RenderSubsystem> &render_subsystem = name_it->second;
 
                         if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class)) {
-                            if (render_subsystem && render_subsystem->IsInitialized()) {
-                                render_subsystem->ComponentRemoved();
+                            if (render_subsystem) {
+                                if (render_subsystem->IsInitialized()) {
+                                    render_subsystem->ComponentRemoved();
+                                }
+
+                                render_subsystem->SetParent(nullptr);
                             }
 
                             components_it->second.Erase(name_it);
@@ -451,13 +436,17 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass *hy
                         const RC<RenderSubsystem> &render_subsystem = it->second;
 
                         if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class)) {
-                            if (render_subsystem && render_subsystem->IsInitialized()) {
-                                render_subsystem->ComponentRemoved();
+                            if (render_subsystem) {
+                                if (render_subsystem->IsInitialized()) {
+                                    render_subsystem->ComponentRemoved();
+                                }
 
-                                it = components_it->second.Erase(it);
-
-                                continue;
+                                render_subsystem->SetParent(nullptr);
                             }
+
+                            it = components_it->second.Erase(it);
+
+                            continue;
                         }
 
                         ++it;
@@ -515,6 +504,27 @@ void RenderEnvironment::InitializeRT()
     }
 
     m_rt_initialized = true;
+}
+
+bool RenderEnvironment::CreateTLAS()
+{
+    HYP_SCOPE;
+
+    AssertIsInitCalled();
+
+    if (m_tlas) {
+        // TLAS already exists
+        return true;
+    }
+    
+    if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+        return false;
+    }
+
+    m_tlas = MakeRenderObject<TLAS>();
+    DeferCreate(m_tlas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+
+    return true;
 }
 
 } // namespace hyperion

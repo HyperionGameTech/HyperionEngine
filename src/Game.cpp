@@ -95,7 +95,7 @@ void Game::Init_Internal()
             InitObject(camera);
 
             m_scene = CreateObject<Scene>(
-                SceneFlags::FOREGROUND | SceneFlags::HAS_TLAS // default it to having a top level acceleration structure for RT
+                SceneFlags::FOREGROUND
             );
 
             m_scene->SetName(NAME("Scene_Main"));

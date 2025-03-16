@@ -6,14 +6,15 @@
 #include <core/Base.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/AtomicVar.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/object/HypObject.hpp>
 
-#include <scene/Entity.hpp>
-
 #include <core/math/MathUtil.hpp>
+
+#include <scene/Entity.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -21,7 +22,6 @@
 #include <Constants.hpp>
 #include <Types.hpp>
 
-#include <atomic>
 #include <type_traits>
 
 namespace hyperion {
@@ -29,7 +29,7 @@ namespace hyperion {
 class RenderEnvironment;
 
 HYP_CLASS(Abstract)
-class RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
+class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
 {
     HYP_OBJECT_BODY(RenderSubsystem);
 
@@ -126,6 +126,8 @@ public:
     /*! \brief Called on the RENDER thread when the component is removed. */
     void ComponentRemoved() { OnRemoved(); }
 
+    void RemoveFromEnvironment();
+
 protected:
     virtual void Init() = 0;
     virtual void InitGame() = 0;
@@ -141,8 +143,7 @@ protected:
     RenderEnvironment       *m_parent;
 
 private:
-    HYP_FORCE_INLINE void SetParent(RenderEnvironment *parent)
-        { m_parent = parent; }
+    void SetParent(RenderEnvironment *parent);
 
     AtomicVar<ThreadMask>   m_is_initialized;
 };

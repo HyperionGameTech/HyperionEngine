@@ -51,15 +51,12 @@ class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 
 public:
     RenderEnvironment();
-    RenderEnvironment(Scene *scene);
     RenderEnvironment(const RenderEnvironment &other)               = delete;
     RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
     ~RenderEnvironment();
 
-    void SetTLAS(const TLASRef &tlas);
-
-    Scene *GetScene() const
-        { return m_scene; }
+    const TLASRef &GetTLAS() const
+        { return m_tlas; }
 
     const Handle<ParticleSystem> &GetParticleSystem() const
         { return m_particle_system; }
@@ -196,7 +193,7 @@ public:
         RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
 
-    void RemoveRenderSubsystem(const RC<RenderSubsystem> &render_subsystem);
+    void RemoveRenderSubsystem(const RenderSubsystem *render_subsystem);
 
     // only touch from render thread!
     uint32 GetEnabledRenderSubsystemsMask() const
@@ -249,8 +246,7 @@ private:
     void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
     void InitializeRT();
-
-    Scene                                                               *m_scene;
+    bool CreateTLAS();
 
     AtomicVar<RenderEnvironmentUpdates>                                 m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 

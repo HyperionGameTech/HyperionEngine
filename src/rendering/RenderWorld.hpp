@@ -86,6 +86,9 @@ public:
     HYP_FORCE_INLINE const RenderCollector &GetRenderCollectorForScene(ID<Scene> scene_id) const
         { return m_render_collector_container.GetRenderCollectorForScene(scene_id); }
 
+    HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
+        { return m_environment; }
+
     void AddScene(const Handle<Scene> &scene);
     Task<bool> RemoveScene(ID<Scene> scene_id);
 
@@ -104,6 +107,7 @@ private:
     World                                       *m_world;
     Array<TResourceHandle<SceneRenderResource>> m_bound_scenes;
     RenderCollectorContainer                    m_render_collector_container;
+    Handle<RenderEnvironment>                   m_environment;
 };
 
 template <>

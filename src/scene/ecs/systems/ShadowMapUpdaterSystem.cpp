@@ -9,12 +9,36 @@
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>
 
 namespace hyperion {
+
+ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager &entity_manager)
+    : System(entity_manager)
+{
+    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
+    {
+        Threads::AssertOnThread(g_game_thread);
+
+        // Trigger removal and addition of render subsystems
+
+        for (auto [entity_id, shadow_map_component, light_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent>().GetScopedView(GetComponentInfos())) {
+            if (shadow_map_component.render_subsystem) {
+                shadow_map_component.render_subsystem->RemoveFromEnvironment();
+
+                if (new_world != nullptr) {
+                    new_world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(shadow_map_component.render_subsystem);
+                }
+            } else if (!previous_world) {
+                OnEntityAdded(Handle<Entity> { entity_id });
+            }
+        }
+    }));
+}
 
 void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
@@ -31,9 +55,13 @@ void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
+    if (!GetWorld()) {
+        return;
+    }
+
     switch (light_component.light->GetLightType()) {
     case LightType::DIRECTIONAL:
-        shadow_map_component.render_subsystem = GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
+        shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
             shadow_map_component.resolution,
             shadow_map_component.mode
@@ -41,7 +69,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
         break;
     case LightType::POINT:
-        shadow_map_component.render_subsystem = GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
+        shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_point"),
             light_component.light,
             shadow_map_component.resolution
@@ -67,18 +95,7 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
     if (shadow_map_component.render_subsystem) {
-        switch (light_component.light->GetLightType()) {
-        case LightType::DIRECTIONAL:
-            GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<DirectionalLightShadowRenderer>(shadow_map_component.render_subsystem->GetName());
-
-            break;
-        case LightType::POINT:
-            GetEntityManager().GetScene()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<PointLightShadowRenderer>(shadow_map_component.render_subsystem->GetName());
-
-            break;
-        default:
-            break;
-        }
+        shadow_map_component.render_subsystem->RemoveFromEnvironment();
 
         shadow_map_component.render_subsystem = nullptr;
     }

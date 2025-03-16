@@ -508,7 +508,8 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 
 void LightmapGPUPathTracer::Create()
 {
-    AssertThrow(m_scene->GetTLAS() != nullptr);
+    const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTLAS();
+    AssertThrow(tlas != nullptr);
 
     CreateUniformBuffer();
 
@@ -545,9 +546,6 @@ void LightmapGPUPathTracer::Create()
     renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-
-    const TLASRef &tlas = m_scene->GetTLAS();
-    AssertThrow(tlas != nullptr);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);

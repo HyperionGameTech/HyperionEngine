@@ -174,6 +174,8 @@ void World::Update(GameCounter::TickUnit delta)
     }
 #endif
 
+    m_render_resource->GetEnvironment()->Update(delta);
+
     Array<EntityManager *> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
 
@@ -187,14 +189,6 @@ void World::Update(GameCounter::TickUnit delta)
         // sanity checks
         AssertThrow(scene->GetWorld() == this);
         AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
-
-        if (scene->IsForegroundScene()) {
-            if (const Handle<RenderEnvironment> &render_environment = scene->GetRenderResource().GetEnvironment()) {
-                HYP_NAMED_SCOPE_FMT("Update RenderEnvironment for Scene with ID #{}", scene->GetID().Value());
-
-                render_environment->Update(delta);
-            }
-        }
 
         scene->Update(delta);
 

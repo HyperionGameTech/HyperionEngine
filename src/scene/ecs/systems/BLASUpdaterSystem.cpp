@@ -7,6 +7,8 @@
 #include <scene/Mesh.hpp>
 
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderWorld.hpp>
+#include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
@@ -44,22 +46,27 @@ struct RENDER_COMMAND(UpdateBLASTransform) : renderer::RenderCommand
 
 struct RENDER_COMMAND(AddBLASToTLAS) : renderer::RenderCommand
 {
-    TLASRef tlas;
-    BLASRef blas;
+    WeakHandle<RenderEnvironment>   environment_weak;
+    BLASRef                         blas;
 
     RENDER_COMMAND(AddBLASToTLAS)(
-        const TLASRef &tlas,
+        const WeakHandle<RenderEnvironment> &environment_weak,
         const BLASRef &blas
-    ) : tlas(tlas),
+    ) : environment_weak(environment_weak),
         blas(blas)
     {
+        AssertThrow(blas.IsValid());
     }
 
     virtual ~RENDER_COMMAND(AddBLASToTLAS)() override = default;
 
     virtual RendererResult operator()() override
     {
-        tlas->AddBLAS(blas);
+        if (Handle<RenderEnvironment> environment = environment_weak.Lock()) {
+            AssertThrow(environment->GetTLAS().IsValid());
+
+            environment->GetTLAS()->AddBLAS(blas);
+        }
 
         HYPERION_RETURN_OK;
     }
@@ -67,28 +74,52 @@ struct RENDER_COMMAND(AddBLASToTLAS) : renderer::RenderCommand
 
 struct RENDER_COMMAND(RemoveBLASFromTLAS) : renderer::RenderCommand
 {
-    TLASRef tlas;
-    BLASRef blas;
+    WeakHandle<RenderEnvironment>   environment_weak;
+    BLASRef                         blas;
 
     RENDER_COMMAND(RemoveBLASFromTLAS)(
-        const TLASRef &tlas,
+        const WeakHandle<RenderEnvironment> &environment_weak,
         const BLASRef &blas
-    ) : tlas(tlas),
+    ) : environment_weak(environment_weak),
         blas(blas)
     {
+        AssertThrow(blas.IsValid());
     }
 
     virtual ~RENDER_COMMAND(RemoveBLASFromTLAS)() override = default;
 
     virtual RendererResult operator()() override
     {
-        tlas->RemoveBLAS(blas);
+        if (Handle<RenderEnvironment> environment = environment_weak.Lock()) {
+            AssertThrow(environment->GetTLAS().IsValid());
+
+            environment->GetTLAS()->RemoveBLAS(blas);
+        }
 
         HYPERION_RETURN_OK;
     }
 };
 
 #pragma endregion Render commands
+
+BLASUpdaterSystem::BLASUpdaterSystem(EntityManager &entity_manager)
+    : System(entity_manager)
+{
+    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
+    {
+        Threads::AssertOnThread(g_game_thread);
+
+        for (auto [entity_id, blas_component] : GetEntityManager().GetEntitySet<BLASComponent>().GetScopedView(GetComponentInfos())) {
+            if (previous_world != nullptr && blas_component.blas != nullptr) {
+                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment(), blas_component.blas);
+            }
+
+            if (new_world != nullptr && blas_component.blas != nullptr) {
+                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment(), blas_component.blas);
+            }
+        }
+    }));
+}
 
 void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
@@ -125,9 +156,11 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     DeferCreate(blas_component.blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
     
-    if (const TLASRef &tlas = GetEntityManager().GetScene()->GetTLAS(); tlas.IsValid()) {
-        PUSH_RENDER_COMMAND(AddBLASToTLAS, tlas, blas_component.blas);
+    if (!GetWorld()) {
+        return;
     }
+
+    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment(), blas_component.blas);
 }
 
 void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -141,9 +174,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
 
     if (blas_component.blas.IsValid()) {
-        if (const TLASRef &tlas = GetEntityManager().GetScene()->GetTLAS(); tlas.IsValid()) {
-            PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, tlas, blas_component.blas);
-        }
+        PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment(), blas_component.blas);
 
         SafeRelease(std::move(blas_component.blas));
     }

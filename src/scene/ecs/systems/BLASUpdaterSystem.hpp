@@ -18,11 +18,7 @@ class BLASUpdaterSystem : public System<
 >
 {
 public:
-    BLASUpdaterSystem(EntityManager &entity_manager)
-        : System(entity_manager)
-    {
-    }
-
+    BLASUpdaterSystem(EntityManager &entity_manager);
     virtual ~BLASUpdaterSystem() override = default;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;

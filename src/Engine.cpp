@@ -706,16 +706,9 @@ void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
 void Engine::RenderDeferred(Frame *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
-    SceneRenderResource *scene_render_resource = m_render_state->GetActiveScene();
-
-    if (!scene_render_resource) {
-        return;
-    }
-
-    m_deferred_renderer->Render(frame, scene_render_resource->GetEnvironment().Get());
+    m_deferred_renderer->Render(frame, m_world->GetRenderResource().GetEnvironment().Get());
 }
 
 #pragma endregion Engine
