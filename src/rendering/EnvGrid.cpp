@@ -556,7 +556,7 @@ void EnvGrid::OnRender(Frame *frame)
                 continue;
             }
 
-            g_engine->GetDebugDrawer()->AmbientProbeSphere(
+            g_engine->GetDebugDrawer()->AmbientProbe(
                 probe->GetProxy().world_position,
                 0.25f,
                 probe->GetID()
