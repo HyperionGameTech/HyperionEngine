@@ -1361,8 +1361,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         RenderSkybox(frame);
 
-        // render debug draw
-        g_engine->GetDebugDrawer()->Render(frame);
+        { // Debug drawing (to framebuffer)
+            g_engine->GetDebugDrawer()->Render(frame);
+        }
 
         m_translucent_fbo->EndCapture(primary, frame_index);
     }

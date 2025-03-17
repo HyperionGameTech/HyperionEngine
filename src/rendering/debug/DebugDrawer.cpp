@@ -270,123 +270,37 @@ void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
 
 #pragma endregion DebugDrawerRenderGroupProxy
 
-#pragma region UIDebugDrawer
-
-class UIDebugDrawer : public IDebugDrawer
-{
-public:
-    UIDebugDrawer();
-    virtual ~UIDebugDrawer() override = default;
-
-    virtual void Initialize() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
-    virtual void Render(Frame *frame) override;
-
-    void HandleDrawCommand(const DebugDrawCommand &draw_command);
-
-private:
-    RC<UIRenderer>              m_ui_renderer;
-    RC<UIStage>                 m_ui_stage;
-};
-
-UIDebugDrawer::UIDebugDrawer()
-{
-}
-
-void UIDebugDrawer::Initialize()
-{
-    HYP_SCOPE;
-
-    m_ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
-    m_ui_stage->Init();
-
-    m_ui_renderer = MakeRefCountedPtr<UIRenderer>(m_ui_stage);
-    m_ui_renderer->Initialize();
-}
-
-void UIDebugDrawer::Update(GameCounter::TickUnit delta)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread);
-
-    m_ui_stage->Update(delta);
-    m_ui_renderer->Update(delta);
-}
-
-void UIDebugDrawer::Render(Frame *frame)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    m_ui_renderer->Render(frame, nullptr);
-}
-
-void UIDebugDrawer::HandleDrawCommand(const DebugDrawCommand &draw_command)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertThrow(draw_command.shape != nullptr);
-    AssertThrow(draw_command.shape->GetDebugDrawType() == DebugDrawType::UI);
-
-    const DebugDrawCommand_UI &ui_command = static_cast<const DebugDrawCommand_UI &>(draw_command);
-
-    Proc<void> command_proc;
-
-    if (ui_command.ui_object_type == UIText::Class()) {
-        command_proc = [ui_stage = m_ui_stage, ui_command]()
-        {
-            // @TEMP; Refactor -- needs to not create a new text object every frame, and should not create a managed object.
-            RC<UIText> element = ui_stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-            element->SetText(ui_command.text);
-            element->SetTextColor(ui_command.color);
-            ui_stage->AddChildUIObject(element);
-        };
-    }
-
-    if (command_proc.IsValid()) {
-        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(std::move(command_proc), TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
-}
-
-#pragma endregion UIDebugDrawer
-
 #pragma region DebugDrawer
 
-DebugDrawer::DebugDrawer()
+MeshDebugDrawer::MeshDebugDrawer()
     : m_default_command_list(*this),
-      m_ui_debug_drawer(MakeUnique<UIDebugDrawer>()),
       m_is_initialized(false),
       Sphere(m_default_command_list.Sphere),
       AmbientProbe(m_default_command_list.AmbientProbe),
       ReflectionProbe(m_default_command_list.ReflectionProbe),
       Box(m_default_command_list.Box),
       Plane(m_default_command_list.Plane),
-      Text2D(m_default_command_list.Text2D),
       m_num_draw_commands_pending_addition(0)
 {
     m_draw_commands.Reserve(256);
 }
 
-DebugDrawer::~DebugDrawer()
+MeshDebugDrawer::~MeshDebugDrawer()
 {
     m_render_group.Reset();
-    m_shader.Reset();
 
+    SafeRelease(std::move(m_shader));
+    SafeRelease(std::move(m_framebuffer));
     SafeRelease(std::move(m_instance_buffers));
 }
 
-void DebugDrawer::Initialize()
+void MeshDebugDrawer::Initialize()
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
 
     AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
-
-    m_ui_debug_drawer->Initialize();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
@@ -445,16 +359,12 @@ void DebugDrawer::Initialize()
     m_is_initialized.Set(true, MemoryOrder::RELEASE);
 }
 
-void DebugDrawer::Update(GameCounter::TickUnit delta)
+void MeshDebugDrawer::Update(GameCounter::TickUnit delta)
 {
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread);
-
-    m_ui_debug_drawer->Update(delta);
+    // no-op
 }
 
-void DebugDrawer::Render(Frame *frame)
+void MeshDebugDrawer::Render(Frame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -629,34 +539,18 @@ void DebugDrawer::Render(Frame *frame)
             debug_drawer_descriptor_set_index
         );
 
-        switch (draw_command.shape->GetDebugDrawType()) {
-        case DebugDrawType::MESH:
-        {
-            MeshDebugDrawShapeBase *mesh_shape = static_cast<MeshDebugDrawShapeBase *>(draw_command.shape);
-            proxy.DrawMesh(frame, mesh_shape->GetMesh().Get());
-            break;
-        }
-        case DebugDrawType::UI:
-        {
-            m_ui_debug_drawer->HandleDrawCommand(draw_command);
+        AssertThrow(draw_command.shape->GetDebugDrawType() == DebugDrawType::MESH);
 
-            break;
-        }
-        default:
-            HYP_UNREACHABLE();
-        }
+        MeshDebugDrawShapeBase *mesh_shape = static_cast<MeshDebugDrawShapeBase *>(draw_command.shape);
+        proxy.DrawMesh(frame, mesh_shape->GetMesh().Get());
     }
 
     proxy.Submit(frame);
 
     m_draw_commands.Clear();
-
-    m_ui_debug_drawer->Render(frame);
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
-void DebugDrawer::UpdateDrawCommands()
+void MeshDebugDrawer::UpdateDrawCommands()
 {
     HYP_SCOPE;
 
@@ -671,25 +565,76 @@ void DebugDrawer::UpdateDrawCommands()
     AssertThrow(m_draw_commands_pending_addition.Empty());
 }
 
-UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
+UniquePtr<DebugDrawCommandList> MeshDebugDrawer::CreateCommandList()
 {
     HYP_SCOPE;
 
     return MakeUnique<DebugDrawCommandList>(*this);
 }
 
-void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
+void MeshDebugDrawer::CommitCommands(Array<UniquePtr<DebugDrawCommand>> &&commands)
 {
     HYP_SCOPE;
 
     Mutex::Guard guard(m_draw_commands_mutex);
 
-    const SizeType num_added_items = command_list.m_draw_commands.Size();
+    const SizeType num_added_items = commands.Size();
     m_num_draw_commands_pending_addition.Increment(uint32(num_added_items), MemoryOrder::RELEASE);
-    m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
+    m_draw_commands_pending_addition.Concat(std::move(commands));
 }
 
-HYP_ENABLE_OPTIMIZATION;
+#pragma endregion MeshDebugDrawer
+
+#pragma region DebugDrawer
+
+DebugDrawer::DebugDrawer()
+    : m_mesh_debug_drawer(MakeUnique<MeshDebugDrawer>()),
+      m_is_initialized(false),
+      Sphere(m_mesh_debug_drawer->Sphere),
+      AmbientProbe(m_mesh_debug_drawer->AmbientProbe),
+      ReflectionProbe(m_mesh_debug_drawer->ReflectionProbe),
+      Box(m_mesh_debug_drawer->Box),
+      Plane(m_mesh_debug_drawer->Plane)
+{
+}
+
+DebugDrawer::~DebugDrawer()
+{
+}
+
+void DebugDrawer::Initialize()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
+    AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
+
+    m_mesh_debug_drawer->Initialize();
+
+    m_is_initialized.Set(true, MemoryOrder::RELEASE);
+}
+
+void DebugDrawer::Update(GameCounter::TickUnit delta)
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
+}
+
+void DebugDrawer::Render(Frame *frame)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    // wait for initialization on the game thread
+    if (!m_is_initialized.Get(MemoryOrder::ACQUIRE)) {
+        return;
+    }
+
+    m_mesh_debug_drawer->Render(frame);
+}
 
 #pragma endregion DebugDrawer
 
@@ -714,7 +659,7 @@ void DebugDrawCommandList::Commit()
 
     const SizeType num_added_items = m_draw_commands.Size();
     
-    m_debug_drawer.CommitCommands(*this);
+    m_debug_drawer.CommitCommands(std::move(m_draw_commands));
 
     m_num_draw_commands.Decrement(uint32(num_added_items), MemoryOrder::RELEASE);
 }

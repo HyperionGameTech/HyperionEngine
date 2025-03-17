@@ -1364,9 +1364,6 @@ void EditorSubsystem::InitDetailView()
 
 void EditorSubsystem::InitDebugOverlays()
 {
-    // Temporarily disable debug overlays due to issues with clicking the scene image
-    return;
-
     HYP_SCOPE;
 
     m_debug_overlay_ui_object = GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));

@@ -35,11 +35,12 @@ namespace hyperion {
 class Engine;
 class RenderGroup;
 class Mesh;
-class DebugDrawer;
+class IDebugDrawer;
 class DebugDrawCommandList;
 class IDebugDrawShape;
 class UIObject;
 class UIStage;
+class FullScreenPass;
 
 enum class DebugDrawType : int
 {
@@ -176,15 +177,12 @@ private:
 class DebugDrawCommandList final : public IDebugDrawCommandList
 {
 public:
-    friend class DebugDrawer;
-
-    DebugDrawCommandList(DebugDrawer &debug_drawer)
+    DebugDrawCommandList(IDebugDrawer &debug_drawer)
         : Sphere(*this),
           AmbientProbe(*this),
           ReflectionProbe(*this),
           Box(*this),
           Plane(*this),
-          Text2D(*this),
           m_debug_drawer(debug_drawer)
     {
     }
@@ -207,10 +205,9 @@ public:
     ReflectionProbeDebugDrawShape       ReflectionProbe;
     BoxDebugDrawShape                   Box;
     PlaneDebugDrawShape                 Plane;
-    Text2DDebugDrawShape                Text2D;
 
 private:
-    DebugDrawer                         &m_debug_drawer;
+    IDebugDrawer                        &m_debug_drawer;
     Array<UniquePtr<DebugDrawCommand>>  m_draw_commands;
     Mutex                               m_draw_commands_mutex;
     AtomicVar<uint32>                   m_num_draw_commands { 0 };
@@ -224,28 +221,26 @@ public:
     virtual void Initialize() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
     virtual void Render(Frame *frame) = 0;
+    virtual void CommitCommands(Array<UniquePtr<DebugDrawCommand>> &&commands) = 0;
 };
 
-class UIDebugDrawer;
-
-class DebugDrawer final : public IDebugDrawer
+class MeshDebugDrawer final : public IDebugDrawer
 {
 public:
-    DebugDrawer();
-    virtual ~DebugDrawer() override;
+    MeshDebugDrawer();
+    virtual ~MeshDebugDrawer() override;
 
     virtual void Initialize() override;
     virtual void Update(GameCounter::TickUnit delta) override;
     virtual void Render(Frame *frame) override;
 
     UniquePtr<DebugDrawCommandList> CreateCommandList();
-    void CommitCommands(DebugDrawCommandList &command_list);
+    virtual void CommitCommands(Array<UniquePtr<DebugDrawCommand>> &&commands) override;
 
 private:
     void UpdateDrawCommands();
 
     DebugDrawCommandList                            m_default_command_list;
-    UniquePtr<UIDebugDrawer>                        m_ui_debug_drawer;
     AtomicVar<bool>                                 m_is_initialized;
 
 public: // Shapes
@@ -254,10 +249,10 @@ public: // Shapes
     ReflectionProbeDebugDrawShape                   &ReflectionProbe;
     BoxDebugDrawShape                               &Box;
     PlaneDebugDrawShape                             &Plane;
-    Text2DDebugDrawShape                            &Text2D;
 
 private:
     ShaderRef                                       m_shader;
+    FramebufferRef                                  m_framebuffer;
     Handle<RenderGroup>                             m_render_group;
 
     Array<UniquePtr<DebugDrawCommand>>              m_draw_commands;
@@ -266,6 +261,29 @@ private:
     Mutex                                           m_draw_commands_mutex;
 
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_instance_buffers;
+};
+
+class DebugDrawer final
+{
+public:
+    DebugDrawer();
+    ~DebugDrawer();
+
+    void Initialize();
+    void Update(GameCounter::TickUnit delta);
+    void Render(Frame *frame);
+
+private:
+    UniquePtr<MeshDebugDrawer>                      m_mesh_debug_drawer;
+    UniquePtr<FullScreenPass>                       m_full_screen_pass;
+    AtomicVar<bool>                                 m_is_initialized;
+
+public: // Shapes
+    SphereDebugDrawShape                            &Sphere;
+    AmbientProbeDebugDrawShape                      &AmbientProbe;
+    ReflectionProbeDebugDrawShape                   &ReflectionProbe;
+    BoxDebugDrawShape                               &Box;
+    PlaneDebugDrawShape                             &Plane;
 };
 
 } // namespace hyperion

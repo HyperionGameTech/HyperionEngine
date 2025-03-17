@@ -301,6 +301,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
     // assume render thread
 
     const uint32 frame_index = frame->GetFrameIndex();
+    const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
     if ((*out_was_resized = ResizeIfNeeded(
         frame,
