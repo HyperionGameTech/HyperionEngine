@@ -569,7 +569,7 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module &mod)
     }
 
     for (HypClassDefinition &hyp_class_definition : res.GetValue()) {
-        if (auto res = BuildHypClassMembers(*this, mod, hyp_class_definition); res.GetError()) {
+        if (auto res = BuildHypClassMembers(*this, mod, hyp_class_definition); res.HasError()) {
             HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode());
 
             return res.GetError();

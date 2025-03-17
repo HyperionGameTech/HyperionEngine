@@ -25,6 +25,7 @@ namespace hyperion {
 ScriptSystem::ScriptSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
+    return; // temp
     m_delegate_handlers.Add(NAME("OnScriptStateChanged"), g_engine->GetScriptingService()->OnScriptStateChanged.Bind([this](const ManagedScript &script)
     {
         Threads::AssertOnThread(g_game_thread);
@@ -100,8 +101,7 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
 void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
-
-    
+    return; // temp
     World *world = GetWorld();
     ScriptComponent &script_component = GetEntityManager().GetComponent<ScriptComponent>(entity);
 
@@ -198,6 +198,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
+    return; // temp
 
     World *world = GetWorld();
 
@@ -230,6 +231,7 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 void ScriptSystem::Process(GameCounter::TickUnit delta)
 {
     World *world = GetWorld();
+    return; // temp
 
     if (!world) {
         return;

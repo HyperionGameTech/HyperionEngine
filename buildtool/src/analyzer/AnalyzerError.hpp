@@ -44,11 +44,6 @@ public:
 
     virtual ~AnalyzerError() override = default;
 
-    virtual operator bool() const override
-    {
-        return true;
-    }
-
     HYP_FORCE_INLINE const FilePath &GetPath() const
         { return m_path; }
 

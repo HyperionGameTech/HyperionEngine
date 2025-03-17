@@ -40,14 +40,12 @@ HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 ResourceBase::ResourceBase()
     : m_is_initialized(false),
-      m_ref_count(0),
       m_update_counter(0)
 {
 }
 
 ResourceBase::ResourceBase(ResourceBase &&other) noexcept
     : m_is_initialized(other.m_is_initialized),
-      m_ref_count(other.m_ref_count.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
     other.m_is_initialized = false;

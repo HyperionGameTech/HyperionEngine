@@ -97,11 +97,6 @@ public:
      *  \param force_owner_thread If true, the operation will be performed on the owner thread regardless of initialization state. */
     void Execute(Proc<void> &&proc, bool force_owner_thread = false);
 
-#ifdef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE uint32 GetUseCount() const
-        { return m_ref_count.Get(MemoryOrder::SEQUENTIAL); }
-#endif
-
 protected:
     int ClaimWithoutInitialize();
 
@@ -124,7 +119,6 @@ protected:
 private:
     bool                        m_is_initialized;
 
-    AtomicVar<int16>            m_ref_count;
     AtomicVar<int16>            m_update_counter;
 
     InitSemaphore               m_init_semaphore;

@@ -42,7 +42,7 @@ class WorkerThreadPool : public TaskThreadPool
 {
 public:
     WorkerThreadPool()
-        : TaskThreadPool(TypeWrapper<WorkerThread>(), NAME("BuildTool_WorkerThread"), 4)
+        : TaskThreadPool(TypeWrapper<WorkerThread>(), "BuildTool_WorkerThread", 4)
     {
     }
 

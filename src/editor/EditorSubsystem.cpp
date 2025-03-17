@@ -68,6 +68,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <dotnet/Class.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
 #include <Engine.hpp>
@@ -1364,9 +1366,6 @@ void EditorSubsystem::InitDetailView()
 
 void EditorSubsystem::InitDebugOverlays()
 {
-    // Temporarily disable debug overlays due to issues with clicking the scene image
-    return;
-
     HYP_SCOPE;
 
     m_debug_overlay_ui_object = GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
@@ -1374,6 +1373,14 @@ void EditorSubsystem::InitDebugOverlays()
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 
     m_debug_overlay_ui_object->OnKeyDown.RemoveAll();
+
+    // temp
+    m_debug_overlay_ui_object->OnClick.Bind([](...)
+    {
+        HYP_LOG(Editor, Debug, "Debug overlay clicked!");
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
 
     for (const RC<EditorDebugOverlayBase> &debug_overlay : m_debug_overlays) {
         debug_overlay->Initialize(m_debug_overlay_ui_object.Get());
@@ -1713,9 +1720,11 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_ov
     }
 
     Threads::AssertOnThread(g_game_thread);
+    HYP_LOG(Editor, Debug, "Adding debug overlay: {}", debug_overlay->GetManagedObject()->GetClass()->GetName());
 
     auto it = m_debug_overlays.FindIf([name = debug_overlay->GetName()](const auto &item)
     {
+        HYP_LOG(Editor, Debug, "Checking debug overlay: {}", item->GetManagedObject()->GetClass()->GetName());
         return item->GetName() == name;
     });
 
