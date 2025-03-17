@@ -22,9 +22,6 @@
 #include <scene/Mesh.hpp>
 #include <scene/Scene.hpp>
 
-#include <ui/UIStage.hpp>
-#include <ui/UIText.hpp>
-
 #include <util/MeshBuilder.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -41,17 +38,6 @@ struct DebugDrawCommand_Probe : DebugDrawCommand
 };
 
 #pragma endregion DebugDrawCommand_Probe
-
-#pragma region DebugDrawCommand_UI
-
-struct DebugDrawCommand_UI : DebugDrawCommand
-{
-    const HypClass  *ui_object_type;
-    Vec2f           position;
-    String          text;
-};
-
-#pragma endregion DebugDrawCommand_UI
 
 #pragma region MeshDebugDrawShapeBase
 
@@ -162,27 +148,6 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const C
 
 #pragma endregion PlaneDebugDrawShape
 
-#pragma region Text2DDebugDrawShape
-
-Text2DDebugDrawShape::Text2DDebugDrawShape(IDebugDrawCommandList &command_list)
-    : m_command_list(command_list)
-{
-}
-
-void Text2DDebugDrawShape::operator()(const Vec2f &position, const String &text, const Color &color)
-{
-    UniquePtr<DebugDrawCommand_UI> command = MakeUnique<DebugDrawCommand_UI>();
-    command->shape = this;
-    command->position = position;
-    command->text = text;
-    command->color = color;
-    command->ui_object_type = UIText::Class();
-
-    m_command_list.Push(std::move(command));
-}
-
-#pragma endregion Text2DDebugDrawShape
-
 #pragma region DebugDrawerRenderGroupProxy
 
 class DebugDrawerRenderGroupProxy
@@ -270,101 +235,16 @@ void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
 
 #pragma endregion DebugDrawerRenderGroupProxy
 
-#pragma region UIDebugDrawer
-
-class UIDebugDrawer : public IDebugDrawer
-{
-public:
-    UIDebugDrawer();
-    virtual ~UIDebugDrawer() override = default;
-
-    virtual void Initialize() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
-    virtual void Render(Frame *frame) override;
-
-    void HandleDrawCommand(const DebugDrawCommand &draw_command);
-
-private:
-    RC<UIRenderer>              m_ui_renderer;
-    RC<UIStage>                 m_ui_stage;
-};
-
-UIDebugDrawer::UIDebugDrawer()
-{
-}
-
-void UIDebugDrawer::Initialize()
-{
-    HYP_SCOPE;
-
-    m_ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
-    m_ui_stage->Init();
-
-    m_ui_renderer = MakeRefCountedPtr<UIRenderer>(m_ui_stage);
-    m_ui_renderer->Initialize();
-}
-
-void UIDebugDrawer::Update(GameCounter::TickUnit delta)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread);
-
-    m_ui_stage->Update(delta);
-    m_ui_renderer->Update(delta);
-}
-
-void UIDebugDrawer::Render(Frame *frame)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    m_ui_renderer->Render(frame, nullptr);
-}
-
-void UIDebugDrawer::HandleDrawCommand(const DebugDrawCommand &draw_command)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertThrow(draw_command.shape != nullptr);
-    AssertThrow(draw_command.shape->GetDebugDrawType() == DebugDrawType::UI);
-
-    const DebugDrawCommand_UI &ui_command = static_cast<const DebugDrawCommand_UI &>(draw_command);
-
-    Proc<void> command_proc;
-
-    if (ui_command.ui_object_type == UIText::Class()) {
-        command_proc = [ui_stage = m_ui_stage, ui_command]()
-        {
-            // @TEMP; Refactor -- needs to not create a new text object every frame, and should not create a managed object.
-            RC<UIText> element = ui_stage->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-            element->SetText(ui_command.text);
-            element->SetTextColor(ui_command.color);
-            ui_stage->AddChildUIObject(element);
-        };
-    }
-
-    if (command_proc.IsValid()) {
-        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(std::move(command_proc), TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
-}
-
-#pragma endregion UIDebugDrawer
-
 #pragma region DebugDrawer
 
 DebugDrawer::DebugDrawer()
     : m_default_command_list(*this),
-      m_ui_debug_drawer(MakeUnique<UIDebugDrawer>()),
       m_is_initialized(false),
       Sphere(m_default_command_list.Sphere),
       AmbientProbe(m_default_command_list.AmbientProbe),
       ReflectionProbe(m_default_command_list.ReflectionProbe),
       Box(m_default_command_list.Box),
       Plane(m_default_command_list.Plane),
-      Text2D(m_default_command_list.Text2D),
       m_num_draw_commands_pending_addition(0)
 {
     m_draw_commands.Reserve(256);
@@ -385,8 +265,6 @@ void DebugDrawer::Initialize()
     Threads::AssertOnThread(g_game_thread);
 
     AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
-
-    m_ui_debug_drawer->Initialize();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
@@ -450,8 +328,6 @@ void DebugDrawer::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
-
-    m_ui_debug_drawer->Update(delta);
 }
 
 void DebugDrawer::Render(Frame *frame)
@@ -636,12 +512,6 @@ void DebugDrawer::Render(Frame *frame)
             proxy.DrawMesh(frame, mesh_shape->GetMesh().Get());
             break;
         }
-        case DebugDrawType::UI:
-        {
-            m_ui_debug_drawer->HandleDrawCommand(draw_command);
-
-            break;
-        }
         default:
             HYP_UNREACHABLE();
         }
@@ -650,8 +520,6 @@ void DebugDrawer::Render(Frame *frame)
     proxy.Submit(frame);
 
     m_draw_commands.Clear();
-
-    m_ui_debug_drawer->Render(frame);
 }
 
 HYP_DISABLE_OPTIMIZATION;

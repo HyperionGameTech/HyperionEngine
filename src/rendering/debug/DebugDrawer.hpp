@@ -43,8 +43,7 @@ class UIStage;
 
 enum class DebugDrawType : int
 {
-    MESH = 0,
-    UI
+    MESH = 0
 };
 
 struct DebugDrawCommand
@@ -69,17 +68,6 @@ public:
     virtual ~IDebugDrawShape() = default;
 
     virtual DebugDrawType GetDebugDrawType() const = 0;
-};
-
-class UIDebugDrawShapeBase : public IDebugDrawShape
-{
-public:
-    virtual ~UIDebugDrawShapeBase() override = default;
-
-    virtual DebugDrawType GetDebugDrawType() const override final
-    {
-        return DebugDrawType::UI;
-    }
 };
 
 class HYP_API MeshDebugDrawShapeBase : public IDebugDrawShape
@@ -160,19 +148,6 @@ public:
     void operator()(const FixedArray<Vec3f, 4> &points, const Color &color);
 };
 
-class HYP_API Text2DDebugDrawShape : public UIDebugDrawShapeBase
-{
-public:
-    Text2DDebugDrawShape(IDebugDrawCommandList &command_list);
-
-    virtual ~Text2DDebugDrawShape() override = default;
-
-    void operator()(const Vec2f &position, const String &text, const Color &color);
-
-private:
-    IDebugDrawCommandList   &m_command_list;
-};
-
 class DebugDrawCommandList final : public IDebugDrawCommandList
 {
 public:
@@ -184,7 +159,6 @@ public:
           ReflectionProbe(*this),
           Box(*this),
           Plane(*this),
-          Text2D(*this),
           m_debug_drawer(debug_drawer)
     {
     }
@@ -207,7 +181,6 @@ public:
     ReflectionProbeDebugDrawShape       ReflectionProbe;
     BoxDebugDrawShape                   Box;
     PlaneDebugDrawShape                 Plane;
-    Text2DDebugDrawShape                Text2D;
 
 private:
     DebugDrawer                         &m_debug_drawer;
@@ -226,8 +199,6 @@ public:
     virtual void Render(Frame *frame) = 0;
 };
 
-class UIDebugDrawer;
-
 class DebugDrawer final : public IDebugDrawer
 {
 public:
@@ -245,7 +216,6 @@ private:
     void UpdateDrawCommands();
 
     DebugDrawCommandList                            m_default_command_list;
-    UniquePtr<UIDebugDrawer>                        m_ui_debug_drawer;
     AtomicVar<bool>                                 m_is_initialized;
 
 public: // Shapes
@@ -254,7 +224,6 @@ public: // Shapes
     ReflectionProbeDebugDrawShape                   &ReflectionProbe;
     BoxDebugDrawShape                               &Box;
     PlaneDebugDrawShape                             &Plane;
-    Text2DDebugDrawShape                            &Text2D;
 
 private:
     ShaderRef                                       m_shader;
