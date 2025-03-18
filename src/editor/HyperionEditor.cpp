@@ -107,7 +107,7 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-    // return;
+    return;
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(

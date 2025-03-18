@@ -93,7 +93,7 @@ public:
     Class &operator=(const Class &)     = delete;
     Class(Class &&) noexcept            = delete;
     Class &operator=(Class &&) noexcept = delete;
-    ~Class()                            = default;
+    ~Class();
 
     HYP_FORCE_INLINE const String &GetName() const
         { return m_name; }

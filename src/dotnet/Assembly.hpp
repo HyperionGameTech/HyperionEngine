@@ -31,7 +31,7 @@ public:
     ClassHolder &operator=(const ClassHolder &)     = delete;
     ClassHolder(ClassHolder &&) noexcept            = delete;
     ClassHolder &operator=(ClassHolder &&) noexcept = delete;
-    ~ClassHolder()                                  = default;
+    ~ClassHolder();
 
     bool CheckAssemblyLoaded() const;
 

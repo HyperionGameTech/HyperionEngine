@@ -65,7 +65,7 @@ RenderEnvironment::RenderEnvironment()
       m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
       m_ddgi(DDGIInfo {
-          .aabb = {{-50.0f, -5.0f, -50.0f}, {50.0f, 60.0f, 50.0f}}
+          .aabb = {{-28.0f, -5.0f, -28.0f}, {28.0f, 60.0f, 28.0f}}
       }),
       m_has_rt_radiance(false),
       m_has_ddgi_probes(false),

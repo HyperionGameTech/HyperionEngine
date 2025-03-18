@@ -25,7 +25,8 @@ namespace hyperion {
 ScriptSystem::ScriptSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    return; // temp
+    // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
+
     m_delegate_handlers.Add(NAME("OnScriptStateChanged"), g_engine->GetScriptingService()->OnScriptStateChanged.Bind([this](const ManagedScript &script)
     {
         Threads::AssertOnThread(g_game_thread);
@@ -45,6 +46,9 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
                 script_component.script.state = script.state;
                 script_component.script.hot_reload_version = script.hot_reload_version;
                 script_component.script.last_modified_timestamp = script.last_modified_timestamp;
+
+                script_component.object.Reset();
+                script_component.assembly.Reset();
 
                 OnEntityRemoved(entity);
                 OnEntityAdded(Handle<Entity>(entity));
@@ -101,7 +105,7 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
 void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
-    return; // temp
+
     World *world = GetWorld();
     ScriptComponent &script_component = GetEntityManager().GetComponent<ScriptComponent>(entity);
 
@@ -113,28 +117,35 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    script_component.assembly = nullptr;
-    script_component.object.Reset();
+    if (!script_component.object.IsValid()) {
+        if (!script_component.assembly) {
+            ANSIString assembly_path(script_component.script.assembly_path);
 
-    ANSIString assembly_path(script_component.script.assembly_path);
+            if (script_component.script.hot_reload_version > 0) {
+                // @FIXME Implement FindLastIndex
+                const SizeType extension_index = assembly_path.FindFirstIndex(".dll");
 
-    if (script_component.script.hot_reload_version > 0) {
-        // @FIXME Implement FindLastIndex
-        const SizeType extension_index = assembly_path.FindFirstIndex(".dll");
+                if (extension_index != ANSIString::not_found) {
+                    assembly_path = assembly_path.Substr(0, extension_index)
+                        + "." + ANSIString::ToString(script_component.script.hot_reload_version)
+                        + ".dll";
+                } else {
+                    assembly_path = assembly_path
+                        + "." + ANSIString::ToString(script_component.script.hot_reload_version)
+                        + ".dll";
+                }
+            }
 
-        if (extension_index != ANSIString::not_found) {
-            assembly_path = assembly_path.Substr(0, extension_index)
-                + "." + ANSIString::ToString(script_component.script.hot_reload_version)
-                + ".dll";
-        } else {
-            assembly_path = assembly_path
-                + "." + ANSIString::ToString(script_component.script.hot_reload_version)
-                + ".dll";
+            if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path.Data())) {
+                script_component.assembly = std::move(assembly);
+            } else {
+                HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script.assembly_path);
+
+                return;
+            }
         }
-    }
 
-    if (UniquePtr<dotnet::Assembly> assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(assembly_path.Data())) {
-        if (dotnet::Class *class_ptr = assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
+        if (dotnet::Class *class_ptr = script_component.assembly->GetClassObjectHolder().FindClassByName(script_component.script.class_name)) {
             HYP_LOG(Script, Info, "ScriptSystem::OnEntityAdded: Loaded class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
 
             if (!class_ptr->HasParentClass("Script")) {
@@ -172,19 +183,11 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
             }
         }
 
-        script_component.assembly = std::move(assembly);
-    }
+        if (!script_component.object.IsValid()) {
+            HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
 
-    if (!script_component.assembly) {
-        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to load assembly '{}'", script_component.script.assembly_path);
-
-        return;
-    }
-
-    if (!script_component.object.IsValid()) {
-        HYP_LOG(Script, Error, "ScriptSystem::OnEntityAdded: Failed to create object of class '{}' from assembly '{}'", script_component.script.class_name, script_component.script.assembly_path);
-
-        return;
+            return;
+        }
     }
 
     script_component.flags |= ScriptComponentFlags::INITIALIZED;
@@ -198,7 +201,6 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
 void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
-    return; // temp
 
     World *world = GetWorld();
 
@@ -223,7 +225,6 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
     }
 
     script_component.object.Reset();
-    script_component.assembly = nullptr;
 
     script_component.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_INIT_CALLED | ScriptComponentFlags::INIT_CALLED);
 }
@@ -231,7 +232,6 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
 void ScriptSystem::Process(GameCounter::TickUnit delta)
 {
     World *world = GetWorld();
-    return; // temp
 
     if (!world) {
         return;

@@ -52,6 +52,8 @@ ClassHolder::ClassHolder(Assembly *owner_assembly)
 {
 }
 
+ClassHolder::~ClassHolder() = default;
+
 bool ClassHolder::CheckAssemblyLoaded() const
 {
     if (m_owner_assembly) {

@@ -29,6 +29,9 @@ ScreenCaptureRenderSubsystem::~ScreenCaptureRenderSubsystem()
 
 void ScreenCaptureRenderSubsystem::Init()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     InitObject(m_texture);
 
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);

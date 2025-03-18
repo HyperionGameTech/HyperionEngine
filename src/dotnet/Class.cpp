@@ -4,7 +4,15 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/Object.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion::dotnet {
+
+Class::~Class()
+{
+    HYP_LOG(DotNET, Debug, "Class {} destroyed", m_name);
+}
 
 void Class::EnsureLoaded() const
 {

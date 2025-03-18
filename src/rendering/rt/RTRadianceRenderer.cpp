@@ -213,12 +213,12 @@ void RTRadianceRenderer::Render(Frame *frame)
     const Vec3u image_extent = m_texture->GetImage()->GetExtent();
 
     const SizeType num_pixels = image_extent.Volume();
-    const SizeType half_num_pixels = num_pixels / 2;
+    //const SizeType half_num_pixels = num_pixels / 2;
 
     m_raytracing_pipeline->TraceRays(
         g_engine->GetGPUDevice(),
         frame->GetCommandBuffer(),
-        Vec3u { uint32(half_num_pixels), 1, 1 }
+        Vec3u { uint32(num_pixels), 1, 1 }
     );
 
     m_texture->GetImage()->InsertBarrier(
@@ -240,7 +240,7 @@ void RTRadianceRenderer::CreateImages()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
@@ -343,7 +343,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_extent,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,
