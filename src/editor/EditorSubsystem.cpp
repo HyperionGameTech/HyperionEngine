@@ -29,6 +29,7 @@
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 
+#include <ui/UISubsystem.hpp>
 #include <ui/UIObject.hpp>
 #include <ui/UIStage.hpp>
 #include <ui/UIImage.hpp>
@@ -485,9 +486,8 @@ void EditorManipulationWidgetHolder::Shutdown()
 
 #ifdef HYP_EDITOR
 
-EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIStage> &ui_stage)
+EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
     : m_app_context(app_context),
-      m_ui_stage(ui_stage),
       m_editor_camera_enabled(false),
       m_should_cancel_next_click(false)
 {
@@ -523,8 +523,6 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
 
         // // @TODO: Don't serialize the editor camera controller
         m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
-
-        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(NAME("EditorUIRenderer"), m_ui_stage);
 
         m_delegate_handlers.Remove("OnPackageAdded");
 
@@ -576,8 +574,6 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context, const RC<UIS
             // @TODO Remove camera controller
 
             GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
-
-            GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<UIRenderSubsystem>(NAME("EditorUIRenderer"));
 
             if (m_camera) {
                 m_camera.Reset();
@@ -648,6 +644,10 @@ EditorSubsystem::~EditorSubsystem()
 void EditorSubsystem::Initialize()
 {
     HYP_SCOPE;
+
+    if (!GetWorld()->GetSubsystem<UISubsystem>()) {
+        HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
+    }
 
     LoadEditorUIDefinitions();
 
@@ -726,8 +726,11 @@ void EditorSubsystem::OnSceneDetached(const Handle<Scene> &scene)
 
 void EditorSubsystem::LoadEditorUIDefinitions()
 {
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
     RC<FontAtlas> font_atlas = CreateFontAtlas();
-    m_ui_stage->SetDefaultFontAtlas(font_atlas);
+    ui_subsystem->GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
     auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml");
     AssertThrowMsg(loaded_ui_asset.HasValue(), "Failed to load editor UI definitions!");
@@ -738,7 +741,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     loaded_ui->SetOwnerThreadID(ThreadID::Current());
     loaded_ui->SetDefaultFontAtlas(font_atlas);
 
-    GetUIStage()->AddChildUIObject(loaded_ui);
+    ui_subsystem->GetUIStage()->AddChildUIObject(loaded_ui);
 
     // test generate lightmap
     if (RC<UIObject> generate_lightmaps_button = loaded_ui->FindChildUIObject(NAME("Generate_Lightmaps_Button"))) {
@@ -833,7 +836,10 @@ void EditorSubsystem::InitViewport()
 {
     AssertThrow(m_scene.IsValid());
 
-    if (RC<UIObject> scene_image_object = GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
         RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
         AssertThrow(ui_image != nullptr);
 
@@ -1070,7 +1076,10 @@ void EditorSubsystem::InitViewport()
 
 void EditorSubsystem::InitSceneOutline()
 {
-    RC<UIListView> list_view = GetUIStage()->FindChildUIObject(NAME("Scene_Outline_ListView")).Cast<UIListView>();
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    RC<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Outline_ListView")).Cast<UIListView>();
     AssertThrow(list_view != nullptr);
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -1264,7 +1273,10 @@ void EditorSubsystem::InitSceneOutline()
 
 void EditorSubsystem::InitDetailView()
 {
-    RC<UIListView> list_view = GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")).Cast<UIListView>();
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    RC<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")).Cast<UIListView>();
     AssertThrow(list_view != nullptr);
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -1368,7 +1380,10 @@ void EditorSubsystem::InitDebugOverlays()
 {
     HYP_SCOPE;
 
-    m_debug_overlay_ui_object = GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    m_debug_overlay_ui_object = ui_subsystem->GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
     m_debug_overlay_ui_object->SetDepth(1);
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 
@@ -1390,7 +1405,7 @@ void EditorSubsystem::InitDebugOverlays()
         }
     }
 
-    if (RC<UIImage> scene_image = GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>()) {
+    if (RC<UIImage> scene_image = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>()) {
         scene_image->AddChildUIObject(m_debug_overlay_ui_object);
     }
 }
@@ -1399,7 +1414,10 @@ void EditorSubsystem::InitContentBrowser()
 {
     HYP_SCOPE;
 
-    m_content_browser_directory_list = GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List").Cast<UIListView>();
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    m_content_browser_directory_list = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List").Cast<UIListView>();
     AssertThrow(m_content_browser_directory_list != nullptr);
 
     m_content_browser_directory_list->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<AssetPackage> { }));
@@ -1420,20 +1438,20 @@ void EditorSubsystem::InitContentBrowser()
         SetSelectedPackage(Handle<AssetPackage>::empty);
     }));
 
-    m_content_browser_contents = GetUIStage()->FindChildUIObject("ContentBrowser_Contents").Cast<UIGrid>();
+    m_content_browser_contents = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents").Cast<UIGrid>();
     AssertThrow(m_content_browser_contents != nullptr);
     m_content_browser_contents->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<AssetObject> { }));
     m_content_browser_contents->SetIsVisible(false);
 
-    m_content_browser_contents_empty = GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
+    m_content_browser_contents_empty = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
     AssertThrow(m_content_browser_contents_empty != nullptr);
     m_content_browser_contents_empty->SetIsVisible(true);
 
-    RC<UIObject> import_button = GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
+    RC<UIObject> import_button = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
     AssertThrow(import_button != nullptr);
 
     m_delegate_handlers.Remove(NAME("ImportClicked"));
-    m_delegate_handlers.Add(NAME("ImportClicked"), import_button->OnClick.Bind([this, stage_weak = GetUIStage().ToWeak()](...)
+    m_delegate_handlers.Add(NAME("ImportClicked"), import_button->OnClick.Bind([this, stage_weak = ui_subsystem->GetUIStage().ToWeak()](...)
     {
         HYP_LOG(Editor, Debug, "Import button clicked!");
 
@@ -1601,13 +1619,16 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
 
     Threads::AssertOnThread(g_game_thread);
 
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
     const ThreadType thread_type = task->GetRunnableThreadType();
 
     // @TODO Auto remove tasks that aren't on the game thread when they have completed
 
     RunningEditorTask &running_task = m_tasks_by_thread_type[thread_type].EmplaceBack(task);
 
-    RC<UIMenuItem> tasks_menu_item = m_ui_stage->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
+    RC<UIMenuItem> tasks_menu_item = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
 
     if (tasks_menu_item != nullptr) {
         if (UIObjectSpawnContext context { tasks_menu_item }) {
@@ -1619,7 +1640,7 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
 
             RC<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
             task_grid_column_left->SetColumnSize(8);
-            task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(m_ui_stage));
+            task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(ui_subsystem->GetUIStage()));
 
             RC<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
             task_grid_column_right->SetColumnSize(4);
@@ -1720,6 +1741,10 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_ov
     }
 
     Threads::AssertOnThread(g_game_thread);
+
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
     HYP_LOG(Editor, Debug, "Adding debug overlay: {}", debug_overlay->GetManagedObject()->GetClass()->GetName());
 
     auto it = m_debug_overlays.FindIf([name = debug_overlay->GetName()](const auto &item)
@@ -1735,7 +1760,7 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_ov
     m_debug_overlays.PushBack(debug_overlay);
 
     if (m_debug_overlay_ui_object != nullptr) {
-        debug_overlay->Initialize(m_ui_stage.Get());
+        debug_overlay->Initialize(ui_subsystem->GetUIStage());
 
         if (const RC<UIObject> &ui_object = debug_overlay->GetUIObject()) {
             m_debug_overlay_ui_object->AddChildUIObject(ui_object);

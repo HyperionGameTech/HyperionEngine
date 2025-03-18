@@ -62,6 +62,12 @@ public:
     UIRenderer &operator=(UIRenderer &&other) noexcept  = delete;
     ~UIRenderer();
 
+    HYP_FORCE_INLINE UIRenderCollector &GetRenderCollector()
+        { return m_render_collector; }
+
+    HYP_FORCE_INLINE const UIRenderCollector &GetRenderCollector() const
+        { return m_render_collector; }
+
     void Initialize();
     void Update(GameCounter::TickUnit delta);
     void Render(Frame *frame);
@@ -88,6 +94,12 @@ public:
     UIRenderSubsystem(const UIRenderSubsystem &other)             = delete;
     UIRenderSubsystem &operator=(const UIRenderSubsystem &other)  = delete;
     virtual ~UIRenderSubsystem();
+
+    HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
+        { return m_ui_stage; }
+
+    HYP_FORCE_INLINE const RC<UIRenderer> &GetUIRenderer() const
+        { return m_ui_renderer; }
 
     void Render(Frame *frame);
 

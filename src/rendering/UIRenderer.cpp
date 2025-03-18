@@ -519,26 +519,6 @@ void UIRenderer::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
-
-    m_render_collector.ResetOrdering();
-
-    m_ui_stage->CollectObjects([this](UIObject *ui_object)
-    {
-        AssertThrow(ui_object != nullptr);
-
-        const NodeProxy &node = ui_object->GetNode();
-        AssertThrow(node.IsValid());
-
-        const Handle<Entity> &entity = node->GetEntity();
-
-        MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
-        AssertThrow(mesh_component != nullptr);
-        AssertThrow(mesh_component->proxy != nullptr);
-
-        m_render_collector.PushEntityToRender(entity, *mesh_component->proxy, ui_object->GetComputedDepth());
-    }, /* only_visible */ true);
-
-    m_render_collector.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
 }
 
 void UIRenderer::Render(Frame *frame)

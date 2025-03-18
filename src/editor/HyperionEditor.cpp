@@ -97,7 +97,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    RC<EditorSubsystem> editor_subsystem = MakeRefCountedPtr<EditorSubsystem>(GetAppContext(), GetUIStage());
+    RC<EditorSubsystem> editor_subsystem = MakeRefCountedPtr<EditorSubsystem>(GetAppContext());
     editor_subsystem->OnProjectOpened.Bind([this](EditorProject *project)
     {
         m_scene = project->GetScene();

@@ -26,6 +26,8 @@
 #include <scene/Light.hpp>
 //#include <scene/World.hpp>
 
+#include <scene/Material.hpp>
+
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
@@ -179,31 +181,6 @@ void SampleStreamer::Init()
         }
     }
 #endif
-
-    // // Test freetype font rendering
-    auto font_face_asset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
-
-    if (font_face_asset.HasValue()) {
-        RC<FontAtlas> atlas = MakeRefCountedPtr<FontAtlas>(font_face_asset->Result());
-        atlas->Render();
-
-        // atlas.RenderSync();
-
-        // ByteBuffer atlas_byte_buffer;
-        // atlas.WriteToBuffer(atlas_byte_buffer);
-
-        GetUIStage()->SetDefaultFontAtlas(atlas);
-
-        // auto font_bitmap = atlas->GenerateBitmap();
-        // font_bitmap.Write("font_bitmap.bmp");
-        
-        auto font_metadata_json = atlas->GenerateMetadataJSON("font_bitmap.bmp");
-
-        FileByteWriter bw("res/fonts/default.json");
-        bw.WriteString(font_metadata_json.ToString(true) + '\n');
-        bw.Close();
-    }
-
 
     const Vec2i window_size = GetAppContext()->GetInputManager()->GetWindow()->GetDimensions();
 

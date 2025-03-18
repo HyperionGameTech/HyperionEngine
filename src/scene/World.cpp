@@ -260,7 +260,7 @@ void World::Update(GameCounter::TickUnit delta)
     m_game_state.game_time += delta;
 }
 
-Subsystem *World::AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem)
+RC<Subsystem> World::AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem)
 {
     HYP_SCOPE;
 
@@ -293,7 +293,7 @@ Subsystem *World::AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem)
         }
     }
 
-    return insert_result.first->second.Get();
+    return insert_result.first->second;
 }
 
 Subsystem *World::GetSubsystem(TypeID type_id) const

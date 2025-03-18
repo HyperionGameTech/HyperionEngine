@@ -15,6 +15,9 @@
 
 #include <scene/camera/Camera.hpp>
 
+#include <ui/UISubsystem.hpp>
+#include <ui/UIStage.hpp>
+
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderScene.hpp>
@@ -103,10 +106,14 @@ void Game::Init_Internal()
 
             m_scene->SetIsAudioListener(true);
 
-            g_engine->GetWorld()->AddScene(m_scene);
+            const Handle<World> &world = g_engine->GetWorld();
+            AssertThrow(world.IsValid());
+
+            world->AddScene(m_scene);
             InitObject(m_scene);
             
-            m_ui_stage.Emplace(g_game_thread);
+            RC<UIStage> ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
+            m_ui_subsystem = world->AddSubsystem<UISubsystem>(ui_stage);
 
             // Call Init method (overridden)
             Init();
@@ -155,10 +162,6 @@ void Game::Update(GameCounter::TickUnit delta)
     }
 
     g_engine->GetScriptingService()->Update();
-    
-    if (m_ui_stage) {
-        m_ui_stage->Update(delta);
-    }
 
     Logic(delta);
 
@@ -175,15 +178,13 @@ void Game::Init()
 
     Threads::AssertOnThread(g_game_thread);
 
-    m_ui_stage->Init();
-
     if (m_managed_game_object.IsValid()) {
         m_managed_game_object.InvokeMethodByName<void>(
             "BeforeInit",
             m_scene,
             m_app_context->GetInputManager(),
             AssetManager::GetInstance(),
-            m_ui_stage
+            m_ui_subsystem->GetUIStage()
         );
 
         m_managed_game_object.InvokeMethodByName<void>("Init");
@@ -274,7 +275,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     Threads::AssertOnThread(g_game_thread);
     
     // forward to UI
-    if (m_ui_stage->OnInputEvent(m_app_context->GetInputManager().Get(), event) & UIEventHandlerResult::STOP_BUBBLING) {
+    if (m_ui_subsystem->GetUIStage()->OnInputEvent(m_app_context->GetInputManager().Get(), event) & UIEventHandlerResult::STOP_BUBBLING) {
         // ui handled the event
         return;
     }

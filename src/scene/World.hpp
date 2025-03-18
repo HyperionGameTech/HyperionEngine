@@ -93,22 +93,22 @@ public:
         { return m_physics_world; }
 
     template <class T, class... Args>
-    HYP_FORCE_INLINE T *AddSubsystem(Args &&... args)
+    HYP_FORCE_INLINE RC<T> AddSubsystem(Args &&... args)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), MakeRefCountedPtr<T>(std::forward<Args>(args)...)));
+        return AddSubsystem(TypeID::ForType<T>(), MakeRefCountedPtr<T>(std::forward<Args>(args)...)).template CastUnsafe<T>();
     }
 
     template <class T>
-    HYP_FORCE_INLINE T *AddSubsystem(const RC<T> &subsystem)
+    HYP_FORCE_INLINE RC<T> AddSubsystem(const RC<T> &subsystem)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return static_cast<T *>(AddSubsystem(TypeID::ForType<T>(), subsystem));
+        return AddSubsystem(TypeID::ForType<T>(), subsystem).template CastUnsafe<T>();
     }
 
-    Subsystem *AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem);
+    RC<Subsystem> AddSubsystem(TypeID type_id, const RC<Subsystem> &subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T *GetSubsystem()

@@ -18,8 +18,6 @@
 
 #include <scene/Scene.hpp>
 
-#include <ui/UIStage.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 
 #include <dotnet/Assembly.hpp>
@@ -32,6 +30,7 @@ using dotnet::Assembly;
 
 class Engine;
 class GameThread;
+class UISubsystem;
 class SceneRenderResource;
 
 struct ManagedGameInfo
@@ -76,14 +75,14 @@ public:
 protected:
     virtual void Logic(GameCounter::TickUnit delta) = 0;
 
-    const RC<UIStage> &GetUIStage() const
-        { return m_ui_stage; }
+    const RC<UISubsystem> &GetUISubsystem() const
+        { return m_ui_subsystem; }
 
     RC<AppContext>              m_app_context;
 
     Handle<Scene>               m_scene;
 
-    RC<UIStage>                 m_ui_stage;
+    RC<UISubsystem>             m_ui_subsystem;
 
     UniquePtr<Assembly>         m_managed_assembly;
     Object                      m_managed_game_object;

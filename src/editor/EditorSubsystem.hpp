@@ -210,7 +210,7 @@ class HYP_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    EditorSubsystem(const RC<AppContext> &app_context, const RC<UIStage> &ui_stage);
+    EditorSubsystem(const RC<AppContext> &app_context);
     virtual ~EditorSubsystem() override;
 
     virtual void Initialize() override;
@@ -226,10 +226,6 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Scene> &GetScene() const
         { return m_scene; }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
-        { return m_ui_stage; }
 
     HYP_METHOD()
     HYP_FORCE_INLINE EditorActionStack *GetActionStack() const
@@ -303,7 +299,6 @@ private:
     RC<AppContext>                                                      m_app_context;
     Handle<Scene>                                                       m_scene;
     Handle<Camera>                                                      m_camera;
-    RC<UIStage>                                                         m_ui_stage;
 
     OwningRC<EditorActionStack>                                         m_action_stack;
 
