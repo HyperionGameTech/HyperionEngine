@@ -14,6 +14,7 @@ namespace hyperion {
 /*! \brief Init the component. Called on the RENDER thread when the RenderSubsystem is added to the RenderEnvironment */
 void RenderSubsystem::ComponentInit()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread));
@@ -26,7 +27,10 @@ void RenderSubsystem::ComponentInit()
 /*! \brief Update data for the component. Called from GAME thread. */
 void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+
+    AssertThrow(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread);
 
     if (!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_game_thread)) {
         InitGame();
@@ -40,6 +44,7 @@ void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 /*! \brief Perform rendering. Called from RENDER thread. */
 void RenderSubsystem::ComponentRender(Frame *frame)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread);
@@ -51,6 +56,7 @@ void RenderSubsystem::ComponentRender(Frame *frame)
 
 void RenderSubsystem::SetComponentIndex(Index index)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     if (index == m_index) {

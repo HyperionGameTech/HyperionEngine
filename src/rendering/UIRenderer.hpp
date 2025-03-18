@@ -58,8 +58,8 @@ public:
     UIRenderer(const RC<UIStage> &ui_stage);
     UIRenderer(const UIRenderer &other)                 = delete;
     UIRenderer &operator=(const UIRenderer &other)      = delete;
-    UIRenderer(UIRenderer &&other) noexcept             = default;
-    UIRenderer &operator=(UIRenderer &&other) noexcept  = default;
+    UIRenderer(UIRenderer &&other) noexcept             = delete;
+    UIRenderer &operator=(UIRenderer &&other) noexcept  = delete;
     ~UIRenderer();
 
     void Initialize();
