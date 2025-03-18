@@ -444,44 +444,53 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const CameraRenderResourc
 
 #pragma endregion UIRenderCollector
 
-#pragma region UIRenderer
+#pragma region UIRenderSubsystem
 
-UIRenderer::UIRenderer(const RC<UIStage> &ui_stage)
-    : m_ui_stage(ui_stage)
+UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
+    : RenderSubsystem(name),
+      m_ui_stage(ui_stage)
 {
 }
 
-UIRenderer::~UIRenderer()
+UIRenderSubsystem::~UIRenderSubsystem()
 {
-    SafeRelease(std::move(m_framebuffer));
     g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 }
 
-void UIRenderer::Initialize()
+void UIRenderSubsystem::Init()
 {
     HYP_SCOPE;
 
-    struct RENDER_COMMAND(CreateUIRendererFramebuffer) : renderer::RenderCommand
+    struct RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer) : renderer::RenderCommand
     {
-        RC<UIRenderer>  ui_renderer;
+        RC<UIRenderSubsystem>   ui_render_subsystem;
 
-        RENDER_COMMAND(CreateUIRendererFramebuffer)(RC<UIRenderer> ui_renderer)
-            : ui_renderer(ui_renderer)
+        RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)(const RC<UIRenderSubsystem> &ui_render_subsystem)
+            : ui_render_subsystem(ui_render_subsystem)
         {
-            AssertThrow(ui_renderer != nullptr);
+            AssertThrow(ui_render_subsystem != nullptr);
         }
 
-        virtual ~RENDER_COMMAND(CreateUIRendererFramebuffer)() override = default;
+        virtual ~RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)() override = default;
 
         virtual RendererResult operator()() override
         {
-            ui_renderer->CreateFramebuffer();
+            ui_render_subsystem->CreateFramebuffer();
 
             HYPERION_RETURN_OK;
         }
     };
 
-    PUSH_RENDER_COMMAND(CreateUIRendererFramebuffer, RefCountedPtrFromThis());
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
+    {
+        Threads::AssertOnThread(g_render_thread);
+
+        g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+
+        PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
+    });
+
+    PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
 
     AssertThrow(m_ui_stage != nullptr);
     AssertThrow(m_ui_stage->GetScene() != nullptr);
@@ -491,7 +500,37 @@ void UIRenderer::Initialize()
     m_camera_resource_handle = ResourceHandle(m_ui_stage->GetScene()->GetCamera()->GetRenderResource());
 }
 
-void UIRenderer::CreateFramebuffer()
+// called from game thread
+void UIRenderSubsystem::InitGame() { }
+
+void UIRenderSubsystem::OnRemoved()
+{
+    SafeRelease(std::move(m_framebuffer));
+    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+
+    m_on_gbuffer_resolution_changed_handle.Reset();
+}
+
+void UIRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
+{
+    // do nothing
+}
+
+void UIRenderSubsystem::OnRender(Frame *frame)
+{
+    HYP_SCOPE;
+
+    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
+    g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
+
+    m_render_collector.CollectDrawCalls(frame);
+    m_render_collector.ExecuteDrawCalls(frame, camera_render_resource, m_framebuffer);
+
+    g_engine->GetRenderState()->UnsetActiveScene();
+}
+
+void UIRenderSubsystem::CreateFramebuffer()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -512,99 +551,6 @@ void UIRenderer::CreateFramebuffer()
         m_framebuffer->GetAttachment(0)->GetImage(),
         m_framebuffer->GetAttachment(0)->GetImageView()
     ));
-}
-
-void UIRenderer::Update(GameCounter::TickUnit delta)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread);
-}
-
-void UIRenderer::Render(Frame *frame)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    Render(frame, m_framebuffer);
-}
-
-void UIRenderer::Render(Frame *frame, const FramebufferRef &framebuffer)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
-
-    g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
-
-    m_render_collector.CollectDrawCalls(frame);
-    m_render_collector.ExecuteDrawCalls(frame, camera_render_resource, framebuffer);
-
-    g_engine->GetRenderState()->UnsetActiveScene();
-}
-
-#pragma endregion UIRenderer
-
-#pragma region UIRenderSubsystem
-
-UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
-    : RenderSubsystem(name),
-      m_ui_stage(ui_stage)
-{
-}
-
-UIRenderSubsystem::~UIRenderSubsystem()
-{
-    m_ui_renderer.Reset();
-
-    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
-}
-
-void UIRenderSubsystem::Init()
-{
-    HYP_SCOPE;
-
-    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
-    {
-        Threads::AssertOnThread(g_render_thread);
-
-        m_ui_renderer.Reset();
-
-        g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
-
-        m_ui_renderer = MakeRefCountedPtr<UIRenderer>(m_ui_stage);
-        m_ui_renderer->Initialize();
-    });
-
-    m_ui_renderer = MakeRefCountedPtr<UIRenderer>(m_ui_stage);
-    m_ui_renderer->Initialize();
-}
-
-// called from game thread
-void UIRenderSubsystem::InitGame() { }
-
-void UIRenderSubsystem::OnRemoved()
-{
-    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
-
-    m_ui_renderer.Reset();
-
-    m_on_gbuffer_resolution_changed_handle.Reset();
-}
-
-void UIRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
-{
-    HYP_SCOPE;
-
-    m_ui_renderer->Update(delta);
-}
-
-void UIRenderSubsystem::OnRender(Frame *frame)
-{
-    HYP_SCOPE;
-
-    m_ui_renderer->Render(frame);
 }
 
 #pragma endregion UIRenderSubsystem

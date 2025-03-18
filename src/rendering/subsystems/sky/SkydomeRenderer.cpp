@@ -109,13 +109,7 @@ void SkydomeRenderer::OnRemoved()
 
 void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    AssertThrow(m_env_probe.IsValid());
-
-    if (!m_env_probe->NeedsUpdate()) {
-        return;
-    }
-    
-    m_env_probe->Update(delta);
+    // Do nothing
 }
 
 void SkydomeRenderer::OnRender(Frame *frame)

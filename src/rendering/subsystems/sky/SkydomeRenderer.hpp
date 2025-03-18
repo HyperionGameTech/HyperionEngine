@@ -30,6 +30,9 @@ public:
     HYP_FORCE_INLINE const Handle<Texture> &GetCubemap() const
         { return m_cubemap; }
 
+    HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
+        { return m_env_probe; }
+
 private:
     virtual void Init() override;
     virtual void InitGame() override;

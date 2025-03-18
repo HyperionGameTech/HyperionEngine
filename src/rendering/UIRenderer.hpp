@@ -52,38 +52,6 @@ private:
     Array<Pair<ID<Entity>, int>>    m_proxy_depths;
 };
 
-class UIRenderer : public EnableRefCountedPtrFromThis<UIRenderer>
-{
-public:
-    UIRenderer(const RC<UIStage> &ui_stage);
-    UIRenderer(const UIRenderer &other)                 = delete;
-    UIRenderer &operator=(const UIRenderer &other)      = delete;
-    UIRenderer(UIRenderer &&other) noexcept             = delete;
-    UIRenderer &operator=(UIRenderer &&other) noexcept  = delete;
-    ~UIRenderer();
-
-    HYP_FORCE_INLINE UIRenderCollector &GetRenderCollector()
-        { return m_render_collector; }
-
-    HYP_FORCE_INLINE const UIRenderCollector &GetRenderCollector() const
-        { return m_render_collector; }
-
-    void Initialize();
-    void Update(GameCounter::TickUnit delta);
-    void Render(Frame *frame);
-    void Render(Frame *frame, const FramebufferRef &framebuffer);
-
-private:
-    void CreateFramebuffer();
-
-    RC<UIStage>         m_ui_stage;
-    FramebufferRef      m_framebuffer;
-    ShaderRef           m_shader;
-    UIRenderCollector   m_render_collector;
-
-    ResourceHandle      m_camera_resource_handle;
-};
-
 HYP_CLASS()
 class HYP_API UIRenderSubsystem : public RenderSubsystem
 {
@@ -98,10 +66,11 @@ public:
     HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
 
-    HYP_FORCE_INLINE const RC<UIRenderer> &GetUIRenderer() const
-        { return m_ui_renderer; }
+    HYP_FORCE_INLINE UIRenderCollector &GetRenderCollector()
+        { return m_render_collector; }
 
-    void Render(Frame *frame);
+    HYP_FORCE_INLINE const UIRenderCollector &GetRenderCollector() const
+        { return m_render_collector; }
 
 private:
     virtual void Init() override;
@@ -115,11 +84,15 @@ private:
 
     void CreateFramebuffer();
 
-    RC<UIStage>     m_ui_stage;
+    RC<UIStage>         m_ui_stage;
 
-    RC<UIRenderer>  m_ui_renderer;
+    FramebufferRef      m_framebuffer;
+    ShaderRef           m_shader;
+    UIRenderCollector   m_render_collector;
 
-    DelegateHandler m_on_gbuffer_resolution_changed_handle;
+    ResourceHandle      m_camera_resource_handle;
+
+    DelegateHandler     m_on_gbuffer_resolution_changed_handle;
 };
 
 } // namespace hyperion

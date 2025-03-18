@@ -52,27 +52,29 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
 
     m_ui_stage->Update(delta);
 
-    UIRenderCollector &render_collector = m_ui_render_subsystem->GetUIRenderer()->GetRenderCollector();
+    if (m_ui_render_subsystem->IsInitialized()) {
+        UIRenderCollector &render_collector = m_ui_render_subsystem->GetRenderCollector();
 
-    render_collector.ResetOrdering();
+        render_collector.ResetOrdering();
 
-    m_ui_stage->CollectObjects([&render_collector](UIObject *ui_object)
-    {
-        AssertThrow(ui_object != nullptr);
+        m_ui_stage->CollectObjects([&render_collector](UIObject *ui_object)
+        {
+            AssertThrow(ui_object != nullptr);
 
-        const NodeProxy &node = ui_object->GetNode();
-        AssertThrow(node.IsValid());
+            const NodeProxy &node = ui_object->GetNode();
+            AssertThrow(node.IsValid());
 
-        const Handle<Entity> &entity = node->GetEntity();
+            const Handle<Entity> &entity = node->GetEntity();
 
-        MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
-        AssertThrow(mesh_component != nullptr);
-        AssertThrow(mesh_component->proxy != nullptr);
+            MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(entity);
+            AssertThrow(mesh_component != nullptr);
+            AssertThrow(mesh_component->proxy != nullptr);
 
-        render_collector.PushEntityToRender(entity, *mesh_component->proxy, ui_object->GetComputedDepth());
-    }, /* only_visible */ true);
+            render_collector.PushEntityToRender(entity, *mesh_component->proxy, ui_object->GetComputedDepth());
+        }, /* only_visible */ true);
 
-    render_collector.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
+        render_collector.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
+    }
 }
 
 } // namespace hyperion

@@ -105,7 +105,23 @@ void SkySystem::OnEntityRemoved(ID<Entity> entity)
 
 void SkySystem::Process(GameCounter::TickUnit delta)
 {
-    // do nothing
+    for (auto [entity_id, sky_component, mesh_component] : GetEntityManager().GetEntitySet<SkyComponent, MeshComponent>().GetScopedView(GetComponentInfos())) {
+        if (!sky_component.render_subsystem) {
+            continue;
+        }
+
+        const Handle<EnvProbe> &env_probe = sky_component.render_subsystem->GetEnvProbe();
+
+        if (!env_probe.IsValid()) {
+            continue;
+        }
+
+        if (!env_probe->NeedsUpdate()) {
+            continue;
+        }
+
+        env_probe->Update(delta);
+    }
 }
 
 void SkySystem::AddRenderSubsystemToEnvironment(SkyComponent &sky_component, MeshComponent &mesh_component, World *world)

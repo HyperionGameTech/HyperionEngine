@@ -301,8 +301,6 @@ void EnvProbe::Init()
         }
     }
 
-    SetNeedsUpdate(false);
-
     SetReady(true);
 }
 
