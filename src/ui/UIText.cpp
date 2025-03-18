@@ -96,12 +96,12 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
                 placement.x = 0.0f;
                 placement.y += cell_dimensions.y;
 
-                const Vec2f placement_origin = placement;
-                const Vec2f placement_offset = current_word.chars.Front().placement - placement_origin;
+                // const Vec2f placement_origin = placement;
+                // const Vec2f placement_offset = current_word.chars.Front().placement - placement_origin;
 
-                for (FontAtlasCharacterIterator &character_iterator : current_word.chars) {
-                    character_iterator.placement -= placement_offset;
-                }
+                // for (FontAtlasCharacterIterator &character_iterator : current_word.chars) {
+                //     character_iterator.placement -= placement_offset;
+                // }
             } else {
                 // add room for space
                 placement.x += cell_dimensions.x * 0.5f;
@@ -276,13 +276,11 @@ void UIText::UpdateRenderData()
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA | UIObjectUpdateType::UPDATE_CHILDREN_TEXT_RENDER_DATA);
 
-    // Only update render data if computed visibility is true (visibile)
+    // Only update render data if computed visibility is true (visible)
     // When this changes to be true, UpdateRenderData will be called - no need to update it if we are not visible
     if (!GetComputedVisibility()) {
         return;
     }
-
-    HYP_LOG(UI, Debug, "Update render data for text '{}'", GetText());
 
     if (const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault()) {
         const float text_size = GetTextSize();
@@ -378,18 +376,7 @@ void UIText::UpdateMeshData_Internal()
 
 bool UIText::Repaint_Internal()
 {
-    Vec2i size = GetActualSize();
-
-    if (size.x * size.y <= 0) {
-        HYP_LOG_ONCE(UI, Warning, "Cannot repaint UI text for element: {}, size <= zero", GetName());
-
-        return false;
-    }
-
-    size = MathUtil::Max(size, Vec2i::One());
-
-    HYP_LOG(UI, Debug, "Repaint text '{}', {}", GetText(), m_text_aabb_without_bearing);
-
+    // Do nothing
     return true;
 }
 

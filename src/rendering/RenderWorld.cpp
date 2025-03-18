@@ -104,6 +104,31 @@ Task<bool> WorldRenderResource::RemoveScene(ID<Scene> scene_id)
     return task;
 }
 
+const EngineRenderStats &WorldRenderResource::GetRenderStats() const
+{
+    HYP_SCOPE;
+    if (Threads::IsOnThread(g_render_thread)) {
+        return m_render_stats[ThreadType::THREAD_TYPE_RENDER];
+    } else if (Threads::IsOnThread(g_game_thread)) {
+        return m_render_stats[ThreadType::THREAD_TYPE_GAME];
+    } else {
+        HYP_UNREACHABLE();
+    }
+}
+
+void WorldRenderResource::SetRenderStats(const EngineRenderStats &render_stats)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    m_render_stats[ThreadType::THREAD_TYPE_GAME] = render_stats;
+
+    Execute([this, render_stats]()
+    {
+        m_render_stats[ThreadType::THREAD_TYPE_RENDER] = render_stats;
+    });
+}
+
 void WorldRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;

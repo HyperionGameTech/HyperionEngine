@@ -399,6 +399,8 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(ProcType &&proc, bool require_current_thread = false)
     {
+        AssertDebugMsg(std::is_void_v<ReturnType> || !require_current_thread, "Cannot use require_current_thread for non-void delegate return type");
+
         return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID());
     }
 
@@ -411,6 +413,8 @@ public:
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
     HYP_NODISCARD DelegateHandler Bind(ProcType &&proc, const ThreadID &calling_thread_id)
     {
+        AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadID::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
+
 #ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
 #endif
@@ -558,8 +562,6 @@ public:
 
         const ThreadID current_thread_id = Threads::CurrentThreadID();
 
-        Array<Task<void>> tasks;
-
         ValueStorage<ReturnType> result_storage;
 
         const auto begin = procs_array.Begin();
@@ -570,42 +572,29 @@ public:
 
             if constexpr (!std::is_void_v<ReturnType>) {
                 ++it;
+
+                AssertDebugMsg(!current->calling_thread_id.IsValid() || current->calling_thread_id == current_thread_id, "Cannot call a handler on a different thread if the delegate returns a value");
                 
                 if (it == end) {
-                    if (current->calling_thread_id.IsValid() && current->calling_thread_id != current_thread_id) {
-                        tasks.PushBack(current->GetCallingThread()->GetScheduler().Enqueue([&result_storage, &proc = *current->proc, args_tuple = Tie(args...)]()
-                        {
-                            result_storage.Construct(Apply([&proc]<class... OtherArgs>(OtherArgs &&... args)
-                            {
-                                return proc(std::forward<OtherArgs>(args)...);
-                            }, std::move(args_tuple)));
-                        }));
-                    } else {
-                        result_storage.Construct((*current->proc)(args...));
-                    }
-                    
+                    result_storage.Construct((*current->proc)(args...));
                 } else {
                     (*current->proc)(args...);
                 }
             } else {
                 if (current->calling_thread_id.IsValid() && current->calling_thread_id != current_thread_id) {
-                    tasks.PushBack(current->GetCallingThread()->GetScheduler().Enqueue([&proc = *current->proc, args_tuple = Tie(args...)]()
+                    current->GetCallingThread()->GetScheduler().Enqueue([&proc = *current->proc, args_tuple = Tuple<ArgTypes...>(args...)]()
                     {
                         Apply([&proc]<class... OtherArgs>(OtherArgs &&... args)
                         {
                             return proc(std::forward<OtherArgs>(args)...);
                         }, std::move(args_tuple));
-                    }));
+                    }, TaskEnqueueFlags::FIRE_AND_FORGET);
                 } else {
                     (*current->proc)(args...);
                 }
 
                 ++it;
             }
-        }
-
-        if (tasks.Any()) {
-            AwaitAll(tasks.ToSpan());
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {

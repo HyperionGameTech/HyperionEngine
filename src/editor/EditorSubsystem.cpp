@@ -1754,13 +1754,17 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_ov
     if (m_debug_overlay_ui_object != nullptr) {
         debug_overlay->Initialize(ui_subsystem->GetUIStage());
 
-        if (const RC<UIObject> &ui_object = debug_overlay->GetUIObject()) {
-            m_debug_overlay_ui_object->AddChildUIObject(ui_object);
+        if (const RC<UIObject> &object = debug_overlay->GetUIObject()) {
+            RC<UIListViewItem> list_view_item = ui_subsystem->GetUIStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            list_view_item->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+            list_view_item->AddChildUIObject(object);
+
+            m_debug_overlay_ui_object->AddChildUIObject(list_view_item);
         }
     }
 }
 
-bool EditorSubsystem::RemoveDebugOverlay(Name name)
+bool EditorSubsystem::RemoveDebugOverlay(WeakName name)
 {
     HYP_SCOPE;
 
@@ -1776,8 +1780,14 @@ bool EditorSubsystem::RemoveDebugOverlay(Name name)
     }
 
     if (m_debug_overlay_ui_object != nullptr) {
-        if (const RC<UIObject> &ui_object = (*it)->GetUIObject()) {
-            m_debug_overlay_ui_object->RemoveChildUIObject(ui_object);
+        if (const RC<UIObject> &object = (*it)->GetUIObject()) {
+            RC<UIListViewItem> list_view_item = object->GetClosestParentUIObject<UIListViewItem>();
+
+            if (list_view_item) {
+                m_debug_overlay_ui_object->RemoveChildUIObject(list_view_item);
+            } else {
+                object->RemoveFromParent();
+            }
         }
     }
 
@@ -1834,7 +1844,7 @@ void EditorSubsystem::UpdateDebugOverlays(GameCounter::TickUnit delta)
             continue;
         }
         
-        debug_overlay->Update();
+        debug_overlay->Update(delta);
     }
 }
 

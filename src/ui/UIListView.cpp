@@ -136,11 +136,11 @@ void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_
 {
     UIObject::SetFocusState_Internal(focus_state);
 
-    if (focus_state & UIObjectFocusState::HOVER) {
-        m_inner_element->SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
-    } else {
-        m_inner_element->SetBackgroundColor(Color(0x101012FFu));
-    }
+    // if (focus_state & UIObjectFocusState::HOVER) {
+    //     m_inner_element->SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
+    // } else {
+    //     m_inner_element->SetBackgroundColor(Color(0x101012FFu));
+    // }
 }
 
 #pragma endregion UIListViewItem
@@ -186,6 +186,13 @@ void UIListView::AddChildUIObject(const RC<UIObject> &ui_object)
         m_list_view_items.PushBack(list_view_item);
 
         UIObject::AddChildUIObject(list_view_item);
+    }
+
+    // If we use autosizing, UIObject::AddChildUIObject will call UpdateSize automatically.
+    // otherwise, we need to call it ourselves
+    if (!UseAutoSizing()) {
+        // Updates layout as well
+        UpdateSize(false);
     }
 }
 

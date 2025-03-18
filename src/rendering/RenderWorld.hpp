@@ -9,6 +9,8 @@
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
 
+#include <rendering/EngineRenderStats.hpp>
+
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <core/containers/Array.hpp>
@@ -93,6 +95,9 @@ public:
     void AddScene(const Handle<Scene> &scene);
     Task<bool> RemoveScene(ID<Scene> scene_id);
 
+    const EngineRenderStats &GetRenderStats() const;
+    void SetRenderStats(const EngineRenderStats &render_stats);
+
     void PreRender(renderer::Frame *frame);
     void PostRender(renderer::Frame *frame);
     void Render(renderer::Frame *frame);
@@ -105,10 +110,11 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
 private:
-    World                                       *m_world;
-    Array<TResourceHandle<SceneRenderResource>> m_bound_scenes;
-    RenderCollectorContainer                    m_render_collector_container;
-    Handle<RenderEnvironment>                   m_environment;
+    World                                                       *m_world;
+    Array<TResourceHandle<SceneRenderResource>>                 m_bound_scenes;
+    RenderCollectorContainer                                    m_render_collector_container;
+    Handle<RenderEnvironment>                                   m_environment;
+    FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX>  m_render_stats;
 };
 
 template <>

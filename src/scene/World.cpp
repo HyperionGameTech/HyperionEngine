@@ -93,6 +93,25 @@ void World::Init()
         }
     }));
 
+    // Update WorldRenderResource's RenderStats - done on the game thread so both the game thread and render thread can access it.
+    // It is copied, so it will be delayed by 1-2 frames for the render thread to see the updated stats.
+    AddDelegateHandler(g_engine->OnRenderStatsUpdated.Bind([this_weak = WeakHandleFromThis()](EngineRenderStats render_stats)
+    {
+        Threads::AssertOnThread(g_game_thread);
+        
+        Handle<World> world = this_weak.Lock();
+
+        if (!world.IsValid()) {
+            return;
+        }
+
+        if (!world->IsReady()) {
+            return;
+        }
+
+        world->GetRenderResource().SetRenderStats(render_stats);
+    }, g_game_thread));
+
     m_render_resource = AllocateResource<WorldRenderResource>(this);
 
     for (auto &it : m_subsystems) {
@@ -458,6 +477,15 @@ const Handle<Scene> &World::GetSceneByName(Name name) const
 const Handle<Scene> &World::GetDetachedScene(const ThreadID &thread_id)
 {
     return m_detached_scenes.GetDetachedScene(thread_id);
+}
+
+EngineRenderStats *World::GetRenderStats() const
+{
+    if (!IsReady()) {
+        return nullptr;
+    }
+
+    return &const_cast<EngineRenderStats &>(m_render_resource->GetRenderStats());
 }
 
 } // namespace hyperion

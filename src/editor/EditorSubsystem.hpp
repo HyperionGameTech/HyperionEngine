@@ -251,7 +251,7 @@ public:
     void AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_overlay);
 
     HYP_METHOD()
-    bool RemoveDebugOverlay(Name name);
+    bool RemoveDebugOverlay(WeakName name);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const NodeProxy &GetFocusedNode() const

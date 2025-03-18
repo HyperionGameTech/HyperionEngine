@@ -47,10 +47,10 @@ ScriptSystem::ScriptSystem(EntityManager &entity_manager)
                 script_component.script.hot_reload_version = script.hot_reload_version;
                 script_component.script.last_modified_timestamp = script.last_modified_timestamp;
 
-                script_component.object.Reset();
+                OnEntityRemoved(entity);
+
                 script_component.assembly.Reset();
 
-                OnEntityRemoved(entity);
                 OnEntityAdded(Handle<Entity>(entity));
 
                 script_component.flags &= ~ScriptComponentFlags::RELOADING;

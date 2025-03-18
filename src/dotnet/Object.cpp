@@ -9,7 +9,6 @@ namespace hyperion::dotnet {
 
 Object::Object()
     : m_class_ptr(nullptr),
-      m_assembly(nullptr),
       m_object_reference { ManagedGuid { 0, 0 }, nullptr },
       m_object_flags(ObjectFlags::NONE)
 {
@@ -17,10 +16,17 @@ Object::Object()
 
 Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags)
     : m_class_ptr(class_ptr),
-      m_assembly(class_ptr != nullptr ? class_ptr->GetAssembly() : nullptr),
       m_object_reference(object_reference),
       m_object_flags(object_flags)
 {
+    if (class_ptr != nullptr) {
+#ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
+        m_assembly = class_ptr->GetAssembly();
+#else
+        m_assembly = class_ptr->GetAssembly().ToWeak();
+#endif
+    }
+
     if (m_object_reference.guid.IsValid()) {
         AssertThrowMsg(m_class_ptr != nullptr, "Class pointer not set!");
     }
@@ -77,9 +83,16 @@ void Object::Reset()
 void Object::InvokeMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
 {
     AssertThrow(IsValid());
-    AssertThrow(m_assembly != nullptr && m_assembly->IsLoaded());
 
-    m_assembly->GetInvokeMethodFunction()(method_ptr->GetGuid(), m_object_reference.guid, args_hyp_data, out_return_hyp_data);
+#ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
+    const RC<Assembly> &assembly = m_assembly;
+#else
+    RC<Assembly> assembly = m_assembly.Lock();
+#endif
+
+    AssertThrow(assembly != nullptr && assembly->IsLoaded());
+
+    assembly->GetInvokeMethodFunction()(method_ptr->GetGuid(), m_object_reference.guid, args_hyp_data, out_return_hyp_data);
 }
 
 const Method *Object::GetMethod(UTF8StringView method_name) const

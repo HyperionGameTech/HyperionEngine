@@ -36,8 +36,7 @@ public:
     static constexpr T pi = T(3.14159265358979);
 
     static constexpr float epsilon_f = FLT_EPSILON;
-
-    static constexpr float epsilon_d = DBL_EPSILON;
+    static constexpr double epsilon_d = DBL_EPSILON;
 
     template <class T>
     HYP_FORCE_INLINE static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, T) MaxSafeValue()

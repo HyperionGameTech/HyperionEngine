@@ -6,6 +6,7 @@
 #include <Config.hpp>
 
 #include <rendering/DefaultFormats.hpp>
+#include <rendering/EngineRenderStats.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RenderObject.hpp>
@@ -21,6 +22,8 @@
 #include <rendering/CrashHandler.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
+
+#include <GameCounter.hpp>
 
 #include <Types.hpp>
 
@@ -234,6 +237,8 @@ public:
 
     void FinalizeStop();
 
+    Delegate<void, EngineRenderStats>                       OnRenderStatsUpdated;
+
 private:
     void UpdateBuffersAndDescriptors(uint32 frame_index);
 
@@ -283,6 +288,9 @@ private:
     CrashHandler                                            m_crash_handler;
 
     EngineDelegates                                         m_delegates;
+
+    EngineRenderStatsCalculator                             m_render_stats_calculator;
+    EngineRenderStats                                       m_render_stats;
 
     AtomicVar<bool>                                         m_is_shutting_down { false };
     bool                                                    m_is_initialized;

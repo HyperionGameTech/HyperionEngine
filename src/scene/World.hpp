@@ -16,6 +16,7 @@ namespace hyperion {
 
 class WorldRenderResource;
 class EditorDelegates;
+struct EngineRenderStats;
 
 struct DetachedScenesContainer
 {
@@ -77,6 +78,9 @@ public:
 
     HYP_FORCE_INLINE WorldRenderResource &GetRenderResource() const
         { return *m_render_resource; }
+
+    HYP_METHOD()
+    EngineRenderStats *GetRenderStats() const;
 
     /*! \brief Get the placeholder Scene, used for Entities that are not attached to a Scene.
      *  This version of the function allows the caller to specify the thread the Scene uses for entity management.

@@ -3,6 +3,7 @@
 #ifndef HYPERION_SCRIPTABLE_DELEGATE_HPP
 #define HYPERION_SCRIPTABLE_DELEGATE_HPP
 
+#include <core/functional/ScriptableDelegateFwd.hpp>
 #include <core/functional/Delegate.hpp>
 
 #include <dotnet/Object.hpp>
@@ -61,10 +62,6 @@ public:
 };
 
 } // namespace functional
-
-using functional::IScriptableDelegate;
-using functional::ScriptableDelegate;
-
 } // namespace hyperion
 
 #endif

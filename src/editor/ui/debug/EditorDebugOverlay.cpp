@@ -28,18 +28,11 @@ void EditorDebugOverlayBase::Initialize(UIObject *spawn_parent)
     AssertThrow(spawn_parent != nullptr);
 
     m_ui_object = CreateUIObject(spawn_parent);
-
-    Update();
 }
 
 RC<UIObject> EditorDebugOverlayBase::CreateUIObject_Impl(UIObject *spawn_parent)
 {
     return spawn_parent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
-}
-
-void EditorDebugOverlayBase::Update_Impl()
-{
-    Threads::AssertOnThread(g_game_thread);
 }
 
 #pragma endregion EditorDebugOverlayBase

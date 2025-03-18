@@ -34,7 +34,7 @@ public:
     void Initialize(UIObject *spawn_parent);
 
     HYP_METHOD(Scriptable)
-    void Update();
+    void Update(float delta);
 
     HYP_METHOD(Scriptable)
     RC<UIObject> CreateUIObject(UIObject *spawn_parent);
@@ -48,7 +48,7 @@ public:
 protected:
     virtual RC<UIObject> CreateUIObject_Impl(UIObject *spawn_parent);
 
-    virtual void Update_Impl();
+    virtual void Update_Impl(float delta) { }
 
     virtual Name GetName_Impl() const { HYP_PURE_VIRTUAL(); }
 

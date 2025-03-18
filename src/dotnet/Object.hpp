@@ -14,6 +14,8 @@
 
 #include <type_traits>
 
+//#define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
+
 namespace hyperion {
 
 enum class ObjectFlags : uint32
@@ -57,9 +59,6 @@ public:
 
     HYP_FORCE_INLINE const RC<Class> &GetClass() const
         { return m_class_ptr; }
-
-    HYP_FORCE_INLINE const RC<Assembly> &GetAssembly() const
-        { return m_assembly; }
 
     HYP_FORCE_INLINE const ObjectReference &GetObjectReference() const
         { return m_object_reference; }
@@ -143,7 +142,11 @@ private:
     const Property *GetProperty(UTF8StringView method_name) const;
 
     RC<Class>               m_class_ptr;
+#ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
     RC<Assembly>            m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
+#else
+    Weak<Assembly>          m_assembly;
+#endif
     ObjectReference         m_object_reference;
     EnumFlags<ObjectFlags>  m_object_flags;
 };

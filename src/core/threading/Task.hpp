@@ -873,6 +873,23 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
 {
     auto operator()(Span<Task<ReturnType>> tasks) const -> std::conditional_t<std::is_void_v<ReturnType>, void, Array<ReturnType>>
     {
+        Array<ReturnType> results;
+        results.ResizeUninitialized(tasks.Size());
+
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<ReturnType> &task = tasks[i];
+
+            if (!task.IsValid()) {
+                Memory::Construct<ReturnType>(&results[i]);
+                continue;
+            }
+
+            Memory::Construct<ReturnType>(&results[i], std::move(task.Await()));
+        }
+
+        return results;
+
+#if 0
         for (SizeType i = 0; i < tasks.Size(); ++i) {
             Task<ReturnType> &task = tasks[i];
 
@@ -941,6 +958,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
 
             return results;
         }
+#endif
     }
 };
 
@@ -949,6 +967,17 @@ struct TaskAwaitAll_Impl<Task<void>>
 {
     void operator()(Span<Task<void>> tasks) const
     {
+        for (SizeType i = 0; i < tasks.Size(); ++i) {
+            Task<void> &task = tasks[i];
+
+            if (!task.IsValid()) {
+                continue;
+            }
+
+            task.Await();
+        }
+
+#if 0
         for (SizeType i = 0; i < tasks.Size(); ++i) {
             Task<void> &task = tasks[i];
 
@@ -1003,6 +1032,7 @@ struct TaskAwaitAll_Impl<Task<void>>
             
             task.Await();
         }
+#endif
     }
 };
 

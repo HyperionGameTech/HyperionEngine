@@ -32,8 +32,9 @@
 #include <asset/Assets.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
-#include <util/MeshBuilder.hpp>
 #include <core/filesystem/FsUtil.hpp>
+
+#include <util/MeshBuilder.hpp>
 
 #include <audio/AudioManager.hpp>
 
@@ -119,13 +120,6 @@ private:
         AssertThrow(m_app_context->GetGame() != nullptr);
 
         SystemEvent event;
-
-#ifdef HYP_LOG_FRAMES_PER_SECOND
-        uint32 num_frames = 0;
-        float delta_time_accum = 0.0f;
-
-        GameCounter counter;
-#endif
     
         Queue<Scheduler::ScheduledTask> tasks;
 
@@ -134,19 +128,6 @@ private:
             while (m_app_context->PollEvent(event)) {
                 m_app_context->GetGame()->PushEvent(std::move(event));
             }
-
-#ifdef HYP_LOG_FRAMES_PER_SECOND
-            counter.NextTick();
-            delta_time_accum += counter.delta;
-            num_frames++;
-
-            if (delta_time_accum >= 1.0f) {
-                HYP_LOG(RenderThread, Debug, "Render thread ticks per second: {}", 1.0f / (delta_time_accum / float(num_frames)));
-
-                delta_time_accum = 0.0f;
-                num_frames = 0;
-            }
-#endif
 
             if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
                 m_scheduler.AcceptAll(tasks);
@@ -576,6 +557,9 @@ void Engine::FinalizeStop()
 HYP_API void Engine::RenderNextFrame(Game *game)
 {
     HYP_PROFILE_BEGIN;
+
+    m_render_stats_calculator.Advance(m_render_stats);
+    OnRenderStatsUpdated(m_render_stats);
 
     RendererResult frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
         GetGPUInstance()->GetDevice(),
