@@ -8,6 +8,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 namespace hyperion {
 
@@ -15,7 +16,10 @@ class EnvGridUpdaterSystem : public System<
     EnvGridUpdaterSystem,
     ComponentDescriptor<EnvGridComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>, COMPONENT_RW_FLAGS_READ_WRITE, false>,
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ_WRITE, false>
 >
 {
 public:
@@ -28,6 +32,8 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
+    void UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component);
+
     void AddRenderSubsystemToEnvironment(EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component, World *world);
 };
 

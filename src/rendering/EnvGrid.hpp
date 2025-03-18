@@ -149,6 +149,9 @@ public:
     
     HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
         { return m_options.type; }
+
+    HYP_FORCE_INLINE const EnvProbeCollection &GetEnvProbeCollection() const
+        { return m_env_probe_collection; }
     
     HYP_METHOD(Property="AABB", Editor=true, Label="EnvGrid Area Bounds", Description="The area that will be considered for inclusion in the EnvGrid")
     const BoundingBox &GetAABB() const
@@ -157,6 +160,19 @@ public:
     HYP_METHOD(Property="AABB", Editor=true)
     void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
+
+    HYP_METHOD(Property="Camera")
+    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
+    HYP_FORCE_INLINE const ShaderRef &GetShader() const
+        { return m_ambient_shader; }
+
+    HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
+        { return m_render_collector; }
+
+    HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
+        { return m_render_collector; }
 
     void SetCameraData(const BoundingBox &aabb, const Vec3f &camera_position);
 

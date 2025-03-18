@@ -474,54 +474,6 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
-
-    bool should_recollect_entites = false;
-
-    Octree const *octree = &m_parent_scene->GetOctree();
-    octree->GetFittingOctant(m_aabb, octree);
-    
-    const HashCode octant_hash_code = octree->GetEntryListHash<EntityTag::STATIC>()
-        .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
-
-    if (octant_hash_code != m_octant_hash_code) {
-        HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes",
-            m_octant_hash_code.Value(), octant_hash_code.Value());
-
-        should_recollect_entites = true;
-    }
-
-    // debugging
-    should_recollect_entites = true;
-
-    if (should_recollect_entites) {
-        m_octant_hash_code = octant_hash_code;
-
-        AssertThrow(m_camera.IsValid());
-        m_camera->Update(delta);
-
-        m_parent_scene->CollectStaticEntities(
-            m_render_collector,
-            m_camera,
-            RenderableAttributeSet(
-                MeshAttributes { },
-                MaterialAttributes {
-                    .shader_definition  = m_ambient_shader->GetCompiledShader()->GetDefinition(),
-                    .cull_faces         = FaceCullMode::BACK
-                }
-            ),
-            true // skip frustum culling, until Camera supports multiple frustums.
-        );
-
-        for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++) {
-            // Don't worry about using the indirect index
-            const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
-            AssertThrow(probe.IsValid());
-
-            probe->SetNeedsUpdate(true);
-
-            probe->Update(delta);
-        }
-    }
 }
 
 void EnvGrid::OnRender(Frame *frame)
@@ -620,7 +572,7 @@ void EnvGrid::OnRender(Frame *frame)
                         probe->GetID().Value(), binding_index.position, probe->GetProxy().world_position);
                 }
 
-                // probe->SetNeedsRender(false);
+                probe->SetNeedsRender(false);
             }
         }
     }
@@ -1125,7 +1077,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
         VoxelizeProbe(frame, probe_index);
     }
 
-    //probe->SetNeedsRender(false);
+    probe->SetNeedsRender(false);
 }
 
 void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const Handle<EnvProbe> &probe)

@@ -6,9 +6,21 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 
+#include <core/containers/StaticArray.hpp>
+
 #include <core/utilities/TypeAttributes.hpp>
 
 namespace hyperion {
+
+namespace detail {
+
+template <class TEnum, SizeType... Indices>
+constexpr auto MakeEnumStaticArray(std::index_sequence<Indices...>)
+{
+    return StaticArray<TEnum, sizeof...(Indices)> { TEnum(Indices)... };
+}
+
+} // namespace detail
 
 class HypEnum : public HypClass
 {
@@ -87,6 +99,12 @@ public:
         static const TypeID type_id = TypeID::ForType<std::underlying_type_t<T>>();
 
         return type_id;
+    }
+
+    /*! \brief Returns a compile-time StaticArray of all the enum values. */
+    static constexpr auto GetValues_Static()
+    {
+        return detail::MakeEnumStaticArray<T>(std::make_index_sequence<SizeType(T::MAX)>());
     }
 
 protected:

@@ -920,7 +920,8 @@ void Node::RefreshEntityTransform()
         m_scene->GetEntityManager()->AddTags<
             EntityTag::UPDATE_AABB,
             EntityTag::UPDATE_LIGHT_TRANSFORM,
-            EntityTag::UPDATE_CAMERA_TRANSFORM
+            EntityTag::UPDATE_CAMERA_TRANSFORM,
+            EntityTag::UPDATE_ENV_GRID_TRANSFORM
         >(m_entity);
     } else {
         SetEntityAABB(BoundingBox::Empty());

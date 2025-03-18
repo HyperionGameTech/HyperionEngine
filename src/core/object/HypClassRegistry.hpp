@@ -102,13 +102,13 @@ public:
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
     template <class T>
-    HYP_FORCE_INLINE const HypEnum *GetEnum() const
+    HYP_FORCE_INLINE const HypEnumInstance<T> *GetEnum() const
     {
         static_assert(std::is_enum_v<T>, "T must be an enum type to use GetEnum<T>()");
 
         static constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
         
-        return GetEnum(type_id);
+        return static_cast<const HypEnumInstance<T> *>(GetEnum(type_id));
     }
 
     /*! \brief Get the HypClass instance for the given type casted to HypEnum.
@@ -216,7 +216,7 @@ HYP_API const HypClass *GetClass(TypeID type_id);
 HYP_API const HypClass *GetClass(WeakName type_name);
 
 template <class T>
-HYP_FORCE_INLINE const HypEnum *GetEnum()
+HYP_FORCE_INLINE const HypEnumInstance<T> *GetEnum()
 {
     return HypClassRegistry::GetInstance().template GetEnum<T>();
 }

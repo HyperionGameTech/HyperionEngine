@@ -301,7 +301,7 @@ void EnvProbe::Init()
         }
     }
 
-    //SetNeedsUpdate(false);
+    SetNeedsUpdate(false);
 
     SetReady(true);
 }
@@ -407,7 +407,7 @@ void EnvProbe::EnqueueUnbind() const
 
 void EnvProbe::Update(GameCounter::TickUnit delta)
 {
-    Threads::AssertOnThread(g_game_thread);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     // Check if octree has changes, and we need to re-render.
@@ -415,14 +415,16 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     Octree const *octree = &m_parent_scene->GetOctree();
     octree->GetFittingOctant(m_aabb, octree);
     
-    HashCode octant_hash_code;
+    HashCode octant_hash_code = octree->GetOctantID().GetHashCode();
     
     if (OnlyCollectStaticEntities()) {
         // Static entities and lights changing affect the probe
-        octant_hash_code = octree->GetEntryListHash<EntityTag::STATIC>()
+        octant_hash_code = octant_hash_code
+            .Add(octree->GetEntryListHash<EntityTag::STATIC>())
             .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
     } else {
-        octant_hash_code = octree->GetEntryListHash<EntityTag::NONE>();
+        octant_hash_code = octant_hash_code
+            .Add(octree->GetEntryListHash<EntityTag::NONE>());
     }
 
     if (m_octant_hash_code != octant_hash_code) {

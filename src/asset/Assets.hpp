@@ -83,7 +83,9 @@ enum class AssetChangeType : uint32
     CHANGED = 0,
     CREATED = 1,
     DELETED = 2,
-    RENAMED = 3
+    RENAMED = 3,
+
+    MAX
 };
 
 HYP_CLASS()

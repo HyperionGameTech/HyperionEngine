@@ -49,9 +49,8 @@ struct EnvGridComponent
     HYP_FIELD(Property="EnvGrid", Serialize=false, Editor=true, Label="EnvGrid")
     RC<EnvGrid>                 env_grid;
 
-
     HYP_FIELD()
-    HashCode                        transform_hash_code;
+    HashCode                    octant_hash_code;
 };
 
 } // namespace hyperion

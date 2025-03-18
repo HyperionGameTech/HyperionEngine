@@ -925,10 +925,12 @@ void SystemExecutionGroup::FinishProcessing(bool execute_blocking)
     for (auto &it : m_systems) {
         SystemBase *system = it.second.Get();
 
-        if (system->m_after_process_proc.IsValid()) {
-            system->m_after_process_proc();
+        if (system->m_after_process_procs.Any()) {
+            for (auto &proc : system->m_after_process_procs) {
+                proc();
+            }
 
-            system->m_after_process_proc.Reset();
+            system->m_after_process_procs.Clear();
         }
     }
 

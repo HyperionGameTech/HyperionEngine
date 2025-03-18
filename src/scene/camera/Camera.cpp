@@ -100,7 +100,7 @@ void CameraController::SetIsMouseLockRequested(bool mouse_lock_requested)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_game_thread);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     m_mouse_lock_requested = mouse_lock_requested;
 }
@@ -594,7 +594,7 @@ void Camera::Update(GameCounter::TickUnit dt)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_game_thread);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertReady();
 

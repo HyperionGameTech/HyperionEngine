@@ -3,10 +3,13 @@
 #ifndef HYPERION_ECS_ENTITY_TAG_HPP
 #define HYPERION_ECS_ENTITY_TAG_HPP
 
+#include <core/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
+HYP_ENUM()
 enum class EntityTag : uint32
 {
     NONE,
@@ -28,6 +31,9 @@ enum class EntityTag : uint32
     UPDATE_RENDER_PROXY,
     UPDATE_VISIBILITY_STATE,
     UPDATE_CAMERA_TRANSFORM,
+    UPDATE_ENV_GRID_TRANSFORM,
+    UPDATE_ENV_GRID,
+    //UPDATE_NODE_TRANSFORM,  /* Node transform needs sync after updating TransformComponent */
 
     MAX
 };

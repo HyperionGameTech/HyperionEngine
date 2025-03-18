@@ -621,7 +621,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Octree const *fitting_octant = &octree;
     octree.GetFittingOctant(m_aabb, fitting_octant);
     
-    const HashCode octant_hash_statics = fitting_octant->GetEntryListHash<EntityTag::STATIC>()
+    const HashCode octant_hash_statics = fitting_octant->GetOctantID().GetHashCode()
+        .Add(fitting_octant->GetEntryListHash<EntityTag::STATIC>())
         .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC

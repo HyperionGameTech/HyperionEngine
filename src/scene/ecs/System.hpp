@@ -162,9 +162,7 @@ protected:
      */
     void AfterProcess(Proc<void> &&proc)
     {
-        AssertThrowMsg(!m_after_process_proc.IsValid(), "After process proc already set!");
-
-        m_after_process_proc = std::move(proc);
+        m_after_process_procs.PushBack(std::move(proc));
     }
 
     Scene *GetScene() const;
@@ -184,7 +182,7 @@ private:
     Array<TypeID>                                               m_component_type_ids;
     Array<ComponentInfo>                                        m_component_infos;
 
-    Proc<void>                                                  m_after_process_proc;
+    Array<Proc<void>, DynamicAllocator>                         m_after_process_procs;
 };
 
 /*! \brief A System is a class that operates on a set of components.
