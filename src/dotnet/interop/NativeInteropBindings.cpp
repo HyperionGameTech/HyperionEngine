@@ -48,7 +48,7 @@ static AttributeSet InternManagedAttributeHolder(ManagedAttributeHolder *managed
 
         attributes.PushBack(Attribute {
             MakeUnique<Object>(
-                managed_attribute_holder_ptr->managed_attributes_ptr[i].class_ptr,
+                managed_attribute_holder_ptr->managed_attributes_ptr[i].class_ptr->RefCountedPtrFromThis(),
                 managed_attribute_holder_ptr->managed_attributes_ptr[i].object_reference,
                 ObjectFlags::CREATED_FROM_MANAGED
             )
@@ -86,25 +86,25 @@ HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version
     return true;
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_method_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_method_fptr)
 {
-    AssertThrow(class_holder != nullptr);
+    AssertThrow(assembly_ptr != nullptr);
 
-    class_holder->SetInvokeMethodFunction(invoke_method_fptr);
+    assembly_ptr->SetInvokeMethodFunction(invoke_method_fptr);
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_getter_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_getter_fptr)
 {
-    AssertThrow(class_holder != nullptr);
+    AssertThrow(assembly_ptr != nullptr);
 
-    class_holder->SetInvokeGetterFunction(invoke_getter_fptr);
+    assembly_ptr->SetInvokeGetterFunction(invoke_getter_fptr);
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid, ClassHolder *class_holder, ClassHolder::InvokeMethodFunction invoke_setter_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_setter_fptr)
 {
-    AssertThrow(class_holder != nullptr);
+    AssertThrow(assembly_ptr != nullptr);
 
-    class_holder->SetInvokeSetterFunction(invoke_setter_fptr);
+    assembly_ptr->SetInvokeSetterFunction(invoke_setter_fptr);
 }
 
 HYP_EXPORT void NativeInterop_SetAddObjectToCacheFunction(AddObjectToCacheFunction add_object_to_cache_fptr)
@@ -126,30 +126,30 @@ HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, Class **out_class_obje
     DotNetSystem::GetInstance().GetGlobalFunctions().add_object_to_cache_function(ptr, out_class_object_ptr, out_object_reference, weak);
 }
 
-HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, ClassHolder *class_holder, const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, TypeID type_id, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
+HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, Assembly *assembly_ptr, const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, TypeID type_id, Class *parent_class, uint32 flags, ManagedClass *out_managed_class)
 {
     AssertThrow(assembly_guid != nullptr);
-    AssertThrow(class_holder != nullptr);
+    AssertThrow(assembly_ptr != nullptr);
 
     HYP_LOG(DotNET, Info, "Registering .NET managed class {}", type_name);
 
-    Class *class_object = class_holder->NewClass(hyp_class, type_hash, type_name, type_size, type_id, parent_class, flags);
+    RC<Class> class_object = assembly_ptr->NewClass(hyp_class, type_hash, type_name, type_size, type_id, parent_class, flags);
 
     ManagedClass &managed_class = *out_managed_class;
     managed_class = { };
     managed_class.type_hash = type_hash;
-    managed_class.class_object = class_object;
+    managed_class.class_object = class_object.Get();
     managed_class.assembly_guid = *assembly_guid;
     managed_class.flags = flags;
 }
 
-HYP_EXPORT bool ManagedClass_FindByTypeHash(ClassHolder *class_holder, int32 type_hash, Class **out_managed_class_object_ptr)
+HYP_EXPORT bool ManagedClass_FindByTypeHash(Assembly *assembly_ptr, int32 type_hash, Class **out_managed_class_object_ptr)
 {
-    AssertThrow(class_holder != nullptr);
+    AssertThrow(assembly_ptr != nullptr);
 
     AssertThrow(out_managed_class_object_ptr != nullptr);
 
-    Class *class_object = class_holder->FindClassByTypeHash(type_hash);
+    RC<Class> class_object = assembly_ptr->FindClassByTypeHash(type_hash);
 
     if (!class_object) {
         return false;

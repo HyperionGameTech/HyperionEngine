@@ -77,7 +77,7 @@ public:
 
     virtual dotnet::Class *GetManagedClass() const = 0;
 
-    virtual void SetManagedObject(dotnet::Object &&managed_object) = 0;
+    virtual void SetManagedObject(dotnet::Object *managed_object) = 0;
     virtual dotnet::Object *GetManagedObject() const = 0;
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) = 0;

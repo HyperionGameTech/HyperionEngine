@@ -31,12 +31,6 @@ enum class CompiledScriptState : uint32
 
 HYP_MAKE_ENUM_FLAGS(CompiledScriptState)
 
-struct CompiledScript
-{
-    UniquePtr<dotnet::Assembly> assembly;
-    UniquePtr<dotnet::Object>   object;
-};
-
 struct ScriptDesc
 {
     FilePath    path;
@@ -100,9 +94,6 @@ public:
     HYP_FORCE_INLINE const ScriptDesc &GetDescriptor() const
         { return m_desc; }
 
-    HYP_FORCE_INLINE const CompiledScript &GetCompiledScript() const
-        { return m_compiled_script; }
-
     HYP_FORCE_INLINE ManagedScript &GetManagedScript()
         { return m_managed_script; }
 
@@ -113,7 +104,6 @@ public:
 
 private:
     ScriptDesc          m_desc;
-    CompiledScript      m_compiled_script;
     ManagedScript       m_managed_script;
 };
 

@@ -53,7 +53,7 @@ public:
     HYP_FORCE_INLINE const GlobalFunctions &GetGlobalFunctions() const
         { return m_global_functions; }
 
-    UniquePtr<Assembly> LoadAssembly(const char *path) const;
+    RC<Assembly> LoadAssembly(const char *path) const;
     bool UnloadAssembly(ManagedGuid guid) const;
 
     bool IsEnabled() const;

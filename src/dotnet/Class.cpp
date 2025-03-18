@@ -14,33 +14,30 @@ Class::~Class()
     HYP_LOG(DotNET, Debug, "Class {} destroyed", m_name);
 }
 
-void Class::EnsureLoaded() const
+RC<Assembly> Class::GetAssembly() const
 {
-    if (!m_class_holder || !m_class_holder->CheckAssemblyLoaded()) {
+    RC<Assembly> assembly = m_assembly.Lock();
+
+    if (!assembly || !assembly->IsLoaded()) {
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
 
-    AssertThrowMsg(m_class_holder->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set!");
+    AssertThrowMsg(assembly->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set!");
 
-    AssertThrowMsg(GetNewObjectFunction() != nullptr, "Free object function pointer not set!");
-    AssertThrowMsg(GetFreeObjectFunction() != nullptr, "Free object function pointer not set!");
+    return assembly;
 }
 
-Object Class::NewObject()
+Object *Class::NewObject()
 {
-    EnsureLoaded();
-
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
     ObjectReference object_reference = m_new_object_fptr(/* keep_alive */ true, nullptr, nullptr, nullptr, nullptr);
 
-    return Object(this, object_reference);
+    return new Object(RefCountedPtrFromThis(), object_reference);
 }
 
-Object Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
+Object *Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
 {
-    EnsureLoaded();
-
     AssertThrow(hyp_class != nullptr);
     AssertThrow(owning_object_ptr != nullptr);
 
@@ -48,13 +45,11 @@ Object Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
 
     ObjectReference object_reference = m_new_object_fptr(/* keep_alive */ true, hyp_class, owning_object_ptr, nullptr, nullptr);
 
-    return Object(this, object_reference);
+    return new Object(RefCountedPtrFromThis(), object_reference);
 }
 
 ObjectReference Class::NewManagedObject(void *context_ptr, InitializeObjectCallbackFunction callback)
 {
-    EnsureLoaded();
-
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
     return m_new_object_fptr(/* keep_alive */ false, nullptr, nullptr, context_ptr, callback);
@@ -92,11 +87,15 @@ bool Class::HasParentClass(const Class *parent_class) const
 
 void Class::InvokeStaticMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
 {
-    EnsureLoaded();
+    RC<Assembly> assembly = m_assembly.Lock();
     
-    AssertThrowMsg(m_class_holder->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set");
+    if (!assembly || !assembly->IsLoaded()) {
+        HYP_THROW("Cannot use managed class: assembly has been unloaded");
+    }
+    
+    AssertThrowMsg(assembly->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set");
 
-    m_class_holder->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, &args_hyp_data[0], out_return_hyp_data);
+    assembly->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, &args_hyp_data[0], out_return_hyp_data);
 }
 
 } // namespace hyperion::dotnet

@@ -527,9 +527,7 @@ protected:
             IHypObjectInitializer *initializer = GetObjectInitializer(address);
             AssertThrow(initializer != nullptr);
 
-            initializer->SetManagedObject(std::move(*managed_object));
-
-            managed_object.Reset();
+            initializer->SetManagedObject(managed_object.Release());
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

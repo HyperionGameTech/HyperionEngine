@@ -7,6 +7,7 @@
 #include <core/ObjectPool.hpp>
 
 #include <dotnet/Object.hpp>
+#include <dotnet/Class.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
 
 #include <Types.hpp>
@@ -63,7 +64,7 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     // make it CREATED_FROM_MANAGED since we don't want to release the object on destructor call,
     // as it is managed by the .NET runtime
 
-    initializer->SetManagedObject(dotnet::Object(class_object_ptr, *object_reference, ObjectFlags::CREATED_FROM_MANAGED));
+    initializer->SetManagedObject(new dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED));
 }
 
 HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)

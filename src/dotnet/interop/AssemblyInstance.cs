@@ -92,43 +92,43 @@ namespace Hyperion
         private Guid guid;
         private AssemblyName? assemblyName;
         private string? assemblyPath;
-        private IntPtr classHolderPtr;
+        private IntPtr assemblyPtr;
         private AssemblyLoadContext? context;
         private bool ownsContext;
         private Assembly? assembly;
         private bool isCoreAssembly;
         private List<AssemblyInstance> referencedAssemblies;
 
-        public AssemblyInstance(string basePath, Guid guid, string path, IntPtr classHolderPtr, bool isCoreAssembly)
+        public AssemblyInstance(string basePath, Guid guid, string path, IntPtr assemblyPtr, bool isCoreAssembly)
         {
             this.basePath = basePath;
             this.ownsContext = true;
             this.guid = guid;
             this.assemblyPath = path;
-            this.classHolderPtr = classHolderPtr;
+            this.assemblyPtr = assemblyPtr;
             this.ownsContext = true;
             this.isCoreAssembly = isCoreAssembly;
             this.referencedAssemblies = new List<AssemblyInstance>();
         }
 
-        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, string path, IntPtr classHolderPtr, bool isCoreAssembly)
+        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, string path, IntPtr assemblyPtr, bool isCoreAssembly)
         {
             this.basePath = basePath;
             this.guid = guid;
             this.assemblyPath = path;
-            this.classHolderPtr = classHolderPtr;
+            this.assemblyPtr = assemblyPtr;
             this.context = context;
             this.ownsContext = context != null;
             this.isCoreAssembly = isCoreAssembly;
             this.referencedAssemblies = new List<AssemblyInstance>();
         }
 
-        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, AssemblyName assemblyName, IntPtr classHolderPtr, bool isCoreAssembly)
+        public AssemblyInstance(string basePath, AssemblyLoadContext context, Guid guid, AssemblyName assemblyName, IntPtr assemblyPtr, bool isCoreAssembly)
         {
             this.basePath = basePath;
             this.guid = guid;
             this.assemblyName = assemblyName;
-            this.classHolderPtr = classHolderPtr;
+            this.assemblyPtr = assemblyPtr;
             this.context = context;
             this.ownsContext = context != null;
             this.isCoreAssembly = isCoreAssembly;
@@ -167,11 +167,11 @@ namespace Hyperion
             }
         }
 
-        public IntPtr ClassHolderPtr
+        public IntPtr AssemblyPtr
         {
             get
             {
-                return classHolderPtr;
+                return assemblyPtr;
             }
         }
 
@@ -260,7 +260,7 @@ namespace Hyperion
                 {
                     Logger.Log(LogType.Info, "Loading referenced assembly: {0} (version: {1})", referencedAssemblyName.Name, referencedAssemblyName.Version);
 
-                    referencedAssembly = new AssemblyInstance(basePath, context, Guid.NewGuid(), referencedAssemblyName, classHolderPtr, isCoreAssembly);
+                    referencedAssembly = new AssemblyInstance(basePath, context, Guid.NewGuid(), referencedAssemblyName, assemblyPtr, isCoreAssembly);
                     referencedAssembly.Load();
 
                     AssemblyCache.Instance.Add(referencedAssembly);
@@ -428,7 +428,7 @@ namespace Hyperion
             return null;
         }
 
-        public AssemblyInstance Add(Guid guid, string path, IntPtr classHolderPtr, bool isCoreAssembly = false)
+        public AssemblyInstance Add(Guid guid, string path, IntPtr assemblyPtr, bool isCoreAssembly = false)
         {
             if (assemblies.ContainsKey(guid))
             {
@@ -437,7 +437,7 @@ namespace Hyperion
 
             string basePath = System.IO.Path.GetDirectoryName(path);
 
-            AssemblyInstance assemblyInstance = new AssemblyInstance(basePath, guid, path, classHolderPtr, isCoreAssembly);
+            AssemblyInstance assemblyInstance = new AssemblyInstance(basePath, guid, path, assemblyPtr, isCoreAssembly);
             assemblyInstance.Load();
 
             assemblies.Add(guid, assemblyInstance);

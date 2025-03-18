@@ -26,6 +26,8 @@
 
 #include <dotnet/DotNetSystem.hpp>
 #include <dotnet/Class.hpp>
+#include <dotnet/Object.hpp>
+#include <dotnet/Assembly.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -41,13 +43,15 @@ HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 Game::Game()
     : m_is_init(false),
-      m_scene_render_resource(nullptr)
+      m_scene_render_resource(nullptr),
+      m_managed_game_object(nullptr)
 {
 }
 
 Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
       m_managed_game_info(std::move(managed_game_info)),
+      m_managed_game_object(nullptr),
       m_scene_render_resource(nullptr)
 {
 }
@@ -58,6 +62,8 @@ Game::~Game()
         !m_is_init,
         "Expected Game to have called Teardown() before destructor call"
     );
+
+    delete m_managed_game_object;
 }
 
 void Game::Init_Internal()
@@ -82,10 +88,12 @@ void Game::Init_Internal()
         [this, window_size]() -> void
         {
             if (m_managed_game_info.HasValue()) {
-                if ((m_managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))) {
-                    if (dotnet::Class *class_ptr = m_managed_assembly->GetClassObjectHolder().FindClassByName(m_managed_game_info->class_name.Data())) {
+                if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data())) {
+                    if (RC<dotnet::Class> class_ptr = managed_assembly->FindClassByName(m_managed_game_info->class_name.Data())) {
                         m_managed_game_object = class_ptr->NewObject();
                     }
+
+                    m_managed_assembly = std::move(managed_assembly);
                 }
             }
 
@@ -165,8 +173,8 @@ void Game::Update(GameCounter::TickUnit delta)
 
     Logic(delta);
 
-    if (m_managed_game_object.IsValid()) {
-        m_managed_game_object.InvokeMethodByName<void, float>("Update", float(delta));
+    if (m_managed_game_object && m_managed_game_object->IsValid()) {
+        m_managed_game_object->InvokeMethodByName<void, float>("Update", float(delta));
     }
 
     g_engine->GetWorld()->Update(delta);
@@ -178,8 +186,8 @@ void Game::Init()
 
     Threads::AssertOnThread(g_game_thread);
 
-    if (m_managed_game_object.IsValid()) {
-        m_managed_game_object.InvokeMethodByName<void>(
+    if (m_managed_game_object && m_managed_game_object->IsValid()) {
+        m_managed_game_object->InvokeMethodByName<void>(
             "BeforeInit",
             m_scene,
             m_app_context->GetInputManager(),
@@ -187,7 +195,7 @@ void Game::Init()
             m_ui_subsystem->GetUIStage()
         );
 
-        m_managed_game_object.InvokeMethodByName<void>("Init");
+        m_managed_game_object->InvokeMethodByName<void>("Init");
     }
 }
 

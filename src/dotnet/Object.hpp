@@ -30,6 +30,7 @@ namespace hyperion::dotnet {
 
 class Class;
 class Object;
+class Assembly;
 class Method;
 class Property;
 
@@ -43,7 +44,7 @@ class HYP_API Object
 {
 public:
     Object();
-    Object(Class *class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags = ObjectFlags::NONE);
+    Object(const RC<Class> &class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags = ObjectFlags::NONE);
 
     Object(const Object &)                  = delete;
     Object &operator=(const Object &)       = delete;
@@ -54,8 +55,11 @@ public:
     // Destructor frees the managed object unless CREATED_FROM_MANAGED is set.
     ~Object();
 
-    HYP_FORCE_INLINE Class *GetClass() const
+    HYP_FORCE_INLINE const RC<Class> &GetClass() const
         { return m_class_ptr; }
+
+    HYP_FORCE_INLINE const RC<Assembly> &GetAssembly() const
+        { return m_assembly; }
 
     HYP_FORCE_INLINE const ObjectReference &GetObjectReference() const
         { return m_object_reference; }
@@ -138,7 +142,8 @@ private:
 
     const Property *GetProperty(UTF8StringView method_name) const;
 
-    Class                   *m_class_ptr;
+    RC<Class>               m_class_ptr;
+    RC<Assembly>            m_assembly; // Keep a reference to the assembly to prevent it from being unloaded while this object is alive.
     ObjectReference         m_object_reference;
     EnumFlags<ObjectFlags>  m_object_flags;
 };

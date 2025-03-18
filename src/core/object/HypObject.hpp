@@ -40,7 +40,7 @@ namespace dotnet {
 class Class;
 } // namespace dotnet
 
-extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class, dotnet::Object &&managed_object);
+extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class, dotnet::Object *managed_object);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
@@ -113,6 +113,7 @@ class HypObjectInitializer final : public IHypObjectInitializer
 
 public:
     HypObjectInitializer(T *_this)
+        : m_managed_object(nullptr)
     {
         CheckHypObjectInitializer(this, GetTypeID_Static(), GetClass_Static(), _this);
     }
@@ -121,7 +122,7 @@ public:
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        CleanupHypObjectInitializer(GetClass_Static(), &m_managed_object);
+        CleanupHypObjectInitializer(GetClass_Static(), m_managed_object);
     }
 
     virtual TypeID GetTypeID() const override
@@ -139,18 +140,20 @@ public:
         return GetHypClassManagedClass(GetClass_Static());
     }
 
-    virtual void SetManagedObject(dotnet::Object &&managed_object) override
+    virtual void SetManagedObject(dotnet::Object *managed_object) override
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        m_managed_object = std::move(managed_object);
+        AssertThrow(m_managed_object == nullptr);
+
+        m_managed_object = managed_object;
     }
 
     virtual dotnet::Object *GetManagedObject() const override
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        return m_managed_object.IsValid() ? const_cast<dotnet::Object *>(&m_managed_object) : nullptr;
+        return m_managed_object;
     }
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
@@ -173,7 +176,7 @@ public:
     }
 
 private:
-    dotnet::Object      m_managed_object;
+    dotnet::Object  *m_managed_object;
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

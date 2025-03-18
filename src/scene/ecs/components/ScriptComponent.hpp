@@ -5,14 +5,16 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <dotnet/Assembly.hpp>
-#include <dotnet/Object.hpp>
-
 #include <scripting/Script.hpp>
 
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+namespace dotnet {
+class Object;
+class Assembly;
+} // namespace dotnet
 
 enum class ScriptComponentFlags : uint32
 {
@@ -33,10 +35,10 @@ struct ScriptComponent
     ManagedScript                   script = { };
 
     HYP_FIELD()
-    UniquePtr<dotnet::Assembly>     assembly;
+    RC<dotnet::Assembly>            assembly;
 
     HYP_FIELD()
-    dotnet::Object                  object;
+    UniquePtr<dotnet::Object>       object;
 
     HYP_FIELD()
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;

@@ -89,7 +89,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(address);
     AssertThrow(initializer != nullptr);
 
-    dotnet::Object managed_object;
+    dotnet::Object *managed_object = nullptr;
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !hyp_class->IsAbstract()) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
@@ -97,7 +97,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
         }
     }
 
-    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class, std::move(managed_object));
+    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class, managed_object);
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(initializer_thread_id == Threads::CurrentThreadID());
@@ -221,7 +221,7 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     }
 }
 
-HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, dotnet::Object &&managed_object)
+HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, dotnet::Object *managed_object)
 {
     AssertThrow(initializer != nullptr);
     AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class!");
@@ -246,8 +246,8 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
     } while (parent_initializer != nullptr);
 
     // Managed object only needs to live on the most derived class
-    if (managed_object.IsValid()) {
-        initializer->SetManagedObject(std::move(managed_object));
+    if (managed_object != nullptr) {
+        initializer->SetManagedObject(managed_object);
 
         // sanity check
         dotnet::ObjectReference tmp;
@@ -258,7 +258,7 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
 HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr)
 {
     if (managed_object_ptr != nullptr) {
-        managed_object_ptr->Reset();
+        delete managed_object_ptr;
     }
 }
 

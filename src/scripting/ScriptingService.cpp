@@ -23,13 +23,13 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
-        UniquePtr<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("HyperionScripting.dll");
+        RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("HyperionScripting.dll");
         AssertThrowMsg(managed_assembly != nullptr, "Failed to load HyperionScripting assembly");
 
-        dotnet::Class *class_ptr = managed_assembly->GetClassObjectHolder().FindClassByName("ScriptTracker");
+        RC<dotnet::Class> class_ptr = managed_assembly->FindClassByName("ScriptTracker");
         AssertThrowMsg(class_ptr != nullptr, "Failed to load ScriptTracker class from HyperionScripting assembly");
 
-        m_object = MakeUnique<dotnet::Object>(class_ptr->NewObject());
+        m_object = UniquePtr<dotnet::Object>(class_ptr->NewObject());
         m_assembly = std::move(managed_assembly);
     }
 
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    UniquePtr<dotnet::Assembly> m_assembly;
+    RC<dotnet::Assembly>        m_assembly;
     UniquePtr<dotnet::Object>   m_object;
 };
 

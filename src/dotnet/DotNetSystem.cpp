@@ -49,7 +49,7 @@ public:
     virtual ~DotNetImplBase() = default;
 
     virtual void Initialize(const FilePath &base_path) = 0;
-    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const = 0;
+    virtual RC<Assembly> LoadAssembly(const char *path) const = 0;
     virtual bool UnloadAssembly(ManagedGuid guid) const = 0;
 
     virtual void *GetDelegate(
@@ -60,7 +60,7 @@ public:
     ) const = 0;
 };
 
-using InitializeAssemblyDelegate = int(*)(ManagedGuid *, ClassHolder *, const char *, int32);
+using InitializeAssemblyDelegate = int(*)(ManagedGuid *, Assembly *, const char *, int32);
 using UnloadAssemblyDelegate = void(*)(ManagedGuid *, int32 *);
 
 static Optional<FilePath> FindAssemblyFilePath(const FilePath &base_path, const char *path)
@@ -185,7 +185,7 @@ public:
         };
 
         for (const Pair<String, FilePath> &entry : core_assemblies) {
-            auto it = m_core_assemblies.Insert(entry.first, MakeUnique<Assembly>()).first;
+            auto it = m_core_assemblies.Insert(entry.first, MakeRefCountedPtr<Assembly>()).first;
 
             Assembly *assembly = it->second.Get();
 
@@ -194,7 +194,7 @@ public:
             // Initialize all core assemblies
             int result = m_initialize_assembly_fptr(
                 &assembly->GetGuid(),
-                &assembly->GetClassObjectHolder(),
+                assembly,
                 entry.second.Data(),
                 /* is_core_assembly */ 1
             );
@@ -207,9 +207,9 @@ public:
         }
     }
 
-    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
+    virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
-        UniquePtr<Assembly> assembly = MakeUnique<Assembly>();
+        RC<Assembly> assembly = MakeRefCountedPtr<Assembly>();
 
         Optional<FilePath> filepath = FindAssemblyFilePath(m_base_path, path);
 
@@ -219,7 +219,7 @@ public:
 
         int result = m_initialize_assembly_fptr(
             &assembly->GetGuid(),
-            &assembly->GetClassObjectHolder(),
+            assembly.Get(),
             filepath->Data(),
             /* is_core_assembly */ 0
         );
@@ -392,7 +392,7 @@ private:
 
     UniquePtr<DynamicLibrary>                   m_dll;
 
-    HashMap<String, UniquePtr<Assembly>>        m_core_assemblies;
+    HashMap<String, RC<Assembly>>               m_core_assemblies;
 
     InitializeAssemblyDelegate                  m_initialize_assembly_fptr;
     UnloadAssemblyDelegate                      m_unload_assembly_fptr;
@@ -415,7 +415,7 @@ public:
     {
     }
 
-    virtual UniquePtr<Assembly> LoadAssembly(const char *path) const override
+    virtual RC<Assembly> LoadAssembly(const char *path) const override
     {
         return nullptr;
     }
@@ -473,7 +473,7 @@ bool DotNetSystem::EnsureInitialized() const
     return true;
 }
 
-UniquePtr<Assembly> DotNetSystem::LoadAssembly(const char *path) const
+RC<Assembly> DotNetSystem::LoadAssembly(const char *path) const
 {
     if (!EnsureInitialized()) {
         return nullptr;

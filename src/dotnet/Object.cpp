@@ -9,13 +9,15 @@ namespace hyperion::dotnet {
 
 Object::Object()
     : m_class_ptr(nullptr),
+      m_assembly(nullptr),
       m_object_reference { ManagedGuid { 0, 0 }, nullptr },
       m_object_flags(ObjectFlags::NONE)
 {
 }
 
-Object::Object(Class *class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags)
+Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags)
     : m_class_ptr(class_ptr),
+      m_assembly(class_ptr != nullptr ? class_ptr->GetAssembly() : nullptr),
       m_object_reference(object_reference),
       m_object_flags(object_flags)
 {
@@ -25,11 +27,11 @@ Object::Object(Class *class_ptr, ObjectReference object_reference, EnumFlags<Obj
 }
 
 Object::Object(Object &&other) noexcept
-    : m_class_ptr(other.m_class_ptr),
+    : m_class_ptr(std::move(other.m_class_ptr)),
+      m_assembly(std::move(other.m_assembly)),
       m_object_reference(other.m_object_reference),
       m_object_flags(other.m_object_flags)
 {
-    other.m_class_ptr = nullptr;
     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
     other.m_object_flags = ObjectFlags::NONE;
 }
@@ -42,11 +44,10 @@ Object &Object::operator=(Object &&other) noexcept
 
     Reset();
 
-    m_class_ptr = other.m_class_ptr;
+    m_class_ptr = std::move(other.m_class_ptr);
     m_object_reference = other.m_object_reference;
     m_object_flags = other.m_object_flags;
 
-    other.m_class_ptr = nullptr;
     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
     other.m_object_flags = ObjectFlags::NONE;
 
@@ -62,13 +63,13 @@ void Object::Reset()
 {
     if (IsValid()) {
         if (!(m_object_flags & ObjectFlags::CREATED_FROM_MANAGED)) {
-            m_class_ptr->EnsureLoaded();
+            (void)m_class_ptr->GetAssembly(); // ensure loaded
 
             m_class_ptr->GetFreeObjectFunction()(m_object_reference);
         }
     }
 
-    m_class_ptr = nullptr;
+    m_class_ptr.Reset();
     m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
     m_object_flags = ObjectFlags::NONE;
 }
@@ -76,9 +77,9 @@ void Object::Reset()
 void Object::InvokeMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
 {
     AssertThrow(IsValid());
+    AssertThrow(m_assembly != nullptr && m_assembly->IsLoaded());
 
-    m_class_ptr->EnsureLoaded();
-    m_class_ptr->GetClassHolder()->GetInvokeMethodFunction()(method_ptr->GetGuid(), m_object_reference.guid, args_hyp_data, out_return_hyp_data);
+    m_assembly->GetInvokeMethodFunction()(method_ptr->GetGuid(), m_object_reference.guid, args_hyp_data, out_return_hyp_data);
 }
 
 const Method *Object::GetMethod(UTF8StringView method_name) const
@@ -86,8 +87,6 @@ const Method *Object::GetMethod(UTF8StringView method_name) const
     if (!IsValid()) {
         return nullptr;
     }
-
-    m_class_ptr->EnsureLoaded();
 
     auto it = m_class_ptr->GetMethods().FindAs(method_name);
 
@@ -103,8 +102,6 @@ const Property *Object::GetProperty(UTF8StringView property_name) const
     if (!IsValid()) {
         return nullptr;
     }
-
-    m_class_ptr->EnsureLoaded();
 
     auto it = m_class_ptr->GetProperties().FindAs(property_name);
 

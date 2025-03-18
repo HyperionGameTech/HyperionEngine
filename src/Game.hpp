@@ -20,13 +20,12 @@
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <dotnet/Assembly.hpp>
-#include <dotnet/Object.hpp>
-
 namespace hyperion {
 
-using dotnet::Object;
-using dotnet::Assembly;
+namespace dotnet {
+class Assembly;
+class Object;
+} // namespace dotnet
 
 class Engine;
 class GameThread;
@@ -84,8 +83,8 @@ protected:
 
     RC<UISubsystem>             m_ui_subsystem;
 
-    UniquePtr<Assembly>         m_managed_assembly;
-    Object                      m_managed_game_object;
+    RC<dotnet::Assembly>        m_managed_assembly;
+    dotnet::Object              *m_managed_game_object;
 
 private:
     void Init_Internal();

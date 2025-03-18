@@ -231,6 +231,17 @@ class UniquePtr : public detail::UniquePtrBase
 protected:
     using Base = detail::UniquePtrBase;
 
+public:
+    UniquePtr()
+        : Base()
+    {
+    }
+
+    UniquePtr(std::nullptr_t)
+        : Base()
+    {
+    }
+
     /*! \brief Takes ownership of ptr.
     
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
@@ -248,23 +259,6 @@ protected:
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
         Reset<Ty>(ptr);
-    }
-
-public:
-    UniquePtr()
-        : Base()
-    {
-    }
-
-    UniquePtr(std::nullptr_t)
-        : Base()
-    {
-    }
-
-    explicit UniquePtr(const T &value)
-        : Base()
-    {
-        Base::m_holder.template Construct<T>(value);
     }
 
     UniquePtr(const UniquePtr &other) = delete;

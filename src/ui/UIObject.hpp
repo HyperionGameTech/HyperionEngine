@@ -854,7 +854,10 @@ public:
     HYP_FORCE_INLINE const Weak<UIObject> &GetSpawnParent() const
         { return m_spawn_parent; }
 
+    HYP_METHOD()
     virtual void AddChildUIObject(const RC<UIObject> &ui_object);
+
+    HYP_METHOD()
     virtual bool RemoveChildUIObject(UIObject *ui_object);
 
     /*! \brief Remove all child UIObjects from this object.
@@ -872,11 +875,13 @@ public:
      *  If you need to use the object again, use \ref{DetachFromParent} which returns a strong reference counted pointer to `this`,
      *  ensuring it does not get instantly deleted.
      *  \returns A boolean indicating whether or not the object could be removed from its parent */
+    HYP_METHOD()
     virtual bool RemoveFromParent();
 
     /*! \brief Remove this object from its parent UI object, if applicable. Ensures the object is not immediately deleted
      *  in the case that the parent UIObject holds the last reference to `this`.
      *  \returns A reference counted pointer to `this`. */
+    HYP_METHOD()
     virtual RC<UIObject> DetachFromParent();
 
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
@@ -895,11 +900,13 @@ public:
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */ 
+    HYP_METHOD()
     bool HasChildUIObjects() const;
 
     /*! \brief Gets the child UIObject at the specified index.
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
+    HYP_METHOD()
     RC<UIObject> GetChildUIObject(int index) const;
 
     Array<UIObject *> GetChildUIObjects(bool deep) const;

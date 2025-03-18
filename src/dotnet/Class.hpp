@@ -41,7 +41,6 @@ HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
 namespace hyperion::dotnet {
 class Object;
 class Class;
-class ClassHolder;
 class Assembly;
 
 extern "C" {
@@ -59,7 +58,7 @@ struct ManagedClass
 
 } // extern "C"
 
-class HYP_API Class
+class HYP_API Class : public EnableRefCountedPtrFromThis<Class>
 {
 public:
     /*! \brief Function to create a new object of this class.
@@ -76,8 +75,8 @@ public:
     using FreeObjectFunction = void(*)(ObjectReference);
     using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
 
-    Class(ClassHolder *class_holder, String name, uint32 size, TypeID type_id, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
-        : m_class_holder(class_holder),
+    Class(const Weak<Assembly> &assembly, String name, uint32 size, TypeID type_id, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
+        : m_assembly(assembly),
           m_name(std::move(name)),
           m_size(size),
           m_type_id(type_id),
@@ -109,9 +108,6 @@ public:
 
     HYP_FORCE_INLINE EnumFlags<ManagedClassFlags> GetFlags() const
         { return m_flags; }
-
-    HYP_FORCE_INLINE ClassHolder *GetClassHolder() const
-        { return m_class_holder; }
 
     HYP_FORCE_INLINE NewObjectFunction GetNewObjectFunction() const
         { return m_new_object_fptr; }
@@ -281,7 +277,7 @@ public:
     HYP_FORCE_INLINE const HashMap<String, Property> &GetProperties() const
         { return m_properties; }
 
-    void EnsureLoaded() const;
+    RC<Assembly> GetAssembly() const;
 
     /*! \brief Create a new managed object of this class.
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
@@ -289,7 +285,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object NewObject();
+    HYP_NODISCARD Object *NewObject();
 
     /*! \brief Create a new managed object of this class.
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
@@ -297,7 +293,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object NewObject(const HypClass *hyp_class, void *owning_object_ptr);
+    HYP_NODISCARD Object *NewObject(const HypClass *hyp_class, void *owning_object_ptr);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
@@ -376,7 +372,7 @@ private:
     HashMap<String, Method>         m_methods;
     HashMap<String, Property>       m_properties;
 
-    ClassHolder                     *m_class_holder;
+    Weak<Assembly>                  m_assembly;
 
     NewObjectFunction               m_new_object_fptr;
     FreeObjectFunction              m_free_object_fptr;
