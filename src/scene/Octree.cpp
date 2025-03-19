@@ -1088,24 +1088,46 @@ void Octree::UpdateVisibilityState(const Handle<Camera> &camera, uint16 validity
         return;
     }
 
-    /* assume we are already visible from CalculateVisibility() check */
     const Frustum &frustum = camera->GetFrustum();
 
     if (!frustum.ContainsAABB(m_aabb)) {
         return;
     }
     
-    m_visibility_state.validity_marker = validity_marker;
-    m_visibility_state.MarkAsValid(camera.GetID());
+    Octree *current = this;
+    uint8 child_index = uint8(-1);
 
-    if (m_is_divided) {
-        for (Octant &octant : m_octants) {
-            if (!frustum.ContainsAABB(octant.aabb)) {
+    while (true) {
+        // Process current node.
+        current->m_visibility_state.validity_marker = validity_marker;
+        current->m_visibility_state.MarkAsValid(camera.GetID());
+
+        if (current->m_is_divided) {
+            bool descended = false;
+
+            for (uint8 i = child_index + 1; i < 8; i++) {
+                if (!frustum.ContainsAABB(current->m_octants[i].aabb)) {
+                    continue;
+                }
+
+                current = current->m_octants[i].octree.Get();
+                child_index = uint8(-1);
+
+                descended = true;
+
+                break;
+            }
+            if (descended) {
                 continue;
             }
-
-            octant.octree->UpdateVisibilityState(camera, validity_marker);
         }
+
+        if (current->m_parent == nullptr) {
+            break;
+        }
+
+        child_index = current->m_octant_id.GetIndex();
+        current = current->m_parent;
     }
 }
 

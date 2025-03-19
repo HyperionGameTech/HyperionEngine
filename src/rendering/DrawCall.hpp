@@ -157,7 +157,7 @@ private:
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
     *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
     *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_data_offset);
+    uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_offset);
 
     IDrawCallCollectionImpl                 *m_impl;
 

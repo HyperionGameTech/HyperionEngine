@@ -126,6 +126,8 @@ namespace Hyperion
                 return;
             }
 
+            Logger.Log(logChannel, LogType.Info, "Adding script {0} to processing queue...", e.FullPath);
+
             ManagedScriptWrapper managedScriptWrapper = new ManagedScriptWrapper(new ManagedScript
             {
                 Path = e.FullPath,

@@ -52,7 +52,7 @@
 
 #include <Engine.hpp>
 
-// #define HYP_VISIBILITY_CHECK_DEBUG
+#define HYP_VISIBILITY_CHECK_DEBUG
 // #define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion {
@@ -319,16 +319,16 @@ RenderCollector::CollectionResult Scene::CollectEntities(
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             if (!visibility_state_component.visibility_state) {
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
                 ++num_skipped_entities;
+#endif
                 continue;
             }
 
             if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-                HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                    entity_id.Value(), camera_id.Value());
-#endif
                 ++num_skipped_entities;
+#endif
 
                 continue;
             }
@@ -344,8 +344,10 @@ RenderCollector::CollectionResult Scene::CollectEntities(
             *mesh_component.proxy
         );
     }
-
-    // HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
+    
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+    HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
+#endif
 
     return render_collector.PushUpdatesToRenderThread(
         camera->GetFramebuffer(),

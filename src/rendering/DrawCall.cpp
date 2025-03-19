@@ -64,7 +64,7 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCal
     const uint32 initial_index_map_size = index_map_it->second.Size();
     
     uint32 index_map_index = 0;
-    uint32 instance_data_offset = 0;
+    uint32 instance_offset = 0;
 
     const uint32 initial_num_instances = render_proxy.NumInstances();
     uint32 num_instances = initial_num_instances;
@@ -106,10 +106,10 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCal
             batch = nullptr;
         }
 
-        const uint32 remaining_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), render_proxy.instance_data, num_instances, instance_data_offset);
+        const uint32 remaining_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), render_proxy.instance_data, num_instances, instance_offset);
 
+        instance_offset += num_instances - remaining_instances;
         num_instances = remaining_instances;
-        instance_data_offset += initial_num_instances - num_instances;
     }
 
     if (batch != nullptr) {
@@ -163,7 +163,7 @@ void DrawCallCollection::ResetDrawCalls()
     m_index_map.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_data_offset)
+uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
     for (uint32 buffer_index = 0; buffer_index < uint32(mesh_instance_data.buffers.Size()); buffer_index++) {
@@ -176,8 +176,6 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
     bool dirty = false;
 
     if (mesh_instance_data.buffers.Any()) {
-        uint32 instance_index = instance_data_offset;
-
         while (draw_call.batch->num_entities < max_entities_per_instance_batch && num_instances != 0) {
             const uint32 entity_index = draw_call.batch->num_entities++;
 
@@ -191,22 +189,25 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
                 const uint32 buffer_struct_size = mesh_instance_data.buffer_struct_sizes[buffer_index];
                 const uint32 buffer_struct_alignment = mesh_instance_data.buffer_struct_alignments[buffer_index];
 
+                AssertDebugMsg(mesh_instance_data.buffers[buffer_index].Size() % buffer_struct_size == 0,
+                    "Buffer size is not a multiple of buffer struct size! Buffer size: %u, Buffer struct size: %u",
+                    mesh_instance_data.buffers[buffer_index].Size(), buffer_struct_size);
+
                 field_offset = ByteUtil::AlignAs(field_offset, buffer_struct_alignment);
 
                 void *dst_ptr = reinterpret_cast<void *>((uintptr_t(draw_call.batch)) + field_offset + (entity_index * buffer_struct_size));
-                void *src_ptr = reinterpret_cast<void *>(uintptr_t(mesh_instance_data.buffers[buffer_index].Data()) + (instance_index * buffer_struct_size));
+                void *src_ptr = reinterpret_cast<void *>(uintptr_t(mesh_instance_data.buffers[buffer_index].Data()) + (instance_offset * buffer_struct_size));
 
                 // sanity checks
                 AssertDebug((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof);
-
-                // @FIXME: Src reading out of bounds
+                AssertDebug(mesh_instance_data.buffers[buffer_index].Size() >= (instance_offset + 1) * buffer_struct_size);
 
                 Memory::MemCpy(dst_ptr, src_ptr, buffer_struct_size);
 
                 field_offset += max_entities_per_instance_batch * buffer_struct_size;
             }
 
-            instance_index++;
+            instance_offset++;
 
             draw_call.entity_ids[draw_call.entity_id_count++] = entity;
 

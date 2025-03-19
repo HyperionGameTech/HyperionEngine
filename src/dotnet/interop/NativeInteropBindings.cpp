@@ -143,7 +143,7 @@ HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, Assembly *assemb
     managed_class.flags = flags;
 }
 
-HYP_EXPORT bool ManagedClass_FindByTypeHash(Assembly *assembly_ptr, int32 type_hash, Class **out_managed_class_object_ptr)
+HYP_EXPORT int8 ManagedClass_FindByTypeHash(Assembly *assembly_ptr, int32 type_hash, Class **out_managed_class_object_ptr)
 {
     AssertThrow(assembly_ptr != nullptr);
 
@@ -152,12 +152,14 @@ HYP_EXPORT bool ManagedClass_FindByTypeHash(Assembly *assembly_ptr, int32 type_h
     RC<Class> class_object = assembly_ptr->FindClassByTypeHash(type_hash);
 
     if (!class_object) {
-        return false;
+        *out_managed_class_object_ptr = nullptr;
+
+        return 0;
     }
 
     *out_managed_class_object_ptr = class_object;
 
-    return true;
+    return 1;
 }
 
 HYP_EXPORT void ManagedClass_SetAttributes(ManagedClass *managed_class, ManagedAttributeHolder *managed_attribute_holder_ptr)

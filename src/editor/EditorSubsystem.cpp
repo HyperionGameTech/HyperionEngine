@@ -1737,11 +1737,8 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_ov
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    HYP_LOG(Editor, Debug, "Adding debug overlay: {}", debug_overlay->GetManagedObject()->GetClass()->GetName());
-
     auto it = m_debug_overlays.FindIf([name = debug_overlay->GetName()](const auto &item)
     {
-        HYP_LOG(Editor, Debug, "Checking debug overlay: {}", item->GetManagedObject()->GetClass()->GetName());
         return item->GetName() == name;
     });
 

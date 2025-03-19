@@ -38,6 +38,8 @@ namespace Hyperion
         [UnmanagedCallersOnly]
         public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
+            Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPathStringPtr);
+
             try
             {
                 // Create a managed string from the pointer
@@ -101,6 +103,8 @@ namespace Hyperion
 
                     if (type.IsClass || type.IsValueType || type.IsEnum)
                     {
+                        Logger.Log(LogType.Debug, "\tInitializing managed class for type: {0}", type.Name);
+
                         InitManagedClass(type);
                     }
                 }
@@ -259,6 +263,8 @@ namespace Hyperion
             // Skip classes with the NoManagedClass attribute
             if (type.GetCustomAttribute(typeof(NoManagedClass)) != null)
             {
+                Logger.Log(LogType.Debug, "Skipping managed class for type: {0} due to NoManagedClass attribute", type.Name);
+
                 return IntPtr.Zero;
             }
 
@@ -275,6 +281,8 @@ namespace Hyperion
             // @FIXME: Will not be able to find classes in other assemblies! 
             if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out IntPtr foundClassObjectPtr))
             {
+                Logger.Log(LogType.Debug, "Managed class already initialized for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
+
                 return foundClassObjectPtr;
             }
 
@@ -655,12 +663,14 @@ namespace Hyperion
         private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeID typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
-        private static extern bool ManagedClass_FindByTypeHash(IntPtr assemblyPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool ManagedClass_FindByTypeHash([In] IntPtr assemblyPtr, int typeHash, [Out] out IntPtr outManagedClassObjectPtr);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
