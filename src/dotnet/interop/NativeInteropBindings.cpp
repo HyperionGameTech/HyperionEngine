@@ -177,9 +177,10 @@ HYP_EXPORT void ManagedClass_SetAttributes(ManagedClass *managed_class, ManagedA
     managed_class->class_object->SetAttributes(std::move(attributes));
 }
 
-HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *method_name, ManagedGuid guid, ManagedAttributeHolder *managed_attribute_holder_ptr)
+HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *method_name, ManagedGuid guid, InvokeMethodFunction invoke_fptr, ManagedAttributeHolder *managed_attribute_holder_ptr)
 {
     AssertThrow(managed_class != nullptr);
+    AssertThrow(invoke_fptr != nullptr);
 
     if (!managed_class->class_object || !method_name) {
         return;
@@ -195,7 +196,7 @@ HYP_EXPORT void ManagedClass_AddMethod(ManagedClass *managed_class, const char *
 
     managed_class->class_object->AddMethod(
         method_name,
-        Method(guid, std::move(attributes))
+        Method(guid, invoke_fptr, std::move(attributes))
     );
 }
 

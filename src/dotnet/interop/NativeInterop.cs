@@ -132,7 +132,7 @@ namespace Hyperion
                 {
                     Logger.Log(LogType.Warn, "Failed to unload assembly: {0} not found", assemblyGuid);
 
-                    foreach (var kv in AssemblyCache.Instance.Assemblies)
+                    foreach (var kv in AssemblyCache.Instance.GetAssemblies())
                     {
                         Logger.Log(LogType.Info, "Assembly: {0}", kv.Key);
                     }
@@ -373,9 +373,34 @@ namespace Hyperion
 
                 // Add the objects being pointed to to the delegate cache so they don't get GC'd
                 Guid methodGuid = Guid.NewGuid();
-                managedClass.AddMethod(item.Key, methodGuid, ref managedAttributeHolder);
 
-                BasicCache<MethodInfo>.Instance.Add(assemblyGuid, methodGuid, methodInfo);
+                InvokeMethodDelegate invokeMethodDelegate = (Guid mGuid, Guid oGuid, IntPtr argsPtr, IntPtr retPtr) =>
+                {
+                    object[] parameters;
+                    HandleParameters(argsPtr, methodInfo, out parameters);
+
+                    object? thisObject = null;
+                    if (!methodInfo.IsStatic)
+                    {
+                        thisObject = ManagedObjectCache.Instance.GetObject(oGuid);
+                        if (thisObject == null)
+                            throw new Exception($"Failed to invoke {methodInfo.Name} on target {oGuid}");
+                    }
+
+                    if (methodInfo.ReturnType == typeof(void))
+                    {
+                        methodInfo.Invoke(thisObject, parameters);
+                        return;
+                    }
+
+                    object? returnValue = methodInfo.Invoke(thisObject, parameters);
+                    ((HypDataBuffer*)retPtr)->SetValue(returnValue);
+                };
+
+                IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(invokeMethodDelegate);
+                ManagedMethodCache.Instance.Add(assemblyGuid, methodGuid, methodInfo, invokeMethodDelegate);
+
+                managedClass.AddMethod(item.Key, methodGuid, functionPointer, ref managedAttributeHolder);
 
                 managedAttributeHolder.Dispose();
             }
@@ -507,7 +532,7 @@ namespace Hyperion
 
         public static unsafe void InvokeMethod(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
         {
-            MethodInfo methodInfo = BasicCache<MethodInfo>.Instance.Get(managedMethodGuid);
+            MethodInfo methodInfo = ManagedMethodCache.Instance.Get(managedMethodGuid);
 
             if (methodInfo == null)
             {
