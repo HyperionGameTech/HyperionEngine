@@ -6,7 +6,7 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 
-#include <dotnet/interop/ManagedGuid.hpp>
+#include <dotnet/Types.hpp>
 
 namespace hyperion {
 
@@ -18,8 +18,6 @@ namespace dotnet {
 class Class;
 class Assembly;
 class Method;
-
-using InvokeMethodFunction = void(*)(ManagedGuid, ManagedGuid, const HypData **, HypData *);
 
 class Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {

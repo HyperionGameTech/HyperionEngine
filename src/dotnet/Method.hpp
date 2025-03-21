@@ -7,7 +7,7 @@
 
 #include <dotnet/Attribute.hpp>
 
-#include <dotnet/interop/ManagedGuid.hpp>
+#include <dotnet/Types.hpp>
 
 #include <Types.hpp>
 
@@ -39,15 +39,20 @@ void FillArgs_HypData(std::index_sequence<Indices...>, HypData *arr, const HypDa
 class Method
 {
 public:
-    Method()                                    = default;
-
-    Method(ManagedGuid guid)
-        : m_guid(guid)
+    Method()
+        : m_invoke_fptr(nullptr)
     {
     }
 
-    Method(ManagedGuid guid, AttributeSet &&attributes)
+    Method(ManagedGuid guid, InvokeMethodFunction invoke_fptr)
         : m_guid(guid),
+          m_invoke_fptr(invoke_fptr)
+    {
+    }
+
+    Method(ManagedGuid guid, InvokeMethodFunction invoke_fptr, AttributeSet &&attributes)
+        : m_guid(guid),
+          m_invoke_fptr(invoke_fptr),
           m_attributes(std::move(attributes))
     {
     }
@@ -63,12 +68,16 @@ public:
     HYP_FORCE_INLINE ManagedGuid GetGuid() const
         { return m_guid; }
 
+    HYP_FORCE_INLINE InvokeMethodFunction GetFunctionPointer() const
+        { return m_invoke_fptr; }
+
     HYP_FORCE_INLINE const AttributeSet &GetAttributes() const
         { return m_attributes; }
 
 private:
-    ManagedGuid     m_guid;
-    AttributeSet    m_attributes;
+    ManagedGuid             m_guid;
+    InvokeMethodFunction    m_invoke_fptr;
+    AttributeSet            m_attributes;
 };
 
 } // namespace hyperion::dotnet

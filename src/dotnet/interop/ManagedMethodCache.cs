@@ -6,92 +6,91 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    // public sealed class ManagedMethodCache : BasicCache<MethodInfo>
-    // {
-    //     private static ManagedMethodCache? instance = null;
+    internal struct StoredManagedMethod
+    {
+        public Guid AssemblyGuid { get; set; }
+        public MethodInfo MethodInfo { get; set; }
+        public InvokeMethodDelegate InvokeMethodDelegate { get; set; }
+        public GCHandle DelegateGCHandle { get; set; }
+    }
 
-    //     public static ManagedMethodCache Instance
-    //     {
-    //         get
-    //         {
-    //             if (instance == null)
-    //             {
-    //                 instance = new ManagedMethodCache();
-    //             }
+    public sealed class ManagedMethodCache : IBasicCache
+    {
+        private static ManagedMethodCache? instance = null;
 
-    //             return instance;
-    //         }
-    //     }
-    // }
+        public static ManagedMethodCache Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new ManagedMethodCache();
+                }
 
-    // internal class ManagedMethodCache
-    // {
-    //     private static ManagedMethodCache? instance = null;
+                return (ManagedMethodCache)instance;
+            }
+        }
+        
+        private Dictionary<Guid, StoredManagedMethod> cache = new Dictionary<Guid, StoredManagedMethod>();
+        private object lockObject = new object();
 
-    //     public static ManagedMethodCache Instance
-    //     {
-    //         get
-    //         {
-    //             if (instance == null)
-    //             {
-    //                 instance = new ManagedMethodCache();
-    //             }
+        public MethodInfo Get(Guid guid)
+        {
+            lock (lockObject)
+            {
+                if (cache.ContainsKey(guid))
+                {
+                    return cache[guid].MethodInfo;
+                }
+            }
 
-    //             return instance;
-    //         }
-    //     }
+            return default(MethodInfo);
+        }
 
-    //     private Dictionary<Guid, StoredManagedMethod> methodCache = new Dictionary<Guid, StoredManagedMethod>();
+        public void Add(Guid assemblyGuid, Guid guid, MethodInfo methodInfo, InvokeMethodDelegate invokeMethodDelegate)
+        {
+            lock (lockObject)
+            {
+                if (cache.ContainsKey(guid))
+                {
+                    throw new Exception("Method already exists in cache");
+                }
 
-    //     public MethodInfo Get(Guid guid)
-    //     {
-    //         if (methodCache.ContainsKey(guid))
-    //         {
-    //             return methodCache[guid].methodInfo;
-    //         }
+                cache.Add(guid, new StoredManagedMethod {
+                    AssemblyGuid = assemblyGuid, 
+                    MethodInfo = methodInfo,
+                    InvokeMethodDelegate = invokeMethodDelegate,
+                    DelegateGCHandle = GCHandle.Alloc(invokeMethodDelegate)
+                });
+            }
+        }
 
-    //         return null;
-    //     }
+        public int RemoveForAssembly(Guid assemblyGuid)
+        {
+            List<Guid> keysToRemove = new List<Guid>();
+            int numKeysToRemove = 0;
 
-    //     public void Add(Guid assemblyGuid, Guid methodGuid, MethodInfo methodInfo)
-    //     {
-    //         if (methodCache.ContainsKey(methodGuid))
-    //         {
-    //             if (methodCache[methodGuid].assemblyGuid == assemblyGuid)
-    //             {
-    //                 return;
-    //             }
+            lock (lockObject)
+            {
+                foreach (KeyValuePair<Guid, StoredManagedMethod> kvp in cache)
+                {
+                    if (kvp.Value.AssemblyGuid == assemblyGuid)
+                    {
+                        keysToRemove.Add(kvp.Key);
 
-    //             throw new Exception("Method already exists in cache for a different assembly!");
-    //         }
+                        kvp.Value.DelegateGCHandle.Free();
+                    }
+                }
 
-    //         methodCache.Add(methodGuid, new StoredManagedMethod
-    //         {
-    //             methodInfo = methodInfo,
-    //             assemblyGuid = assemblyGuid
-    //         });
-    //     }
+                numKeysToRemove = keysToRemove.Count;
 
-    //     public int RemoveMethodsForAssembly(Guid assemblyGuid)
-    //     {
-    //         List<Guid> keysToRemove = new List<Guid>();
+                foreach (Guid key in keysToRemove)
+                {
+                    cache.Remove(key);
+                }
+            }
 
-    //         foreach (KeyValuePair<Guid, StoredManagedMethod> kvp in methodCache)
-    //         {
-    //             if (kvp.Value.assemblyGuid == assemblyGuid)
-    //             {
-    //                 keysToRemove.Add(kvp.Key);
-    //             }
-    //         }
-
-    //         int numKeysToRemove = keysToRemove.Count;
-
-    //         foreach (Guid key in keysToRemove)
-    //         {
-    //             methodCache.Remove(key);
-    //         }
-
-    //         return numKeysToRemove;
-    //     }
-    // }
+            return numKeysToRemove;
+        }
+    }
 }

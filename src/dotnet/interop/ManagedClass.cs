@@ -75,7 +75,7 @@ namespace Hyperion
             }
         }
 
-        public void AddMethod(string methodName, Guid guid, ref ManagedAttributeHolder managedAttributeHolder)
+        public void AddMethod(string methodName, Guid guid, IntPtr functionPointer, ref ManagedAttributeHolder managedAttributeHolder)
         {
             IntPtr methodNamePtr = Marshal.StringToHGlobalAnsi(methodName);
             
@@ -83,7 +83,7 @@ namespace Hyperion
             {
                 fixed (ManagedAttributeHolder* managedAttributeHolderPtr = &managedAttributeHolder)
                 {
-                    ManagedClass_AddMethod(ref this, methodNamePtr, guid, (IntPtr)managedAttributeHolderPtr);
+                    ManagedClass_AddMethod(ref this, methodNamePtr, guid, functionPointer, (IntPtr)managedAttributeHolderPtr);
                 }
             }
 
@@ -173,7 +173,7 @@ namespace Hyperion
         private static extern void ManagedClass_SetAttributes([In] ref ManagedClass managedClass, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddMethod")]
-        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
+        private static extern void ManagedClass_AddMethod([In] ref ManagedClass managedClass, IntPtr methodNamePtr, Guid guid, IntPtr functionPointer, IntPtr managedAttributeHolderPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_AddProperty")]
         private static extern void ManagedClass_AddProperty([In] ref ManagedClass managedClass, IntPtr propertyNamePtr, Guid guid, IntPtr managedAttributeHolderPtr);
