@@ -14,7 +14,6 @@ namespace dotnet {
 
 Assembly::Assembly()
     : m_guid { 0, 0 },
-      m_invoke_method_fptr(nullptr),
       m_invoke_getter_fptr(nullptr),
       m_invoke_setter_fptr(nullptr)
 {

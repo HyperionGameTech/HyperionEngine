@@ -15,6 +15,8 @@
 
 namespace hyperion::dotnet {
 
+struct ObjectReference;
+
 // Conditionally construct or reference existing HypData
 template <class T>
 const HypData *SetArg_HypData(HypData *arr, SizeType index, T &&arg)
@@ -73,6 +75,12 @@ public:
 
     HYP_FORCE_INLINE const AttributeSet &GetAttributes() const
         { return m_attributes; }
+
+    HYP_FORCE_INLINE void Invoke(ObjectReference *this_object_reference, const HypData **args_hyp_data, HypData *out_return_hyp_data) const
+    {
+        AssertDebug(m_invoke_fptr != nullptr);
+        m_invoke_fptr(this_object_reference, args_hyp_data, out_return_hyp_data);
+    }
 
 private:
     ManagedGuid             m_guid;

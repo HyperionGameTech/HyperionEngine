@@ -86,21 +86,14 @@ HYP_EXPORT bool NativeInterop_VerifyEngineVersion(uint32 assembly_engine_version
     return true;
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeMethodFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_method_fptr)
-{
-    AssertThrow(assembly_ptr != nullptr);
-
-    assembly_ptr->SetInvokeMethodFunction(invoke_method_fptr);
-}
-
-HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_getter_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeGetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeGetterFunction invoke_getter_fptr)
 {
     AssertThrow(assembly_ptr != nullptr);
 
     assembly_ptr->SetInvokeGetterFunction(invoke_getter_fptr);
 }
 
-HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeMethodFunction invoke_setter_fptr)
+HYP_EXPORT void NativeInterop_SetInvokeSetterFunction(ManagedGuid *assembly_guid, Assembly *assembly_ptr, InvokeSetterFunction invoke_setter_fptr)
 {
     AssertThrow(assembly_ptr != nullptr);
 

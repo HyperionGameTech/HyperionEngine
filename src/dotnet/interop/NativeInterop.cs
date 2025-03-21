@@ -6,7 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetObjectReferenceTypeDelegate(IntPtr objectReferencePtr, bool weak);
@@ -84,9 +86,8 @@ namespace Hyperion
                     }
                 }
 
-                NativeInterop_SetInvokeMethodFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeMethod));
-                NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeGetter));
-                NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeMethodDelegate>(InvokeSetter));
+                NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(InvokeGetter));
+                NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
                 NativeInterop_SetSetObjectReferenceTypeFunction(Marshal.GetFunctionPointerForDelegate<SetObjectReferenceTypeDelegate>(SetObjectReferenceType));
@@ -374,17 +375,18 @@ namespace Hyperion
                 // Add the objects being pointed to to the delegate cache so they don't get GC'd
                 Guid methodGuid = Guid.NewGuid();
 
-                InvokeMethodDelegate invokeMethodDelegate = (Guid mGuid, Guid oGuid, IntPtr argsPtr, IntPtr retPtr) =>
+                InvokeMethodDelegate invokeMethodDelegate = (IntPtr thisObjectReferencePtr, IntPtr argsPtr, IntPtr retPtr) =>
                 {
                     object[] parameters;
                     HandleParameters(argsPtr, methodInfo, out parameters);
 
                     object? thisObject = null;
+
                     if (!methodInfo.IsStatic)
                     {
-                        thisObject = ManagedObjectCache.Instance.GetObject(oGuid);
-                        if (thisObject == null)
-                            throw new Exception($"Failed to invoke {methodInfo.Name} on target {oGuid}");
+                        ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
+
+                        thisObject = objectReferenceRef.LoadObject();
                     }
 
                     if (methodInfo.ReturnType == typeof(void))
@@ -530,78 +532,31 @@ namespace Hyperion
             }
         }
 
-        public static unsafe void InvokeMethod(Guid managedMethodGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
-        {
-            MethodInfo methodInfo = ManagedMethodCache.Instance.Get(managedMethodGuid);
-
-            if (methodInfo == null)
-            {
-                throw new Exception("Failed to get method info from GUID: " + managedMethodGuid);
-            }
-
-            Type returnType = methodInfo.ReturnType;
-            Type thisType = methodInfo.DeclaringType;
-
-            object[]? parameters;
-            HandleParameters(argsHypDataPtr, methodInfo, out parameters);
-
-            object? thisObject = null;
-
-            if (!methodInfo.IsStatic)
-            {
-                thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
-
-                if (thisObject == null)
-                {
-                    throw new Exception("Failed to invoke method " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name + " on target from GUID: " + thisObjectGuid);
-                }
-            }
-
-            if (returnType == typeof(void))
-            {
-                methodInfo.Invoke(thisObject, parameters);
-
-                return;
-            }
-
-            object? returnValue = methodInfo.Invoke(thisObject, parameters);
-
-            ((HypDataBuffer*)outReturnHypDataPtr)->SetValue(returnValue);
-        }
-
-        public static unsafe void InvokeGetter(Guid managedPropertyGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
             Type returnType = propertyInfo.PropertyType;
             Type thisType = propertyInfo.DeclaringType;
 
-            object? thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
-            if (thisObject == null)
-            {
-                throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
-            }
-
+            object? thisObject = objectReferenceRef.LoadObject();
             object? returnValue = propertyInfo.GetValue((object)thisObject);
 
             ((HypDataBuffer*)outReturnHypDataPtr)->SetValue(returnValue);
         }
 
-        public static unsafe void InvokeSetter(Guid managedPropertyGuid, Guid thisObjectGuid, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
             Type returnType = propertyInfo.PropertyType;
             Type thisType = propertyInfo.DeclaringType;
 
-            object? thisObject = ManagedObjectCache.Instance.GetObject(thisObjectGuid);
+            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
-            if (thisObject == null)
-            {
-                throw new Exception("Failed to get target from GUID: " + thisObjectGuid);
-            }
-
+            object? thisObject = objectReferenceRef.LoadObject();
             object? value = (*(HypDataBuffer**)argsHypDataPtr)->GetValue();
 
             propertyInfo.SetValue((object)thisObject, value);
@@ -681,9 +636,6 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
-
-        [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeMethodFunction")]
-        private static extern void NativeInterop_SetInvokeMethodFunction([In] ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr invokeMethodPtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetInvokeGetterFunction")]
         private static extern void NativeInterop_SetInvokeGetterFunction([In] ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr invokeGetterPtr);

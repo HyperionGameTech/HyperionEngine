@@ -89,8 +89,7 @@ void Object::InvokeMethod_Internal(const Method *method_ptr, const HypData **arg
 
     AssertThrow(assembly != nullptr && assembly->IsLoaded());
     
-    AssertThrow(method_ptr->GetFunctionPointer() != nullptr);
-    method_ptr->GetFunctionPointer()(method_ptr->GetGuid(), m_object_reference.guid, args_hyp_data, out_return_hyp_data);
+    method_ptr->Invoke(&m_object_reference, args_hyp_data, out_return_hyp_data);
 }
 
 const Method *Object::GetMethod(UTF8StringView method_name) const

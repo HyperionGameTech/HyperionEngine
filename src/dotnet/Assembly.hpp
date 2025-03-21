@@ -39,22 +39,16 @@ public:
     RC<Class> FindClassByName(const char *type_name);
     RC<Class> FindClassByTypeHash(int32 type_hash);
 
-    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeMethodFunction() const
-        { return m_invoke_method_fptr; }
-
-    HYP_FORCE_INLINE void SetInvokeMethodFunction(InvokeMethodFunction invoke_method_fptr)
-        { m_invoke_method_fptr = invoke_method_fptr; }
-
-    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeGetterFunction() const
+    HYP_FORCE_INLINE InvokeGetterFunction GetInvokeGetterFunction() const
         { return m_invoke_getter_fptr; }
 
-    HYP_FORCE_INLINE void SetInvokeGetterFunction(InvokeMethodFunction invoke_getter_fptr)
+    HYP_FORCE_INLINE void SetInvokeGetterFunction(InvokeGetterFunction invoke_getter_fptr)
         { m_invoke_getter_fptr = invoke_getter_fptr; }
 
-    HYP_FORCE_INLINE InvokeMethodFunction GetInvokeSetterFunction() const
+    HYP_FORCE_INLINE InvokeSetterFunction GetInvokeSetterFunction() const
         { return m_invoke_setter_fptr; }
 
-    HYP_FORCE_INLINE void SetInvokeSetterFunction(InvokeMethodFunction invoke_setter_fptr)
+    HYP_FORCE_INLINE void SetInvokeSetterFunction(InvokeSetterFunction invoke_setter_fptr)
         { m_invoke_setter_fptr = invoke_setter_fptr; }
 
     HYP_FORCE_INLINE bool IsLoaded() const
@@ -68,9 +62,8 @@ private:
     HashMap<int32, RC<Class>>   m_class_objects;
 
     // Function pointer to invoke a managed method
-    InvokeMethodFunction        m_invoke_method_fptr;
-    InvokeMethodFunction        m_invoke_getter_fptr;
-    InvokeMethodFunction        m_invoke_setter_fptr;
+    InvokeGetterFunction        m_invoke_getter_fptr;
+    InvokeSetterFunction        m_invoke_setter_fptr;
 };
 
 } // namespace dotnet
