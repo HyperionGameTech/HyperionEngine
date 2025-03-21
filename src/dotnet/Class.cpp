@@ -22,8 +22,6 @@ RC<Assembly> Class::GetAssembly() const
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
 
-    AssertThrowMsg(assembly->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set!");
-
     return assembly;
 }
 
@@ -93,9 +91,7 @@ void Class::InvokeStaticMethod_Internal(const Method *method_ptr, const HypData 
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
     
-    AssertThrowMsg(assembly->GetInvokeMethodFunction() != nullptr, "Invoke method function pointer not set");
-
-    assembly->GetInvokeMethodFunction()(method_ptr->GetGuid(), {}, &args_hyp_data[0], out_return_hyp_data);
+    method_ptr->Invoke({ }, args_hyp_data, out_return_hyp_data);
 }
 
 } // namespace hyperion::dotnet
