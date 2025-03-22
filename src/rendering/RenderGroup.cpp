@@ -500,7 +500,7 @@ static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batc
 
 
 template <bool IsIndirect>
-static HYP_FORCE_INLINE void RenderAll(
+static void RenderAll(
     Frame *frame,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
@@ -634,7 +634,7 @@ static HYP_FORCE_INLINE void RenderAll(
 }
 
 template <bool IsIndirect>
-static HYP_FORCE_INLINE void RenderAll_Parallel(
+static void RenderAll_Parallel(
     Frame *frame,
     const RenderGroup::AsyncCommandBuffers &command_buffers,
     uint32 &command_buffer_index,
@@ -804,9 +804,6 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
 
     // submit all command buffers
     for (uint32 i = 0; i < num_recorded_command_buffers; i++) {
-        AssertThrow(command_buffers[frame_index][i].IsValid());
-        AssertThrow(command_buffers[frame_index][i]->IsCreated());
-
         command_buffers[frame_index][i]->SubmitSecondary(frame->GetCommandBuffer());
     }
 

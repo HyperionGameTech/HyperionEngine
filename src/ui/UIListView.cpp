@@ -275,9 +275,9 @@ void UIListView::UpdateSize_Internal(bool update_children)
 {
     HYP_SCOPE;
 
-    UpdateLayout();
-
     UIPanel::UpdateSize_Internal(update_children);
+
+    UpdateLayout();
 }
 
 void UIListView::UpdateLayout()
