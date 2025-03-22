@@ -144,6 +144,7 @@ class Engine : public HypObject<Engine>
     HYP_OBJECT_BODY(Engine);
 
 public:
+    HYP_METHOD()
     HYP_API static const Handle<Engine> &GetInstance();
 
     HYP_API Engine();

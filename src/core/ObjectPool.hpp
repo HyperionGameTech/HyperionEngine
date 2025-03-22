@@ -44,6 +44,9 @@ class IObjectContainer
 {
 public:
     virtual ~IObjectContainer() = default;
+
+    virtual SizeType NumAllocatedElements() const = 0;
+    virtual SizeType NumAllocatedBytes() const = 0;
     
     virtual void IncRefStrong(HypObjectHeader *) = 0;
     virtual void IncRefWeak(HypObjectHeader *) = 0;
@@ -299,6 +302,16 @@ public:
     ObjectContainer(ObjectContainer &&other) noexcept               = delete;
     ObjectContainer &operator=(ObjectContainer &&other) noexcept    = delete;
     virtual ~ObjectContainer() override                             = default;
+
+    virtual SizeType NumAllocatedElements() const override
+    {
+        return m_pool.NumAllocatedElements();
+    }
+
+    virtual SizeType NumAllocatedBytes() const override
+    {
+        return m_pool.NumAllocatedBytes();
+    }
 
     HYP_NODISCARD HYP_FORCE_INLINE HypObjectMemory *Allocate()
     {

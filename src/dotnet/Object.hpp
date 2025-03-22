@@ -14,7 +14,7 @@
 
 #include <type_traits>
 
-// #define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
+#define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
 
 namespace hyperion {
 

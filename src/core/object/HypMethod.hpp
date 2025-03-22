@@ -157,12 +157,12 @@ struct HypMethodHelper<FunctionType, std::enable_if_t< !FunctionTraits<FunctionT
 
 } // namespace detail
 
-#define HYP_METHOD_MEMBER_FN_WRAPPER() \
-    [mem_fn](TargetType *target, ArgTypes... args) -> ReturnType \
+#define HYP_METHOD_MEMBER_FN_WRAPPER(_mem_fn) \
+    [_mem_fn](TargetType *target, ArgTypes... args) -> ReturnType \
     { \
         AssertThrow(target != nullptr); \
         \
-        return (target->*mem_fn)(args...); \
+        return (target->*_mem_fn)(args...); \
     }
 
 class HypMethod : public IHypMember
@@ -186,7 +186,7 @@ public:
           {
               AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
-              const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+              const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
               if constexpr (std::is_void_v<ReturnType>) {
                   detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args);
@@ -208,7 +208,7 @@ public:
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
 
-                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
                 HypData **arg_ptrs = (HypData **)StackAlloc(args.Size() * sizeof(HypData *));
                 for (SizeType i = 0; i < args.Size(); ++i) {
@@ -233,7 +233,7 @@ public:
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
                 if constexpr (sizeof...(ArgTypes) >= 1) {
-                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
                     HypData value;
 
@@ -266,7 +266,7 @@ public:
               AssertThrow(num_args == sizeof...(ArgTypes) + 1);
 
               // replace member function with free function using target pointer as first arg
-              const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+              const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
               if constexpr (std::is_void_v<ReturnType>) {
                   detail::CallHypMethod<decltype(fn), ReturnType, TargetType *, ArgTypes...>(fn, args);
@@ -288,7 +288,7 @@ public:
             {
                 AssertThrow(args.Size() == sizeof...(ArgTypes) + 1);
 
-                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+                const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
                 HypData **arg_ptrs = (HypData **)StackAlloc(args.Size() * sizeof(HypData *));
                 for (SizeType i = 0; i < args.Size(); ++i) {
@@ -313,7 +313,7 @@ public:
                 AssertThrow(args.Size() == sizeof...(ArgTypes));
 
                 if constexpr (sizeof...(ArgTypes) >= 1) {
-                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER();
+                    const auto fn = HYP_METHOD_MEMBER_FN_WRAPPER(mem_fn);
 
                     HypData value;
 
@@ -334,6 +334,32 @@ public:
                 }
             };
         }
+    }
+    
+    // Static method or free function
+    template <class ReturnType, class... ArgTypes>
+    HypMethod(Name name, ReturnType(*fn)(ArgTypes...), Span<const HypClassAttribute> attributes = {})
+        : m_name(name),
+          m_flags(HypMethodFlags::STATIC),
+          m_attributes(attributes),
+          m_proc([fn](HypData **args, SizeType num_args) -> HypData
+          {
+              AssertThrow(num_args == sizeof...(ArgTypes));
+
+              if constexpr (std::is_void_v<ReturnType>) {
+                  detail::CallHypMethod<decltype(fn), ReturnType, ArgTypes...>(fn, args);
+
+                  return HypData();
+              } else {
+                  return HypData(detail::CallHypMethod<decltype(fn), ReturnType, ArgTypes...>(fn, args));
+              }
+          })
+    {
+        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeID::Void();
+
+        m_params.Reserve(sizeof...(ArgTypes));
+        detail::InitHypMethodParams_Tuple< ReturnType, void, Tuple<ArgTypes...> >{}(m_params);
     }
 
     HypMethod(const HypMethod &other)                   = delete;

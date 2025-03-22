@@ -40,7 +40,7 @@ namespace Hyperion
         {
             get
             {
-                Name name = new Name(0);
+                Name name;
                 HypMethod_GetName(ptr, out name);
                 return name;
             }
