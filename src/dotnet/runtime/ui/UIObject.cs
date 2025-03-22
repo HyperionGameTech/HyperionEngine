@@ -246,6 +246,11 @@ namespace Hyperion
                 }
             }
         }
+
+        public override string ToString()
+        {
+            return $"UIObjectSize(x: ({value.X}, {flags[0]}), y: ({value.Y}, {flags[1]})";
+        }
     }
 
     [HypClassBinding(Name="UIObject")]

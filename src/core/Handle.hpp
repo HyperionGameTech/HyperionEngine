@@ -99,7 +99,7 @@ public:
     Handle(const Handle &other)
         : ptr(other.ptr)
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefStrong();
         }
     }
@@ -110,13 +110,13 @@ public:
             return *this;
         }
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefStrong(ptr);
         }
 
         ptr = other.ptr;
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefStrong();
         }
 
@@ -135,7 +135,7 @@ public:
             return *this;
         }
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefStrong(ptr);
         }
 
@@ -147,7 +147,7 @@ public:
 
     ~Handle()
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefStrong(ptr);
         }
     }
@@ -228,7 +228,7 @@ public:
      *  The index is set to 0. */
     HYP_FORCE_INLINE void Reset()
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefStrong(ptr);
         }
 
@@ -299,7 +299,7 @@ struct WeakHandle final
     WeakHandle(const Handle<T> &other)
         : ptr(other.ptr)
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefWeak();
         }
     }
@@ -310,13 +310,13 @@ struct WeakHandle final
             return *this;
         }
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefWeak(ptr);
         }
 
         ptr = other.ptr;
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefWeak();
         }
 
@@ -326,7 +326,7 @@ struct WeakHandle final
     WeakHandle(const WeakHandle &other)
         : ptr(other.ptr)
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefWeak();
         }
     }
@@ -337,13 +337,13 @@ struct WeakHandle final
             return *this;
         }
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefWeak(ptr);
         }
 
         ptr = other.ptr;
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             ptr->IncRefWeak();
         }
 
@@ -358,11 +358,11 @@ struct WeakHandle final
 
     WeakHandle &operator=(WeakHandle &&other) noexcept
     {
-        if (this == &other) {
+        if (ptr == other.ptr) {
             return *this;
         }
 
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefWeak(ptr);
         }
 
@@ -374,7 +374,7 @@ struct WeakHandle final
 
     ~WeakHandle()
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefWeak(ptr);
         }
     }
@@ -457,7 +457,7 @@ struct WeakHandle final
 
     void Reset()
     {
-        if (ptr != nullptr) {
+        if (ptr != nullptr && !ptr->IsNull()) {
             GetContainer<T>()->DecRefWeak(ptr);
         }
 
@@ -474,7 +474,7 @@ struct WeakHandle final
     }
 };
 
-/*! \brief A dynamic Handle type. Type is stored at runtime.
+/*! \brief A dynamic Handle type. Type is stored at runtime instead of compile time.
  *  An AnyHandle is able to be punned to a Handle<T> permitted that T is the actual type of the held object */
 struct AnyHandle final
 {
@@ -601,22 +601,16 @@ public:
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE explicit operator Handle<T> &()
-    {
-        if (!type_id || type_id != TypeID::ForType<T>()) {
-            return { };
-        }
-
-        return *reinterpret_cast<Handle<T> *>(this);
-    }
-
-    template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE explicit operator const Handle<T> &() const
     {
+        static_assert(offsetof(Handle<T>, ptr) == 0, "Handle<T> must have ptr as first member");
+
         if (!type_id || type_id != TypeID::ForType<T>()) {
-            return { };
+            return Handle<T>::empty;
         }
 
+        // This is "safe" because the type_id is checked above
+        // It is hacky, but we ensure that the structs are the same size and the pointer to HypObjectHeader is the first member
         return *reinterpret_cast<const Handle<T> *>(this);
     }
 
@@ -628,9 +622,9 @@ public:
 
     HYP_API void Reset();
 
-    /*! \brief Releases the current reference and sets the handle to null.
-     *  The underlying object is not destroyed if the reference count reaches zero.
-     *  \note That in order to free the object, a new Handle must be created and assigned to the returned pointer, or the memory will leak as that slot will not be reused.
+    /*! \brief Sets this handle to null and returns the pointer to the object that was being referenced.
+     *  \note The reference count will not be decremented, so the object will still be alive. Thus, creating a new handle from the returned pointer will cause a memory leak as the ref count will be doubly incremented.
+     *  \internal For internal use only, used for marshalling objects between C++ and C#.
      *  \return The pointer to the object that was being referenced. */
     HYP_NODISCARD HYP_API HypObjectBase *Release();
 };

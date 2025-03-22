@@ -271,33 +271,31 @@ namespace Hyperion
             AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(type.Assembly);
 
             if (assemblyInstance == null)
-            {
                 throw new Exception("Failed to get assembly instance for type: " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered?");
-            }
 
             Guid assemblyGuid = assemblyInstance.Guid;
             IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
 
-            // @FIXME: Will not be able to find classes in other assemblies! 
-            if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out IntPtr foundClassObjectPtr))
-            {
-                Logger.Log(LogType.Debug, "Managed class already initialized for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
+            IntPtr foundClassObjectPtr = IntPtr.Zero;
 
+            // Check if class has already been initialized
+            if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
                 return foundClassObjectPtr;
-            }
-
-            Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
-
-            ManagedClass managedClass = new ManagedClass();
 
             IntPtr parentClassObjectPtr = IntPtr.Zero;
 
             Type? baseType = type.BaseType;
 
             if (baseType != null)
-            {
                 parentClassObjectPtr = InitManagedClass(baseType);
-            }
+
+            // Check if initializing parent class has caused this class to be initialized
+            if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
+                return foundClassObjectPtr;
+
+            Logger.Log(LogType.Debug, "Initializing managed class for type: {0}, Hash: {1}", type.Name, type.GetHashCode());
+
+            ManagedClass managedClass = new ManagedClass();
 
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
@@ -311,10 +309,8 @@ namespace Hyperion
                     bool isDynamic = (bool)attr.GetType().GetProperty("IsDynamic").GetValue(attr);
 
                     if (isDynamic)
-                    {
                         // Skip dynamic classes
                         continue;
-                    }
 
                     string? hypClassName = (string?)attr.GetType().GetProperty("Name").GetValue(attr);
 
@@ -411,9 +407,7 @@ namespace Hyperion
                 if (hypClassPtr != IntPtr.Zero)
                 {
                     if (nativeAddress == IntPtr.Zero)
-                    {
                         throw new ArgumentNullException(nameof(nativeAddress));
-                    }
 
                     Type objType = obj.GetType();
 
@@ -421,9 +415,7 @@ namespace Hyperion
                     FieldInfo? nativeAddressField = objType.GetField("_nativeAddress", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy);
 
                     if (hypClassPtrField == null || nativeAddressField == null)
-                    {
                         throw new InvalidOperationException("Could not find hypClassPtr or nativeAddress field on class " + type.Name);
-                    }
 
                     hypClassPtrField.SetValue(obj, hypClassPtr);
                     nativeAddressField.SetValue(obj, nativeAddress);
@@ -432,9 +424,7 @@ namespace Hyperion
                 constructorInfo = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
 
                 if (constructorInfo == null)
-                {
                     throw new InvalidOperationException("Failed to find empty constructor for type: " + type.Name);
-                }
 
                 constructorInfo.Invoke(obj, parameters);
 
@@ -443,9 +433,7 @@ namespace Hyperion
                 if (callbackPtr != IntPtr.Zero)
                 {
                     if (!type.IsValueType)
-                    {
                         throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
-                    }
 
                     gcHandle = GCHandle.Alloc(obj, GCHandleType.Pinned);
 
@@ -469,14 +457,10 @@ namespace Hyperion
             managedClass.MarshalObjectFunction = new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
                 if (ptr == IntPtr.Zero)
-                {
                     throw new ArgumentNullException(nameof(ptr));
-                }
 
                 if (size != Marshal.SizeOf(type))
-                {
                     throw new ArgumentException("Size does not match type size", nameof(size));
-                }
 
                 // Marshal object from pointer
                 object obj = Marshal.PtrToStructure(ptr, type);
@@ -649,14 +633,14 @@ namespace Hyperion
 
         public static unsafe bool SetObjectReferenceType(IntPtr objectReferencePtr, bool weak)
         {
-            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
+            ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
 
             if (weak)
             {
-                return ManagedObjectCache.Instance.MakeWeakReference(objectReferenceRef.guid);
+                return ManagedObjectCache.Instance.MakeWeakReference(objectReference.guid);
             }
 
-            return ManagedObjectCache.Instance.MakeStrongReference(objectReferenceRef.guid);
+            return ManagedObjectCache.Instance.MakeStrongReference(objectReference.guid);
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]

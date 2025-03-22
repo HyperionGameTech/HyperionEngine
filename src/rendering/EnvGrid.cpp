@@ -407,7 +407,7 @@ void EnvGrid::Init()
         0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
     );
     
-    m_camera->SetName(NAME("EnvGridCamera"));
+    m_camera->SetName(Name::Unique("EnvGridCamera"));
     m_camera->SetTranslation(m_aabb.GetCenter());
     m_camera->SetFramebuffer(m_framebuffer);
 

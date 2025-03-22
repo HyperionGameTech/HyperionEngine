@@ -110,7 +110,11 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext &context, const 
     AnyRef ref = out.ToRef();
     AssertThrowMsg(ref.HasValue(), "Failed to create HypClass instance");
 
-    return Deserialize_Internal(context, in, hyp_class, ref);
+    if (FBOMResult err = Deserialize_Internal(context, in, hyp_class, ref)) {
+        return err;
+    }
+
+    return { FBOMResult::FBOM_OK };
 }
 
 FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext &context, const FBOMObject &in, const HypClass *hyp_class, AnyRef ref) const
@@ -141,6 +145,8 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext &contex
             }
         }
     }
+
+    hyp_class->PostLoad(ref.GetPointer());
 
     return { FBOMResult::FBOM_OK };
 }

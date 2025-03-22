@@ -54,8 +54,10 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
         const HypClassDefinition &hyp_class = pair.second;
         
         const bool is_component = hyp_class.HasAttribute("component");
-        const HypClassAttributeValue &struct_size_attribute_value = hyp_class.GetAttribute("size");
         const bool has_scriptable_methods = hyp_class.HasScriptableMethods();
+
+        const HypClassAttributeValue &struct_size_attribute_value = hyp_class.GetAttribute("size");
+        const HypClassAttributeValue &post_load_attribute_value = hyp_class.GetAttribute("postload");
 
         if (is_component) {
             writer.WriteString("#include <scene/ecs/ComponentInterface.hpp>\n");
@@ -259,6 +261,10 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
 
         if (struct_size_attribute_value.IsValid()) {
             writer.WriteString(HYP_FORMAT("static_assert(sizeof({}) == {}, \"Expected sizeof({}) to be {} bytes\");\n", hyp_class.name, struct_size_attribute_value.ToString(), hyp_class.name, struct_size_attribute_value.ToString()));
+        }
+
+        if (post_load_attribute_value.IsValid()) {
+            writer.WriteString(HYP_FORMAT("static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeID::ForType<{}>(), ValueWrapper<{}>());\n", hyp_class.name, hyp_class.name, post_load_attribute_value.GetString()));
         }
 
         writer.WriteString("} // namespace hyperion\n\n");

@@ -340,7 +340,7 @@ HYP_EXPORT int8 HypData_GetHypObject(const HypData *hyp_data, dotnet::ObjectRefe
     return false;
 }
 
-HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *address, void *control_block_ptr)
+HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_class, void *address)
 {
     if (!hyp_data || !hyp_class || !address) {
         return false;
@@ -349,7 +349,7 @@ HYP_EXPORT int8 HypData_SetHypObject(HypData *hyp_data, const HypClass *hyp_clas
     const TypeID type_id = hyp_class->GetTypeID();
 
     if (hyp_class->IsClassType()) {
-        return hyp_class->ToHypData(ByteView(reinterpret_cast<ubyte *>(address), hyp_class->GetSize()), control_block_ptr, *hyp_data);
+        return hyp_class->ToHypData(ByteView(reinterpret_cast<ubyte *>(address), hyp_class->GetSize()), *hyp_data);
     }
 
     return false;
@@ -412,7 +412,7 @@ HYP_EXPORT int8 HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
     const HypStruct *hyp_struct = dynamic_cast<const HypStruct *>(hyp_class);
     AssertThrow(hyp_struct != nullptr);
 
-    return hyp_struct->ToHypData(ByteView(reinterpret_cast<ubyte *>(object_ptr), size), nullptr, *hyp_data);
+    return hyp_struct->ToHypData(ByteView(reinterpret_cast<ubyte *>(object_ptr), size), *hyp_data);
 }
 
 

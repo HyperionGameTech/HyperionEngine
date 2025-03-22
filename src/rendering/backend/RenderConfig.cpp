@@ -28,12 +28,12 @@ bool RenderConfig::IsRaytracingSupported()
 
 bool RenderConfig::IsIndirectRenderingEnabled()
 {
-    return true;
+    return false;//true;
 }
 
 bool RenderConfig::IsParallelRenderingEnabled()
 {
-    return true;
+    return false;//true;
 }
 
 } // namespace renderer

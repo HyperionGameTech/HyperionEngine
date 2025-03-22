@@ -178,6 +178,12 @@ public:
     {
     }
 
+    HypObjectPtr(const HypClass *hyp_class, void *ptr)
+        : m_ptr(ptr),
+          m_hyp_class(hyp_class)
+    {
+    }
+
     template <class T, typename = std::enable_if_t< IsHypObject<T>::value > >
     HypObjectPtr(T *ptr)
         : m_ptr(ptr),
@@ -219,6 +225,11 @@ public:
         { return m_ptr; }
 
     HYP_API const IHypObjectInitializer *GetObjectInitializer() const;
+
+    HYP_API uint32 GetRefCount_Strong() const;
+
+    HYP_API void IncRef(bool weak = false);
+    HYP_API void DecRef(bool weak = false);
 
 private:
     HYP_API const HypClass *GetHypClass(TypeID type_id) const;

@@ -215,7 +215,7 @@ namespace Hyperion
                 if (!obj.HypClass.IsReferenceCounted)
                     throw new Exception("Cannot use HypData_SetHypObject with non reference counted HypClass type from managed code");
 
-                HypData_SetHypObject(ref this, obj.HypClass.Address, obj.NativeAddress, obj.ControlBlockPtr);
+                HypData_SetHypObject(ref this, obj.HypClass.Address, obj.NativeAddress);
                 return;
             }
 
@@ -763,7 +763,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetHypObject")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetHypObject([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [In] IntPtr controlBlockPtr);
+        internal static extern bool HypData_SetHypObject([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetHypStruct")]
         [return: MarshalAs(UnmanagedType.I1)]

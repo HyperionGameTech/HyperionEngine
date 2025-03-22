@@ -112,7 +112,7 @@ void SkySystem::Process(GameCounter::TickUnit delta)
 
         const Handle<EnvProbe> &env_probe = sky_component.render_subsystem->GetEnvProbe();
 
-        if (!env_probe.IsValid()) {
+        if (!env_probe.IsValid() || !env_probe->IsReady()) {
             continue;
         }
 

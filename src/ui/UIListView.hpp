@@ -13,6 +13,13 @@ namespace hyperion {
 
 class UIDataSourceElement;
 
+HYP_ENUM()
+enum class UIListViewOrientation : uint8
+{
+    VERTICAL    = 0,
+    HORIZONTAL
+};
+
 #pragma region UIListViewItem
 
 HYP_CLASS()
@@ -79,6 +86,13 @@ public:
     HYP_FORCE_INLINE const Array<RC<UIListViewItem>> &GetListViewItems() const
         { return m_list_view_items; }
 
+    HYP_METHOD(Property="Orientation")
+    HYP_FORCE_INLINE UIListViewOrientation GetOrientation() const
+        { return m_orientation; }
+
+    HYP_METHOD(Property="Orientation")
+    void SetOrientation(UIListViewOrientation orientation);
+
     virtual void Init() override;
 
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
@@ -100,8 +114,10 @@ private:
 
     void AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourceElement *element, UIDataSourceElement *parent);
 
-    Array<RC<UIListViewItem>>   m_list_view_items;
-    Weak<UIListViewItem>        m_selected_item;
+    Array<RC<UIListViewItem>>           m_list_view_items;
+    Weak<UIListViewItem>                m_selected_item;
+
+    UIListViewOrientation               m_orientation;
 };
 
 #pragma endregion UIListView

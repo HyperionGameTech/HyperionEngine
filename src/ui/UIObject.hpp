@@ -821,6 +821,7 @@ public:
 
     /*! \brief Get the parent UIObject to this object, if one exists.
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */ 
+    HYP_METHOD()
     UIObject *GetParentUIObject() const;
 
     /*! \brief Get the closest parent UIObject with UIObjectType \ref{type} if one exists.

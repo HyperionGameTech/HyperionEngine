@@ -18,7 +18,7 @@ HYP_EXPORT DelegateHandler *ScriptableDelegate_Bind(IScriptableDelegate *delegat
     AssertThrow(object_reference != nullptr);
     AssertThrow(class_object_ptr != nullptr);
     
-    return new DelegateHandler(delegate->BindManaged(dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED)));
+    return new DelegateHandler(delegate->BindManaged(MakeUnique<dotnet::Object>(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED)));
 }
 
 HYP_EXPORT void DelegateHandler_Destroy(DelegateHandler *delegate_handler)

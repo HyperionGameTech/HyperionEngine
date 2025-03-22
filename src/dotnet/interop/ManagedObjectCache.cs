@@ -110,6 +110,17 @@ namespace Hyperion
         private Dictionary<Guid, StoredManagedObject> objects = new Dictionary<Guid, StoredManagedObject>();
         private object lockObject = new object();
 
+        public int Count
+        {
+            get
+            {
+                lock (lockObject)
+                {
+                    return objects.Count;
+                }
+            }
+        }
+
         public ObjectReference AddObject(Guid assemblyGuid, Guid objectGuid, object obj, bool keepAlive, GCHandle? gcHandle)
         {
             StoredManagedObject storedObject = new StoredManagedObject(objectGuid, assemblyGuid, obj, keepAlive, gcHandle);
@@ -128,6 +139,11 @@ namespace Hyperion
             {
                 if (objects.ContainsKey(guid))
                 {
+                    if (objects[guid].Value == null)
+                    {
+                        throw new Exception("Failed to get object, weak reference target with guid \"" + guid + "\" returned null!");
+                    }
+
                     return objects[guid].Value;
                 }
             }

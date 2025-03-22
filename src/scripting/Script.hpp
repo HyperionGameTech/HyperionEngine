@@ -9,6 +9,8 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/filesystem/FilePath.hpp>
 
 #include <HashCode.hpp>
@@ -81,8 +83,11 @@ static_assert(std::is_standard_layout_v<ManagedScript>, "ManagedScript struct mu
 static_assert(std::is_trivially_copyable_v<ManagedScript>, "ManagedScript struct must be a trivial type");
 static_assert(sizeof(ManagedScript) == 3104, "ManagedScript struct size must match C# struct size");
 
-class HYP_API Script
+HYP_CLASS()
+class HYP_API Script : public HypObject<Script>
 {
+    HYP_OBJECT_BODY(Script);
+
 public:
     Script(const ScriptDesc &desc);
     Script(const Script &other)                 = delete;
@@ -100,11 +105,14 @@ public:
     HYP_FORCE_INLINE const ManagedScript &GetManagedScript() const
         { return m_managed_script; }
 
+    HYP_FORCE_INLINE void SetManagedScript(const ManagedScript &managed_script)
+        { m_managed_script = managed_script; }
+
     EnumFlags<CompiledScriptState> GetState() const;
 
 private:
-    ScriptDesc          m_desc;
-    ManagedScript       m_managed_script;
+    ScriptDesc      m_desc;
+    ManagedScript   m_managed_script;
 };
 
 } // namespace hyperion

@@ -12,14 +12,27 @@
 
 namespace hyperion {
 
+struct EngineRenderStatsCounts
+{
+    uint32  num_draw_calls = 0;
+    uint32  num_triangles = 0;
+};
+
 HYP_STRUCT()
 struct EngineRenderStats
 {
-    double  frames_per_second = 0.0;
-    double  milliseconds_per_frame = 0.0;
-    double  milliseconds_per_frame_avg = 0.0;
-    double  milliseconds_per_frame_max = 0.0;
-    double  milliseconds_per_frame_min = DBL_MAX;
+    double                  frames_per_second = 0.0;
+    double                  milliseconds_per_frame = 0.0;
+    double                  milliseconds_per_frame_avg = 0.0;
+    double                  milliseconds_per_frame_max = 0.0;
+    double                  milliseconds_per_frame_min = DBL_MAX;
+    EngineRenderStatsCounts counts;
+};
+
+struct HYP_API SuppressEngineRenderStatsScope
+{
+    SuppressEngineRenderStatsScope();
+    ~SuppressEngineRenderStatsScope();
 };
 
 class EngineRenderStatsCalculator
@@ -27,28 +40,36 @@ class EngineRenderStatsCalculator
     static constexpr uint32 max_samples = 512;
 
 public:
+    friend struct SuppressEngineRenderStatsScope;
+
+    void AddCounts(const EngineRenderStatsCounts &counts);
     void Advance(EngineRenderStats &render_stats);
+
+private:
+    HYP_FORCE_INLINE void Suppress()
+    {
+        m_suppress_count++;
+    }
+
+    HYP_FORCE_INLINE void Unsuppress()
+    {
+        if (m_suppress_count > 0) {
+            m_suppress_count--;
+        }
+    }
 
     double CalculateFramesPerSecond() const;
     double CalculateMillisecondsPerFrame() const;
 
-private:
-    HYP_FORCE_INLINE uint32 GetSampleIndex() const
-    {
-        return m_num_samples % max_samples;
-    }
-
-    HYP_FORCE_INLINE void AddSample(double delta)
-    {
-        const uint32 sample_index = m_num_samples++;
-
-        m_samples[sample_index % max_samples] = delta;
-    }
+    void AddSample(double delta);
 
     GameCounter                     m_counter;
     double                          m_delta_accum = 0.0;
     FixedArray<double, max_samples> m_samples { 0.0 };
     uint32                          m_num_samples = 0;
+    EngineRenderStatsCounts         m_counts;
+
+    int                             m_suppress_count = 0;
 };
 
 } // namespace hyperion

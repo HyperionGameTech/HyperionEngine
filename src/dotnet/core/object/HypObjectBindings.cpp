@@ -4,6 +4,8 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObject.hpp>
 
+#include <core/utilities/GlobalContext.hpp>
+
 #include <core/ObjectPool.hpp>
 
 #include <dotnet/Object.hpp>
@@ -64,7 +66,10 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     // make it CREATED_FROM_MANAGED since we don't want to release the object on destructor call,
     // as it is managed by the .NET runtime
 
-    initializer->SetManagedObject(new dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED));
+    dotnet::Object *object = new dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED);
+    initializer->SetManagedObject(object);
+
+    DebugLog(LogType::Debug, "HypObject initialized from C# with class %s", *hyp_class->GetName());
 }
 
 HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)
@@ -83,71 +88,32 @@ HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address
     }
 }
 
-HYP_EXPORT void *HypObject_IncRef(const HypClass *hyp_class, void *native_address, int8 is_weak)
+HYP_EXPORT uint32 HypObject_GetRefCount_Strong(const HypClass *hyp_class, void *native_address)
 {
     AssertThrow(hyp_class != nullptr);
     AssertThrow(native_address != nullptr);
 
-    const TypeID type_id = hyp_class->GetTypeID();
+    HypObjectPtr hyp_object_ptr = HypObjectPtr(hyp_class, native_address);
 
-    if (hyp_class->UseHandles()) {
-        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
-
-        if (is_weak) {
-            hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
-        } else {
-            hyp_object_ptr->GetObjectHeader_Internal()->IncRefStrong();
-        }
-
-        return nullptr;
-    } else if (hyp_class->UseRefCountedPtr()) {
-        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(native_address);
-        
-        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-        AssertThrow(ref_count_data != nullptr);
-
-        if (is_weak) {
-            ref_count_data->IncRefCount_Weak();
-        } else {
-            ref_count_data->IncRefCount_Strong();
-        }
-
-        return ref_count_data;
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
-    }
+    return hyp_object_ptr.GetRefCount_Strong();
 }
 
-HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address, void *control_block_ptr, int8 is_weak)
+HYP_EXPORT void HypObject_IncRef(const HypClass *hyp_class, void *native_address, int8 is_weak)
 {
     AssertThrow(hyp_class != nullptr);
     AssertThrow(native_address != nullptr);
 
-    const TypeID type_id = hyp_class->GetTypeID();
+    HypObjectPtr hyp_object_ptr = HypObjectPtr(hyp_class, native_address);
+    hyp_object_ptr.IncRef(is_weak);
+}
 
-    if (hyp_class->UseHandles()) {
-        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(native_address);
-        
-        if (is_weak) {
-            hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
-        } else {
-            hyp_object_ptr->GetObjectHeader_Internal()->DecRefStrong();
-        }
-    } else if (hyp_class->UseRefCountedPtr()) {
-        AssertThrow(control_block_ptr != nullptr);
+HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address, int8 is_weak)
+{
+    AssertThrow(hyp_class != nullptr);
+    AssertThrow(native_address != nullptr);
 
-        typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
-
-        if (is_weak) {
-            Weak<void> weak;
-            weak.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
-        } else {
-            RC<void> rc;
-            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
-        }
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
-    }
+    HypObjectPtr hyp_object_ptr = HypObjectPtr(hyp_class, native_address);
+    hyp_object_ptr.DecRef(is_weak);
 }
 
 HYP_EXPORT HypProperty *HypObject_GetProperty(const HypClass *hyp_class, const Name *name)

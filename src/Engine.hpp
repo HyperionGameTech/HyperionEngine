@@ -223,6 +223,9 @@ public:
     HYP_FORCE_INLINE const EngineDelegates &GetDelegates() const
         { return m_delegates; }
 
+    HYP_FORCE_INLINE EngineRenderStatsCalculator &GetRenderStatsCalculator()
+        { return m_render_stats_calculator; }
+
     HYP_FORCE_INLINE bool IsShuttingDown() const
         { return m_is_shutting_down.Get(MemoryOrder::SEQUENTIAL); }
 

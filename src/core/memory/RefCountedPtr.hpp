@@ -430,15 +430,6 @@ public:
     HYP_NODISCARD HYP_FORCE_INLINE void *Release_Internal()
     {
         void *ptr = m_ref->value;
-
-        if (m_ref->HasValue()) {
-            if (m_ref->DecRefCount_Strong() == 0u) {
-                if (m_ref->UseCount_Weak() == 0u) {
-                    delete m_ref.Get();
-                }
-            }
-        }
-
         m_ref = const_cast<RefCountDataType *>(&empty_ref_count_data);
 
         return ptr;
@@ -1049,8 +1040,9 @@ public:
     }
 
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
-        * The caller is responsible for handling the reference count of the returned value.
-    */
+     *  The caller is responsible for managing the control block of the returned value.
+     *  Reference count is not modified.
+     *  \internal For internal use only, used for script bindings */
     HYP_NODISCARD HYP_FORCE_INLINE void *Release()
     {
         return Base::Release_Internal();

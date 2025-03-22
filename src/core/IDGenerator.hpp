@@ -74,6 +74,8 @@ struct IDGenerator
 
         Mutex::Guard guard(free_id_mutex);
 
+        AssertDebug(!free_indices.Contains(index));
+
         free_indices.Push(index);
         num_free_indices.Increment(1, MemoryOrder::RELEASE);
     }

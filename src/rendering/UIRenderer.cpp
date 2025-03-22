@@ -9,11 +9,15 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/EngineRenderStats.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <ui/UIStage.hpp>
+#include <ui/UIText.hpp>
 
 #include <scene/Mesh.hpp>
 
@@ -27,14 +31,11 @@
 
 #include <core/threading/TaskSystem.hpp>
 
-#include <system/AppContext.hpp>
-
-#include <ui/UIStage.hpp>
-#include <ui/UIText.hpp>
-
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <system/AppContext.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -431,6 +432,9 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const CameraRenderResourc
         }
 
         AssertThrow(render_group.IsValid());
+
+        // Don't count draw calls for UI
+        SuppressEngineRenderStatsScope suppress_render_stats_scope;
 
         render_group->PerformRendering(frame);
     }

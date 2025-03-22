@@ -9,6 +9,8 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypClassRegistry.hpp>
 
+#include <core/utilities/GlobalContext.hpp>
+
 #include <core/containers/Stack.hpp>
 
 #include <dotnet/Class.hpp>
@@ -145,6 +147,85 @@ IDBase HypObjectBase::GetID_Internal() const
 
 #pragma region HypObjectPtr
 
+HYP_API uint32 HypObjectPtr::GetRefCount_Strong() const
+{
+    AssertThrow(IsValid());
+
+    const TypeID type_id = m_hyp_class->GetTypeID();
+
+    if (m_hyp_class->UseHandles()) {
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
+
+        return hyp_object_ptr->GetObjectHeader_Internal()->ref_count_strong.Get(MemoryOrder::ACQUIRE);
+    } else if (m_hyp_class->UseRefCountedPtr()) {
+        auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr)->weak.GetRefCountData_Internal();
+        AssertThrow(ref_count_data != nullptr);
+
+        return ref_count_data->UseCount_Strong();
+    } else {
+        HYP_FAIL("Unhandled HypClass allocation method");
+    }
+}
+
+HYP_API void HypObjectPtr::IncRef(bool weak)
+{
+    AssertThrow(IsValid());
+
+    const TypeID type_id = m_hyp_class->GetTypeID();
+
+    if (m_hyp_class->UseHandles()) {
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
+
+        if (weak) {
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
+        } else {
+            hyp_object_ptr->GetObjectHeader_Internal()->IncRefStrong();
+        }
+    } else if (m_hyp_class->UseRefCountedPtr()) {
+        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr);
+        
+        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+        AssertThrow(ref_count_data != nullptr);
+
+        if (weak) {
+            ref_count_data->IncRefCount_Weak();
+        } else {
+            ref_count_data->IncRefCount_Strong();
+        }
+    } else {
+        HYP_FAIL("Unhandled HypClass allocation method");
+    }
+}
+
+HYP_API void HypObjectPtr::DecRef(bool weak)
+{
+    AssertThrow(IsValid());
+
+    const TypeID type_id = m_hyp_class->GetTypeID();
+
+    if (m_hyp_class->UseHandles()) {
+        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
+        
+        if (weak) {
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
+        } else {
+            hyp_object_ptr->GetObjectHeader_Internal()->DecRefStrong();
+        }
+    } else if (m_hyp_class->UseRefCountedPtr()) {
+        auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr)->weak.GetRefCountData_Internal();
+
+        if (weak) {
+            Weak<void> weak_ref;
+            weak_ref.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+        } else {
+            RC<void> ref;
+            ref.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
+        }
+    } else {
+        HYP_FAIL("Unhandled HypClass allocation method");
+    }
+}
+
 HYP_API const IHypObjectInitializer *HypObjectPtr::GetObjectInitializer() const
 {
     if (!m_hyp_class || !m_ptr) {
@@ -280,17 +361,9 @@ HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
         if (dotnet::Object *object = initializer->GetManagedObject()) {
-            // Only care about objects that were created from managed side
-            if (!(object->GetObjectFlags() & ObjectFlags::CREATED_FROM_MANAGED)) {
-                return;
+            if (count == 2) {
+                AssertThrow(object->SetKeepAlive(true));
             }
-
-            // Make strong on first reference other than the one created from managed side.
-            if (count != 2) {
-                return;
-            }
-
-            AssertThrow(object->SetKeepAlive(true));
         }
     }
 }
@@ -299,17 +372,9 @@ HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
         if (dotnet::Object *object = initializer->GetManagedObject()) {
-            // Only care about objects that were created from managed side
-            if (!(object->GetObjectFlags() & ObjectFlags::CREATED_FROM_MANAGED)) {
-                return;
+            if (count == 1) {
+                AssertThrow(object->SetKeepAlive(false));
             }
-
-            // Make weak when only ref remaining is the creator
-            if (count != 1) {
-                return;
-            }
-
-            AssertThrow(object->SetKeepAlive(false));
         }
     }
 }

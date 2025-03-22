@@ -46,7 +46,9 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual bool ToHypData(ByteView memory, void *, HypData &out_hyp_data) const override = 0;
+    virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override = 0;
+
+    virtual void PostLoad(void *object_ptr) const override { }
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef value, fbom::FBOMObject &out) const = 0;
     virtual fbom::FBOMResult DeserializeStruct(fbom::FBOMLoadContext &context, const fbom::FBOMObject &in, HypData &out) const = 0;
@@ -68,15 +70,28 @@ template <class T>
 class HypStructInstance final : public HypStruct
 {
 public:
-    static HypStructInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    using PostLoadCallback = void (*)(T &);
+
+    static HypStructInstance &GetInstance(
+        Name name,
+        Name parent_name,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members
+    )
     {
         static HypStructInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypStructInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypStruct(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
+    HypStructInstance(
+        Name name,
+        Name parent_name,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members
+    ) : HypStruct(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }
 
@@ -108,7 +123,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, void *, HypData &out_hyp_data) const override
+    virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override
     {
         if constexpr (std::is_abstract_v<T>) {
             return false;
@@ -119,6 +134,20 @@ public:
 
             return true;
         }
+    }
+
+    virtual void PostLoad(void *object_ptr) const override
+    {
+        const IHypClassCallbackWrapper *callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
+
+        if (!callback_wrapper) {
+            return;
+        }
+
+        const HypClassCallbackWrapper<PostLoadCallback> *callback_wrapper_casted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback> *>(callback_wrapper);
+        AssertThrow(callback_wrapper_casted != nullptr);
+
+        callback_wrapper_casted->GetCallback()(*static_cast<T *>(object_ptr));
     }
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override

@@ -98,10 +98,6 @@ void CameraController::UpdateCommandQueue(GameCounter::TickUnit dt)
 
 void CameraController::SetIsMouseLockRequested(bool mouse_lock_requested)
 {
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
     m_mouse_lock_requested = mouse_lock_requested;
 }
 
@@ -198,6 +194,8 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
 
 Camera::~Camera()
 {
+    HYP_LOG(Camera, Debug, "Destroying camera: {} ({})", GetName(), uintptr_t((void *)this));
+
     while (HasActiveCameraController()) {
         const RC<CameraController> camera_controller = m_camera_controllers.PopBack();
 

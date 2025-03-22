@@ -51,15 +51,21 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
         return *this;
     }
 
-    if (IsValid()) {
-        ptr->DecRefStrong();
+    const bool was_same_ptr = ptr == other.ptr;
+
+    if (!was_same_ptr) {
+        if (IsValid()) {
+            ptr->DecRefStrong();
+        }
     }
 
     ptr = other.ptr;
     type_id = other.type_id;
 
-    if (IsValid()) {
-        ptr->IncRefStrong();
+    if (!was_same_ptr) {
+        if (IsValid()) {
+            ptr->IncRefStrong();
+        }
     }
 
     return *this;
@@ -78,8 +84,10 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
         return *this;
     }
 
-    if (IsValid()) {
-        ptr->DecRefStrong();
+    if (ptr != other.ptr) {
+        if (IsValid()) {
+            ptr->DecRefStrong();
+        }
     }
 
     ptr = other.ptr;
