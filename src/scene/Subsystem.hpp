@@ -40,6 +40,7 @@ public:
 
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
+    virtual void PreUpdate(GameCounter::TickUnit delta) { }
     virtual void Update(GameCounter::TickUnit delta) = 0;
 
     virtual void OnSceneAttached(const Handle<Scene> &scene) { };

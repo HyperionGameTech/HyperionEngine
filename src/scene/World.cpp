@@ -32,7 +32,7 @@
 
 namespace hyperion {
 
-// #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
+#define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_SCENE_UPDATES
 
 World::World()
@@ -162,11 +162,15 @@ void World::Update(GameCounter::TickUnit delta)
     update_subsystem_tasks.Reserve(m_subsystems.Size());
 
     for (auto &it : m_subsystems) {
-        if (it.second->RequiresUpdateOnGameThread()) {
+        Subsystem *subsystem = it.second.Get();
+
+        if (subsystem->RequiresUpdateOnGameThread()) {
             continue;
         }
 
-        update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem = it.second.Get(), delta]
+        subsystem->PreUpdate(delta);
+
+        update_subsystem_tasks.PushBack(TaskSystem::GetInstance().Enqueue([subsystem, delta]
         {
             HYP_NAMED_SCOPE_FMT("Update subsystem: {}", subsystem->InstanceClass()->GetName());
 
@@ -175,11 +179,14 @@ void World::Update(GameCounter::TickUnit delta)
     }
 
     for (auto &it : m_subsystems) {
-        if (!it.second->RequiresUpdateOnGameThread()) {
+        Subsystem *subsystem = it.second.Get();
+
+        if (!subsystem->RequiresUpdateOnGameThread()) {
             continue;
         }
 
-        it.second->Update(delta);
+        subsystem->PreUpdate(delta);
+        subsystem->Update(delta);
     }
 
     for (Task<void> &task : update_subsystem_tasks) {
@@ -189,7 +196,9 @@ void World::Update(GameCounter::TickUnit delta)
     update_subsystem_tasks.Clear();
 #else
     for (auto &it : m_subsystems) {
-        it.second->Update(delta);
+        Subsystem *subsystem = it.second.Get();
+
+        subsystem->Update(delta);
     }
 #endif
 
