@@ -8,7 +8,14 @@ namespace Hyperion
     public delegate void FreeObjectDelegate(ObjectReference obj);
     public delegate ObjectReference MarshalObjectDelegate(IntPtr ptr, uint size);
 
-    internal class DelegateCache
+    internal struct StoredDelegate
+    {
+        public Guid AssemblyGuid { get; set; }
+        public Guid Guid { get; set; }
+        public GCHandle GCHandle { get; set; }
+    }
+
+    internal class DelegateCache : IBasicCache
     {
         private static readonly DelegateCache instance = new DelegateCache();
 
@@ -20,27 +27,64 @@ namespace Hyperion
             }
         }
 
-        private Dictionary<Guid, GCHandle> pinnedDelegates = new Dictionary<Guid, GCHandle>();
+        private object lockObject = new object();
+        private Dictionary<Guid, StoredDelegate> cache = new Dictionary<Guid, StoredDelegate>();
 
-        public void AddToCache(Guid delegateGuid, GCHandle handle)
+        public void Add(Guid assemblyGuid, Guid guid, GCHandle gcHandle)
         {
-            if (pinnedDelegates.ContainsKey(delegateGuid))
+            lock (lockObject)
             {
-                throw new Exception("Delegate already exists in cache");
-            }
+                if (cache.ContainsKey(guid))
+                    throw new Exception("Delegate already exists in cache");
 
-            pinnedDelegates.Add(delegateGuid, handle);
+                cache.Add(guid, new StoredDelegate
+                {
+                    AssemblyGuid = assemblyGuid,
+                    Guid = guid,
+                    GCHandle = gcHandle
+                });
+            }
         }
 
-        public void RemoveFromCache(Guid delegateGuid)
+        public bool Remove(Guid guid)
         {
-            if (!pinnedDelegates.ContainsKey(delegateGuid))
+            lock (lockObject)
             {
-                throw new Exception("Delegate does not exist in cache");
+                if (!cache.ContainsKey(guid))
+                    return false;
+
+                cache[guid].GCHandle.Free();
+                cache.Remove(guid);
+
+                return true;
             }
-            
-            pinnedDelegates[delegateGuid].Free();
-            pinnedDelegates.Remove(delegateGuid);
+
+            return true;
+        }
+
+        public int RemoveForAssembly(Guid assemblyGuid)
+        {
+            lock (lockObject)
+            {
+                List<Guid> keysToRemove = new List<Guid>();
+
+                foreach (KeyValuePair<Guid, StoredDelegate> entry in cache)
+                {
+                    if (entry.Value.AssemblyGuid == assemblyGuid)
+                    {
+                        entry.Value.GCHandle.Free();
+
+                        keysToRemove.Add(entry.Key);
+                    }
+                }
+
+                foreach (Guid key in keysToRemove)
+                {
+                    cache.Remove(key);
+                }
+
+                return keysToRemove.Count;
+            }
         }
     }
 
@@ -116,57 +160,42 @@ namespace Hyperion
             }
         }
 
-        public NewObjectDelegate NewObjectFunction
+        public void SetNewObjectFunction(Guid assemblyGuid, NewObjectDelegate value)
         {
-            set
-            {
-                if (newObjectGuid != Guid.Empty)
-                {
-                    DelegateCache.Instance.RemoveFromCache(newObjectGuid);
-                }
+            if (newObjectGuid != Guid.Empty)
+                DelegateCache.Instance.Remove(newObjectGuid);
 
-                newObjectGuid = Guid.NewGuid();
+            newObjectGuid = Guid.NewGuid();
 
-                GCHandle handle = GCHandle.Alloc(value);
-                DelegateCache.Instance.AddToCache(newObjectGuid, handle);
+            GCHandle handle = GCHandle.Alloc(value);
+            DelegateCache.Instance.Add(assemblyGuid, newObjectGuid, handle);
 
-                ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
-            }
+            ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
         }
-        public FreeObjectDelegate FreeObjectFunction
+        public void SetFreeObjectFunction(Guid assemblyGuid, FreeObjectDelegate value)
         {
-            set
-            {
-                if (freeObjectGuid != Guid.Empty)
-                {
-                    DelegateCache.Instance.RemoveFromCache(freeObjectGuid);
-                }
+            if (freeObjectGuid != Guid.Empty)
+                DelegateCache.Instance.Remove(freeObjectGuid);
 
-                freeObjectGuid = Guid.NewGuid();
+            freeObjectGuid = Guid.NewGuid();
 
-                GCHandle handle = GCHandle.Alloc(value);
-                DelegateCache.Instance.AddToCache(freeObjectGuid, handle);
+            GCHandle handle = GCHandle.Alloc(value);
+            DelegateCache.Instance.Add(assemblyGuid, freeObjectGuid, handle);
 
-                ManagedClass_SetFreeObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
-            }
+            ManagedClass_SetFreeObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
         }
 
-        public MarshalObjectDelegate MarshalObjectFunction
+        public void SetMarshalObjectFunction(Guid assemblyGuid, MarshalObjectDelegate value)
         {
-            set
-            {
-                if (marshalObjectGuid != Guid.Empty)
-                {
-                    DelegateCache.Instance.RemoveFromCache(marshalObjectGuid);
-                }
+            if (marshalObjectGuid != Guid.Empty)
+                DelegateCache.Instance.Remove(marshalObjectGuid);
 
-                marshalObjectGuid = Guid.NewGuid();
+            marshalObjectGuid = Guid.NewGuid();
 
-                GCHandle handle = GCHandle.Alloc(value);
-                DelegateCache.Instance.AddToCache(marshalObjectGuid, handle);
+            GCHandle handle = GCHandle.Alloc(value);
+            DelegateCache.Instance.Add(assemblyGuid, marshalObjectGuid, handle);
 
-                ManagedClass_SetMarshalObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
-            }
+            ManagedClass_SetMarshalObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetAttributes")]

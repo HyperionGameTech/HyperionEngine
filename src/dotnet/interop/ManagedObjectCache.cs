@@ -90,7 +90,7 @@ namespace Hyperion
         }
     }
 
-    internal class ManagedObjectCache
+    internal class ManagedObjectCache : IBasicCache
     {
         private static ManagedObjectCache? instance = null;
 
@@ -151,7 +151,7 @@ namespace Hyperion
             return null;
         }
 
-        public bool RemoveObject(Guid guid)
+        public bool Remove(Guid guid)
         {
             lock (lockObject)
             {
@@ -197,7 +197,7 @@ namespace Hyperion
             return false;
         }
 
-        public int RemoveObjectsForAssembly(Guid assemblyGuid)
+        public int RemoveForAssembly(Guid assemblyGuid)
         {
             lock (lockObject)
             {

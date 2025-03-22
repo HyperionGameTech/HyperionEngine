@@ -422,7 +422,7 @@ namespace Hyperion
             }
 
             // Add new object, free object delegates
-            managedClass.NewObjectFunction = new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
+            managedClass.SetNewObjectFunction(assemblyGuid, new NewObjectDelegate((bool keepAlive, IntPtr hypClassPtr, IntPtr nativeAddress, IntPtr contextPtr, IntPtr callbackPtr) =>
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
@@ -477,11 +477,11 @@ namespace Hyperion
                 Guid objectGuid = Guid.NewGuid();
                 
                 return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive, gcHandle);
-            });
+            }));
 
-            managedClass.FreeObjectFunction = new FreeObjectDelegate(FreeObject);
+            managedClass.SetFreeObjectFunction(assemblyGuid, new FreeObjectDelegate(FreeObject));
 
-            managedClass.MarshalObjectFunction = new MarshalObjectDelegate((IntPtr ptr, uint size) =>
+            managedClass.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
                 if (ptr == IntPtr.Zero)
                     throw new ArgumentNullException(nameof(ptr));
@@ -495,7 +495,7 @@ namespace Hyperion
                 Guid objectGuid = Guid.NewGuid();
 
                 return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, false, null);
-            });
+            }));
 
             return managedClass.ClassObjectPtr;
         }
@@ -605,7 +605,7 @@ namespace Hyperion
 
         public static void FreeObject(ObjectReference obj)
         {
-            if (!ManagedObjectCache.Instance.RemoveObject(obj.guid))
+            if (!ManagedObjectCache.Instance.Remove(obj.guid))
             {
                 throw new Exception("Failed to remove object from cache: " + obj.guid);
             }
