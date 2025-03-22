@@ -60,8 +60,8 @@ struct DDGIInfo
     static constexpr Vec3u  probe_border = Vec3u { 2, 0, 2 };
 
     BoundingBox aabb;
-    float       probe_distance = 2.0f;
-    uint32      num_rays_per_probe = 8;
+    float       probe_distance = 2.5f;
+    uint32      num_rays_per_probe = 16;
 
     HYP_FORCE_INLINE const Vec3f &GetOrigin() const
         { return aabb.min; }

@@ -144,7 +144,7 @@ static ShaderProperties GetDeferredShaderProperties()
 #pragma region Deferred pass
 
 DeferredPass::DeferredPass(DeferredPassMode mode)
-    : FullScreenPass(InternalFormat::RGBA8_SRGB),
+    : FullScreenPass(InternalFormat::RGBA16F),
       m_mode(mode)
 {
 }
@@ -1112,7 +1112,7 @@ void DeferredRenderer::CreateCombinePass()
 
     AssertThrow(shader.IsValid());
 
-    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::RGBA8_SRGB);
+    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::RGBA16F);
     m_combine_pass->Create();
 
     PUSH_RENDER_COMMAND(

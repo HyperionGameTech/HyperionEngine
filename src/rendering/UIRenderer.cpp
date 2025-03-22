@@ -301,7 +301,9 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_game_thread);
+    // UISubsystem can have Update() called on a task thread.
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+
     AssertThrow(m_draw_collection != nullptr);
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);

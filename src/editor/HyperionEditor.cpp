@@ -199,9 +199,9 @@ void HyperionEditor::Init()
     #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
-        Vec3f(0.25f, 0.9f, 0.0f).Normalize(),
-        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        1.0f,
+        Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
+        Color(Vec4f(1.0f, 1.0f, 1.0f, 1.0f)),
+        5.0f,
         0.0f
     );
 
@@ -254,10 +254,10 @@ void HyperionEditor::Init()
 #if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    //batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/sponza/sponza.obj");
     //batch->Add("test_model", "models/pica_pica/pica_pica.obj");
-    batch->Add("test_model", "models/testbed/testbed.obj");
-    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    //batch->Add("test_model", "models/testbed/testbed.obj");
+    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
@@ -275,8 +275,8 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        node.Scale(3.0f);
-        //node->Scale(0.05f);
+        //node.Scale(3.0f);
+        node->Scale(0.02f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -300,7 +300,7 @@ void HyperionEditor::Init()
         // Add env grid component
         m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
             EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-            Vec3u { 12, 6, 12 },
+            Vec3u { 16, 6, 16 },
             EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 

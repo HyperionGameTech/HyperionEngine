@@ -46,11 +46,18 @@ void UISubsystem::Shutdown()
     m_ui_render_subsystem.Reset();
 }
 
+void UISubsystem::PreUpdate(GameCounter::TickUnit delta)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    m_ui_stage->Update(delta);
+}
+
 void UISubsystem::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
-    m_ui_stage->Update(delta);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     if (m_ui_render_subsystem->IsInitialized()) {
         UIRenderCollector &render_collector = m_ui_render_subsystem->GetRenderCollector();

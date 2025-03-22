@@ -20,9 +20,13 @@ class HYP_API UISubsystem : public Subsystem
 public:
     UISubsystem(const RC<UIStage> &ui_stage);
     virtual ~UISubsystem() override;
+    
+    virtual bool RequiresUpdateOnGameThread() const
+        { return false; }
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
+    virtual void PreUpdate(GameCounter::TickUnit delta) override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
     HYP_METHOD()
