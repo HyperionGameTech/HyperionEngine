@@ -95,9 +95,14 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE uint32 NumAllocatedElements() const
+    HYP_FORCE_INLINE SizeType NumAllocatedElements() const
     {
         return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;
+    }
+
+    HYP_FORCE_INLINE SizeType NumAllocatedBytes() const
+    {
+        return NumAllocatedElements() * sizeof(Block);
     }
 
     HYP_FORCE_INLINE IDGenerator &GetIDGenerator()

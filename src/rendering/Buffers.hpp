@@ -217,7 +217,7 @@ public:
     HYP_FORCE_INLINE SizeType GetGPUBufferOffset(uint32 element_index) const
         { return m_struct_size * element_index; }
 
-    virtual uint32 Count() const = 0;
+    virtual SizeType Count() const = 0;
 
     virtual uint32 NumElementsPerBlock() const = 0;
 
@@ -377,7 +377,7 @@ public:
 
     virtual ~GPUBufferHolder() override                         = default;
 
-    virtual uint32 Count() const override
+    virtual SizeType Count() const override
     {
         return m_pool.NumAllocatedElements();
     }

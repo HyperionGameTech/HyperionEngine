@@ -116,24 +116,6 @@ HYP_EXPORT void HypObject_DecRef(const HypClass *hyp_class, void *native_address
     hyp_object_ptr.DecRef(is_weak);
 }
 
-HYP_EXPORT HypProperty *HypObject_GetProperty(const HypClass *hyp_class, const Name *name)
-{
-    if (!hyp_class || !name) {
-        return nullptr;
-    }
-
-    return hyp_class->GetProperty(*name);
-}
-
-HYP_EXPORT HypMethod *HypObject_GetMethod(const HypClass *hyp_class, const Name *name)
-{
-    if (!hyp_class || !name) {
-        return nullptr;
-    }
-
-    return hyp_class->GetMethod(*name);
-}
-
 #pragma endregion HypObject
 
 } // extern "C"

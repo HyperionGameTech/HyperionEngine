@@ -112,7 +112,6 @@ public:
 
     virtual SizeType GetBatchSizeOf() const = 0;
     virtual EntityInstanceBatch &GetBatch(SizeType index) const = 0;
-    virtual uint32 GetNumBatches() const = 0;
     virtual EntityInstanceBatch *AcquireBatch() const = 0;
     virtual void ReleaseBatch(EntityInstanceBatch *batch) const = 0;
     virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const = 0;
@@ -190,11 +189,6 @@ public:
     virtual EntityInstanceBatch &GetBatch(SizeType index) const override
     {
         return m_entity_instance_batches->Get(index);
-    }
-
-    virtual uint32 GetNumBatches() const override
-    {
-        return m_entity_instance_batches->Count();
     }
 
     virtual EntityInstanceBatch *AcquireBatch() const override

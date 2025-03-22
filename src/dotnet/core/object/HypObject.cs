@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 
 namespace Hyperion
 {
@@ -172,7 +173,7 @@ namespace Hyperion
                 throw new Exception("HypClass pointer is null");
             }
 
-            IntPtr propertyPtr = HypObject_GetProperty(_hypClassPtr, ref name);
+            IntPtr propertyPtr = HypClass_GetProperty(_hypClassPtr, ref name);
 
             if (propertyPtr == IntPtr.Zero)
             {
@@ -196,7 +197,7 @@ namespace Hyperion
                 throw new Exception("HypClass pointer is null");
             }
 
-            IntPtr methodPtr = HypObject_GetMethod(_hypClassPtr, ref name);
+            IntPtr methodPtr = HypClass_GetMethod(_hypClassPtr, ref name);
 
             if (methodPtr == IntPtr.Zero)
             {
@@ -208,7 +209,7 @@ namespace Hyperion
 
         public static HypMethod GetMethod(HypClass hypClass, Name name)
         {
-            IntPtr methodPtr = HypObject_GetMethod(hypClass.Address, ref name);
+            IntPtr methodPtr = HypClass_GetMethod(hypClass.Address, ref name);
 
             if (methodPtr == IntPtr.Zero)
             {
@@ -216,6 +217,11 @@ namespace Hyperion
             }
 
             return new HypMethod(methodPtr);
+        }
+
+        public override string ToString()
+        {
+            return $"[HypObject: {HypClass.Name}, Address: 0x{(long)NativeAddress:X}]";
         }
         
         [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
@@ -233,11 +239,11 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
         private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
-        [DllImport("hyperion", EntryPoint = "HypObject_GetProperty")]
-        private static extern IntPtr HypObject_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "HypClass_GetProperty")]
+        private static extern IntPtr HypClass_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypObject_GetMethod")]
-        private static extern IntPtr HypObject_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
+        [DllImport("hyperion", EntryPoint = "HypClass_GetMethod")]
+        private static extern IntPtr HypClass_GetMethod([In] IntPtr hypClassPtr, [In] ref Name name);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_AddObjectToCache")]
         private static extern void NativeInterop_AddObjectToCache([In] IntPtr objectWrapperPtr, [Out] out IntPtr outClassObjectPtr, [Out] IntPtr outObjectReferencePtr, [MarshalAs(UnmanagedType.I1)] bool isWeak);

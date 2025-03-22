@@ -50,7 +50,7 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
             }
 
             if (!member.cxx_type->is_function || member.cxx_type->is_static) {
-                return HYP_MAKE_ERROR(Error, "C# extension methods must map to instance methods");
+                continue;
             }
 
             const ASTFunctionType *function_type = dynamic_cast<const ASTFunctionType *>(member.cxx_type.Get());

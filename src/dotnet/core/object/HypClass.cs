@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Hyperion
@@ -29,8 +30,8 @@ namespace Hyperion
     public struct HypClass
     {
         public static readonly HypClass Invalid = new HypClass(IntPtr.Zero);
-        private static readonly Dictionary<string, HypClass> hypClassCache = new Dictionary<string, HypClass>();
-        private static readonly object hypClassCacheLock = new object();
+        private static readonly ConcurrentDictionary<string, HypClass> hypClassTypeNameCache = new ConcurrentDictionary<string, HypClass>();
+        private static readonly ConcurrentDictionary<Type, HypClass> hypClassTypeObjectCache = new ConcurrentDictionary<Type, HypClass>();
 
         private IntPtr ptr;
 
@@ -63,7 +64,7 @@ namespace Hyperion
         {
             get
             {
-                Name name = new Name(0);
+                Name name;
                 HypClass_GetName(ptr, out name);
                 return name;
             }
@@ -377,21 +378,18 @@ namespace Hyperion
         {
             HypClass? hypClass = null;
 
-            lock (hypClassCacheLock)
+            if (hypClassTypeNameCache.TryGetValue(name, out HypClass foundHypClass))
             {
-                if (hypClassCache.TryGetValue(name, out HypClass foundHypClass))
-                {
-                    hypClass = foundHypClass;
-                }
-                else
-                {
-                    IntPtr ptr = HypClass_GetClassByName(name);
+                hypClass = foundHypClass;
+            }
+            else
+            {
+                IntPtr ptr = HypClass_GetClassByName(name);
 
-                    if (ptr != IntPtr.Zero)
-                    {
-                        hypClass = new HypClass(ptr);
-                        hypClassCache[name] = hypClass.Value;
-                    }
+                if (ptr != IntPtr.Zero)
+                {
+                    hypClass = new HypClass(ptr);
+                    hypClassTypeNameCache[name] = hypClass.Value;
                 }
             }
 
@@ -405,14 +403,14 @@ namespace Hyperion
 
         public static HypClass GetClass(Type type)
         {
-            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(type);
+            HypClass? hypClass = TryGetClass(type);
 
-            if (hypClassBindingAttribute == null)
+            if (hypClass == null)
             {
-                throw new InvalidOperationException($"Type {type.Name} is not a HypObject");
+                throw new Exception("Failed to get HypClass for type " + type.Name);
             }
 
-            return ((HypClassBinding)hypClassBindingAttribute).GetClass(type);
+            return (HypClass)hypClass;
         }
 
         public static HypClass? TryGetClass<T>()
@@ -422,6 +420,11 @@ namespace Hyperion
 
         public static HypClass? TryGetClass(Type type)
         {
+            if (hypClassTypeObjectCache.TryGetValue(type, out HypClass foundHypClass))
+            {
+                return foundHypClass;
+            }
+
             HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(type);
 
             if (hypClassBindingAttribute == null)
@@ -429,7 +432,16 @@ namespace Hyperion
                 return null;
             }
 
-            return hypClassBindingAttribute.GetClass(type);
+            HypClass? hypClass = hypClassBindingAttribute.GetClass(type);
+
+            if (hypClass == null)
+            {
+                return null;
+            }
+
+            hypClassTypeObjectCache[type] = (HypClass)hypClass;
+
+            return hypClass;
         }
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
