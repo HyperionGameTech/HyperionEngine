@@ -2,8 +2,8 @@
 
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
 
@@ -114,6 +114,18 @@ const CameraRenderResource &RenderState::GetActiveCamera() const
         : empty;
 }
 
+
+const TResourceHandle<EnvProbeRenderResource> &RenderState::GetActiveEnvProbe() const
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    static const TResourceHandle<EnvProbeRenderResource> empty;
+
+    return env_probe_bindings.Any()
+        ? env_probe_bindings.Top()
+        : empty;
+}
+
 void RenderState::BindLight(Light *light)
 {
     AssertThrow(light != nullptr);
@@ -172,11 +184,11 @@ void RenderState::SetActiveLight(LightRenderResource &light_render_resource)
     light_bindings.Push(TResourceHandle<LightRenderResource>(light_render_resource));
 }
 
-void RenderState::BindEnvProbe(EnvProbeType type, const Handle<EnvProbe> &probe)
+void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource> &&resource_handle)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    if (!probe.IsValid()) {
+    if (!resource_handle) {
         return;
     }
 
@@ -192,7 +204,7 @@ void RenderState::BindEnvProbe(EnvProbeType type, const Handle<EnvProbe> &probe)
         max_bound_point_shadow_maps     // ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP
     };
 
-    const auto it = bound_env_probes[type].Find(probe);
+    const auto it = bound_env_probes[type].Find(resource_handle);
 
     if (it != bound_env_probes[type].End()) {
         return;
@@ -213,24 +225,34 @@ void RenderState::BindEnvProbe(EnvProbeType type, const Handle<EnvProbe> &probe)
         }
     }
 
-    bound_env_probes[type].Insert(
-        probe,
-        binding_slot != ENV_PROBE_BINDING_SLOT_INVALID
-            ? Optional<uint32>(m_env_probe_texture_slot_counters[uint32(binding_slot)]++)
-            : Optional<uint32>()
-    );
+    uint32 texture_slot = ~0u;
+
+    if (binding_slot != ENV_PROBE_BINDING_SLOT_INVALID) {
+        texture_slot = m_env_probe_texture_slot_counters[uint32(binding_slot)]++;
+    }
+
+    resource_handle->SetTextureSlot(texture_slot);
+
+    bound_env_probes[type].PushBack(std::move(resource_handle));
 }
 
-void RenderState::UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
+void RenderState::UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource *env_probe_render_resource)
 {
     Threads::AssertOnThread(g_render_thread);
+
+    if (!env_probe_render_resource) {
+        return;
+    }
 
     // @FIXME: There's currently a bug where if an EnvProbe is unbound and then after several EnvProbes are bound, the
     // counter keeps increasing and the slot is never reused. This is because the counter is never reset.
 
     AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
-    auto it = bound_env_probes[type].FindAs(probe_id);
+    auto it = bound_env_probes[type].FindIf([env_probe_render_resource](const TResourceHandle<EnvProbeRenderResource> &item)
+    {
+        return item.Get() == env_probe_render_resource;
+    });
 
     if (it == bound_env_probes[type].End()) {
         return;

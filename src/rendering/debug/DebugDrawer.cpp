@@ -4,7 +4,7 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/RenderProbe.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
@@ -24,6 +24,8 @@
 
 #include <util/MeshBuilder.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
@@ -34,7 +36,7 @@ namespace hyperion {
 
 struct DebugDrawCommand_Probe : DebugDrawCommand
 {
-    ID<EnvProbe>    env_probe_id;
+    TResourceHandle<EnvProbeRenderResource> env_probe_resource_handle;
 };
 
 #pragma endregion DebugDrawCommand_Probe
@@ -72,13 +74,16 @@ void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const
 
 #pragma region AmbientProbeDebugDrawShape
 
-void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
+void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe)
 {
+    AssertThrow(env_probe.IsValid());
+    AssertThrow(env_probe->IsReady());
+
     UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_id = env_probe_id;
+    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }
@@ -87,13 +92,16 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius,
 
 #pragma region ReflectionProbeDebugDrawShape
 
-void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id)
+void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe)
 {
+    AssertThrow(env_probe.IsValid());
+    AssertThrow(env_probe->IsReady());
+
     UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_id = env_probe_id;
+    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }
@@ -380,24 +388,24 @@ void DebugDrawer::Render(Frame *frame)
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const DebugDrawCommand &draw_command = *m_draw_commands[index];
 
-        ID<EnvProbe> env_probe_id = ID<EnvProbe>::invalid;
         uint32 env_probe_type = uint32(ENV_PROBE_TYPE_INVALID);
+        uint32 env_probe_index = ~0u;
 
         if (draw_command.shape == &AmbientProbe) {
             const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
-            env_probe_id = probe_command.env_probe_id;
             env_probe_type = uint32(ENV_PROBE_TYPE_AMBIENT);
+            env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
         } else if (draw_command.shape == &ReflectionProbe) {
             const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
-            env_probe_id = probe_command.env_probe_id;
             env_probe_type = uint32(ENV_PROBE_TYPE_REFLECTION);
+            env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
         }
 
        shader_data[index] = ImmediateDrawShaderData {
             draw_command.transform_matrix,
             draw_command.color.Packed(),
             env_probe_type,
-            env_probe_id.Value()
+            env_probe_index
         };
     }
 
@@ -440,8 +448,7 @@ void DebugDrawer::Render(Frame *frame)
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) }
                     }
                 },
                 {
@@ -474,8 +481,7 @@ void DebugDrawer::Render(Frame *frame)
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) }
                     }
                 },
                 {

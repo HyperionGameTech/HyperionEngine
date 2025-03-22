@@ -77,7 +77,7 @@ public:
     PostProcessingEffect(
         PostProcessingStage stage,
         uint32 effect_index,
-        InternalFormat image_format = InternalFormat::RGBA16F//RGBA8_SRGB
+        InternalFormat image_format = InternalFormat::RGBA8_SRGB
     );
     PostProcessingEffect(const PostProcessingEffect &other) = delete;
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;

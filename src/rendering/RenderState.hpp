@@ -15,11 +15,11 @@
 
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderResource.hpp>
-#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderScene.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp> // For LightType
+#include <scene/EnvProbe.hpp>
 
 #include <Types.hpp>
 
@@ -155,9 +155,9 @@ public:
     Array<CameraRenderResource *>                                                   camera_bindings;
     FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
     Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
-    FixedArray<HashMap<Handle<EnvProbe>, Optional<uint32>>, ENV_PROBE_TYPE_MAX>     bound_env_probes; // map to texture slot
     ID<EnvGrid>                                                                     bound_env_grid;
-    Stack<Handle<EnvProbe>>                                                         env_probe_bindings;
+    Stack<TResourceHandle<EnvProbeRenderResource>>                                  env_probe_bindings;
+    FixedArray<Array<TResourceHandle<EnvProbeRenderResource>>, ENV_PROBE_TYPE_MAX>  bound_env_probes;
     
     uint32                                                                          frame_counter = ~0u;
 
@@ -173,8 +173,8 @@ public:
     HYP_FORCE_INLINE void AdvanceFrameCounter()
         { ++frame_counter; }
 
-    HYP_FORCE_INLINE void SetActiveEnvProbe(const Handle<EnvProbe> &env_probe)
-        { env_probe_bindings.Push(env_probe); }
+    HYP_FORCE_INLINE void SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource> &&resource_handle)
+        { env_probe_bindings.Push(std::move(resource_handle)); }
 
     HYP_FORCE_INLINE void UnsetActiveEnvProbe()
     {
@@ -183,8 +183,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE const Handle<EnvProbe> &GetActiveEnvProbe() const
-        { return env_probe_bindings.Any() ? env_probe_bindings.Top() : Handle<EnvProbe>::empty; }
+    const TResourceHandle<EnvProbeRenderResource> &GetActiveEnvProbe() const;
 
     HYP_FORCE_INLINE void BindEnvGrid(ID<EnvGrid> id)
     {
@@ -249,8 +248,8 @@ public:
 
     const CameraRenderResource &GetActiveCamera() const;
 
-    void BindEnvProbe(EnvProbeType type, const Handle<EnvProbe> &probe);
-    void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id);
+    void BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource> &&resource_handle);
+    void UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource *env_probe_render_resource);
 
     void ResetStates(RenderStateMask mask)
     {

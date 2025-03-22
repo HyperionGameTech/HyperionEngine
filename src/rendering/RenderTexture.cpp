@@ -406,9 +406,6 @@ Texture::~Texture()
 
     if (IsInitCalled()) {
         PUSH_RENDER_COMMAND(DestroyTexture, WeakHandleFromThis());
-
-        // debugging
-        AssertDebug(GetObjectHeader_Internal()->GetRefCountWeak() > 0);
     }
 }
 

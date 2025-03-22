@@ -58,32 +58,8 @@ enum EnvProbeType : uint32
     ENV_PROBE_TYPE_MAX
 };
 
-struct alignas(256) EnvProbeShaderData
-{
-    Matrix4 face_view_matrices[6];
-
-    Vec4f   aabb_max;
-    Vec4f   aabb_min;
-    Vec4f   world_position;
-
-    uint32  texture_index;
-    uint32  flags;
-    float   camera_near;
-    float   camera_far;
-
-    Vec2u   dimensions;
-    Vec2u   _pad2;
-
-    Vec4i   position_in_grid;
-    Vec4i   position_offset;
-    Vec4u   _pad5;
-};
-
-static_assert(sizeof(EnvProbeShaderData) == 512);
-
-static constexpr uint32 max_env_probes = (8ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
-
 class EnvProbe;
+class EnvProbeRenderResource;
 
 struct EnvProbeIndex
 {
@@ -186,6 +162,9 @@ public:
     EnvProbe(const EnvProbe &other)             = delete;
     EnvProbe &operator=(const EnvProbe &other)  = delete;
     ~EnvProbe();
+
+    HYP_FORCE_INLINE EnvProbeRenderResource &GetRenderResource()
+        { return *m_render_resource; }
     
     HYP_FORCE_INLINE EnvProbeType GetEnvProbeType() const
         { return m_env_probe_type; }
@@ -318,6 +297,8 @@ private:
     HashCode                m_octant_hash_code;
 
     EnvProbeDrawProxy       m_proxy;
+
+    EnvProbeRenderResource *m_render_resource;
 };
 
 } // namespace hyperion

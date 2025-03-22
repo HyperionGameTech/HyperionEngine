@@ -2,16 +2,17 @@
 
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/Scene.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -127,7 +128,7 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
 
     if (light_render_resource.GetVisibilityBits().Test(camera_render_resource.GetCamera()->GetID().ToIndex())) {
         if (!m_last_visibility_state) {
-            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe);
+            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(m_env_probe->GetRenderResource()));
 
             m_last_visibility_state = true;
         }
@@ -136,7 +137,7 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
     } else {
         // No point in keeping it bound if the light is not visible on the screen.
         if (m_last_visibility_state) {
-            g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe);
+            g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), &m_env_probe->GetRenderResource());
 
             m_last_visibility_state = false;
         }

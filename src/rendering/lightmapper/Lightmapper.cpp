@@ -6,10 +6,10 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/EnvGrid.hpp>
 
@@ -23,6 +23,7 @@
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/World.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
@@ -132,7 +133,7 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
             bool is_sky_set = false;
 
             if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
-                g_engine->GetRenderState()->SetActiveEnvProbe(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
+                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
                 is_sky_set = true;
             }
@@ -669,6 +670,7 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     UpdateUniforms(frame, ray_offset);
 
@@ -718,7 +720,7 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -826,9 +828,12 @@ void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
 
     m_num_tracing_tasks.Increment(rays.Size(), MemoryOrder::RELEASE);
 
-    const Handle<EnvProbe> &env_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    Handle<EnvProbe> env_probe;
 
-    if (env_probe.IsValid()) {
+    if (env_probe_render_resource) {
+        env_probe = env_probe_render_resource->GetEnvProbe()->HandleFromThis();
+
         AssertThrow(env_probe->IsReady());
 
         // prepare env probe texture to be sampled on the CPU in the tasks
