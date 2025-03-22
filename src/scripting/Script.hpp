@@ -89,6 +89,7 @@ class HYP_API Script : public HypObject<Script>
     HYP_OBJECT_BODY(Script);
 
 public:
+    Script();
     Script(const ScriptDesc &desc);
     Script(const Script &other)                 = delete;
     Script &operator=(const Script &other)      = delete;

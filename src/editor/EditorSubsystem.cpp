@@ -653,15 +653,15 @@ void EditorSubsystem::Initialize()
 
     InitContentBrowser();
 
-    //NewProject();
+    NewProject();
 
-    auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject2");
+    /*auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject2");
 
     if (!result) {
         HYP_BREAKPOINT;
     }
 
-    OpenProject(*result);
+    OpenProject(*result);*/
 
     InitDetailView();
     InitDebugOverlays();

@@ -151,7 +151,7 @@ void CompositePass::Render(Frame *frame)
 #pragma region FinalPass
 
 FinalPass::FinalPass()
-    : FullScreenPass(),
+    : FullScreenPass(InternalFormat::RGBA8_SRGB),
       m_dirty_frame_indices(0)
 {
 }
@@ -256,7 +256,7 @@ void FinalPass::Create()
 
     m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
         Vec3u { m_extent.x, m_extent.y, 1 },
-        InternalFormat::RGBA8_SRGB,
+        m_image_format,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST

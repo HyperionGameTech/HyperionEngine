@@ -93,20 +93,20 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
             if (function_type->return_type->IsVoid()) {
                 if (hyp_class.type == HypClassDefinitionType::STRUCT) {
                     writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{});\n",
-                        hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name)), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                        hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                 } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
                     writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).Invoke(obj{});\n",
-                        uint64(CreateWeakNameFromDynamicString(member.name)), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                        uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                 } else {
                     return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
                 }
             } else {
                 if (hyp_class.type == HypClassDefinitionType::STRUCT) {
                     writer.WriteString(HYP_FORMAT("            return ({})HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{}).GetValue();\n",
-                        return_type_name, hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name)), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                        return_type_name, hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                 } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
                     writer.WriteString(HYP_FORMAT("            return ({})obj.GetMethod(new Name({})).Invoke(obj{}).GetValue();\n",
-                        return_type_name, uint64(CreateWeakNameFromDynamicString(member.name)), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                        return_type_name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                 } else {
                     return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
                 }
