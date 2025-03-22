@@ -234,9 +234,9 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
     uniforms.ray_step = m_config.ray_step;
     uniforms.num_iterations = m_config.num_iterations;
-    uniforms.max_ray_distance = 1000.0f;
-    uniforms.distance_bias = 0.001f;
-    uniforms.offset = 0.01f;
+    uniforms.max_ray_distance = 150.0f;
+    uniforms.distance_bias = 0.1f;
+    uniforms.offset = 0.001f;
     uniforms.eye_fade_start = m_config.eye_fade.x;
     uniforms.eye_fade_end = m_config.eye_fade.y;
     uniforms.screen_edge_fade_start = m_config.screen_edge_fade.x;

@@ -109,7 +109,7 @@ private:
         { return m_mode == EnvGridPassMode::RADIANCE; }
 
     virtual bool ShouldRenderHalfRes() const override
-        { return true; }
+        { return false; }
 
     void AddToGlobalDescriptorSet();
     
@@ -143,7 +143,7 @@ public:
 
 private:
     virtual bool UsesTemporalBlending() const override
-        { return true; }
+        { return false; }
 
     virtual bool ShouldRenderHalfRes() const override
         { return false; }

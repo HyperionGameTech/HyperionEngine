@@ -4,6 +4,11 @@
 
 namespace hyperion {
 
+Script::Script()
+    : Script(ScriptDesc { })
+{
+}
+
 Script::Script(const ScriptDesc &desc)
     : m_desc(desc)
 {

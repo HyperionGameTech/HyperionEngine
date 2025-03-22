@@ -11,7 +11,7 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-static const bool use_srgb = false;
+static const bool use_srgb = true;
 static const VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 #pragma region SwapchainPlatformImpl
