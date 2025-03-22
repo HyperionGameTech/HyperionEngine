@@ -17,7 +17,7 @@ class IScriptableDelegate : public virtual IDelegate
 public:
     virtual ~IScriptableDelegate() = default;
 
-    virtual DelegateHandler BindManaged(dotnet::Object &&delegate_object) = 0;
+    virtual DelegateHandler BindManaged(UniquePtr<dotnet::Object> &&delegate_object_ptr) = 0;
 };
 
 /*! \brief A delegate that can be bound to a managed .NET object.
@@ -44,11 +44,11 @@ public:
 
     virtual ~ScriptableDelegate() override                              = default;
 
-    HYP_NODISCARD virtual DelegateHandler BindManaged(dotnet::Object &&delegate_object) override
+    HYP_NODISCARD virtual DelegateHandler BindManaged(UniquePtr<dotnet::Object> &&delegate_object_ptr) override
     {
-        return Delegate<ReturnType, Args...>::Bind([object = std::move(delegate_object)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        return Delegate<ReturnType, Args...>::Bind([delegate_object_ptr = std::move(delegate_object_ptr)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
         {
-            return object.InvokeMethodByName<ReturnType>("Invoke", std::forward<ArgTypes>(args)...);
+            return delegate_object_ptr->InvokeMethodByName<ReturnType>("Invoke", std::forward<ArgTypes>(args)...);
         });
     }
     /*! \brief Call operator overload - alias method for Broadcast().

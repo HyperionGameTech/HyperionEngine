@@ -73,7 +73,7 @@ public:
 
     static GlobalContextHolder &GetInstance()
     {
-        static GlobalContextHolder<ContextType> &result = GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
+        thread_local GlobalContextHolder<ContextType> &result = GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
 
         return result;
     }
@@ -108,9 +108,9 @@ struct GlobalContextScope
 
     template <class ContextType>
     GlobalContextScope(ContextType &&context)
-        : holder(&GlobalContextHolder<ContextType>::GetInstance())
+        : holder(&GlobalContextHolder<NormalizedType<ContextType>>::GetInstance())
     {
-        static_cast<GlobalContextHolder<ContextType> *>(holder)->Push(std::forward<ContextType>(context));
+        static_cast<GlobalContextHolder<NormalizedType<ContextType>> *>(holder)->Push(std::forward<ContextType>(context));
     }
 
     GlobalContextScope(const GlobalContextScope &other)                 = delete;

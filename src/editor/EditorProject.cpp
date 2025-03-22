@@ -41,6 +41,7 @@ EditorProject::EditorProject(Name name)
     InitObject(m_asset_registry);
 
     Handle<Camera> camera = CreateObject<Camera>();
+    camera->SetName(Name::Unique("EditorDefaultCamera"));
     camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
     camera->SetFOV(70.0f);
     camera->SetNear(0.01f);

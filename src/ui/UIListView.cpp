@@ -30,7 +30,8 @@ void UIListViewItem::Init()
 {
     UIObject::Init();
 
-    m_inner_element = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    m_inner_element = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+    m_inner_element->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 
     // Expand / collapse subitems when selected
     m_inner_element->OnClick.Bind([this](...)
@@ -56,7 +57,7 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
     
     if (ui_object->IsInstanceOf<UIListViewItem>()) {
         if (!m_expanded_element) {
-            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
+            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             m_expanded_element->SetIsVisible(m_is_expanded);
 
             UIObject::AddChildUIObject(m_expanded_element);
@@ -148,7 +149,8 @@ void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_
 #pragma region UIListView
 
 UIListView::UIListView()
-    : UIPanel(UIObjectType::LIST_VIEW)
+    : UIPanel(UIObjectType::LIST_VIEW),
+      m_orientation(UIListViewOrientation::VERTICAL)
 {
     OnClick.Bind([this](...)
     {
@@ -167,6 +169,29 @@ void UIListView::Init()
     AssertThrow(GetStage() != nullptr);
 }
 
+void UIListView::SetOrientation(UIListViewOrientation orientation)
+{
+    HYP_SCOPE;
+
+    if (m_orientation == orientation) {
+        return;
+    }
+
+    m_orientation = orientation;
+    
+    for (const RC<UIListViewItem> &list_view_item : m_list_view_items) {
+        UILockedUpdatesScope scope(*list_view_item, UIObjectUpdateType::UPDATE_SIZE);
+
+        if (m_orientation == UIListViewOrientation::VERTICAL) {
+            list_view_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+        } else {
+            list_view_item->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+        }
+    }
+
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
+}
+
 void UIListView::AddChildUIObject(const RC<UIObject> &ui_object)
 {
     HYP_SCOPE;
@@ -175,25 +200,35 @@ void UIListView::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    if (ui_object->IsInstanceOf<UIListViewItem>()) {
-        m_list_view_items.PushBack(ui_object.Cast<UIListViewItem>());
+    UIObjectSize list_view_item_size;
 
-        UIObject::AddChildUIObject(ui_object);
+    if (m_orientation == UIListViewOrientation::HORIZONTAL) {
+        list_view_item_size = UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT });
     } else {
-        RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-        list_view_item->AddChildUIObject(ui_object);
-
-        m_list_view_items.PushBack(list_view_item);
-
-        UIObject::AddChildUIObject(list_view_item);
+        list_view_item_size = UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO });
     }
 
-    // If we use autosizing, UIObject::AddChildUIObject will call UpdateSize automatically.
-    // otherwise, we need to call it ourselves
-    if (!UseAutoSizing()) {
-        // Updates layout as well
-        UpdateSize(false);
+    { // prevent updates from being processed immediately
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+
+        if (ui_object->IsInstanceOf<UIListViewItem>()) {
+            RC<UIListViewItem> list_view_item = ui_object.CastUnsafe<UIListViewItem>();
+            list_view_item->SetSize(list_view_item_size);
+            m_list_view_items.PushBack(list_view_item);
+
+            UIObject::AddChildUIObject(ui_object);
+        } else {
+            RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, list_view_item_size);
+            list_view_item->AddChildUIObject(ui_object);
+
+            m_list_view_items.PushBack(list_view_item);
+
+            UIObject::AddChildUIObject(list_view_item);
+        }
     }
+
+    // Updates layout as well
+    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
 }
 
 bool UIListView::RemoveChildUIObject(UIObject *ui_object)
@@ -253,7 +288,9 @@ void UIListView::UpdateLayout()
         return;
     }
 
-    int y_offset = 0;
+    const Vec2i offset_multiplier = m_orientation == UIListViewOrientation::VERTICAL ? Vec2i { 0, 1 } : Vec2i { 1, 0 };
+
+    Vec2i offset;
 
     for (SizeType i = 0; i < m_list_view_items.Size(); i++) {
         UIObject *list_view_item = m_list_view_items[i];
@@ -262,10 +299,16 @@ void UIListView::UpdateLayout()
             continue;
         }
 
-        list_view_item->SetPosition({ 0, y_offset });
+        {
+            UILockedUpdatesScope scope(*list_view_item, UIObjectUpdateType::UPDATE_SIZE);
 
-        y_offset += list_view_item->GetActualSize().y;
+            list_view_item->SetPosition(offset);
+        }
+
+        offset += list_view_item->GetActualSize() * offset_multiplier;
     }
+
+    HYP_LOG(UI, Debug, "Updated layout for ListView {}", GetName());
 }
 
 void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)

@@ -187,6 +187,14 @@ UIText::UIText()
     m_text_color = Color(Vec4f::One());
 }
 
+UIText::~UIText()
+{
+    // debug
+    if (GetName() == NAME("FPSCounterDebugOverlay_TPS")) {
+        HYP_BREAKPOINT;
+    }
+}
+
 void UIText::Init()
 {
     HYP_SCOPE;

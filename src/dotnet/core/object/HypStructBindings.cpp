@@ -47,7 +47,7 @@ public:
         return true;
     }
 
-    virtual bool ToHypData(ByteView memory, void *, HypData &out) const override
+    virtual bool ToHypData(ByteView memory, HypData &out) const override
     {
         void *data = Memory::Allocate(m_size);
         Memory::MemCpy(data, memory.Data(), m_size);
@@ -55,6 +55,11 @@ public:
         out = HypData(Any::FromVoidPointer(m_type_id, data, m_destruct_function));
 
         return true;
+    }
+
+    virtual void PostLoad(void *object_ptr) const override
+    {
+        HYP_NOT_IMPLEMENTED();
     }
 
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override

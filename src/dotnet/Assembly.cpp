@@ -49,12 +49,14 @@ RC<Class> Assembly::NewClass(const HypClass *hyp_class, int32 type_hash, const c
     auto it = m_class_objects.Find(type_hash);
 
     if (it != m_class_objects.End()) {
-        HYP_LOG(DotNET, Warning, "Class {} already exists in class holder!", type_name);
+        HYP_LOG(DotNET, Warning, "Class {} (type hash: {}) already exists in assembly with GUID {}!", type_name, type_hash, m_guid);
 
         return it->second;
     }
 
     it = m_class_objects.Insert(type_hash, MakeRefCountedPtr<Class>(WeakRefCountedPtrFromThis(), type_name, type_size, type_id, parent_class, EnumFlags<ManagedClassFlags>(flags))).first;
+
+    HYP_LOG(DotNET, Debug, "Registered class {} (type hash: {}) in assembly with GUID {}", type_name, type_hash, m_guid);
 
     if (hyp_class != nullptr) {
         HypClassRegistry::GetInstance().RegisterManagedClass(it->second.Get(), hyp_class);

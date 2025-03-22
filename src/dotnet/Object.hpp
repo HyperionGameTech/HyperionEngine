@@ -14,14 +14,15 @@
 
 #include <type_traits>
 
-//#define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
+// #define HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
 
 namespace hyperion {
 
 enum class ObjectFlags : uint32
 {
     NONE                    = 0x0,
-    CREATED_FROM_MANAGED    = 0x1
+    CREATED_FROM_MANAGED    = 0x1,
+    KEEP_ALIVE              = 0x2
 };
 
 HYP_MAKE_ENUM_FLAGS(ObjectFlags)
@@ -48,11 +49,11 @@ public:
     Object();
     Object(const RC<Class> &class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags = ObjectFlags::NONE);
 
-    Object(const Object &)                  = delete;
-    Object &operator=(const Object &)       = delete;
+    Object(const Object &)                      = delete;
+    Object &operator=(const Object &)           = delete;
 
-    Object(Object &&other) noexcept;
-    Object &operator=(Object &&other) noexcept;
+    Object(Object &&other) noexcept             = delete;
+    Object &operator=(Object &&other) noexcept  = delete;
 
     // Destructor frees the managed object unless CREATED_FROM_MANAGED is set.
     ~Object();
@@ -68,11 +69,6 @@ public:
 
     HYP_FORCE_INLINE bool IsValid() const
         { return m_object_reference.guid.IsValid(); }
-
-    /*! \brief Reset the Object to an invalid state.
-     *  This will free the managed object if it is still alive unless the ObjectFlags::CREATED_FROM_MANAGED flag is set.
-     * */
-    void Reset();
 
     /*! \brief Set whether or not the managed object should be kept in memory (not garbage collected)
      *  Defaults to alive for an object created from the unmanaged side. For objects created from the managed runtime,
@@ -98,6 +94,11 @@ public:
     }
 
 private:
+    /*! \brief Reset the Object to an invalid state.
+    *  This will free the managed object if it is still alive unless the ObjectFlags::CREATED_FROM_MANAGED flag is set.
+    * */
+    void Reset();
+
     const Method *GetMethod(UTF8StringView method_name) const;
 
     void InvokeMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data);

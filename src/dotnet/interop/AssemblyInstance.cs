@@ -358,12 +358,27 @@ namespace Hyperion
         }
 
         private Dictionary<Guid, AssemblyInstance> assemblies = new Dictionary<Guid, AssemblyInstance>();
+        private object lockObject = new object();
 
-        public Dictionary<Guid, AssemblyInstance> Assemblies
+        public int Count
         {
             get
             {
-                return assemblies;
+                lock (lockObject)
+                {
+                    return assemblies.Count;
+                }
+            }
+        }
+
+        public IEnumerable<KeyValuePair<Guid, AssemblyInstance>> GetAssemblies()
+        {
+            lock (lockObject)
+            {
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+                {
+                    yield return kvp;
+                }
             }
         }
 
@@ -381,9 +396,14 @@ namespace Hyperion
 
         public AssemblyInstance? Get(Guid guid)
         {
-            if (assemblies.ContainsKey(guid))
+            lock (lockObject)
             {
-                return assemblies[guid];
+                if (assemblies.ContainsKey(guid))
+                {
+                    return assemblies[guid];
+                }
+
+                return null;
             }
 
             return null;
@@ -391,11 +411,14 @@ namespace Hyperion
 
         public AssemblyInstance? Get(string path)
         {
-            foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+            lock (lockObject)
             {
-                if (kvp.Value.AssemblyPath == path)
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
                 {
-                    return kvp.Value;
+                    if (kvp.Value.AssemblyPath == path)
+                    {
+                        return kvp.Value;
+                    }
                 }
             }
 
@@ -404,11 +427,14 @@ namespace Hyperion
 
         public AssemblyInstance? Get(Assembly assembly)
         {
-            foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+            lock (lockObject)
             {
-                if (kvp.Value.Assembly == assembly)
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
                 {
-                    return kvp.Value;
+                    if (kvp.Value.Assembly == assembly)
+                    {
+                        return kvp.Value;
+                    }
                 }
             }
 
@@ -417,11 +443,14 @@ namespace Hyperion
 
         public AssemblyInstance? Get(AssemblyName assemblyName)
         {
-            foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+            lock (lockObject)
             {
-                if (kvp.Value.AssemblyName?.FullName == assemblyName.FullName)
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
                 {
-                    return kvp.Value;
+                    if (kvp.Value.AssemblyName?.FullName == assemblyName.FullName)
+                    {
+                        return kvp.Value;
+                    }
                 }
             }
 
@@ -430,44 +459,51 @@ namespace Hyperion
 
         public AssemblyInstance Add(Guid guid, string path, IntPtr assemblyPtr, bool isCoreAssembly = false)
         {
-            if (assemblies.ContainsKey(guid))
+            lock (lockObject)
             {
-                throw new Exception("Assembly already exists in cache");
+                if (assemblies.ContainsKey(guid))
+                {
+                    throw new Exception("Assembly already exists in cache");
+                }
+
+                string basePath = System.IO.Path.GetDirectoryName(path);
+
+                AssemblyInstance assemblyInstance = new AssemblyInstance(basePath, guid, path, assemblyPtr, isCoreAssembly);
+                assemblyInstance.Load();
+
+                assemblies.Add(guid, assemblyInstance);
+
+                Logger.Log(LogType.Info, $"Added assembly {guid} from {path}");
+
+                return assemblyInstance;
             }
-
-            string basePath = System.IO.Path.GetDirectoryName(path);
-
-            AssemblyInstance assemblyInstance = new AssemblyInstance(basePath, guid, path, assemblyPtr, isCoreAssembly);
-            assemblyInstance.Load();
-
-            assemblies.Add(guid, assemblyInstance);
-
-            Logger.Log(LogType.Info, $"Added assembly {guid} from {path}");
-
-            return assemblyInstance;
         }
 
         public void Add(AssemblyInstance assemblyInstance)
         {
-            if (assemblies.ContainsKey(assemblyInstance.Guid))
+            lock (lockObject)
             {
-                throw new Exception("Assembly already exists in cache");
-            }
+                if (assemblies.ContainsKey(assemblyInstance.Guid))
+                {
+                    throw new Exception("Assembly already exists in cache");
+                }
 
-            assemblies.Add(assemblyInstance.Guid, assemblyInstance);
+                assemblies.Add(assemblyInstance.Guid, assemblyInstance);
+            }
         }
 
         public void Remove(Guid guid)
         {
-            if (!assemblies.ContainsKey(guid))
+            lock (lockObject)
             {
-                throw new Exception("Assembly does not exist in cache");
+                if (assemblies.ContainsKey(guid))
+                {
+                    assemblies[guid].Unload();
+                    assemblies.Remove(guid);
+
+                    Logger.Log(LogType.Info, $"Removed assembly {guid}");
+                }
             }
-
-            assemblies[guid].Unload();
-            assemblies.Remove(guid);
-
-            Logger.Log(LogType.Info, $"Removed assembly {guid}");
         }
     }
 }

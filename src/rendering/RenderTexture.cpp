@@ -82,11 +82,13 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 
 struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 {
+    // Keep weak handle around to ensure the ID persists
     WeakHandle<Texture> texture;
 
     RENDER_COMMAND(DestroyTexture)(const WeakHandle<Texture> &texture)
         : texture(texture)
     {
+        AssertThrow(texture.IsValid());
     }
 
     virtual ~RENDER_COMMAND(DestroyTexture)() override = default;
@@ -404,6 +406,9 @@ Texture::~Texture()
 
     if (IsInitCalled()) {
         PUSH_RENDER_COMMAND(DestroyTexture, WeakHandleFromThis());
+
+        // debugging
+        AssertDebug(GetObjectHeader_Internal()->GetRefCountWeak() > 0);
     }
 }
 

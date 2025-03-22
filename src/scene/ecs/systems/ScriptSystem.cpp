@@ -22,43 +22,47 @@
 
 namespace hyperion {
 
+constexpr bool g_enable_script_reloading = false;
+
 ScriptSystem::ScriptSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
     // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
 
-    m_delegate_handlers.Add(NAME("OnScriptStateChanged"), g_engine->GetScriptingService()->OnScriptStateChanged.Bind([this](const ManagedScript &script)
-    {
-        Threads::AssertOnThread(g_game_thread);
+    if (g_enable_script_reloading) {
+        m_delegate_handlers.Add(NAME("OnScriptStateChanged"), g_engine->GetScriptingService()->OnScriptStateChanged.Bind([this](const ManagedScript &script)
+        {
+            Threads::AssertOnThread(g_game_thread);
 
-        if (!(script.state & uint32(CompiledScriptState::COMPILED))) {
-            return;
-        }
-
-        for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos())) {
-            if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path)) {
-                HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity.Value());
-
-                // Reload the script
-                script_component.flags |= ScriptComponentFlags::RELOADING;
-
-                script_component.script.uuid = script.uuid;
-                script_component.script.state = script.state;
-                script_component.script.hot_reload_version = script.hot_reload_version;
-                script_component.script.last_modified_timestamp = script.last_modified_timestamp;
-
-                OnEntityRemoved(entity);
-
-                script_component.assembly.Reset();
-
-                OnEntityAdded(Handle<Entity>(entity));
-
-                script_component.flags &= ~ScriptComponentFlags::RELOADING;
-
-                HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity.Value());
+            if (!(script.state & uint32(CompiledScriptState::COMPILED))) {
+                return;
             }
-        }
-    }));
+
+            for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos())) {
+                if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path)) {
+                    HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity.Value());
+
+                    // Reload the script
+                    script_component.flags |= ScriptComponentFlags::RELOADING;
+
+                    script_component.script.uuid = script.uuid;
+                    script_component.script.state = script.state;
+                    script_component.script.hot_reload_version = script.hot_reload_version;
+                    script_component.script.last_modified_timestamp = script.last_modified_timestamp;
+
+                    OnEntityRemoved(entity);
+
+                    script_component.assembly.Reset();
+
+                    OnEntityAdded(Handle<Entity>(entity));
+
+                    script_component.flags &= ~ScriptComponentFlags::RELOADING;
+
+                    HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity.Value());
+                }
+            }
+        }));
+    }
 
     if (World *world = GetWorld()) {
         m_delegate_handlers.Add(NAME("OnGameStateChange"), world->OnGameStateChange.Bind([this](World *world, GameStateMode game_state_mode)
@@ -157,6 +161,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
             }
 
             script_component.object.Reset(class_ptr->NewObject());
+            script_component.object->SetKeepAlive(true);
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
                 if (dotnet::Method *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
@@ -225,6 +230,8 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
                 script_component.object->InvokeMethodByName<void>("Destroy");
             }
         }
+
+        script_component.object->SetKeepAlive(false);
     }
 
     script_component.object.Reset();

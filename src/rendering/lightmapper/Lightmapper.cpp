@@ -1186,7 +1186,7 @@ void LightmapRasterizer::Create()
             0.001f, 1000.0f
         );
 
-        m_camera->SetName(NAME("LightmapRasterizerCamera"));
+        m_camera->SetName(Name::Unique("LightmapRasterizerCamera"));
         m_camera->SetFramebuffer(m_framebuffer);
 
         InitObject(m_camera);

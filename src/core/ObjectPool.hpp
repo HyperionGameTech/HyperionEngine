@@ -183,11 +183,20 @@ struct HypObjectMemory final : HypObjectHeader
             AssertThrow(index != ~0u);
 #endif
 
+            // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause FreeID() to be called.
+            ref_count_weak.Increment(1, MemoryOrder::RELEASE);
+
             reinterpret_cast<T *>(bytes)->~T();
 
-            if (ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0) {
+            if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1) {
                 // Free the slot for this
                 container->GetIDGenerator().FreeID(index + 1);
+
+#ifdef HYP_DEBUG_MODE
+                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
+#endif
+                
+                DebugLog(LogType::Debug, "Free slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
             }
         }
 
@@ -215,6 +224,12 @@ struct HypObjectMemory final : HypObjectHeader
 
                 // Free the slot for this
                 container->GetIDGenerator().FreeID(index + 1);
+
+                // if (index == 51 && !std::strcmp(TypeNameHelper<T, false>::value.Data(), "hyperion::Texture")) {
+                //     HYP_BREAKPOINT;
+                // }
+
+                DebugLog(LogType::Debug, "Free slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
             }
         }
 
@@ -233,9 +248,6 @@ struct HypObjectMemory final : HypObjectHeader
         AssertThrow(container != nullptr);
         AssertThrow(index != ~0u);
 #endif
-
-        const uint32 count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
-        AssertDebug(count != 0);
 
         return ptr;
     }
@@ -293,10 +305,15 @@ public:
         HypObjectMemory *element;
         uint32 index = m_pool.AcquireIndex(&element);
 
-#ifdef HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE // sanity checks
         AssertThrow(uintptr_t(element->container) == uintptr_t(this));
         AssertThrow(element->index == index);
+        AssertThrow(element->ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0);
+        AssertThrow(element->ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0);
+        AssertThrow(!element->has_value.Get(MemoryOrder::ACQUIRE));
 #endif
+
+        DebugLog(LogType::Debug, "Allocated slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
 
         return element;
     }

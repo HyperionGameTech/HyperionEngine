@@ -125,7 +125,7 @@ Node::Node(Node &&other) noexcept
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
     other.m_entity_aabb = BoundingBox::Empty();
-    other.m_scene = other.GetDefaultScene();
+    other.m_scene = GetDefaultScene();
     other.m_transform_locked = false;
     other.m_transform_changed = false;
 
@@ -177,7 +177,7 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_entity_aabb = BoundingBox::Empty();
 
     m_scene = other.m_scene;
-    other.m_scene = other.GetDefaultScene();
+    other.m_scene = GetDefaultScene();
 
     Handle<Entity> entity = other.m_entity;
     other.m_entity = Handle<Entity>::empty;
@@ -212,9 +212,10 @@ void Node::SetName(const String &name)
     }
 
 #ifdef HYP_EDITOR
-    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+    GetEditorDelegates([this](EditorDelegates *editor_delegates)
+    {
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Name")));
-    }
+    });
 #endif
 }
 
@@ -236,9 +237,10 @@ void Node::SetFlags(EnumFlags<NodeFlags> flags)
     m_flags = flags;
 
 #ifdef HYP_EDITOR
-    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+    GetEditorDelegates([this](EditorDelegates *editor_delegates)
+    {
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Flags")));
-    }
+    });
 #endif
 }
 
@@ -294,9 +296,10 @@ void Node::SetScene(Scene *scene)
         m_scene = scene;
 
 #ifdef HYP_EDITOR
-        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        GetEditorDelegates([this](EditorDelegates *editor_delegates)
+        {
             editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
-        }
+        });
 #endif
 
         // Move entity from previous scene to new scene
@@ -312,9 +315,10 @@ void Node::SetScene(Scene *scene)
                 m_entity.Reset();
 
 #ifdef HYP_EDITOR
-                if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+                GetEditorDelegates([this](EditorDelegates *editor_delegates)
+                {
                     editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-                }
+                });
 #endif
             }
         }
@@ -674,10 +678,26 @@ void Node::SetEntity(const Handle<Entity> &entity)
 
     // Remove the NodeLinkComponent from the old entity
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
-        m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
+        // For destructor call.
+        // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
+        if (Threads::IsThreadInMask(ThreadID::Current(), m_scene->GetEntityManager()->GetOwnerThreadMask())) {
+            m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
 
-        // Move entity to detached scene
-        m_scene->GetEntityManager()->MoveEntity(m_entity, *GetDefaultScene()->GetEntityManager());
+            // Move entity to detached scene
+            m_scene->GetEntityManager()->MoveEntity(m_entity, *GetDefaultScene()->GetEntityManager());
+        } else {
+            Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue(
+                HYP_STATIC_MESSAGE("Remove NodeLinkComponent from entity"),
+                [entity = m_entity, scene = m_scene->HandleFromThis()]()
+                {
+                    scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(entity);
+
+                    // Move entity to detached scene
+                    scene->GetEntityManager()->MoveEntity(entity, *GetDefaultScene()->GetEntityManager());
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET
+            );
+        }
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
@@ -688,9 +708,10 @@ void Node::SetEntity(const Handle<Entity> &entity)
         }
 
 #ifdef HYP_EDITOR
-        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        GetEditorDelegates([this](EditorDelegates *editor_delegates)
+        {
             editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-        }
+        });
 #endif
 
         EntityManager *previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
@@ -742,9 +763,10 @@ void Node::SetEntity(const Handle<Entity> &entity)
         m_transform_changed = false;
 
 #ifdef HYP_EDITOR
-        if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+        GetEditorDelegates([this](EditorDelegates *editor_delegates)
+        {
             editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-        }
+        });
 #endif
 
         SetEntityAABB(BoundingBox::Empty());
@@ -762,11 +784,12 @@ void Node::SetEntityAABB(const BoundingBox &aabb)
     m_entity_aabb = aabb;
 
 #ifdef HYP_EDITOR
-    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+    GetEditorDelegates([this](EditorDelegates *editor_delegates)
+    {
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("EntityAABB")));
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("LocalAABB")));
         editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("WorldAABB")));
-    }
+    });
 #endif
 }
 
@@ -891,12 +914,13 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     }
 
 #ifdef HYP_EDITOR
-    if (EditorDelegates *editor_delegates = GetEditorDelegates()) {
+    GetEditorDelegates([this](EditorDelegates *editor_delegates)
+    {
         editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalTransform")));
         editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldTransform")));
         editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("LocalAABB")));
         editor_delegates->OnNodeUpdate(this, Node::Class()->GetProperty(NAME("WorldAABB")));
-    }
+    });
 #endif
 }
 
@@ -1177,11 +1201,34 @@ Scene *Node::GetDefaultScene()
 
 EditorDelegates *Node::GetEditorDelegates()
 {
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_game_thread);
+
     if (EditorSubsystem *editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>()) {
         return editor_subsystem->GetEditorDelegates();
     }
 
     return nullptr;
+}
+
+template <class Function>
+void Node::GetEditorDelegates(Function &&func)
+{
+    if (Threads::IsOnThread(g_game_thread)) {
+        if (EditorSubsystem *editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>()) {
+            func(editor_subsystem->GetEditorDelegates());
+        }
+    } else {
+        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([weak_this = WeakRefCountedPtrFromThis(), func = std::forward<Function>(func)]()
+        {
+            if (weak_this.Lock()) {
+                if (EditorSubsystem *editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>()) {
+                    func(editor_subsystem->GetEditorDelegates());
+                }
+            }
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 }
 
 #endif

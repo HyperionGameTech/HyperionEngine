@@ -61,7 +61,7 @@ public:
     UIText &operator=(const UIText &other)      = delete;
     UIText(UIText &&other) noexcept             = delete;
     UIText &operator=(UIText &&other) noexcept  = delete;
-    virtual ~UIText() override                  = default;
+    virtual ~UIText() override;
 
     virtual void Init() override;
 

@@ -166,22 +166,35 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    // Unset the UIObject pointer on the UIComponent
-    if (const Handle<Entity> &entity = GetEntity()) {
-        Scene *scene = GetScene();
+    HYP_LOG(UI, Debug, "UIObject destroyed: {}", GetName());
 
+    static const auto UnsetUIObjectEntity = [](Scene *scene, const Handle<Entity> &entity)
+    {
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
 
         if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
             ui_component->ui_object = nullptr;
         }
-    }
+    };
 
-    if (m_node_proxy.IsValid()) {
-        m_node_proxy->SetEntity(Handle<Entity>::empty);
+    // Unset the UIObject pointer on the UIComponent
+    if (const Handle<Entity> &entity = GetEntity()) {
+        if (Threads::IsOnThread(m_owner_thread_id)) {
+            UnsetUIObjectEntity(GetScene(), entity);
+        } else {
+            // Keep node alive until it can be destroyed on the owner thread
+            Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity_weak = entity.ToWeak()]() mutable
+            {
+                Handle<Entity> entity = entity_weak.Lock();
 
-        m_node_proxy.Reset();
+                if (entity.IsValid()) {
+                    UnsetUIObjectEntity(scene.Get(), entity);
+                }
+
+                node.Reset();
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 }
 

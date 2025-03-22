@@ -39,7 +39,7 @@ void RenderState::Init()
         DefaultCameraInitializer()
         {
             camera = CreateObject<Camera>();
-            camera->SetName(NAME("RenderState_DefaultCamera"));
+            camera->SetName(Name::Unique("RenderState_DefaultCamera"));
             InitObject(camera);
         }
     } default_camera_initializer;

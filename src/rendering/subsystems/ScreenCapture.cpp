@@ -72,6 +72,11 @@ void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
 
     switch (m_screen_capture_mode) {
     case ScreenCaptureMode::TO_TEXTURE:
+        // Hack, but we need to make sure the image is created before we can blit to it
+        if (!m_texture->GetImage()->IsCreated()) {
+            HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
+        }
+
         m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
         m_texture->GetImage()->Blit(

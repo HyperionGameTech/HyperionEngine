@@ -8,16 +8,10 @@ namespace Hyperion
     {
         public IntPtr _hypClassPtr;
         public IntPtr _nativeAddress;
-        private IntPtr controlBlockPtr;
-        private bool isWeak;
 
         protected HypObject()
         {
             bool initiatedFromManagedSide = _nativeAddress == IntPtr.Zero;
-
-            // If initiated from managed side, this is a new object and we retain a strong reference to it.
-            // otherwise, we retain a weak reference to it
-            isWeak = !initiatedFromManagedSide;
 
             if (initiatedFromManagedSide)
             {
@@ -95,35 +89,34 @@ namespace Hyperion
 #if DEBUG
                 HypObject_Verify(_hypClassPtr, _nativeAddress, IntPtr.Zero);
 #endif
+
+                // HypObject_Initialize() will increment the reference count for objects created from managed, so we need to increment it here manually
+                if (HypClass.IsReferenceCounted)
+                    HypObject_IncRef(_hypClassPtr, _nativeAddress, false);
             }
 
+#if DEBUG
             if (HypClass.IsReferenceCounted)
-            {
-                controlBlockPtr = HypObject_IncRef(_hypClassPtr, _nativeAddress, isWeak);
-            }
-            else
-            {
-                controlBlockPtr = IntPtr.Zero;
-            }
-
-            // Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+                Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) == 1, "Strong reference must be 1 after creation");
+#endif
+            
+            Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~HypObject()
         {
-            // Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
 
             if (IsValid)
             {
                 if (HypClass.IsReferenceCounted)
                 {
-                    HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+#if DEBUG
+                    Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) > 0, "Strong reference must be > 0 before destruction");
+#endif
 
-                    controlBlockPtr = IntPtr.Zero;
+                    HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
                 }
-
-                _hypClassPtr = IntPtr.Zero;
-                _nativeAddress = IntPtr.Zero;
             }
         }
 
@@ -133,9 +126,11 @@ namespace Hyperion
             {
                 if (HypClass.IsReferenceCounted)
                 {
-                    HypObject_DecRef(_hypClassPtr, _nativeAddress, controlBlockPtr, isWeak);
+#if DEBUG
+                    Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) > 0, "Strong reference must be > 0 before destruction");
+#endif
 
-                    controlBlockPtr = IntPtr.Zero;
+                    HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
                 }
 
                 GC.SuppressFinalize(this);
@@ -167,14 +162,6 @@ namespace Hyperion
             get
             {
                 return _nativeAddress;
-            }
-        }
-
-        public IntPtr ControlBlockPtr
-        {
-            get
-            {
-                return controlBlockPtr;
             }
         }
 
@@ -237,11 +224,14 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypObject_Verify")]
         private static extern void HypObject_Verify([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [In] IntPtr objectReferencePtr);
 
+        [DllImport("hyperion", EntryPoint = "HypObject_GetRefCount_Strong")]
+        private static extern uint HypObject_GetRefCount_Strong([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);
+
         [DllImport("hyperion", EntryPoint = "HypObject_IncRef")]
-        private static extern IntPtr HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        private static extern void HypObject_IncRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
         [DllImport("hyperion", EntryPoint = "HypObject_DecRef")]
-        private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [In] IntPtr controlBlockPtr, [MarshalAs(UnmanagedType.I1)] bool isWeak);
+        private static extern void HypObject_DecRef([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [MarshalAs(UnmanagedType.I1)] bool isWeak);
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetProperty")]
         private static extern IntPtr HypObject_GetProperty([In] IntPtr hypClassPtr, [In] ref Name name);

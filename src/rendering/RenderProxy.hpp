@@ -21,14 +21,17 @@ class Entity;
 class Mesh;
 class Material;
 class Skeleton;
+struct MeshInstanceData;
 
-HYP_STRUCT(Size=104)
+HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData &);
+
+HYP_STRUCT(PostLoad="MeshInstanceData_PostLoad", Size=104)
 struct MeshInstanceData
 {
     static constexpr uint32 max_buffers = 8;
 
     HYP_FIELD(Property="NumInstances", Serialize=true)
-    uint32                                  num_instances = 0;
+    uint32                                  num_instances = 1;
 
     HYP_FIELD(Property="Buffers", Serialize=true)
     Array<Array<ubyte>, DynamicAllocator>   buffers;
@@ -100,9 +103,6 @@ struct RenderProxy
     UserData<32, 16>    user_data;
     MeshInstanceData    instance_data;
     uint32              version = 0;
-
-    HYP_FORCE_INLINE uint32 NumInstances() const
-        { return MathUtil::Max(instance_data.NumInstances(), 1); }
 
     void ClaimRenderResource() const;
     void UnclaimRenderResource() const;

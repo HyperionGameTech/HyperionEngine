@@ -671,7 +671,7 @@ protected:
         Scene *scene = nullptr
     );
 
-    Scene *GetDefaultScene();
+    static Scene *GetDefaultScene();
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
@@ -684,6 +684,10 @@ protected:
 
 #ifdef HYP_EDITOR
     EditorDelegates *GetEditorDelegates();
+
+    /*! \brief Do something with editor delegates. Thread safe, func will be called on the game thread. */
+    template <class Function>
+    void GetEditorDelegates(Function &&func);
 #endif
 
     Type                        m_type = Type::NODE;

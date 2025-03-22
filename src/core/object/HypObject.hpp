@@ -334,6 +334,10 @@ protected:
     DelegateHandlerSet  m_delegate_handlers;
 };
 
+struct SuppressManagedObjectRefCountChangeContext
+{
+};
+
 } // namespace hyperion
 
 #endif

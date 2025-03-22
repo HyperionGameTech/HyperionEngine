@@ -231,6 +231,80 @@ private:
     EnumFlags<HypMemberType>    m_member_types;
 };
 
+enum class HypClassCallbackType
+{
+    ON_POST_LOAD = 0
+};
+
+class IHypClassCallbackWrapper
+{
+public:
+    virtual ~IHypClassCallbackWrapper() = default;
+};
+
+template <class Callback>
+class HypClassCallbackWrapper : public IHypClassCallbackWrapper
+{
+public:
+    HypClassCallbackWrapper(Callback &&callback)
+        : m_callback(std::forward<Callback>(callback))
+    {
+    }
+
+    HYP_FORCE_INLINE Callback GetCallback() const
+        { return m_callback; }
+
+private:
+    Callback    m_callback;
+};
+
+template <HypClassCallbackType CallbackType>
+class HypClassCallbackCollection
+{
+public:
+    static HypClassCallbackCollection &GetInstance()
+    {
+        static HypClassCallbackCollection instance;
+        return instance;
+    }
+
+    const IHypClassCallbackWrapper *GetCallback(const TypeID &type_id) const
+    {
+        Mutex::Guard guard(m_mutex);
+
+        auto it = m_callbacks.Find(type_id);
+
+        if (it != m_callbacks.End()) {
+            return it->second;
+        }
+
+        return nullptr;
+    }
+
+    void SetCallback(const TypeID &type_id, const IHypClassCallbackWrapper *callback)
+    {
+        Mutex::Guard guard(m_mutex);
+
+        m_callbacks[type_id] = callback;
+    }
+
+private:
+    HashMap<TypeID, const IHypClassCallbackWrapper *>   m_callbacks;
+    mutable Mutex                                       m_mutex;
+};
+
+template <HypClassCallbackType CallbackType>
+struct HypClassCallbackRegistration
+{
+    template <auto Callback>
+    HypClassCallbackRegistration(const TypeID &type_id, ValueWrapper<Callback>)
+    {
+        static const HypClassCallbackWrapper callback_wrapper(Callback);
+
+        HypClassCallbackCollection<CallbackType>::GetInstance().SetCallback(type_id, &callback_wrapper);
+    }
+};
+
 class HYP_API HypClass
 {
 public:
@@ -362,9 +436,8 @@ public:
     /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeID.
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
-     *  \param control_block_ptr For objects that use reference counting, the pointer to the control block (may be nullptr for non RC<T> types)
      *  \returns True if the operation was successful. */
-    virtual bool ToHypData(ByteView memory, void *control_block_ptr, HypData &out_hyp_data) const
+    virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const
         { return false; }
 
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
@@ -374,6 +447,8 @@ public:
 
         return GetInstanceHashCode_Internal(ref);
     }
+
+    virtual void PostLoad(void *object_ptr) const { }
 
 protected:
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const = 0;
@@ -406,15 +481,28 @@ template <class T>
 class HypClassInstance final : public HypClass
 {
 public:
-    static HypClassInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    using PostLoadCallback = void (*)(T &);
+
+    static HypClassInstance &GetInstance(
+        Name name,
+        Name parent_name,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members
+    )
     {
         static HypClassInstance instance { name, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypClassInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
+    HypClassInstance(
+        Name name,
+        Name parent_name,
+        Span<const HypClassAttribute> attributes,
+        EnumFlags<HypClassFlags> flags,
+        Span<HypMember> members
+    ) : HypClass(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
     {
     }
 
@@ -455,7 +543,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, void *control_block_ptr, HypData &out_hyp_data) const override
+    virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override
     {
         AssertThrow(memory.Size() == sizeof(T));
 
@@ -466,9 +554,10 @@ public:
 
             return true;
         } else if (UseRefCountedPtr()) {
-            AssertThrow(control_block_ptr != nullptr);
-
-            typename RC<void>::RefCountedPtrBase::RefCountDataType *ref_count_data = static_cast<typename RC<void>::RefCountedPtrBase::RefCountDataType *>(control_block_ptr);
+            EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>((void *)memory.Data());
+            
+            auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+            AssertThrow(ref_count_data != nullptr);
 
             RC<void> rc;
             rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
@@ -485,6 +574,20 @@ public:
         }
 
         return false;
+    }
+
+    virtual void PostLoad(void *object_ptr) const override
+    {
+        const IHypClassCallbackWrapper *callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
+
+        if (!callback_wrapper) {
+            return;
+        }
+
+        const HypClassCallbackWrapper<PostLoadCallback> *callback_wrapper_casted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback> *>(callback_wrapper);
+        AssertThrow(callback_wrapper_casted != nullptr);
+
+        callback_wrapper_casted->GetCallback()(*static_cast<T *>(object_ptr));
     }
     
 protected:

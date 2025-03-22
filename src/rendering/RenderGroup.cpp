@@ -403,6 +403,10 @@ void RenderGroup::CollectDrawCalls()
     for (const auto &it : m_render_proxies) {
         const RenderProxy *render_proxy = it.second;
 
+        if (render_proxy->instance_data.num_instances == 0) {
+            continue;
+        }
+
         AssertDebug(render_proxy->mesh.IsValid());
         AssertDebugMsg(render_proxy->mesh->IsReady(), "Mesh #%u is not ready", render_proxy->mesh.GetID().Value());
 
@@ -533,6 +537,8 @@ static HYP_FORCE_INLINE void RenderAll(
 
     const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
+
+    EngineRenderStatsCounts counts;
     
     for (const DrawCall &draw_call : draw_state.GetDrawCalls()) {
         EntityInstanceBatch *batch = draw_call.batch;
@@ -619,7 +625,12 @@ static HYP_FORCE_INLINE void RenderAll(
         } else {
             draw_call.mesh_render_resource->Render(frame->GetCommandBuffer(), batch->num_entities);
         }
+
+        counts.num_draw_calls++;
+        counts.num_triangles += draw_call.mesh_render_resource->NumIndices() / 3;
     }
+
+    g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
 template <bool IsIndirect>
@@ -675,6 +686,8 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
 
     // HYP_LOG(Rendering, Debug, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
+
+    FixedArray<EngineRenderStatsCounts, num_async_rendering_command_buffers> render_stats_counts { };
 
     TaskSystem::GetInstance().ParallelForEach(
         HYP_STATIC_MESSAGE("RenderAll_Parallel"),
@@ -774,6 +787,9 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
                         } else {
                             draw_call.mesh_render_resource->Render(secondary, entity_instance_batch->num_entities);
                         }
+
+                        render_stats_counts[index].num_triangles += draw_call.mesh_render_resource->NumIndices() / 3;
+                        render_stats_counts[index].num_draw_calls++;
                     }
 
                     HYPERION_RETURN_OK;
@@ -783,7 +799,6 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
             command_buffers_recorded_states[index] = 1u;
         }
     );
-    
 
     const uint32 num_recorded_command_buffers = command_buffers_recorded_states.Sum();
 
@@ -796,6 +811,10 @@ static HYP_FORCE_INLINE void RenderAll_Parallel(
     }
 
     command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % uint32(command_buffers.Size());
+
+    for (const EngineRenderStatsCounts &counts : render_stats_counts) {
+        g_engine->GetRenderStatsCalculator().AddCounts(counts);
+    }
 }
 
 void RenderGroup::PerformRendering(Frame *frame)
@@ -804,9 +823,6 @@ void RenderGroup::PerformRendering(Frame *frame)
 
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
-
-    // Temp
-    AssertThrow(m_pipeline->IsCreated());
 
     if (m_draw_state.GetDrawCalls().Empty()) {
         return;

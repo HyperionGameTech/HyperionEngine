@@ -32,33 +32,33 @@ Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, Enu
     }
 }
 
-Object::Object(Object &&other) noexcept
-    : m_class_ptr(std::move(other.m_class_ptr)),
-      m_assembly(std::move(other.m_assembly)),
-      m_object_reference(other.m_object_reference),
-      m_object_flags(other.m_object_flags)
-{
-    other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
-    other.m_object_flags = ObjectFlags::NONE;
-}
+// Object::Object(Object &&other) noexcept
+//     : m_class_ptr(std::move(other.m_class_ptr)),
+//       m_assembly(std::move(other.m_assembly)),
+//       m_object_reference(other.m_object_reference),
+//       m_object_flags(other.m_object_flags)
+// {
+//     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
+//     other.m_object_flags = ObjectFlags::NONE;
+// }
 
-Object &Object::operator=(Object &&other) noexcept
-{
-    if (this == &other) {
-        return *this;
-    }
+// Object &Object::operator=(Object &&other) noexcept
+// {
+//     if (this == &other) {
+//         return *this;
+//     }
 
-    Reset();
+//     Reset();
 
-    m_class_ptr = std::move(other.m_class_ptr);
-    m_object_reference = other.m_object_reference;
-    m_object_flags = other.m_object_flags;
+//     m_class_ptr = std::move(other.m_class_ptr);
+//     m_object_reference = other.m_object_reference;
+//     m_object_flags = other.m_object_flags;
 
-    other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
-    other.m_object_flags = ObjectFlags::NONE;
+//     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
+//     other.m_object_flags = ObjectFlags::NONE;
 
-    return *this;
-}
+//     return *this;
+// }
 
 Object::~Object()
 {
@@ -68,14 +68,11 @@ Object::~Object()
 void Object::Reset()
 {
     if (IsValid()) {
-        if (!(m_object_flags & ObjectFlags::CREATED_FROM_MANAGED)) {
-            (void)m_class_ptr->GetAssembly(); // ensure loaded
-
-            m_class_ptr->GetFreeObjectFunction()(m_object_reference);
-        }
+        AssertThrowMsg(!(m_object_flags & ObjectFlags::KEEP_ALIVE), "Object is being destroyed while KEEP_ALIVE flag is set!");
     }
 
     m_class_ptr.Reset();
+    m_assembly.Reset();
     m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
     m_object_flags = ObjectFlags::NONE;
 }
@@ -127,7 +124,15 @@ const Property *Object::GetProperty(UTF8StringView property_name) const
 
 bool Object::SetKeepAlive(bool keep_alive)
 {
-    return DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive);
+    AssertThrow(bool(m_object_flags & ObjectFlags::KEEP_ALIVE) != keep_alive);
+
+    if (!DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive)) {
+        return false;
+    }
+
+    m_object_flags[ObjectFlags::KEEP_ALIVE] = keep_alive;
+
+    return true;
 }
 
 } // namespace hyperion::dotnet

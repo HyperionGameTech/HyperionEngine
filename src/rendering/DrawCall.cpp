@@ -66,8 +66,10 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCal
     uint32 index_map_index = 0;
     uint32 instance_offset = 0;
 
-    const uint32 initial_num_instances = render_proxy.NumInstances();
+    const uint32 initial_num_instances = render_proxy.instance_data.num_instances;
     uint32 num_instances = initial_num_instances;
+
+    AssertDebug(initial_num_instances > 0);
 
     GPUBufferHolderBase *entity_instance_batches = m_impl->GetEntityInstanceBatchHolder();
     AssertThrow(entity_instance_batches != nullptr);
@@ -166,6 +168,8 @@ void DrawCallCollection::ResetDrawCalls()
 uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
+    AssertThrow(num_instances <= mesh_instance_data.num_instances);
+    
     for (uint32 buffer_index = 0; buffer_index < uint32(mesh_instance_data.buffers.Size()); buffer_index++) {
         AssertThrow(mesh_instance_data.buffers[buffer_index].Size() / mesh_instance_data.buffer_struct_sizes[buffer_index] == mesh_instance_data.num_instances);
     }
@@ -200,7 +204,9 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
 
                 // sanity checks
                 AssertDebug((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof);
-                AssertDebug(mesh_instance_data.buffers[buffer_index].Size() >= (instance_offset + 1) * buffer_struct_size);
+                AssertDebugMsg(mesh_instance_data.buffers[buffer_index].Size() >= (instance_offset + 1) * buffer_struct_size,
+                    "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
+                    mesh_instance_data.buffers[buffer_index].Size(), buffer_struct_size, instance_offset);
 
                 Memory::MemCpy(dst_ptr, src_ptr, buffer_struct_size);
 

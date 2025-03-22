@@ -29,9 +29,27 @@ public:
 
     AttributeSet(const AttributeSet &other)                 = delete;
     AttributeSet &operator=(const AttributeSet &other)      = delete;
-    AttributeSet(AttributeSet &&other) noexcept             = default;
-    AttributeSet &operator=(AttributeSet &&other) noexcept  = default;
+
+    AttributeSet(AttributeSet &&other) noexcept
+        : m_values(std::move(other.m_values)),
+          m_values_by_name(std::move(other.m_values_by_name))
+    {
+    }
+
+    AttributeSet &operator=(AttributeSet &&other) noexcept
+    {
+        if (this != &other) {
+            m_values = std::move(other.m_values);
+            m_values_by_name = std::move(other.m_values_by_name);
+        }
+
+        return *this;
+    }
+
     ~AttributeSet()                                         = default;
+
+    HYP_FORCE_INLINE SizeType Size() const
+        { return m_values.Size(); }
 
     HYP_FORCE_INLINE bool HasAttribute(UTF8StringView name) const
         { return GetAttribute(name) != nullptr; }
