@@ -309,7 +309,9 @@ namespace Hyperion
                 referencedAssembly.Unload();
             }
 
-            int numObjectsRemoved = ManagedObjectCache.Instance.RemoveObjectsForAssembly(guid);
+            int numObjectsRemoved = ManagedObjectCache.Instance.RemoveForAssembly(guid);
+            int numMethodsRemoved = ManagedMethodCache.Instance.RemoveForAssembly(guid);
+            int numDelegatesRemoved = DelegateCache.Instance.RemoveForAssembly(guid);
 
             Dictionary<Type, int> numCachedObjectsRemoved = new Dictionary<Type, int>();
 
@@ -320,11 +322,11 @@ namespace Hyperion
                 numCachedObjectsRemoved.Add(kvp.Key, numRemoved);
             }
 
-            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed {numObjectsRemoved} objects.");
+            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed:\n\t{numObjectsRemoved} object(s)\n\t{numMethodsRemoved} method(s)\n\t{numDelegatesRemoved} delegate(s)");
 
             foreach (KeyValuePair<Type, int> kvp in numCachedObjectsRemoved)
             {
-                Logger.Log(LogType.Info, $"\tRemoved {kvp.Value} {kvp.Key.Name} objects.");
+                Logger.Log(LogType.Info, $"\t{kvp.Value} {kvp.Key.Name} object(s)");
             }
 
             if (ownsContext)

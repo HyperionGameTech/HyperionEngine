@@ -22,7 +22,7 @@
 
 namespace hyperion {
 
-constexpr bool g_enable_script_reloading = false;
+constexpr bool g_enable_script_reloading = true;
 
 ScriptSystem::ScriptSystem(EntityManager &entity_manager)
     : System(entity_manager)
