@@ -524,9 +524,9 @@ void EnvProbe::Render(Frame *frame)
     
     // @FIXME!
 
-    //if (!NeedsRender()) {
+    // if (!NeedsRender()) {
     //    return;
-    //}
+    // }
 
     AssertThrow(m_texture.IsValid());
 

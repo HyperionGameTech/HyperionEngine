@@ -257,7 +257,7 @@ void HyperionEditor::Init()
     batch->Add("test_model", "models/sponza/sponza.obj");
     //batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     //batch->Add("test_model", "models/testbed/testbed.obj");
-    batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+    // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
 
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
@@ -287,7 +287,7 @@ void HyperionEditor::Init()
 
         GetScene()->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
         Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
