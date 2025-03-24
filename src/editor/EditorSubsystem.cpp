@@ -1387,6 +1387,7 @@ void EditorSubsystem::InitDebugOverlays()
     m_debug_overlay_ui_object->SetDepth(100);
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 
+    m_debug_overlay_ui_object->OnClick.RemoveAll();
     m_debug_overlay_ui_object->OnKeyDown.RemoveAll();
 
     for (const RC<EditorDebugOverlayBase> &debug_overlay : m_debug_overlays) {

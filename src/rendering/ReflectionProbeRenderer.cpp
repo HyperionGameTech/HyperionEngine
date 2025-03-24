@@ -3,6 +3,7 @@
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -83,7 +84,7 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
 
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool()) {
         g_engine->GetDebugDrawer()->ReflectionProbe(
-            m_env_probe->GetProxy().world_position,
+            m_env_probe->GetRenderResource().GetBufferData().world_position.GetXYZ(),
             0.5f,
             m_env_probe
         );

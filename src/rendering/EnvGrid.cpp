@@ -53,7 +53,7 @@ static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
 static const Vec2u framebuffer_dimensions { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-const InternalFormat light_field_color_format = InternalFormat::RGBA8;
+const InternalFormat light_field_color_format = InternalFormat::RGBA8_SRGB;
 const InternalFormat light_field_depth_format = InternalFormat::RG16F;
 static const uint32 irradiance_octahedron_size = 32;
 static const Vec2u light_field_probe_dimensions { 256, 256 };
@@ -540,7 +540,7 @@ void EnvGrid::OnRender(Frame *frame)
             }
 
             g_engine->GetDebugDrawer()->AmbientProbe(
-                probe->GetProxy().world_position,
+                probe->GetRenderResource().GetBufferData().world_position.GetXYZ(),
                 0.25f,
                 probe
             );
@@ -568,7 +568,7 @@ void EnvGrid::OnRender(Frame *frame)
             if (probe.IsValid() && probe->NeedsRender()) {
                 indices_distances.PushBack({
                     index,
-                    probe->GetProxy().world_position.Distance(camera_position)
+                    probe->GetRenderResource().GetBufferData().world_position.GetXYZ().Distance(camera_position)
                 });
             }
         }
@@ -585,11 +585,13 @@ void EnvGrid::OnRender(Frame *frame)
                 const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(indirect_index);
                 AssertThrow(probe.IsValid());
 
-                const EnvProbeIndex binding_index = GetProbeBindingIndex(probe->GetProxy().world_position, grid_aabb, m_options.density);
+                const Vec3f world_position = probe->GetRenderResource().GetBufferData().world_position.GetXYZ();
+
+                const EnvProbeIndex binding_index = GetProbeBindingIndex(world_position, grid_aabb, m_options.density);
 
                 if (binding_index != invalid_probe_index) {
                     if (m_next_render_indices.Size() < max_queued_probes_for_render) {
-                        probe->UpdateRenderData(
+                        probe->GetRenderResource().UpdateRenderData(
                             ~0u,
                             indirect_index,
                             m_options.density
@@ -604,7 +606,7 @@ void EnvGrid::OnRender(Frame *frame)
                     }
                 } else {
                     HYP_LOG(EnvGrid, Warning, "EnvProbe #{} out of range of max bound env probes (position: {}, world position: {}",
-                        probe->GetID().Value(), binding_index.position, probe->GetProxy().world_position);
+                        probe->GetID().Value(), binding_index.position, world_position);
                 }
 
                 probe->SetNeedsRender(false);
@@ -1161,7 +1163,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
 
     push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
 
-    push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
+    push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
     for (const DescriptorTableRef &descriptor_set_ref : m_compute_sh_descriptor_tables) {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
@@ -1556,7 +1558,7 @@ void EnvGrid::VoxelizeProbe(
 
     push_constants.voxel_texture_dimensions = Vec4u(voxel_grid_texture_extent, 0);
     push_constants.cubemap_dimensions = Vec4u(cubemap_dimensions, 0);
-    push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
+    push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
     color_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 

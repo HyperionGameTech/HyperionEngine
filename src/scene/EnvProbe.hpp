@@ -20,7 +20,6 @@
 
 namespace hyperion {
 
-struct RENDER_COMMAND(UpdateEnvProbeDrawProxy);
 struct RENDER_COMMAND(CreateCubemapBuffers);
 struct RENDER_COMMAND(DestroyCubemapRenderPass);
 
@@ -120,26 +119,12 @@ struct EnvProbeIndex
     }
 };
 
-struct EnvProbeDrawProxy
-{
-    ID<EnvProbe>                id;
-    BoundingBox                 aabb;
-    Vec3f                       world_position;
-    uint32                      texture_index;
-    float                       camera_near;
-    float                       camera_far;
-    EnumFlags<EnvProbeFlags>    flags;
-    uint32                      grid_slot;
-    uint64                      visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
-};
-
 HYP_CLASS()
 class HYP_API EnvProbe : public HypObject<EnvProbe>
 {
     HYP_OBJECT_BODY(EnvProbe);
 
 public:
-    friend struct RENDER_COMMAND(UpdateEnvProbeDrawProxy);
     friend struct RENDER_COMMAND(DestroyCubemapRenderPass);
 
     EnvProbe();
@@ -216,6 +201,9 @@ public:
     HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
+    HYP_FORCE_INLINE Vec2u GetDimensions() const
+        { return m_dimensions; }
+
     HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
         { m_needs_update = needs_update; }
     
@@ -238,9 +226,6 @@ public:
         return counter > 0;
     }
 
-    HYP_FORCE_INLINE const EnvProbeDrawProxy &GetProxy() const
-        { return m_proxy; }
-
     bool IsVisible(ID<Camera> camera_id) const;
     void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
@@ -250,14 +235,6 @@ public:
     void Update(GameCounter::TickUnit delta);
 
     void Render(Frame *frame);
-
-    void UpdateRenderData(bool set_texture = false);
-
-    void UpdateRenderData(
-        uint32 texture_slot,
-        uint32 grid_slot,
-        const Vec3u &grid_size
-    );
 
     void BindToIndex(const EnvProbeIndex &probe_index);
 
@@ -295,8 +272,6 @@ private:
     AtomicVar<bool>         m_is_rendered;
     AtomicVar<int32>        m_needs_render_counter;
     HashCode                m_octant_hash_code;
-
-    EnvProbeDrawProxy       m_proxy;
 
     EnvProbeRenderResource *m_render_resource;
 };

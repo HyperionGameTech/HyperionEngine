@@ -159,6 +159,8 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
     }
 
     { // Update EnvGrid transforms to map to the camera
+        HashSet<ID<Entity>> updated_entity_ids;
+
         for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
             if (!env_grid_component.env_grid) {
                 continue;
@@ -184,11 +186,21 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
                     }
 
                     if (translation != transform_component.transform.GetTranslation()) {
-                        // @TODO If attached to a Node it should update the Node's world transform
                         transform_component.transform.SetTranslation(translation);
+
+                        updated_entity_ids.Insert(entity_id);
                     }
                 }
             }
+        }
+
+        if (updated_entity_ids.Any()) {
+            AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
+            {
+                for (const ID<Entity> &entity_id : updated_entity_ids) {
+                    GetEntityManager().AddTag<EntityTag::UPDATE_ENV_GRID_TRANSFORM>(entity_id);
+                }
+            });
         }
     }
 
