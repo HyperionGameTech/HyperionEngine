@@ -6,6 +6,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
 
@@ -22,9 +23,9 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
-#include <scene/Scene.hpp>
-
 #include <core/profiling/ProfileScope.hpp>
+
+#include <scene/Scene.hpp>
 
 #include <Engine.hpp>
 
@@ -157,6 +158,45 @@ struct LightFieldUniforms
 };
 
 #pragma endregion Uniform buffer structs
+
+#pragma region EnvProbeCollection
+
+uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe> &env_probe)
+{
+    AssertThrow(env_probe.IsValid());
+    AssertThrow(env_probe->IsReady());
+
+    AssertThrow(num_probes < max_bound_ambient_probes);
+
+    const uint32 index = num_probes++;
+
+    env_probes[index] = env_probe;
+    env_probe_render_resources[index] = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    indirect_indices[index] = index;
+    indirect_indices[max_bound_ambient_probes + index] = index;
+
+    return index;
+}
+
+// Must be called in EnvGrid::Init(), before probes are used from the render thread.
+void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe> &env_probe)
+{
+    AssertThrow(env_probe.IsValid());
+    AssertThrow(env_probe->IsReady());
+
+    AssertThrow(index < max_bound_ambient_probes);
+
+    num_probes = MathUtil::Max(num_probes, index + 1);
+        
+    env_probes[index] = env_probe;
+    env_probe_render_resources[index] = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    indirect_indices[index] = index;
+    indirect_indices[max_bound_ambient_probes + index] = index;
+}
+
+#pragma region EnvProbeCollection
+
+#pragma region EnvGrid
 
 EnvGrid::EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions options)
     : RenderSubsystem(name),
@@ -337,29 +377,23 @@ void EnvGrid::Init()
                         + y * m_options.density.x
                         + z;
 
-                    const EnvProbeIndex binding_index = GetProbeBindingIndex(
-                        m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
-                        m_aabb,
-                        m_options.density
-                    );
-
                     const BoundingBox env_probe_aabb(
                         m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
                         m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe())
                     );
 
-                    Handle<EnvProbe> probe = CreateObject<EnvProbe>(
+                    Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(
                         m_parent_scene,
                         env_probe_aabb,
                         probe_dimensions,
                         EnvProbeType::ENV_PROBE_TYPE_AMBIENT
                     );
 
-                    m_env_probe_collection.AddProbe(index, probe);
+                    env_probe->m_grid_slot = index;
 
-                    probe->m_grid_slot = index;
+                    InitObject(env_probe);
 
-                    InitObject(probe);
+                    m_env_probe_collection.AddProbe(index, env_probe);
                 }
             }
         }
@@ -492,7 +526,8 @@ void EnvGrid::OnRender(Frame *frame)
     for (uint32 index = 0; index < ArraySize(m_shader_data.probe_indices); index++) {
         const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
 
-        m_shader_data.probe_indices[index] = probe.GetID().ToIndex();
+        m_shader_data.probe_indices[index] = probe->GetRenderResource().GetBufferIndex();
+        AssertThrow(m_shader_data.probe_indices[index] != ~0u);
     }
 
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.env_grid_probes").ToBool()) {
@@ -507,7 +542,7 @@ void EnvGrid::OnRender(Frame *frame)
             g_engine->GetDebugDrawer()->AmbientProbe(
                 probe->GetProxy().world_position,
                 0.25f,
-                probe->GetID()
+                probe
             );
         }
     }
@@ -1024,7 +1059,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
         }
     }
 
-    g_engine->GetRenderState()->SetActiveEnvProbe(probe);
+    g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(probe->GetRenderResource()));
     g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
 
     m_render_collector.CollectDrawCalls(
@@ -1051,7 +1086,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
     bool is_sky_set = false;
 
     if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
-        g_engine->GetRenderState()->SetActiveEnvProbe(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
+        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
         is_sky_set = true;
     }
@@ -1094,6 +1129,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
 
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
@@ -1166,7 +1202,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1193,7 +1229,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1244,7 +1280,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                             { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                         }
                     }
                 }
@@ -1282,7 +1318,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1303,9 +1339,6 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
 
     const uint32 probe_index = probe->m_grid_slot;
 
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-
     { // Update uniform buffer
         LightFieldUniforms uniforms;
         Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -1316,7 +1349,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
             probe_index % m_options.density.x,
             (probe_index % (m_options.density.x * m_options.density.y)) / m_options.density.x,
             probe_index / (m_options.density.x * m_options.density.y),
-            probe->GetID().ToIndex()
+            probe->GetRenderResource().GetBufferIndex()
         };
 
         uniforms.dimension_per_probe = { irradiance_octahedron_size, irradiance_octahedron_size, 0, 0 };
@@ -1349,6 +1382,12 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
         m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
     }
 
+    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+
+    // Used for sky
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+
     m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_compute_irradiance->Bind(frame->GetCommandBuffer());
@@ -1363,7 +1402,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1390,7 +1429,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1419,7 +1458,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1495,6 +1534,7 @@ void EnvGrid::VoxelizeProbe(
 
     const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
+    AssertThrow(probe->IsReady());
 
     const ImageRef &color_image = m_framebuffer->GetAttachment(0)->GetImage();
     const Vec3u cubemap_dimensions = color_image->GetExtent();
@@ -1511,7 +1551,7 @@ void EnvGrid::VoxelizeProbe(
         probe_index % m_options.density.x,
         (probe_index % (m_options.density.x * m_options.density.y)) / m_options.density.x,
         probe_index / (m_options.density.x * m_options.density.y),
-        probe.GetID().ToIndex()
+        probe->GetRenderResource().GetBufferIndex()
     };
 
     push_constants.voxel_texture_dimensions = Vec4u(voxel_grid_texture_extent, 0);
@@ -1641,6 +1681,8 @@ void EnvGrid::VoxelizeProbe(
         );
     }
 }
+
+#pragma endregion EnvGrid
 
 namespace renderer {
 

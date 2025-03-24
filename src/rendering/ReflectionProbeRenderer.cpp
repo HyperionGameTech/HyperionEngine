@@ -10,6 +10,7 @@
 
 #include <system/AppContext.hpp>
 
+#include <scene/EnvProbe.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 
 #include <Engine.hpp>
@@ -84,7 +85,7 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
         g_engine->GetDebugDrawer()->ReflectionProbe(
             m_env_probe->GetProxy().world_position,
             0.5f,
-            m_env_probe->GetID()
+            m_env_probe
         );
     }
 

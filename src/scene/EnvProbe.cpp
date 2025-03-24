@@ -1,6 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/RenderProbe.hpp>
+#include <scene/EnvProbe.hpp>
+
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -66,7 +68,7 @@ struct RENDER_COMMAND(BindEnvProbe) : renderer::RenderCommand
             HYPERION_RETURN_OK;
         }
 
-        g_engine->GetRenderState()->BindEnvProbe(env_probe_type, probe);
+        g_engine->GetRenderState()->BindEnvProbe(env_probe_type, TResourceHandle<EnvProbeRenderResource>(probe->GetRenderResource()));
 
         HYPERION_RETURN_OK;
     }
@@ -93,7 +95,7 @@ struct RENDER_COMMAND(UnbindEnvProbe) : renderer::RenderCommand
             HYPERION_RETURN_OK;
         }
 
-        g_engine->GetRenderState()->UnbindEnvProbe(env_probe_type, probe->GetID());
+        g_engine->GetRenderState()->UnbindEnvProbe(env_probe_type, &probe->GetRenderResource());
 
         HYPERION_RETURN_OK;
     }
@@ -154,16 +156,17 @@ void EnvProbe::UpdateRenderData(
             : Vec4i::Zero()
     };
 
-    g_engine->GetRenderData()->env_probes->Set(GetID().ToIndex(), data);
+    g_engine->GetRenderData()->env_probes->Set(m_render_resource->GetBufferIndex(), data);
 }
 
-EnvProbe::EnvProbe() : EnvProbe(
-    Handle<Scene> { },
-    BoundingBox::Empty(),
-    Vec2u { 1, 1 },
-    EnvProbeType::ENV_PROBE_TYPE_INVALID,
-    nullptr
-)
+EnvProbe::EnvProbe()
+    : EnvProbe(
+          Handle<Scene> { },
+          BoundingBox::Empty(),
+          Vec2u { 1, 1 },
+          EnvProbeType::ENV_PROBE_TYPE_INVALID,
+          nullptr
+      )
 {
 }
 
@@ -198,7 +201,8 @@ EnvProbe::EnvProbe(
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
     m_needs_render_counter(0),
-    m_is_rendered { false }
+    m_is_rendered { false },
+    m_render_resource(nullptr)
 {
 }
 
@@ -221,6 +225,12 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 EnvProbe::~EnvProbe()
 {
     SafeRelease(std::move(m_framebuffer));
+
+    if (m_render_resource != nullptr) {
+        FreeResource(m_render_resource);
+
+        m_render_resource = nullptr;
+    }
 }
 
 void EnvProbe::Init()
@@ -240,7 +250,15 @@ void EnvProbe::Init()
         m_shader.Reset();
 
         SafeRelease(std::move(m_framebuffer));
+
+        if (m_render_resource != nullptr) {
+            FreeResource(m_render_resource);
+
+            m_render_resource = nullptr;
+        }
     }));
+
+    m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
 
     m_proxy = EnvProbeDrawProxy {
         .id = GetID(),
@@ -519,35 +537,20 @@ void EnvProbe::Render(Frame *frame)
 
     EnvProbeIndex probe_index;
 
-    const auto &bound_env_probes = g_engine->GetRenderState()->bound_env_probes[GetEnvProbeType()];
+    if (m_render_resource->GetTextureSlot() == ~0u) {
+        HYP_LOG(EnvProbe, Warning, "Env Probe #{} (type: {}) has no value set for texture slot!",
+            GetID().Value(), GetEnvProbeType());
 
-    {
-        const auto it = bound_env_probes.FindAs(GetID());
-
-        if (it != bound_env_probes.End()) {
-            if (!it->second.HasValue()) {
-                HYP_LOG(EnvProbe, Warning, "Env Probe #{} (type: {}) has no value set for texture slot!",
-                    GetID().Value(), GetEnvProbeType());
-
-                return;
-            }
-
-            // don't care about position in grid if it is not controlled by one.
-            // set it such that the uint32 value of probe_index
-            // would be the held value.
-            probe_index = EnvProbeIndex(
-                Vec3u { 0, 0, it->second.Get() },
-                Vec3u { 0, 0, 0 }
-            );
-        }
-
-        if (probe_index == ~0u) {
-            HYP_LOG(EnvProbe, Warning, "Env Probe #{} (type: {}) not found in render state bound env probe IDs",
-                GetID().Value(), GetEnvProbeType());
-
-            return;
-        }
+        return;
     }
+    
+    // don't care about position in grid if it is not controlled by one.
+    // set it such that the uint32 value of probe_index
+    // would be the texture slot.
+    probe_index = EnvProbeIndex(
+        Vec3u { 0, 0, m_render_resource->GetTextureSlot() },
+        Vec3u { 0, 0, 0 }
+    );
 
     BindToIndex(probe_index);
 
@@ -571,7 +574,7 @@ void EnvProbe::Render(Frame *frame)
     }
 
     {
-        g_engine->GetRenderState()->SetActiveEnvProbe(HandleFromThis());
+        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(*m_render_resource));
 
         if (light_render_resource_handle != nullptr) {
             g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);

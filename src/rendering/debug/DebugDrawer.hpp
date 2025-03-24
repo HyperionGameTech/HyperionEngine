@@ -112,7 +112,7 @@ public:
 
     virtual ~AmbientProbeDebugDrawShape() override = default;
 
-    void operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);
+    void operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe);
 };
 
 class HYP_API ReflectionProbeDebugDrawShape : public SphereDebugDrawShape
@@ -125,7 +125,7 @@ public:
 
     virtual ~ReflectionProbeDebugDrawShape() override = default;
 
-    void operator()(const Vec3f &position, float radius, ID<EnvProbe> env_probe_id);
+    void operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe);
 };
 
 class HYP_API BoxDebugDrawShape : public MeshDebugDrawShapeBase

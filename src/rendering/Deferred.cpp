@@ -6,7 +6,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/EnvGrid.hpp>
-#include <rendering/RenderProbe.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
@@ -857,7 +857,7 @@ void ReflectionsPass::Render(Frame *frame)
         ApplyReflectionProbeMode::PARALLAX_CORRECTED    // ENV_PROBE_TYPE_REFLECTION
     };
 
-    FixedArray<Pair<Handle<RenderGroup> *, Array<ID<EnvProbe>>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
+    FixedArray<Pair<Handle<RenderGroup> *, Array<EnvProbeRenderResource *>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
 
     for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++) {
         pass_ptrs[mode_index] = {
@@ -867,10 +867,8 @@ void ReflectionsPass::Render(Frame *frame)
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
-        for (const auto &it : g_engine->GetRenderState()->bound_env_probes[env_probe_type]) {
-            const ID<EnvProbe> &env_probe_id = it.first;
-
-            pass_ptrs[mode_index].second.PushBack(env_probe_id);
+        for (const TResourceHandle<EnvProbeRenderResource> &resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type]) {
+            pass_ptrs[mode_index].second.PushBack(resource_handle.Get());
         }
     }
     
@@ -887,7 +885,7 @@ void ReflectionsPass::Render(Frame *frame)
         const EnvProbeType env_probe_type = reflection_probe_types[reflection_probe_type_index];
         const ApplyReflectionProbeMode mode = reflection_probe_modes[reflection_probe_type_index];
 
-        const Pair<Handle<RenderGroup> *, Array<ID<EnvProbe>>> &it = pass_ptrs[mode];
+        const Pair<Handle<RenderGroup> *, Array<EnvProbeRenderResource *>> &it = pass_ptrs[mode];
 
         if (it.second.Empty()) {
             continue;
@@ -897,7 +895,7 @@ void ReflectionsPass::Render(Frame *frame)
         AssertThrow(command_buffer.IsValid());
 
         const Handle<RenderGroup> &render_group = *it.first;
-        const Array<ID<EnvProbe>> &env_probes = it.second;
+        const Array<EnvProbeRenderResource *> &env_probe_render_resources = it.second;
 
         command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
 
@@ -923,7 +921,7 @@ void ReflectionsPass::Render(Frame *frame)
                 global_descriptor_set_index
             );
 
-        for (const ID<EnvProbe> env_probe_id : env_probes) {
+        for (EnvProbeRenderResource *env_probe_render_resource : env_probe_render_resources) {
             if (num_rendered_env_probes >= max_bound_reflection_probes) {
                 HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
 
@@ -937,7 +935,7 @@ void ReflectionsPass::Render(Frame *frame)
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_id.ToIndex()) }
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) }
                     },
                     scene_descriptor_set_index
                 );
@@ -1180,6 +1178,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     const bool is_render_environment_ready = environment && environment->IsReady();
 
@@ -1337,7 +1336,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         // Bind sky env probe
         if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
-            g_engine->GetRenderState()->SetActiveEnvProbe(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front().first);
+            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
             is_sky_set = true;
         }
@@ -1392,7 +1391,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
                         { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                     }
                 }
             }

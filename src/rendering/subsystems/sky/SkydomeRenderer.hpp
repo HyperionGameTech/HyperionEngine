@@ -9,11 +9,11 @@
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderSubsystem.hpp>
-#include <rendering/RenderProbe.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/camera/Camera.hpp>
 
 namespace hyperion {

@@ -17,7 +17,7 @@
 
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderSubsystem.hpp>
-#include <rendering/RenderProbe.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -63,36 +63,17 @@ static constexpr uint32 max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvG
 
 struct EnvProbeCollection
 {
-    uint32                                                  num_probes = 0;
-    FixedArray<uint32, max_bound_ambient_probes * 2>        indirect_indices = { 0 };
-    FixedArray<Handle<EnvProbe>, max_bound_ambient_probes>  probes = { };
+    uint32                                                                          num_probes = 0;
+    FixedArray<uint32, max_bound_ambient_probes * 2>                                indirect_indices = { 0 };
+    FixedArray<Handle<EnvProbe>, max_bound_ambient_probes>                          env_probes = { };
+    FixedArray<TResourceHandle<EnvProbeRenderResource>, max_bound_ambient_probes>   env_probe_render_resources = { };
 
     // Must be called in EnvGrid::Init(), before probes are used from the render thread.
     // returns the index
-    uint32 AddProbe(Handle<EnvProbe> probe)
-    {
-        AssertThrow(num_probes < max_bound_ambient_probes);
-
-        const uint32 index = num_probes++;
-
-        probes[index] = std::move(probe);
-        indirect_indices[index] = index;
-        indirect_indices[max_bound_ambient_probes + index] = index;
-
-        return index;
-    }
+    uint32 AddProbe(const Handle<EnvProbe> &env_probe);
 
     // Must be called in EnvGrid::Init(), before probes are used from the render thread.
-    void AddProbe(uint32 index, Handle<EnvProbe> probe)
-    {
-        AssertThrow(index < max_bound_ambient_probes);
-
-        num_probes = MathUtil::Max(num_probes, index + 1);
-
-        probes[index] = std::move(probe);
-        indirect_indices[index] = index;
-        indirect_indices[max_bound_ambient_probes + index] = index;
-    }
+    void AddProbe(uint32 index, const Handle<EnvProbe> &env_probe);
 
     HYP_FORCE_INLINE void SetProbeIndexOnGameThread(uint32 index, uint32 new_index)
     {
@@ -106,10 +87,10 @@ struct EnvProbeCollection
         { return indirect_indices[index]; }
 
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbeDirect(uint32 index) const
-        { return probes[index]; }
+        { return env_probes[index]; }
 
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbeOnGameThread(uint32 index) const
-        { return probes[indirect_indices[index]]; }
+        { return env_probes[indirect_indices[index]]; }
 
     HYP_FORCE_INLINE void SetProbeIndexOnRenderThread(uint32 index, uint32 new_index)
     {
@@ -123,7 +104,7 @@ struct EnvProbeCollection
         { return indirect_indices[max_bound_ambient_probes + index]; }
     
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbeOnRenderThread(uint32 index) const
-        { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
+        { return env_probes[indirect_indices[max_bound_ambient_probes + index]]; }
 };
 
 struct EnvGridOptions

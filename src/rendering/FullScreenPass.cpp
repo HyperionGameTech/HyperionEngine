@@ -5,6 +5,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>
@@ -532,6 +533,7 @@ void FullScreenPass::Record(uint32 frame_index)
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -559,7 +561,7 @@ void FullScreenPass::Record(uint32 frame_index)
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource, 0) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().GetID().ToIndex()) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
         }

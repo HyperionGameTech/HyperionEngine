@@ -5,8 +5,8 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderSkeleton.hpp>
 #include <rendering/RenderLight.hpp>
-#include <rendering/RenderProbe.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

@@ -4,17 +4,18 @@
 
 #include <core/Base.hpp>
 
+#include <core/math/BoundingBox.hpp>
+
 #include <core/object/HypObject.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderSubsystem.hpp>
-#include <rendering/RenderProbe.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
-#include <core/math/BoundingBox.hpp>
-
 namespace hyperion {
+
+class EnvProbe;
 
 HYP_CLASS()
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem

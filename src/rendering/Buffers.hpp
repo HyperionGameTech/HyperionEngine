@@ -128,8 +128,8 @@ struct alignas(16) ImmediateDrawShaderData
 {
     Matrix4 transform;
     uint32  color_packed;
-    uint32  probe_type;
-    uint32  probe_id;
+    uint32  env_probe_type;
+    uint32  env_probe_index;
 };
 
 static_assert(sizeof(ImmediateDrawShaderData) == 80);

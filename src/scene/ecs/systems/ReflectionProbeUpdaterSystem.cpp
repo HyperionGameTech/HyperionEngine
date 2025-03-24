@@ -5,8 +5,8 @@
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/EnvProbe.hpp>
 
-#include <rendering/RenderProbe.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderScene.hpp>
