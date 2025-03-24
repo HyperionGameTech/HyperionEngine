@@ -950,7 +950,11 @@ void UIObject::SetTextColor(const Color &text_color)
 
 void UIObject::SetText(const String &text)
 {
+    HYP_SCOPE;
+
     m_text = text;
+
+    OnTextChange();
 }
 
 float UIObject::GetTextSize() const

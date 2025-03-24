@@ -1172,6 +1172,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent &> OnKeyUp;
 
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnTextChange;
+
 protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
     RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool, UIObject *> &proc) const;
