@@ -23,29 +23,7 @@ namespace hyperion {
 static const InternalFormat reflection_probe_format = InternalFormat::RGBA8;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin);
-
 #pragma region Render commands
-
-struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : renderer::RenderCommand
-{
-    EnvProbe            &env_probe;
-    EnvProbeDrawProxy   proxy;
-
-    RENDER_COMMAND(UpdateEnvProbeDrawProxy)(EnvProbe &env_probe, const EnvProbeDrawProxy &proxy)
-        : env_probe(env_probe),
-          proxy(proxy)
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        // update m_draw_proxy on render thread.
-        env_probe.m_proxy = proxy;
-
-        HYPERION_RETURN_OK;
-    }
-};
 
 struct RENDER_COMMAND(BindEnvProbe) : renderer::RenderCommand
 {
@@ -102,62 +80,6 @@ struct RENDER_COMMAND(UnbindEnvProbe) : renderer::RenderCommand
 };
 
 #pragma endregion Render commands
-
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
-{
-    FixedArray<Matrix4, 6> view_matrices;
-
-    for (uint32 i = 0; i < 6; i++) {
-        view_matrices[i] = Matrix4::LookAt(
-            origin,
-            origin + Texture::cubemap_directions[i].first,
-            Texture::cubemap_directions[i].second
-        );
-    }
-
-    return view_matrices;
-}
-
-void EnvProbe::UpdateRenderData(
-    uint32 texture_slot,
-    uint32 grid_slot,
-    const Vec3u &grid_size
-)
-{
-    const BoundingBox &aabb = m_proxy.aabb;
-    const Vec3f world_position = m_proxy.world_position;
-
-    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(aabb, world_position);
-
-    EnvProbeShaderData data {
-        .face_view_matrices = {
-            view_matrices[0],
-            view_matrices[1],
-            view_matrices[2],
-            view_matrices[3],
-            view_matrices[4],
-            view_matrices[5]
-        },
-        .aabb_max           = Vec4f(aabb.max, 1.0f),
-        .aabb_min           = Vec4f(aabb.min, 1.0f),
-        .world_position     = Vec4f(world_position, 1.0f),
-        .texture_index      = texture_slot,
-        .flags              = m_proxy.flags,
-        .camera_near        = m_proxy.camera_near,
-        .camera_far         = m_proxy.camera_far,
-        .dimensions         = m_dimensions,
-        .position_in_grid   = grid_slot != ~0u
-            ? Vec4i {
-                  int32(grid_slot % grid_size.x),
-                  int32((grid_slot % (grid_size.x * grid_size.y)) / grid_size.x),
-                  int32(grid_slot / (grid_size.x * grid_size.y)),
-                  int32(grid_slot)
-              }
-            : Vec4i::Zero()
-    };
-
-    g_engine->GetRenderData()->env_probes->Set(m_render_resource->GetBufferIndex(), data);
-}
 
 EnvProbe::EnvProbe()
     : EnvProbe(
@@ -256,20 +178,6 @@ void EnvProbe::Init()
         }
     }));
 
-    m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
-
-    m_proxy = EnvProbeDrawProxy {
-        .id = GetID(),
-        .aabb = m_aabb,
-        .world_position = GetOrigin(),
-        .camera_near = m_camera_near,
-        .camera_far = m_camera_far,
-        .flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
-            | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
-            | (NeedsRender() ? EnvProbeFlags::DIRTY : EnvProbeFlags::NONE),
-        .grid_slot = m_grid_slot
-    };
-
     if (!IsControlledByEnvGrid()) {
         if (IsShadowProbe()) {
             m_texture = CreateObject<Texture>(
@@ -312,10 +220,25 @@ void EnvProbe::Init()
             m_camera->SetFramebuffer(m_framebuffer);
 
             InitObject(m_camera);
-
-            m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
         }
     }
+
+    m_render_resource = AllocateResource<EnvProbeRenderResource>(
+        this,
+        !IsControlledByEnvGrid()
+            ? TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource())
+            : TResourceHandle<CameraRenderResource>()
+    );
+    
+    EnvProbeShaderData buffer_data { };
+    buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
+        | (NeedsRender() ? EnvProbeFlags::DIRTY : EnvProbeFlags::NONE);
+    buffer_data.world_position = Vec4f(GetOrigin(), 1.0f);
+    buffer_data.aabb_min = Vec4f(m_aabb.GetMin(), 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.GetMax(), 1.0f);
+
+    m_render_resource->SetBufferData(buffer_data);
 
     SetReady(true);
 }
@@ -493,248 +416,18 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         }
     }
 
-    PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
-        .id             = GetID(),
-        .aabb           = m_aabb,
-        .world_position = GetOrigin(),
-        .camera_near    = m_camera_near,
-        .camera_far     = m_camera_far,
-        .flags          = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
-                        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
-                        | EnvProbeFlags::DIRTY,
-        .grid_slot      = m_grid_slot
-    });
+    EnvProbeShaderData buffer_data { };
+    buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
+        | (NeedsRender() ? EnvProbeFlags::DIRTY : EnvProbeFlags::NONE);
+    buffer_data.world_position = Vec4f(GetOrigin(), 1.0f);
+    buffer_data.aabb_min = Vec4f(m_aabb.GetMin(), 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.GetMax(), 1.0f);
+
+    m_render_resource->SetBufferData(buffer_data);
 
     SetNeedsUpdate(false);
     SetNeedsRender(true);
-}
-
-void EnvProbe::Render(Frame *frame)
-{
-    Threads::AssertOnThread(g_render_thread);
-    AssertReady();
-
-    if (IsControlledByEnvGrid()) {
-        HYP_LOG(EnvProbe, Warning, "EnvProbe #{} is controlled by an EnvGrid, but Render() is being called!", GetID().Value());
-
-        return;
-    }
-    
-    // @FIXME!
-
-    //if (!NeedsRender()) {
-    //    return;
-    //}
-
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    RendererResult result;
-
-    EnvProbeIndex probe_index;
-
-    if (m_render_resource->GetTextureSlot() == ~0u) {
-        HYP_LOG(EnvProbe, Warning, "Env Probe #{} (type: {}) has no value set for texture slot!",
-            GetID().Value(), GetEnvProbeType());
-
-        return;
-    }
-    
-    // don't care about position in grid if it is not controlled by one.
-    // set it such that the uint32 value of probe_index
-    // would be the texture slot.
-    probe_index = EnvProbeIndex(
-        Vec3u { 0, 0, m_render_resource->GetTextureSlot() },
-        Vec3u { 0, 0, 0 }
-    );
-
-    BindToIndex(probe_index);
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
-    
-    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
-
-    if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY) {
-        // Find a directional light to use for the sky
-        // @TODO Support selecting a specific light for the EnvProbe
-
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
-
-        if (directional_lights.Any()) {
-            light_render_resource_handle = &directional_lights[0];
-        }
-
-        if (!light_render_resource_handle) {
-            HYP_LOG(EnvProbe, Warning, "No directional light found for Sky EnvProbe #{}", GetID().Value());
-        }
-    }
-
-    {
-        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(*m_render_resource));
-
-        if (light_render_resource_handle != nullptr) {
-            g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);
-        }
-
-        g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
-        g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
-
-        m_render_collector.CollectDrawCalls(
-            frame,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
-            nullptr
-        );
-
-        m_render_collector.ExecuteDrawCalls(
-            frame,
-            camera_render_resource,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
-        );
-
-        g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
-        g_engine->GetRenderState()->UnsetActiveScene();
-
-        if (light_render_resource_handle != nullptr) {
-            g_engine->GetRenderState()->UnsetActiveLight();
-        }
-
-        g_engine->GetRenderState()->UnsetActiveEnvProbe();
-    }
-
-    const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
-
-    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-    m_texture->GetImage()->Blit(command_buffer, framebuffer_image);
-
-    if (m_texture->HasMipmaps()) {
-        HYPERION_PASS_ERRORS(
-            m_texture->GetImage()->GenerateMipmaps(g_engine->GetGPUDevice(), command_buffer),
-            result
-        );
-    }
-
-    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-    m_is_rendered.Set(true, MemoryOrder::RELEASE);
-
-    HYPERION_ASSERT_RESULT(result);
-
-    SetNeedsRender(false);
-}
-
-void EnvProbe::UpdateRenderData(bool set_texture)
-{
-    Threads::AssertOnThread(g_render_thread);
-    AssertReady();
-
-    AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
-
-    if (IsControlledByEnvGrid()) {
-        AssertThrow(m_grid_slot != ~0u);
-    }
-
-    const uint32 texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
-
-    { // build proxy flags
-        const EnumFlags<ShadowFlags> shadow_flags = IsShadowProbe() ? ShadowFlags::VSM : ShadowFlags::NONE;
-
-        if (NeedsRender()) {
-            m_proxy.flags |= EnvProbeFlags::DIRTY;
-        }
-
-        m_proxy.flags |= uint32(shadow_flags) << 3;
-    }
-
-    UpdateRenderData(
-        texture_slot,
-        IsControlledByEnvGrid() ? m_grid_slot : ~0u,
-        IsControlledByEnvGrid() ? m_bound_index.grid_size : Vec3u { }
-    );
-
-    // update cubemap texture in array of bound env probes
-    if (set_texture) {
-        AssertThrow(texture_slot != ~0u);
-        AssertThrow(m_texture.IsValid());
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            switch (GetEnvProbeType()) {
-            case ENV_PROBE_TYPE_REFLECTION:
-            case ENV_PROBE_TYPE_SKY: // fallthrough
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            case ENV_PROBE_TYPE_SHADOW:
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            default:
-                break;
-            }
-        }
-    }
-}
-
-void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
-{
-    bool set_texture = true;
-
-    if (IsControlledByEnvGrid()) {
-        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound ambient probes", probe_index.GetProbeIndex());
-        }
-
-        set_texture = false;
-    } else if (IsReflectionProbe() || IsSkyProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound reflection probes", probe_index.GetProbeIndex());
-
-            set_texture = false;
-        }
-    } else if (IsShadowProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound shadow map probes", probe_index.GetProbeIndex());
-
-            set_texture = false;
-        }
-    }
-
-    m_bound_index = probe_index;
-
-    if (IsReady()) {
-        if (Threads::IsOnThread(g_render_thread)) {
-            UpdateRenderData(set_texture);
-        } else {
-            struct RENDER_COMMAND(UpdateEnvProbeRenderData) : renderer::RenderCommand
-            {
-                EnvProbe    &env_probe;
-                bool        set_texture;
-
-                RENDER_COMMAND(UpdateEnvProbeRenderData)(EnvProbe &env_probe, bool set_texture)
-                    : env_probe(env_probe),
-                      set_texture(set_texture)
-                {
-                }
-
-                virtual ~RENDER_COMMAND(UpdateEnvProbeRenderData)() override = default;
-
-                virtual RendererResult operator()() override
-                {
-                    env_probe.UpdateRenderData(set_texture);
-
-                    return RendererResult { };
-                }
-            };
-
-            PUSH_RENDER_COMMAND(UpdateEnvProbeRenderData, *this, set_texture);
-
-            HYP_SYNC_RENDER();
-        }
-    }
 }
 
 namespace renderer {

@@ -540,7 +540,7 @@ void EnvGrid::OnRender(Frame *frame)
             }
 
             g_engine->GetDebugDrawer()->AmbientProbe(
-                probe->GetProxy().world_position,
+                probe->GetRenderResource().GetBufferData().world_position.GetXYZ(),
                 0.25f,
                 probe
             );
@@ -556,7 +556,7 @@ void EnvGrid::OnRender(Frame *frame)
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_env_probe_collection.num_probes);
 
-        const Vec3f &camera_position = active_camera.GetBufferData().camera_position.GetXYZ();
+        const Vec3f camera_position = active_camera.GetBufferData().camera_position.GetXYZ();
 
         Array<Pair<uint32, float>> indices_distances;
         indices_distances.Reserve(16);
@@ -565,10 +565,10 @@ void EnvGrid::OnRender(Frame *frame)
             const uint32 index = (m_current_probe_index + i) % m_env_probe_collection.num_probes;
             const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeOnRenderThread(index);
 
-            if (probe.IsValid() && probe->NeedsRender()) {
+            if (probe.IsValid()) {// &&probe->NeedsRender()) {
                 indices_distances.PushBack({
                     index,
-                    probe->GetProxy().world_position.Distance(camera_position)
+                    probe->GetRenderResource().GetBufferData().world_position.GetXYZ().Distance(camera_position)
                 });
             }
         }
@@ -585,15 +585,13 @@ void EnvGrid::OnRender(Frame *frame)
                 const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(indirect_index);
                 AssertThrow(probe.IsValid());
 
-                const EnvProbeIndex binding_index = GetProbeBindingIndex(probe->GetProxy().world_position, grid_aabb, m_options.density);
+                const Vec3f world_position = probe->GetRenderResource().GetBufferData().world_position.GetXYZ();
+
+                const EnvProbeIndex binding_index = GetProbeBindingIndex(world_position, grid_aabb, m_options.density);
 
                 if (binding_index != invalid_probe_index) {
                     if (m_next_render_indices.Size() < max_queued_probes_for_render) {
-                        probe->UpdateRenderData(
-                            ~0u,
-                            indirect_index,
-                            m_options.density
-                        );
+                        probe->GetRenderResource().BindToIndex(binding_index);
 
                         // render this probe in the next frame, since the data will have been updated on the gpu on start of the frame
                         m_next_render_indices.Push(indirect_index);
@@ -604,7 +602,7 @@ void EnvGrid::OnRender(Frame *frame)
                     }
                 } else {
                     HYP_LOG(EnvGrid, Warning, "EnvProbe #{} out of range of max bound env probes (position: {}, world position: {}",
-                        probe->GetID().Value(), binding_index.position, probe->GetProxy().world_position);
+                        probe->GetID().Value(), binding_index.position, world_position);
                 }
 
                 probe->SetNeedsRender(false);
@@ -1160,8 +1158,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     };
 
     push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
-
-    push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
+    push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
     for (const DescriptorTableRef &descriptor_set_ref : m_compute_sh_descriptor_tables) {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
@@ -1556,7 +1553,7 @@ void EnvGrid::VoxelizeProbe(
 
     push_constants.voxel_texture_dimensions = Vec4u(voxel_grid_texture_extent, 0);
     push_constants.cubemap_dimensions = Vec4u(cubemap_dimensions, 0);
-    push_constants.world_position = Vec4f(probe->GetProxy().world_position, 1.0f);
+    push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
     color_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 

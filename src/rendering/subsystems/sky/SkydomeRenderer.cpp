@@ -2,6 +2,7 @@
 
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 
 #include <scene/World.hpp>
 
@@ -114,6 +115,9 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void SkydomeRenderer::OnRender(Frame *frame)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     AssertThrow(m_env_probe.IsValid());
 
     if (!m_env_probe->IsReady()) {
@@ -124,7 +128,7 @@ void SkydomeRenderer::OnRender(Frame *frame)
     //     return;
     // }
 
-    m_env_probe->Render(frame);
+    m_env_probe->GetRenderResource().Render(frame);
 
     // Copy cubemap from env probe to cubemap texture
     const ImageRef &src_image = m_env_probe->GetTexture()->GetImage();

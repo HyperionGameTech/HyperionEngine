@@ -60,65 +60,6 @@ enum EnvProbeType : uint32
 class EnvProbe;
 class EnvProbeRenderResource;
 
-struct EnvProbeIndex
-{
-    Vec3u   position;
-    Vec3u   grid_size;
-
-    // defaults such that GetProbeIndex() == ~0u
-    // because (~0u * 0 * 0) + (~0u * 0) + ~0u == ~0u
-    EnvProbeIndex()
-        : position { ~0u, ~0u, ~0u },
-          grid_size { 0, 0, 0 }
-    {
-    }
-
-    EnvProbeIndex(const Vec3u &position, const Vec3u &grid_size)
-        : position(position),
-          grid_size(grid_size)
-    {
-    }
-
-    EnvProbeIndex(const EnvProbeIndex &other)                   = default;
-    EnvProbeIndex &operator=(const EnvProbeIndex &other)        = default;
-    EnvProbeIndex(EnvProbeIndex &&other) noexcept               = default;
-    EnvProbeIndex &operator=(EnvProbeIndex &&other) noexcept    = default;
-    ~EnvProbeIndex()                                            = default;
-
-    HYP_FORCE_INLINE uint32 GetProbeIndex() const
-    {
-        return (position.x * grid_size.y * grid_size.z)
-            + (position.y * grid_size.z)
-            + position.z;
-    }
-
-    HYP_FORCE_INLINE bool operator<(uint32 value) const
-        { return GetProbeIndex() < value; }
-
-    HYP_FORCE_INLINE bool operator==(uint32 value) const
-        { return GetProbeIndex() == value; }
-
-    HYP_FORCE_INLINE bool operator!=(uint32 value) const
-        { return GetProbeIndex() != value; }
-
-    HYP_FORCE_INLINE bool operator<(const EnvProbeIndex &other) const
-        { return GetProbeIndex() < other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE bool operator==(const EnvProbeIndex &other) const
-        { return GetProbeIndex() == other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE bool operator!=(const EnvProbeIndex &other) const
-        { return GetProbeIndex() != other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(GetProbeIndex());
-
-        return hc;
-    }
-};
-
 struct EnvProbeDrawProxy
 {
     ID<EnvProbe>                id;
@@ -183,12 +124,9 @@ public:
     HYP_FORCE_INLINE bool IsControlledByEnvGrid() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
     
-    HYP_FORCE_INLINE const EnvProbeIndex &GetBoundIndex() const
-        { return m_bound_index; }
+    HYP_FORCE_INLINE Vec2u GetDimensions() const
+        { return m_dimensions; }
 
-    HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
-        { m_bound_index = bound_index; }
-    
     HYP_FORCE_INLINE const Handle<Scene> &GetParentScene() const
         { return m_parent_scene; }
 
@@ -246,9 +184,6 @@ public:
         return counter > 0;
     }
 
-    HYP_FORCE_INLINE const EnvProbeDrawProxy &GetProxy() const
-        { return m_proxy; }
-
     bool IsVisible(ID<Camera> camera_id) const;
     void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
@@ -256,18 +191,6 @@ public:
     void EnqueueBind() const;
     void EnqueueUnbind() const;
     void Update(GameCounter::TickUnit delta);
-
-    void Render(Frame *frame);
-
-    void UpdateRenderData(bool set_texture = false);
-
-    void UpdateRenderData(
-        uint32 texture_slot,
-        uint32 grid_slot,
-        const Vec3u &grid_size
-    );
-
-    void BindToIndex(const EnvProbeIndex &probe_index);
 
     uint32 m_grid_slot = ~0u; // temp
     
@@ -292,16 +215,12 @@ private:
     
     Handle<Camera>          m_camera;
 
-    EnvProbeIndex           m_bound_index;
-
     Bitset                  m_visibility_bits;
 
     bool                    m_needs_update;
     AtomicVar<bool>         m_is_rendered;
     AtomicVar<int32>        m_needs_render_counter;
     HashCode                m_octant_hash_code;
-
-    EnvProbeDrawProxy       m_proxy;
 
     EnvProbeRenderResource *m_render_resource;
 };

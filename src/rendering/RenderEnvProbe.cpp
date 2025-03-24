@@ -4,6 +4,8 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderLight.hpp>
+#include <rendering/Shadows.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -15,6 +17,21 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvProbe);
+
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
+{
+    FixedArray<Matrix4, 6> view_matrices;
+
+    for (uint32 i = 0; i < 6; i++) {
+        view_matrices[i] = Matrix4::LookAt(
+            origin,
+            origin + Texture::cubemap_directions[i].first,
+            Texture::cubemap_directions[i].second
+        );
+    }
+
+    return view_matrices;
+}
 
 #pragma region EnvProbeRenderResource
 
@@ -173,84 +190,10 @@ void EnvProbeRenderResource::BindToIndex(const EnvProbeIndex &probe_index)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    bool set_texture = true;
-
-    if (m_env_probe->IsControlledByEnvGrid()) {
-        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound ambient probes", probe_index.GetProbeIndex());
-        }
-
-        set_texture = false;
-    } else if (m_env_probe->IsReflectionProbe() || m_env_probe->IsSkyProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound reflection probes", probe_index.GetProbeIndex());
-
-            set_texture = false;
-        }
-    } else if (m_env_probe->IsShadowProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
-            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound shadow map probes", probe_index.GetProbeIndex());
-
-            set_texture = false;
-        }
-    }
-
-    m_env_probe->m_bound_index = probe_index;
-
-    UpdateRenderData(set_texture);
-}
-
-void EnvProbeRenderResource::UpdateRenderData(bool set_texture)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
-
-    if (IsControlledByEnvGrid()) {
-        AssertThrow(m_grid_slot != ~0u);
-    }
-
-    const uint32 texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
-
-    { // build proxy flags
-        const EnumFlags<ShadowFlags> shadow_flags = IsShadowProbe() ? ShadowFlags::VSM : ShadowFlags::NONE;
-
-        if (NeedsRender()) {
-            m_proxy.flags |= EnvProbeFlags::DIRTY;
-        }
-
-        m_proxy.flags |= uint32(shadow_flags) << 3;
-    }
-
-    UpdateRenderData(
-        texture_slot,
-        IsControlledByEnvGrid() ? m_grid_slot : ~0u,
-        IsControlledByEnvGrid() ? m_bound_index.grid_size : Vec3u { }
-    );
-
-    // update cubemap texture in array of bound env probes
-    if (set_texture) {
-        AssertThrow(texture_slot != ~0u);
-        AssertThrow(m_texture.IsValid());
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            switch (GetEnvProbeType()) {
-            case ENV_PROBE_TYPE_REFLECTION:
-            case ENV_PROBE_TYPE_SKY: // fallthrough
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            case ENV_PROBE_TYPE_SHADOW:
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            default:
-                break;
-            }
-        }
+    m_probe_index = probe_index;
+    
+    if (IsInitialized()) {
+        SetNeedsUpdate();
     }
 }
 
@@ -259,9 +202,110 @@ GPUBufferHolderBase *EnvProbeRenderResource::GetGPUBufferHolder() const
     return g_engine->GetRenderData()->env_probes.Get();
 }
 
+void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData &buffer_data)
+{
+    HYP_SCOPE;
+
+    Execute([this, buffer_data]()
+    {
+        m_buffer_data = buffer_data;
+        
+        if (IsInitialized()) {
+            SetNeedsUpdate();
+        }
+    });
+}
+
 void EnvProbeRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
+
+    bool should_set_texture = true;
+
+    if (m_env_probe->IsControlledByEnvGrid()) {
+        if (m_probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
+            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound ambient probes", m_probe_index.GetProbeIndex());
+        }
+
+        should_set_texture = false;
+    } else if (m_env_probe->IsReflectionProbe() || m_env_probe->IsSkyProbe()) {
+        if (m_probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
+            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound reflection probes", m_probe_index.GetProbeIndex());
+
+            should_set_texture = false;
+        }
+    } else if (m_env_probe->IsShadowProbe()) {
+        if (m_probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
+            HYP_LOG(EnvProbe, Warning, "Probe index ({}) out of range of max bound shadow map probes", m_probe_index.GetProbeIndex());
+
+            should_set_texture = false;
+        }
+    }
+
+    const CameraRenderResource *camera_render_resource = static_cast<CameraRenderResource *>(m_camera_resource_handle.Get());
+    
+    uint32 flags = 0;
+
+    const uint32 texture_slot = m_env_probe->IsControlledByEnvGrid() ? ~0u : m_probe_index.GetProbeIndex();
+
+    { // build proxy flags
+        const EnumFlags<ShadowFlags> shadow_flags = m_env_probe->IsShadowProbe() ? ShadowFlags::VSM : ShadowFlags::NONE;
+
+        if (m_needs_render) {
+            flags |= uint32(EnvProbeFlags::DIRTY);
+        }
+
+        flags |= uint32(shadow_flags) << 3;
+    }
+
+    const BoundingBox aabb = BoundingBox(m_buffer_data.aabb_min.GetXYZ(), m_buffer_data.aabb_max.GetXYZ());
+    const Vec3f world_position = m_buffer_data.world_position.GetXYZ();
+
+    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(aabb, world_position);
+
+    const uint32 grid_slot = m_env_probe->IsControlledByEnvGrid() ? m_env_probe->m_grid_slot : ~0u;
+    const Vec3u grid_size = m_env_probe->IsControlledByEnvGrid() ? m_probe_index.grid_size : Vec3u { };
+
+    Memory::MemCpy(m_buffer_data.face_view_matrices, view_matrices.Data(), sizeof(Matrix4) * 6);
+    m_buffer_data.texture_index = texture_slot;
+    m_buffer_data.flags = flags;
+    m_buffer_data.camera_near = camera_render_resource ? camera_render_resource->GetBufferData().camera_near : 0.0f;
+    m_buffer_data.camera_far = camera_render_resource ? camera_render_resource->GetBufferData().camera_far : 0.0f;
+    m_buffer_data.dimensions = m_env_probe->GetDimensions();
+    m_buffer_data.position_in_grid = grid_slot != ~0u && grid_size.Max() != 0
+        ? Vec4i {
+              int32(grid_slot % grid_size.x),
+              int32((grid_slot % (grid_size.x * grid_size.y)) / grid_size.x),
+              int32(grid_slot / (grid_size.x * grid_size.y)),
+              int32(grid_slot)
+          }
+        : Vec4i::Zero();
+
+    // update cubemap texture in array of bound env probes
+    if (should_set_texture) {
+        AssertThrow(texture_slot != ~0u);
+
+        AssertThrow(m_env_probe->GetTexture().IsValid());
+        AssertThrow(m_env_probe->GetTexture()->IsReady());
+
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            switch (m_env_probe->GetEnvProbeType()) {
+            case ENV_PROBE_TYPE_REFLECTION:
+            case ENV_PROBE_TYPE_SKY: // fallthrough
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_env_probe->GetTexture()->GetImageView());
+
+                break;
+            case ENV_PROBE_TYPE_SHADOW:
+                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_env_probe->GetTexture()->GetImageView());
+
+                break;
+            default:
+                break;
+            }
+        }
+    }
 
     *static_cast<EnvProbeShaderData *>(m_buffer_address) = m_buffer_data;
 

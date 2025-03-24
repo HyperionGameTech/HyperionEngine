@@ -310,6 +310,15 @@ public:
     HYP_FORCE_INLINE IResource &operator*() const
         { AssertDebug(!resource->IsNull()); return *resource; }
 
+    HYP_FORCE_INLINE IResource *Get() const
+    {
+        if (resource->IsNull()) {
+            return nullptr;
+        }
+
+        return resource;
+    }
+
 protected:
     IResource   *resource;
 };
