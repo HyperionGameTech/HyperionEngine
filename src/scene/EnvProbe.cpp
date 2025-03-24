@@ -243,8 +243,6 @@ void EnvProbe::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
-        m_render_collector.Reset();
-        m_camera_resource_handle.Reset();
         m_camera.Reset();
         m_texture.Reset();
         m_shader.Reset();
@@ -463,7 +461,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         if (OnlyCollectStaticEntities()) {
             m_parent_scene->CollectStaticEntities(
-                m_render_collector,
+                m_render_resource->GetRenderCollector(),
                 m_camera,
                 RenderableAttributeSet(
                     MeshAttributes { },
@@ -480,7 +478,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
 
             m_parent_scene->CollectEntities(
-                m_render_collector,
+                m_render_resource->GetRenderCollector(),
                 m_camera,
                 RenderableAttributeSet(
                     MeshAttributes { },
@@ -527,8 +525,6 @@ void EnvProbe::Render(Frame *frame)
     //if (!NeedsRender()) {
     //    return;
     //}
-
-    AssertThrow(m_texture.IsValid());
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();

@@ -11,7 +11,6 @@
 #include <core/math/BoundingBox.hpp>
 
 #include <rendering/RenderTexture.hpp>
-#include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 
@@ -190,6 +189,15 @@ public:
     HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
         { m_bound_index = bound_index; }
     
+    HYP_FORCE_INLINE const Handle<Scene> &GetParentScene() const
+        { return m_parent_scene; }
+
+    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
+        { return m_framebuffer; }
+
+    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
     HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
@@ -283,9 +291,6 @@ private:
     ShaderRef               m_shader;
     
     Handle<Camera>          m_camera;
-    ResourceHandle          m_camera_resource_handle;
-
-    RenderCollector         m_render_collector;
 
     EnvProbeIndex           m_bound_index;
 

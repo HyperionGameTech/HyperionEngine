@@ -6,6 +6,9 @@
 #include <core/math/Matrix4.hpp>
 
 #include <rendering/RenderResource.hpp>
+#include <rendering/RenderCollection.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
 
 #include <Types.hpp>
 
@@ -41,18 +44,26 @@ static constexpr uint32 max_env_probes = (8ull * 1024ull * 1024ull) / sizeof(Env
 class EnvProbeRenderResource final : public RenderResourceBase
 {
 public:
-    EnvProbeRenderResource(EnvProbe *env_probe);
+    EnvProbeRenderResource(EnvProbe *env_probe, const ResourceHandle &camera_resource_handle);
     virtual ~EnvProbeRenderResource() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE EnvProbe *GetEnvProbe() const
         { return m_env_probe; }
 
+    HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
+        { return m_render_collector; }
+
+    HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
+        { return m_render_collector; }
+
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE uint32 GetTextureSlot() const
         { return m_texture_slot; }
 
     void SetTextureSlot(uint32 texture_slot);
+
+    void Render(Frame *frame);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -64,11 +75,17 @@ protected:
 private:
     void UpdateBufferData();
 
+    void BindToIndex(const EnvProbeIndex &probe_index);
+
     EnvProbe            *m_env_probe;
+    ResourceHandle      m_camera_resource_handle;
 
     EnvProbeShaderData  m_buffer_data;
 
+    RenderCollector     m_render_collector;
+
     uint32              m_texture_slot;
+    bool                m_needs_render;
 };
 
 } // namespace hyperion
