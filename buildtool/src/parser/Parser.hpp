@@ -177,6 +177,14 @@ struct ASTType : ASTNode
             && type_name->parts[0] == "void";
     }
 
+    HYP_FORCE_INLINE bool IsScriptableDelegate() const
+    {
+        return type_name.HasValue()
+            && type_name->parts.Any()
+            && type_name->parts.Back() == "ScriptableDelegate"
+            && is_template;
+    }
+
     virtual String Format(bool use_csharp_syntax = false) const;
     virtual String FormatDecl(const String &decl_name, bool use_csharp_syntax = false) const;
 

@@ -8,4 +8,9 @@ namespace Hyperion
     public class ScriptMethodStub : Attribute
     {
     }
+
+    [AttributeUsage(AttributeTargets.Struct, Inherited = false)]
+    public class NoManagedClass : Attribute
+    {
+    }
 }

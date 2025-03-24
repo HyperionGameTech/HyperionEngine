@@ -42,77 +42,95 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
         for (SizeType i = 0; i < hyp_class.members.Size(); ++i) {
             const HypMemberDefinition &member = hyp_class.members[i];
 
-            if (member.type != HypMemberType::TYPE_METHOD) {
-                continue;
-            }
-
             if (const HypClassAttributeValue &attr = member.GetAttribute("NoScriptBindings"); attr.GetBool()) {
                 // skip generating script bindings for this
                 continue;
             }
 
-            if (!member.cxx_type->is_function || member.cxx_type->is_static) {
+            if (member.type == HypMemberType::TYPE_METHOD) {
+                if (!member.cxx_type->is_function) {
+                    return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");
+                }
+
+                if (member.cxx_type->is_static) {
+                    continue;
+                }
+
+                const ASTFunctionType *function_type = dynamic_cast<const ASTFunctionType *>(member.cxx_type.Get());
+
+                if (!function_type) {
+                    return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
+                }
+
+                String return_type_name;
+                
+                if (TResult<String> res = MapToCSharpType(function_type->return_type); res.HasError()) {
+                    return res.GetError();
+                } else {
+                    return_type_name = res.GetValue();
+                }
+
+                Array<String> method_arg_decls;
+                Array<String> method_arg_names;
+
+                for (SizeType i = 0; i < function_type->parameters.Size(); ++i) {
+                    const ASTMemberDecl *parameter = function_type->parameters[i];
+
+                    String parameter_type_name;
+
+                    if (TResult<String> res = MapToCSharpType(parameter->type); res.HasError()) {
+                        return res.GetError();
+                    } else {
+                        parameter_type_name = res.GetValue();
+                    }
+
+                    method_arg_decls.PushBack(HYP_FORMAT("{} {}", parameter_type_name, parameter->name));
+                    method_arg_names.PushBack(parameter->name);
+                }
+
+                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_name, member.name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
+                writer.WriteString("        {\n");
+
+                if (function_type->return_type->IsVoid()) {
+                    if (hyp_class.type == HypClassDefinitionType::STRUCT) {
+                        writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{});\n",
+                            hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                    } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
+                        writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).Invoke(obj{});\n",
+                            uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                    } else {
+                        return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
+                    }
+                } else {
+                    if (hyp_class.type == HypClassDefinitionType::STRUCT) {
+                        writer.WriteString(HYP_FORMAT("            return ({})HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{}).GetValue();\n",
+                            return_type_name, hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                    } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
+                        writer.WriteString(HYP_FORMAT("            return ({})obj.GetMethod(new Name({})).Invoke(obj{}).GetValue();\n",
+                            return_type_name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
+                    } else {
+                        return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
+                    }
+                }
+
+                writer.WriteString("        }\n");
+
                 continue;
             }
 
-            const ASTFunctionType *function_type = dynamic_cast<const ASTFunctionType *>(member.cxx_type.Get());
+            // Generate code to get a ScriptableDelegate C# object corresponding to the C++ object
+            if (member.type == HypMemberType::TYPE_FIELD && member.cxx_type->IsScriptableDelegate()) {
+                writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", member.name, hyp_class.name));
+                writer.WriteString("        {\n");
 
-            if (!function_type) {
-                return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
+                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.HypClass.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.name.Data()))));
+                writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);\n\n");
+                writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
+
+                writer.WriteString("        }\n");
+
+                continue;
             }
-
-            String return_type_name;
-            
-            if (TResult<String> res = MapToCSharpType(function_type->return_type); res.HasError()) {
-                return res.GetError();
-            } else {
-                return_type_name = res.GetValue();
-            }
-
-            Array<String> method_arg_decls;
-            Array<String> method_arg_names;
-
-            for (SizeType i = 0; i < function_type->parameters.Size(); ++i) {
-                const ASTMemberDecl *parameter = function_type->parameters[i];
-
-                String parameter_type_name;
-
-                if (TResult<String> res = MapToCSharpType(parameter->type); res.HasError()) {
-                    return res.GetError();
-                } else {
-                    parameter_type_name = res.GetValue();
-                }
-
-                method_arg_decls.PushBack(HYP_FORMAT("{} {}", parameter_type_name, parameter->name));
-                method_arg_names.PushBack(parameter->name);
-            }
-
-            writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_name, member.name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
-            writer.WriteString("        {\n");
-
-            if (function_type->return_type->IsVoid()) {
-                if (hyp_class.type == HypClassDefinitionType::STRUCT) {
-                    writer.WriteString(HYP_FORMAT("            HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{});\n",
-                        hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
-                } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
-                    writer.WriteString(HYP_FORMAT("            obj.GetMethod(new Name({})).Invoke(obj{});\n",
-                        uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
-                } else {
-                    return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
-                }
-            } else {
-                if (hyp_class.type == HypClassDefinitionType::STRUCT) {
-                    writer.WriteString(HYP_FORMAT("            return ({})HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).Invoke(obj{}).GetValue();\n",
-                        return_type_name, hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
-                } else if (hyp_class.type == HypClassDefinitionType::CLASS) {
-                    writer.WriteString(HYP_FORMAT("            return ({})obj.GetMethod(new Name({})).Invoke(obj{}).GetValue();\n",
-                        return_type_name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
-                } else {
-                    return HYP_MAKE_ERROR(Error, "Unsupported HypClass type");
-                }
-            }
-
-            writer.WriteString("        }\n");
         }
 
         writer.WriteString("    }\n");
