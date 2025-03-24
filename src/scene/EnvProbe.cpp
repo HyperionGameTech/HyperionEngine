@@ -23,29 +23,7 @@ namespace hyperion {
 static const InternalFormat reflection_probe_format = InternalFormat::RGBA8;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin);
-
 #pragma region Render commands
-
-struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : renderer::RenderCommand
-{
-    EnvProbe            &env_probe;
-    EnvProbeDrawProxy   proxy;
-
-    RENDER_COMMAND(UpdateEnvProbeDrawProxy)(EnvProbe &env_probe, const EnvProbeDrawProxy &proxy)
-        : env_probe(env_probe),
-          proxy(proxy)
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        // update m_draw_proxy on render thread.
-        env_probe.m_proxy = proxy;
-
-        HYPERION_RETURN_OK;
-    }
-};
 
 struct RENDER_COMMAND(BindEnvProbe) : renderer::RenderCommand
 {
@@ -102,62 +80,6 @@ struct RENDER_COMMAND(UnbindEnvProbe) : renderer::RenderCommand
 };
 
 #pragma endregion Render commands
-
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
-{
-    FixedArray<Matrix4, 6> view_matrices;
-
-    for (uint32 i = 0; i < 6; i++) {
-        view_matrices[i] = Matrix4::LookAt(
-            origin,
-            origin + Texture::cubemap_directions[i].first,
-            Texture::cubemap_directions[i].second
-        );
-    }
-
-    return view_matrices;
-}
-
-void EnvProbe::UpdateRenderData(
-    uint32 texture_slot,
-    uint32 grid_slot,
-    const Vec3u &grid_size
-)
-{
-    const BoundingBox &aabb = m_proxy.aabb;
-    const Vec3f world_position = m_proxy.world_position;
-
-    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(aabb, world_position);
-
-    EnvProbeShaderData data {
-        .face_view_matrices = {
-            view_matrices[0],
-            view_matrices[1],
-            view_matrices[2],
-            view_matrices[3],
-            view_matrices[4],
-            view_matrices[5]
-        },
-        .aabb_max           = Vec4f(aabb.max, 1.0f),
-        .aabb_min           = Vec4f(aabb.min, 1.0f),
-        .world_position     = Vec4f(world_position, 1.0f),
-        .texture_index      = texture_slot,
-        .flags              = m_proxy.flags,
-        .camera_near        = m_proxy.camera_near,
-        .camera_far         = m_proxy.camera_far,
-        .dimensions         = m_dimensions,
-        .position_in_grid   = grid_slot != ~0u
-            ? Vec4i {
-                  int32(grid_slot % grid_size.x),
-                  int32((grid_slot % (grid_size.x * grid_size.y)) / grid_size.x),
-                  int32(grid_slot / (grid_size.x * grid_size.y)),
-                  int32(grid_slot)
-              }
-            : Vec4i::Zero()
-    };
-
-    g_engine->GetRenderData()->env_probes->Set(m_render_resource->GetBufferIndex(), data);
-}
 
 EnvProbe::EnvProbe()
     : EnvProbe(
@@ -260,17 +182,18 @@ void EnvProbe::Init()
 
     m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
 
-    m_proxy = EnvProbeDrawProxy {
-        .id = GetID(),
-        .aabb = m_aabb,
-        .world_position = GetOrigin(),
-        .camera_near = m_camera_near,
-        .camera_far = m_camera_far,
-        .flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
-            | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
-            | (NeedsRender() ? EnvProbeFlags::DIRTY : EnvProbeFlags::NONE),
-        .grid_slot = m_grid_slot
-    };
+    EnvProbeShaderData buffer_data { };
+    buffer_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.max, 1.0f);
+    buffer_data.world_position = Vec4f(GetOrigin(), 1.0f);
+    buffer_data.camera_near = m_camera_near;
+    buffer_data.camera_far = m_camera_far;
+    buffer_data.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+                      | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
+                      | EnvProbeFlags::DIRTY;
+
+    m_render_resource->SetBufferData(buffer_data);
 
     if (!IsControlledByEnvGrid()) {
         if (IsShadowProbe()) {
@@ -495,17 +418,18 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         }
     }
 
-    PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
-        .id             = GetID(),
-        .aabb           = m_aabb,
-        .world_position = GetOrigin(),
-        .camera_near    = m_camera_near,
-        .camera_far     = m_camera_far,
-        .flags          = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
-                        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
-                        | EnvProbeFlags::DIRTY,
-        .grid_slot      = m_grid_slot
-    });
+    EnvProbeShaderData buffer_data { };
+    buffer_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.max, 1.0f);
+    buffer_data.world_position = Vec4f(GetOrigin(), 1.0f);
+    buffer_data.camera_near = m_camera_near;
+    buffer_data.camera_far = m_camera_far;
+    buffer_data.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+                      | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
+                      | EnvProbeFlags::DIRTY;
+
+    m_render_resource->SetBufferData(buffer_data);
 
     SetNeedsUpdate(false);
     SetNeedsRender(true);
@@ -629,60 +553,6 @@ void EnvProbe::Render(Frame *frame)
     SetNeedsRender(false);
 }
 
-void EnvProbe::UpdateRenderData(bool set_texture)
-{
-    Threads::AssertOnThread(g_render_thread);
-    AssertReady();
-
-    AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
-
-    if (IsControlledByEnvGrid()) {
-        AssertThrow(m_grid_slot != ~0u);
-    }
-
-    const uint32 texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
-
-    { // build proxy flags
-        const EnumFlags<ShadowFlags> shadow_flags = IsShadowProbe() ? ShadowFlags::VSM : ShadowFlags::NONE;
-
-        if (NeedsRender()) {
-            m_proxy.flags |= EnvProbeFlags::DIRTY;
-        }
-
-        m_proxy.flags |= uint32(shadow_flags) << 3;
-    }
-
-    UpdateRenderData(
-        texture_slot,
-        IsControlledByEnvGrid() ? m_grid_slot : ~0u,
-        IsControlledByEnvGrid() ? m_bound_index.grid_size : Vec3u { }
-    );
-
-    // update cubemap texture in array of bound env probes
-    if (set_texture) {
-        AssertThrow(texture_slot != ~0u);
-        AssertThrow(m_texture.IsValid());
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            switch (GetEnvProbeType()) {
-            case ENV_PROBE_TYPE_REFLECTION:
-            case ENV_PROBE_TYPE_SKY: // fallthrough
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            case ENV_PROBE_TYPE_SHADOW:
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetImageView());
-
-                break;
-            default:
-                break;
-            }
-        }
-    }
-}
-
 void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 {
     bool set_texture = true;
@@ -711,7 +581,7 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 
     if (IsReady()) {
         if (Threads::IsOnThread(g_render_thread)) {
-            UpdateRenderData(set_texture);
+            m_render_resource->UpdateRenderData(set_texture);
         } else {
             struct RENDER_COMMAND(UpdateEnvProbeRenderData) : renderer::RenderCommand
             {
@@ -728,7 +598,7 @@ void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 
                 virtual RendererResult operator()() override
                 {
-                    env_probe.UpdateRenderData(set_texture);
+                    env_probe.GetRenderResource().UpdateRenderData(set_texture);
 
                     return RendererResult { };
                 }

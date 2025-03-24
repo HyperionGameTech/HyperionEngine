@@ -199,7 +199,7 @@ void HyperionEditor::Init()
     #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
-        Vec3f(-0.5f, 0.5f, 0.0f).Normalize(),
+        Vec3f(-0.1f, 0.8f, 0.0f).Normalize(),
         Color(Vec4f(1.0f, 1.0f, 1.0f, 1.0f)),
         5.0f,
         0.0f
@@ -212,7 +212,7 @@ void HyperionEditor::Init()
 
     auto sun_entity = m_scene->GetEntityManager()->AddEntity();
     sun_node.SetEntity(sun_entity);
-    sun_node.SetWorldTranslation(Vec3f { -0.5f, 0.5f, 0.0f });
+    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.8f, 0.0f }.Normalize());
 
     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
         sun
@@ -227,7 +227,7 @@ void HyperionEditor::Init()
 
 
     // Add Skybox
-    if (true) {
+    if (false) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
@@ -287,21 +287,21 @@ void HyperionEditor::Init()
 
         GetScene()->GetRoot()->AddChild(node);
 
-#if 0
+#if 1
         Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
 
         m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent {
-            node->GetWorldAABB() * 1.25f,
-            node->GetWorldAABB() * 1.25f
+            node->GetWorldAABB() * 1.01f,
+            node->GetWorldAABB() * 1.01f
         });
 
         // Add env grid component
         m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
             EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
             Vec3u { 16, 6, 16 },
-            EnvGridMobility::STATIONARY//EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
+            EnvGridMobility::STATIONARY //EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 
         NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();

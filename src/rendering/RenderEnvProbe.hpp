@@ -54,6 +54,19 @@ public:
 
     void SetTextureSlot(uint32 texture_slot);
 
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const EnvProbeShaderData &GetBufferData() const
+        { return m_buffer_data; }
+
+    void SetBufferData(const EnvProbeShaderData &buffer_data);
+
+    void UpdateRenderData(bool set_texture = false);
+    void UpdateRenderData(
+        uint32 texture_slot,
+        uint32 grid_slot,
+        const Vec3u &grid_size
+    );
+
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
