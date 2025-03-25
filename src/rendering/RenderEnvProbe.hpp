@@ -13,7 +13,7 @@ namespace hyperion {
 
 class EnvProbe;
 
-struct alignas(256) EnvProbeShaderData
+struct EnvProbeShaderData
 {
     Matrix4 face_view_matrices[6];
 
@@ -36,7 +36,7 @@ struct alignas(256) EnvProbeShaderData
 
 static_assert(sizeof(EnvProbeShaderData) == 512);
 
-static constexpr uint32 max_env_probes = (8ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
+static constexpr uint32 max_env_probes = (32ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
 
 class EnvProbeRenderResource final : public RenderResourceBase
 {

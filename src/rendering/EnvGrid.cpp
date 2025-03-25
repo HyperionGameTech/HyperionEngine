@@ -53,10 +53,10 @@ static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
 static const Vec2u framebuffer_dimensions { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-const InternalFormat light_field_color_format = InternalFormat::RGBA8_SRGB;
+const InternalFormat light_field_color_format = InternalFormat::RGBA8;
 const InternalFormat light_field_depth_format = InternalFormat::RG16F;
-static const uint32 irradiance_octahedron_size = 32;
-static const Vec2u light_field_probe_dimensions { 256, 256 };
+static const uint32 irradiance_octahedron_size = 8;
+static const Vec2u light_field_probe_dimensions { 32, 32 };
 
 #pragma endregion Globals
 

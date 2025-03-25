@@ -427,6 +427,8 @@ void Texture::Init()
         }
     }));
 
+    // deadlock when called on task thread when main/render thread is compiling shaders
+    // will be fixed via separation of Texture and TextureRenderResource
     PUSH_RENDER_COMMAND(
         CreateTexture,
         WeakHandleFromThis(),

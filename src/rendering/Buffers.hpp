@@ -266,6 +266,8 @@ protected:
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
 
+HYP_DISABLE_OPTIMIZATION;
+
 template <class StructType>
 class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
 {
@@ -320,6 +322,8 @@ public:
                 break;
             }
 
+            SizeType buffer_size = buffer->Size();
+
             const uint32 index = block_index * Base::num_elements_per_block;
 
             SizeType offset = (range_start > index)
@@ -333,9 +337,9 @@ public:
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());
 
-            AssertThrowMsg(count <= int64(buffer->Size() / sizeof(StructType)) - int64(offset),
+            AssertThrowMsg(count <= int64(buffer_size / sizeof(StructType)) - int64(offset),
                 "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
-                buffer->Size(),
+                buffer_size,
                 (offset + count) * sizeof(StructType));
 
             buffer->Copy(
@@ -356,6 +360,8 @@ private:
 protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
+
+HYP_ENABLE_OPTIMIZATION;
 
 template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase

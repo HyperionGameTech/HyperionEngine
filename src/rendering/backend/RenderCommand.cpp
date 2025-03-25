@@ -12,18 +12,12 @@
 namespace hyperion {
 namespace renderer {
 
-FixedArray<RenderCommandHolder, max_render_command_types> RenderCommands::holders = { };
-AtomicVar<SizeType> RenderCommands::render_command_type_index = { 0 };
-RenderScheduler RenderCommands::scheduler = { };
-
-std::mutex RenderCommands::mtx = std::mutex();
-std::condition_variable RenderCommands::flushed_cv = std::condition_variable();
-
-uint32 RenderCommands::buffer_index = 0;
+RenderCommands::Buffer RenderCommands::buffers[2] = { };
+AtomicVar<uint32> RenderCommands::buffer_index = 0;
 
 // // Note: double buffering is currently disabled as it is causing some issues with textures not being
 // // initalized when they are first added to a material's descriptor set.
-// #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+//#define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
 #pragma region RenderScheduler
 
@@ -43,19 +37,17 @@ void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 
 void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command)
 {
-    scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
+    Buffer &buffer = buffers[CurrentBufferIndex()];
 
-    std::unique_lock lock(mtx);
+    buffer.scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
 
-    scheduler.Commit(command);
+    std::unique_lock lock(buffer.mtx);
+
+    buffer.scheduler.Commit(command);
 }
 
 RendererResult RenderCommands::Flush()
 {
-    if (Count() == 0) {
-        HYPERION_RETURN_OK;
-    }
-
     HYP_NAMED_SCOPE("Flush render commands");
 
     Threads::AssertOnThread(g_render_thread);
@@ -64,26 +56,20 @@ RendererResult RenderCommands::Flush()
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
+    const uint32 buffer_index = RenderCommands::buffer_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE) % 2;
+    Buffer &buffer = buffers[buffer_index];
+
     // Lock in order to accept commands, so when
     // one of our render commands pushes to the queue,
     // it will not cause a deadlock.
     // Also it will be more performant this way as less time will be spent
     // in the locked section.
-    std::unique_lock lock(mtx);
+    std::unique_lock lock(buffer.mtx);
 
-    const uint32 buffer_index = RenderCommands::buffer_index;
-
-    scheduler.AcceptAll(commands);
-    scheduler.m_num_enqueued.Decrement(commands.Size(), MemoryOrder::RELEASE);
+    buffer.scheduler.AcceptAll(commands);
+    buffer.scheduler.m_num_enqueued.Decrement(commands.Size(), MemoryOrder::RELEASE);
 
     const SizeType num_commands = commands.Size();
-
-    // Swap buffers before executing commands, so that the commands may enqueue new commands
-    SwapBuffers();
-
-    lock.unlock();
-
-    flushed_cv.notify_all();
 
     for (SizeType index = 0; index < num_commands; index++) {
         RenderCommand *front = commands[index];
@@ -93,16 +79,21 @@ RendererResult RenderCommands::Flush()
         front->~RenderCommand();
     }
 
-    AssertThrowMsg(((buffer_index + 1) & 1) == RenderCommands::buffer_index, "Buffer index mismatch! %u != %u", buffer_index, RenderCommands::buffer_index);
-
     if (num_commands) {
         // Use previous buffer index since we call SwapBuffers before executing commands.
-        Rewind((buffer_index + 1) & 1);
+        Rewind(buffer_index);
     }
-#else
-    std::unique_lock lock(mtx);
 
-    scheduler.AcceptAll(commands);
+    lock.unlock();
+
+    buffer.flushed_cv.notify_all();
+#else
+    const uint32 buffer_index = 0;
+    Buffer &buffer = buffers[buffer_index];
+
+    std::unique_lock lock(buffer.mtx);
+
+    buffer.scheduler.AcceptAll(commands);
 
     const SizeType num_commands = commands.Size();
 
@@ -125,11 +116,11 @@ RendererResult RenderCommands::Flush()
         Rewind(buffer_index);
     }
 
-    scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
+    buffer.scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
 
     lock.unlock();
 
-    flushed_cv.notify_all();
+    buffer.flushed_cv.notify_all();
 #endif
 
     return { };
@@ -139,26 +130,21 @@ void RenderCommands::Wait()
 {
     HYP_SCOPE;
 
-    if (Count() == 0) {
-        return;
-    }
-
     Threads::AssertOnThread(~g_render_thread);
 
-    std::unique_lock lock(mtx);
-    flushed_cv.wait(lock, [] { return RenderCommands::Count() == 0; });
-}
+    const uint32 buffer_index = CurrentBufferIndex();
+    Buffer &buffer = buffers[buffer_index];
 
-void RenderCommands::SwapBuffers()
-{
-    buffer_index = (buffer_index + 1) & 1;
+    std::unique_lock lock(buffer.mtx);
+    buffer.flushed_cv.wait(lock, [&buffer] { return buffer.scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE) == 0; });
 }
 
 void RenderCommands::Rewind(uint32 buffer_index)
 {
     // all items in the cache must have had destructor called on them already.
+    Buffer &buffer = buffers[buffer_index];
 
-    for (auto it = holders.Begin(); it != holders.End(); ++it) {
+    for (auto it = buffer.holders.Begin(); it != buffer.holders.End(); ++it) {
         if (!it->render_command_list_ptr) {
             break;
         }

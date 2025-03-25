@@ -49,7 +49,7 @@ enum RenderCommandExecuteStage : uint32
     }
 
 
-constexpr SizeType max_render_command_types = 128;
+constexpr uint32 max_render_command_types = 128;
 constexpr SizeType render_command_cache_size_bytes = 1 << 16;
 
 using RenderCommandFunc = void(*)(void * /*ptr */, uint32 /* buffer_index */);
@@ -179,16 +179,21 @@ struct HYP_API RENDER_COMMAND(CustomRenderCommand) : RenderCommand
 
 class RenderCommands
 {
-private:
-    // last item must always have render_command_list_ptr be nullptr
-    static FixedArray<RenderCommandHolder, max_render_command_types>    holders;
-    static AtomicVar<SizeType>                                          render_command_type_index;
+public:
+    struct Buffer
+    {
+        // last item must always have render_command_list_ptr be nullptr
+        FixedArray<RenderCommandHolder, max_render_command_types>   holders;
+        AtomicVar<uint32>                                           render_command_type_index;
 
-    static std::mutex                                                   mtx;
-    static std::condition_variable                                      flushed_cv;
-    static uint32                                                       buffer_index;
+        std::mutex                                                  mtx;
+        std::condition_variable                                     flushed_cv;
 
-    static RenderScheduler                                              scheduler;
+        RenderScheduler                                             scheduler;
+    };
+
+    static Buffer               buffers[2];
+    static AtomicVar<uint32>    buffer_index;
 
 public:
     /*! \brief Push a render command to the render command queue.
@@ -202,15 +207,18 @@ public:
         \return A pointer to the render command that was pushed.
     */
     template <class T, class... Args>
-    HYP_FORCE_INLINE static T *Push(Args &&... args)
+    static T *Push(Args &&... args)
     {
         static_assert(std::is_base_of_v<RenderCommand, T>, "T must derive RenderCommand");
 
         Threads::AssertOnThread(~g_render_thread);
 
-        std::unique_lock lock(mtx);
+        uint32 buffer_index = CurrentBufferIndex();
+        Buffer &buffer = buffers[buffer_index];
 
-        scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
+        std::unique_lock lock(buffer.mtx);
+
+        buffer.scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
         
         void *mem = Alloc<T>(buffer_index);
         T *ptr = new (mem) T(std::forward<Args>(args)...);
@@ -221,7 +229,7 @@ public:
         ptr->_debug_name = type_name.Data();
 #endif
 
-        scheduler.Commit(ptr);
+        buffer.scheduler.Commit(ptr);
 
         return ptr;
     }
@@ -251,39 +259,41 @@ public:
     */
     static HYP_API void PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command);
 
-    HYP_FORCE_INLINE static SizeType Count()
-        { return scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE); }
-
     static RendererResult Flush();
     static void Wait();
 
 private:
+    HYP_FORCE_INLINE static uint32 CurrentBufferIndex()
+        { return buffer_index.Get(MemoryOrder::ACQUIRE) % 2; }
+
     template <class T>
     HYP_FORCE_INLINE static void *Alloc(uint32 buffer_index)
     {
         struct Data
         {
-            RenderCommandFunc       rewind_func;
-
-            RenderCommandList<T>    command_list;
-            SizeType                command_type_index;
+            RenderCommandList<T>    command_lists[2];
+            uint32                  command_type_indices[2];
 
             Data()
             {
-                command_type_index = RenderCommands::render_command_type_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+                for (uint32 i = 0; i < 2; i++) {
+                    RenderCommands::Buffer &buffer = RenderCommands::buffers[i];
 
-                AssertThrowMsg(
-                    command_type_index < max_render_command_types - 1,
-                    "Maximum number of render command types initialized (%llu). Increase the buffer size?",
-                    max_render_command_types - 1
-                );
+                    const uint32 command_type_index = buffer.render_command_type_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
 
-                rewind_func = &command_list.RewindFunc;
+                    AssertThrowMsg(
+                        command_type_index < max_render_command_types - 1,
+                        "Maximum number of render command types initialized (%llu). Increase the buffer size?",
+                        max_render_command_types - 1
+                    );
 
-                RenderCommands::holders[command_type_index] = RenderCommandHolder {
-                    &command_list,
-                    rewind_func
-                };
+                    buffer.holders[command_type_index] = RenderCommandHolder {
+                        &command_lists[i],
+                        &command_lists[i].RewindFunc
+                    };
+
+                    command_type_indices[i] = command_type_index;
+                }
             }
 
             Data(const Data &other)                 = delete;
@@ -293,19 +303,22 @@ private:
 
             ~Data()
             {
-                RenderCommands::holders[command_type_index] = RenderCommandHolder {
-                    nullptr,
-                    nullptr
-                };
+                for (uint32 i = 0; i < 2; i++) {
+                    RenderCommands::Buffer &buffer = RenderCommands::buffers[i];
+                    
+                    buffer.holders[command_type_indices[i]] = RenderCommandHolder {
+                        nullptr,
+                        nullptr
+                    };
+                }
             }
         };
 
         static Data data;
 
-        return data.command_list.AllocCommand(buffer_index);
+        return data.command_lists[buffer_index].AllocCommand(buffer_index);
     }
 
-    static void SwapBuffers();
     static void Rewind(uint32 buffer_index);
 };
 
