@@ -54,7 +54,7 @@ void CameraRenderResource::Update_Internal()
 
 GPUBufferHolderBase *CameraRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->cameras.Get();
+    return g_engine->GetRenderData()->cameras;
 }
 
 void CameraRenderResource::UpdateBufferData()

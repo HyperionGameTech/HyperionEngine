@@ -129,7 +129,7 @@ private:
     mutable Mutex                   m_mutex;
 };
 
-class EntityInstanceBatchHolderMap;
+class GPUBufferHolderMap;
 
 struct EngineDelegates
 {
@@ -212,8 +212,8 @@ public:
     HYP_FORCE_INLINE NetRequestThread *GetNetRequestThread() const
         { return m_net_request_thread.Get(); }
 
-    HYP_FORCE_INLINE EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap() const
-        { return m_entity_instance_batch_holder_map.Get(); }
+    HYP_FORCE_INLINE GPUBufferHolderMap *GetGPUBufferHolderMap() const
+        { return m_gpu_buffer_holder_map.Get(); }
 
     HYP_FORCE_INLINE GraphicsPipelineCache *GetGraphicsPipelineCache() const
         { return m_graphics_pipeline_cache.Get(); }
@@ -283,7 +283,7 @@ private:
 
     RC<NetRequestThread>                                    m_net_request_thread;
 
-    UniquePtr<EntityInstanceBatchHolderMap>                 m_entity_instance_batch_holder_map;
+    UniquePtr<GPUBufferHolderMap>                           m_gpu_buffer_holder_map;
 
     UniquePtr<GraphicsPipelineCache>                        m_graphics_pipeline_cache;
 

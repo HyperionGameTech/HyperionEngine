@@ -55,21 +55,20 @@ struct ShaderGlobals
 
     void Create();
     void Destroy();
-    void UpdateBuffers(uint32 frame_index);
 
-    UniquePtr<GPUBufferHolderBase>  scenes;
-    UniquePtr<GPUBufferHolderBase>  cameras;
-    UniquePtr<GPUBufferHolderBase>  lights;
-    UniquePtr<GPUBufferHolderBase>  objects;
-    UniquePtr<GPUBufferHolderBase>  materials;
-    UniquePtr<GPUBufferHolderBase>  skeletons;
-    UniquePtr<GPUBufferHolderBase>  shadow_map_data;
-    UniquePtr<GPUBufferHolderBase>  env_probes;
-    UniquePtr<GPUBufferHolderBase>  env_grids;
+    GPUBufferHolderBase             *scenes;
+    GPUBufferHolderBase             *cameras;
+    GPUBufferHolderBase             *lights;
+    GPUBufferHolderBase             *objects;
+    GPUBufferHolderBase             *materials;
+    GPUBufferHolderBase             *skeletons;
+    GPUBufferHolderBase             *shadow_map_data;
+    GPUBufferHolderBase             *env_probes;
+    GPUBufferHolderBase             *env_grids;
     
-    BindlessStorage                         textures;
+    BindlessStorage                 textures;
 
-    GlobalSphericalHarmonicsGrid            spherical_harmonics_grid;
+    GlobalSphericalHarmonicsGrid    spherical_harmonics_grid;
 };
 
 } // namespace hyperion

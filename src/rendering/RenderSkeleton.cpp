@@ -51,7 +51,7 @@ void SkeletonRenderResource::Update_Internal()
 
 GPUBufferHolderBase *SkeletonRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->skeletons.Get();
+    return g_engine->GetRenderData()->skeletons;
 }
 
 void SkeletonRenderResource::UpdateBufferData()

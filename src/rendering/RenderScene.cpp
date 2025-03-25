@@ -71,7 +71,7 @@ void SceneRenderResource::SetBufferData(const SceneShaderData &buffer_data)
 
 GPUBufferHolderBase *SceneRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->scenes.Get();
+    return g_engine->GetRenderData()->scenes;
 }
 
 namespace renderer {

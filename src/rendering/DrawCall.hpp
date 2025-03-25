@@ -9,7 +9,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <rendering/EntityInstanceBatchHolderMap.hpp>
+#include <rendering/GPUBufferHolderMap.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -32,7 +32,7 @@ class MeshRenderResource;
 class MaterialRenderResource;
 class SkeletonRenderResource;
 
-extern HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap();
+extern HYP_API GPUBufferHolderMap *GetGPUBufferHolderMap();
 
 static constexpr uint32 max_entities_per_instance_batch = 60;
 
@@ -175,7 +175,7 @@ public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, EntityInstanceBatchType>, "EntityInstanceBatchType must be a derived struct type of EntityInstanceBatch");
 
     DrawCallCollectionImpl(uint32 count)
-        : m_entity_instance_batches(GetEntityInstanceBatchHolderMap()->GetOrCreate<EntityInstanceBatchType>(count))
+        : m_entity_instance_batches(GetGPUBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>(count))
     {
     }
 

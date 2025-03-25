@@ -112,15 +112,15 @@ void GlobalSphericalHarmonicsGrid::Destroy()
 
 ShaderGlobals::ShaderGlobals()
 {
-    scenes = MakeUnique<GPUBufferHolder<SceneShaderData, GPUBufferType::STORAGE_BUFFER>>(max_scenes);
-    cameras = MakeUnique<GPUBufferHolder<CameraShaderData, GPUBufferType::CONSTANT_BUFFER>>(max_cameras);
-    lights = MakeUnique<GPUBufferHolder<LightShaderData, GPUBufferType::STORAGE_BUFFER>>(max_lights);
-    objects = MakeUnique<GPUBufferHolder<EntityShaderData, GPUBufferType::STORAGE_BUFFER>>(max_entities);
-    materials = MakeUnique<GPUBufferHolder<MaterialShaderData, GPUBufferType::STORAGE_BUFFER>>(max_materials);
-    skeletons = MakeUnique<GPUBufferHolder<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER>>(max_skeletons);
-    shadow_map_data = MakeUnique<GPUBufferHolder<ShadowShaderData, GPUBufferType::STORAGE_BUFFER>>(max_shadow_maps);
-    env_probes = MakeUnique<GPUBufferHolder<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER>>(max_env_probes);
-    env_grids = MakeUnique<GPUBufferHolder<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER>>(max_env_grids);
+    scenes = g_engine->GetGPUBufferHolderMap()->GetOrCreate<SceneShaderData, GPUBufferType::STORAGE_BUFFER>(max_scenes);
+    cameras = g_engine->GetGPUBufferHolderMap()->GetOrCreate<CameraShaderData, GPUBufferType::CONSTANT_BUFFER>(max_cameras);
+    lights = g_engine->GetGPUBufferHolderMap()->GetOrCreate<LightShaderData, GPUBufferType::STORAGE_BUFFER>(max_lights);
+    objects = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EntityShaderData, GPUBufferType::STORAGE_BUFFER>(max_entities);
+    materials = g_engine->GetGPUBufferHolderMap()->GetOrCreate<MaterialShaderData, GPUBufferType::STORAGE_BUFFER>(max_materials);
+    skeletons = g_engine->GetGPUBufferHolderMap()->GetOrCreate<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER>(max_skeletons);
+    shadow_map_data = g_engine->GetGPUBufferHolderMap()->GetOrCreate<ShadowShaderData, GPUBufferType::STORAGE_BUFFER>(max_shadow_maps);
+    env_probes = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER>(max_env_probes);
+    env_grids = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER>(max_env_grids);
 }
 
 void ShaderGlobals::Create()
@@ -137,21 +137,6 @@ void ShaderGlobals::Destroy()
     auto *device = g_engine->GetGPUDevice();
     
     spherical_harmonics_grid.Destroy();
-}
-
-void ShaderGlobals::UpdateBuffers(uint32 frame_index)
-{
-    auto *device = g_engine->GetGPUDevice();
-
-    scenes->UpdateBuffer(device, frame_index);
-    cameras->UpdateBuffer(device, frame_index);
-    objects->UpdateBuffer(device, frame_index);
-    materials->UpdateBuffer(device, frame_index);
-    skeletons->UpdateBuffer(device, frame_index);
-    lights->UpdateBuffer(device, frame_index);
-    shadow_map_data->UpdateBuffer(device, frame_index);
-    env_probes->UpdateBuffer(device, frame_index);
-    env_grids->UpdateBuffer(device, frame_index);
 }
 
 } // namespace hyperion

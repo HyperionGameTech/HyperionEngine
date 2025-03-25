@@ -225,7 +225,7 @@ public:
         { return m_buffers[frame_index]; }
 
     virtual void MarkDirty(uint32 index) = 0;
-    virtual void UpdateBuffer(Device *device, uint32 frame_index) = 0;
+    virtual void UpdateBuffer(Device *device, uint32 frame_index, bool &out_was_resized) = 0;
 
     virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -266,6 +266,8 @@ protected:
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
 
+HYP_DISABLE_OPTIMIZATION;
+
 template <class StructType>
 class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
 {
@@ -291,9 +293,11 @@ public:
         MarkDirty(index);
     }
 
-    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer, uint32 frame_index)
+    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer, uint32 frame_index, bool &out_was_resized)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
+
+        out_was_resized = false;
 
         const uint32 range_end = m_dirty_ranges[frame_index].GetEnd(),
             range_start = m_dirty_ranges[frame_index].GetStart();
@@ -301,6 +305,8 @@ public:
         if (range_end <= range_start) {
             return;
         }
+
+        // HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(device, range_end * sizeof(StructType), out_was_resized));
 
         AssertThrowMsg(buffer->Size() >= range_end * sizeof(StructType),
             "Buffer does not have enough space for the current number of elements! Buffer size = %llu",
@@ -320,6 +326,8 @@ public:
                 break;
             }
 
+            SizeType buffer_size = buffer->Size();
+
             const uint32 index = block_index * Base::num_elements_per_block;
 
             SizeType offset = (range_start > index)
@@ -333,9 +341,9 @@ public:
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());
 
-            AssertThrowMsg(count <= int64(buffer->Size() / sizeof(StructType)) - int64(offset),
+            AssertThrowMsg(count <= int64(buffer_size / sizeof(StructType)) - int64(offset),
                 "Buffer does not have enough space for the current number of elements! Buffer size = %llu, Required size = %llu",
-                buffer->Size(),
+                buffer_size,
                 (offset + count) * sizeof(StructType));
 
             buffer->Copy(
@@ -356,6 +364,8 @@ private:
 protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
+
+HYP_ENABLE_OPTIMIZATION;
 
 template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase
@@ -387,10 +397,10 @@ public:
         return m_pool.num_elements_per_block;
     }
 
-    virtual void UpdateBuffer(Device *device, uint32 frame_index) override
+    virtual void UpdateBuffer(Device *device, uint32 frame_index, bool &out_was_resized) override
     {
         m_pool.RemoveEmptyBlocks();
-        m_pool.CopyToGPUBuffer(device, m_buffers[frame_index], frame_index);
+        m_pool.CopyToGPUBuffer(device, m_buffers[frame_index], frame_index, out_was_resized);
     }
 
     virtual void MarkDirty(uint32 index) override

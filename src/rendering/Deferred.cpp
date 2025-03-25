@@ -1079,8 +1079,6 @@ void DeferredRenderer::Create()
     m_temporal_aa = MakeUnique<TemporalAA>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
     m_temporal_aa->Create();
 
-    HYP_SYNC_RENDER();
-
     m_is_initialized = true;
 }
 
