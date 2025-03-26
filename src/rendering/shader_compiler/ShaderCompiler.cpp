@@ -2204,7 +2204,7 @@ bool ShaderCompiler::CompileBundle(
 
         Mutex::Guard guard(compiled_shaders_mutex);
         out.compiled_shaders.PushBack(std::move(compiled_shader));
-    }, true);
+    }, false);//true);
 
     if (num_errored_permutations.Get(MemoryOrder::RELAXED)) {
         HYP_LOG(

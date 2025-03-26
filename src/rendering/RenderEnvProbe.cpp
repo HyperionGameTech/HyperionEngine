@@ -157,7 +157,7 @@ void EnvProbeRenderResource::Update_Internal()
 
 GPUBufferHolderBase *EnvProbeRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->env_probes.Get();
+    return g_engine->GetRenderData()->env_probes;
 }
 
 void EnvProbeRenderResource::UpdateBufferData()

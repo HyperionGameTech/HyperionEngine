@@ -14,10 +14,11 @@ namespace renderer {
 
 RenderCommands::Buffer RenderCommands::buffers[2] = { };
 AtomicVar<uint32> RenderCommands::buffer_index = 0;
+RenderCommands::RenderCommandSemaphore RenderCommands::semaphore = { };
 
 // // Note: double buffering is currently disabled as it is causing some issues with textures not being
 // // initalized when they are first added to a material's descriptor set.
-//#define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+// #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
 #pragma region RenderScheduler
 
@@ -55,7 +56,6 @@ RendererResult RenderCommands::Flush()
     Array<RenderCommand *> commands;
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
-
     const uint32 buffer_index = RenderCommands::buffer_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE) % 2;
     Buffer &buffer = buffers[buffer_index];
 
@@ -69,10 +69,14 @@ RendererResult RenderCommands::Flush()
     buffer.scheduler.AcceptAll(commands);
     buffer.scheduler.m_num_enqueued.Decrement(commands.Size(), MemoryOrder::RELEASE);
 
+    lock.unlock();
+
     const SizeType num_commands = commands.Size();
 
     for (SizeType index = 0; index < num_commands; index++) {
         RenderCommand *front = commands[index];
+
+        HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, buffer_index);
 
         const RendererResult command_result = front->Call();
         AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.GetError().GetErrorCode(), command_result.GetError().GetMessage().Data());
@@ -80,13 +84,9 @@ RendererResult RenderCommands::Flush()
     }
 
     if (num_commands) {
-        // Use previous buffer index since we call SwapBuffers before executing commands.
+        // Buffer is swapped now, safe to rewind without locking mutex.
         Rewind(buffer_index);
     }
-
-    lock.unlock();
-
-    buffer.flushed_cv.notify_all();
 #else
     const uint32 buffer_index = 0;
     Buffer &buffer = buffers[buffer_index];
@@ -119,9 +119,9 @@ RendererResult RenderCommands::Flush()
     buffer.scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
 
     lock.unlock();
-
-    buffer.flushed_cv.notify_all();
 #endif
+
+    semaphore.Produce(1);
 
     return { };
 }
@@ -132,15 +132,18 @@ void RenderCommands::Wait()
 
     Threads::AssertOnThread(~g_render_thread);
 
-    const uint32 buffer_index = CurrentBufferIndex();
-    Buffer &buffer = buffers[buffer_index];
+    const uint32 current_value = semaphore.GetValue();
 
-    std::unique_lock lock(buffer.mtx);
-    buffer.flushed_cv.wait(lock, [&buffer] { return buffer.scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE) == 0; });
+    // wait for the counter to increment by 1
+    semaphore.WaitForValue(current_value + 1);
 }
 
 void RenderCommands::Rewind(uint32 buffer_index)
 {
+#ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+    AssertDebugMsg(buffer_index != CurrentBufferIndex(), "cannot rewind the current buffer");
+#endif
+
     // all items in the cache must have had destructor called on them already.
     Buffer &buffer = buffers[buffer_index];
 

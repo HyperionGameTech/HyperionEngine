@@ -108,8 +108,6 @@ void PlaceholderData::Create()
 
     m_sampler_nearest.SetName(NAME("Placeholder_Sampler_Nearest"));
     DeferCreate(m_sampler_nearest, device);
-
-    HYP_SYNC_RENDER(); // wait for all objects to be created
 }
 
 void PlaceholderData::Destroy()

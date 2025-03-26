@@ -7,7 +7,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/EntityInstanceBatchHolderMap.hpp>
+#include <rendering/GPUBufferHolderMap.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/DefaultFormats.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -304,6 +304,8 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         HYP_BREAKPOINT;
     }
 
+    m_gpu_buffer_holder_map = MakeUnique<GPUBufferHolderMap>();
+
     m_render_data = MakeUnique<ShaderGlobals>();
     m_render_data->Create();
 
@@ -333,8 +335,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
             /* enabled */ true
         });
     }
-
-    m_entity_instance_batch_holder_map = MakeUnique<EntityInstanceBatchHolderMap>();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // Global
@@ -456,8 +456,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_world = CreateObject<World>();
     InitObject(m_world);
-    
-    HYP_SYNC_RENDER();
 
     AssertThrowMsg(m_app_context->GetGame() != nullptr, "Game not set on AppContext!");
     m_app_context->GetGame()->Init_Internal();
@@ -532,7 +530,7 @@ void Engine::FinalizeStop()
 
     m_final_pass.Reset();
 
-    m_entity_instance_batch_holder_map.Reset();
+    m_gpu_buffer_holder_map.Reset();
 
     m_render_state.Reset();
 
@@ -680,10 +678,9 @@ void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
 {
     HYP_SCOPE;
 
-    m_render_data->UpdateBuffers(frame_index);
-
-    for (auto &it : m_entity_instance_batch_holder_map->GetItems()) {
-        it.second->UpdateBuffer(m_instance->GetDevice(), frame_index);
+    for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
+        bool was_resized = false;
+        it.second->UpdateBuffer(m_instance->GetDevice(), frame_index, was_resized);
     }
 }
 

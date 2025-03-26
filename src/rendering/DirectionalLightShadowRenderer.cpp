@@ -513,8 +513,6 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const 
 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
-    // Prevent render components from using shadow pass pointer after deletion
-    HYP_SYNC_RENDER();
     m_shadow_pass.Reset();
 
     m_render_collector_statics.Reset();

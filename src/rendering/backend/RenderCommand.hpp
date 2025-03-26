@@ -9,6 +9,7 @@
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Threads.hpp>
+#include <core/threading/Semaphore.hpp>
 #include <core/containers/LinkedList.hpp>
 #include <core/memory/UniquePtr.hpp>
 #include <core/utilities/StringView.hpp>
@@ -180,6 +181,8 @@ struct HYP_API RENDER_COMMAND(CustomRenderCommand) : RenderCommand
 class RenderCommands
 {
 public:
+    using RenderCommandSemaphore = threading::Semaphore<uint32>;
+
     struct Buffer
     {
         // last item must always have render_command_list_ptr be nullptr
@@ -187,13 +190,13 @@ public:
         AtomicVar<uint32>                                           render_command_type_index;
 
         std::mutex                                                  mtx;
-        std::condition_variable                                     flushed_cv;
 
         RenderScheduler                                             scheduler;
     };
 
-    static Buffer               buffers[2];
-    static AtomicVar<uint32>    buffer_index;
+    static Buffer                   buffers[2];
+    static AtomicVar<uint32>        buffer_index;
+    static RenderCommandSemaphore   semaphore;
 
 public:
     /*! \brief Push a render command to the render command queue.

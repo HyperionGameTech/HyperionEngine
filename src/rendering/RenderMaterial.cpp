@@ -117,7 +117,7 @@ void MaterialRenderResource::Update_Internal()
 
 GPUBufferHolderBase *MaterialRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->materials.Get();
+    return g_engine->GetRenderData()->materials;
 }
 
 void MaterialRenderResource::CreateDescriptorSets()

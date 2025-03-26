@@ -143,6 +143,7 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
             if (!env_grid_component.env_grid) {
                 continue;
             }
+
             env_grid_component.env_grid->SetCameraData(bounding_box_component.world_aabb, transform_component.transform.GetTranslation());
 
             updated_entity_ids.Insert(entity_id);
@@ -209,6 +210,10 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
 
         for (auto [entity_id, env_grid_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<EnvGridComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_GRID>>().GetScopedView(GetComponentInfos())) {
             if (!env_grid_component.env_grid) {
+                continue;
+            }
+
+            if (!env_grid_component.env_grid->GetCamera()->IsReady()) {
                 continue;
             }
 

@@ -18,9 +18,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
-HYP_API EntityInstanceBatchHolderMap *GetEntityInstanceBatchHolderMap()
+HYP_API GPUBufferHolderMap *GetGPUBufferHolderMap()
 {
-    return g_engine->GetEntityInstanceBatchHolderMap();
+    return g_engine->GetGPUBufferHolderMap();
 }
 
 #pragma region DrawCallCollection

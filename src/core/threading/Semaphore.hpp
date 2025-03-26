@@ -45,8 +45,6 @@ struct AtomicSemaphoreImpl
 {
     using CounterType = T;
 
-    static_assert(std::is_signed_v<CounterType>, "CounterType must be a signed type as value can go below 0");
-
     AtomicVar<CounterType>  value;
 
     AtomicSemaphoreImpl(CounterType initial_value)
@@ -139,6 +137,21 @@ struct AtomicSemaphoreImpl
         return current_value;
     }
 
+    void WaitForValue(T target_value) const
+    {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            while (value.Get(MemoryOrder::ACQUIRE) >= target_value) {
+                HYP_WAIT_IDLE();
+            }
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            while (value.Get(MemoryOrder::ACQUIRE) <= target_value) {
+                HYP_WAIT_IDLE();
+            }
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
+
     CounterType GetValue() const
     {
         return value.Get(MemoryOrder::ACQUIRE);
@@ -159,8 +172,6 @@ template <class T, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_Z
 struct ConditionVarSemaphoreImpl
 {
     using CounterType = T;
-
-    static_assert(std::is_signed_v<CounterType>, "CounterType must be a signed type as value can go below 0");
 
     mutable std::mutex              mutex;
     mutable std::condition_variable cv;
@@ -272,6 +283,23 @@ struct ConditionVarSemaphoreImpl
         return new_value;
     }
 
+    void WaitForValue(T target_value) const
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+            while (value.Get(MemoryOrder::ACQUIRE) >= target_value) {
+                cv.wait(lock);
+            }
+        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+            while (value.Get(MemoryOrder::ACQUIRE) <= target_value) {
+                cv.wait(lock);
+            }
+        } else {
+            HYP_NOT_IMPLEMENTED_VOID();
+        }
+    }
+
     CounterType GetValue() const
     {
         return value.Get(MemoryOrder::ACQUIRE);
@@ -337,6 +365,9 @@ public:
 
     HYP_FORCE_INLINE CounterType Produce(CounterType increment = 1)
         { return m_impl.Produce(increment, ProcRef<void>(nullptr)); }
+
+    void WaitForValue(CounterType target_value) const
+        { m_impl.WaitForValue(target_value); }
 
     HYP_FORCE_INLINE CounterType GetValue() const
         { return m_impl.GetValue(); }

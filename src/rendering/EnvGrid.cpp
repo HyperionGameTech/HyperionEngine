@@ -207,6 +207,17 @@ EnvGrid::EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions op
       m_offset(options.aabb.GetCenter()),
       m_current_probe_index(0)
 {
+    const Vec2u probe_dimensions = GetProbeDimensions(m_options.type);
+    AssertThrow(probe_dimensions.Volume() != 0);
+
+    m_camera = CreateObject<Camera>(
+        90.0f,
+        -int(probe_dimensions.x), int(probe_dimensions.y),
+        0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
+    );
+    
+    m_camera->SetName(Name::Unique("EnvGridCamera"));
+    m_camera->SetTranslation(m_aabb.GetCenter());
 }
 
 EnvGrid::~EnvGrid()
@@ -435,18 +446,9 @@ void EnvGrid::Init()
 
     m_shader_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
 
-    m_camera = CreateObject<Camera>(
-        90.0f,
-        -int(probe_dimensions.x), int(probe_dimensions.y),
-        0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
-    );
-    
-    m_camera->SetName(Name::Unique("EnvGridCamera"));
-    m_camera->SetTranslation(m_aabb.GetCenter());
     m_camera->SetFramebuffer(m_framebuffer);
-
     InitObject(m_camera);
-
+    
     m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
 }
 

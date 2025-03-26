@@ -99,7 +99,7 @@ void LightRenderResource::EnqueueUnbind()
 
 GPUBufferHolderBase *LightRenderResource::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->lights.Get();
+    return g_engine->GetRenderData()->lights;
 }
 
 void LightRenderResource::UpdateBufferData()
