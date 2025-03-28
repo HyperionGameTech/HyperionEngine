@@ -56,7 +56,14 @@ UIStage::UIStage(ThreadID owner_thread_id)
 UIStage::~UIStage()
 {
     if (m_scene.IsValid()) {
-        m_scene->RemoveFromWorld();
+        if (Threads::IsOnThread(m_owner_thread_id)) {
+            m_scene->RemoveFromWorld();
+        } else {
+            Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([scene = m_scene]()
+            {
+                scene->RemoveFromWorld();
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
     }
 }
 

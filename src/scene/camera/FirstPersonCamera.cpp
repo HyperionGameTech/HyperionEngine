@@ -164,55 +164,6 @@ void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
 void FirstPersonCameraController::UpdateLogic(double dt)
 {
     HYP_SCOPE;
-    
-    // m_desired_mag = Vec2f {
-    //     m_mouse_x - m_prev_mouse_x,
-    //     m_mouse_y - m_prev_mouse_y
-    // };
-    
-    // m_mag.Lerp(m_desired_mag, MathUtil::Min(1.0f, 1.0f - mouse_blending));
-
-    // m_dir_cross_y = m_camera->GetDirection().Cross(m_camera->GetUpVector());
-
-    // // m_camera->Rotate(m_camera->GetUpVector(), MathUtil::DegToRad(m_mag.x * mouse_sensitivity));
-    // // m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(m_mag.y * mouse_sensitivity));
-
-    // // if (m_camera->GetDirection().y > 0.98f || m_camera->GetDirection().y < -0.98f) {
-    // //     m_camera->Rotate(m_dir_cross_y, MathUtil::DegToRad(-m_mag.y * mouse_sensitivity));
-    // // }
-
-    // m_prev_mouse_x = m_mouse_x;
-    // m_prev_mouse_y = m_mouse_y;
-
-    // m_camera->m_next_translation += m_move_deltas * movement_speed * float(dt);
-
-    // if (movement_blending > 0.0f) {
-    //     m_move_deltas.Lerp(
-    //         Vector3::Zero(),
-    //         MathUtil::Clamp(
-    //             (1.0f / movement_blending) * float(dt),
-    //             0.0f,
-    //             1.0f
-    //         )
-    //     );
-    // } else {
-    //     m_move_deltas.Lerp(
-    //         Vector3::Zero(),
-    //         MathUtil::Clamp(
-    //             1.0f * float(dt),
-    //             0.0f,
-    //             1.0f
-    //         )
-    //     );
-    // }
-
-    // switch (m_mode) {
-    // case FirstPersonCameraControllerMode::MOUSE_LOCKED:
-    //     m_prev_mouse_x = m_camera->GetWidth() / 2;
-    //     m_prev_mouse_y = m_camera->GetHeight() / 2;
-
-    //     break;
-    // }
 }
 
 void FirstPersonCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
