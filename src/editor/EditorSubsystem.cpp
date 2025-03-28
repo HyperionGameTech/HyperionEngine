@@ -1495,11 +1495,24 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage> &package)
         return;
     }
 
+    m_delegate_handlers.Remove(NAME("OnAssetObjectAdded"));
+    m_delegate_handlers.Remove(NAME("OnAssetObjectRemoved"));
+
     m_selected_package = package;
 
     m_content_browser_contents->GetDataSource()->Clear();
 
     if (package.IsValid()) {
+        m_delegate_handlers.Add(NAME("OnAssetObjectAdded"), package->OnAssetObjectAdded.Bind([this](AssetObject *asset_object)
+        {
+            m_content_browser_contents->GetDataSource()->Push(asset_object->GetUUID(), HypData(asset_object->HandleFromThis()));
+        }));
+
+        m_delegate_handlers.Add(NAME("OnAssetObjectRemoved"), package->OnAssetObjectRemoved.Bind([this](AssetObject *asset_object)
+        {
+            m_content_browser_contents->GetDataSource()->Remove(asset_object->GetUUID());
+        }));
+
         package->ForEachAssetObject([&](const Handle<AssetObject> &asset_object)
         {
             m_content_browser_contents->GetDataSource()->Push(asset_object->GetUUID(), HypData(asset_object));

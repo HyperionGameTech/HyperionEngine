@@ -43,8 +43,6 @@ namespace Hyperion
 
         public void Update()
         {
-            Logger.Log(logChannel, LogType.Debug, "Update script tracker");
-
             if (processingScripts.Count == 0)
             {
                 return;

@@ -1,6 +1,7 @@
 #include <editor/ui/EditorUI.hpp>
 #include <editor/EditorAction.hpp>
 #include <editor/EditorSubsystem.hpp>
+#include <editor/EditorProject.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -9,6 +10,7 @@
 #include <scene/World.hpp>
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
+#include <scene/ecs/components/ScriptComponent.hpp>
 
 #include <ui/UIText.hpp>
 #include <ui/UITextbox.hpp>
@@ -595,87 +597,126 @@ public:
 
         RC<UIGrid> components_grid_container = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         
-        RC<UIGridRow> components_grid_container_header_row = components_grid_container->AddRow();
-        RC<UIGridColumn> components_grid_container_header_column = components_grid_container_header_row->AddColumn();
-
-        RC<UIText> components_grid_container_header_text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
-        components_grid_container_header_text->SetText("Components");
-        components_grid_container_header_column->AddChildUIObject(components_grid_container_header_text);
-
-        RC<UIButton> add_component_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-        add_component_button->SetText("Add Component");
-        add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
         {
-            HYP_LOG(Editor, Debug, "Add Component clicked");
+            RC<UIGridRow> components_grid_container_header_row = components_grid_container->AddRow();
 
-            if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
-                auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/Component.Add.ui.xml");
-                
-                if (loaded_ui_asset.HasValue()) {
-                    auto loaded_ui = loaded_ui_asset->Result();
+            {
+                RC<UIGridColumn> components_grid_container_header_column = components_grid_container_header_row->AddColumn();
+                components_grid_container_header_column->SetColumnSize(6);
 
-                    if (RC<UIObject> add_component_window = loaded_ui->FindChildUIObject("Add_Component_Window")) {
-                        stage->AddChildUIObject(add_component_window);
-                
-                        return UIEventHandlerResult::STOP_BUBBLING;
-                    }
-                }
-
-                HYP_LOG(Editor, Error, "Failed to load add component ui dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
-
-                return UIEventHandlerResult::ERR;
-
-                // RC<UIWindow> window = parent->CreateUIObject<UIWindow>(Vec2i { 0, 0 }, UIObjectSize(Vec2i { 250, 500 }));
-                // window->SetOriginAlignment(UIObjectAlignment::CENTER);
-                // window->SetParentAlignment(UIObjectAlignment::CENTER);
-                // window->SetText("Add Component");
-
-                // RC<UIGrid> window_content_grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-                // RC<UIGridRow> window_content_grid_row = window_content_grid->AddRow();
-                // RC<UIGridColumn> window_content_grid_column = window_content_grid_row->AddColumn();
-
-                // RC<UIGrid> window_footer_grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-
-                // RC<UIGridRow> window_footer_grid_row = window_footer_grid->AddRow();
-
-                // RC<UIButton> add_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-                // add_button->SetText("Add");
-                // add_button->OnClick.Bind([window_weak = window.ToWeak()](...)
-                // {
-                //     // @TODO
-
-                //     return UIEventHandlerResult::ERR;
-                // }).Detach();
-                // window_footer_grid_row->AddColumn()->AddChildUIObject(add_button);
-
-                // RC<UIButton> cancel_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-                // cancel_button->SetText("Cancel");
-                // cancel_button->OnClick.Bind([window_weak = window.ToWeak()](...)
-                // {
-                //     if (RC<UIWindow> window = window_weak.Lock()) {
-                //         if (window->RemoveFromParent()) {
-                //             return UIEventHandlerResult::STOP_BUBBLING;
-                //         }
-                //     }
-
-                //     return UIEventHandlerResult::ERR;
-                // }).Detach();
-
-                // window_footer_grid_row->AddColumn()->AddChildUIObject(cancel_button);
-
-                // window_content_grid->AddRow()->AddColumn()->AddChildUIObject(window_footer_grid);
-
-                // window->AddChildUIObject(window_content_grid);
-
-                // window_content_grid_row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::FILL }));
-
-                // stage->AddChildUIObject(window);
+                RC<UIText> components_grid_container_header_text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+                components_grid_container_header_text->SetText("Components");
+                components_grid_container_header_column->AddChildUIObject(components_grid_container_header_text);
             }
 
-            return UIEventHandlerResult::ERR;
-        }).Detach();
+            {
+                RC<UIGridColumn> components_grid_container_add_component_button_column = components_grid_container_header_row->AddColumn();
+                components_grid_container_add_component_button_column->SetColumnSize(6);
 
-        components_grid_container_header_column->AddChildUIObject(add_component_button);
+                RC<UIButton> add_component_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                add_component_button->SetText("Add Component");
+                add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
+                {
+                    if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
+                        auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/Component.Add.ui.xml");
+                        
+                        if (loaded_ui_asset.HasValue()) {
+                            auto loaded_ui = loaded_ui_asset->Result();
+
+                            if (RC<UIObject> add_component_window = loaded_ui->FindChildUIObject("Add_Component_Window")) {
+                                stage->AddChildUIObject(add_component_window);
+                        
+                                return UIEventHandlerResult::STOP_BUBBLING;
+                            }
+                        }
+
+                        HYP_LOG(Editor, Error, "Failed to load add component ui dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    return UIEventHandlerResult::ERR;
+                }).Detach();
+
+                components_grid_container_add_component_button_column->AddChildUIObject(add_component_button);
+            }
+        }
+
+        {
+            RC<UIGridRow> components_grid_container_script_row = components_grid_container->AddRow();
+            RC<UIGridColumn> components_grid_container_script_column = components_grid_container_script_row->AddColumn();
+
+            // @TODO: Rewrite this once working
+            if (entity_manager->HasComponent<ScriptComponent>(entity)) {
+                RC<UIButton> edit_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                edit_script_button->SetText("Edit Script");
+                edit_script_button->OnClick.Bind([entity, entity_manager](...)
+                {
+                    ScriptComponent *script_component = entity_manager->TryGetComponent<ScriptComponent>(entity);
+
+                    if (!script_component) {
+                        HYP_LOG(Editor, Error, "Failed to get ScriptComponent for Entity #{}", entity.GetID().Value());
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    FilePath script_filepath(script_component->script.path);
+
+                    HYP_LOG(Editor, Debug, "Opening script file \"{}\" in editor", script_filepath);
+
+                    if (!script_filepath.Exists()) {
+                        HYP_LOG(Editor, Error, "Script file \"{}\" does not exist", script_filepath);
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }).Detach();
+
+                components_grid_container_script_column->AddChildUIObject(edit_script_button);
+            } else {
+                RC<UIButton> attach_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+                attach_script_button->SetText("Attach Script");
+                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis()](...)
+                {
+                    EditorSubsystem *editor_subsystem = world->GetSubsystem<EditorSubsystem>();
+
+                    if (!editor_subsystem) {
+                        HYP_LOG(Editor, Error, "Failed to get EditorSubsystem");
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    const RC<EditorProject> &editor_project = editor_subsystem->GetCurrentProject();
+
+                    if (!editor_project) {
+                        HYP_LOG(Editor, Error, "Failed to get current EditorProject");
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    const Handle<AssetRegistry> &asset_registry = editor_project->GetAssetRegistry();
+
+                    if (!asset_registry) {
+                        HYP_LOG(Editor, Error, "Failed to get AssetRegistry from EditorProject");
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    Handle<AssetPackage> scripts_package = asset_registry->GetPackageFromPath("Scripts", true);
+                    AssertThrow(scripts_package.IsValid());
+
+                    // @TODO: better name for script asset
+                    Handle<AssetObject> asset_object = scripts_package->NewAssetObject(Name::Unique("Script"), CreateObject<Script>());
+                    
+                    // @TODO: Save the package to disk
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }).Detach();
+
+                components_grid_container_script_column->AddChildUIObject(attach_script_button);
+            }
+        }
 
         RC<UIGridRow> components_grid_container_content_row = components_grid_container->AddRow();
         RC<UIGridColumn> components_grid_container_content_column = components_grid_container_content_row->AddColumn();

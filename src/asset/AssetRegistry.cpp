@@ -73,15 +73,65 @@ AssetPackage::AssetPackage(Name name)
 
 void AssetPackage::SetAssetObjects(const AssetObjectSet &asset_objects)
 {
-    Mutex::Guard guard(m_mutex);
-
-    m_asset_objects = asset_objects;
-
     if (IsInitCalled()) {
-        for (const Handle<AssetObject> &asset_object : m_asset_objects) {
+        AssetObjectSet previous_asset_objects;
+
+        { // store so we can call OnAssetObjectRemoved outside of the lock
+            Mutex::Guard guard(m_mutex);
+
+            previous_asset_objects = std::move(m_asset_objects);
+        }
+
+        for (const Handle<AssetObject> &asset_object : previous_asset_objects) {
+            OnAssetObjectRemoved(asset_object.Get());
+        }
+
+        previous_asset_objects.Clear();
+    }
+
+    Array<Handle<AssetObject>> new_asset_objects;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        m_asset_objects = asset_objects;
+
+        if (IsInitCalled()) {
+            new_asset_objects.Reserve(m_asset_objects.Size());
+
+            for (const Handle<AssetObject> &asset_object : m_asset_objects) {
+                InitObject(asset_object);
+
+                new_asset_objects.PushBack(asset_object);
+            }
+        }
+    }
+
+    for (const Handle<AssetObject> &asset_object : new_asset_objects) {
+        OnAssetObjectAdded(asset_object.Get());
+    }
+}
+
+Handle<AssetObject> AssetPackage::NewAssetObject(Name name, const AnyHandle &value)
+{
+    Handle<AssetObject> asset_object;
+
+    { // so we can call OnAssetObjectAdded outside of the lock
+        Mutex::Guard guard(m_mutex);
+
+        asset_object = CreateObject<AssetObject>(name, AnyHandle(value));
+        m_asset_objects.Insert({ asset_object });
+
+        if (IsInitCalled()) {
             InitObject(asset_object);
         }
     }
+
+    if (IsInitCalled()) {
+        OnAssetObjectAdded(asset_object.Get());
+    }
+
+    return asset_object;
 }
 
 void AssetPackage::Init()
@@ -92,12 +142,30 @@ void AssetPackage::Init()
 
     HypObject::Init();
 
+    Array<Handle<AssetObject>> asset_objects;
+    Array<Handle<AssetPackage>> subpackages;
+
     {
         Mutex::Guard guard(m_mutex);
 
+        asset_objects.Reserve(m_asset_objects.Size());
+        subpackages.Reserve(m_subpackages.Size());
+
         for (const Handle<AssetObject> &asset_object : m_asset_objects) {
             InitObject(asset_object);
+
+            asset_objects.PushBack(asset_object);
         }
+
+        for (const Handle<AssetPackage> &subpackage : m_subpackages) {
+            InitObject(subpackage);
+
+            subpackages.PushBack(subpackage);
+        }
+    }
+
+    for (const Handle<AssetObject> &asset_object : asset_objects) {
+        OnAssetObjectAdded(asset_object.Get());
     }
 }
 
@@ -198,15 +266,9 @@ void AssetRegistry::RegisterAsset(const UTF8StringView &path, AnyHandle &&object
     path_string = String::Join(path_string_split, '/');
 
     Mutex::Guard guard1(m_mutex);
-    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path_string, /* create_if_not_exist */ true, asset_name);
+    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path_string, AssetRegistryPathType::PACKAGE, /* create_if_not_exist */ true, asset_name);
 
-    Mutex::Guard guard2(asset_package->m_mutex);
-
-    Handle<AssetObject> asset_object = CreateObject<AssetObject>(CreateNameFromDynamicString(asset_name));
-    asset_object->SetObject(std::move(object));
-    InitObject(asset_object);
-
-    asset_package->m_asset_objects.Insert({ std::move(asset_object) });
+    asset_package->NewAssetObject(CreateNameFromDynamicString(asset_name), std::move(object));
 }
 
 const AnyHandle &AssetRegistry::GetAsset(const UTF8StringView &path)
@@ -215,7 +277,7 @@ const AnyHandle &AssetRegistry::GetAsset(const UTF8StringView &path)
 
     String asset_name;
 
-    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path, /* create_if_not_exist */ false, asset_name);
+    Handle<AssetPackage> asset_package = GetPackageFromPath_Internal(path, AssetRegistryPathType::ASSET, /* create_if_not_exist */ false, asset_name);
 
     if (!asset_package.IsValid()) {
         return AnyHandle::empty;
@@ -231,16 +293,16 @@ const AnyHandle &AssetRegistry::GetAsset(const UTF8StringView &path)
     return (*it)->GetObject();
 }
 
-Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView &path)
+Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView &path, bool create_if_not_exist)
 {
     Mutex::Guard guard(m_mutex);
 
     String asset_name;
 
-    return GetPackageFromPath_Internal(path, /* create_if_not_exist */ false, asset_name);
+    return GetPackageFromPath_Internal(path, AssetRegistryPathType::PACKAGE, create_if_not_exist, asset_name);
 }
 
-Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8StringView &path, bool create_if_not_exist, String &out_asset_name)
+Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8StringView &path, AssetRegistryPathType path_type, bool create_if_not_exist, String &out_asset_name)
 {
     HYP_SCOPE;
 
@@ -288,9 +350,23 @@ Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8String
         current_string.Append(*it);
     }
 
-    out_asset_name = std::move(current_string);
+    switch (path_type) {
+    case AssetRegistryPathType::PACKAGE:
+        out_asset_name.Clear();
 
-    return current_package;
+        // If it is a PACKAGE path, if there is any remaining string, get / create the subpackage
+        if (!current_package.IsValid() || current_string.Any()) {
+            current_package = GetSubpackage(current_package, current_string);
+        }
+
+        return current_package;
+    case AssetRegistryPathType::ASSET:
+        out_asset_name = std::move(current_string);
+
+        return current_package;
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
 #pragma endregion AssetRegistry

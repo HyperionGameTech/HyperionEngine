@@ -141,7 +141,13 @@ public:
     void ForEachAssetObject(Callback &&callback) const
         { ForEach(m_asset_objects, m_mutex, std::forward<Callback>(callback)); }
 
+    HYP_METHOD()
+    Handle<AssetObject> NewAssetObject(Name name, const AnyHandle &value);
+
     void Init();
+
+    Delegate<void, AssetObject *>   OnAssetObjectAdded;
+    Delegate<void, AssetObject *>   OnAssetObjectRemoved;
 
 private:
     UUID                            m_uuid;
@@ -152,6 +158,11 @@ private:
     mutable Mutex                   m_mutex;
 };
 
+enum class AssetRegistryPathType : uint8
+{
+    PACKAGE = 0,
+    ASSET   = 1
+};
 
 HYP_CLASS()
 class HYP_API AssetRegistry : public HypObject<AssetRegistry>
@@ -182,14 +193,14 @@ public:
     const AnyHandle &GetAsset(const UTF8StringView &path);
 
     HYP_METHOD()
-    Handle<AssetPackage> GetPackageFromPath(const UTF8StringView &path);
+    Handle<AssetPackage> GetPackageFromPath(const UTF8StringView &path, bool create_if_not_exist = true);
 
     void Init();
 
     Delegate<void, const Handle<AssetPackage> &>    OnPackageAdded;
 
 private:
-    Handle<AssetPackage> GetPackageFromPath_Internal(const UTF8StringView &path, bool create_if_not_exist, String &out_asset_name);
+    Handle<AssetPackage> GetPackageFromPath_Internal(const UTF8StringView &path, AssetRegistryPathType path_type, bool create_if_not_exist, String &out_asset_name);
 
     AssetPackageSet m_packages;
     mutable Mutex   m_mutex;
