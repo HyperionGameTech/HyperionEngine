@@ -93,6 +93,8 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
+    m_after_swapchain_recreated_delegate.Reset();
+
     SafeRelease(std::move(m_input_framebuffer));
 
     SafeRelease(std::move(m_perform_blending));
@@ -108,6 +110,16 @@ void TemporalBlending::Create()
         return;
     }
 
+    if (m_input_framebuffer.IsValid()) {
+        DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
+    }
+    
+    CreateImageOutputs();
+    CreateDescriptorSets();
+    CreateComputePipelines();
+
+    m_is_initialized = true;
+
     m_after_swapchain_recreated_delegate = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
     {
         if (!m_is_initialized) {
@@ -122,16 +134,6 @@ void TemporalBlending::Create()
                 ->SetElement(NAME("VelocityImage"), velocity_texture);
         }
     });
-
-    if (m_input_framebuffer.IsValid()) {
-        DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
-    }
-    
-    CreateImageOutputs();
-    CreateDescriptorSets();
-    CreateComputePipelines();
-
-    m_is_initialized = true;
 }
 
 void TemporalBlending::Resize(Vec2u new_size)

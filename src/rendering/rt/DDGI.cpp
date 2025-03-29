@@ -452,6 +452,7 @@ void DDGI::RenderProbes(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
 
@@ -478,7 +479,7 @@ void DDGI::RenderProbes(Frame *frame)
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
@@ -505,6 +506,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
@@ -529,7 +531,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
@@ -556,7 +558,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
@@ -595,7 +597,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState()->GetScene().id.ToIndex()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                 }
             }
@@ -622,7 +624,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(g_engine->GetRenderState()->GetScene().id.ToIndex()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_index) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(g_engine->GetRenderState()->GetActiveEnvProbe().ToIndex()) }
                 }
             }

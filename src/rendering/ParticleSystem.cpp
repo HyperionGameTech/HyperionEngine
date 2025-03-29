@@ -427,6 +427,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     if (m_particle_spawners.GetItems().Empty()) {
         if (m_particle_spawners.HasUpdatesPending()) {
@@ -504,7 +505,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                         }
                     }
@@ -544,13 +545,14 @@ void ParticleSystem::Render(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     FixedArray<uint32, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
     ForEachInBatches(
         m_particle_spawners.GetItems(),
         num_async_rendering_command_buffers,
-        [this, &command_buffers_recorded_states, scene_render_resource, camera_render_resource, &env_probe_render_resource, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint32 index, uint32 batch_index) {
+        [this, &command_buffers_recorded_states, scene_render_resource, camera_render_resource, &env_probe_render_resource, env_grid, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint32 index, uint32 batch_index) {
             const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -570,7 +572,7 @@ void ParticleSystem::Render(Frame *frame)
                                 {
                                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                                 }
                             }
