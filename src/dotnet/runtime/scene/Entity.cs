@@ -6,16 +6,6 @@ namespace Hyperion
     [HypClassBinding(Name="Entity")]
     public class Entity : HypObject
     {
-        public Entity()
-        {
-            Logger.Log(LogType.Debug, "Entity with ID " + ID + " created from C#");
-        }
-
-        ~Entity()
-        {
-            Logger.Log(LogType.Debug, "Entity with ID " + ID + " destructed from C#");
-        }
-
         public IDBase ID
         {
             get

@@ -677,8 +677,16 @@ public:
             } else {
                 RC<UIButton> attach_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 attach_script_button->SetText("Attach Script");
-                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis()](...)
+                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis(), entity_manager_weak = entity_manager->WeakThis(), entity](...)
                 {
+                    RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+                    
+                    if (!entity_manager) {
+                        HYP_LOG(Editor, Error, "Failed to get EntityManager");
+
+                        return UIEventHandlerResult::ERR;
+                    }
+
                     EditorSubsystem *editor_subsystem = world->GetSubsystem<EditorSubsystem>();
 
                     if (!editor_subsystem) {
@@ -706,10 +714,25 @@ public:
                     Handle<AssetPackage> scripts_package = asset_registry->GetPackageFromPath("Scripts", true);
                     AssertThrow(scripts_package.IsValid());
 
+                    Handle<Script> script = CreateObject<Script>();
+
                     // @TODO: better name for script asset
-                    Handle<AssetObject> asset_object = scripts_package->NewAssetObject(Name::Unique("Script"), CreateObject<Script>());
+                    Handle<AssetObject> asset_object = scripts_package->NewAssetObject(Name::Unique("TestScript"), HypData(script));
                     
-                    // @TODO: Save the package to disk
+                    if (Result save_result = asset_object->Save(); save_result.HasError()) {
+                        HYP_LOG(Editor, Error, "Failed to save script asset: {}", save_result.GetError().GetMessage());
+
+                        return UIEventHandlerResult::ERR;
+                    }
+                    
+                    if (entity_manager->HasComponent<ScriptComponent>(entity)) {
+                        entity_manager->RemoveComponent<ScriptComponent>(entity);
+                    }
+
+                    ScriptComponent script_component;
+                    Memory::StrCpy(script_component.script.path, asset_object->GetPath().Data(), sizeof(script_component.script.path));
+
+                    entity_manager->AddComponent<ScriptComponent>(entity, script_component);
 
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }).Detach();

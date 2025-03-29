@@ -17,6 +17,7 @@
 #include <core/serialization/fbom/FBOMDeserializedObject.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
+#include <core/utilities/GlobalContext.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -98,10 +99,10 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     if (!m_name.IsValid()) {
         m_name = GetNextDefaultProjectName(g_default_project_name);
-    }
 
-    if (!m_name.IsValid()) {
-        return HYP_MAKE_ERROR(Error, "Failed to generate a project name");
+        if (!m_name.IsValid()) {
+            return HYP_MAKE_ERROR(Error, "Failed to generate a project name");
+        }
     }
 
     if (filepath.Empty()) {
@@ -110,6 +111,10 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     if (!filepath.Exists() && !filepath.MkDir()) {
         return HYP_MAKE_ERROR(Error, "Failed to create directory");
+    }
+
+    if (!filepath.IsDirectory()) {
+        return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", filepath);
     }
 
     const Time previous_last_saved_time = m_last_saved_time;
@@ -158,21 +163,28 @@ Result EditorProject::SaveAs(FilePath filepath)
     };
 
     Result result;
-
-    m_asset_registry->ForEachPackage([&CreateAssetPackageDirectory, &filepath, &result](const Handle<AssetPackage> &package)
+    
     {
-        if (Result package_result = CreateAssetPackageDirectory(filepath, package); package_result.HasError()) {
-            result = package_result;
+        // temporary scope to set the root path for the asset registry
+        GlobalContextScope scope { AssetRegistryRootPathContext(filepath) };
 
-            return IterationResult::STOP;
-        }
+        m_asset_registry->ForEachPackage([&CreateAssetPackageDirectory, &filepath, &result](const Handle<AssetPackage> &package)
+        {
+            if (Result package_result = CreateAssetPackageDirectory(filepath, package); package_result.HasError()) {
+                result = package_result;
 
-        return IterationResult::CONTINUE;
-    });
+                return IterationResult::STOP;
+            }
+
+            return IterationResult::CONTINUE;
+        });
+    }
 
     if (result) {
         // Update m_filepath when save was successful.
         m_filepath = filepath;
+
+        m_asset_registry->SetRootPath(FilePath::Relative(filepath, FilePath::Current()));
     }
 
     return result;
