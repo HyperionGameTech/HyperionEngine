@@ -110,6 +110,9 @@ public:
     Delegate<void, Vec2u>                           OnGBufferResolutionChanged;
 
 private:
+    // If the window is high DPI like retina on mac, we need to scale it down
+    static Vec2u RescaleResolution(Vec2u resolution);
+
     FixedArray<GBufferBucket, Bucket::BUCKET_MAX>   m_buckets;
 
     Vec2u                                           m_resolution;

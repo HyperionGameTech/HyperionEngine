@@ -6,6 +6,8 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/GBuffer.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>
@@ -242,9 +244,7 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
         return;
     }
 
-    if (new_size.x * new_size.y == 0) {
-        new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
-    }
+    AssertThrow(new_size.Volume() != 0);
 
     m_extent = new_size;
 
@@ -294,7 +294,7 @@ void FullScreenPass::CreateFramebuffer()
     HYP_SCOPE;
 
     if (m_extent.x * m_extent.y == 0) {
-        m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+        m_extent = g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution();
     }
 
     Vec2u framebuffer_extent = m_extent;

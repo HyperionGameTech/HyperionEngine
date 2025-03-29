@@ -1117,13 +1117,13 @@ void DeferredRenderer::Create()
     CreateBlueNoiseBuffer();
     CreateSphereSamplesBuffer();
 
-    // m_dof_blur = MakeUnique<DOFBlur>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
+    // m_dof_blur = MakeUnique<DOFBlur>(m_gbuffer->GetResolution());
     // m_dof_blur->Create();
 
     CreateCombinePass();
     CreateDescriptorSets();
 
-    m_temporal_aa = MakeUnique<TemporalAA>(g_engine->GetGPUInstance()->GetSwapchain()->extent);
+    m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetResolution());
     m_temporal_aa->Create();
 
     m_is_initialized = true;
@@ -1222,8 +1222,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     Threads::AssertOnThread(g_render_thread);
 
-    CommandBuffer *primary = frame->GetCommandBuffer();
-
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
@@ -1272,8 +1270,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
 
-    deferred_data.screen_width = g_engine->GetGPUInstance()->GetSwapchain()->extent.x;
-    deferred_data.screen_height = g_engine->GetGPUInstance()->GetSwapchain()->extent.y;
+    deferred_data.screen_width = m_gbuffer->GetResolution().x;
+    deferred_data.screen_height = m_gbuffer->GetResolution().y;
 
     CollectDrawCalls(frame);
     
@@ -1288,32 +1286,32 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     { // indirect lighting
-        DebugMarker marker(primary, "Record deferred indirect lighting pass");
+        DebugMarker marker(frame->GetCommandBuffer(), "Record deferred indirect lighting pass");
 
         m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_indirect_pass->Record(frame_index); // could be moved to only do once
     }
 
     { // direct lighting
-        DebugMarker marker(primary, "Record deferred direct lighting pass");
+        DebugMarker marker(frame->GetCommandBuffer(), "Record deferred direct lighting pass");
 
         m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_direct_pass->Record(frame_index);
     }
 
     { // opaque objects
-        DebugMarker marker(primary, "Render opaque objects");
+        DebugMarker marker(frame->GetCommandBuffer(), "Render opaque objects");
 
-        m_opaque_fbo->BeginCapture(primary, frame_index);
+        m_opaque_fbo->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
         RenderOpaqueObjects(frame);
 
-        m_opaque_fbo->EndCapture(primary, frame_index);
+        m_opaque_fbo->EndCapture(frame->GetCommandBuffer(), frame_index);
     }
     // end opaque objs
 
     if (use_env_grid_irradiance) { // submit env grid command buffer
-        DebugMarker marker(primary, "Apply env grid irradiance");
+        DebugMarker marker(frame->GetCommandBuffer(), "Apply env grid irradiance");
 
         m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_env_grid_irradiance_pass->Record(frame_index);
@@ -1321,7 +1319,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     if (use_env_grid_radiance) { // submit env grid command buffer
-        DebugMarker marker(primary, "Apply env grid radiance");
+        DebugMarker marker(frame->GetCommandBuffer(), "Apply env grid radiance");
 
         m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_env_grid_radiance_pass->Record(frame_index);
@@ -1329,7 +1327,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     if (use_reflection_probes) {
-        DebugMarker marker(primary, "Apply reflections");
+        DebugMarker marker(frame->GetCommandBuffer(), "Apply reflections");
 
         m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_reflections_pass->Record(frame_index);
@@ -1338,13 +1336,13 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     if (is_render_environment_ready) {
         if (use_rt_radiance) {
-            DebugMarker marker(primary, "RT Radiance");
+            DebugMarker marker(frame->GetCommandBuffer(), "RT Radiance");
 
             environment->RenderRTRadiance(frame);
         }
 
         if (use_ddgi) {
-            DebugMarker marker(primary, "DDGI");
+            DebugMarker marker(frame->GetCommandBuffer(), "DDGI");
 
             environment->RenderDDGIProbes(frame);
         }
@@ -1360,17 +1358,17 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     m_post_processing.RenderPre(frame);
 
     { // deferred lighting on opaque objects
-        DebugMarker marker(primary, "Deferred shading");
+        DebugMarker marker(frame->GetCommandBuffer(), "Deferred shading");
 
-        deferred_pass_framebuffer->BeginCapture(primary, frame_index);
+        deferred_pass_framebuffer->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
-        m_indirect_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
+        m_indirect_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer());
 
         if (g_engine->GetRenderState()->NumBoundLights() != 0) {
-            m_direct_pass->GetCommandBuffer(frame_index)->SubmitSecondary(primary);
+            m_direct_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer());
         }
 
-        deferred_pass_framebuffer->EndCapture(primary, frame_index);
+        deferred_pass_framebuffer->EndCapture(frame->GetCommandBuffer(), frame_index);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
@@ -1379,9 +1377,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     { // translucent objects
-        DebugMarker marker(primary, "Render translucent objects");
+        DebugMarker marker(frame->GetCommandBuffer(), "Render translucent objects");
 
-        m_translucent_fbo->BeginCapture(primary, frame_index);
+        m_translucent_fbo->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
         bool is_sky_set = false;
 
@@ -1414,7 +1412,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         // render debug draw
         g_engine->GetDebugDrawer()->Render(frame);
 
-        m_translucent_fbo->EndCapture(primary, frame_index);
+        m_translucent_fbo->EndCapture(frame->GetCommandBuffer(), frame_index);
     }
 
     {
@@ -1475,34 +1473,30 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 
     Threads::AssertOnThread(g_render_thread);
 
-    CommandBuffer *primary = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
     const ImageRef &mipmapped_result = m_mip_chain->GetImage();
     AssertThrow(mipmapped_result.IsValid());
 
-    DebugMarker marker(primary, "Mip chain generation");
+    DebugMarker marker(frame->GetCommandBuffer(), "Mip chain generation");
 
     // put src image in state for copying from
-    src_image->InsertBarrier(primary, renderer::ResourceState::COPY_SRC);
+    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
     // put dst image in state for copying to
-    mipmapped_result->InsertBarrier(primary, renderer::ResourceState::COPY_DST);
+    mipmapped_result->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
     // Blit into the mipmap chain img
     mipmapped_result->Blit(
-        primary,
+        frame->GetCommandBuffer(),
         src_image,
         Rect<uint32> { 0, 0, src_image->GetExtent().x, src_image->GetExtent().y },
         Rect<uint32> { 0, 0, mipmapped_result->GetExtent().x, mipmapped_result->GetExtent().y }
     );
 
-    HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
-        g_engine->GetGPUDevice(),
-        primary
-    ));
+    HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(g_engine->GetGPUDevice(), frame->GetCommandBuffer()));
 
     // put src image in state for reading
-    src_image->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
+    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 // @TODO Move to CameraRenderResource

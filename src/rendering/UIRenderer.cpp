@@ -487,13 +487,23 @@ void UIRenderSubsystem::Init()
         }
     };
 
-    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakThis()]()
     {
         Threads::AssertOnThread(g_render_thread);
 
+        HYP_LOG(UI, Debug, "UIRenderSubsystem: resizing to {}", g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
+
+        RC<UIRenderSubsystem> subsystem = weak_this.Lock().CastUnsafe<UIRenderSubsystem>();
+
+        if (!subsystem) {
+            HYP_LOG(UI, Warning, "UIRenderSubsystem: subsystem is expired on resize");
+
+            return;
+        }
+
         g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
 
-        PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
+        PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, subsystem);
     });
 
     PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
@@ -541,17 +551,17 @@ void UIRenderSubsystem::CreateFramebuffer()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const Vec2i surface_size = Vec2i(g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
-
-    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
-    {
-        ui_stage->SetSurfaceSize(surface_size);
-    });
+    const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
 
     m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
     AssertThrow(m_framebuffer.IsValid());
 
-    m_ui_stage->GetScene()->GetCamera()->SetFramebuffer(m_framebuffer);
+    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, framebuffer = m_framebuffer, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
+    {
+        ui_stage->SetSurfaceSize(surface_size);
+
+        ui_stage->GetScene()->GetCamera()->SetFramebuffer(framebuffer);
+    });
 
     g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
         m_framebuffer->GetAttachment(0)->GetImage(),

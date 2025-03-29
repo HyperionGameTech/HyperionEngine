@@ -7,6 +7,8 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -122,9 +124,9 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : renderer::RenderCommand
 
 #pragma region SSRRendererConfig
 
-Vec2u SSRRendererConfig::GetSwapchainExtent()
+Vec2u SSRRendererConfig::GetGBufferResolution()
 {
-    return g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    return g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution();
 }
 
 #pragma endregion SSRRendererConfig

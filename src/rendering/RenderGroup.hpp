@@ -148,7 +148,7 @@ private:
 
     RenderableAttributeSet                              m_renderable_attributes;
 
-    RC<IndirectRenderer>                                m_indirect_renderer;
+    UniquePtr<IndirectRenderer>                         m_indirect_renderer;
 
     Array<FramebufferRef>                               m_fbos;
 

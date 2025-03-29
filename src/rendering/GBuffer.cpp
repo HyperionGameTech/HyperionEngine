@@ -39,27 +39,15 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resourc
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_DEPTH) }     // depth
 };
 
-static void AddOwnedAttachment(
-    uint32 binding,
-    InternalFormat format,
-    FramebufferRef &framebuffer,
-    Vec2u extent = Vec2u::Zero()
-)
+static void AddOwnedAttachment(uint32 binding, InternalFormat format, const FramebufferRef &framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
     
-    if (extent == Vec2u::Zero()) {
-        extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
-    } else {
-        AssertThrow(extent.Volume() != 0);
-    }
+    const Vec2u &extent = framebuffer->GetExtent();
+    AssertThrow(extent.Volume() != 0);
 
-    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
-        extent,
-        format
-    ));
-
+    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(extent, format));
     HYPERION_ASSERT_RESULT(attachment_image->Create(g_engine->GetGPUInstance()->GetDevice()));
 
     AttachmentRef attachment = MakeRenderObject<Attachment>(
@@ -80,10 +68,7 @@ static void AddOwnedAttachment(
     framebuffer->AddAttachment(std::move(attachment));
 }
 
-static void AddSharedAttachment(
-    uint32 binding,
-    FramebufferRef &framebuffer
-)
+static void AddSharedAttachment(uint32 binding, const FramebufferRef &framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -134,6 +119,18 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
     return color_format;
 }
 
+Vec2u GBuffer::RescaleResolution(Vec2u resolution)
+{
+    if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
+        if (window->IsHighDPI()) {
+            // if the window is high DPI like retina on mac, we need to scale it down
+            resolution /= 2;
+        }
+    }
+
+    return resolution;
+}
+
 GBuffer::GBuffer()
     : m_resolution(0, 0)
 {
@@ -147,7 +144,7 @@ void GBuffer::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    m_resolution = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    m_resolution = RescaleResolution(g_engine->GetGPUInstance()->GetSwapchain()->extent);
 
     for (auto &bucket : m_buckets) {
         bucket.CreateFramebuffer(m_resolution);
@@ -168,6 +165,8 @@ void GBuffer::Resize(Vec2u resolution)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    resolution = RescaleResolution(resolution);
 
     for (GBufferBucket &bucket : m_buckets) {
         bucket.Resize(resolution);
@@ -214,33 +213,24 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
 
     Vec2u framebuffer_extent = resolution;
 
-    if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
-        if (window->IsHighDPI() && bucket != BUCKET_UI) {
-            // if the window is high DPI like retina on mac, we need to scale it down
-            // to avoid rendering at a resolution that will crush performance like a soda can
-            framebuffer_extent /= 2;
-        } else if (!window->IsHighDPI() && bucket == BUCKET_UI) {
-            framebuffer_extent *= 2;
-        }
+    // double resolution for UI
+    if (bucket == BUCKET_UI) {
+        framebuffer_extent *= 2;
     }
 
-    framebuffer = MakeRenderObject<Framebuffer>(
-        framebuffer_extent,
-        renderer::RenderPassStage::SHADER,
-        mode
-    );
+    framebuffer = MakeRenderObject<Framebuffer>(framebuffer_extent, renderer::RenderPassStage::SHADER, mode);
 
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer, framebuffer_extent);
+        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer);
 
         // Needed for stencil
-        AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer, framebuffer_extent);
+        AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer);
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets
-        AddOwnedAttachment(0, color_format, framebuffer, framebuffer_extent);
+        AddOwnedAttachment(0, color_format, framebuffer);
 
         // opaque creates the main non-color gbuffer attachments,
         // which will be shared with other renderable buckets
@@ -248,7 +238,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
             for (uint32 i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
-                AddOwnedAttachment(i, format, framebuffer, framebuffer_extent);
+                AddOwnedAttachment(i, format, framebuffer);
             }
         } else {
             // add the attachments shared with opaque bucket
@@ -276,12 +266,9 @@ void GBuffer::GBufferBucket::Resize(Vec2u resolution)
 
     Vec2u framebuffer_extent = resolution;
 
-    if (const sys::ApplicationWindow *window = g_engine->GetAppContext()->GetMainWindow()) {
-        if (window->IsHighDPI() && bucket != BUCKET_UI) {
-            // if the window is high DPI like retina on mac, we need to scale it down
-            // to avoid rendering at a resolution that will crush performance like a soda can
-            framebuffer_extent = framebuffer_extent / 2;
-        }
+    // double resolution for UI
+    if (bucket == BUCKET_UI) {
+        framebuffer_extent *= 2;
     }
 
     HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), framebuffer_extent));

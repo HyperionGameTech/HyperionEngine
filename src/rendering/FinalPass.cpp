@@ -4,10 +4,14 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/logging/Logger.hpp>
 
 #include <scene/Mesh.hpp>
 
@@ -20,6 +24,8 @@
 #define HYP_RENDER_UI_IN_COMPOSITE_PASS
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region Render commands
 
@@ -54,6 +60,8 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
         }
 
         if (final_pass.m_render_texture_to_screen_pass != nullptr) {
+            final_pass.m_render_texture_to_screen_pass->Resize(texture->GetExtent().GetXY());
+
             const DescriptorTableRef &descriptor_table = final_pass.m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable();
             AssertThrow(descriptor_table.IsValid());
 
@@ -77,8 +85,8 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
 
 #pragma region CompositePass
 
-CompositePass::CompositePass()
-    : FullScreenPass(InternalFormat::RGBA8_SRGB)
+CompositePass::CompositePass(Vec2u extent)
+    : FullScreenPass(InternalFormat::RGBA8_SRGB, extent)
 {
 }
 
@@ -163,8 +171,6 @@ FinalPass::~FinalPass()
     if (m_render_texture_to_screen_pass != nullptr) {
         m_render_texture_to_screen_pass.Reset();
     }
-
-    // @NOTE: FullScreenPass will flush render queue, preventing dangling references from render commands
 }
 
 void FinalPass::SetUITexture(Handle<Texture> texture)
@@ -197,11 +203,12 @@ void FinalPass::Create()
     m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     m_image_format = g_engine->GetGPUInstance()->GetSwapchain()->image_format;
 
-    m_composite_pass.Create();
+    m_composite_pass = MakeUnique<CompositePass>(m_extent);
+    m_composite_pass->Create();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("FinalOutputTexture"), m_composite_pass.GetAttachment(0)->GetImageView());
+            ->SetElement(NAME("FinalOutputTexture"), m_composite_pass->GetAttachment(0)->GetImageView());
     }
 
     FullScreenPass::CreateQuad();
@@ -290,7 +297,7 @@ void FinalPass::Create()
         render_texture_to_screen_shader,
         std::move(descriptor_table),
         m_image_format,
-        m_extent
+        m_ui_texture.IsValid() ? m_ui_texture->GetExtent().GetXY() : Vec2u { 1, 1 }
     );
 
     m_render_texture_to_screen_pass->SetBlendFunction(BlendFunction(
@@ -301,12 +308,17 @@ void FinalPass::Create()
     m_render_texture_to_screen_pass->Create();
 }
 
-void FinalPass::Resize_Internal(Vec2u new_size)
+void FinalPass::Resize_Internal(Vec2u)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    // Always keep FinalPass the same size as the swapchain
+    const Vec2u new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+
     FullScreenPass::Resize_Internal(new_size);
+
+    m_composite_pass->Resize(new_size);
 
     if (m_render_texture_to_screen_pass != nullptr) {
         m_render_texture_to_screen_pass->Resize(new_size);
@@ -327,11 +339,11 @@ void FinalPass::Render(Frame *frame)
     const GraphicsPipelineRef &pipeline = m_render_group->GetPipeline();
     const uint32 acquired_image_index = g_engine->GetGPUInstance()->GetFrameHandler()->GetAcquiredImageIndex();
 
-    m_composite_pass.Record(frame->GetFrameIndex());
-    m_composite_pass.Render(frame);
+    m_composite_pass->Record(frame->GetFrameIndex());
+    m_composite_pass->Render(frame);
 
     { // Copy result to store previous frame's color buffer
-        const ImageRef &source_image = m_composite_pass.GetAttachment(0)->GetImage();
+        const ImageRef &source_image = m_composite_pass->GetAttachment(0)->GetImage();
 
         source_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
         m_last_frame_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);

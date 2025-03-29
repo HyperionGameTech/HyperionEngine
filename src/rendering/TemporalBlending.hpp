@@ -108,8 +108,6 @@ private:
     Handle<Texture>                                 m_result_texture;
     Handle<Texture>                                 m_history_texture;
 
-    DelegateHandler                                 m_after_swapchain_recreated_delegate;
-
     bool                                            m_is_initialized;
 };
 

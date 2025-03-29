@@ -575,8 +575,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     Frame *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
     if (g_should_recreate_swapchain) {
-        HYP_LOG(Rendering, Info, "Recreating swapchain - New size: {}",
-            Vec2i(GetGPUInstance()->GetSwapchain()->extent));
+        HYP_LOG(Rendering, Info, "Recreating swapchain - New size: {}", Vec2i(GetGPUInstance()->GetSwapchain()->extent));
 
         GetDelegates().OnBeforeSwapchainRecreated();
 
@@ -598,6 +597,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
         m_final_pass = MakeUnique<FinalPass>();
         m_final_pass->Create();
+        //m_final_pass->Resize(GetGPUInstance()->GetSwapchain()->extent);
 
         // HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
         frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();

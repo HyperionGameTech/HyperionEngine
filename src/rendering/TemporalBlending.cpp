@@ -93,8 +93,6 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
-    m_after_swapchain_recreated_delegate.Reset();
-
     SafeRelease(std::move(m_input_framebuffer));
 
     SafeRelease(std::move(m_perform_blending));
@@ -119,30 +117,17 @@ void TemporalBlending::Create()
     CreateComputePipelines();
 
     m_is_initialized = true;
-
-    m_after_swapchain_recreated_delegate = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([this]()
-    {
-        if (!m_is_initialized) {
-            return;
-        }
-
-        const ImageViewRef &velocity_texture = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView();
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-                ->SetElement(NAME("VelocityImage"), velocity_texture);
-        }
-    });
 }
 
 void TemporalBlending::Resize(Vec2u new_size)
 {
     PUSH_RENDER_COMMAND(RecreateTemporalBlendingFramebuffer, *this, new_size);
+    HYP_SYNC_RENDER();
 }
 
 void TemporalBlending::Resize_Internal(Vec2u new_size)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     if (m_extent == new_size) {

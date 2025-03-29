@@ -246,7 +246,7 @@ void RenderGroup::CreateIndirectRenderer()
     HYP_SCOPE;
     
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
-        m_indirect_renderer = MakeRefCountedPtr<IndirectRenderer>(&m_draw_state);
+        m_indirect_renderer = MakeUnique<IndirectRenderer>(&m_draw_state);
         m_indirect_renderer->Create();
     }
 }

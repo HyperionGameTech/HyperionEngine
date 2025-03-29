@@ -220,7 +220,7 @@ void HyperionEditor::Init()
 
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
         .mode       = ShadowMode::PCF,
-        .radius     = 60.0f,
+        .radius     = 80.0f,
         .resolution = { 2048, 2048 }
     });
     #endif
