@@ -47,7 +47,7 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 
     virtual ~SSRRendererConfig() override = default;
 
-    static HYP_API Vec2u GetSwapchainExtent();
+    static HYP_API Vec2u GetGBufferResolution();
 
     bool Validate() const
     {
@@ -58,7 +58,7 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 
     void PostLoadCallback()
     {
-        extent = GetSwapchainExtent();
+        extent = GetGBufferResolution();
 
         switch (quality) {
         case 0:

@@ -112,7 +112,7 @@ void RenderEnvironment::Init()
     InitObject(m_gaussian_splatting);
     
     m_rt_radiance = MakeUnique<RTRadianceRenderer>(
-        g_engine->GetGPUInstance()->GetSwapchain()->extent,
+        Vec2u { 1024, 1024 },
         g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
             : RT_RADIANCE_RENDERER_OPTION_NONE

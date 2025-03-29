@@ -26,7 +26,7 @@ class FinalPass;
 class CompositePass final : public FullScreenPass
 {
 public:
-    CompositePass();
+    CompositePass(Vec2u extent);
     CompositePass(const CompositePass &other)               = delete;
     CompositePass &operator=(const CompositePass &other)    = delete;
     virtual ~CompositePass() override;
@@ -49,12 +49,6 @@ public:
     FinalPass &operator=(const FinalPass &other)    = delete;
     virtual ~FinalPass() override;
 
-    HYP_FORCE_INLINE CompositePass &GetCompositePass()
-        { return m_composite_pass; }
-
-    HYP_FORCE_INLINE const CompositePass &GetCompositePass() const
-        { return m_composite_pass; }
-
     HYP_FORCE_INLINE const Handle<Texture> &GetUITexture() const
         { return m_ui_texture; }
     
@@ -73,7 +67,7 @@ public:
 private:
     virtual void Resize_Internal(Vec2u new_size) override;
 
-    CompositePass               m_composite_pass;
+    UniquePtr<CompositePass>    m_composite_pass;
     ImageRef                    m_last_frame_image;
 
     // For UI blitting to screen

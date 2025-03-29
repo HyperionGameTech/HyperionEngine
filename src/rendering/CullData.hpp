@@ -19,6 +19,14 @@ struct CullData
     {
     }
 
+    CullData(const CullData &other);
+    CullData &operator=(const CullData &other);
+
+    CullData(CullData &&other) noexcept;
+    CullData &operator=(CullData &&other) noexcept;
+
+    ~CullData();
+
     HYP_FORCE_INLINE bool operator==(const CullData &other) const
     {
         return depth_pyramid_image_view == other.depth_pyramid_image_view
