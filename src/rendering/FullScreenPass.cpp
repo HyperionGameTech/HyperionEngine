@@ -242,21 +242,16 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
         return;
     }
 
-    if (!m_framebuffer.IsValid()) {
-        // Not created yet; skip
-        return;
-    }
-
-    // if (m_render_group.IsValid()) {
-    //     m_render_group->RemoveFramebuffer(m_framebuffer);
-    // }
-
-
     if (new_size.x * new_size.y == 0) {
         new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
     m_extent = new_size;
+
+    if (!m_framebuffer.IsValid()) {
+        // Not created yet; skip
+        return;
+    }
 
     SafeRelease(std::move(m_framebuffer));
     m_temporal_blending.Reset();

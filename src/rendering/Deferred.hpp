@@ -143,7 +143,7 @@ public:
 
 private:
     virtual bool UsesTemporalBlending() const override
-        { return true; }
+        { return false; }
 
     virtual bool ShouldRenderHalfRes() const override
         { return false; }

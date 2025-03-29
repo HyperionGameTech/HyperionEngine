@@ -15,6 +15,8 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/math/Transform.hpp>
 #include <core/math/Color.hpp>
 #include <core/math/Vector2.hpp>
@@ -40,6 +42,15 @@ class DebugDrawCommandList;
 class IDebugDrawShape;
 class UIObject;
 class UIStage;
+
+HYP_STRUCT(ConfigName="app", ConfigPath="rendering.debug.debug_drawer")
+struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
+{
+    HYP_FIELD(Description="Enable or disable the debug drawer.")
+    bool    enabled = true;
+
+    virtual ~DebugDrawerConfig() override = default;
+};
 
 enum class DebugDrawType : int
 {
@@ -194,16 +205,21 @@ class IDebugDrawer
 public:
     virtual ~IDebugDrawer() = default;
 
+    virtual bool IsEnabled() const = 0;
+
     virtual void Initialize() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
     virtual void Render(Frame *frame) = 0;
 };
 
-class DebugDrawer final : public IDebugDrawer
+class HYP_API DebugDrawer final : public IDebugDrawer
 {
 public:
     DebugDrawer();
     virtual ~DebugDrawer() override;
+
+    virtual bool IsEnabled() const override
+        { return m_config.enabled; }
 
     virtual void Initialize() override;
     virtual void Update(GameCounter::TickUnit delta) override;
@@ -214,6 +230,8 @@ public:
 
 private:
     void UpdateDrawCommands();
+
+    DebugDrawerConfig                               m_config;
 
     DebugDrawCommandList                            m_default_command_list;
     AtomicVar<bool>                                 m_is_initialized;
