@@ -29,6 +29,8 @@ public:
     TemporalAA &operator=(const TemporalAA &other) = delete;
     ~TemporalAA();
 
+    void Resize(Vec2u resolution);
+
     void Create();
     void Render(Frame *frame);
 

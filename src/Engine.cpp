@@ -62,6 +62,7 @@
 #include <Game.hpp>
 
 #define HYP_LOG_FRAMES_PER_SECOND
+#define HYP_ENABLE_RENDER_STATS
 
 namespace hyperion {
 
@@ -69,9 +70,6 @@ HYP_DEFINE_LOG_SUBCHANNEL(RenderThread, Rendering);
 
 using renderer::FillMode;
 using renderer::GPUBufferType;
-
-/* \brief Should the swapchain be rebuilt on the next frame? */
-static bool g_should_recreate_swapchain = false;
 
 Handle<Engine> g_engine = { };
 Handle<AssetManager> g_asset_manager { };
@@ -147,36 +145,27 @@ private:
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
-{
-    ImageRef        image;
-    GPUBufferRef    buffer;
-
-    RENDER_COMMAND(CopyBackbufferToCPU)(const ImageRef &image, const GPUBufferRef &buffer)
-        : image(image),
-          buffer(buffer)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CopyBackbufferToCPU)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        AssertThrow(image.IsValid());
-        AssertThrow(buffer.IsValid());
-
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
 {
+    WeakHandle<Engine>  engine_weak;
+
+    RENDER_COMMAND(RecreateSwapchain)(const Handle<Engine> &engine)
+        : engine_weak(engine)
+    {
+    }
+
     virtual ~RENDER_COMMAND(RecreateSwapchain)() override = default;
 
     virtual RendererResult operator()() override
     {
-        g_should_recreate_swapchain = true;
+        Handle<Engine> engine = engine_weak.Lock();
+
+        if (!engine) {
+            HYP_LOG(RenderThread, Warning, "Engine was destroyed before swapchain could be recreated");
+            HYPERION_RETURN_OK;
+        }
+
+        engine->m_should_recreate_swapchain = true;
 
         HYPERION_RETURN_OK;
     }
@@ -192,7 +181,9 @@ const Handle<Engine> &Engine::GetInstance()
 }
 
 Engine::Engine()
-    : m_is_initialized(false)
+    : m_is_shutting_down(false),
+      m_is_initialized(false),
+      m_should_recreate_swapchain(false)
 {
 }
 
@@ -270,7 +261,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     {
         HYP_LOG(Engine, Info, "Resize window to {}", new_window_size);
 
-        PUSH_RENDER_COMMAND(RecreateSwapchain);
+        //PUSH_RENDER_COMMAND(RecreateSwapchain);
     }).Detach();
     
     RenderObjectDeleter<renderer::Platform::CURRENT>::Initialize();
@@ -556,26 +547,22 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 {
     HYP_PROFILE_BEGIN;
 
+#ifdef HYP_ENABLE_RENDER_STATS
+    // @TODO Refactor to use double buffering
     m_render_stats_calculator.Advance(m_render_stats);
     OnRenderStatsUpdated(m_render_stats);
+#endif
 
     RendererResult frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
         GetGPUInstance()->GetDevice(),
-        GetGPUInstance()->GetSwapchain()
+        GetGPUInstance()->GetSwapchain(),
+        m_should_recreate_swapchain
     );
-
-    if (!frame_result) {
-        m_crash_handler.HandleGPUCrash(frame_result);
-
-        RequestStop();
-
-        return;
-    }
 
     Frame *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
-    if (g_should_recreate_swapchain) {
-        HYP_LOG(Rendering, Info, "Recreating swapchain - New size: {}", Vec2i(GetGPUInstance()->GetSwapchain()->extent));
+    if (m_should_recreate_swapchain) {
+        m_should_recreate_swapchain = false;
 
         GetDelegates().OnBeforeSwapchainRecreated();
 
@@ -590,21 +577,30 @@ HYP_API void Engine::RenderNextFrame(Game *game)
         // Need to prepare frame again now that swapchain has been recreated.
         HYPERION_ASSERT_RESULT(GetGPUInstance()->GetFrameHandler()->PrepareFrame(
             GetGPUInstance()->GetDevice(),
-            GetGPUInstance()->GetSwapchain()
+            GetGPUInstance()->GetSwapchain(),
+            m_should_recreate_swapchain
         ));
+
+        AssertThrow(!m_should_recreate_swapchain);
 
         m_deferred_renderer->Resize(GetGPUInstance()->GetSwapchain()->extent);
 
         m_final_pass = MakeUnique<FinalPass>();
         m_final_pass->Create();
+
         //m_final_pass->Resize(GetGPUInstance()->GetSwapchain()->extent);
 
-        // HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
         frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
 
         GetDelegates().OnAfterSwapchainRecreated();
+    }
 
-        g_should_recreate_swapchain = false;
+    if (!frame_result) {
+        m_crash_handler.HandleGPUCrash(frame_result);
+
+        RequestStop();
+
+        return;
     }
 
     HYPERION_ASSERT_RESULT(GetGPUDevice()->GetAsyncCompute()->PrepareForFrame(GetGPUDevice(), frame));
@@ -633,12 +629,9 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     frame_result = frame->Submit(&GetGPUDevice()->GetGraphicsQueue());
 
     if (!frame_result) {
-        //m_crash_handler.HandleGPUCrash(frame_result);
+        m_crash_handler.HandleGPUCrash(frame_result);
 
-        //m_is_render_loop_active = false;
-        //RequestStop();
-
-        g_should_recreate_swapchain = true;
+        RequestStop();
 
         return;
     }

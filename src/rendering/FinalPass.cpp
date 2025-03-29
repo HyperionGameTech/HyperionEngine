@@ -60,8 +60,6 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
         }
 
         if (final_pass.m_render_texture_to_screen_pass != nullptr) {
-            final_pass.m_render_texture_to_screen_pass->Resize(texture->GetExtent().GetXY());
-
             const DescriptorTableRef &descriptor_table = final_pass.m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable();
             AssertThrow(descriptor_table.IsValid());
 
@@ -297,7 +295,7 @@ void FinalPass::Create()
         render_texture_to_screen_shader,
         std::move(descriptor_table),
         m_image_format,
-        m_ui_texture.IsValid() ? m_ui_texture->GetExtent().GetXY() : Vec2u { 1, 1 }
+        m_extent
     );
 
     m_render_texture_to_screen_pass->SetBlendFunction(BlendFunction(

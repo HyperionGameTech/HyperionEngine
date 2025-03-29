@@ -53,27 +53,32 @@ RendererResult FrameHandler<Platform::VULKAN>::CreateFrames(
 template <>
 RendererResult FrameHandler<Platform::VULKAN>::PrepareFrame(
     Device<Platform::VULKAN> *device,
-    Swapchain<Platform::VULKAN> *swapchain
+    Swapchain<Platform::VULKAN> *swapchain,
+    bool &out_needs_recreate
 )
 {
+    static const auto HandleFrameResult = [](VkResult result, bool &out_needs_recreate) -> RendererResult
+    {
+        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
+            out_needs_recreate = true;
+
+            HYPERION_RETURN_OK;
+        }
+
+        HYPERION_VK_CHECK(result);
+
+        HYPERION_RETURN_OK;
+    };
+
     const FrameRef<Platform::VULKAN> &frame = GetCurrentFrame();
 
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->WaitForGPU(device, true));
 
-    const VkResult vk_fence_result = frame->GetFence()->GetPlatformImpl().last_frame_result;
+    HYPERION_BUBBLE_ERRORS(HandleFrameResult(frame->GetFence()->GetPlatformImpl().last_frame_result, out_needs_recreate));
 
-    if (vk_fence_result == VK_SUBOPTIMAL_KHR || vk_fence_result == VK_ERROR_OUT_OF_DATE_KHR) {
-        DebugLog(LogType::Debug, "Waiting -- image result was %d\n", vk_fence_result);
-
-        vkDeviceWaitIdle(device->GetDevice());
-
-        /* TODO: regenerate framebuffers and swapchain */
-    }
-
-    HYPERION_VK_CHECK(vk_fence_result);
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset(device));
 
-    HYPERION_BUBBLE_ERRORS(m_next_image(device, swapchain, frame, &m_acquired_image_index));
+    HYPERION_BUBBLE_ERRORS(m_next_image(device, swapchain, frame, &m_acquired_image_index, out_needs_recreate));
 
     HYPERION_RETURN_OK;
 }

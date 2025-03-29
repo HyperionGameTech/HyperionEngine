@@ -95,19 +95,28 @@ static RendererResult HandleNextFrame(
     Device<Platform::VULKAN> *device,
     Swapchain<Platform::VULKAN> *swapchain,
     Frame<Platform::VULKAN> *frame,
-    uint32 *index
+    uint32 *index,
+    bool &out_needs_recreate
 )
 {
-    HYPERION_VK_CHECK(vkAcquireNextImageKHR(
+    VkResult vk_result = vkAcquireNextImageKHR(
         device->GetDevice(),
         swapchain->GetPlatformImpl().handle,
         UINT64_MAX,
         frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetSemaphore(),
         VK_NULL_HANDLE,
         index
-    ));
+    );
 
-    HYPERION_RETURN_OK;
+    if (vk_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        out_needs_recreate = true;
+
+        return { };
+    } else if (vk_result != VK_SUCCESS && vk_result != VK_SUBOPTIMAL_KHR) {
+        return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vk_result));
+    }
+
+    return { };
 }
 
 // Returns supported vulkan debug layers
@@ -436,7 +445,9 @@ RendererResult Instance<Platform::VULKAN>::CreateSwapchain()
 RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
 {
     if (m_swapchain.IsValid()) {
-        SafeRelease(std::move(m_swapchain));
+        // Cannot use SafeRelease here; will get NATIVE_WINDOW_IN_USE_KHR error
+        m_swapchain->Destroy(m_device);
+        m_swapchain.Reset();
     }
 
     if (m_surface == VK_NULL_HANDLE) {
