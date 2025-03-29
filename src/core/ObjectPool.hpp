@@ -198,8 +198,6 @@ struct HypObjectMemory final : HypObjectHeader
 #ifdef HYP_DEBUG_MODE
                 AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
 #endif
-                
-                DebugLog(LogType::Debug, "Free slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
             }
         }
 
@@ -227,12 +225,6 @@ struct HypObjectMemory final : HypObjectHeader
 
                 // Free the slot for this
                 container->GetIDGenerator().FreeID(index + 1);
-
-                // if (index == 51 && !std::strcmp(TypeNameHelper<T, false>::value.Data(), "hyperion::Texture")) {
-                //     HYP_BREAKPOINT;
-                // }
-
-                DebugLog(LogType::Debug, "Free slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
             }
         }
 
@@ -325,8 +317,6 @@ public:
         AssertThrow(element->ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0);
         AssertThrow(!element->has_value.Get(MemoryOrder::ACQUIRE));
 #endif
-
-        DebugLog(LogType::Debug, "Allocated slot for object %u with type %s\n", index, TypeNameHelper<T, false>::value.Data());
 
         return element;
     }

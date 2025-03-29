@@ -605,8 +605,10 @@ protected:
         if constexpr (std::is_default_constructible_v<T>) {
             if constexpr (std::is_base_of_v<HypObjectBase, T>) {
                 out = HypData(CreateObject<T>());
-            } else {
+            } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
                 out = HypData(MakeRefCountedPtr<T>());
+            } else {
+                out = HypData(T());
             }
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
@@ -621,8 +623,10 @@ protected:
         if constexpr (std::is_default_constructible_v<T>) {
             if constexpr (std::is_base_of_v<HypObjectBase, T>) {
                 out = HypData(CreateObject<T>());
-            } else {
+            } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
                 out = HypData(MakeRefCountedPtr<T>());
+            } else {
+                out = HypData(T());
             }
 
             void *address = out.ToRef().GetPointer();

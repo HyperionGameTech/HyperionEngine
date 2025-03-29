@@ -197,6 +197,7 @@ public:
     /*! \brief Enqueue an asset of type T to be loaded in this batch.
         Only call this method before LoadAsync() is called. */
     HYP_API void Add(const String &key, const String &path);
+    HYP_API void Add(const String &key, const String &path, const Proc<void, LoadedAsset &> &callback);
 
     /*! \brief Begin loading this batch asynchronously. Note that
         you may not add any more tasks to be loaded once you call this method. */

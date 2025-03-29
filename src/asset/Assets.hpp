@@ -207,10 +207,30 @@ public:
         });
     }
 
-    /*! \brief Load a single asset in a synchronous fashion. The resulting object will have a
-        type corresponding to the provided template type.
-        Node -> NodeProxy
-        T -> Handle<T> */
+    /*! \brief Load a single asset synchronously
+     *  \param type_id The TypeID of asset to load
+     *  \param path The path to the asset
+     *  \param flags Flags to control the loading process
+     *  \return The result of the load operation */
+    HYP_NODISCARD AssetLoadResult Load(const TypeID &type_id, const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    {
+        const AssetLoaderDefinition *loader_definition = GetLoaderDefinition(path, type_id);
+
+        if (!loader_definition) {
+            return HYP_MAKE_ERROR(AssetLoadError, "No registered loader for the given path", AssetLoadError::ERR_NO_LOADER);
+        }
+
+        AssetLoaderBase *loader = loader_definition->loader.Get();
+        AssertThrow(loader != nullptr);
+
+        return AssetLoadResult(loader->Load(*this, path));
+    }
+
+    /*! \brief Load a single asset synchronously
+     *  \tparam T The type of asset to load
+     *  \param path The path to the asset
+     *  \param flags Flags to control the loading process
+     *  \return The result of the load operation */
     template <class T>
     HYP_NODISCARD TAssetLoadResult<T> Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
