@@ -1132,8 +1132,6 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext &context, BufferedReader *reader, 
             return err;
         }
 
-        HYP_LOG(Serialization, Debug, "Loaded object library with UUID: {}", library.uuid.ToString());
-
         context.object_libraries.Set(library.uuid, std::move(library));
 
         break;

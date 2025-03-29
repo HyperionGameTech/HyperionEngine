@@ -194,8 +194,6 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
 
 Camera::~Camera()
 {
-    HYP_LOG(Camera, Debug, "Destroying camera: {} ({})", GetName(), uintptr_t((void *)this));
-
     while (HasActiveCameraController()) {
         const RC<CameraController> camera_controller = m_camera_controllers.PopBack();
 
@@ -677,8 +675,6 @@ void Camera::UpdateMouseLocked()
 
     if (should_lock_mouse) {
         if (!m_mouse_lock_scope) {
-            HYP_LOG(Camera, Debug, "Locking mouse for camera: {}", GetName());
-            
             if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
                 m_mouse_lock_scope = app_context->GetInputManager()->AcquireMouseLock();
             }

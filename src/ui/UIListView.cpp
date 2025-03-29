@@ -307,8 +307,6 @@ void UIListView::UpdateLayout()
 
         offset += list_view_item->GetActualSize() * offset_multiplier;
     }
-
-    HYP_LOG(UI, Debug, "Updated layout for ListView {}", GetName());
 }
 
 void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)

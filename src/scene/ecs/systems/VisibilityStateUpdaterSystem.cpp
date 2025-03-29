@@ -23,8 +23,6 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     GetEntityManager().AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
 
     if (visibility_state_component.octant_id != OctantID::Invalid()) {
-        HYP_LOG(Octree, Debug, "Entity #{} already has an octant ID assigned", entity.GetID().Value());
-
         return;
     }
 
@@ -48,7 +46,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
             visibility_state_component.visibility_state = &octant->GetVisibilityState();
         }
 
-        HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
+        // HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
 
         //GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     } else {
@@ -111,8 +109,6 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
                 if (Octree *octant = octree.GetChildOctant(visibility_state_component.octant_id)) {
                     visibility_state_component.visibility_state = &octant->GetVisibilityState();
                 }
-
-                HYP_LOG(Octree, Debug, "Inserted entity {} into octree, inserted at {}, {}", entity_id.Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
             }
 
             return;

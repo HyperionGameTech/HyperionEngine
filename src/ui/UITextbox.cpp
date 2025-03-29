@@ -109,8 +109,6 @@ void UITextbox::SetPlaceholder(const String &placeholder)
             m_text_element->SetTextColor(GetTextColor() * Vec4f { 1, 1, 1, 0.5f });
         }
     }
-
-    HYP_LOG(UI, Debug, "Textbox placeholder set to '{}'", placeholder);
 }
 
 void UITextbox::Update_Internal(GameCounter::TickUnit delta)
@@ -160,10 +158,7 @@ void UITextbox::UpdateCursor()
             m_cursor_element = CreateUIObject<UIPanel>(NAME("TextboxCursor"), Vec2i { 0, 0 }, UIObjectSize({ 1, UIObjectSize::PIXEL }, { 90, UIObjectSize::PERCENT }));
             m_cursor_element->SetBackgroundColor(Vec4f { 0, 0, 0, 1 }); // black
 
-            HYP_LOG(UI, Debug, "Textbox size before adding cursor element {}, inner size: {}, parent size: {}, cursor size: {}", GetActualSize(), GetActualInnerSize(), GetParentUIObject()->GetActualSize(), m_cursor_element->GetActualSize());
             UIObject::AddChildUIObject(m_cursor_element);
-
-            HYP_LOG(UI, Debug, "Textbox size after adding cursor element {}, inner size: {}, parent size: {}, cursor size: {}", GetActualSize(), GetActualInnerSize(), GetParentUIObject()->GetActualSize(), m_cursor_element->GetActualSize());
         }
     } else {
         if (m_cursor_element != nullptr) {

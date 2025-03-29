@@ -596,8 +596,6 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 
     m_manipulation_widget_holder.OnSelectedManipulationWidgetChange.Bind([this](EditorManipulationWidgetBase &new_widget, EditorManipulationWidgetBase &prev_widget)
     {
-        HYP_LOG(Editor, Debug, "Manipulation widget mode changed from {} to {}", prev_widget.InstanceClass()->GetName(), new_widget.InstanceClass()->GetName());
-
         SetHoveredManipulationWidget(MouseEvent { }, nullptr, NodeProxy::empty);
 
         if (prev_widget.GetManipulationMode() != EditorManipulationMode::NONE) {
@@ -898,8 +896,6 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Add(ui_image->OnMouseLeave.Bind([this](const MouseEvent &event)
         {
             if (IsHoveringManipulationWidget()) {
-                HYP_LOG(Editor, Debug, "Mouse left manipulation widget");
-
                 SetHoveredManipulationWidget(event, nullptr, NodeProxy::empty);
             }
 
@@ -909,8 +905,6 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Remove(&ui_image->OnMouseDrag);
         m_delegate_handlers.Add(ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent &event)
         {
-            HYP_LOG(Editor, Debug, "Mouse dragged");
-
             // prevent click being triggered on release once mouse has been dragged
             m_should_cancel_next_click = true;
 

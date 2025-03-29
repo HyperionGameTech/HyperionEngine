@@ -213,8 +213,6 @@ void ResourceBase::WaitForCompletion()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Resource, Debug, "Waiting for completion of Resource from thread {}", Threads::CurrentThreadID().GetName());
-
     if (CanExecuteInline()) {
         // Wait for any threads that are using this Resource pre-initialization to stop
         m_pre_init_semaphore.Acquire();

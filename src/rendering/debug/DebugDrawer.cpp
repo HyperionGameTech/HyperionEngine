@@ -246,7 +246,8 @@ void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
 #pragma region DebugDrawer
 
 DebugDrawer::DebugDrawer()
-    : m_default_command_list(*this),
+    : m_config(DebugDrawerConfig::FromConfig()),
+      m_default_command_list(*this),
       m_is_initialized(false),
       Sphere(m_default_command_list.Sphere),
       AmbientProbe(m_default_command_list.AmbientProbe),
@@ -334,8 +335,11 @@ void DebugDrawer::Initialize()
 void DebugDrawer::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_game_thread);
+
+    if (!IsEnabled()) {
+        return;
+    }
 }
 
 void DebugDrawer::Render(Frame *frame)
@@ -354,6 +358,10 @@ void DebugDrawer::Render(Frame *frame)
 
     if (m_num_draw_commands_pending_addition.Get(MemoryOrder::ACQUIRE) != 0) {
         UpdateDrawCommands();
+    }
+
+    if (!IsEnabled()) {
+        return;
     }
 
     if (m_draw_commands.Empty()) {
@@ -528,8 +536,6 @@ void DebugDrawer::Render(Frame *frame)
     m_draw_commands.Clear();
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void DebugDrawer::UpdateDrawCommands()
 {
     HYP_SCOPE;
@@ -562,8 +568,6 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
     m_num_draw_commands_pending_addition.Increment(uint32(num_added_items), MemoryOrder::RELEASE);
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion DebugDrawer
 

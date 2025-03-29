@@ -820,8 +820,6 @@ bool ConfigurationTable::SetHypClassFields(const HypClass *hyp_class, const void
     if (ObjectToJSON(hyp_class, target_hyp_data, json_object)) {
         GetSubobject().AsObject() = std::move(json_object.Merge(GetSubobject().AsObject()));
 
-        HYP_LOG(Config, Debug, "Loaded HypClass \"{}\" from configuration: {}", hyp_class->GetName(), GetSubobject().ToString(true));
-
         return true;
     } else {
         HYP_LOG(Config, Error, "Failed to serialize HypClass \"{}\" to json", hyp_class->GetName());

@@ -231,8 +231,6 @@ void UIGrid::SetNumColumns(int num_columns)
 {
     m_num_columns = num_columns;
 
-    HYP_LOG(UI, Debug, "Set num columns for grid {} to {}", GetName(), num_columns);
-
     ForEachChildUIObject_Proc([this](UIObject *ui_object)
     {
         if (!ui_object->IsInstanceOf<UIGridRow>()) {

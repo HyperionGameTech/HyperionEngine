@@ -225,9 +225,8 @@ void HyperionEditor::Init()
     });
     #endif
 
-
     // Add Skybox
-    if (false) {
+    if (true) {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(skybox_entity, TransformComponent {
@@ -276,7 +275,7 @@ void HyperionEditor::Init()
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
         //node.Scale(3.0f);
-        node->Scale(0.02f);
+        node->Scale(0.05f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -299,8 +298,8 @@ void HyperionEditor::Init()
 
         // Add env grid component
         m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-            EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-            Vec3u { 6, 4, 6 },
+            EnvGridType::ENV_GRID_TYPE_SH,
+            Vec3u { 12, 4, 12 },
             EnvGridMobility::STATIONARY //EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 

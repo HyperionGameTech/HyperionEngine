@@ -460,8 +460,6 @@ public:
             if (const Pair<String, String> *it = attributes.TryGet("backgroundcolor")) {
                 if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue()) {
                     ui_object->SetBackgroundColor(*parsed_color);
-
-                    HYP_LOG(Assets, Debug, "Parsed color {} : {}", it->second, *parsed_color);
                 } else {
                     HYP_LOG(Assets, Warning, "UI object has invalid background color property: {}", it->second);
                 }

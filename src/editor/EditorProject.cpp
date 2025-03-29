@@ -68,8 +68,6 @@ EditorProject::~EditorProject()
 
 void EditorProject::SetScene(const Handle<Scene> &scene)
 {
-    HYP_LOG(Editor, Debug, "Setting scene for project: {} (ID: #{})", scene->GetName(), scene->GetID().Value());
-
     m_scene = scene;
 }
 
@@ -166,7 +164,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     
     {
         // temporary scope to set the root path for the asset registry
-        GlobalContextScope scope { AssetRegistryRootPathContext(filepath) };
+        GlobalContextScope scope { AssetRegistryRootPathContext { filepath } };
 
         m_asset_registry->ForEachPackage([&CreateAssetPackageDirectory, &filepath, &result](const Handle<AssetPackage> &package)
         {
@@ -175,6 +173,19 @@ Result EditorProject::SaveAs(FilePath filepath)
 
                 return IterationResult::STOP;
             }
+
+            // Save each individual object in the package
+            package->ForEachAssetObject([&result](const Handle<AssetObject> &asset_object)
+            {
+                HYP_LOG(Editor, Debug, "Saving asset object '{}', Path: '{}', FilePath: '{}'", asset_object->GetName(), asset_object->GetPath(), asset_object->GetFilePath());
+                if (Result object_result = asset_object->Save(); object_result.HasError()) {
+                    result = object_result;
+
+                    return IterationResult::STOP;
+                }
+
+                return IterationResult::CONTINUE;
+            });
 
             return IterationResult::CONTINUE;
         });

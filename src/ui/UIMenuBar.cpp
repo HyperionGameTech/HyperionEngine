@@ -141,8 +141,6 @@ void UIMenuItem::UpdateDropDownMenu()
         menu_item->SetPosition(offset);
 
         m_drop_down_menu->AddChildUIObject(menu_item);
-
-        HYP_LOG(UI, Debug, "Menu item {} size: {}", menu_item->GetName(), menu_item->GetActualSize());
         
         offset += { 0, menu_item->GetActualSize().y };
     }
@@ -361,12 +359,8 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
     menu_item->OnClick.RemoveAll();
     menu_item->OnClick.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
     {
-        HYP_LOG(UI, Debug, "OnClick item with name {}", name);
-
         if (data.mouse_buttons == MouseButtonState::LEFT) {
             const uint32 menu_item_index = GetMenuItemIndex(name);
-
-            HYP_LOG(UI, Debug, "Menu item index for item with name {}: {}", name, menu_item_index);
 
             if (GetSelectedMenuItemIndex() == menu_item_index) {
                 SetSelectedMenuItemIndex(~0u);
@@ -375,8 +369,6 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
             } else {
                 SetSelectedMenuItemIndex(menu_item_index);
             }
-
-            HYP_LOG(UI, Debug, "Container size {}", m_container->GetActualSize());
         }
 
         return UIEventHandlerResult::STOP_BUBBLING;

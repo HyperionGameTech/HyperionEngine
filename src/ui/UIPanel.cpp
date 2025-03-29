@@ -19,7 +19,7 @@ UIPanel::UIPanel(UIObjectType type)
       m_is_scroll_enabled(UIObjectScrollbarOrientation::ALL)
 {
     SetBorderRadius(0);
-    SetBackgroundColor(Color(0x1E1E1EFFu));
+    SetBackgroundColor(Color(0x111111FFu));
     SetTextColor(Color(0xFFFFFFFFu));
 
     m_on_scroll_handler = OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult

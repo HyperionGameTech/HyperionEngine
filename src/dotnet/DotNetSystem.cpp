@@ -189,8 +189,6 @@ public:
 
             Assembly *assembly = it->second.Get();
 
-            HYP_LOG(DotNET, Debug, "Loading assembly {} from native side...", entry.first);
-
             // Initialize all core assemblies
             int result = m_initialize_assembly_fptr(
                 &assembly->GetGuid(),
@@ -202,8 +200,6 @@ public:
             if (result != int(LoadAssemblyResult::OK)) {
                 HYP_FAIL("Failed to load core assembly %s: Got error code %d", entry.first.Data(), result);
             }
-
-            HYP_LOG(DotNET, Debug, "Loaded assembly {} from native side", entry.first);
         }
     }
 

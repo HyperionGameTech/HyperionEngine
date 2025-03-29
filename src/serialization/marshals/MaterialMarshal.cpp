@@ -65,23 +65,24 @@ public:
 
         FixedArray<uint32, Material::max_textures> texture_keys = { 0 };
 
-        for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
-            if (texture_index >= texture_keys.Size()) {
-                break;
-            }
+        // temp commented out
 
-            const MaterialTextureKey key = in_object.GetTextures().KeyAt(i);
-            const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
+        // for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
+        //     if (texture_index >= texture_keys.Size()) {
+        //         break;
+        //     }
 
-            if (value.IsValid()) {
-                HYP_LOG(Serialization, Debug, "Serializing texture key: {} for material {}", uint32(key), in_object.GetName());
-                if (FBOMResult err = out.AddChild(*value, FBOMObjectSerializeFlags::EXTERNAL)) {
-                    return err;
-                }
+        //     const MaterialTextureKey key = in_object.GetTextures().KeyAt(i);
+        //     const Handle<Texture> &value = in_object.GetTextures().ValueAt(i);
 
-                texture_keys[texture_index++] = uint32(key);
-            }
-        }
+        //     if (value.IsValid()) {
+        //         if (FBOMResult err = out.AddChild(*value, FBOMObjectSerializeFlags::EXTERNAL)) {
+        //             return err;
+        //         }
+
+        //         texture_keys[texture_index++] = uint32(key);
+        //     }
+        // }
 
         if (const ShaderRef &shader = in_object.GetShader()) {
             if (shader.IsValid()) {

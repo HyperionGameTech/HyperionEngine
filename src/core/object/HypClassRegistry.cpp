@@ -184,8 +184,6 @@ namespace detail {
     
 HypClassRegistrationBase::HypClassRegistrationBase(TypeID type_id, HypClass *hyp_class)
 {
-    HYP_LOG(Object, Debug, "HypClassRegistrationBase constructor for type: {}", hyp_class->GetName());
-
     HypClassRegistry::GetInstance().RegisterClass(type_id, hyp_class);
 }
 

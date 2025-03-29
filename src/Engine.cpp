@@ -712,9 +712,6 @@ GlobalDescriptorSetManager::GlobalDescriptorSetManager(Engine *engine)
         DescriptorSetRef ref = layout.CreateDescriptorSet();
         AssertThrow(ref.IsValid());
 
-        HYP_LOG(Engine, Debug, "Num elements for descriptor set {}: {}", ref.GetName(), ref->GetLayout().GetElements().Size());
-        HYP_BREAKPOINT;
-
         // Init with placeholder data
         for (const auto &layout_it : ref->GetLayout().GetElements()) {
             switch (layout_it.second.type) {

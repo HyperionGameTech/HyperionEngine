@@ -349,15 +349,7 @@ private:
 
 struct AssetRegistryRootPathContext
 {
-    AssetRegistryRootPathContext(const String &root_path)
-        : m_root_path(root_path)
-    {
-    }
-
-    HYP_FORCE_INLINE const String &GetRootPath() const
-        { return m_root_path; }
-
-    String  m_root_path;
+    FilePath    value;
 };
 
 } // namespace hyperion

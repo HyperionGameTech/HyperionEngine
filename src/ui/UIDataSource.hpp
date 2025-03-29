@@ -279,11 +279,7 @@ public:
     UIDataSource &operator=(const UIDataSource &other)      = delete;
     UIDataSource(UIDataSource &&other) noexcept             = delete;
     UIDataSource &operator=(UIDataSource &&other) noexcept  = delete;
-    virtual ~UIDataSource() override
-    {
-        // temp; testing
-        DebugLog(LogType::Debug, "Destroy UIDataSource with address %p from C++ side\n", (void*)this);
-    }
+    virtual ~UIDataSource() override                        = default;
     
     virtual void Push(const UUID &uuid, HypData &&value, const UUID &parent_uuid) override
     {
