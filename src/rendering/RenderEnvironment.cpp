@@ -5,6 +5,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -112,7 +114,7 @@ void RenderEnvironment::Init()
     InitObject(m_gaussian_splatting);
     
     m_rt_radiance = MakeUnique<RTRadianceRenderer>(
-        Vec2u { 1024, 1024 },
+        g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution() / 2,
         g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
             : RT_RADIANCE_RENDERER_OPTION_NONE
