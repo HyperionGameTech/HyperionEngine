@@ -519,6 +519,7 @@ static void RenderAll(
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -560,7 +561,7 @@ static void RenderAll(
             {
                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource ? light_render_resource->GetBufferIndex() : 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
             },
@@ -686,6 +687,7 @@ static void RenderAll_Parallel(
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<LightRenderResource> &light_render_resource = g_engine->GetRenderState()->GetActiveLight();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     // HYP_LOG(Rendering, Debug, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
 
@@ -722,7 +724,7 @@ static void RenderAll_Parallel(
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                             { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource ? light_render_resource->GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                         },

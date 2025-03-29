@@ -86,6 +86,15 @@ enum class EnvGridPassMode
     IRRADIANCE
 };
 
+enum class ApplyEnvGridMode : uint32
+{
+    SH,
+    VOXEL,
+    LIGHT_FIELD,
+
+    MAX
+};
+
 class EnvGridPass final : public FullScreenPass
 {
 public:
@@ -101,7 +110,6 @@ public:
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:
-    void CreateShader();
     virtual void CreatePipeline() override;
 
 private:
@@ -115,8 +123,9 @@ private:
     
     virtual void Resize_Internal(Vec2u new_size) override;
 
-    const EnvGridPassMode   m_mode;
-    bool                    m_is_first_frame;
+    const EnvGridPassMode                                           m_mode;
+    FixedArray<Handle<RenderGroup>, uint32(ApplyEnvGridMode::MAX)>  m_render_groups;
+    bool                                                            m_is_first_frame;
 };
 
 class ReflectionsPass final : public FullScreenPass

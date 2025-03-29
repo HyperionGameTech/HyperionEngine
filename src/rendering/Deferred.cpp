@@ -360,7 +360,7 @@ void DeferredPass::Record(uint32 frame_index)
         m_render_group->GetPipeline()->GetRenderPass(),
         [&](CommandBuffer *cmd)
         {
-            const uint32 env_grid_index = g_engine->GetRenderState()->bound_env_grid.ToIndex();
+            const EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
             // render with each light
             for (uint32 light_type_index = 0; light_type_index < uint32(LightType::MAX); light_type_index++) {
@@ -429,7 +429,7 @@ void DeferredPass::Record(uint32 frame_index)
                             {
                                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) },
+                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resource) },
                                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
                             },
@@ -465,6 +465,20 @@ void DeferredPass::Render(Frame *frame)
 
 #pragma region Env grid pass
 
+static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
+{
+    switch (type) {
+    case EnvGridType::ENV_GRID_TYPE_SH:
+        return ApplyEnvGridMode::SH;
+    case EnvGridType::ENV_GRID_TYPE_VOXEL:
+        return ApplyEnvGridMode::VOXEL;
+    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
+        return ApplyEnvGridMode::LIGHT_FIELD;
+    default:
+        HYP_FAIL("Invalid EnvGridType");
+    }
+}
+
 EnvGridPass::EnvGridPass(EnvGridPassMode mode)
     : FullScreenPass(
         mode == EnvGridPassMode::RADIANCE
@@ -493,39 +507,17 @@ void EnvGridPass::Create()
 {
     Threads::AssertOnThread(g_render_thread);
 
-    CreateShader();
-
     FullScreenPass::Create();
 
     AddToGlobalDescriptorSet();
 }
 
-void EnvGridPass::CreateShader()
-{
-    ShaderProperties properties { };
-
-    switch (m_mode) {
-    case EnvGridPassMode::RADIANCE:
-        properties.Set("MODE_RADIANCE");
-
-        break;
-    case EnvGridPassMode::IRRADIANCE:
-        properties.Set("MODE_IRRADIANCE");
-
-        break;
-    default:
-        HYP_UNREACHABLE();
-    }
-
-    m_shader = g_shader_manager->GetOrCreate(
-        NAME("ApplyEnvGrid"),
-        properties
-    );
-}
-
 void EnvGridPass::CreatePipeline()
 {
-    FullScreenPass::CreatePipeline(RenderableAttributeSet(
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    RenderableAttributeSet renderable_attributes(
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes
         },
@@ -535,7 +527,55 @@ void EnvGridPass::CreatePipeline()
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
             .flags          = MaterialAttributeFlags::NONE
         }
-    ));
+    );
+
+    if (m_mode == EnvGridPassMode::RADIANCE) {
+        m_shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), ShaderProperties { { "MODE_RADIANCE" } });
+
+        FullScreenPass::CreatePipeline(renderable_attributes);
+
+        return;
+    }
+
+    static const FixedArray<Pair<ApplyEnvGridMode, ShaderProperties>, uint32(ApplyEnvGridMode::MAX)> apply_env_grid_passes = {
+        Pair<ApplyEnvGridMode, ShaderProperties> {
+            ApplyEnvGridMode::SH,
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_SH" } }
+        },
+        Pair<ApplyEnvGridMode, ShaderProperties> {
+            ApplyEnvGridMode::VOXEL,
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_VOXEL" } }
+        },
+        Pair<ApplyEnvGridMode, ShaderProperties> {
+            ApplyEnvGridMode::LIGHT_FIELD,
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_LIGHT_FIELD" } }
+        }
+    };
+
+    for (const auto &it : apply_env_grid_passes) {
+        ShaderRef shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), it.second);
+        AssertThrow(shader.IsValid());
+        
+        renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+
+        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+
+        Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+            shader,
+            renderable_attributes,
+            descriptor_table,
+            RenderGroupFlags::NONE
+        );
+
+        render_group->AddFramebuffer(m_framebuffer);
+
+        InitObject(render_group);
+
+        m_render_groups[uint32(it.first)] = std::move(render_group);
+    }
+
+    m_render_group = m_render_groups[uint32(ApplyEnvGridMode::SH)];    
 }
 
 void EnvGridPass::AddToGlobalDescriptorSet()
@@ -575,7 +615,8 @@ void EnvGridPass::Render(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const uint32 env_grid_index = g_engine->GetRenderState()->bound_env_grid.ToIndex();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    AssertThrow(env_grid != nullptr);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
@@ -589,23 +630,29 @@ void EnvGridPass::Render(Frame *frame)
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
-    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
+    const Handle<RenderGroup> &render_group = m_mode == EnvGridPassMode::RADIANCE
+        ? m_render_group
+        : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGridType()))];
 
-    const uint32 global_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-    const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    AssertThrow(render_group.IsValid());
 
-    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+    command_buffer->Begin(g_engine->GetGPUDevice(), render_group->GetPipeline()->GetRenderPass());
+
+    const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+    const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+    render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
     if (ShouldRenderHalfRes()) {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
         const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
+        render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
     } else {
-        m_render_group->GetPipeline()->Bind(command_buffer);
+        render_group->GetPipeline()->Bind(command_buffer);
     }
 
-    m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
         ->Bind(
             command_buffer,
             m_render_group->GetPipeline(),
@@ -613,14 +660,14 @@ void EnvGridPass::Render(Frame *frame)
             global_descriptor_set_index
         );
 
-    m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+    render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
         ->Bind(
             command_buffer,
-            m_render_group->GetPipeline(),
+            render_group->GetPipeline(),
             {
                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_index) }
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetComponentIndex()) }
             },
             scene_descriptor_set_index
         );
@@ -1182,6 +1229,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const bool is_render_environment_ready = environment && environment->IsReady();
 
@@ -1198,8 +1246,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
     const bool use_hbil = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool();
 
-    const bool use_env_grid_irradiance = g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool();
-    const bool use_env_grid_radiance = g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool();
+    const bool use_env_grid_irradiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool();
+    const bool use_env_grid_radiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool();
 
     const bool use_reflection_probes = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
         || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
@@ -1393,7 +1441,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                         { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                     }
                 }

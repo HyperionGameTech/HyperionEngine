@@ -155,7 +155,7 @@ public:
     Array<CameraRenderResource *>                                                   camera_bindings;
     FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
     Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
-    ID<EnvGrid>                                                                     bound_env_grid;
+    Array<EnvGrid *>                                                                env_grid_bindings;
     Stack<TResourceHandle<EnvProbeRenderResource>>                                  env_probe_bindings;
     FixedArray<Array<TResourceHandle<EnvProbeRenderResource>>, ENV_PROBE_TYPE_MAX>  bound_env_probes;
     
@@ -185,14 +185,27 @@ public:
 
     const TResourceHandle<EnvProbeRenderResource> &GetActiveEnvProbe() const;
 
-    HYP_FORCE_INLINE void BindEnvGrid(ID<EnvGrid> id)
+    HYP_FORCE_INLINE void BindEnvGrid(EnvGrid *env_grid)
     {
-        bound_env_grid = id;
+        env_grid_bindings.PushBack(env_grid);
     }
 
-    HYP_FORCE_INLINE void UnbindEnvGrid()
+    HYP_FORCE_INLINE void UnbindEnvGrid(EnvGrid *env_grid)
     {
-        bound_env_grid = ID<EnvGrid>();
+        for (auto it = env_grid_bindings.Begin(); it != env_grid_bindings.End(); ++it) {
+            if (*it == env_grid) {
+                it = env_grid_bindings.Erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    HYP_FORCE_INLINE EnvGrid *GetActiveEnvGrid() const
+    {
+        return env_grid_bindings.Empty()
+            ? nullptr
+            : env_grid_bindings.Back();
     }
 
     HYP_FORCE_INLINE uint32 NumBoundLights() const

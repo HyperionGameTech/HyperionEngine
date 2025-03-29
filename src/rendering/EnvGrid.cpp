@@ -70,10 +70,8 @@ static Vec2u GetProbeDimensions(EnvGridType env_grid_type)
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
         return light_field_probe_dimensions;
     default:
-        AssertThrowMsg(false, "Invalid probe type");
+        HYP_UNREACHABLE();
     }
-
-    return Vec2u::Zero();
 }
 
 static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const BoundingBox &grid_aabb, const Vec3u &grid_density)
@@ -450,6 +448,8 @@ void EnvGrid::Init()
     InitObject(m_camera);
     
     m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
+
+    g_engine->GetRenderState()->BindEnvGrid(this);
 }
 
 // called from game thread
@@ -461,6 +461,8 @@ void EnvGrid::InitGame()
 void EnvGrid::OnRemoved()
 {
     HYP_SCOPE;
+
+    g_engine->GetRenderState()->UnbindEnvGrid(this);
 
     m_camera_resource_handle.Reset();
     m_camera.Reset();
@@ -1105,7 +1107,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
 
         break;
     default:
-        HYP_UNREACHABLE();
+        break;
     }
 
     if (is_sky_set) {
@@ -1405,7 +1407,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
@@ -1432,7 +1434,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }
@@ -1461,7 +1463,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(g_engine->GetRenderState()->bound_env_grid.ToIndex()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                 }
             }

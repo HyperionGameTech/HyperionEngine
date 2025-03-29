@@ -37,6 +37,7 @@ enum EnvGridType : uint32
 {
     ENV_GRID_TYPE_INVALID       = uint32(-1),
     ENV_GRID_TYPE_SH            = 0,
+    ENV_GRID_TYPE_VOXEL,
     ENV_GRID_TYPE_LIGHT_FIELD,
     ENV_GRID_TYPE_MAX
 };
