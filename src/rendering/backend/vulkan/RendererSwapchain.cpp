@@ -31,6 +31,10 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
         support_details.capabilities.currentExtent.height
     };
 
+    if (self->extent.x * self->extent.y == 0) {
+        return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
+    }
+
     uint32 image_count = support_details.capabilities.minImageCount + 1;
 
     if (support_details.capabilities.maxImageCount > 0 && image_count > support_details.capabilities.maxImageCount) {
