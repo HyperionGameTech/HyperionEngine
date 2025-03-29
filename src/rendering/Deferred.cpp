@@ -1210,6 +1210,11 @@ void DeferredRenderer::Resize(Vec2u new_size)
 
     m_gbuffer->Resize(new_size);
 
+    m_direct_pass->Resize(new_size);
+    m_indirect_pass->Resize(new_size);
+
+    m_combine_pass->Resize(new_size);
+
     m_env_grid_radiance_pass->Resize(new_size);
     m_env_grid_irradiance_pass->Resize(new_size);
 

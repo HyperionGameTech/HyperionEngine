@@ -143,6 +143,8 @@ class Engine : public HypObject<Engine>
 {
     HYP_OBJECT_BODY(Engine);
 
+    friend struct RENDER_COMMAND(RecreateSwapchain);
+
 public:
     HYP_METHOD()
     HYP_API static const Handle<Engine> &GetInstance();
@@ -296,8 +298,9 @@ private:
     EngineRenderStatsCalculator                             m_render_stats_calculator;
     EngineRenderStats                                       m_render_stats;
 
-    AtomicVar<bool>                                         m_is_shutting_down { false };
+    AtomicVar<bool>                                         m_is_shutting_down;
     bool                                                    m_is_initialized;
+    bool                                                    m_should_recreate_swapchain;
 };
 
 } // namespace hyperion
