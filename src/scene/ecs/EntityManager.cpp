@@ -25,6 +25,7 @@ static const double g_system_execution_group_lag_spike_threshold = 50.0;
 static const uint32 g_entity_manager_command_queue_warning_size = 8192;
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
+// #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
 
 #pragma region EntityManagerCommandQueue
 
@@ -296,7 +297,6 @@ Handle<Entity> EntityManager::AddEntity()
     
     Handle<Entity> entity { memory };
 
-    HYP_LOG(ECS, Debug, "Add entity #{} to entity manager {}", entity.GetID().Value(), (void *)this);
     GetEntityToEntityManagerMap().Add(entity.GetID(), this);
 
     m_entities.AddEntity(entity);
@@ -813,7 +813,7 @@ void EntityManager::EndAsyncUpdate()
         system_execution_group.FinishProcessing();
     }
 
-#ifdef HYP_DEBUG_MODE
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
     for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
         const PerformanceClock &performance_clock = system_execution_group.GetPerformanceClock();
         const double elapsed_time_ms = performance_clock.Elapsed() / 1000.0;
@@ -876,7 +876,7 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-#ifdef HYP_DEBUG_MODE
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
     m_performance_clock.Start();
 
     for (auto &it : m_systems) {
@@ -896,14 +896,14 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
         {
             HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
-#ifdef HYP_DEBUG_MODE
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
             PerformanceClock &performance_clock = m_performance_clocks[system];
             performance_clock.Start();
 #endif
 
             system->Process(delta);
 
-#ifdef HYP_DEBUG_MODE
+#if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
             performance_clock.Stop();
 #endif
         }, debug_name);

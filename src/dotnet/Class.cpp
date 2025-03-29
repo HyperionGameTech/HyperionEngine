@@ -9,10 +9,7 @@
 
 namespace hyperion::dotnet {
 
-Class::~Class()
-{
-    HYP_LOG(DotNET, Debug, "Class {} destroyed", m_name);
-}
+Class::~Class() = default;
 
 RC<Assembly> Class::GetAssembly() const
 {

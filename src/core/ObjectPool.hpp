@@ -189,21 +189,21 @@ struct HypObjectMemory final : HypObjectHeader
             // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause FreeID() to be called.
             ref_count_weak.Increment(1, MemoryOrder::RELEASE);
 
+            HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
+
             reinterpret_cast<T *>(bytes)->~T();
 
             if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1) {
-                // Free the slot for this
-                container->GetIDGenerator().FreeID(index + 1);
-
 #ifdef HYP_DEBUG_MODE
                 AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
 #endif
+
+                // Free the slot for this
+                container->GetIDGenerator().FreeID(index + 1);
             }
+        } else {
+            HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
         }
-
-        AssertDebug(count != 0);
-
-        HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
 
         return count - 1;
     }

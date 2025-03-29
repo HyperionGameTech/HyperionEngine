@@ -53,8 +53,6 @@ void UIButton::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 {
     UIObject::SetFocusState_Internal(focus_state);
 
-    HYP_LOG(UI, Debug, "Set button with text \"{}\" focus state: {}", GetText(), uint32(focus_state));
-
     UpdateMaterial(false);
     UpdateMeshData();
 }

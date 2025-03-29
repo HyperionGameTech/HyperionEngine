@@ -3,6 +3,8 @@
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #ifdef HYP_FREETYPE
 
 #include <ft2build.h>
@@ -11,6 +13,8 @@
 #endif
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Font);
 
 FontFace::FontFace(FontEngine::Backend backend, const FilePath &path)
     : m_face(nullptr)
@@ -55,7 +59,7 @@ void FontFace::SetGlyphSize(int pt_w, int pt_h, int screen_width, int screen_hei
 #ifdef HYP_FREETYPE
     int error = FT_Set_Char_Size(m_face, pt_w * 64, pt_h * 64, screen_width, screen_height);
     if (error) {
-        DebugLog(LogType::Error, "Error could not set glyph size\n");
+        HYP_LOG(Font, Error, "Error! could not set the height of fontface to {}, {}", pt_w, pt_h);
     }
 #endif
 }
@@ -64,7 +68,7 @@ void FontFace::RequestPixelSizes(int width, int height)
 {
 #ifdef HYP_FREETYPE
     if (FT_Set_Pixel_Sizes(m_face, width, 64 * height)) {
-        DebugLog(LogType::Error, "Error! could not set the height of fontface to %u, %u\n", width, height);
+        HYP_LOG(Font, Error, "Could not set the height of fontface to {}, {}", width, height);
     }
 #endif
 }

@@ -37,8 +37,6 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
         image_count = support_details.capabilities.maxImageCount;
     }
 
-    DebugLog(LogType::Debug, "Swapchain image count: %d\n", image_count);
-
     VkSwapchainCreateInfoKHR create_info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
     create_info.surface             = surface;
     create_info.minImageCount       = image_count;
@@ -57,15 +55,11 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
     };
 
     if (qf_indices.graphics_family.Get() != qf_indices.present_family.Get()) {
-        DebugLog(LogType::Debug, "Swapchain sharing mode set to Concurrent\n");
-
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = uint32(std::size(concurrent_families)); /* Two family indices(one for each process) */
         create_info.pQueueFamilyIndices = concurrent_families;
     } else {
         /* Computations and presentation are done on same hardware(most scenarios) */
-        DebugLog(LogType::Debug, "Swapchain sharing mode set to Exclusive\n");
-
         create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         create_info.queueFamilyIndexCount = 0;       /* Optional */
         create_info.pQueueFamilyIndices = nullptr; /* Optional */
@@ -92,8 +86,6 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
 
 RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
-    DebugLog(LogType::Debug, "Destroying swapchain\n");
-
     vkDestroySwapchainKHR(device->GetDevice(), handle, nullptr);
     handle = VK_NULL_HANDLE;
 
@@ -102,8 +94,6 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform:
 
 void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platform::VULKAN> *device)
 {
-    DebugLog(LogType::Info, "Looking for SRGB surface format\n");
-
     surface_format = { };
 
     if (use_srgb) {
@@ -129,8 +119,6 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platfor
         if (self->image_format != InternalFormat::NONE) {
             return;
         }
-
-        DebugLog(LogType::Warn, "Could not find SRGB surface format, looking for non-srgb format\n");
     }
 
     /* look for non-srgb format */
@@ -169,12 +157,10 @@ void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles(Device<Platfo
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
     vkGetSwapchainImagesKHR(device->GetDevice(), handle, &image_count, nullptr);
-    DebugLog(LogType::Warn, "image count %d\n", image_count);
 
     vk_images.Resize(image_count);
 
     vkGetSwapchainImagesKHR(device->GetDevice(), handle, &image_count, vk_images.Data());
-    DebugLog(LogType::Info, "Retrieved Swapchain images\n");
 
     self->m_images.Resize(image_count);
 

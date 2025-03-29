@@ -166,8 +166,6 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    HYP_LOG(UI, Debug, "UIObject destroyed: {}", GetName());
-
     static const auto UnsetUIObjectEntity = [](Scene *scene, const Handle<Entity> &entity)
     {
         AssertThrow(scene != nullptr);
@@ -1241,20 +1239,6 @@ int UIObject::RemoveAllChildUIObjects()
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        // const NodeProxy &node = GetNode();
-
-        // for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
-        //     if (const NodeProxy &child_node = child_ui_object->GetNode()) {
-        //         child_node->Remove();
-        //     }
-        // }
-
-        // num_removed = int(m_child_ui_objects.Size());
-
-        for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
-            HYP_LOG(UI, Debug, "Remove child {} from {} -- {} refs", child_ui_object->GetName(), GetName(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong());
-        }
-
         Array<UIObject *> children = GetChildUIObjects(false);
 
         for (UIObject *child : children) {
@@ -1263,8 +1247,6 @@ int UIObject::RemoveAllChildUIObjects()
             }
         }
     }
-
-    HYP_LOG(UI, Debug, "Removed {} children from {} -- {} objects remaining", num_removed, GetName(), GetChildUIObjects(false).Size());
 
     if (num_removed > 0 && UseAutoSizing()) {
         UpdateSize();
@@ -2104,7 +2086,6 @@ void UIObject::UpdateMaterial(bool update_children)
     if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
-        HYP_LOG(UI, Debug, "Creating new material for UI object (static): {} #{}", GetName(), new_material.GetID().Value());
 
         mesh_component->material = std::move(new_material);
         
@@ -2123,8 +2104,6 @@ void UIObject::UpdateMaterial(bool update_children)
             new_material = current_material;
         } else {
             new_material = current_material->Clone();
-
-            HYP_LOG(UI, Debug, "Cloning material for UI object (dynamic): {} #{}", GetName(), new_material.GetID().Value());
 
             mesh_component->material = new_material;
 

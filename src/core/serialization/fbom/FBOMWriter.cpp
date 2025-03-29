@@ -286,8 +286,6 @@ FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter *out, const FilePath &bas
             const FilePath filepath = external_path / (library.uuid.ToString() + ".hyp");
             const FilePath relative_path = FilePath::Relative(filepath, base_path).BasePath();
 
-            HYP_LOG(Serialization, Debug, "Writing external object library to relative: {}", relative_path);
-
             FileByteWriter byte_writer { filepath };
 
             if (FBOMResult err = serializer.Emit(&byte_writer, /* write_header */ true)) {

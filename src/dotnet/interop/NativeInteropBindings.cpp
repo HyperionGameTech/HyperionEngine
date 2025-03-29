@@ -165,8 +165,6 @@ HYP_EXPORT void ManagedClass_SetAttributes(ManagedClass *managed_class, ManagedA
 
     AttributeSet attributes = InternManagedAttributeHolder(managed_attribute_holder_ptr);
 
-    HYP_LOG(DotNET, Debug, "Setting attributes for class '{}' ({} attributes)", managed_class->class_object->GetName(), attributes.Size());
-
     managed_class->class_object->SetAttributes(std::move(attributes));
 }
 

@@ -73,8 +73,6 @@ public:
             texture_handle = CreateObject<Texture>(streamed_texture_data);
         } else {
             texture_handle = CreateObject<Texture>(texture_desc);
-
-            HYP_LOG(Serialization, Debug, "Deserialized texture with texture desc");
         }
     
         if (!texture_handle.IsValid()) {

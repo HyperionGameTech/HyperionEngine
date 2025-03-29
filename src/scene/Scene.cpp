@@ -104,8 +104,6 @@ Scene::Scene(
 
 Scene::~Scene()
 {
-    HYP_LOG(Scene, Debug, "Destroy scene with ID {} (name: {}) from thread : {}", GetID().Value(), m_name, ThreadID::Current().GetName());
-    
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();
 

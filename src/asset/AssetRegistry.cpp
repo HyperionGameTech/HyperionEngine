@@ -379,13 +379,6 @@ AssetRegistry::AssetRegistry(const String &root_path)
             return;
         }
 
-        // temp
-        package->SetAssetObjects({
-            CreateObject<AssetObject>(NAME("TestAsset1")),
-            CreateObject<AssetObject>(NAME("TestAsset2")),
-            CreateObject<AssetObject>(NAME("TestAsset3"))
-        });
-
         m_packages.Insert(std::move(package));
     };
 
@@ -421,7 +414,7 @@ FilePath AssetRegistry::GetAbsolutePath() const
     AssetRegistryRootPathContext *context = GetGlobalContext<AssetRegistryRootPathContext>();
 
     if (context) {
-        return FilePath::Current() / context->GetRootPath();
+        return context->value;
     }
     
     Mutex::Guard guard(m_mutex);

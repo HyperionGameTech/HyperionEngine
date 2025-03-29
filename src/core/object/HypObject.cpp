@@ -72,7 +72,6 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(const HypClass *hyp
         }
 
         while (hyp_classes.Any()) {
-            // HYP_LOG(Object, Debug, "Push hypclass {}, address {}", hyp_classes.Front()->GetName(), address);
             g_contexts.Push({ hyp_classes.Pop(), address });
 
 #ifndef HYP_DEBUG_MODE

@@ -528,8 +528,6 @@ void DebugDrawer::Render(Frame *frame)
     m_draw_commands.Clear();
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void DebugDrawer::UpdateDrawCommands()
 {
     HYP_SCOPE;
@@ -562,8 +560,6 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
     m_num_draw_commands_pending_addition.Increment(uint32(num_added_items), MemoryOrder::RELEASE);
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion DebugDrawer
 

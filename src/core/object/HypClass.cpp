@@ -244,8 +244,6 @@ void HypClass::Initialize()
             m_properties.PushBack(property_ptr);
             m_properties_by_name.Set(property_ptr->GetName(), property_ptr);
 
-            HYP_LOG(Object, Debug, "Built property \"{}\" on HypClass \"{}\" from field", property_ptr->GetName(), m_name);
-
             continue;
         }
 
@@ -269,8 +267,6 @@ void HypClass::Initialize()
 
             m_properties.PushBack(property_ptr);
             m_properties_by_name.Set(property_ptr->GetName(), property_ptr);
-
-            HYP_LOG(Object, Debug, "Built property \"{}\" on HypClass \"{}\" from methods", property_ptr->GetName(), m_name);
 
             continue;
         }
