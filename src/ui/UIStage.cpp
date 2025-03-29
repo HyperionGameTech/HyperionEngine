@@ -77,6 +77,9 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
     if (m_scene.IsValid() && m_scene->GetCamera().IsValid()) {
         m_scene->GetCamera()->SetWidth(surface_size.x);
         m_scene->GetCamera()->SetHeight(surface_size.y);
+
+        // @FIXME: needs to remove and re-add the camera controller
+
         m_scene->GetCamera()->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
             0.0f, -float(surface_size.x),
             0.0f, float(surface_size.y),
@@ -106,10 +109,6 @@ void UIStage::SetScene(const Handle<Scene> &scene)
 
     Handle<Scene> new_scene = scene;
 
-    if (new_scene == m_scene) {
-        return;
-    }
-
     if (!new_scene.IsValid()) {
         Handle<Camera> camera = CreateObject<Camera>();
         camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
@@ -129,22 +128,27 @@ void UIStage::SetScene(const Handle<Scene> &scene)
         camera_node->SetName("UICamera");
         
         Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
-        m_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent {
+        new_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent {
             camera
         });
 
         camera_node->SetEntity(camera_entity);
     }
-    
-    NodeProxy current_root_node;
 
-    if (m_scene.IsValid()) {
-        current_root_node = m_scene->GetRoot();
-
-        current_root_node->Remove();
+    if (new_scene == m_scene) {
+        return;
     }
 
-    new_scene->SetRoot(std::move(current_root_node));
+    if (m_scene.IsValid()) {
+        NodeProxy current_root_node;
+
+        current_root_node = m_scene->GetRoot();
+        AssertThrow(current_root_node.IsValid());
+
+        current_root_node->Remove();
+
+        new_scene->SetRoot(std::move(current_root_node));
+    }
 
     g_engine->GetWorld()->AddScene(new_scene);
     
@@ -223,24 +227,8 @@ void UIStage::Init()
         }
     }
 
-    m_scene = CreateObject<Scene>(
-        nullptr,
-        CreateObject<Camera>(),
-        m_owner_thread_id,
-        SceneFlags::FOREGROUND | SceneFlags::UI
-    );
-
-    m_scene->SetName(CreateNameFromDynamicString(ANSIString(GetName().LookupString()) + "_Scene"));
-
-    m_scene->GetCamera()->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
-        0.0f, -float(m_surface_size.x),
-        0.0f, float(m_surface_size.y),
-        float(min_depth), float(max_depth)
-    ));
-
-    g_engine->GetDefaultWorld()->AddScene(m_scene);
-
-    m_scene->GetRoot()->SetEntity(m_scene->GetEntityManager()->AddEntity());
+    // Will create a new Scene
+    SetScene(Handle<Scene>::empty);
 
     SetNodeProxy(m_scene->GetRoot());
 

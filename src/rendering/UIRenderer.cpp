@@ -487,7 +487,7 @@ void UIRenderSubsystem::Init()
         }
     };
 
-    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakThis()]()
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakRefCountedPtrFromThis()]()
     {
         Threads::AssertOnThread(g_render_thread);
 
