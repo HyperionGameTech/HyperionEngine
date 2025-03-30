@@ -33,9 +33,6 @@ public:
     ReflectionProbeRenderer &operator=(const ReflectionProbeRenderer &other)    = delete;
     virtual ~ReflectionProbeRenderer();
 
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
-
     HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
         { return m_env_probe; }
 
@@ -49,7 +46,6 @@ private:
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
     Handle<Scene>       m_parent_scene;
-    BoundingBox         m_aabb;
     Handle<EnvProbe>    m_env_probe;
 
     bool                m_last_visibility_state = false;

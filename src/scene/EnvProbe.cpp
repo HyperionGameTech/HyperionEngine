@@ -20,7 +20,7 @@
 
 namespace hyperion {
 
-static const InternalFormat reflection_probe_format = InternalFormat::RGBA8;
+static const InternalFormat reflection_probe_format = InternalFormat::R11G11B10F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 #pragma region Render commands
@@ -189,6 +189,7 @@ void EnvProbe::Init()
     buffer_data.camera_near = m_camera_near;
     buffer_data.camera_far = m_camera_far;
     buffer_data.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    buffer_data.visibility_bits = m_visibility_bits.ToUInt64();
     buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
                       | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
                       | EnvProbeFlags::DIRTY;
@@ -243,6 +244,33 @@ void EnvProbe::Init()
     }
 
     SetReady(true);
+}
+
+void EnvProbe::SetAABB(const BoundingBox &aabb)
+{
+    if (m_aabb != aabb) {
+        m_aabb = aabb;
+
+        SetNeedsUpdate(true);
+    }
+}
+
+void EnvProbe::SetOrigin(const Vec3f &origin)
+{
+    if (IsAmbientProbe()) {
+        // ambient probes use the min point of the aabb as the origin,
+        // so it can blend between 7 other probes
+        const Vec3f extent = m_aabb.GetExtent();
+
+        m_aabb.SetMin(origin);
+        m_aabb.SetMax(origin + extent);
+    } else {
+        m_aabb.SetCenter(origin);
+    }
+
+    if (IsInitCalled()) {
+        SetNeedsUpdate(true);
+    }
 }
 
 void EnvProbe::CreateShader()
@@ -425,6 +453,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     buffer_data.camera_near = m_camera_near;
     buffer_data.camera_far = m_camera_far;
     buffer_data.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    buffer_data.visibility_bits = m_visibility_bits.ToUInt64();
     buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
                       | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
                       | EnvProbeFlags::DIRTY;
@@ -482,10 +511,9 @@ void EnvProbe::Render(Frame *frame)
     
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
-    if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY) {
-        // Find a directional light to use for the sky
-        // @TODO Support selecting a specific light for the EnvProbe
-
+    if (IsSkyProbe() || IsReflectionProbe()) {
+        // @TODO Support selecting a specific light for the EnvProbe in the case of a sky probe.
+        // For reflection probes, it would be ideal to bind a number of lights that can be used in forward rendering.
         auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
 
         if (directional_lights.Any()) {
