@@ -41,7 +41,7 @@ public:
     void PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy, int computed_depth);
 
     CollectionResult PushUpdatesToRenderThread(
-        const FramebufferRef &framebuffer = nullptr,
+        const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 

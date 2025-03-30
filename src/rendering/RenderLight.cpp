@@ -73,7 +73,7 @@ LightRenderResource::~LightRenderResource() = default;
 void LightRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
-
+    
     UpdateBufferData();
 }
 

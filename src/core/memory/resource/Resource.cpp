@@ -78,6 +78,9 @@ int ResourceBase::Claim()
 
             AssertThrow(!m_is_initialized);
 
+            // // So Update() gets called after initialization
+            // m_update_counter.Increment(1, MemoryOrder::RELEASE);
+
             Initialize();
             m_is_initialized = true;
         }

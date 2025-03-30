@@ -68,7 +68,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     Array<Pair<ID<Entity>, int>>        proxy_depths;
 
-    FramebufferRef                      framebuffer;
+    Handle<Camera>                      camera;
     Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
@@ -77,22 +77,19 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         Array<ID<Entity>> &&removed_proxies,
         RenderProxyEntityMap &&changed_proxies,
         const Array<Pair<ID<Entity>, int>> &proxy_depths,
-        const FramebufferRef &framebuffer = nullptr,
+        const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
         added_proxies(std::move(added_proxies)),
         removed_proxies(std::move(removed_proxies)),
         changed_proxies(std::move(changed_proxies)),
         proxy_depths(proxy_depths),
-        framebuffer(framebuffer),
+        camera(camera),
         override_attributes(override_attributes)
     {
     }
 
-    virtual ~RENDER_COMMAND(RebuildProxyGroups_UI)() override
-    {
-        SafeRelease(std::move(framebuffer));
-    }
+    virtual ~RENDER_COMMAND(RebuildProxyGroups_UI)() override = default;
 
     RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet &entity_attributes) const
     {
@@ -186,6 +183,12 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 );
 
                 render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>(max_ui_entity_instance_batches));
+
+                FramebufferRef framebuffer;
+
+                if (camera.IsValid()) {
+                    framebuffer = camera->GetRenderResource().GetFramebuffer();
+                }
 
                 if (framebuffer != nullptr) {
                     render_group->AddFramebuffer(framebuffer);
@@ -297,7 +300,7 @@ void UIRenderCollector::PushEntityToRender(ID<Entity> entity, const RenderProxy 
     m_proxy_depths.EmplaceBack(entity, computed_depth);
 }
 
-RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -340,7 +343,7 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
                 std::move(removed_proxies),
                 std::move(changed_proxies),
                 m_proxy_depths,
-                framebuffer,
+                camera,
                 override_attributes
             );
         }
@@ -556,11 +559,11 @@ void UIRenderSubsystem::CreateFramebuffer()
     m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
     AssertThrow(m_framebuffer.IsValid());
 
+    m_ui_stage->GetScene()->GetCamera()->GetRenderResource().SetFramebuffer(m_framebuffer);
+
     m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, framebuffer = m_framebuffer, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
     {
         ui_stage->SetSurfaceSize(surface_size);
-
-        ui_stage->GetScene()->GetCamera()->SetFramebuffer(framebuffer);
     });
 
     g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(

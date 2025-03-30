@@ -8,6 +8,8 @@
 
 #include <rendering/RenderResource.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
+
 #include <core/Handle.hpp>
 
 #include <Types.hpp>
@@ -41,7 +43,6 @@ class CameraRenderResource final : public RenderResourceBase
 {
 public:
     CameraRenderResource(Camera *camera);
-    CameraRenderResource(CameraRenderResource &&other) noexcept;
     virtual ~CameraRenderResource() override;
 
     HYP_FORCE_INLINE Camera *GetCamera() const
@@ -52,6 +53,11 @@ public:
     /*! \note This method is only safe to call from the render thread. */
     HYP_FORCE_INLINE const CameraShaderData &GetBufferData() const
         { return m_buffer_data; }
+
+    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
+        { return m_framebuffer; }
+
+    void SetFramebuffer(const FramebufferRef &framebuffer);
 
     void ApplyJitter();
 
@@ -70,6 +76,8 @@ private:
 
     Camera              *m_camera;
     CameraShaderData    m_buffer_data;
+
+    FramebufferRef      m_framebuffer;
 };
 
 } // namespace hyperion

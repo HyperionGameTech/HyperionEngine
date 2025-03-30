@@ -47,7 +47,8 @@ EnvProbeRenderResource::EnvProbeRenderResource(EnvProbe *env_probe)
         CreateTexture();
 
         AssertThrow(m_env_probe->GetCamera().IsValid());
-        m_env_probe->GetCamera()->SetFramebuffer(m_framebuffer);
+
+        m_env_probe->GetCamera()->GetRenderResource().SetFramebuffer(m_framebuffer);
 
         m_camera_resource_handle = ResourceHandle(m_env_probe->GetCamera()->GetRenderResource());
     }
@@ -267,8 +268,6 @@ void EnvProbeRenderResource::UpdateRenderData(uint32 texture_slot, uint32 grid_s
 void EnvProbeRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
-
-    UpdateBufferData();
 }
 
 void EnvProbeRenderResource::Destroy_Internal()

@@ -444,10 +444,12 @@ void EnvGrid::Init()
 
     m_shader_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
 
-    m_camera->SetFramebuffer(m_framebuffer);
     InitObject(m_camera);
+
+    CameraRenderResource &camera_resource = m_camera->GetRenderResource();
+    camera_resource.SetFramebuffer(m_framebuffer);
     
-    m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
+    m_camera_resource_handle = ResourceHandle(camera_resource);
 
     g_engine->GetRenderState()->BindEnvGrid(this);
 }
