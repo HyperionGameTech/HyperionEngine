@@ -124,6 +124,14 @@ public:
         { return m_buffer_data; }
 
     void SetBufferData(const EnvProbeShaderData &buffer_data);
+
+    HYP_FORCE_INLINE const ResourceHandle &GetCameraResourceHandle() const
+        { return m_camera_resource_handle; }
+
+    HYP_FORCE_INLINE const ResourceHandle &GetSceneResourceHandle() const
+        { return m_scene_resource_handle; }
+
+    void SetSceneResourceHandle(ResourceHandle &&scene_resource_handle);
     
     HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
         { return m_render_collector; }
@@ -146,6 +154,9 @@ public:
         uint32 grid_slot,
         const Vec3u &grid_size
     );
+
+    void EnqueueBind();
+    void EnqueueUnbind();
 
     void Render(Frame *frame);
 
@@ -179,6 +190,7 @@ private:
     ShaderRef           m_shader;
 
     ResourceHandle      m_camera_resource_handle;
+    ResourceHandle      m_scene_resource_handle;
 };
 
 } // namespace hyperion

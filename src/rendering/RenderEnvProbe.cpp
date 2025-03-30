@@ -41,6 +41,12 @@ EnvProbeRenderResource::EnvProbeRenderResource(EnvProbe *env_probe)
       m_buffer_data { },
       m_texture_slot(~0u)
 {
+    if (m_env_probe->GetParentScene().IsValid()) {
+        AssertThrow(m_env_probe->GetParentScene()->IsReady());
+
+        m_scene_resource_handle = ResourceHandle(m_env_probe->GetParentScene()->GetRenderResource());
+    }
+
     if (!m_env_probe->IsControlledByEnvGrid()) {
         CreateShader();
         CreateFramebuffer();
@@ -89,6 +95,16 @@ void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData &buffer_data
         m_buffer_data.position_in_grid = position_in_grid;
 
         SetNeedsUpdate();
+    });
+}
+
+void EnvProbeRenderResource::SetSceneResourceHandle(ResourceHandle &&scene_resource_handle)
+{
+    HYP_SCOPE;
+
+    Execute([this, scene_resource_handle = std::move(scene_resource_handle)]()
+    {
+        m_scene_resource_handle = std::move(scene_resource_handle);
     });
 }
 
@@ -282,6 +298,26 @@ void EnvProbeRenderResource::Update_Internal()
     UpdateBufferData();
 }
 
+void EnvProbeRenderResource::EnqueueBind()
+{
+    HYP_SCOPE;
+
+    Execute([this]()
+    {
+        g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(*this));
+    }, /* force_render_thread */ true);
+}
+
+void EnvProbeRenderResource::EnqueueUnbind()
+{
+    HYP_SCOPE;
+
+    Execute([this]()
+    {
+        g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), this);
+    }, /* force_render_thread */ true);
+}
+
 GPUBufferHolderBase *EnvProbeRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->env_probes;
@@ -402,7 +438,10 @@ void EnvProbeRenderResource::Render(Frame *frame)
             g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);
         }
 
-        g_engine->GetRenderState()->SetActiveScene(m_env_probe->GetParentScene().Get());
+        if (m_scene_resource_handle) {
+            g_engine->GetRenderState()->SetActiveScene(static_cast<SceneRenderResource &>(*m_scene_resource_handle).GetScene());
+        }
+
         g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
 
         m_render_collector.CollectDrawCalls(
@@ -418,7 +457,10 @@ void EnvProbeRenderResource::Render(Frame *frame)
         );
 
         g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
-        g_engine->GetRenderState()->UnsetActiveScene();
+
+        if (m_scene_resource_handle) {
+            g_engine->GetRenderState()->UnsetActiveScene();
+        }
 
         if (light_render_resource_handle != nullptr) {
             g_engine->GetRenderState()->UnsetActiveLight();
