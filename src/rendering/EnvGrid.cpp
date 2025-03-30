@@ -548,7 +548,7 @@ void EnvGrid::OnRender(Frame *frame)
             g_engine->GetDebugDrawer()->AmbientProbe(
                 probe->GetRenderResource().GetBufferData().world_position.GetXYZ(),
                 0.25f,
-                probe
+                *probe
             );
         }
     }

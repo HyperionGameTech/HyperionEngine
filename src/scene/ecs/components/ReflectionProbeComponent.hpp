@@ -4,6 +4,7 @@
 #define HYPERION_ECS_REFLECTION_PROBE_COMPONENT_HPP
 
 #include <core/Name.hpp>
+#include <core/Handle.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -25,6 +26,9 @@ struct ReflectionProbeComponent
 {
     HYP_FIELD(Property="Dimensions", Serialize=true, Editor=true, Label="Dimensions")
     Vec2u                       dimensions = Vec2u { 256, 256 };
+
+    HYP_FIELD(Property="EnvProbe", Serialize=true, Editor=true, Label="EnvProbe")
+    Handle<EnvProbe>            env_probe;
 
     HYP_FIELD(Property="ReflectionProbeRenderer", Serialize=false, Editor=false)
     RC<ReflectionProbeRenderer> reflection_probe_renderer;

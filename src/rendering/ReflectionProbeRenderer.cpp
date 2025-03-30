@@ -11,7 +11,6 @@
 
 #include <system/AppContext.hpp>
 
-#include <scene/EnvProbe.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 
 #include <Engine.hpp>
@@ -20,18 +19,11 @@ namespace hyperion {
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
     Name name,
-    const Handle<Scene> &parent_scene,
-    const BoundingBox &aabb
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle
 ) : RenderSubsystem(name),
-    m_parent_scene(parent_scene),
+    m_env_probe_resource_handle(env_probe_resource_handle),
     m_last_visibility_state(false)
 {
-    m_env_probe = CreateObject<EnvProbe>(
-        m_parent_scene,
-        aabb,
-        Vec2u { 256, 256 },
-        ENV_PROBE_TYPE_REFLECTION
-    );
 }
 
 ReflectionProbeRenderer::~ReflectionProbeRenderer()
@@ -40,7 +32,7 @@ ReflectionProbeRenderer::~ReflectionProbeRenderer()
 
 void ReflectionProbeRenderer::Init()
 {
-    InitObject(m_env_probe);
+    m_env_probe_resource_handle->EnqueueBind();
 }
 
 // called from game thread
@@ -51,8 +43,7 @@ void ReflectionProbeRenderer::InitGame()
 
 void ReflectionProbeRenderer::OnRemoved()
 {
-    AssertThrow(m_env_probe.IsValid());
-    m_env_probe->EnqueueUnbind();
+    m_env_probe_resource_handle->EnqueueUnbind();
 }
 
 void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -65,28 +56,13 @@ void ReflectionProbeRenderer::OnRender(Frame *frame)
 
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool()) {
         g_engine->GetDebugDrawer()->ReflectionProbe(
-            m_env_probe->GetRenderResource().GetBufferData().world_position.GetXYZ(),
+            m_env_probe_resource_handle->GetBufferData().world_position.GetXYZ(),
             0.5f,
-            m_env_probe
+            *m_env_probe_resource_handle->GetEnvProbe()
         );
     }
 
-    if (m_env_probe->GetRenderResource().GetBufferData().visibility_bits & (1ull << SizeType(m_parent_scene->GetCamera().GetID().ToIndex()))) {
-        if (!m_last_visibility_state) {
-            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(m_env_probe->GetRenderResource()));
-
-            m_last_visibility_state = true;
-        }
-
-        m_env_probe->GetRenderResource().Render(frame);
-    } else {
-        // No point in keeping it bound if the light is not visible on the screen.
-        if (m_last_visibility_state) {
-            g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), &m_env_probe->GetRenderResource());
-
-            m_last_visibility_state = false;
-        }
-    }
+    m_env_probe_resource_handle->Render(frame);
 }
 
 void ReflectionProbeRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)

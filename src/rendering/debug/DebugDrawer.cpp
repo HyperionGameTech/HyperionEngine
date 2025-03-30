@@ -74,16 +74,15 @@ void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const
 
 #pragma region AmbientProbeDebugDrawShape
 
-void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe)
+void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const EnvProbe &env_probe)
 {
-    AssertThrow(env_probe.IsValid());
-    AssertThrow(env_probe->IsReady());
+    AssertThrow(env_probe.IsReady());
 
     UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe.GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }
@@ -92,16 +91,15 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius,
 
 #pragma region ReflectionProbeDebugDrawShape
 
-void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const Handle<EnvProbe> &env_probe)
+void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const EnvProbe &env_probe)
 {
-    AssertThrow(env_probe.IsValid());
-    AssertThrow(env_probe->IsReady());
+    AssertThrow(env_probe.IsReady());
 
     UniquePtr<DebugDrawCommand_Probe> command = MakeUnique<DebugDrawCommand_Probe>();
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe.GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }

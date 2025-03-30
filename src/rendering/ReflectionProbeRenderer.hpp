@@ -4,18 +4,19 @@
 
 #include <core/Base.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/math/BoundingBox.hpp>
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/PostFX.hpp>
 #include <rendering/RenderSubsystem.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
 
-class EnvProbe;
+class EnvProbeRenderResource;
 
 HYP_CLASS()
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem
@@ -25,16 +26,12 @@ class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 public:
     ReflectionProbeRenderer(
         Name name,
-        const Handle<Scene> &parent_scene,
-        const BoundingBox &aabb
+        const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle
     );
 
     ReflectionProbeRenderer(const ReflectionProbeRenderer &other)               = delete;
     ReflectionProbeRenderer &operator=(const ReflectionProbeRenderer &other)    = delete;
     virtual ~ReflectionProbeRenderer();
-
-    HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
-        { return m_env_probe; }
 
 private:
     virtual void Init() override;
@@ -45,10 +42,9 @@ private:
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
-    Handle<Scene>       m_parent_scene;
-    Handle<EnvProbe>    m_env_probe;
+    TResourceHandle<EnvProbeRenderResource> m_env_probe_resource_handle;
 
-    bool                m_last_visibility_state = false;
+    bool                                    m_last_visibility_state = false;
 };
 
 

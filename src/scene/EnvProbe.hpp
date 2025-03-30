@@ -82,7 +82,7 @@ public:
     EnvProbe &operator=(const EnvProbe &other)  = delete;
     ~EnvProbe();
 
-    HYP_FORCE_INLINE EnvProbeRenderResource &GetRenderResource()
+    HYP_FORCE_INLINE EnvProbeRenderResource &GetRenderResource() const
         { return *m_render_resource; }
     
     HYP_METHOD()
@@ -138,6 +138,9 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Scene> &GetParentScene() const
         { return m_parent_scene; }
+
+    HYP_METHOD()
+    void SetParentScene(const Handle<Scene> &parent_scene);
 
     HYP_FORCE_INLINE Vec2u GetDimensions() const
         { return m_dimensions; }

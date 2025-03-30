@@ -320,7 +320,7 @@ class TResourceHandle : public ResourceHandle
 public:
     TResourceHandle() = default;
 
-    template <class T, typename = std::enable_if_t< (std::is_same_v<NormalizedType<T>, ResourceType> || std::is_base_of_v<ResourceType, NormalizedType<T>>) && (std::is_base_of_v<IResource, NormalizedType<T>>) > >
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<ResourceHandle, NormalizedType<T>>>>
     TResourceHandle(T &resource)
         : ResourceHandle(static_cast<IResource &>(resource))
     {
@@ -362,6 +362,8 @@ public:
 
     HYP_FORCE_INLINE ResourceType *Get() const
     {
+        static_assert(std::is_base_of_v<IResource, ResourceType>); 
+
         if (resource->IsNull()) {
             return nullptr;
         }

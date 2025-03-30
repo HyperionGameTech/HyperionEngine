@@ -185,6 +185,8 @@ void EnvProbe::Init()
 
 void EnvProbe::SetAABB(const BoundingBox &aabb)
 {
+    HYP_SCOPE;
+
     if (m_aabb != aabb) {
         m_aabb = aabb;
 
@@ -194,6 +196,8 @@ void EnvProbe::SetAABB(const BoundingBox &aabb)
 
 void EnvProbe::SetOrigin(const Vec3f &origin)
 {
+    HYP_SCOPE;
+
     if (IsAmbientProbe()) {
         // ambient probes use the min point of the aabb as the origin,
         // so it can blend between 7 other probes
@@ -207,6 +211,27 @@ void EnvProbe::SetOrigin(const Vec3f &origin)
 
     if (IsInitCalled()) {
         SetNeedsUpdate(true);
+    }
+}
+
+void EnvProbe::SetParentScene(const Handle<Scene> &parent_scene)
+{
+    HYP_SCOPE;
+
+    if (m_parent_scene == parent_scene) {
+        return;
+    }
+
+    m_parent_scene = parent_scene;
+
+    if (IsInitCalled()) {
+        if (parent_scene.IsValid()) {
+            AssertThrow(parent_scene->IsReady());
+
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
+        } else {
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
+        }
     }
 }
 
