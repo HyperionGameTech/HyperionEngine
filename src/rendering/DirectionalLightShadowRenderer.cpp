@@ -537,7 +537,7 @@ void DirectionalLightShadowRenderer::Init()
     m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
     m_shadow_pass->Create();
 
-    m_camera->SetFramebuffer(m_shadow_pass->GetFramebuffer());
+    m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
 }
 
 // called from game thread

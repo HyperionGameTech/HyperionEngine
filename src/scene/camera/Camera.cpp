@@ -206,8 +206,6 @@ Camera::~Camera()
         m_render_resource->Unclaim();
         FreeResource(m_render_resource);
     }
-
-    SafeRelease(std::move(m_framebuffer));
 }
 
 void Camera::Init()
@@ -270,8 +268,6 @@ void Camera::Init()
 
             m_render_resource = nullptr;
         }
-
-        SafeRelease(std::move(m_framebuffer));
     }));
 
     m_render_resource = AllocateResource<CameraRenderResource>(this);
@@ -292,8 +288,6 @@ void Camera::Init()
     });
 
     m_render_resource->Claim();
-
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
 
     SetReady(true);
 }
@@ -408,17 +402,6 @@ bool Camera::RemoveCameraController(const RC<CameraController> &camera_controlle
     UpdateViewProjectionMatrix();
 
     return true;
-}
-
-void Camera::SetFramebuffer(const FramebufferRef &framebuffer)
-{
-    if (m_framebuffer == framebuffer) {
-        return;
-    }
-
-    SafeRelease(std::move(m_framebuffer));
-
-    m_framebuffer = framebuffer;
 }
 
 void Camera::SetTranslation(const Vec3f &translation)

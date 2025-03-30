@@ -50,7 +50,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     Array<ID<Entity>>                   removed_proxies;
     RenderProxyEntityMap                changed_proxies;
 
-    FramebufferRef                      framebuffer;
+    Handle<Camera>                      camera;
     Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups)(
@@ -58,13 +58,13 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         Array<RenderProxy> &&added_proxies,
         Array<ID<Entity>> &&removed_proxies,
         RenderProxyEntityMap &&changed_proxies,
-        const FramebufferRef &framebuffer = nullptr,
+        const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
         added_proxies(std::move(added_proxies)),
         removed_proxies(std::move(removed_proxies)),
         changed_proxies(std::move(changed_proxies)),
-        framebuffer(framebuffer),
+        camera(camera),
         override_attributes(override_attributes)
     {
         // sanity checking
@@ -78,10 +78,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
     }
 
-    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override
-    {
-        SafeRelease(std::move(framebuffer));
-    }
+    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override = default;
 
     RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy &proxy) const
     {
@@ -170,6 +167,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 attributes,
                 render_group_flags
             );
+
+            FramebufferRef framebuffer;
+
+            if (camera.IsValid()) {
+                framebuffer = camera->GetRenderResource().GetFramebuffer();
+            }
 
             if (framebuffer != nullptr) {
                 render_group->AddFramebuffer(framebuffer);
@@ -349,7 +352,7 @@ RenderCollector::~RenderCollector()
     HYP_SYNC_RENDER(); // Prevent dangling references to this from render commands
 }
 
-RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -395,7 +398,7 @@ RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(con
                 std::move(added_proxies),
                 std::move(removed_proxies),
                 std::move(changed_proxies),
-                framebuffer,
+                camera,
                 override_attributes
             );
         }
@@ -499,7 +502,7 @@ void RenderCollector::ExecuteDrawCalls(
     PushConstantData push_constant
 ) const
 {
-    const FramebufferRef &framebuffer = camera_render_resource.GetCamera()->GetFramebuffer();
+    const FramebufferRef &framebuffer = camera_render_resource.GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
     ExecuteDrawCalls(frame, camera_render_resource, framebuffer, bucket_bits, cull_data, push_constant);

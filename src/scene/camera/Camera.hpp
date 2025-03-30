@@ -238,11 +238,6 @@ public:
     HYP_FORCE_INLINE CameraRenderResource &GetRenderResource() const
         { return *m_render_resource; }
 
-    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
-        { return m_framebuffer; }
-
-    void SetFramebuffer(const FramebufferRef &framebuffer);
-
     HYP_METHOD(Property="CameraControllers", Serialize=true)
     HYP_FORCE_INLINE const Array<RC<CameraController>> &GetCameraControllers() const
         { return m_camera_controllers; }
@@ -502,8 +497,6 @@ protected:
     float                       m_match_window_size_ratio;
 
     Array<RC<CameraController>> m_camera_controllers;
-
-    FramebufferRef              m_framebuffer;
 
     Vec3f                       m_translation, m_next_translation, m_direction, m_up;
     Matrix4                     m_view_mat, m_proj_mat;

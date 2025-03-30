@@ -11,6 +11,7 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 
 #include <rendering/UIRenderer.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
@@ -80,7 +81,7 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
             render_collector.PushEntityToRender(entity, *mesh_component->proxy, ui_object->GetComputedDepth());
         }, /* only_visible */ true);
 
-        render_collector.PushUpdatesToRenderThread(m_ui_stage->GetScene()->GetCamera()->GetFramebuffer());
+        render_collector.PushUpdatesToRenderThread();
     }
 }
 

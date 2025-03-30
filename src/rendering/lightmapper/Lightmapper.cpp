@@ -1193,11 +1193,13 @@ void LightmapRasterizer::Create()
         );
 
         m_camera->SetName(Name::Unique("LightmapRasterizerCamera"));
-        m_camera->SetFramebuffer(m_framebuffer);
 
         InitObject(m_camera);
+
+        CameraRenderResource &camera_render_resource = m_camera->GetRenderResource();
+        camera_render_resource.SetFramebuffer(m_framebuffer);
         
-        m_camera_resource_handle = ResourceHandle(m_camera->GetRenderResource());
+        m_camera_resource_handle = ResourceHandle(camera_render_resource);
     }
 }
 

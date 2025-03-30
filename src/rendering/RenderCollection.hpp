@@ -103,7 +103,7 @@ public:
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
     CollectionResult PushUpdatesToRenderThread(
-        const FramebufferRef &framebuffer = nullptr,
+        const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 

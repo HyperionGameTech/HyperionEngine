@@ -25,26 +25,26 @@ CameraRenderResource::CameraRenderResource(Camera *camera)
 {
 }
 
-CameraRenderResource::CameraRenderResource(CameraRenderResource &&other) noexcept
-    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
-      m_camera(other.m_camera),
-      m_buffer_data(std::move(other.m_buffer_data))
+CameraRenderResource::~CameraRenderResource()
 {
-    other.m_camera = nullptr;
 }
-
-CameraRenderResource::~CameraRenderResource() = default;
 
 void CameraRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
+
+    if (m_framebuffer.IsValid()) {
+        DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    }
 }
 
 void CameraRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
+    
+    SafeRelease(std::move(m_framebuffer));
 }
 
 void CameraRenderResource::Update_Internal()
@@ -73,9 +73,25 @@ void CameraRenderResource::SetBufferData(const CameraShaderData &buffer_data)
     Execute([this, buffer_data]()
     {
         m_buffer_data = buffer_data;
-
+        
         if (IsInitialized()) {
             UpdateBufferData();
+        }
+    });
+}
+
+void CameraRenderResource::SetFramebuffer(const FramebufferRef &framebuffer)
+{
+    HYP_SCOPE;
+
+    Execute([this, framebuffer]()
+    {
+        SafeRelease(std::move(m_framebuffer));
+
+        m_framebuffer = framebuffer;
+
+        if (IsInitialized() && m_framebuffer.IsValid()) {
+            DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
         }
     });
 }

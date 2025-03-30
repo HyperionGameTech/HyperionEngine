@@ -32,6 +32,7 @@
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/ShaderGlobals.hpp>
@@ -347,10 +348,7 @@ RenderCollector::CollectionResult Scene::CollectEntities(
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
 
-    return render_collector.PushUpdatesToRenderThread(
-        camera->GetFramebuffer(),
-        override_attributes
-    );
+    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
 }
 
 RenderCollector::CollectionResult Scene::CollectDynamicEntities(
@@ -399,10 +397,7 @@ RenderCollector::CollectionResult Scene::CollectDynamicEntities(
         );
     }
 
-    return render_collector.PushUpdatesToRenderThread(
-        camera->GetFramebuffer(),
-        override_attributes
-    );
+    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
 }
 
 RenderCollector::CollectionResult Scene::CollectStaticEntities(
@@ -418,10 +413,7 @@ RenderCollector::CollectionResult Scene::CollectStaticEntities(
 
     if (!camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return render_collector.PushUpdatesToRenderThread(
-            camera->GetFramebuffer(),
-            override_attributes
-        );
+        return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
     }
 
     const ID<Camera> camera_id = camera.GetID();
@@ -454,10 +446,7 @@ RenderCollector::CollectionResult Scene::CollectStaticEntities(
         );
     }
 
-    return render_collector.PushUpdatesToRenderThread(
-        camera->GetFramebuffer(),
-        override_attributes
-    );
+    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
 }
 
 void Scene::EnqueueRenderUpdates()
