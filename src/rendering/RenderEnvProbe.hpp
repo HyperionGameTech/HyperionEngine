@@ -27,7 +27,7 @@ struct EnvProbeShaderData
     float   camera_far;
 
     Vec2u   dimensions;
-    Vec2u   _pad2;
+    uint64  visibility_bits;
 
     Vec4i   position_in_grid;
     Vec4i   position_offset;

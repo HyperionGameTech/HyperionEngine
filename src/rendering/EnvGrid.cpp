@@ -211,7 +211,7 @@ EnvGrid::EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions op
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(probe_dimensions.x), int(probe_dimensions.y),
-        0.001f, m_aabb.GetExtent().Max() //(m_aabb.GetExtent() / Vec3f(m_options.density)).Max()
+        0.001f, m_aabb.GetRadius() * 2.0f
     );
     
     m_camera->SetName(Name::Unique("EnvGridCamera"));

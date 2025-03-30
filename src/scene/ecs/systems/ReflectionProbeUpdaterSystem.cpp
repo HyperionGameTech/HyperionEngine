@@ -14,7 +14,10 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/threading/Threads.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <Engine.hpp>
@@ -95,20 +98,52 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos())) {
         if (!reflection_probe_component.reflection_probe_renderer) {
             continue;
         }
-        
-        const HashCode transform_hash_code = transform_component.transform.GetHashCode();
 
-        const BoundingBox &world_aabb = bounding_box_component.world_aabb;
+        const Handle<EnvProbe> &env_probe = reflection_probe_component.reflection_probe_renderer->GetEnvProbe();
 
-        if (reflection_probe_component.transform_hash_code != transform_hash_code || reflection_probe_component.reflection_probe_renderer->GetAABB() != world_aabb) {
-            // @TODO
-            // reflection_probe_component.reflection_probe_renderer->SetAABB(world_aabb);
+        env_probe->Update(delta);
 
-            reflection_probe_component.transform_hash_code = transform_hash_code;
+        const Handle<Camera> &camera = GetScene()->GetCamera();
+
+        if (!camera.IsValid()) {
+            continue;
+        }
+
+        const bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
+
+        reflection_probe_component.reflection_probe_renderer->GetEnvProbe()->SetIsVisible(camera.GetID(), is_env_probe_in_frustum);
+    }
+
+    {
+        HashSet<ID<Entity>> updated_entity_ids;
+
+        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
+            if (!reflection_probe_component.reflection_probe_renderer) {
+                continue;
+            }
+
+            const Handle<EnvProbe> &env_probe = reflection_probe_component.reflection_probe_renderer->GetEnvProbe();
+
+
+            // @FIXME: This is a hack to update the AABB of the reflection probe renderer,
+            // EnvProbe should be on the component
+            env_probe->SetAABB(bounding_box_component.world_aabb);
+            env_probe->SetOrigin(transform_component.transform.GetTranslation());
+
+            updated_entity_ids.Insert(entity_id);
+        }
+
+        if (updated_entity_ids.Any()) {
+            AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
+            {
+                for (const ID<Entity> &entity_id : updated_entity_ids) {
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
+                }
+            });
         }
     }
 }

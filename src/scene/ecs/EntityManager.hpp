@@ -738,8 +738,6 @@ public:
 
         EntityData &entity_data = m_entities.GetEntityData(entity_id);
 
-        TypeMap<ComponentID> component_ids;
-
         Component *component_ptr = nullptr;
 
         auto component_it = entity_data.FindComponent<Component>();

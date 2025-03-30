@@ -43,6 +43,7 @@ enum EnvProbeBindingSlot : uint32
     ENV_PROBE_BINDING_SLOT_MAX
 };
 
+HYP_ENUM()
 enum EnvProbeType : uint32
 {
     ENV_PROBE_TYPE_INVALID      = uint32(-1),
@@ -151,22 +152,28 @@ public:
     HYP_FORCE_INLINE EnvProbeRenderResource &GetRenderResource()
         { return *m_render_resource; }
     
-    HYP_FORCE_INLINE EnvProbeType GetEnvProbeType() const
+    HYP_METHOD()
+    EnvProbeType GetEnvProbeType() const
         { return m_env_probe_type; }
     
-    HYP_FORCE_INLINE bool IsReflectionProbe() const
+    HYP_METHOD()
+    bool IsReflectionProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION; }
     
-    HYP_FORCE_INLINE bool IsSkyProbe() const
+    HYP_METHOD()
+    bool IsSkyProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY; }
     
-    HYP_FORCE_INLINE bool IsShadowProbe() const
+    HYP_METHOD()
+    bool IsShadowProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW; }
     
-    HYP_FORCE_INLINE bool IsAmbientProbe() const
+    HYP_METHOD()
+    bool IsAmbientProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
     
-    HYP_FORCE_INLINE bool IsControlledByEnvGrid() const
+    HYP_METHOD()
+    bool IsControlledByEnvGrid() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
     
     HYP_FORCE_INLINE const EnvProbeIndex &GetBoundIndex() const
@@ -175,28 +182,27 @@ public:
     HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
         { m_bound_index = bound_index; }
     
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
+    HYP_METHOD()
+    const BoundingBox &GetAABB() const
         { return m_aabb; }
 
-    HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
-    {
-        if (m_aabb != aabb) {
-            m_aabb = aabb;
-
-            SetNeedsUpdate(true);
-        }
-    }
+    HYP_METHOD()
+    void SetAABB(const BoundingBox &aabb);
     
-    HYP_FORCE_INLINE Vec3f GetOrigin() const
+    HYP_METHOD()
+    Vec3f GetOrigin() const
     {
-        // ambient probes use the min point of the aabb as the origin,
-        // so it can blend between 7 other probes
-        if (m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT) {
+        if (IsAmbientProbe()) {
+            // ambient probes use the min point of the aabb as the origin,
+            // so it can blend between 7 other probes
             return m_aabb.GetMin();
         } else {
             return m_aabb.GetCenter();
         }
     }
+
+    HYP_METHOD()
+    void SetOrigin(const Vec3f &origin);
     
     HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
         { return m_texture; }

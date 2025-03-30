@@ -199,9 +199,9 @@ void HyperionEditor::Init()
     #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
-        Vec3f(-0.1f, 0.8f, 0.0f).Normalize(),
-        Color(Vec4f(1.0f, 1.0f, 1.0f, 1.0f)),
-        1.0f,
+        Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
+        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
+        5.0f,
         0.0f
     );
 
@@ -212,7 +212,7 @@ void HyperionEditor::Init()
 
     auto sun_entity = m_scene->GetEntityManager()->AddEntity();
     sun_node.SetEntity(sun_entity);
-    sun_node.SetWorldTranslation(Vec3f { -0.1f, 0.8f, 0.0f }.Normalize());
+    sun_node.SetWorldTranslation(Vec3f { -0.4f, 0.8f, 0.0f }.Normalize());
 
     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
         sun
@@ -275,7 +275,7 @@ void HyperionEditor::Init()
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
         //node.Scale(3.0f);
-        node->Scale(0.05f);
+        node->Scale(0.03f);
         node.SetName("test_model");
         node.LockTransform();
 
@@ -316,7 +316,7 @@ void HyperionEditor::Init()
             }
         }
 
-        if (false) {
+        if (true) {
             // testing reflection capture
             Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -332,7 +332,7 @@ void HyperionEditor::Init()
             NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
             reflection_probe_node.SetEntity(reflection_probe_entity);
             reflection_probe_node.SetName("ReflectionProbeTest");
-            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 20.0f, 6.0f));
+            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 15.0f, 0.0f));
         }
 
 #endif

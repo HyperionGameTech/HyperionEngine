@@ -214,7 +214,7 @@ void DDGI::Destroy()
 
 void DDGI::CreatePipelines()
 {
-    m_shader = g_shader_manager->GetOrCreate(NAME("RTProbe"));
+    m_shader = g_shader_manager->GetOrCreate(NAME("DDGI"));
     AssertThrow(m_shader.IsValid());
 
     const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();

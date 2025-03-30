@@ -8,7 +8,6 @@
 
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/MeshComponent.hpp>
 
 namespace hyperion {
 
@@ -17,10 +16,8 @@ class WorldAABBUpdaterSystem : public System<
 
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, COMPONENT_RW_FLAGS_READ_WRITE, false>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:
@@ -39,7 +36,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    bool ProcessEntity(ID<Entity>, BoundingBoxComponent &bounding_box_component, TransformComponent &transform_component, MeshComponent &mesh_component);
+    bool ProcessEntity(ID<Entity>, BoundingBoxComponent &bounding_box_component, TransformComponent &transform_component);
 };
 
 } // namespace hyperion
