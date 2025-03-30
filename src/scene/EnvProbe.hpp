@@ -61,65 +61,6 @@ enum EnvProbeType : uint32
 class EnvProbe;
 class EnvProbeRenderResource;
 
-struct EnvProbeIndex
-{
-    Vec3u   position;
-    Vec3u   grid_size;
-
-    // defaults such that GetProbeIndex() == ~0u
-    // because (~0u * 0 * 0) + (~0u * 0) + ~0u == ~0u
-    EnvProbeIndex()
-        : position { ~0u, ~0u, ~0u },
-          grid_size { 0, 0, 0 }
-    {
-    }
-
-    EnvProbeIndex(const Vec3u &position, const Vec3u &grid_size)
-        : position(position),
-          grid_size(grid_size)
-    {
-    }
-
-    EnvProbeIndex(const EnvProbeIndex &other)                   = default;
-    EnvProbeIndex &operator=(const EnvProbeIndex &other)        = default;
-    EnvProbeIndex(EnvProbeIndex &&other) noexcept               = default;
-    EnvProbeIndex &operator=(EnvProbeIndex &&other) noexcept    = default;
-    ~EnvProbeIndex()                                            = default;
-
-    HYP_FORCE_INLINE uint32 GetProbeIndex() const
-    {
-        return (position.x * grid_size.y * grid_size.z)
-            + (position.y * grid_size.z)
-            + position.z;
-    }
-
-    HYP_FORCE_INLINE bool operator<(uint32 value) const
-        { return GetProbeIndex() < value; }
-
-    HYP_FORCE_INLINE bool operator==(uint32 value) const
-        { return GetProbeIndex() == value; }
-
-    HYP_FORCE_INLINE bool operator!=(uint32 value) const
-        { return GetProbeIndex() != value; }
-
-    HYP_FORCE_INLINE bool operator<(const EnvProbeIndex &other) const
-        { return GetProbeIndex() < other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE bool operator==(const EnvProbeIndex &other) const
-        { return GetProbeIndex() == other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE bool operator!=(const EnvProbeIndex &other) const
-        { return GetProbeIndex() != other.GetProbeIndex(); }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(GetProbeIndex());
-
-        return hc;
-    }
-};
-
 HYP_CLASS()
 class HYP_API EnvProbe : public HypObject<EnvProbe>
 {
@@ -135,14 +76,6 @@ public:
         const BoundingBox &aabb,
         const Vec2u &dimensions,
         EnvProbeType env_probe_type
-    );
-    
-    EnvProbe(
-        const Handle<Scene> &parent_scene,
-        const BoundingBox &aabb,
-        const Vec2u &dimensions,
-        EnvProbeType env_probe_type,
-        const ShaderRef &custom_shader
     );
 
     EnvProbe(const EnvProbe &other)             = delete;
@@ -176,12 +109,6 @@ public:
     bool IsControlledByEnvGrid() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
     
-    HYP_FORCE_INLINE const EnvProbeIndex &GetBoundIndex() const
-        { return m_bound_index; }
-
-    HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
-        { m_bound_index = bound_index; }
-    
     HYP_METHOD()
     const BoundingBox &GetAABB() const
         { return m_aabb; }
@@ -203,9 +130,14 @@ public:
 
     HYP_METHOD()
     void SetOrigin(const Vec3f &origin);
-    
-    HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
-        { return m_texture; }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene> &GetParentScene() const
+        { return m_parent_scene; }
 
     HYP_FORCE_INLINE Vec2u GetDimensions() const
         { return m_dimensions; }
@@ -240,18 +172,11 @@ public:
     void EnqueueUnbind() const;
     void Update(GameCounter::TickUnit delta);
 
-    void Render(Frame *frame);
-
-    void BindToIndex(const EnvProbeIndex &probe_index);
-
     uint32 m_grid_slot = ~0u; // temp
     
 private:
     bool OnlyCollectStaticEntities() const
         { return IsReflectionProbe() || IsAmbientProbe(); }
-
-    void CreateShader();
-    void CreateFramebuffer();
 
     Handle<Scene>           m_parent_scene;
     BoundingBox             m_aabb;
@@ -260,26 +185,16 @@ private:
 
     float                   m_camera_near;
     float                   m_camera_far;
-
-    Handle<Texture>         m_texture;
-    FramebufferRef          m_framebuffer;
-    ShaderRef               m_shader;
     
     Handle<Camera>          m_camera;
-    ResourceHandle          m_camera_resource_handle;
-
-    RenderCollector         m_render_collector;
-
-    EnvProbeIndex           m_bound_index;
 
     Bitset                  m_visibility_bits;
 
     bool                    m_needs_update;
-    AtomicVar<bool>         m_is_rendered;
     AtomicVar<int32>        m_needs_render_counter;
     HashCode                m_octant_hash_code;
 
-    EnvProbeRenderResource *m_render_resource;
+    EnvProbeRenderResource  *m_render_resource;
 };
 
 } // namespace hyperion

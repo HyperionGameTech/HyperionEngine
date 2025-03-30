@@ -133,7 +133,7 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
             m_last_visibility_state = true;
         }
 
-        m_env_probe->Render(frame);
+        m_env_probe->GetRenderResource().Render(frame);
     } else {
         // No point in keeping it bound if the light is not visible on the screen.
         if (m_last_visibility_state) {
