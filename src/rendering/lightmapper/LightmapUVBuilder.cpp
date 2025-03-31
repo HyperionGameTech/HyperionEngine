@@ -283,7 +283,7 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
         resource_handle.Reset();
 
-        mesh->SetStreamedMeshData(StreamedMeshData::FromMeshData(std::move(new_mesh_data)));
+        mesh->SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(std::move(new_mesh_data), resource_handle));
     }
 
     xatlas::Destroy(atlas);

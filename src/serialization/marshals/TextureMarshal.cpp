@@ -10,6 +10,8 @@
 
 #include <scene/Texture.hpp>
 
+#include <streaming/StreamedTextureData.hpp>
+
 #include <rendering/backend/RendererImage.hpp>
 
 namespace hyperion::fbom {
@@ -48,6 +50,7 @@ public:
         Handle<Texture> texture_handle;
 
         RC<StreamedTextureData> streamed_texture_data;
+        ResourceHandle streamed_texture_data_resource_handle;
         TextureDesc texture_desc;
 
         const auto texture_data_it = in.GetChildren().FindIf([](const FBOMObject &item)
@@ -57,7 +60,8 @@ public:
 
         if (texture_data_it != in.GetChildren().End()) {
             streamed_texture_data = MakeRefCountedPtr<StreamedTextureData>(
-                texture_data_it->m_deserialized_object->Get<TextureData>()
+                texture_data_it->m_deserialized_object->Get<TextureData>(),
+                streamed_texture_data_resource_handle
             );
         }
 
@@ -72,6 +76,7 @@ public:
 
         if (streamed_texture_data != nullptr) {
             texture_handle = CreateObject<Texture>(streamed_texture_data);
+            streamed_texture_data_resource_handle.Reset();
         } else {
             texture_handle = CreateObject<Texture>(texture_desc);
         }

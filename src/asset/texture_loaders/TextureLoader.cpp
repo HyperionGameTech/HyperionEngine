@@ -2,6 +2,8 @@
 
 #include <asset/texture_loaders/TextureLoader.hpp>
 
+#include <streaming/StreamedTextureData.hpp>
+
 #include <core/utilities/StringUtil.hpp>
 
 #include <scene/Texture.hpp>
@@ -83,7 +85,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState &state) const
         * SizeType(data.height)
         * SizeType(data.num_components);
 
-    Handle<Texture> texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+    Handle<Texture> texture = CreateObject<Texture>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             data.format,
@@ -93,7 +95,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState &state) const
             WrapMode::TEXTURE_WRAP_REPEAT
         },
         ByteBuffer(image_bytes_count, image_bytes)
-    }));
+    });
 
     stbi_image_free(image_bytes);
 

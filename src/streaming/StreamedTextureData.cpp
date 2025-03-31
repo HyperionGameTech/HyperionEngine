@@ -18,13 +18,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
-RC<StreamedTextureData> StreamedTextureData::FromTextureData(TextureData texture_data)
-{
-    return MakeRefCountedPtr<StreamedTextureData>(std::move(texture_data));
-}
-
-StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, TextureData texture_data)
-    : StreamedData(initial_state),
+StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, TextureData texture_data, ResourceHandle &out_resource_handle)
+    : StreamedData(initial_state, out_resource_handle),
       m_texture_desc(texture_data.desc),
       m_buffer_size(texture_data.buffer.Size())
 {
@@ -37,7 +32,7 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
     case StreamedDataState::UNPAGED:
         m_texture_data.Set(std::move(texture_data));
 
-        m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), StreamedDataState::UNPAGED, [this](HashCode hc, ByteBuffer &out) -> bool
+        m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), [this](HashCode hc, ByteBuffer &out) -> bool
         {
             if (!m_texture_data) {
                 return false;
@@ -71,17 +66,18 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
 }
 
 StreamedTextureData::StreamedTextureData()
-    : StreamedTextureData(StreamedDataState::NONE, { })
+    : StreamedData(),
+      m_streamed_data(MakeRefCountedPtr<NullStreamedData>())
 {
 }
 
-StreamedTextureData::StreamedTextureData(const TextureData &texture_data)
-    : StreamedTextureData(StreamedDataState::LOADED, texture_data)
+StreamedTextureData::StreamedTextureData(const TextureData &texture_data, ResourceHandle &out_resource_handle)
+    : StreamedTextureData(StreamedDataState::LOADED, texture_data, out_resource_handle)
 {
 }
 
-StreamedTextureData::StreamedTextureData(TextureData &&texture_data)
-    : StreamedTextureData(StreamedDataState::LOADED, std::move(texture_data))
+StreamedTextureData::StreamedTextureData(TextureData &&texture_data, ResourceHandle &out_resource_handle)
+    : StreamedTextureData(StreamedDataState::LOADED, std::move(texture_data), out_resource_handle)
 {
 }
 

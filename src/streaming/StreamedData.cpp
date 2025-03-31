@@ -16,11 +16,13 @@ namespace hyperion {
 
 #pragma region StreamedData
 
-StreamedData::StreamedData(StreamedDataState initial_state)
+StreamedData::StreamedData(StreamedDataState initial_state, ResourceHandle &out_resource_handle)
 {
     switch (initial_state) {
     case StreamedDataState::LOADED:
-        ClaimWithoutInitialize();
+        // Setup resource handle so the data stays loaded
+        // Initialize can't be called since it is a virtual function and the object is not fully constructed yet
+        out_resource_handle = ResourceHandle(*this, /* should_initialize */ false);
 
         break;
     default:
@@ -115,33 +117,27 @@ const ByteBuffer &NullStreamedData::Load_Internal() const
 
 #pragma region MemoryStreamedData
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, StreamedDataState initial_state, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc)
-    : StreamedData(initial_state),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc)
+    : StreamedData(),
       m_hash_code(hash_code),
       m_load_from_memory_proc(std::move(load_from_memory_proc)),
       m_data_store(&GetDataStore<HYP_STATIC_STRING("streaming"), DSF_RW>()),
       m_data_store_resource_handle(*m_data_store)
 {
-    const bool should_load_unpaged = initial_state == StreamedDataState::UNPAGED
-        && !m_data_store->Exists(String::ToString(hash_code.Value()))
-        && m_load_from_memory_proc.IsValid();
+    const bool should_load_unpaged = !m_data_store->Exists(String::ToString(hash_code.Value())) && m_load_from_memory_proc.IsValid();
 
     if (should_load_unpaged) {
         HYP_LOG(Streaming, Info, "StreamedData with hash code {} is not in data store, loading from memory before unpaging", hash_code.Value());
-    }
 
-    if (initial_state == StreamedDataState::LOADED || should_load_unpaged) {
         // @NOTE: Calling virtual function, but this class is marked final so it will be last in the constructor chain
         (void)StreamedData::Load();
-    }
-    
-    if (should_load_unpaged) {
+        
         Unpage();
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state)
-    : StreamedData(initial_state),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
+    : StreamedData(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
     if (initial_state == StreamedDataState::LOADED) {
@@ -149,8 +145,8 @@ MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer &byt
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state)
-    : StreamedData(initial_state),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
+    : StreamedData(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
     if (initial_state == StreamedDataState::LOADED) {
@@ -158,36 +154,13 @@ MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buf
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state)
-    : StreamedData(initial_state),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
+    : StreamedData(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
     if (initial_state == StreamedDataState::LOADED) {
         m_byte_buffer.Set(ByteBuffer(byte_view));
     }
-}
-
-MemoryStreamedData::MemoryStreamedData(MemoryStreamedData &&other) noexcept
-    : StreamedData(other.IsInMemory() ? StreamedDataState::LOADED : StreamedDataState::NONE)
-{
-    m_byte_buffer = std::move(other.m_byte_buffer);
-
-    m_hash_code = other.m_hash_code;
-    other.m_hash_code = HashCode();
-
-    m_load_from_memory_proc = std::move(other.m_load_from_memory_proc);
-}
-
-MemoryStreamedData &MemoryStreamedData::operator=(MemoryStreamedData &&other) noexcept
-{
-    m_byte_buffer = std::move(other.m_byte_buffer);
-
-    m_hash_code = other.m_hash_code;
-    other.m_hash_code = HashCode();
-
-    m_load_from_memory_proc = std::move(other.m_load_from_memory_proc);
-
-    return *this;
 }
 
 bool MemoryStreamedData::IsInMemory_Internal() const

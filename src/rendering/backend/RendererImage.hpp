@@ -8,8 +8,6 @@
 #include <core/math/MathUtil.hpp>
 #include <core/math/Rect.hpp>
 
-#include <streaming/StreamedTextureData.hpp>
-
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -18,153 +16,6 @@
 #include <Types.hpp>
 
 namespace hyperion::renderer {
-
-static inline constexpr BaseFormat GetBaseFormat(InternalFormat fmt)
-{
-    switch (fmt) {
-    case InternalFormat::R8:
-    case InternalFormat::R8_SRGB:
-    case InternalFormat::R32_:
-    case InternalFormat::R16:
-    case InternalFormat::R32:
-    case InternalFormat::R16F:
-    case InternalFormat::R32F:
-        return BaseFormat::TEXTURE_FORMAT_R;
-    case InternalFormat::RG8:
-    case InternalFormat::RG8_SRGB:
-    case InternalFormat::RG16_:
-    case InternalFormat::RG16:
-    case InternalFormat::RG32:
-    case InternalFormat::RG16F:
-    case InternalFormat::RG32F:
-        return BaseFormat::TEXTURE_FORMAT_RG;
-    case InternalFormat::RGB8:
-    case InternalFormat::RGB8_SRGB:
-    case InternalFormat::R11G11B10F:
-    case InternalFormat::RGB16:
-    case InternalFormat::RGB32:
-    case InternalFormat::RGB16F:
-    case InternalFormat::RGB32F:
-        return BaseFormat::TEXTURE_FORMAT_RGB;
-    case InternalFormat::RGBA8:
-    case InternalFormat::RGBA8_SRGB:
-    case InternalFormat::R10G10B10A2:
-    case InternalFormat::RGBA16:
-    case InternalFormat::RGBA32:
-    case InternalFormat::RGBA16F:
-    case InternalFormat::RGBA32F:
-        return BaseFormat::TEXTURE_FORMAT_RGBA;
-    case InternalFormat::BGR8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGR;
-    case InternalFormat::BGRA8:
-    case InternalFormat::BGRA8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGRA;
-    case InternalFormat::DEPTH_16:
-    case InternalFormat::DEPTH_24:
-    case InternalFormat::DEPTH_32F:
-        return BaseFormat::TEXTURE_FORMAT_DEPTH;
-    default:
-        // undefined result
-        return BaseFormat::TEXTURE_FORMAT_NONE;
-    }
-}
-
-static inline constexpr uint32 NumComponents(BaseFormat format)
-{
-    switch (format) {
-    case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
-    case BaseFormat::TEXTURE_FORMAT_R: return 1;
-    case BaseFormat::TEXTURE_FORMAT_RG: return 2;
-    case BaseFormat::TEXTURE_FORMAT_RGB: return 3;
-    case BaseFormat::TEXTURE_FORMAT_BGR: return 3;
-    case BaseFormat::TEXTURE_FORMAT_RGBA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_BGRA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_DEPTH: return 1;
-    default: return 0; // undefined result
-    }
-}
-
-static inline constexpr uint32 NumComponents(InternalFormat format)
-{
-    return NumComponents(GetBaseFormat(format));
-}
-
-static inline constexpr uint32 NumBytes(InternalFormat format)
-{
-    switch (format) {
-    case InternalFormat::R8:
-    case InternalFormat::R8_SRGB:
-    case InternalFormat::RG8:
-    case InternalFormat::RG8_SRGB:
-    case InternalFormat::RGB8:
-    case InternalFormat::RGB8_SRGB:
-    case InternalFormat::BGR8_SRGB:
-    case InternalFormat::RGBA8:
-    case InternalFormat::RGBA8_SRGB:
-    case InternalFormat::R10G10B10A2:
-    case InternalFormat::BGRA8:
-    case InternalFormat::BGRA8_SRGB:
-        return 1;
-    case InternalFormat::R16:
-    case InternalFormat::RG16:
-    case InternalFormat::RGB16:
-    case InternalFormat::RGBA16:
-    case InternalFormat::DEPTH_16:
-        return 2;
-    case InternalFormat::R32:
-    case InternalFormat::RG32:
-    case InternalFormat::RGB32:
-    case InternalFormat::RGBA32:
-    case InternalFormat::R32_:
-    case InternalFormat::RG16_:
-    case InternalFormat::R11G11B10F:
-    case InternalFormat::DEPTH_24:
-    case InternalFormat::DEPTH_32F:
-        return 4;
-    case InternalFormat::R16F:
-    case InternalFormat::RG16F:
-    case InternalFormat::RGB16F:
-    case InternalFormat::RGBA16F:
-        return 2;
-    case InternalFormat::R32F:
-    case InternalFormat::RG32F:
-    case InternalFormat::RGB32F:
-    case InternalFormat::RGBA32F:
-        return 4;
-    default:
-        return 0; // undefined result
-    }
-}
-
-/*! \brief returns a texture format that has a shifted bytes-per-pixel count
- * e.g calling with RGB16 and num components = 4 --> RGBA16 */
-static inline constexpr InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
-{
-    if (new_num_components == 0) {
-        return InternalFormat::NONE;
-    }
-
-    new_num_components = MathUtil::Clamp(new_num_components, static_cast<uint8>(1), static_cast<uint8>(4));
-
-    int current_num_components = int(NumComponents(fmt));
-
-    return InternalFormat(int(fmt) + int(new_num_components) - current_num_components);
-}
-
-static inline constexpr bool IsDepthFormat(BaseFormat fmt)
-{
-    return fmt == BaseFormat::TEXTURE_FORMAT_DEPTH;
-}
-
-static inline constexpr bool IsDepthFormat(InternalFormat fmt)
-{
-    return IsDepthFormat(GetBaseFormat(fmt));
-}
-
-static inline constexpr bool IsSRGBFormat(InternalFormat fmt)
-{
-    return fmt >= InternalFormat::SRGB && fmt < InternalFormat::DEPTH;
-}
 
 namespace platform {
 
@@ -180,8 +31,6 @@ public:
     static constexpr PlatformType platform = PLATFORM;
     
     HYP_API Image(const TextureDesc &texture_desc);
-    
-    HYP_API Image(const RC<StreamedTextureData> &streamed_data);
 
     Image(const Image &other)               = delete;
     Image &operator=(const Image &other)    = delete;
@@ -206,7 +55,9 @@ public:
     /* Create the image and transfer the provided texture data into it if given.
      * The image is transitioned into the given state.
      */
-    HYP_API RendererResult Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance, ResourceState state);
+    HYP_API RendererResult Create(Device<PLATFORM> *device, ResourceState initial_state);
+    HYP_API RendererResult Create(Device<PLATFORM> *device, ResourceState initial_state, const TextureData &texture_data);
+    
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
 
     HYP_API bool IsCreated() const;
@@ -286,16 +137,6 @@ public:
     HYP_FORCE_INLINE void SetIsAttachmentTexture(bool is_attachment_texture)
         { m_is_attachment_texture = is_attachment_texture; }
 
-    HYP_FORCE_INLINE const RC<StreamedTextureData> &GetStreamedData() const
-        { return m_streamed_data; }
-
-    /*! \brief Set streamed data for the image. If the image has already been created, no updates will occur. */
-    HYP_FORCE_INLINE void SetStreamedData(const RC<StreamedTextureData> &streamed_data)
-        { m_streamed_data = streamed_data; }
-
-    HYP_FORCE_INLINE bool HasAssignedImageData() const
-        { return m_streamed_data != nullptr && m_streamed_data->GetBufferSize() != 0; }
-
     HYP_FORCE_INLINE bool IsDepthStencil() const
         { return IsDepthFormat(m_texture_desc.format); }
 
@@ -339,62 +180,43 @@ public:
 
     HYP_FORCE_INLINE bool HasMipmaps() const
     {
-        return m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
-            || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
-            || m_texture_desc.filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
+        return m_texture_desc.HasMipmaps();
     }
 
     HYP_FORCE_INLINE uint32 NumMipmaps() const
     {
-        return HasMipmaps()
-            ? uint32(MathUtil::FastLog2(MathUtil::Max(m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z))) + 1
-            : 1;
+        return m_texture_desc.NumMipmaps();
     }
 
     /*! \brief Returns the byte-size of the image. Note, it's possible no CPU-side memory exists
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
     HYP_FORCE_INLINE uint32 GetByteSize() const
-        { return uint32(m_texture_desc.extent.x * m_texture_desc.extent.y * m_texture_desc.extent.z)
-            * NumComponents(m_texture_desc.format)
-            * NumBytes(m_texture_desc.format)
-            * NumFaces(); }
+        { return m_texture_desc.GetByteSize(); }
 
     HYP_FORCE_INLINE uint8 GetBPP() const
         { return m_bpp; }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
-        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_CUBEMAP; }
+        { return m_texture_desc.IsTextureCube(); }
 
     HYP_FORCE_INLINE bool IsPanorama() const
-        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D
-            && m_texture_desc.extent.x == m_texture_desc.extent.y * 2
-            && m_texture_desc.extent.z == 1; }
+        { return m_texture_desc.IsPanorama(); }
 
     HYP_FORCE_INLINE bool IsTextureArray() const
-        { return !IsTextureCube() && m_texture_desc.num_layers > 1; }
+        { return m_texture_desc.IsTextureArray(); }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
-        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_3D; }
+        { return m_texture_desc.IsTexture3D(); }
 
     HYP_FORCE_INLINE bool IsTexture2D() const
-        { return m_texture_desc.type == ImageType::TEXTURE_TYPE_2D; }
+        { return m_texture_desc.IsTexture2D(); }
 
     HYP_FORCE_INLINE uint32 NumLayers() const
         { return m_texture_desc.num_layers; }
 
-    HYP_FORCE_INLINE void SetNumLayers(uint32 num_layers)
-    {
-        m_texture_desc.num_layers = num_layers;
-        m_size = GetByteSize();
-    }
-
     HYP_FORCE_INLINE uint32 NumFaces() const
-        { return IsTextureCube()
-            ? 6
-            : IsTextureArray()
-                ? m_texture_desc.num_layers
-                : 1; }
+        { return m_texture_desc.NumFaces(); }
 
     HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
         { return m_texture_desc.filter_mode_min; }
@@ -428,8 +250,6 @@ private:
     ImagePlatformImpl<PLATFORM>                 m_platform_impl;
 
     TextureDesc                                 m_texture_desc;
-
-    RC<StreamedTextureData>                     m_streamed_data;
 
     bool                                        m_is_blended;
     bool                                        m_is_rw_texture;

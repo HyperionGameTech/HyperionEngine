@@ -39,16 +39,20 @@ struct ImagePlatformImpl<Platform::VULKAN>
 
     RendererResult ConvertTo32BPP(
         Device<Platform::VULKAN> *device,
+        const TextureData *in_texture_data,
         VkImageType image_type,
         VkImageCreateFlags image_create_flags,
         VkImageFormatProperties *out_image_format_properties,
-        VkFormat *out_format
+        VkFormat *out_format,
+        UniquePtr<TextureData> &out_texture_data
     );
 
     RendererResult Create(
         Device<Platform::VULKAN> *device,
+        const TextureData *in_texture_data,
         VkImageLayout initial_layout,
-        VkImageCreateInfo *out_image_info
+        VkImageCreateInfo *out_image_info,
+        UniquePtr<TextureData> &out_texture_data
     );
 
     RendererResult Destroy(

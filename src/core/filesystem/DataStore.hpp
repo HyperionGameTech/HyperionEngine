@@ -106,6 +106,7 @@ protected:
         { return false; }
 
     virtual int Claim() override;
+    virtual int ClaimWithoutInitialize() override;
     virtual int Unclaim() override;
 
     virtual void WaitForCompletion() override;

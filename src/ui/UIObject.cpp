@@ -90,11 +90,7 @@ const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            mesh = CreateObject<Mesh>(StreamedMeshData::FromMeshData({
-                std::move(vertices),
-                indices
-            }));
-
+            mesh = CreateObject<Mesh>(std::move(vertices), indices);
             InitObject(mesh);
         }
 

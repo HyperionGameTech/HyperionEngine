@@ -57,6 +57,11 @@ int DataStoreBase::Claim()
     });
 }
 
+int DataStoreBase::ClaimWithoutInitialize()
+{
+    return Claim();
+}
+
 int DataStoreBase::Unclaim()
 {
     return m_init_semaphore.Release(1, [this](bool)

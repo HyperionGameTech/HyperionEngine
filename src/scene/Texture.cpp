@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/Texture.hpp>
+#include <scene/Mesh.hpp>
 
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -14,7 +15,7 @@
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
-#include <scene/Mesh.hpp>
+#include <streaming/StreamedTextureData.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -41,17 +42,20 @@ const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::cubemap_directions = {
 
 struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 {
-    WeakHandle<Texture>     texture;
-    renderer::ResourceState initial_state;
-    ImageRef                image;
-    ImageViewRef            image_view;
+    WeakHandle<Texture>                     texture_weak;
+    TResourceHandle<StreamedTextureData>    streamed_texture_data_handle;
+    renderer::ResourceState                 initial_state;
+    ImageRef                                image;
+    ImageViewRef                            image_view;
 
     RENDER_COMMAND(CreateTexture)(
-        const WeakHandle<Texture> &texture,
+        const WeakHandle<Texture> &texture_weak,
+        TResourceHandle<StreamedTextureData> &&streamed_texture_data_handle,
         renderer::ResourceState initial_state,
         ImageRef image,
         ImageViewRef image_view
-    ) : texture(texture),
+    ) : texture_weak(texture_weak),
+        streamed_texture_data_handle(std::move(streamed_texture_data_handle)),
         initial_state(initial_state),
         image(std::move(image)),
         image_view(std::move(image_view))
@@ -64,9 +68,13 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        if (Handle<Texture> texture_locked = texture.Lock()) {
+        if (Handle<Texture> texture = texture_weak.Lock()) {
             if (!image->IsCreated()) {
-                HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance(), initial_state));
+                if (streamed_texture_data_handle && streamed_texture_data_handle->GetBufferSize() != 0) {
+                    HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), initial_state, streamed_texture_data_handle->GetTextureData()));
+                } else {
+                    HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), initial_state));
+                }
             }
 
             if (!image_view->IsCreated()) {
@@ -383,6 +391,7 @@ Texture::Texture()
 
 Texture::Texture(const ImageRef &image, const ImageViewRef &image_view)
     : m_render_resource(nullptr),
+      m_texture_desc(image != nullptr ? image->GetTextureDesc() : TextureDesc { }),
       m_image(image),
       m_image_view(image_view)
 {
@@ -390,18 +399,32 @@ Texture::Texture(const ImageRef &image, const ImageViewRef &image_view)
 
 Texture::Texture(const TextureDesc &texture_desc)
     : m_render_resource(nullptr),
-      m_streamed_texture_data(MakeRefCountedPtr<StreamedTextureData>(TextureData { texture_desc })),
-      m_image(MakeRenderObject<Image>(m_streamed_texture_data)),
+      m_texture_desc(texture_desc),
+      m_streamed_texture_data(MakeRefCountedPtr<StreamedTextureData>(TextureData { texture_desc }, m_streamed_texture_data_resource_handle)),
+      m_image(MakeRenderObject<Image>(texture_desc)),
+      m_image_view(MakeRenderObject<ImageView>())
+{
+}
+
+Texture::Texture(const TextureData &texture_data)
+    : m_render_resource(nullptr),
+      m_texture_desc(texture_data.desc),
+      m_streamed_texture_data(MakeRefCountedPtr<StreamedTextureData>(texture_data, m_streamed_texture_data_resource_handle)),
+      m_image(MakeRenderObject<Image>(m_texture_desc)),
       m_image_view(MakeRenderObject<ImageView>())
 {
 }
 
 Texture::Texture(const RC<StreamedTextureData> &streamed_texture_data)
     : m_render_resource(nullptr),
+      m_texture_desc(streamed_texture_data != nullptr ? streamed_texture_data->GetTextureDesc() : TextureDesc { }),
       m_streamed_texture_data(streamed_texture_data),
-      m_image(MakeRenderObject<Image>(streamed_texture_data)),
+      m_image(MakeRenderObject<Image>(m_texture_desc)),
       m_image_view(MakeRenderObject<ImageView>())
 {
+    if (m_streamed_texture_data) {
+        m_streamed_texture_data_resource_handle = ResourceHandle(*m_streamed_texture_data);
+    }
 }
 
 Texture::~Texture()
@@ -413,6 +436,8 @@ Texture::~Texture()
 
     SafeRelease(std::move(m_image));
     SafeRelease(std::move(m_image_view));
+
+    m_streamed_texture_data_resource_handle.Reset();
 
     if (IsInitCalled()) {
         PUSH_RENDER_COMMAND(DestroyTexture, WeakHandleFromThis());
@@ -449,10 +474,13 @@ void Texture::Init()
     PUSH_RENDER_COMMAND(
         CreateTexture,
         WeakHandleFromThis(),
+        m_streamed_texture_data ? TResourceHandle<StreamedTextureData>(*m_streamed_texture_data) : TResourceHandle<StreamedTextureData>(),
         renderer::ResourceState::SHADER_RESOURCE,
         m_image,
         m_image_view
     );
+
+    // @TODO should Reset() m_streamed_texture_data_resource_handle here?
 
     SetReady(true);
 }
@@ -461,7 +489,17 @@ void Texture::SetStreamedTextureData(const RC<StreamedTextureData> &streamed_tex
 {
     Mutex::Guard guard(m_readback_mutex);
 
+    if (m_streamed_texture_data == streamed_texture_data) {
+        return;
+    }
+
+    m_streamed_texture_data_resource_handle.Reset();
+
     m_streamed_texture_data = streamed_texture_data;
+
+    if (m_streamed_texture_data) {
+        m_streamed_texture_data_resource_handle = ResourceHandle(*m_streamed_texture_data);
+    }
 }
 
 void Texture::GenerateMipmaps()
@@ -489,12 +527,10 @@ void Texture::Readback_Internal()
     {
         ImageRef    image;
         ByteBuffer  &result_byte_buffer;
-        TextureDesc &texture_desc;
 
-        RENDER_COMMAND(Texture_Readback)(const ImageRef &image, ByteBuffer &result_byte_buffer, TextureDesc &texture_desc)
+        RENDER_COMMAND(Texture_Readback)(const ImageRef &image, ByteBuffer &result_byte_buffer)
             : image(image),
-              result_byte_buffer(result_byte_buffer),
-              texture_desc(texture_desc)
+              result_byte_buffer(result_byte_buffer)
         {
         }
 
@@ -538,27 +574,26 @@ void Texture::Readback_Internal()
 
             gpu_buffer->Destroy(g_engine->GetGPUDevice());
 
-            texture_desc = image->GetTextureDesc();
-
             HYPERION_RETURN_OK;
         }
     };
 
     ByteBuffer result_byte_buffer;
-    TextureDesc texture_desc;
 
-    PUSH_RENDER_COMMAND(Texture_Readback, m_image, result_byte_buffer, texture_desc);
+    PUSH_RENDER_COMMAND(Texture_Readback, m_image, result_byte_buffer);
     HYP_SYNC_RENDER();
 
-    const SizeType expected = m_image->GetByteSize();
+    const SizeType expected = m_texture_desc.GetByteSize();
     const SizeType real = result_byte_buffer.Size();
 
     AssertThrowMsg(expected == real, "Failed to readback texture: expected size: %llu, got %llu", expected, real);
 
+    m_streamed_texture_data_resource_handle.Reset();
+
     m_streamed_texture_data = MakeRefCountedPtr<StreamedTextureData>(TextureData {
-        texture_desc,
+        m_texture_desc,
         std::move(result_byte_buffer)
-    });
+    }, m_streamed_texture_data_resource_handle);
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 face_index)

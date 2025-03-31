@@ -20,14 +20,13 @@ class HYP_API StreamedTextureData final : public StreamedData
 {
     HYP_OBJECT_BODY(StreamedTextureData);
 
-    StreamedTextureData(StreamedDataState initial_state, TextureData texture_data);
+    StreamedTextureData(StreamedDataState initial_state, TextureData texture_data, ResourceHandle &out_resource_handle);
 
 public:
-    static RC<StreamedTextureData> FromTextureData(TextureData);
-    
     StreamedTextureData();
-    StreamedTextureData(const TextureData &texture_data);
-    StreamedTextureData(TextureData &&texture_data);
+    StreamedTextureData(const TextureData &texture_data, ResourceHandle &out_resource_handle);
+    StreamedTextureData(TextureData &&texture_data, ResourceHandle &out_resource_handle);
+
     virtual ~StreamedTextureData() override = default;
 
     const TextureData &GetTextureData() const;

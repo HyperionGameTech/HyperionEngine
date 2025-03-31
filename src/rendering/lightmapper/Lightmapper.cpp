@@ -50,6 +50,8 @@
 
 #include <core/math/Triangle.hpp>
 
+#include <streaming/StreamedTextureData.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <Engine.hpp>
@@ -1930,7 +1932,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
     Handle<Texture> irradiance_texture;
     Handle<Texture> radiance_texture;
     
-    irradiance_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+    irradiance_texture = CreateObject<Texture>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA32F,
@@ -1940,11 +1942,11 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             WrapMode::TEXTURE_WRAP_REPEAT
         },
         ByteBuffer(irradiance_bitmap.GetUnpackedFloats().ToByteView())
-    }));
+    });
 
     InitObject(irradiance_texture);
     
-    radiance_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+    radiance_texture = CreateObject<Texture>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::RGBA32F,
@@ -1954,7 +1956,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
             WrapMode::TEXTURE_WRAP_REPEAT
         },
         ByteBuffer(radiance_bitmap.GetUnpackedFloats().ToByteView())
-    }));
+    });
 
     InitObject(radiance_texture);
 

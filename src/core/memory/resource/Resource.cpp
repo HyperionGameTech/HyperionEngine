@@ -59,7 +59,14 @@ ResourceBase::~ResourceBase()
 
 int ResourceBase::ClaimWithoutInitialize()
 {
-    return m_init_semaphore.Produce(1);
+    return m_init_semaphore.Produce(1, [this](bool is_signalled)
+    {
+        AssertThrow(is_signalled);
+
+        m_is_initialized = true;
+
+        m_completion_semaphore.Produce(1);
+    });
 }
 
 int ResourceBase::Claim()
@@ -220,15 +227,20 @@ void ResourceBase::WaitForCompletion()
         // Wait for any threads that are using this Resource pre-initialization to stop
         m_pre_init_semaphore.Acquire();
 
-        // We need to flush pending tasks if we are on the owner thread and
-        // we still have pending tasks. Not ideal, but we need to wrap up
-        // destruction of resources before we can return.
         if (!m_completion_semaphore.IsInSignalState()) {
-            HYP_NAMED_SCOPE("Flushing scheduler tasks");
+            if (GetOwnerThread() == nullptr) { // No owner thread is used to execute tasks on.
+                // Wait for all usage to end
+                // Will cause a deadlock if the current thread is still using it.
+                m_completion_semaphore.Acquire();
+            } else { // We are on the owner thread
+                // We need to flush pending tasks if we are on the owner thread and
+                // we still have pending tasks. 
+                HYP_NAMED_SCOPE("Flushing scheduler tasks");
 
-            HYP_LOG(Resource, Debug, "Flushing scheduler tasks for Resource");
-            
-            FlushScheduledTasks();
+                HYP_LOG(Resource, Debug, "Flushing scheduler tasks for Resource");
+                
+                FlushScheduledTasks();
+            }
         
             AssertThrow(m_completion_semaphore.IsInSignalState());
         }
@@ -336,6 +348,11 @@ public:
     }
 
     virtual int Claim() override
+    {
+        return 0;
+    }
+
+    virtual int ClaimWithoutInitialize() override
     {
         return 0;
     }

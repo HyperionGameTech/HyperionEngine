@@ -18,13 +18,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
-RC<StreamedMeshData> StreamedMeshData::FromMeshData(MeshData mesh_data)
-{
-    return MakeRefCountedPtr<StreamedMeshData>(std::move(mesh_data));
-}
-
-StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data)
-    : StreamedData(initial_state),
+StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle &out_resource_handle)
+    : StreamedData(initial_state, out_resource_handle),
       m_streamed_data(nullptr),
       m_num_vertices(mesh_data.vertices.Size()),
       m_num_indices(mesh_data.indices.Size())
@@ -38,7 +33,7 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
     case StreamedDataState::UNPAGED:
         m_mesh_data.Set(std::move(mesh_data));
 
-        m_streamed_data = MakeRefCountedPtr<MemoryStreamedData>(m_mesh_data->GetHashCode(), StreamedDataState::UNPAGED, [this](HashCode hc, ByteBuffer &out) -> bool
+        m_streamed_data = MakeRefCountedPtr<MemoryStreamedData>(m_mesh_data->GetHashCode(), [this](HashCode hc, ByteBuffer &out) -> bool
         {
             if (!m_mesh_data) {
                 return false;
@@ -72,17 +67,18 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
 }
 
 StreamedMeshData::StreamedMeshData()
-    : StreamedMeshData(StreamedDataState::NONE, { })
+    : StreamedData(),
+      m_streamed_data(MakeRefCountedPtr<NullStreamedData>())
 {
 }
 
-StreamedMeshData::StreamedMeshData(const MeshData &mesh_data)
-    : StreamedMeshData(StreamedDataState::LOADED, mesh_data)
+StreamedMeshData::StreamedMeshData(const MeshData &mesh_data, ResourceHandle &out_resource_handle)
+    : StreamedMeshData(StreamedDataState::LOADED, mesh_data, out_resource_handle)
 {
 }
 
-StreamedMeshData::StreamedMeshData(MeshData &&mesh_data)
-    : StreamedMeshData(StreamedDataState::LOADED, std::move(mesh_data))
+StreamedMeshData::StreamedMeshData(MeshData &&mesh_data, ResourceHandle &out_resource_handle)
+    : StreamedMeshData(StreamedDataState::LOADED, std::move(mesh_data), out_resource_handle)
 {
 }
 
@@ -101,6 +97,8 @@ bool StreamedMeshData::IsInMemory_Internal() const
 
 void StreamedMeshData::Unpage_Internal()
 {
+    HYP_LOG(Streaming, Debug, "Unpaging streamed mesh data {}", m_mesh_data->GetHashCode().Value());
+
     m_mesh_data.Unset();
 
     if (!m_streamed_data) {

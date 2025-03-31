@@ -49,6 +49,7 @@ public:
     Texture(const ImageRef &image, const ImageViewRef &image_view);
 
     Texture(const TextureDesc &texture_desc);
+    Texture(const TextureData &texture_data);
 
     Texture(const RC<StreamedTextureData> &streamed_texture_data);
 
@@ -86,40 +87,40 @@ public:
         { return m_image_view; }
 
     HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
-        { return m_image->GetTextureDesc(); }
+        { return m_texture_desc; }
 
     HYP_FORCE_INLINE ImageType GetType() const
-        { return GetTextureDesc().type; }
+        { return m_texture_desc.type; }
 
     HYP_FORCE_INLINE uint32 NumFaces() const
-        { return m_image->NumFaces(); }
+        { return m_texture_desc.NumFaces(); }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
-        { return m_image->IsTextureCube(); }
+        { return m_texture_desc.IsTextureCube(); }
 
     HYP_FORCE_INLINE bool IsPanorama() const
-        { return m_image->IsPanorama(); }
+        { return m_texture_desc.IsPanorama(); }
 
     HYP_FORCE_INLINE const Vec3u &GetExtent() const
-        { return GetTextureDesc().extent; }
+        { return m_texture_desc.extent; }
 
     HYP_FORCE_INLINE InternalFormat GetFormat() const
-        { return GetTextureDesc().format; }
+        { return m_texture_desc.format; }
 
     HYP_FORCE_INLINE HYP_DEPRECATED FilterMode GetFilterMode() const
-        { return GetTextureDesc().filter_mode_min; }
+        { return m_texture_desc.filter_mode_min; }
 
     HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
-        { return GetTextureDesc().filter_mode_min; }
+        { return m_texture_desc.filter_mode_min; }
 
     HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
-        { return GetTextureDesc().filter_mode_mag; }
+        { return m_texture_desc.filter_mode_mag; }
 
     HYP_FORCE_INLINE bool HasMipmaps() const
-        { return m_image->HasMipmaps(); }
+        { return m_texture_desc.HasMipmaps(); }
 
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
-        { return GetTextureDesc().wrap_mode; }
+        { return m_texture_desc.wrap_mode; }
     
     void Init();
 
@@ -144,6 +145,10 @@ protected:
 
     TextureRenderResource   *m_render_resource;
 
+    TextureDesc             m_texture_desc;
+
+    // MUST BE BEFORE m_streamed_texture_data, needs to get constructed first to use as out parameter to construct StreamedTextureData.
+    mutable ResourceHandle  m_streamed_texture_data_resource_handle;
     RC<StreamedTextureData> m_streamed_texture_data;
 
     ImageRef                m_image;

@@ -35,6 +35,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <streaming/StreamedTextureData.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <util/BlueNoise.hpp>
@@ -232,37 +234,33 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 
         ByteBuffer ltc_matrix_data(sizeof(s_ltc_matrix), s_ltc_matrix);
 
-        m_ltc_matrix_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(
-            TextureData {
-                TextureDesc {
-                    ImageType::TEXTURE_TYPE_2D,
-                    InternalFormat::RGBA16F,
-                    Vec3u { 64, 64, 1 },
-                    FilterMode::TEXTURE_FILTER_LINEAR,
-                    FilterMode::TEXTURE_FILTER_LINEAR,
-                    WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-                },
-                std::move(ltc_matrix_data)
-            }
-        ));
+        m_ltc_matrix_texture = CreateObject<Texture>(TextureData {
+            TextureDesc {
+                ImageType::TEXTURE_TYPE_2D,
+                InternalFormat::RGBA16F,
+                Vec3u { 64, 64, 1 },
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            },
+            std::move(ltc_matrix_data)
+        });
 
         InitObject(m_ltc_matrix_texture);
 
         ByteBuffer ltc_brdf_data(sizeof(s_ltc_brdf), s_ltc_brdf);
 
-        m_ltc_brdf_texture = CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(
-            TextureData {
-                TextureDesc {
-                    ImageType::TEXTURE_TYPE_2D,
-                    InternalFormat::RGBA16F,
-                    Vec3u { 64, 64, 1 },
-                    FilterMode::TEXTURE_FILTER_LINEAR,
-                    FilterMode::TEXTURE_FILTER_LINEAR,
-                    WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-                },
-                std::move(ltc_brdf_data)
-            }
-        ));
+        m_ltc_brdf_texture = CreateObject<Texture>(TextureData {
+            TextureDesc {
+                ImageType::TEXTURE_TYPE_2D,
+                InternalFormat::RGBA16F,
+                Vec3u { 64, 64, 1 },
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            },
+            std::move(ltc_brdf_data)
+        });
 
         InitObject(m_ltc_brdf_texture);
     }

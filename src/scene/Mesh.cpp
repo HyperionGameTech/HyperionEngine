@@ -82,6 +82,10 @@ Mesh::Mesh(
     m_aabb(BoundingBox::Empty()),
     m_render_resource(nullptr)
 {
+    if (m_streamed_mesh_data != nullptr) {
+        m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
+    }
+
     CalculateAABB();
 }
 
@@ -122,7 +126,7 @@ Mesh::Mesh(
     m_streamed_mesh_data(MakeRefCountedPtr<StreamedMeshData>(MeshData {
         std::move(vertices),
         std::move(indices)
-    })),
+    }, m_streamed_mesh_data_resource_handle)),
     m_aabb(BoundingBox::Empty()),
     m_render_resource(nullptr)
 {
@@ -133,6 +137,7 @@ Mesh::Mesh(Mesh &&other) noexcept
     : HypObject(static_cast<HypObject &&>(other)),
       m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
+      m_streamed_mesh_data_resource_handle(std::move(other.m_streamed_mesh_data_resource_handle)),
       m_aabb(other.m_aabb),
       m_render_resource(other.m_render_resource)
 {
@@ -152,6 +157,7 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
 
     m_mesh_attributes = other.m_mesh_attributes;
     m_streamed_mesh_data = std::move(other.m_streamed_mesh_data);
+    m_streamed_mesh_data_resource_handle = std::move(other.m_streamed_mesh_data_resource_handle);
     m_aabb = other.m_aabb;
     m_render_resource = other.m_render_resource;
 
@@ -172,6 +178,8 @@ Mesh::~Mesh()
             FreeResource(m_render_resource);
         }
     }
+
+    m_streamed_mesh_data_resource_handle.Reset();
 
     // @NOTE Must be after we free the m_render_resource,
     // since m_render_resource would be using our streamed mesh data
@@ -197,6 +205,8 @@ void Mesh::Init()
             m_render_resource = nullptr;
         }
 
+        m_streamed_mesh_data_resource_handle.Reset();
+
         if (m_streamed_mesh_data != nullptr) {
             m_streamed_mesh_data->WaitForCompletion();
             m_streamed_mesh_data.Reset();
@@ -216,6 +226,10 @@ void Mesh::Init()
 
         m_render_resource->SetVertexAttributes(GetVertexAttributes());
         m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
+
+        // Data passed to render resource to be uploaded,
+        // Reset the resource handle now that we no longer need it in CPU-side memory
+        m_streamed_mesh_data_resource_handle.Reset();
     }
 
     SetReady(true);
@@ -230,18 +244,22 @@ void Mesh::SetVertices(Span<const Vertex> vertices)
         indices[index] = uint32(index);
     }
 
-    SetStreamedMeshData(StreamedMeshData::FromMeshData({
+    ResourceHandle tmp;
+
+    SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(MeshData {
         Array<Vertex>(vertices),
         std::move(indices)
-    }));
+    }, tmp));
 }
 
 void Mesh::SetVertices(Span<const Vertex> vertices, Span<const uint32> indices)
 {
-    SetStreamedMeshData(StreamedMeshData::FromMeshData({
+    ResourceHandle tmp;
+
+    SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(MeshData {
         Array<Vertex>(vertices),
         Array<uint32>(indices)
-    }));
+    }, tmp));
 }
 
 const RC<StreamedMeshData> &Mesh::GetStreamedMeshData() const
@@ -256,6 +274,12 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
+
+    if (m_streamed_mesh_data == streamed_mesh_data) {
+        return;
+    }
+
+    m_streamed_mesh_data_resource_handle.Reset();
 
     if (m_streamed_mesh_data != nullptr) {
         // Set render resource's streamed mesh data to null first
@@ -274,13 +298,14 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
     if (IsInitCalled()) {
         if (!m_streamed_mesh_data) {
             // Create empty streamed data if set to null.
-            m_streamed_mesh_data = StreamedMeshData::FromMeshData({
+            m_streamed_mesh_data = MakeRefCountedPtr<StreamedMeshData>(MeshData {
                 Array<Vertex> { },
                 Array<uint32> { }
-            });
+            }, m_streamed_mesh_data_resource_handle);
         }
 
         m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
+        m_streamed_mesh_data_resource_handle.Reset();
     }
 }
 
@@ -383,9 +408,10 @@ void Mesh::CalculateNormals(bool weighted)
 
     if (!weighted) {
         resource_handle.Reset();
+        m_streamed_mesh_data_resource_handle.Reset();
         
         m_streamed_mesh_data->WaitForCompletion();
-        m_streamed_mesh_data.Emplace(std::move(mesh_data));
+        m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
 
         return;
     }
@@ -481,9 +507,10 @@ void Mesh::CalculateNormals(bool weighted)
     normals.clear();
 
     resource_handle.Reset();
+    m_streamed_mesh_data_resource_handle.Reset();
     
     m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
 }
 
 void Mesh::CalculateTangents()
@@ -569,9 +596,10 @@ void Mesh::CalculateTangents()
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
 
     resource_handle.Reset();
+    m_streamed_mesh_data_resource_handle.Reset();
 
     m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
 }
 
 void Mesh::InvertNormals()
@@ -594,9 +622,10 @@ void Mesh::InvertNormals()
     }
     
     resource_handle.Reset();
+    m_streamed_mesh_data_resource_handle.Reset();
 
     m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data));
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
 }
 
 void Mesh::CalculateAABB()

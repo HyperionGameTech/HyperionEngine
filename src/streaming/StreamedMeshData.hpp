@@ -43,14 +43,13 @@ class HYP_API StreamedMeshData final : public StreamedData
 {
     HYP_OBJECT_BODY(StreamedMeshData);
 
-    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data);
+    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle &out_resource_handle);
 
 public:
-    static RC<StreamedMeshData> FromMeshData(MeshData);
-
     StreamedMeshData();
-    StreamedMeshData(const MeshData &mesh_data);
-    StreamedMeshData(MeshData &&mesh_data);
+    StreamedMeshData(const MeshData &mesh_data, ResourceHandle &out_resource_handle);
+    StreamedMeshData(MeshData &&mesh_data, ResourceHandle &out_resource_handle);
+
     StreamedMeshData(const StreamedMeshData &other)                 = delete;
     StreamedMeshData &operator=(const StreamedMeshData &other)      = delete;
     StreamedMeshData(StreamedMeshData &&other) noexcept             = delete;

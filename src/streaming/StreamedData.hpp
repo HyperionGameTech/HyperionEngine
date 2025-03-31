@@ -53,7 +53,8 @@ class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>, p
     using LoadingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
-    StreamedData(StreamedDataState initial_state);
+    /*! \brief Construct the StreamedData with the given initial state. If the state is LOADED, \ref{out_resource_handle} will be set to a resource handle for this. */
+    StreamedData(StreamedDataState initial_state, ResourceHandle &out_resource_handle);
 
 public:
     StreamedData()                                      = default;
@@ -103,18 +104,18 @@ class HYP_API MemoryStreamedData final : public StreamedData
     HYP_OBJECT_BODY(MemoryStreamedData);
 
 public:
-    MemoryStreamedData(HashCode hash_code, StreamedDataState initial_state = StreamedDataState::UNPAGED, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc = {});
-    MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
-    MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state = StreamedDataState::LOADED);
-    MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state = StreamedDataState::LOADED);
+    MemoryStreamedData(HashCode hash_code, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc = {});
+    MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
+    MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
+    MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
 
-    MemoryStreamedData(const MemoryStreamedData &other)             = delete;
-    MemoryStreamedData &operator=(const MemoryStreamedData &other)  = delete;
+    MemoryStreamedData(const MemoryStreamedData &other)                 = delete;
+    MemoryStreamedData &operator=(const MemoryStreamedData &other)      = delete;
 
-    MemoryStreamedData(MemoryStreamedData &&other) noexcept;
-    MemoryStreamedData &operator=(MemoryStreamedData &&other) noexcept;
+    MemoryStreamedData(MemoryStreamedData &&other) noexcept             = delete;
+    MemoryStreamedData &operator=(MemoryStreamedData &&other) noexcept  = delete;
 
-    virtual ~MemoryStreamedData() override                          = default;
+    virtual ~MemoryStreamedData() override                              = default;
 
 protected:
     virtual bool IsInMemory_Internal() const override;

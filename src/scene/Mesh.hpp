@@ -145,6 +145,8 @@ private:
 
     MeshAttributes          m_mesh_attributes;
 
+    // Must be before m_streamed_mesh_data, needs to get constructed first to use as out parameter to construct StreamedMeshData.
+    mutable ResourceHandle  m_streamed_mesh_data_resource_handle;
     RC<StreamedMeshData>    m_streamed_mesh_data;
 
     mutable BoundingBox     m_aabb;

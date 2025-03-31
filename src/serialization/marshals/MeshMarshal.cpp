@@ -59,6 +59,7 @@ public:
         }
 
         RC<StreamedMeshData> streamed_mesh_data;
+        ResourceHandle streamed_mesh_data_resource_handle;
 
         const auto mesh_data_it = in.GetChildren().FindIf([](const FBOMObject &item)
         {
@@ -66,7 +67,7 @@ public:
         });
 
         if (mesh_data_it != in.GetChildren().End()) {
-            streamed_mesh_data.EmplaceAs<StreamedMeshData>(mesh_data_it->m_deserialized_object->Get<MeshData>());
+            streamed_mesh_data.EmplaceAs<StreamedMeshData>(mesh_data_it->m_deserialized_object->Get<MeshData>(), streamed_mesh_data_resource_handle);
         }
 
         Handle<Mesh> mesh_handle = CreateObject<Mesh>(
@@ -74,6 +75,8 @@ public:
             topology,
             vertex_attributes
         );
+
+        streamed_mesh_data_resource_handle.Reset();
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Mesh::Class(), AnyRef(*mesh_handle))) {
             return err;

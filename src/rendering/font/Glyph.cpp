@@ -4,6 +4,8 @@
 #include <rendering/font/FontEngine.hpp>
 #include <rendering/font/FontFace.hpp>
 
+#include <streaming/StreamedTextureData.hpp>
+
 #include <scene/Texture.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -26,14 +28,14 @@ static constexpr InternalFormat g_glyph_texture_format = InternalFormat::RGBA8;
 
 Handle<Texture> GlyphImageData::CreateTexture() const
 {
-    return CreateObject<Texture>(MakeRefCountedPtr<StreamedTextureData>(TextureData {
+    return CreateObject<Texture>(TextureData {
         TextureDesc {
             ImageType::TEXTURE_TYPE_2D,
             g_glyph_texture_format,
             Vec3u { uint32(dimensions.x), uint32(dimensions.y), 1 }
         },
         byte_buffer
-    }));
+    });
 }
 
 #pragma endregion GlyphImageData

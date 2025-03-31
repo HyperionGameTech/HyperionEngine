@@ -183,7 +183,6 @@ void MeshRenderResource::SetStreamedMeshData(const RC<StreamedMeshData> &streame
 {
     HYP_SCOPE;
 
-
     Execute([this, streamed_mesh_data, streamed_mesh_data_handle = streamed_mesh_data ? ResourceHandle(*streamed_mesh_data) : ResourceHandle()]()
     {
         m_streamed_mesh_data = streamed_mesh_data;

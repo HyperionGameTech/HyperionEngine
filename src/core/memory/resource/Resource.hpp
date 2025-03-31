@@ -50,6 +50,7 @@ public:
     virtual bool IsNull() const = 0;
 
     virtual int Claim() = 0;
+    virtual int ClaimWithoutInitialize() = 0;
     virtual int Unclaim() = 0;
 
     virtual void WaitForCompletion() = 0;
@@ -98,7 +99,9 @@ public:
     void Execute(Proc<void> &&proc, bool force_owner_thread = false);
 
 protected:
-    int ClaimWithoutInitialize();
+    // Needed to claim resources that are initialized in LOADED state.
+    // We can't call Initialize() because it is a virtual function and the object might not be fully constructed yet.
+    virtual int ClaimWithoutInitialize() override final;
 
     HYP_FORCE_INLINE bool IsInitialized() const
         { return m_is_initialized; }
@@ -219,11 +222,18 @@ public:
     {
     }
 
-    ResourceHandle(IResource &resource)
+    /*! \brief Construct a ResourceHandle using the given resource. The resource will be claimed if it is not null.
+     *  If \ref{should_initialize} is true (default), the resource will be initialized.
+     *  Otherwise, ClaimWithoutInitialize() will be called (this should only be used when required, like in the constructor of base classes that have Initialize() as a virtual method). */
+    ResourceHandle(IResource &resource, bool should_initialize = true)
         : resource(&resource)
     {
         if (!resource.IsNull()) {
-            resource.Claim();
+            if (should_initialize) {
+                resource.Claim();
+            } else {
+                resource.ClaimWithoutInitialize();
+            }
         }
     }
 
