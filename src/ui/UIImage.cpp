@@ -2,8 +2,9 @@
 
 #include <ui/UIImage.hpp>
 
-#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
+
+#include <scene/Texture.hpp>
 
 #include <Engine.hpp>
 

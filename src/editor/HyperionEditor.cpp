@@ -4,13 +4,13 @@
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
 
-#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Light.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

@@ -26,6 +26,7 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Texture.hpp>
 
 #include <Engine.hpp>
 

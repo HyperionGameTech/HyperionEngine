@@ -15,6 +15,8 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

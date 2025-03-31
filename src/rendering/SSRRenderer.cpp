@@ -1,7 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/Threads.hpp>
-
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -14,6 +12,10 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/threading/Threads.hpp>
+
+#include <scene/Texture.hpp>
 
 #include <Engine.hpp>
 

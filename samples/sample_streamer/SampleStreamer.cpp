@@ -24,7 +24,7 @@
 
 #include <scene/Mesh.hpp>
 #include <scene/Light.hpp>
-//#include <scene/World.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/Material.hpp>
 
@@ -32,7 +32,6 @@
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
-//#include <rendering/RenderWorld.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererImage.hpp>

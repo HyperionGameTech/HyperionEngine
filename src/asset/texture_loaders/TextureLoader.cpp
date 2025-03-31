@@ -4,6 +4,8 @@
 
 #include <core/utilities/StringUtil.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <util/img/stb_image.h>
 
 namespace hyperion {

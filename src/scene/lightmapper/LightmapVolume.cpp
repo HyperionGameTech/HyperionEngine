@@ -1,8 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/lightmapper/LightmapVolume.hpp>
-
-#include <rendering/RenderTexture.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/logging/Logger.hpp>
 

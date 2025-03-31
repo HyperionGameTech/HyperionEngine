@@ -6,7 +6,6 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
-#include <rendering/RenderTexture.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/SSRRenderer.hpp>
@@ -24,6 +23,7 @@ namespace hyperion {
 class IndirectDrawState;
 class RenderEnvironment;
 class GBuffer;
+class Texture;
 class DepthPyramidRenderer;
 
 using DeferredFlagBits = uint32;

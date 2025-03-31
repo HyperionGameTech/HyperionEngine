@@ -20,6 +20,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

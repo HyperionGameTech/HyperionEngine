@@ -7,7 +7,6 @@
 #include <scene/Node.hpp>
 
 #include <Types.hpp>
-#include <rendering/RenderTexture.hpp>
 
 namespace hyperion {
 

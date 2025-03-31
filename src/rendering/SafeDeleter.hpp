@@ -8,7 +8,6 @@
 #include <core/threading/Mutex.hpp>
 #include <core/ID.hpp>
 
-#include <rendering/RenderTexture.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderProxy.hpp>

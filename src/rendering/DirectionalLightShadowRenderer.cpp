@@ -17,6 +17,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <scene/camera/OrthoCamera.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

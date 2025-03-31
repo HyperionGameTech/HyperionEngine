@@ -8,7 +8,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
-#include <rendering/RenderTexture.hpp>
+#include <scene/Texture.hpp>
+
 #include <rendering/backend/RendererImage.hpp>
 
 namespace hyperion::fbom {

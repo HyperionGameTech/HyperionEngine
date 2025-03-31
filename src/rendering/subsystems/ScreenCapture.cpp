@@ -3,6 +3,8 @@
 #include <rendering/subsystems/ScreenCapture.hpp>
 #include <rendering/FinalPass.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {

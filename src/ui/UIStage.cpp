@@ -15,6 +15,8 @@
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/ecs/components/CameraComponent.hpp>
@@ -23,7 +25,6 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 
-#include <rendering/RenderTexture.hpp>
 #include <rendering/font/FontAtlas.hpp>
 
 #include <system/AppContext.hpp>

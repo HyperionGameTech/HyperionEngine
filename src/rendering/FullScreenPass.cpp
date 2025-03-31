@@ -16,6 +16,7 @@
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/math/MathUtil.hpp>
 

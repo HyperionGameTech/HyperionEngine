@@ -5,11 +5,10 @@
 
 #include <ui/UIObject.hpp>
 
-#include <rendering/RenderTexture.hpp>
-
 namespace hyperion {
 
 class UIStage;
+class Texture;
 
 #pragma region UIImage
 

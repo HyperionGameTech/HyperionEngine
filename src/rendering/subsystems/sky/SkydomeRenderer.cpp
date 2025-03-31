@@ -5,6 +5,7 @@
 #include <rendering/RenderEnvProbe.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/CameraComponent.hpp>

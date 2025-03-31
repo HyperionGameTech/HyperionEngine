@@ -11,6 +11,8 @@
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <core/threading/Threads.hpp>
 
 #include <core/profiling/ProfileScope.hpp>

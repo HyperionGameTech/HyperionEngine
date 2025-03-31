@@ -10,7 +10,6 @@
 
 #include <core/math/BoundingBox.hpp>
 
-#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
@@ -22,6 +21,8 @@ namespace hyperion {
 
 struct RENDER_COMMAND(CreateCubemapBuffers);
 struct RENDER_COMMAND(DestroyCubemapRenderPass);
+
+class Texture;
 
 enum class EnvProbeFlags : uint32
 {

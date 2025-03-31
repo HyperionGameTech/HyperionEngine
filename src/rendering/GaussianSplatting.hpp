@@ -13,7 +13,6 @@
 #include <util/img/Bitmap.hpp>
 
 #include <rendering/Shader.hpp>
-#include <rendering/RenderTexture.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -22,6 +21,7 @@
 namespace hyperion {
 
 class Engine;
+class Texture;
 
 struct alignas(16) GaussianSplattingPoint
 {

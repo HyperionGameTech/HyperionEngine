@@ -3,7 +3,6 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -12,6 +11,7 @@
 #include <rendering/backend/RenderConfig.hpp>
 
 #include <scene/Material.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 

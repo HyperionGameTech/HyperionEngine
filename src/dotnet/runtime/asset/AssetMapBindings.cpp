@@ -2,8 +2,6 @@
 
 #include <dotnet/runtime/asset/AssetMapBindings.hpp>
 
-#include <rendering/RenderTexture.hpp>
-
 #include <scene/Node.hpp>
 #include <scene/Material.hpp>
 

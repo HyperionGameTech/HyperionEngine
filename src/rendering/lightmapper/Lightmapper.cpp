@@ -24,6 +24,7 @@
 #include <scene/Material.hpp>
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 

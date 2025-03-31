@@ -6,6 +6,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <ui/UIImage.hpp>
 
 namespace hyperion {

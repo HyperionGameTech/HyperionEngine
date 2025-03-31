@@ -30,6 +30,7 @@
 #include <scene/World.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

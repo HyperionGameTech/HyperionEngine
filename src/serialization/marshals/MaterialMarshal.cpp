@@ -12,8 +12,7 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <scene/Material.hpp>
-
-#include <rendering/RenderTexture.hpp>
+#include <scene/Texture.hpp>
 
 #include <rendering/backend/RendererShader.hpp>
 

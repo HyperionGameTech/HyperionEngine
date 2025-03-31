@@ -13,6 +13,8 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <core/threading/Threads.hpp>

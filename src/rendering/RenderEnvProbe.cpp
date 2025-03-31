@@ -7,6 +7,8 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/Shadows.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

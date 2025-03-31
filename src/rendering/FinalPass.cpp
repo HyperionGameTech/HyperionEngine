@@ -14,6 +14,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/Texture.hpp>
 
 #include <util/MeshBuilder.hpp>
 
