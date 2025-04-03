@@ -6,6 +6,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
@@ -30,29 +31,24 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
+struct RENDER_COMMAND(SetUILayerImageView) : renderer::RenderCommand
 {
-    FinalPass           &final_pass;
-    Handle<Texture>     texture;
+    FinalPass       &final_pass;
+    ImageViewRef    image_view;
 
-    RENDER_COMMAND(SetUITexture)(
+    RENDER_COMMAND(SetUILayerImageView)(
         FinalPass &final_pass,
-        Handle<Texture> texture
+        const ImageViewRef &image_view
     ) : final_pass(final_pass),
-        texture(std::move(texture))
+        image_view(image_view)
     {
-        AssertThrow(this->texture.IsValid());
-        AssertThrow(this->texture->GetImageView().IsValid());
     }
 
-    virtual ~RENDER_COMMAND(SetUITexture)() override
-    {
-        g_safe_deleter->SafeRelease(std::move(texture));
-    }
+    virtual ~RENDER_COMMAND(SetUILayerImageView)() override = default;
 
     virtual RendererResult operator()() override
     {
-        g_safe_deleter->SafeRelease(std::move(final_pass.m_ui_texture));
+        SafeRelease(std::move(final_pass.m_ui_layer_image_view));
 
         if (g_engine->IsShuttingDown()) {
             // Don't set if the engine is in a shutdown state,
@@ -68,13 +64,17 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
                 const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
                 AssertThrow(descriptor_set != nullptr);
 
-                descriptor_set->SetElement(NAME("InTexture"), texture->GetImageView());
+                if (image_view != nullptr) {
+                    descriptor_set->SetElement(NAME("InTexture"), image_view);
+                } else {
+                    descriptor_set->SetElement(NAME("InTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+                }
             }
         }
 
         // Set frames to be dirty so the descriptor sets get updated before we render the UI
         final_pass.m_dirty_frame_indices = (1u << max_frames_in_flight) - 1;
-        final_pass.m_ui_texture = std::move(texture);
+        final_pass.m_ui_layer_image_view = image_view;
 
         HYPERION_RETURN_OK;
     }
@@ -85,7 +85,7 @@ struct RENDER_COMMAND(SetUITexture) : renderer::RenderCommand
 #pragma region CompositePass
 
 CompositePass::CompositePass(Vec2u extent)
-    : FullScreenPass(InternalFormat::RGBA8_SRGB, extent)
+    : FullScreenPass(InternalFormat::RGBA16F, extent)
 {
 }
 
@@ -158,7 +158,7 @@ void CompositePass::Render(Frame *frame)
 #pragma region FinalPass
 
 FinalPass::FinalPass()
-    : FullScreenPass(InternalFormat::RGBA8_SRGB),
+    : FullScreenPass(InternalFormat::RGBA8),
       m_dirty_frame_indices(0)
 {
 }
@@ -172,26 +172,9 @@ FinalPass::~FinalPass()
     }
 }
 
-void FinalPass::SetUITexture(Handle<Texture> texture)
+void FinalPass::SetUILayerImageView(const ImageViewRef &image_view)
 {
-    if (!texture.IsValid()) {
-        texture = CreateObject<Texture>(TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RGBA8,
-            Vec3u { 1, 1, 1 },
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        });
-    }
-
-    InitObject(texture);
-
-    PUSH_RENDER_COMMAND(
-        SetUITexture,
-        *this,
-        std::move(texture)
-    );
+    PUSH_RENDER_COMMAND(SetUILayerImageView, *this, image_view);
 }
 
 void FinalPass::Create()
@@ -262,16 +245,13 @@ void FinalPass::Create()
 
     m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
         Vec3u { m_extent.x, m_extent.y, 1 },
-        m_image_format,
+        m_composite_pass->GetFormat(),
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST
     ));
 
     HYPERION_ASSERT_RESULT(m_last_frame_image->Create(g_engine->GetGPUDevice()));
-
-    // Create UI stuff
-    InitObject(m_ui_texture);
 
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
@@ -283,8 +263,8 @@ void FinalPass::Create()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        if (m_ui_texture.IsValid()) {
-            descriptor_set->SetElement(NAME("InTexture"), m_ui_texture->GetImageView());
+        if (m_ui_layer_image_view != nullptr) {
+            descriptor_set->SetElement(NAME("InTexture"), m_ui_layer_image_view);
         } else {
             descriptor_set->SetElement(NAME("InTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
@@ -368,7 +348,7 @@ void FinalPass::Render(Frame *frame)
 
 #ifdef HYP_RENDER_UI_IN_COMPOSITE_PASS
     // Render UI onto screen, blending with the scene render pass
-    if (m_ui_texture.IsValid()) {
+    if (m_ui_layer_image_view != nullptr) {
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index)) {
             HYPERION_ASSERT_RESULT(

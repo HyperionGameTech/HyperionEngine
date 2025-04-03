@@ -57,6 +57,8 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <streaming/StreamingThread.hpp>
+
 #include <scripting/ScriptingService.hpp>
 
 #include <Game.hpp>
@@ -201,10 +203,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_COLOR,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::RGBA8_SRGB,
-                        InternalFormat::R10G10B10A2,
-                        InternalFormat::RGBA16F,
-                        InternalFormat::RGBA8 },
+            { { InternalFormat::RGBA8, InternalFormat::R10G10B10A2, InternalFormat::RGBA16F } },
             renderer::ImageSupportType::SRV
         )
     );
@@ -212,9 +211,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_DEPTH,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::DEPTH_32F, InternalFormat::DEPTH_24,
-                        InternalFormat::DEPTH_16
-                         },
+            { { InternalFormat::DEPTH_32F, InternalFormat::DEPTH_24, InternalFormat::DEPTH_16 } },
             renderer::ImageSupportType::DEPTH
         )
     );
@@ -222,9 +219,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_NORMALS,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::RGBA16F,
-                        InternalFormat::RGBA32F,
-                        InternalFormat::RGBA8 },
+            { { InternalFormat::RGBA16F, InternalFormat::RGBA32F, InternalFormat::RGBA8 } },
             renderer::ImageSupportType::SRV
         )
     );
@@ -232,7 +227,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_STORAGE,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ InternalFormat::RGBA16F },
+            { { InternalFormat::RGBA16F } },
             renderer::ImageSupportType::UAV
         )
     );
@@ -274,7 +269,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
-    constexpr bool use_debug_layers = false;// true;
+    constexpr bool use_debug_layers = false;//true;
 #else
     constexpr bool use_debug_layers = false;
 #endif
@@ -315,9 +310,13 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
     m_scripting_service->Start();
 
-    m_net_request_thread = MakeRefCountedPtr<NetRequestThread>();
-    SetGlobalNetRequestThread(m_net_request_thread);
-    m_net_request_thread->Start();
+    RC<NetRequestThread> net_request_thread = MakeRefCountedPtr<NetRequestThread>();
+    SetGlobalNetRequestThread(net_request_thread);
+    net_request_thread->Start();
+
+    RC<StreamingThread> streaming_thread = MakeRefCountedPtr<StreamingThread>();
+    SetGlobalStreamingThread(streaming_thread);
+    streaming_thread->Start();
 
     // must start after net request thread
     if (m_app_context->GetArguments()["Profile"]) {
@@ -487,16 +486,28 @@ void Engine::FinalizeStop()
     // must stop before net request thread
     StopProfilerConnectionThread();
 
-    if (m_net_request_thread != nullptr) {
+    if (RC<StreamingThread> streaming_thread = GetGlobalStreamingThread()) {
+        if (streaming_thread->IsRunning()) {
+            streaming_thread->Stop();
+        }
+
+        if (streaming_thread->CanJoin()) {
+            streaming_thread->Join();
+        }
+
+        SetGlobalStreamingThread(nullptr);
+    }
+
+    if (RC<NetRequestThread> net_request_thread = GetGlobalNetRequestThread()) {
+        if (net_request_thread->IsRunning()) {
+            net_request_thread->Stop();
+        }
+
+        if (net_request_thread->CanJoin()) {
+            net_request_thread->Join();
+        }
+
         SetGlobalNetRequestThread(nullptr);
-
-        if (m_net_request_thread->IsRunning()) {
-            m_net_request_thread->Stop();
-        }
-
-        if (m_net_request_thread->CanJoin()) {
-            m_net_request_thread->Join();
-        }
     }
 
     m_world.Reset();

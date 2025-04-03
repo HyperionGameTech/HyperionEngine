@@ -36,6 +36,7 @@ HYP_DECLARE_LOG_CHANNEL(Streaming);
 // @TODO Abstract RenderResources into IResource and RenderResource, and change StreamedData to StreamingResource (implementing IResource)
 // so it can use memory pooling and a unified interface
 class StreamedData;
+class StreamingThread;
 
 enum class StreamedDataState : uint32
 {
@@ -49,8 +50,7 @@ class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>, p
 {
     HYP_OBJECT_BODY(StreamedData);
 
-    using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-    using LoadingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using UnpagingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
     /*! \brief Construct the StreamedData with the given initial state. If the state is LOADED, \ref{out_resource_handle} will be set to a resource handle for this. */
@@ -64,22 +64,27 @@ public:
     StreamedData &operator=(StreamedData &&) noexcept   = delete;
     virtual ~StreamedData()                             = default;
 
-    bool IsInMemory() const;
-
     void Unpage();
-    const ByteBuffer &Load() const;
+    void Load() const;
+
+    virtual HashCode GetDataHashCode() const = 0;
+
+    virtual const ByteBuffer &GetByteBuffer() const;
 
 protected:
     virtual void Initialize() override final;
     virtual void Destroy() override final;
     virtual void Update() override final;
 
+    virtual IThread *GetOwnerThread() const override final;
+
+    mutable Mutex   m_mutex;
+
+private:
     virtual bool IsInMemory_Internal() const = 0;
 
-    virtual const ByteBuffer &Load_Internal() const = 0;
+    virtual void Load_Internal() const = 0;
     virtual void Unpage_Internal() = 0;
-
-    virtual const ByteBuffer &GetByteBuffer() const;
 };
 
 HYP_CLASS()
@@ -92,9 +97,13 @@ public:
     virtual ~NullStreamedData() override    = default;
 
 protected:
+    virtual HashCode GetDataHashCode() const override
+        { return HashCode(0); }
+
+private:
     virtual bool IsInMemory_Internal() const override;
 
-    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
 };
 
@@ -104,7 +113,7 @@ class HYP_API MemoryStreamedData final : public StreamedData
     HYP_OBJECT_BODY(MemoryStreamedData);
 
 public:
-    MemoryStreamedData(HashCode hash_code, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc = {});
+    MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer &)> &&load_from_memory_proc = {});
     MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
     MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
     MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
@@ -118,16 +127,20 @@ public:
     virtual ~MemoryStreamedData() override                              = default;
 
 protected:
+    virtual const ByteBuffer &GetByteBuffer() const override;
+
+    virtual HashCode GetDataHashCode() const override
+        { return m_hash_code; }
+    
+private:
     virtual bool IsInMemory_Internal() const override;
 
-    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
 
-    virtual const ByteBuffer &GetByteBuffer() const override;
-    
     HashCode                            m_hash_code;
     mutable Optional<ByteBuffer>        m_byte_buffer;
-    Proc<bool, HashCode, ByteBuffer &>  m_load_from_memory_proc;
+    Proc<bool(HashCode, ByteBuffer &)>  m_load_from_memory_proc;
 
     DataStore                           *m_data_store;
     ResourceHandle                      m_data_store_resource_handle;

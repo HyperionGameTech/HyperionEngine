@@ -87,6 +87,12 @@ public:
 
     Array();
 
+    explicit Array(SizeType size)
+        : Array()
+    {
+        Resize(size);
+    }
+
     Array(Span<T> span)
         : Array(span.Data(), span.Size())
     {

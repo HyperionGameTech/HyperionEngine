@@ -41,7 +41,7 @@ class SchedulerBase;
 
 using TaskSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>;
 
-using OnTaskCompletedCallback = Proc<void>;
+using OnTaskCompletedCallback = Proc<void()>;
 
 struct TaskID
 {
@@ -102,12 +102,12 @@ public:
     HYP_FORCE_INLINE explicit operator bool() const
         { return m_num_callbacks.Get(MemoryOrder::ACQUIRE); }
 
-    void Add(Proc<void> &&callback);
+    void Add(Proc<void()> &&callback);
 
     void operator()();
 
 private:
-    Array<Proc<void>>   m_callbacks;
+    Array<Proc<void()>> m_callbacks;
     AtomicVar<uint32>   m_num_callbacks;
     Mutex               m_mutex;
 };
@@ -221,7 +221,7 @@ template <class ReturnType>
 class TaskExecutorInstance : public TaskExecutorBase
 {
 public:
-    using Function = Proc<ReturnType>;
+    using Function = Proc<ReturnType()>;
     using Base = TaskExecutorBase;
 
     template <class Lambda>
@@ -284,7 +284,7 @@ protected:
 template <>
 class TaskExecutorInstance<void> : public TaskExecutorBase
 {
-    using Function = Proc<void>;
+    using Function = Proc<void()>;
 
 public:
     using Base = TaskExecutorBase;

@@ -22,7 +22,7 @@ void DOFBlur::Create()
 
     m_blur_horizontal_pass = MakeUnique<FullScreenPass>(
         blur_horizontal_shader,
-        InternalFormat::RGB8_SRGB,
+        InternalFormat::RGBA8,
         m_extent
     );
 
@@ -33,7 +33,7 @@ void DOFBlur::Create()
 
     m_blur_vertical_pass = MakeUnique<FullScreenPass>(
         blur_vertical_shader,
-        InternalFormat::RGB8_SRGB,
+        InternalFormat::RGBA8,
         m_extent
     );
 
@@ -44,7 +44,7 @@ void DOFBlur::Create()
 
     m_blur_mix_pass = MakeUnique<FullScreenPass>(
         blur_mix_shader,
-        InternalFormat::RGB8_SRGB,
+        InternalFormat::RGBA8,
         m_extent
     );
 

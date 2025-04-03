@@ -12,6 +12,7 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
@@ -55,10 +56,7 @@ using renderer::GPUBufferType;
 static const Vec2u mip_chain_extent { 512, 512 };
 static const InternalFormat mip_chain_format = InternalFormat::R10G10B10A2;
 
-static const Vec2u hbao_extent { 512, 512 };
-static const Vec2u ssr_extent { 512, 512 };
-
-static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8_SRGB;
+static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8;
 static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B10F;
 static const Vec2u env_grid_irradiance_extent { 1024, 768 };
 static const Vec2u env_grid_radiance_extent { 1024, 768 };
@@ -147,7 +145,7 @@ static ShaderProperties GetDeferredShaderProperties()
 #pragma region Deferred pass
 
 DeferredPass::DeferredPass(DeferredPassMode mode)
-    : FullScreenPass(InternalFormat::RGBA8_SRGB),
+    : FullScreenPass(InternalFormat::RGBA16F),
       m_mode(mode)
 {
 }
@@ -248,6 +246,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 
         InitObject(m_ltc_matrix_texture);
 
+        m_ltc_matrix_texture->SetPersistentRenderResourceEnabled(true);
+
         ByteBuffer ltc_brdf_data(sizeof(s_ltc_brdf), s_ltc_brdf);
 
         m_ltc_brdf_texture = CreateObject<Texture>(TextureData {
@@ -263,6 +263,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
         });
 
         InitObject(m_ltc_brdf_texture);
+
+        m_ltc_brdf_texture->SetPersistentRenderResourceEnabled(true);
     }
 
     for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
@@ -280,8 +282,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
             
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
-            descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetImageView());
-            descriptor_set->SetElement(NAME("LTCBRDFTexture"), m_ltc_brdf_texture->GetImageView());
+            descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetRenderResource().GetImageView());
+            descriptor_set->SetElement(NAME("LTCBRDFTexture"), m_ltc_brdf_texture->GetRenderResource().GetImageView());
         }
 
         DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -699,7 +701,7 @@ void EnvGridPass::Render(Frame *frame)
 #pragma region ReflectionsPass
 
 ReflectionsPass::ReflectionsPass()
-    : FullScreenPass(InternalFormat::RGBA8_SRGB),
+    : FullScreenPass(InternalFormat::RGBA8),
       m_is_first_frame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -836,7 +838,7 @@ void ReflectionsPass::CreateSSRRenderer()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetImageView());
+        descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetRenderResource().GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -1110,6 +1112,8 @@ void DeferredRenderer::Create()
 
     InitObject(m_mip_chain);
 
+    m_mip_chain->SetPersistentRenderResourceEnabled(true);
+
     m_hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig());
     m_hbao->Create();
 
@@ -1137,7 +1141,7 @@ void DeferredRenderer::CreateDescriptorSets()
     // set global gbuffer data
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("GBufferMipChain"), m_mip_chain->GetImageView());
+            ->SetElement(NAME("GBufferMipChain"), m_mip_chain->GetRenderResource().GetImageView());
     }
 }
 
@@ -1154,7 +1158,7 @@ void DeferredRenderer::CreateCombinePass()
 
     AssertThrow(shader.IsValid());
 
-    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::RGBA8_SRGB);
+    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::R11G11B10F);
     m_combine_pass->Create();
 
     PUSH_RENDER_COMMAND(
@@ -1479,7 +1483,7 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const ImageRef &mipmapped_result = m_mip_chain->GetImage();
+    const ImageRef &mipmapped_result = m_mip_chain->GetRenderResource().GetImage();
     AssertThrow(mipmapped_result.IsValid());
 
     DebugMarker marker(frame->GetCommandBuffer(), "Mip chain generation");

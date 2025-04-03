@@ -11,15 +11,21 @@
 #include <core/utilities/Time.hpp>
 
 #include <core/io/ByteWriter.hpp>
+
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <asset/Assets.hpp>
 
 namespace hyperion {
 namespace filesystem {
 
+HYP_DEFINE_LOG_SUBCHANNEL(DataStore, IO);
+
 static TypeMap<HashMap<String, DataStoreBase *>> g_global_data_store_map { };
 static Mutex g_global_data_store_mutex;
 
-DataStoreBase *DataStoreBase::GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase *, UTF8StringView> &&create_fn)
+DataStoreBase *DataStoreBase::GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase *(UTF8StringView)> &&create_fn)
 {
     Mutex::Guard guard(g_global_data_store_mutex);
 
@@ -49,7 +55,7 @@ DataStoreBase::DataStoreBase(const String &prefix, DataStoreOptions options)
 
 int DataStoreBase::Claim()
 {
-    return m_init_semaphore.Produce(1, [this](bool)
+    return m_claimed_semaphore.Produce(1, [this](bool)
     {
         if (m_options.flags & DSF_WRITE) {
             AssertThrowMsg(MakeDirectory(), "Failed to create directory for data store at path %s", GetDirectory().Data());
@@ -64,10 +70,12 @@ int DataStoreBase::ClaimWithoutInitialize()
 
 int DataStoreBase::Unclaim()
 {
-    return m_init_semaphore.Release(1, [this](bool)
-    {
-        m_shutdown_semaphore.Produce(1);
+    m_shutdown_semaphore.Produce(1);
+    bool should_release = true;
 
+    int result = m_claimed_semaphore.Release(1, [this, &should_release](bool)
+    {
+        should_release = false;
         TaskSystem::GetInstance().Enqueue(
             HYP_STATIC_MESSAGE("DiscardOldFiles on DataStoreBase::Unclaim"),
             [this]()
@@ -80,11 +88,23 @@ int DataStoreBase::Unclaim()
             TaskEnqueueFlags::FIRE_AND_FORGET
         );
     });
+
+    if (should_release) {
+        m_shutdown_semaphore.Release(1);
+    }
+
+    return result;
 }
 
-void DataStoreBase::WaitForCompletion()
+void DataStoreBase::WaitForTaskCompletion() const
 {
     m_shutdown_semaphore.Acquire();
+}
+
+void DataStoreBase::WaitForFinalization() const
+{
+    WaitForTaskCompletion();
+    m_claimed_semaphore.Acquire();
 }
 
 void DataStoreBase::DiscardOldFiles() const
@@ -92,6 +112,8 @@ void DataStoreBase::DiscardOldFiles() const
     if (m_options.max_size == 0) {
         return; // No limit
     }
+
+    HYP_LOG(DataStore, Debug, "Discarding old files in data store {}", m_prefix);
 
     const FilePath path = GetDirectory();
 
@@ -122,11 +144,7 @@ void DataStoreBase::DiscardOldFiles() const
         directory_size -= file.FileSize();
 
         if (!file.Remove()) {
-            DebugLog(
-                LogType::Warn,
-                "Failed to remove file %s\n",
-                file.Data()
-            );
+            HYP_LOG(DataStore, Warning, "Failed to remove file {}", file);
         }
 
         files_by_time.Erase(it);
@@ -146,7 +164,7 @@ bool DataStoreBase::MakeDirectory() const
 
 void DataStoreBase::Write(const String &key, const ByteBuffer &byte_buffer)
 {
-    AssertThrowMsg(m_init_semaphore.IsInSignalState(), "Cannot write to DataStore, not yet init");
+    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot write to DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_WRITE, "Data store is not writable");
 
     const FilePath filepath = GetDirectory() / key;
@@ -158,7 +176,7 @@ void DataStoreBase::Write(const String &key, const ByteBuffer &byte_buffer)
 
 bool DataStoreBase::Read(const String &key, ByteBuffer &out_byte_buffer) const
 {
-    AssertThrowMsg(m_init_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
+    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
 
     const FilePath directory = GetDirectory();
@@ -181,7 +199,7 @@ bool DataStoreBase::Read(const String &key, ByteBuffer &out_byte_buffer) const
 
 bool DataStoreBase::Exists(const String &key) const
 {
-    AssertThrowMsg(m_init_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
+    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
 
     const FilePath directory = GetDirectory();

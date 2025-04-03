@@ -41,7 +41,7 @@ struct LoadedAsset
 {
     HypData                     value;
 
-    Proc<void, LoadedAsset *>   OnPostLoadProc;
+    Proc<void(LoadedAsset *)>   OnPostLoadProc;
 
     LoadedAsset() = default;
 

@@ -51,7 +51,7 @@ public:
     SocketConnection &operator=(SocketConnection &&) noexcept   = delete;
     virtual ~SocketConnection()                                 = default;
 
-    void SetEventProc(Name event_name, Proc<void, Array<SocketProcArgument> &&> &&proc)
+    void SetEventProc(Name event_name, Proc<void(Array<SocketProcArgument> &&)> &&proc)
     {
         m_event_procs[event_name] = std::move(proc);
     }
@@ -59,7 +59,7 @@ public:
     void TriggerProc(Name event_name, Array<SocketProcArgument> &&args);
 
 protected:
-    HashMap<Name, Proc<void, Array<SocketProcArgument> &&>> m_event_procs;
+    HashMap<Name, Proc<void(Array<SocketProcArgument> &&)>> m_event_procs;
 
 };
 

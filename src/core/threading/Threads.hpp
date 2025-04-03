@@ -53,6 +53,8 @@ public:
     static void UnregisterThread(const ThreadID &id);
     static bool IsThreadRegistered(const ThreadID &id);
 
+    static void SetCurrentThreadID(const ThreadID &id);
+
     static void SetCurrentThreadObject(IThread *);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 

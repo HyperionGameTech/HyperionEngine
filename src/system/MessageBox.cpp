@@ -72,7 +72,7 @@ SystemMessageBox &SystemMessageBox::Text(const String &text)
     return *this;
 }
 
-SystemMessageBox &SystemMessageBox::Button(const String &text, Proc<void> &&on_click)
+SystemMessageBox &SystemMessageBox::Button(const String &text, Proc<void()> &&on_click)
 {
     if (m_buttons.Size() >= 3) {
         HYP_LOG(Core, Warning, "MessageBox does not support > 3 buttons");

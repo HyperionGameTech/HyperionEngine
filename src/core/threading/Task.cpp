@@ -31,7 +31,7 @@ TaskCallbackChain &TaskCallbackChain::operator=(TaskCallbackChain &&other) noexc
     return *this;
 }
 
-void TaskCallbackChain::Add(Proc<void> &&callback)
+void TaskCallbackChain::Add(Proc<void()> &&callback)
 {
     // @TODO: Smarter implementation possibly using semaphores that are set up with a value when task is first initialized,
     // need a way to tell if the added callback will never be executed because the task completed.
@@ -47,7 +47,7 @@ void TaskCallbackChain::operator()()
     if (m_num_callbacks.Get(MemoryOrder::ACQUIRE)) {
         Mutex::Guard guard(m_mutex);
 
-        for (Proc<void> &proc : m_callbacks) {
+        for (Proc<void()> &proc : m_callbacks) {
             proc();
         }
     }

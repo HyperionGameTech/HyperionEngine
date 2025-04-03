@@ -6,6 +6,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -46,7 +47,7 @@ static const bool sh_parallel_reduce = false;
 
 static const uint32 max_queued_probes_for_render = 1;
 
-static const InternalFormat ambient_probe_format = InternalFormat::R10G10B10A2;
+static const InternalFormat ambient_probe_format = InternalFormat::RGBA8;
 
 static const Vec3u voxel_grid_dimensions { 256, 256, 256 };
 static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
@@ -655,16 +656,18 @@ void EnvGrid::CreateVoxelGridData()
         }
     );
 
-    m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);
+    m_voxel_grid_texture->SetIsRWTexture(true);
 
     InitObject(m_voxel_grid_texture);
+
+    m_voxel_grid_texture->SetPersistentRenderResourceEnabled(true);
 
     // Set our voxel grid texture in the global descriptor set so we can use it in shaders
     PUSH_RENDER_COMMAND(
         SetElementInGlobalDescriptorSet,
         NAME("Scene"),
         NAME("VoxelGridTexture"),
-        m_voxel_grid_texture->GetImageView()
+        m_voxel_grid_texture->GetRenderResource().GetImageView()
     );
 
     // Create shader, descriptor sets for voxelizing probes
@@ -691,9 +694,9 @@ void EnvGrid::CreateVoxelGridData()
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
         descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetImageView());
+        descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetRenderResource().GetImageView());
 
-        AssertThrow(m_voxel_grid_texture->GetImageView() != nullptr);
+        AssertThrow(m_voxel_grid_texture->GetRenderResource().GetImageView() != nullptr);
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -731,7 +734,7 @@ void EnvGrid::CreateVoxelGridData()
 
         renderer::DescriptorTableDeclaration generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        const uint32 num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const uint32 num_voxel_grid_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
 
         for (uint32 mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
@@ -740,9 +743,9 @@ void EnvGrid::CreateVoxelGridData()
             DeferCreate(
                 m_voxel_grid_mips[mip_level],
                 g_engine->GetGPUDevice(),
-                m_voxel_grid_texture->GetImage(),
+                m_voxel_grid_texture->GetRenderResource().GetImage(),
                 mip_level, 1,
-                0, m_voxel_grid_texture->GetImage()->NumFaces()
+                0, m_voxel_grid_texture->GetRenderResource().GetImage()->NumFaces()
             );
 
             // create descriptor sets for mip generation.
@@ -754,7 +757,7 @@ void EnvGrid::CreateVoxelGridData()
 
                 if (mip_level == 0) {
                     // first mip level -- input is the actual image
-                    mip_descriptor_set->SetElement(NAME("InputTexture"), m_voxel_grid_texture->GetImageView());
+                    mip_descriptor_set->SetElement(NAME("InputTexture"), m_voxel_grid_texture->GetRenderResource().GetImageView());
                 } else {
                     mip_descriptor_set->SetElement(NAME("InputTexture"), m_voxel_grid_mips[mip_level - 1]);
                 }
@@ -880,15 +883,17 @@ void EnvGrid::CreateLightFieldData()
         }
     );
 
-    m_irradiance_texture->GetImage()->SetIsRWTexture(true);
+    m_irradiance_texture->SetIsRWTexture(true);
 
     InitObject(m_irradiance_texture);
+
+    m_irradiance_texture->SetPersistentRenderResourceEnabled(true);
 
     PUSH_RENDER_COMMAND(
         SetElementInGlobalDescriptorSet,
         NAME("Scene"),
         NAME("LightFieldColorTexture"),
-        m_irradiance_texture->GetImageView()
+        m_irradiance_texture->GetRenderResource().GetImageView()
     );
     
     m_depth_texture = CreateObject<Texture>(
@@ -906,15 +911,17 @@ void EnvGrid::CreateLightFieldData()
         }
     );
 
-    m_depth_texture->GetImage()->SetIsRWTexture(true);
+    m_depth_texture->SetIsRWTexture(true);
 
     InitObject(m_depth_texture);
+
+    m_depth_texture->SetPersistentRenderResourceEnabled(true);
 
     PUSH_RENDER_COMMAND(
         SetElementInGlobalDescriptorSet,
         NAME("Scene"),
         NAME("LightFieldDepthTexture"),
-        m_depth_texture->GetImageView()
+        m_depth_texture->GetRenderResource().GetImageView()
     );
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -960,8 +967,8 @@ void EnvGrid::CreateLightFieldData()
             descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
             descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
             descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
-            descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetImageView());
-            descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetImageView());
+            descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetRenderResource().GetImageView());
+            descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetRenderResource().GetImageView());
         }
 
         DeferCreate(descriptor_table, g_engine->GetGPUDevice());
@@ -1397,7 +1404,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     // Used for sky
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
 
-    m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_irradiance_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_compute_irradiance->Bind(frame->GetCommandBuffer());
     
@@ -1453,7 +1460,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
         }
     );
 
-    m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_depth_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_copy_border_texels->Bind(frame->GetCommandBuffer());
     
@@ -1478,8 +1485,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
         Vec3u { ((irradiance_octahedron_size * 4) + 255) / 256, 1, 1 }
     );
 
-    m_irradiance_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    m_depth_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_irradiance_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_depth_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void EnvGrid::OffsetVoxelGrid(
@@ -1502,7 +1509,7 @@ void EnvGrid::OffsetVoxelGrid(
 
     push_constants.offset = { offset.x, offset.y, offset.z, 0 };
 
-    m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_voxel_grid_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_offset_voxel_grid->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -1523,10 +1530,10 @@ void EnvGrid::OffsetVoxelGrid(
 
     m_offset_voxel_grid->Dispatch(
         frame->GetCommandBuffer(),
-        (m_voxel_grid_texture->GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8)
+        (m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8)
     );
 
-    m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_voxel_grid_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void EnvGrid::VoxelizeProbe(
@@ -1536,7 +1543,7 @@ void EnvGrid::VoxelizeProbe(
 {
     AssertThrow(m_voxel_grid_texture.IsValid());
 
-    const Vec3u &voxel_grid_texture_extent = m_voxel_grid_texture->GetImage()->GetExtent();
+    const Vec3u &voxel_grid_texture_extent = m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent();
 
     // size of a probe in the voxel grid
     const Vec3u probe_voxel_extent = voxel_grid_texture_extent / m_options.density;
@@ -1570,7 +1577,7 @@ void EnvGrid::VoxelizeProbe(
     color_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
     if (false) {   // Clear our voxel grid at the start of each probe
-        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+        m_voxel_grid_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
         m_clear_voxels->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -1596,7 +1603,7 @@ void EnvGrid::VoxelizeProbe(
     }
 
     { // Voxelize probe
-        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+        m_voxel_grid_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
         m_voxelize_probe->SetPushConstants(&push_constants, sizeof(push_constants));
         m_voxelize_probe->Bind(frame->GetCommandBuffer());
@@ -1626,11 +1633,11 @@ void EnvGrid::VoxelizeProbe(
 
     { // Generate mipmaps for the voxel grid
 
-        m_voxel_grid_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+        m_voxel_grid_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
-        const uint32 num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const uint32 num_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
 
-        const Vec3u voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
+        const Vec3u voxel_image_extent = m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent();
         Vec3u mip_extent = voxel_image_extent;
 
         struct alignas(128)
@@ -1653,7 +1660,7 @@ void EnvGrid::VoxelizeProbe(
 
             if (mip_level != 0) {
                 // put the mip into writeable state
-                m_voxel_grid_texture->GetImage()->InsertSubResourceBarrier(
+                m_voxel_grid_texture->GetRenderResource().GetImage()->InsertSubResourceBarrier(
                     frame->GetCommandBuffer(),
                     renderer::ImageSubResource { .base_mip_level = mip_level },
                     renderer::ResourceState::UNORDERED_ACCESS
@@ -1677,7 +1684,7 @@ void EnvGrid::VoxelizeProbe(
             );
 
             // put this mip into readable state
-            m_voxel_grid_texture->GetImage()->InsertSubResourceBarrier(
+            m_voxel_grid_texture->GetRenderResource().GetImage()->InsertSubResourceBarrier(
                 frame->GetCommandBuffer(),
                 renderer::ImageSubResource { .base_mip_level = mip_level },
                 renderer::ResourceState::SHADER_RESOURCE
@@ -1685,7 +1692,7 @@ void EnvGrid::VoxelizeProbe(
         }
 
         // all mip levels have been transitioned into this state
-        m_voxel_grid_texture->GetImage()->SetResourceState(
+        m_voxel_grid_texture->GetRenderResource().GetImage()->SetResourceState(
             renderer::ResourceState::SHADER_RESOURCE
         );
     }

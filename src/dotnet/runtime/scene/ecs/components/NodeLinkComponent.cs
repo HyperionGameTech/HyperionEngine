@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="NodeLinkComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct NodeLinkComponent : IComponent
     {
         [FieldOffset(0)]

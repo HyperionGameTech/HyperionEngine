@@ -677,7 +677,7 @@ public:
             } else {
                 RC<UIButton> attach_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 attach_script_button->SetText("Attach Script");
-                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis(), entity_manager_weak = entity_manager->WeakThis(), entity](...)
+                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis(), entity_manager_weak = entity_manager->WeakRefCountedPtrFromThis(), entity](...)
                 {
                     RC<EntityManager> entity_manager = entity_manager_weak.Lock();
                     

@@ -464,10 +464,10 @@ private:
     EnumFlags<HypMethodFlags>                                                   m_flags;
     HypClassAttributeSet                                                        m_attributes;
 
-    Proc<HypData, HypData **, SizeType>                                         m_proc;
-    Proc<HypData, const Array<HypData *> &>                                     m_proc_array;
-    Proc<fbom::FBOMData, Span<HypData>>                                         m_serialize_proc;
-    Proc<void, fbom::FBOMLoadContext &, Span<HypData>, const fbom::FBOMData &>  m_deserialize_proc;
+    Proc<HypData(HypData **, SizeType)>                                         m_proc;
+    Proc<HypData(const Array<HypData *> &)>                                     m_proc_array;
+    Proc<fbom::FBOMData(Span<HypData>)>                                         m_serialize_proc;
+    Proc<void(fbom::FBOMLoadContext &, Span<HypData>, const fbom::FBOMData &)>  m_deserialize_proc;
 };
 
 #undef HYP_METHOD_MEMBER_FN_WRAPPER

@@ -130,6 +130,10 @@ RenderGroup::RenderGroup(
 
 RenderGroup::~RenderGroup()
 {
+    // for (auto &it : m_render_proxies) {
+    //     it.second->UnclaimRenderResource();
+    // }
+
     if (m_indirect_renderer != nullptr) {
         m_indirect_renderer->Destroy();
     }
@@ -335,6 +339,10 @@ void RenderGroup::ClearProxies()
 {
     Threads::AssertOnThread(g_render_thread);
 
+    // for (auto &it : m_render_proxies) {
+    //     it.second->UnclaimRenderResource();
+    // }
+
     m_render_proxies.Clear();
 }
 
@@ -348,7 +356,9 @@ void RenderGroup::AddRenderProxy(const RenderProxy &render_proxy)
     AssertDebug(render_proxy.material.IsValid());
     AssertDebug(render_proxy.material->IsReady());
 
-    m_render_proxies.Set(render_proxy.entity.GetID(), &render_proxy);
+    AssertThrow(m_render_proxies.Insert(render_proxy.entity.GetID(), &render_proxy).second);
+
+    // render_proxy.ClaimRenderResource();
 }
 
 bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
@@ -360,6 +370,8 @@ bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
     if (it == m_render_proxies.End()) {
         return false;
     }
+
+    // it->second->UnclaimRenderResource();
 
     m_render_proxies.Erase(it);
 

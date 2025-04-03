@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/font/FontAtlas.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
@@ -34,26 +35,21 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
           location(location),
           cell_dimensions(cell_dimensions)
     {
-        AssertThrow(this->atlas_texture.IsValid());
-        AssertThrow(this->atlas_texture->GetImage().IsValid());
-        AssertThrow(this->atlas_texture->GetImageView().IsValid());
-
-        AssertThrow(this->glyph_texture.IsValid());
-        AssertThrow(this->glyph_texture->GetImage().IsValid());
-        AssertThrow(this->glyph_texture->GetImageView().IsValid());
+        atlas_texture->GetRenderResource().Claim();
+        glyph_texture->GetRenderResource().Claim();
     }
 
     virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override
     {
-        g_safe_deleter->SafeRelease(std::move(atlas_texture));
-        g_safe_deleter->SafeRelease(std::move(glyph_texture));
+        atlas_texture->GetRenderResource().Unclaim();
+        glyph_texture->GetRenderResource().Unclaim();
     }
 
     virtual RendererResult operator()() override
     {
         renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
-        const ImageRef &image = glyph_texture->GetImage();
+        const ImageRef &image = glyph_texture->GetRenderResource().GetImage();
         AssertThrow(image.IsValid());
 
         const Vec3u &extent = image->GetExtent();
@@ -79,10 +75,10 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
             // put src image in state for copying from
             image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
             // put dst image in state for copying to
-            atlas_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            atlas_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
             //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
-            atlas_texture->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
+            atlas_texture->GetRenderResource().GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
 
             HYPERION_RETURN_OK;
         });
@@ -314,7 +310,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
         return;
     }
 
-    const uint32 buffer_size = atlas->GetImage()->GetByteSize();
+    const uint32 buffer_size = atlas->GetTextureDesc().GetByteSize();
     buffer.SetSize(buffer_size);
 
     struct RENDER_COMMAND(FontAtlas_WriteToBuffer) : renderer::RenderCommand
@@ -354,18 +350,18 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
             renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
             AssertThrow(atlas);
-            AssertThrow(atlas->GetImage());
+            AssertThrow(atlas->IsReady());
 
             commands.Push([&](CommandBuffer *cmd)
             {
 
                 // put src image in state for copying from
-                atlas->GetImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+                atlas->GetRenderResource().GetImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
                 
                 // put dst buffer in state for copying to
                 buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);
 
-                atlas->GetImage()->CopyToBuffer(cmd, buffer);
+                atlas->GetRenderResource().GetImage()->CopyToBuffer(cmd, buffer);
 
                 buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
 

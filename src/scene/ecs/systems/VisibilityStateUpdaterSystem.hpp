@@ -17,7 +17,7 @@ class VisibilityStateUpdaterSystem : public System<
     ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

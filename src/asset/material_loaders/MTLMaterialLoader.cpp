@@ -5,6 +5,8 @@
 
 #include <scene/Texture.hpp>
 
+#include <rendering/RenderTexture.hpp>
+
 #include <core/algorithm/AnyOf.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -156,6 +158,22 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
             return;
         }
 
+        // if (tokens[0] == "ka") {
+        //     if (tokens.Size() < 2) {
+        //         HYP_LOG(Assets, Warning, "OBJ material loader: metalness value missing");
+
+        //         return;
+        //     }
+
+        //     const float metalness = StringUtil::Parse<float>(tokens[1].Data());
+
+        //     LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
+        //         .values = { metalness }
+        //     };
+
+        //     return;
+        // }
+
         if (tokens[0] == "ns") {
             if (tokens.Size() < 2) {
                 HYP_LOG(Assets, Warning, "OBJ material loader: spec value missing");
@@ -163,10 +181,10 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const auto spec = StringUtil::Parse<int>(tokens[1].Data());
+            const int spec = StringUtil::Parse<int>(tokens[1].Data());
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_ROUGHNESS] = ParameterDef {
-                .values = { 1.0f - MathUtil::Clamp(float(spec) / 1000.0f, 0.0f, 1.0f) }
+                .values = { MathUtil::Sqrt(2.0f / (MathUtil::Clamp(float(spec) / 1000.0f, 0.0f, 1.0f) + 2.0f)) }
             };
 
             return;
@@ -179,7 +197,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const auto illum_model = StringUtil::Parse<int>(tokens[1].Data());
+            const int illum_model = StringUtil::Parse<int>(tokens[1].Data());
 
             if (IsTransparencyModel(static_cast<IlluminationModel>(illum_model))) {
                 LastMaterial(library).parameters[Material::MATERIAL_KEY_TRANSMISSION] = ParameterDef {
@@ -187,10 +205,6 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 };
                 // TODO: Bucket, alpha blend
             }
-
-            LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
-                .values = { float(illum_model) / 9.0f } /* rough approx */
-            };
 
             return;
         }
@@ -292,22 +306,31 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
                 continue;
             }
-
-            // temp
-            AssertThrow(loaded_textures[it.name].value.Is<Handle<Texture>>());
             
             Handle<Texture> texture = loaded_textures[it.name].ExtractAs<Texture>();
-
-            texture->GetImage()->SetIsSRGB(it.mapping.srgb);
-            texture->GetImage()->SetMinFilterMode(it.mapping.filter_mode);
-            texture->GetImage()->SetMagFilterMode(FilterMode::TEXTURE_FILTER_LINEAR);
-
             texture->SetName(CreateNameFromDynamicString(it.name.Data()));
+
+            TextureDesc texture_desc = texture->GetTextureDesc();
+            texture_desc.filter_mode_min = it.mapping.filter_mode;
+            texture_desc.filter_mode_mag = FilterMode::TEXTURE_FILTER_LINEAR;
+
+            if (it.mapping.srgb) {
+                texture_desc.format = InternalFormat::RGBA8_SRGB;
+            }
+
+            texture->SetTextureDesc(texture_desc);
+
+            if (!InitObject(texture)) {
+                HYP_LOG(Assets, Warning, "OBJ material loader: Texture {} could not be used because it could not be initialized!", it.name);
+
+                continue;
+            }
 
             textures.Set(it.mapping.key, std::move(texture));
         }
 
         Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
+            CreateNameFromDynamicString(item.tag),
             attributes,
             parameters,
             textures

@@ -11,8 +11,6 @@ namespace hyperion {
 
 #pragma region NameRegistry
 
-NameRegistry *g_name_registry = nullptr;
-
 class NameRegistry
 {
 public:
@@ -31,6 +29,8 @@ private:
     HashMap<NameID, Pair<ANSIString, uint32>>   m_name_map;
     mutable Mutex                               m_mutex;
 };
+
+HYP_DISABLE_OPTIMIZATION;
 
 Name NameRegistry::RegisterName(NameID id, const ANSIString &str, bool lock)
 {
@@ -57,6 +57,8 @@ Name NameRegistry::RegisterName(NameID id, const ANSIString &str, bool lock)
     return name;
 }
 
+
+HYP_ENABLE_OPTIMIZATION;
 Name NameRegistry::RegisterUniqueName(const ANSIString &str, bool lock)
 {
     Name name;
@@ -132,18 +134,9 @@ HYP_API const ANSIString &LookupStringForName(const NameRegistry *name_registry,
 
 NameRegistry *Name::GetRegistry()
 {
-    static struct NameRegistryInitializer
-    {
-        NameRegistryInitializer()
-        {
-            if (!g_name_registry)
-            {
-                g_name_registry = new NameRegistry();
-            }
-        }
-    } initializer;
+    static NameRegistry name_registry;
 
-    return g_name_registry;
+    return &name_registry;
 }
 
 Name Name::Unique(ANSIStringView prefix)

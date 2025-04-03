@@ -81,6 +81,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     if (thread_id.IsStatic()) {
         // ensure no writer from other thread
         index = static_cast<const StaticThreadID &>(thread_id).GetStaticThreadIndex();
+        AssertDebug(index < num_preallocated_states);
         
         // disable bits that are already enabled
         access_flags &= ~m_preallocated_states[index].access;
@@ -169,6 +170,7 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
     if (thread_id.IsStatic()) {
         // ensure no writer from other thread
         index = static_cast<const StaticThreadID &>(thread_id).GetStaticThreadIndex();
+        AssertDebug(index < num_preallocated_states);
 
         flags = m_preallocated_states[index].access;
         m_preallocated_states[index].access &= ~access_flags;
@@ -221,9 +223,9 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
 
         for (SizeType i = 0; i < reader_thread_ids.Size(); i++) {
             if (i == 0) {
-                reader_threads_string = HYP_FORMAT("{} (at: {}, message: {})", reader_thread_ids[i].first.GetName(), reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
+                reader_threads_string = HYP_FORMAT("{} ({}) (at: {}, message: {})", reader_thread_ids[i].first.GetName(), reader_thread_ids[i].first.GetValue(), reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
             } else {
-                reader_threads_string = HYP_FORMAT("{}, {} (at: {}, message: {})", reader_threads_string, reader_thread_ids[i].first.GetName(), reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
+                reader_threads_string = HYP_FORMAT("{}, {} ({}) (at: {}, message: {})", reader_threads_string, reader_thread_ids[i].first.GetName(), reader_thread_ids[i].first.GetValue(), reader_thread_ids[i].second.current_function, reader_thread_ids[i].second.message);
             }
         }
     }
@@ -235,9 +237,9 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
 
         for (SizeType i = 0; i < writer_thread_ids.Size(); i++) {
             if (i == 0) {
-                writer_threads_string = HYP_FORMAT("{} (at: {}, message: {})", writer_thread_ids[i].first.GetName(), writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
+                writer_threads_string = HYP_FORMAT("{} ({}) (at: {}, message: {})", writer_thread_ids[i].first.GetName(), writer_thread_ids[i].first.GetValue(), writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
             } else {
-                writer_threads_string = HYP_FORMAT("{}, {} (at: {}, message: {})", writer_threads_string, writer_thread_ids[i].first.GetName(), writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
+                writer_threads_string = HYP_FORMAT("{}, {} ({}) (at: {}, message: {})", writer_threads_string, writer_thread_ids[i].first.GetName(), writer_thread_ids[i].first.GetValue(), writer_thread_ids[i].second.current_function, writer_thread_ids[i].second.message);
             }
         }
     }

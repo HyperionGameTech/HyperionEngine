@@ -106,7 +106,7 @@ thread_local ThreadID g_current_thread_id = g_main_thread;
 static const ThreadID g_current_thread_id = g_main_thread;
 #endif
 
-static void SetCurrentThreadID(ThreadID id)
+void Threads::SetCurrentThreadID(const ThreadID &id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
     g_current_thread_id = id;

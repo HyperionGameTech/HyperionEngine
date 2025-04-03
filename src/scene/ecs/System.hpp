@@ -154,13 +154,13 @@ protected:
     HYP_FORCE_INLINE EntityManager &GetEntityManager()
         { return m_entity_manager; }
 
-    /*! \brief Set a Proc<void> to be called once after the System has processed.
-     *  The Proc<void> will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
-     *  After the Proc<void> has been called, it will be reset.
+    /*! \brief Set a Proc<void()> to be called once after the System has processed.
+     *  The Proc<void()> will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
+     *  After the Proc<void()> has been called, it will be reset.
      *
-     *  \param proc The Proc<void> to call after the System has processed.
+     *  \param proc The Proc<void()> to call after the System has processed.
      */
-    void AfterProcess(Proc<void> &&proc)
+    void AfterProcess(Proc<void()> &&proc)
     {
         m_after_process_procs.PushBack(std::move(proc));
     }
@@ -182,7 +182,7 @@ private:
     Array<TypeID>                                               m_component_type_ids;
     Array<ComponentInfo>                                        m_component_infos;
 
-    Array<Proc<void>, DynamicAllocator>                         m_after_process_procs;
+    Array<Proc<void()>, DynamicAllocator>                       m_after_process_procs;
 };
 
 /*! \brief A System is a class that operates on a set of components.

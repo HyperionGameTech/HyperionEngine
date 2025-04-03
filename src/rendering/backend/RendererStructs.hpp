@@ -295,6 +295,28 @@ struct TextureDesc
     HYP_FIELD(Serialize, Property="NumLayers")
     uint32          num_layers = 1;
 
+    HYP_FORCE_INLINE bool operator==(const TextureDesc &other) const
+    {
+        return type == other.type
+            && format == other.format
+            && extent == other.extent
+            && filter_mode_min == other.filter_mode_min
+            && filter_mode_mag == other.filter_mode_mag
+            && wrap_mode == other.wrap_mode
+            && num_layers == other.num_layers;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const TextureDesc &other) const
+    {
+        return type != other.type
+            || format != other.format
+            || extent != other.extent
+            || filter_mode_min != other.filter_mode_min
+            || filter_mode_mag != other.filter_mode_mag
+            || wrap_mode != other.wrap_mode
+            || num_layers != other.num_layers;
+    }
+
     HYP_FORCE_INLINE bool HasMipmaps() const
     {
         return filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP

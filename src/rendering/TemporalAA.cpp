@@ -7,6 +7,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -40,7 +41,7 @@ struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::Rend
     virtual RendererResult operator()()
     {
         const ImageViewRef &result_texture_view = result_texture.IsValid()
-            ? result_texture->GetImageView()
+            ? result_texture->GetRenderResource().GetImageView()
             : g_engine->GetPlaceholderData()->GetImageView2D1x1R8();
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -113,8 +114,10 @@ void TemporalAA::CreateImages()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
     
-    m_result_texture->GetImage()->SetIsRWTexture(true);
+    m_result_texture->SetIsRWTexture(true);
     InitObject(m_result_texture);
+
+    m_result_texture->SetPersistentRenderResourceEnabled(true);
 
     m_history_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
@@ -125,8 +128,10 @@ void TemporalAA::CreateImages()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_history_texture->GetImage()->SetIsRWTexture(true);
+    m_history_texture->SetIsRWTexture(true);
     InitObject(m_history_texture);
+
+    m_history_texture->SetPersistentRenderResourceEnabled(true);
 
     PUSH_RENDER_COMMAND(
         SetTemporalAAResultInGlobalDescriptorSet,
@@ -154,7 +159,7 @@ void TemporalAA::CreateComputePipelines()
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
-        descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetImageView());
+        descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
         descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
@@ -165,7 +170,7 @@ void TemporalAA::CreateComputePipelines()
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
 
-        descriptor_set->SetElement(NAME("OutColorImage"), (*textures[frame_index % 2])->GetImageView());
+        descriptor_set->SetElement(NAME("OutColorImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }
 
     DeferCreate(
@@ -193,14 +198,11 @@ void TemporalAA::Render(Frame *frame)
     
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
 
-    const FixedArray<Handle<Texture> *, 2> textures = {
-        &m_result_texture,
-        &m_history_texture
-    };
+    const ImageRef &active_image = frame->GetFrameIndex() % 2 == 0
+        ? m_result_texture->GetRenderResource().GetImage()
+        : m_history_texture->GetRenderResource().GetImage();
 
-    Handle<Texture> &active_texture = *textures[frame->GetFrameIndex() % 2];
-
-    active_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    active_image->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     struct alignas(128) {
         Vec2u   dimensions;
@@ -229,7 +231,7 @@ void TemporalAA::Render(Frame *frame)
         }
     );
     
-    active_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    active_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

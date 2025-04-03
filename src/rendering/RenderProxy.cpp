@@ -100,10 +100,8 @@ RenderProxyEntityMap::Iterator RenderProxyList::Add(ID<Entity> entity, RenderPro
         if (proxy.version != iter->second.version) {
             // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
             AssertDebug(!m_changed_entities.Test(entity.ToIndex()));
-            AssertDebug(!m_changed_proxies.Contains(entity));
 
             // Mark as changed if it is found in the previous iteration
-            m_changed_proxies.Insert({ entity, std::move(iter->second) });
             m_changed_entities.Set(entity.ToIndex(), true);
 
             iter->second = std::move(proxy);
@@ -111,7 +109,6 @@ RenderProxyEntityMap::Iterator RenderProxyList::Add(ID<Entity> entity, RenderPro
     } else {
         // sanity check - if not in previous iteration, it must not be in the changed list
         AssertDebug(!m_changed_entities.Test(entity.ToIndex()));
-        AssertDebug(!m_changed_proxies.Contains(entity));
 
         iter = m_proxies.Insert(entity, std::move(proxy)).first;
     }
@@ -137,11 +134,32 @@ void RenderProxyList::MarkToRemove(ID<Entity> entity)
     m_next_entities.Set(entity.ToIndex(), false);
 }
 
-void RenderProxyList::GetRemovedEntities(Array<ID<Entity>> &out_entities)
+void RenderProxyList::GetAllEntities(Array<ID<Entity>> &out_entities)
+{
+    HYP_SCOPE;
+
+    Bitset all_entities = m_previous_entities | m_next_entities;
+
+    out_entities.Reserve(all_entities.Count());
+
+    SizeType first_set_bit_index;
+
+    while ((first_set_bit_index = all_entities.FirstSetBitIndex()) != -1) {
+        out_entities.PushBack(ID<Entity>::FromIndex(first_set_bit_index));
+
+        all_entities.Set(first_set_bit_index, false);
+    }
+}
+
+void RenderProxyList::GetRemovedEntities(Array<ID<Entity>> &out_entities, bool include_changed)
 {
     HYP_SCOPE;
 
     Bitset removed_bits = GetRemovedEntities();
+
+    if (include_changed) {
+        removed_bits |= GetChangedEntities();
+    }
 
     out_entities.Reserve(removed_bits.Count());
 
@@ -154,7 +172,7 @@ void RenderProxyList::GetRemovedEntities(Array<ID<Entity>> &out_entities)
     }
 }
 
-void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool include_changed)
+void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out, bool include_changed)
 {
     HYP_SCOPE;
     
@@ -164,7 +182,7 @@ void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool 
         newly_added_bits |= GetChangedEntities();
     }
 
-    out_entities.Reserve(newly_added_bits.Count());
+    out.Reserve(newly_added_bits.Count());
 
     Bitset::BitIndex first_set_bit_index;
 
@@ -174,7 +192,7 @@ void RenderProxyList::GetAddedEntities(Array<RenderProxy *> &out_entities, bool 
         auto it = m_proxies.Find(id);
         AssertThrow(it != m_proxies.End());
 
-        out_entities.PushBack(&it->second);
+        out.PushBack(&it->second);
 
         newly_added_bits.Set(first_set_bit_index, false);
     }
@@ -225,15 +243,7 @@ void RenderProxyList::Advance(RenderProxyListAdvanceAction action)
         break;
     }
 
-    if (m_changed_entities.Count() != 0) {
-        // Release changed proxies (previous values)
-        for (auto &it : m_changed_proxies) {
-            g_safe_deleter->SafeRelease(std::move(it.second));
-        }
-
-        m_changed_entities.Clear();
-        m_changed_proxies.Clear();
-    }
+    m_changed_entities.Clear();
 }
 
 #pragma endregion RenderProxyList

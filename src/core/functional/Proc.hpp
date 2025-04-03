@@ -167,10 +167,10 @@ class ProcRefBase { };
 
 } // namespace detail
 
-template <class ReturnType, class... Args>
+template <class FunctionSignature>
 class Proc;
 
-template <class ReturnType, class... Args>
+template <class FunctionSignature>
 class ProcRef;
 
 template <class T>
@@ -180,7 +180,7 @@ struct IsProc
 };
 
 template <class ReturnType, class... Args>
-struct IsProc<Proc<ReturnType, Args...>>
+struct IsProc<Proc<ReturnType(Args...)>>
 {
     static constexpr bool value = true;
 };
@@ -189,7 +189,7 @@ struct IsProc<Proc<ReturnType, Args...>>
 // with inline storage so no heap allocation occurs.
 // supports move-only types.
 template <class ReturnType, class... Args>
-class Proc : detail::ProcBase
+class Proc<ReturnType(Args...)> : detail::ProcBase
 {
     static constexpr uint32 inline_storage_size_bytes = 256;
 
@@ -197,7 +197,7 @@ class Proc : detail::ProcBase
     using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
-    friend class ProcRef<ReturnType, Args...>;
+    friend class ProcRef<ReturnType(Args...)>;
 
     /*! \brief Constructs an empty Proc object. \ref{IsValid} will return false, indicating that the underlying functor object or function pointer is invalid. */
     Proc()
@@ -237,8 +237,6 @@ public:
         }
     }
 
-    /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
-     *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
     Proc(Proc *fn)
         : Proc()
     {
@@ -309,7 +307,7 @@ private:
 };
 
 template <class ReturnType, class... Args>
-class ProcRef : public detail::ProcRefBase
+class ProcRef<ReturnType(Args...)> : public detail::ProcRefBase
 {
     static ReturnType(*const s_invalid_invoke_fn)(void *, Args &...);
 
@@ -320,7 +318,7 @@ public:
     {
     }
     
-    ProcRef(Proc<ReturnType, Args...> &proc)
+    ProcRef(Proc<ReturnType(Args...)> &proc)
         : ProcRef(nullptr)
     {
         if (proc.IsValid()) {
@@ -328,7 +326,7 @@ public:
 
             m_invoke_fn = [](void *ptr, Args &... args) -> ReturnType
             {
-                const Proc<ReturnType, Args...> &proc = *static_cast<const Proc<ReturnType, Args...> *>(ptr);
+                const Proc<ReturnType(Args...)> &proc = *static_cast<const Proc<ReturnType(Args...)> *>(ptr);
                 AssertThrowMsg(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
 
                 return proc(args...);
@@ -387,7 +385,7 @@ private:
 };
 
 template <class ReturnType, class... Args>
-ReturnType(*const ProcRef<ReturnType, Args...>::s_invalid_invoke_fn)(void *, Args &...) = [](void *, Args &...) -> ReturnType
+ReturnType(*const ProcRef<ReturnType(Args...)>::s_invalid_invoke_fn)(void *, Args &...) = [](void *, Args &...) -> ReturnType
 {
     if constexpr (!std::is_same_v<void, ReturnType>) {
         return detail::ProcDefaultReturn<ReturnType>::Get();

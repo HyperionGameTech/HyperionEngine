@@ -18,7 +18,7 @@ EditorDelegates::EditorDelegates()
 {
 }
 
-void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc)
+void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void(Node *, const HypProperty *)> &&proc)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
@@ -58,6 +58,7 @@ int EditorDelegates::RemoveNodeWatchers(WeakName watcher_key)
 
 void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
 {
+    AssertThrow(node != nullptr);
     AssertThrow(property != nullptr);
 
     auto Impl = [this, node_weak = node->WeakRefCountedPtrFromThis(), property]()

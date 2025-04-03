@@ -300,13 +300,9 @@ public:
     }
 
     /* get the first supported format out of the provided list of format choices. */
-    template <SizeType Size>
-    InternalFormat FindSupportedFormat(
-        const std::array<InternalFormat, Size> &possible_formats,
-        ImageSupportType support_type
-    ) const
+    InternalFormat FindSupportedFormat(Span<InternalFormat> possible_formats, ImageSupportType support_type) const
     {
-        static_assert(Size > 0, "Size must be greater than zero!");
+        AssertThrowMsg(possible_formats.Size() > 0, "Size must be greater than zero!");
 
         DebugLog(
             LogType::Debug,
@@ -317,10 +313,11 @@ public:
 
         if (m_physical_device == nullptr) {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
+            
             return InternalFormat::NONE;
         }
 
-        for (SizeType i = 0; i < Size; i++) {
+        for (SizeType i = 0; i < possible_formats.Size(); i++) {
             if (IsSupportedFormat(possible_formats[i], support_type) != VK_FORMAT_UNDEFINED) {
                 return possible_formats[i];
             }
@@ -330,22 +327,10 @@ public:
     }
 
     /* get the first supported format out of the provided list of format choices. */
-    template <SizeType Size, class LambdaFunction>
-    InternalFormat FindSupportedSurfaceFormat(
-        const SwapchainSupportDetails &details,
-        const std::array<InternalFormat, Size> &possible_formats,
-        LambdaFunction predicate
-    ) const
+    template <class Predicate>
+    InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails &details, Span<InternalFormat> possible_formats, Predicate &&predicate) const
     {
-        static_assert(Size > 0, "Size must be greater than zero!");
-
-        DebugLog(
-            LogType::Debug,
-            "Looking for format to use for surface. First choice: %d\n",
-            possible_formats[0]
-        );
-
-        DebugLog(LogType::Debug, "Available options:\n");
+        AssertThrowMsg(possible_formats.Size() != 0, "Size must be greater than zero!");
 
         for (const VkSurfaceFormatKHR &surface_format : details.formats) {
             DebugLog(
@@ -356,30 +341,23 @@ public:
             );
         }
 
-        for (auto wanted_format : possible_formats) {
+        for (InternalFormat format : possible_formats) {
             DebugLog(
                 LogType::Debug,
                 "Try format: %d\n",
-                wanted_format
+                format
             );
 
-            const VkFormat wanted_vk_format = helpers::ToVkFormat(wanted_format);
+            const VkFormat vk_format = helpers::ToVkFormat(format);
 
-            if (std::any_of(
-                details.formats.begin(),
-                details.formats.end(),
-                [wanted_vk_format, &predicate](const VkSurfaceFormatKHR &surface_format)
-                {
-                    return surface_format.format == wanted_vk_format && predicate(surface_format);
-                }
-            )) {
+            if (AnyOf(details.formats, [&](auto &&surface_format) { return surface_format.format == vk_format && predicate(surface_format); })) {
                 DebugLog(
                     LogType::Debug,
                     "Found surface format: %d\n",
-                    wanted_format
+                    format
                 );
 
-                return wanted_format;
+                return format;
             }
         }
 

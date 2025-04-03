@@ -12,6 +12,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/EnvGrid.hpp>
 
@@ -288,7 +289,7 @@ void ParticleSpawner::CreateRenderGroup()
 
         descriptor_set->SetElement(NAME("ParticlesBuffer"), m_particle_buffer);
         descriptor_set->SetElement(NAME("ParticleTexture"), m_params.texture
-            ? m_params.texture->GetImageView()
+            ? m_params.texture->GetRenderResource().GetImageView()
             : g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 

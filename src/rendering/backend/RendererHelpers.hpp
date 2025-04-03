@@ -44,7 +44,7 @@ public:
     SingleTimeCommands &operator=(SingleTimeCommands &&other) noexcept  = delete;
     HYP_API ~SingleTimeCommands();
 
-    void Push(Proc<RendererResult, const platform::CommandBufferRef<PLATFORM> &> &&fn)
+    void Push(Proc<RendererResult(const platform::CommandBufferRef<PLATFORM> &)> &&fn)
     {
         m_functions.PushBack(std::move(fn));
     }
@@ -77,7 +77,7 @@ private:
     HYP_API RendererResult End();
 
     Device<PLATFORM>                                                            *m_device;
-    Array<Proc<RendererResult, const platform::CommandBufferRef<PLATFORM> &>>   m_functions;
+    Array<Proc<RendererResult(const platform::CommandBufferRef<PLATFORM> &)>>   m_functions;
     FenceRef<PLATFORM>                                                          m_fence;
 
     CommandBufferRef<PLATFORM>                                                  m_command_buffer;

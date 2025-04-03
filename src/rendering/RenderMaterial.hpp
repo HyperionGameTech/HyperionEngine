@@ -21,8 +21,9 @@
 
 namespace hyperion {
 
-class Texture;
 class Material;
+class Texture;
+class TextureRenderResource;
 
 enum class MaterialTextureKey : uint64;
 
@@ -80,11 +81,12 @@ private:
 
     void UpdateBufferData();
 
-    Material                                            *m_material;
-    FlatMap<MaterialTextureKey, Handle<Texture>>        m_textures;
-    Array<ID<Texture>>                                  m_bound_texture_ids;
-    MaterialShaderData                                  m_buffer_data;
-    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
+    Material                                                        *m_material;
+    FlatMap<MaterialTextureKey, Handle<Texture>>                    m_textures;
+    HashMap<ID<Texture>, TResourceHandle<TextureRenderResource>>    m_texture_render_resources;
+    Array<ID<Texture>>                                              m_bound_texture_ids;
+    MaterialShaderData                                              m_buffer_data;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>              m_descriptor_sets;
 };
 class HYP_API MaterialDescriptorSetManager
 {

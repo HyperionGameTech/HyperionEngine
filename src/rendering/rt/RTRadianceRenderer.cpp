@@ -8,6 +8,7 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/EnvGrid.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
@@ -209,12 +210,12 @@ void RTRadianceRenderer::Render(Frame *frame)
         }
     );
 
-    m_texture->GetImage()->InsertBarrier(
+    m_texture->GetRenderResource().GetImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::UNORDERED_ACCESS
     );
 
-    const Vec3u image_extent = m_texture->GetImage()->GetExtent();
+    const Vec3u image_extent = m_texture->GetRenderResource().GetImage()->GetExtent();
 
     const SizeType num_pixels = image_extent.Volume();
     //const SizeType half_num_pixels = num_pixels / 2;
@@ -225,7 +226,7 @@ void RTRadianceRenderer::Render(Frame *frame)
         Vec3u { uint32(num_pixels), 1, 1 }
     );
 
-    m_texture->GetImage()->InsertBarrier(
+    m_texture->GetRenderResource().GetImage()->InsertBarrier(
         frame->GetCommandBuffer(),
         ResourceState::SHADER_RESOURCE
     );
@@ -251,8 +252,10 @@ void RTRadianceRenderer::CreateImages()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_texture->GetImage()->SetIsRWTexture(true);
+    m_texture->SetIsRWTexture(true);
     InitObject(m_texture);
+
+    m_texture->SetPersistentRenderResourceEnabled(true);
 }
 
 void RTRadianceRenderer::CreateUniformBuffer()
@@ -312,7 +315,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
         descriptor_set->SetElement(NAME("TLAS"), m_tlas);
         descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
 
-        descriptor_set->SetElement(NAME("OutputImage"), m_texture->GetImageView());
+        descriptor_set->SetElement(NAME("OutputImage"), m_texture->GetRenderResource().GetImageView());
         
         descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
@@ -337,8 +340,8 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
     PUSH_RENDER_COMMAND(
         SetRTRadianceImageInGlobalDescriptorSet,
         FixedArray<ImageViewRef, max_frames_in_flight> {
-            m_temporal_blending->GetResultTexture()->GetImageView(),
-            m_temporal_blending->GetResultTexture()->GetImageView()
+            m_temporal_blending->GetResultTexture()->GetRenderResource().GetImageView(),
+            m_temporal_blending->GetResultTexture()->GetRenderResource().GetImageView()
         }
     );
 }
@@ -354,7 +357,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
         IsPathTracer()
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::HIGH,
-        m_texture->GetImageView()
+        m_texture->GetRenderResource().GetImageView()
     );
 
     m_temporal_blending->Create();

@@ -190,6 +190,11 @@ struct HashCode
         return Combine(GetHashCode(value));
     }
 
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return *this;
+    }
+
 private:
     constexpr void HashCombine(const HashCode &other)
     {

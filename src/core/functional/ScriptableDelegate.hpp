@@ -29,7 +29,7 @@ template <class ReturnType, class... Args>
 class ScriptableDelegate final : public IScriptableDelegate, public virtual Delegate<ReturnType, Args...>
 {
 public:
-    using ProcType = Proc<ReturnType, Args...>;
+    using ProcType = Proc<ReturnType(Args...)>;
 
     ScriptableDelegate()                                                = default;
     ScriptableDelegate(const ScriptableDelegate &other)                 = delete;

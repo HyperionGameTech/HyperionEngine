@@ -903,12 +903,18 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
                     m_world_transform
                 });
             }
+
+            entity_manager->AddTags<
+                EntityTag::UPDATE_AABB,
+                EntityTag::UPDATE_LIGHT_TRANSFORM,
+                EntityTag::UPDATE_CAMERA_TRANSFORM,
+                EntityTag::UPDATE_ENV_GRID_TRANSFORM
+            >(m_entity);
         }
     }
 
     if (update_child_transforms) {
         for (NodeProxy &node : m_child_nodes) {
-            AssertThrow(node != nullptr);
             node->UpdateWorldTransform(true);
         }
     }

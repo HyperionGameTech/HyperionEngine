@@ -95,7 +95,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
     const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
 
     { // Invalidate visibility state of directional lights that have had their transforms update to refresh the octree
-        for (auto [entity_id, light_component, transform_component, bounding_box_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
+        for (auto [entity_id, light_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
             if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
                 continue;
             }
@@ -109,7 +109,7 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
     { // Update light transforms if they have the UPDATE_LIGHT_TRANSFORM tag
         HashSet<ID<Entity>> updated_entity_ids;
 
-        for (auto [entity_id, light_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
+        for (auto [entity_id, light_component, transform_component, _] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
             if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
                 continue;
             }
@@ -119,6 +119,8 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
             } else {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation());
             }
+
+            HYP_LOG(Scene, Debug, "Updating light transform for entity #{}", entity_id.Value());
 
             updated_entity_ids.Insert(entity_id);
         }

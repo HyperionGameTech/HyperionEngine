@@ -18,7 +18,7 @@ class BVHUpdaterSystem : public System<
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BVH>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BVH>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

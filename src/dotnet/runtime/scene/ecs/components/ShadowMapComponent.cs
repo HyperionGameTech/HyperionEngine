@@ -12,7 +12,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="ShadowMapComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    [StructLayout(LayoutKind.Explicit, Size = 40)]
     public struct ShadowMapComponent : IComponent
     {
         [FieldOffset(0)]
@@ -23,7 +23,7 @@ namespace Hyperion
         private Vec2u resolution = new Vec2u(512, 512);
         [FieldOffset(16)]
         private RefCountedPtr renderer;
-        [FieldOffset(20)]
+        [FieldOffset(24)]
         private uint updateCounter = 0;
 
         public ShadowMapComponent()

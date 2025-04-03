@@ -76,14 +76,14 @@ const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
     {
         QuadMeshInitializer()
         {
-            Handle<Mesh> tmp = MeshBuilder::Quad();
+            Handle<Mesh> quad = MeshBuilder::Quad();
 
             // Hack to make vertices be from 0..1 rather than -1..1
 
-            ResourceHandle resource_handle(*tmp->GetStreamedMeshData());
+            TResourceHandle<StreamedMeshData> resource_handle(*quad->GetStreamedMeshData());
 
-            Array<Vertex> vertices = tmp->GetStreamedMeshData()->GetMeshData().vertices;
-            const Array<uint32> &indices = tmp->GetStreamedMeshData()->GetMeshData().indices;
+            Array<Vertex> vertices = resource_handle->GetMeshData().vertices;
+            const Array<uint32> &indices = resource_handle->GetMeshData().indices;
 
             for (Vertex &vert : vertices) {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
@@ -91,7 +91,11 @@ const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
             }
 
             mesh = CreateObject<Mesh>(std::move(vertices), indices);
+            mesh->SetName(NAME("UIObject_QuadMesh"));
             InitObject(mesh);
+
+            // Since it will be reused a lot, keep the MeshRenderResource around.
+            mesh->SetPersistentRenderResourceEnabled(true);
         }
 
         Handle<Mesh> mesh;
@@ -907,6 +911,10 @@ void UIObject::SetBackgroundColor(const Color &background_color)
 {
     HYP_SCOPE;
 
+    if (m_background_color == background_color) {
+        return;
+    }
+
     m_background_color = background_color;
 
     // UpdateMaterial(false);
@@ -918,7 +926,6 @@ Color UIObject::GetTextColor() const
     HYP_SCOPE;
 
     if (uint32(m_text_color) == 0) {
-
         RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
         {
             return uint32(parent->m_text_color) != 0;
@@ -936,6 +943,10 @@ void UIObject::SetTextColor(const Color &text_color)
 {
     HYP_SCOPE;
 
+    if (text_color == GetTextColor()) {
+        return;
+    }
+
     m_text_color = text_color;
 
     // UpdateMaterial(true);
@@ -945,6 +956,10 @@ void UIObject::SetTextColor(const Color &text_color)
 void UIObject::SetText(const String &text)
 {
     HYP_SCOPE;
+
+    if (m_text == text) {
+        return;
+    }
 
     m_text = text;
 
@@ -1251,7 +1266,7 @@ int UIObject::RemoveAllChildUIObjects()
     return num_removed;
 }
 
-int UIObject::RemoveAllChildUIObjects(ProcRef<bool, UIObject *> predicate)
+int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate)
 {
     HYP_SCOPE;
 
@@ -1320,7 +1335,7 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool, UIObject *> predicate, bool deep) const
+RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject *)> predicate, bool deep) const
 {
     HYP_SCOPE;
     
@@ -1486,7 +1501,7 @@ Handle<Material> UIObject::CreateMaterial() const
     
     if (AllowMaterialUpdate()) {
         Handle<Material> material = CreateObject<Material>(
-            Name::Unique("UIObjectMaterial"),
+            Name::Unique("UIObjectMaterial_Dynamic"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1499,7 +1514,7 @@ Handle<Material> UIObject::CreateMaterial() const
         return material;
     } else {
         return MaterialCache::GetInstance()->GetOrCreate(
-            Name::Unique("UIObjectMaterial"),
+            Name::Unique("UIObjectMaterial_Static"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
             material_textures
@@ -1611,7 +1626,7 @@ UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const
+RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject *)> &proc) const
 {
     HYP_SCOPE;
     
@@ -1646,7 +1661,7 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool, UIObjec
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool, UIObject *> &proc) const
+RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject *)> &proc) const
 {
     HYP_SCOPE;
 
@@ -2299,7 +2314,7 @@ bool UIObject::RemoveNodeTag(WeakName key)
     return false;
 }
 
-void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible) const
+void UIObject::CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible) const
 {
     HYP_SCOPE;
 
@@ -2310,7 +2325,7 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible)
     }
 
     if (only_visible) {
-        for (auto [entity, ui_component, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+        for (auto [entity, ui_component, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
             if (!ui_component.ui_object) {
                 continue;
             }
@@ -2318,7 +2333,7 @@ void UIObject::CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible)
             proc(ui_component.ui_object);
         }
     } else {
-        for (auto [entity, ui_component] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+        for (auto [entity, ui_component] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
             if (!ui_component.ui_object) {
                 continue;
             }
@@ -2405,7 +2420,7 @@ Array<UIObject *> UIObject::GetChildUIObjects(bool deep) const
     return child_objects;
 }
 
-Array<UIObject *> UIObject::FilterChildUIObjects(ProcRef<bool, UIObject *> predicate, bool deep) const
+Array<UIObject *> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject *)> predicate, bool deep) const
 {
     HYP_SCOPE;
     
@@ -2465,7 +2480,7 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
     }
 }
 
-void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult, UIObject *> proc, bool deep) const
+void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject *)> proc, bool deep) const
 {
     ForEachChildUIObject(proc, deep);
 }

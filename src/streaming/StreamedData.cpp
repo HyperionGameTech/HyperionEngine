@@ -1,16 +1,22 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <streaming/StreamedData.hpp>
+#include <streaming/StreamingThread.hpp>
 
 #include <core/filesystem/DataStore.hpp>
 
 #include <core/threading/TaskSystem.hpp>
+
 #include <core/containers/StaticString.hpp>
+
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -33,11 +39,13 @@ StreamedData::StreamedData(StreamedDataState initial_state, ResourceHandle &out_
 
 void StreamedData::Initialize()
 {
-    (void)Load_Internal();
+    Load_Internal();
 }
 
 void StreamedData::Destroy()
 {
+    HYP_NAMED_SCOPE_FMT("Unpage {} (ResourceBase::Destroy())", InstanceClass()->GetName());
+
     Unpage_Internal();
 }
 
@@ -45,43 +53,25 @@ void StreamedData::Update()
 {
 }
 
-bool StreamedData::IsInMemory() const
+void StreamedData::Load() const
 {
-    bool result = false;
-
-    const_cast<StreamedData *>(this)->Execute([this, &result]()
-    {
-        result = IsInMemory_Internal();
-    });
-
-    return result;
-}
-
-const ByteBuffer &StreamedData::Load() const
-{
-    const ByteBuffer *buffer = nullptr;
-
-    const_cast<StreamedData *>(this)->Execute([this, &buffer]()
+    const_cast<StreamedData *>(this)->Execute([this]()
     {
         if (IsInMemory_Internal()) {
-            buffer = &GetByteBuffer();
-
             return;
         }
 
-        HYP_NAMED_SCOPE("Load streamed data");
-        
-        buffer = &Load_Internal();
-    });
+        HYP_NAMED_SCOPE("Load {}", InstanceClass()->GetName());
 
-    return *buffer;
+        Load_Internal();
+    });
 }
 
 void StreamedData::Unpage()
 {
     Execute([this]()
     {
-        HYP_NAMED_SCOPE("Unpage streamed data");
+        HYP_NAMED_SCOPE("Unpage {} (manual)", InstanceClass()->GetName());
 
         Unpage_Internal();
     });
@@ -92,6 +82,11 @@ const ByteBuffer &StreamedData::GetByteBuffer() const
     static const ByteBuffer default_value { };
 
     return default_value;
+}
+
+IThread *StreamedData::GetOwnerThread() const
+{
+    return GetGlobalStreamingThread().Get();
 }
 
 #pragma endregion StreamedData
@@ -108,16 +103,16 @@ void NullStreamedData::Unpage_Internal()
     // Do nothing
 }
 
-const ByteBuffer &NullStreamedData::Load_Internal() const
+void NullStreamedData::Load_Internal() const
 {
-    return GetByteBuffer();
+    // Do nothing
 }
 
 #pragma endregion NullStreamedData
 
 #pragma region MemoryStreamedData
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool, HashCode, ByteBuffer &> &&load_from_memory_proc)
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer &)> &&load_from_memory_proc)
     : StreamedData(),
       m_hash_code(hash_code),
       m_load_from_memory_proc(std::move(load_from_memory_proc)),
@@ -127,12 +122,8 @@ MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool, HashCode, 
     const bool should_load_unpaged = !m_data_store->Exists(String::ToString(hash_code.Value())) && m_load_from_memory_proc.IsValid();
 
     if (should_load_unpaged) {
-        HYP_LOG(Streaming, Info, "StreamedData with hash code {} is not in data store, loading from memory before unpaging", hash_code.Value());
-
-        // @NOTE: Calling virtual function, but this class is marked final so it will be last in the constructor chain
-        (void)StreamedData::Load();
-        
-        Unpage();
+        MemoryStreamedData::Load_Internal();
+        MemoryStreamedData::Unpage_Internal();
     }
 }
 
@@ -174,21 +165,17 @@ void MemoryStreamedData::Unpage_Internal()
         return;
     }
 
-    // Enqueue task to write file to disk
-    TaskSystem::GetInstance().Enqueue(
-        HYP_STATIC_MESSAGE("Write streamed data to disk"),
-        [byte_buffer = std::move(*m_byte_buffer), hash_code = m_hash_code, data_store_resource_handle = TResourceHandle<DataStore>(*m_data_store)]
-        {
-            data_store_resource_handle->Write(String::ToString(hash_code.Value()), byte_buffer);
-        },
-        TaskThreadPoolName::THREAD_POOL_BACKGROUND,
-        TaskEnqueueFlags::FIRE_AND_FORGET
-    );
-
+    ByteBuffer byte_buffer = std::move(*m_byte_buffer);
     m_byte_buffer.Unset();
+
+    if (byte_buffer.Empty()) {
+        return;
+    }
+
+    m_data_store->Write(String::ToString(m_hash_code.Value()), byte_buffer);
 }
 
-const ByteBuffer &MemoryStreamedData::Load_Internal() const
+void MemoryStreamedData::Load_Internal() const
 {
     if (!m_byte_buffer.HasValue()) {
         m_byte_buffer.Emplace();
@@ -196,7 +183,7 @@ const ByteBuffer &MemoryStreamedData::Load_Internal() const
         if (!m_data_store->Read(String::ToString(m_hash_code.Value()), *m_byte_buffer)) {
             if (m_load_from_memory_proc.IsValid()) {
                 if (m_load_from_memory_proc(m_hash_code, *m_byte_buffer)) {
-                    return *m_byte_buffer;
+                    return;
                 }
 
                 HYP_LOG(Streaming, Warning, "Failed to load streamed data with hash code {} from memory", m_hash_code.Value());
@@ -205,8 +192,6 @@ const ByteBuffer &MemoryStreamedData::Load_Internal() const
             m_byte_buffer.Unset();
         }
     }
-
-    return GetByteBuffer();
 }
 
 const ByteBuffer &MemoryStreamedData::GetByteBuffer() const

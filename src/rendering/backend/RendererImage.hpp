@@ -143,35 +143,6 @@ public:
     HYP_FORCE_INLINE bool IsSRGB() const
         { return IsSRGBFormat(m_texture_desc.format); }
 
-    HYP_FORCE_INLINE void SetIsSRGB(bool srgb)
-    {
-        const bool is_srgb = IsSRGB();
-
-        if (srgb == is_srgb) {
-            return;
-        }
-
-        const InternalFormat format = m_texture_desc.format;
-
-        if (is_srgb) {
-            m_texture_desc.format = InternalFormat(int(format) - int(InternalFormat::SRGB));
-
-            return;
-        }
-
-        const InternalFormat to_srgb_format = InternalFormat(int(InternalFormat::SRGB) + int(format));
-
-        if (!IsSRGBFormat(to_srgb_format)) {
-            DebugLog(
-                LogType::Warn,
-                "No SRGB counterpart for image type (%d)\n",
-                int(format)
-            );
-        }
-
-        m_texture_desc.format = to_srgb_format;
-    }
-
     HYP_FORCE_INLINE bool IsBlended() const
         { return m_is_blended; }
 

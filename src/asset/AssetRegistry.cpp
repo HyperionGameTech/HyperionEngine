@@ -436,7 +436,7 @@ void AssetRegistry::SetPackages(const AssetPackageSet &packages)
 
     Mutex::Guard guard(m_mutex);
 
-    Proc<void, Handle<AssetPackage>> InitializePackage;
+    Proc<void(Handle<AssetPackage>)> InitializePackage;
 
     // Set up the parent package pointer for a package, so all subpackages can trace back to their parent
     // and call OnPackageAdded for each nested package

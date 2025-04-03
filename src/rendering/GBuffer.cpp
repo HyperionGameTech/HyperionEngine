@@ -223,7 +223,8 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
     const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
-        AddOwnedAttachment(0, InternalFormat::RGBA8_SRGB, framebuffer);
+        // UI is floating point to give more room for using HDR textures on objects.
+        AddOwnedAttachment(0, InternalFormat::RGBA16F, framebuffer);
 
         // Needed for stencil
         AddOwnedAttachment(1, InternalFormat::DEPTH_32F, framebuffer);

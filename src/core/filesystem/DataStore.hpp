@@ -38,11 +38,11 @@ struct DataStoreOptions
 
 class HYP_API DataStoreBase : public IResource
 {
-    using InitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
+    using ClaimedSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
     using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
-    static DataStoreBase *GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase *, UTF8StringView> &&create_fn);
+    static DataStoreBase *GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase *(UTF8StringView)> &&create_fn);
 
     template <class DataStoreType>
     static DataStoreType &GetOrCreate(UTF8StringView prefix)
@@ -109,13 +109,14 @@ protected:
     virtual int ClaimWithoutInitialize() override;
     virtual int Unclaim() override;
 
-    virtual void WaitForCompletion() override;
+    virtual void WaitForTaskCompletion() const override final;
+    virtual void WaitForFinalization() const override final;
 
 private:
     ResourceMemoryPoolHandle    m_pool_handle;
     String                      m_prefix;
     DataStoreOptions            m_options;
-    InitSemaphore               m_init_semaphore;
+    ClaimedSemaphore               m_claimed_semaphore;
     ShutdownSemaphore           m_shutdown_semaphore;
 };
 

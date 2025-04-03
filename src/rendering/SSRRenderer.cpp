@@ -3,8 +3,9 @@
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
@@ -156,8 +157,10 @@ void SSRRenderer::Create()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_uvs_texture->GetImage()->SetIsRWTexture(true);
+    m_uvs_texture->SetIsRWTexture(true);
     InitObject(m_uvs_texture);
+
+    m_uvs_texture->SetPersistentRenderResourceEnabled(true);
 
     m_sampled_result_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
@@ -168,8 +171,10 @@ void SSRRenderer::Create()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_sampled_result_texture->GetImage()->SetIsRWTexture(true);
+    m_sampled_result_texture->SetIsRWTexture(true);
     InitObject(m_sampled_result_texture);
+
+    m_sampled_result_texture->SetPersistentRenderResourceEnabled(true);
 
     CreateUniformBuffers();
 
@@ -179,7 +184,7 @@ void SSRRenderer::Create()
             InternalFormat::RGBA8,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
-            m_sampled_result_texture->GetImageView()
+            m_sampled_result_texture->GetRenderResource().GetImageView()
         );
 
         m_temporal_blending->Create();
@@ -267,7 +272,7 @@ void SSRRenderer::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetImageView());
+        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetRenderResource().GetImageView());
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
@@ -292,8 +297,8 @@ void SSRRenderer::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = sample_gbuffer_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetImageView());
-        descriptor_set->SetElement(NAME("SampleImage"), m_sampled_result_texture->GetImageView());
+        descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetRenderResource().GetImageView());
+        descriptor_set->SetElement(NAME("SampleImage"), m_sampled_result_texture->GetRenderResource().GetImageView());
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
@@ -308,7 +313,7 @@ void SSRRenderer::CreateComputePipelines()
 
     PUSH_RENDER_COMMAND(
         CreateSSRDescriptors,
-        GetFinalResultTexture()->GetImageView()
+        GetFinalResultTexture()->GetRenderResource().GetImageView()
     );
 }
 
@@ -331,7 +336,7 @@ void SSRRenderer::Render(Frame *frame)
 
     // PASS 1 -- write UVs
 
-    m_uvs_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_uvs_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_write_uvs->Bind(command_buffer);
 
@@ -352,12 +357,12 @@ void SSRRenderer::Render(Frame *frame)
     m_write_uvs->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition the UV image back into read state
-    m_uvs_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_uvs_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_sampled_result_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    m_sampled_result_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_sample_gbuffer->Bind(command_buffer);
 
@@ -378,7 +383,7 @@ void SSRRenderer::Render(Frame *frame)
     m_sample_gbuffer->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition sample image back into read state
-    m_sampled_result_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_sampled_result_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
         m_temporal_blending->Render(frame);

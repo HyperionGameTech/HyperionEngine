@@ -73,18 +73,18 @@ bool RenderResourceBase::CanExecuteInline() const
     return Threads::IsOnThread(g_render_thread);
 }
 
-void RenderResourceBase::FlushScheduledTasks()
+void RenderResourceBase::FlushScheduledTasks() const
 {
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 }
 
-void RenderResourceBase::EnqueueOp(Proc<void> &&proc)
+void RenderResourceBase::EnqueueOp(Proc<void()> &&proc)
 {
     struct RENDER_COMMAND(RenderResourceOperation) : renderer::RenderCommand
     {
-        Proc<void>  proc;
+        Proc<void()>  proc;
 
-        RENDER_COMMAND(RenderResourceOperation)(Proc<void> &&proc)
+        RENDER_COMMAND(RenderResourceOperation)(Proc<void()> &&proc)
             : proc(std::move(proc))
         {
         }

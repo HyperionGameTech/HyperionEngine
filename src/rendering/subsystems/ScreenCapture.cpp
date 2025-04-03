@@ -2,6 +2,7 @@
 
 #include <rendering/subsystems/ScreenCapture.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <scene/Texture.hpp>
 
@@ -14,7 +15,7 @@ ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const Vec2
       m_window_size(window_size),
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,
-          InternalFormat::RGBA8_SRGB,
+          InternalFormat::RGBA16F,
           Vec3u { window_size.x, window_size.y, 1 },
           FilterMode::TEXTURE_FILTER_NEAREST,
           FilterMode::TEXTURE_FILTER_NEAREST,
@@ -22,6 +23,7 @@ ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const Vec2
       })),
       m_screen_capture_mode(screen_capture_mode)
 {
+    InitObject(m_texture);
 }
 
 ScreenCaptureRenderSubsystem::~ScreenCaptureRenderSubsystem()
@@ -34,10 +36,10 @@ void ScreenCaptureRenderSubsystem::Init()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    InitObject(m_texture);
+    m_texture->SetPersistentRenderResourceEnabled(true);
 
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
-    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetImage()->GetByteSize()));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetRenderResource().GetImage()->GetByteSize()));
     m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 }
 
@@ -75,18 +77,18 @@ void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
     switch (m_screen_capture_mode) {
     case ScreenCaptureMode::TO_TEXTURE:
         // Hack, but we need to make sure the image is created before we can blit to it
-        if (!m_texture->GetImage()->IsCreated()) {
+        if (!m_texture->GetRenderResource().GetImage()->IsCreated()) {
             HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
         }
 
-        m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-        m_texture->GetImage()->Blit(
+        m_texture->GetRenderResource().GetImage()->Blit(
             command_buffer,
             image_ref
         );
 
-        m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
         break;
     case ScreenCaptureMode::TO_BUFFER:

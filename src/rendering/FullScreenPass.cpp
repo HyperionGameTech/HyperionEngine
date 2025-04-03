@@ -5,6 +5,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
@@ -151,7 +152,7 @@ const ImageViewRef &FullScreenPass::GetFinalImageView() const
     if (UsesTemporalBlending()) {
         AssertThrow(m_temporal_blending != nullptr);
 
-        return m_temporal_blending->GetResultTexture()->GetImageView();
+        return m_temporal_blending->GetResultTexture()->GetRenderResource().GetImageView();
     }
 
     if (ShouldRenderHalfRes()) {
@@ -181,7 +182,7 @@ const ImageViewRef &FullScreenPass::GetPreviousFrameColorImageView() const
     }
 
     if (m_previous_texture.IsValid()) {
-        return m_previous_texture->GetImageView();
+        return m_previous_texture->GetRenderResource().GetImageView();
     }
 
     return ImageViewRef::Null();
@@ -423,6 +424,8 @@ void FullScreenPass::CreatePreviousTexture()
     });
 
     InitObject(m_previous_texture);
+
+    m_previous_texture->SetPersistentRenderResourceEnabled(true);
 }
 
 void FullScreenPass::CreateRenderTextureToScreenPass()
@@ -630,7 +633,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
     AssertThrow(m_previous_texture.IsValid());
 
     const ImageRef &src_image = m_framebuffer->GetAttachment(0)->GetImage();
-    const ImageRef &dst_image = m_previous_texture->GetImage();
+    const ImageRef &dst_image = m_previous_texture->GetRenderResource().GetImage();
 
     src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
     dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);

@@ -200,7 +200,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     if (!format_support_result) {
         // try a series of fixes to get the image in a valid state.
 
-        Array<Pair<const char *, Proc<RendererResult>>> potential_fixes;
+        Array<Pair<const char *, Proc<RendererResult()>>> potential_fixes;
 
         if (!IsDepthFormat(self->GetTextureFormat())) {
             // convert to 32bpp image

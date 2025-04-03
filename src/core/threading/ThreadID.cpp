@@ -97,8 +97,19 @@ private:
     mutable Mutex                   m_mutex;
 };
 
-static GlobalThreadIDCache g_static_thread_id_cache;
-static GlobalThreadIDCache g_dynamic_thread_id_cache;
+static GlobalThreadIDCache &GetStaticThreadIDCache()
+{
+    static GlobalThreadIDCache cache;
+
+    return cache;
+}
+
+static GlobalThreadIDCache &GetDynamicThreadIDCache()
+{
+    static GlobalThreadIDCache cache;
+
+    return cache;
+}
 
 #pragma region ThreadID
 
@@ -108,12 +119,12 @@ static uint32 AllocateThreadID(Name name, uint32 allocate_flags)
 
     if (allocate_flags & ThreadID::AllocateFlags::DYNAMIC) {
         thread_id_value = (allocate_flags & ThreadID::AllocateFlags::FORCE_UNIQUE)
-            ? g_dynamic_thread_id_cache.AllocateIndex(name)
-            : g_dynamic_thread_id_cache.FindOrAllocateIndex(name);
+            ? GetDynamicThreadIDCache().AllocateIndex(name)
+            : GetDynamicThreadIDCache().FindOrAllocateIndex(name);
     } else {
         thread_id_value = (allocate_flags & ThreadID::AllocateFlags::FORCE_UNIQUE)
-            ? g_static_thread_id_cache.AllocateIndex(name)
-            : g_static_thread_id_cache.FindOrAllocateIndex(name);
+            ? GetStaticThreadIDCache().AllocateIndex(name)
+            : GetStaticThreadIDCache().FindOrAllocateIndex(name);
 
         AssertThrowMsg(thread_id_value < g_max_static_thread_ids, "Maximum static thread id value exceeded!");
 
@@ -180,7 +191,7 @@ StaticThreadID::StaticThreadID(Name name, bool force_unique)
 
 StaticThreadID::StaticThreadID(uint32 static_thread_index)
 {
-    m_name = g_static_thread_id_cache.FindNameByIndex(static_thread_index + 1);
+    m_name = GetStaticThreadIDCache().FindNameByIndex(static_thread_index + 1);
     m_value = ((1u << static_thread_index) << 4) & g_thread_id_mask;
 }
 

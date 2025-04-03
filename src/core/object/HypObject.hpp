@@ -40,7 +40,7 @@ namespace dotnet {
 class Class;
 } // namespace dotnet
 
-extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class, dotnet::Object *managed_object);
+extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
@@ -159,6 +159,81 @@ public:
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
     {
         static_cast<T *>(_this)->m_hyp_object_initializer_ptr = ptr;
+    }
+
+    virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const override
+    {
+        switch (allocation_method) {
+        case HypClassAllocationMethod::HANDLE:
+        {
+            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
+                if (weak) {
+                    static_cast<T *>(_this)->GetObjectHeader_Internal()->IncRefWeak();
+                } else {
+                    static_cast<T *>(_this)->GetObjectHeader_Internal()->IncRefStrong();
+                }
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::HANDLE requires HypObjectBase as a base class");
+            }
+
+            break;
+        }
+        case HypClassAllocationMethod::REF_COUNTED_PTR:
+        {
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                ref_count_data->inc_ref_count(_this, *ref_count_data, weak);
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
+            }
+
+            break;
+        }
+        default:
+        {
+            HYP_FAIL("Unhandled HypClass allocation method");
+        }
+        }
+    }
+
+    virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const override
+    {
+        switch (allocation_method) {
+        case HypClassAllocationMethod::HANDLE:
+        {
+            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
+                if (weak) {
+                    static_cast<T *>(_this)->GetObjectHeader_Internal()->DecRefWeak();
+                } else {
+                    static_cast<T *>(_this)->GetObjectHeader_Internal()->DecRefStrong();
+                }
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::HANDLE requires HypObjectBase as a base class");
+            }
+            
+            break;
+        }
+        case HypClassAllocationMethod::REF_COUNTED_PTR:
+        {
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+
+                if (weak) {
+                    ref_count_data->DecRefCount_Weak(_this);
+                } else {
+                    ref_count_data->DecRefCount_Strong(_this);
+                }
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
+            }
+
+            break;
+        }
+        default:
+        {
+            HYP_FAIL("Unhandled HypClass allocation method");
+        }
+        }
     }
 
     HYP_FORCE_INLINE static TypeID GetTypeID_Static()

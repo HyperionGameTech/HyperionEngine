@@ -28,7 +28,7 @@ struct DropDownMenuItem
 {
     Name        name;
     String      text;
-    Proc<void>  action;
+    Proc<void()>  action;
 };
 
 #pragma endregion DropDownMenuItem

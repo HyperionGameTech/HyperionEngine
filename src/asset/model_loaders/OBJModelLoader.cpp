@@ -380,7 +380,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         if (!obj_mesh.material.Empty() && material_library) {
             if (material_library->Has(obj_mesh.material)) {
-                material = material_library->Get(obj_mesh.material)->Clone();
+                material = material_library->Get(obj_mesh.material);
             } else {
                 HYP_LOG(Assets, Warning, "OBJ model loader: Material '{}' could not be found in material library", obj_mesh.material);
             }
@@ -388,6 +388,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         if (!material.IsValid()) {
             material = MaterialCache::GetInstance()->GetOrCreate(
+                NAME("BasicOBJMaterial"),
                 {
                     .shader_definition = ShaderDefinition {
                         NAME("Forward"),

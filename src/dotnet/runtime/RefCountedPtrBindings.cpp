@@ -11,7 +11,7 @@ using namespace hyperion;
 
 extern "C" {
 
-HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, ValueStorage<HypData> *out_hyp_data)
+HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, uintptr_t address, ValueStorage<HypData> *out_hyp_data)
 {
     AssertThrow(out_hyp_data != nullptr);
 
@@ -19,53 +19,49 @@ HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, ValueStorage<HypData> *o
     AssertThrow(ref_count_data != nullptr);
 
     RC<void> rc;
-    rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
+    rc.SetRefCountData_Internal(reinterpret_cast<void *>(address), ref_count_data, /* inc_ref */ true);
 
     out_hyp_data->Construct(std::move(rc));
 }
 
-HYP_EXPORT uint32 RefCountedPtr_IncRef(uintptr_t ctrl_block)
+HYP_EXPORT void RefCountedPtr_IncRef(uintptr_t ctrl_block, uintptr_t address)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType *>(ctrl_block);
     AssertThrow(ref_count_data != nullptr);
 
-    return ref_count_data->IncRefCount_Strong();
+    ref_count_data->IncRefCount_Strong(reinterpret_cast<void *>(address));
 }
 
-HYP_EXPORT uint32 RefCountedPtr_DecRef(uintptr_t ctrl_block)
+HYP_EXPORT void RefCountedPtr_DecRef(uintptr_t ctrl_block, uintptr_t address)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType *>(ctrl_block);
     AssertThrow(ref_count_data != nullptr);
 
-    return ref_count_data->DecRefCount_Strong();
+    ref_count_data->DecRefCount_Strong(reinterpret_cast<void *>(address));
 }
 
-HYP_EXPORT uint32 WeakRefCountedPtr_IncRef(uintptr_t ctrl_block)
+HYP_EXPORT void WeakRefCountedPtr_IncRef(uintptr_t ctrl_block, uintptr_t address)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType *>(ctrl_block);
     AssertThrow(ref_count_data != nullptr);
 
-    return ref_count_data->IncRefCount_Weak();
+    ref_count_data->IncRefCount_Weak(reinterpret_cast<void *>(address));
 }
 
-HYP_EXPORT uint32 WeakRefCountedPtr_DecRef(uintptr_t ctrl_block)
+HYP_EXPORT void WeakRefCountedPtr_DecRef(uintptr_t ctrl_block, uintptr_t address)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType *>(ctrl_block);
     AssertThrow(ref_count_data != nullptr);
 
-    return ref_count_data->DecRefCount_Weak();
+    ref_count_data->IncRefCount_Weak(reinterpret_cast<void *>(address));
 }
 
-HYP_EXPORT uint32 WeakRefCountedPtr_Lock(uintptr_t ctrl_block)
+HYP_EXPORT uint32 WeakRefCountedPtr_Lock(uintptr_t ctrl_block, uintptr_t address)
 {
     auto *ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType *>(ctrl_block);
     AssertThrow(ref_count_data != nullptr);
 
-    if (ref_count_data->value == nullptr) {
-        return 0;
-    }
-
-    return ref_count_data->IncRefCount_Strong();
+    return ref_count_data->IncRefCount_Strong(reinterpret_cast<void *>(address));
 }
 
 } // extern "C"

@@ -12,6 +12,8 @@
 
 #include <core/object/HypData.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
 #include <core/logging/Logger.hpp>
 
 namespace hyperion {
@@ -35,6 +37,8 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
         m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), [this](HashCode hc, ByteBuffer &out) -> bool
         {
             if (!m_texture_data) {
+                HYP_LOG(Streaming, Error, "Texture data is unset when trying to load from memory");
+
                 return false;
             }
 
@@ -88,26 +92,21 @@ bool StreamedTextureData::IsInMemory_Internal() const
 
 void StreamedTextureData::Unpage_Internal()
 {
-    m_texture_data.Unset();
-
-    if (!m_streamed_data) {
-        return;
+    if (m_streamed_data) {
+        m_streamed_data->Unpage();
     }
 
-    m_streamed_data->Unpage();
+    m_texture_data.Unset();
 }
 
-const ByteBuffer &StreamedTextureData::Load_Internal() const
+void StreamedTextureData::Load_Internal() const
 {
     AssertThrow(m_streamed_data != nullptr);
-
-    const ByteBuffer &byte_buffer = m_streamed_data->Load();
+    m_streamed_data->Load();
 
     if (!m_texture_data.HasValue()) {
-        LoadTextureData(byte_buffer);
+        LoadTextureData(m_streamed_data->GetByteBuffer());
     }
-
-    return byte_buffer;
 }
 
 void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
@@ -126,7 +125,7 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
     fbom::FBOMLoadContext context;
 
     if (fbom::FBOMResult err = deserializer.Deserialize(context, reader, value)) {
-        HYP_LOG(Streaming, Warning, "StreamedTextureData: Error deserializing texture data: {}", err.message);
+        HYP_LOG(Streaming, Warning, "StreamedTextureData: Error deserializing texture data for StreamedTextureData with hash: {}\tError: {}", GetDataHashCode().Value(), err.message);
         return;
     }
 
@@ -138,13 +137,51 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
 
 const TextureData &StreamedTextureData::GetTextureData() const
 {
-    static const TextureData default_value { };
+    WaitForTaskCompletion();
 
     if (!m_texture_data.HasValue()) {
+        static const TextureData default_value { };
+    
         return default_value;
     }
 
     return m_texture_data.Get();
+}
+
+void StreamedTextureData::SetTextureData(TextureData &&texture_data)
+{
+    Execute([this, texture_data = std::move(texture_data)]()
+    {
+        m_texture_desc = texture_data.desc;
+        m_buffer_size = texture_data.buffer.Size();
+        
+        m_texture_data.Set(std::move(texture_data));
+    });
+}
+
+const TextureDesc &StreamedTextureData::GetTextureDesc() const
+{
+    WaitForTaskCompletion();
+
+    if (!m_texture_data.HasValue()) {
+        static const TextureDesc default_value { };
+
+        return default_value;
+    }
+
+    return m_texture_data->desc;
+}
+
+void StreamedTextureData::SetTextureDesc(const TextureDesc &texture_desc)
+{
+    Execute([this, texture_desc]()
+    {
+        m_texture_desc = texture_desc;
+
+        if (m_texture_data.HasValue()) {
+            m_texture_data->desc = texture_desc;
+        }
+    });
 }
 
 } // namespace hyperion

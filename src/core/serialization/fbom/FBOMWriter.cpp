@@ -346,7 +346,7 @@ FBOMResult FBOMWriter::AddExternalObjects(FBOMLoadContext &context, FBOMObject &
         m_write_stream->AddToObjectLibrary(object);
     }
 
-    Proc<FBOMResult, FBOMLoadContext &, FBOMData &> AddNestedExternalObjects;
+    Proc<FBOMResult(FBOMLoadContext &, FBOMData &)> AddNestedExternalObjects;
 
     AddNestedExternalObjects = [this, &AddNestedExternalObjects](FBOMLoadContext &context, FBOMData &data) -> FBOMResult
     {

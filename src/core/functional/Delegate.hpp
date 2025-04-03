@@ -344,7 +344,7 @@ template <class ReturnType, class... Args>
 class Delegate : public virtual IDelegate
 {
 public:
-    using ProcType = Proc<ReturnType, Args...>;
+    using ProcType = Proc<ReturnType(Args...)>;
 
     Delegate()
         : m_id_counter(0)

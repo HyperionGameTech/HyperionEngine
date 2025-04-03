@@ -51,7 +51,7 @@ enum TaskThreadPoolName : uint32
 class TaskThreadPool;
 class TaskSystem;
 
-using OnTaskBatchCompletedCallback = Proc<void>;
+using OnTaskBatchCompletedCallback = Proc<void()>;
 
 class TaskBatch
 {

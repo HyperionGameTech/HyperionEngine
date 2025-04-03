@@ -92,8 +92,8 @@ namespace Hyperion
 #endif
 
                 // HypObject_Initialize() will increment the reference count for objects created from managed, so we need to increment it here manually
-                if (HypClass.IsReferenceCounted)
-                    HypObject_IncRef(_hypClassPtr, _nativeAddress, false);
+                // if (HypClass.IsReferenceCounted)
+                //     HypObject_IncRef(_hypClassPtr, _nativeAddress, false);
             }
 
 #if DEBUG

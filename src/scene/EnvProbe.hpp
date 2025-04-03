@@ -182,6 +182,11 @@ private:
     bool OnlyCollectStaticEntities() const
         { return IsReflectionProbe() || IsAmbientProbe(); }
 
+    void Invalidate()
+    {
+        m_octant_hash_code = HashCode();
+    }
+
     Handle<Scene>           m_parent_scene;
     BoundingBox             m_aabb;
     Vec2u                   m_dimensions;

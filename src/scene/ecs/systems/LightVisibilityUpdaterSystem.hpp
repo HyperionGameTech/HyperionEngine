@@ -26,7 +26,7 @@ class LightVisibilityUpdaterSystem : public System<
     // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
     ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

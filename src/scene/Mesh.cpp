@@ -172,7 +172,7 @@ Mesh::~Mesh()
     if (IsInitCalled()) {
         SetReady(false);
 
-        m_always_claimed_render_resource_handle.Reset();
+        m_persistent_render_resource_handle.Reset();
 
         if (m_render_resource != nullptr) {
             FreeResource(m_render_resource);
@@ -184,7 +184,7 @@ Mesh::~Mesh()
     // @NOTE Must be after we free the m_render_resource,
     // since m_render_resource would be using our streamed mesh data
     if (m_streamed_mesh_data != nullptr) {
-        m_streamed_mesh_data->WaitForCompletion();
+        m_streamed_mesh_data->WaitForFinalization();
         m_streamed_mesh_data.Reset();
     }
 }
@@ -199,6 +199,8 @@ void Mesh::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
     {
+        m_persistent_render_resource_handle.Reset();
+
         if (m_render_resource != nullptr) {
             FreeResource(m_render_resource);
 
@@ -208,7 +210,7 @@ void Mesh::Init()
         m_streamed_mesh_data_resource_handle.Reset();
 
         if (m_streamed_mesh_data != nullptr) {
-            m_streamed_mesh_data->WaitForCompletion();
+            m_streamed_mesh_data->WaitForFinalization();
             m_streamed_mesh_data.Reset();
         }
     }));
@@ -288,7 +290,7 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
             m_render_resource->SetStreamedMeshData(nullptr);
         }
 
-        m_streamed_mesh_data->WaitForCompletion();
+        m_streamed_mesh_data->WaitForFinalization();
     }
 
     m_streamed_mesh_data = std::move(streamed_mesh_data);
@@ -305,7 +307,6 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
         }
 
         m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
-        m_streamed_mesh_data_resource_handle.Reset();
     }
 }
 
@@ -347,12 +348,14 @@ void Mesh::SetPersistentRenderResourceEnabled(bool enabled)
 {
     AssertIsInitCalled();
 
-    HYP_MT_CHECK_RW(m_data_race_detector, "m_always_claimed_render_resource_handle");
+    HYP_MT_CHECK_RW(m_data_race_detector, "m_persistent_render_resource_handle");
 
     if (enabled) {
-        m_always_claimed_render_resource_handle = ResourceHandle(*m_render_resource);
+        if (!m_persistent_render_resource_handle) {
+            m_persistent_render_resource_handle = ResourceHandle(*m_render_resource);
+        }
     } else {
-        m_always_claimed_render_resource_handle.Reset();
+        m_persistent_render_resource_handle.Reset();
     }
 }
 
@@ -367,7 +370,9 @@ void Mesh::CalculateNormals(bool weighted)
         return;
     }
 
-    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    if (!m_streamed_mesh_data_resource_handle) {
+        m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
+    }
     
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
@@ -407,11 +412,10 @@ void Mesh::CalculateNormals(bool weighted)
     }
 
     if (!weighted) {
-        resource_handle.Reset();
         m_streamed_mesh_data_resource_handle.Reset();
         
-        m_streamed_mesh_data->WaitForCompletion();
-        m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
+        m_streamed_mesh_data->WaitForFinalization();
+        m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 
         return;
     }
@@ -506,11 +510,10 @@ void Mesh::CalculateNormals(bool weighted)
 
     normals.clear();
 
-    resource_handle.Reset();
     m_streamed_mesh_data_resource_handle.Reset();
     
-    m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
+    m_streamed_mesh_data->WaitForFinalization();
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 }
 
 void Mesh::CalculateTangents()
@@ -524,7 +527,9 @@ void Mesh::CalculateTangents()
         return;
     }
 
-    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    if (!m_streamed_mesh_data_resource_handle) {
+        m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
+    }
     
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
@@ -595,11 +600,10 @@ void Mesh::CalculateTangents()
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT;
     m_mesh_attributes.vertex_attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT;
 
-    resource_handle.Reset();
     m_streamed_mesh_data_resource_handle.Reset();
 
-    m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
+    m_streamed_mesh_data->WaitForFinalization();
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 }
 
 void Mesh::InvertNormals()
@@ -613,7 +617,9 @@ void Mesh::InvertNormals()
         return;
     }
 
-    ResourceHandle resource_handle(*m_streamed_mesh_data);
+    if (!m_streamed_mesh_data_resource_handle) {
+        m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
+    }
     
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
@@ -621,11 +627,10 @@ void Mesh::InvertNormals()
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
     
-    resource_handle.Reset();
     m_streamed_mesh_data_resource_handle.Reset();
 
-    m_streamed_mesh_data->WaitForCompletion();
-    m_streamed_mesh_data.Emplace(std::move(mesh_data), resource_handle);
+    m_streamed_mesh_data->WaitForFinalization();
+    m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 }
 
 void Mesh::CalculateAABB()

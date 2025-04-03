@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
@@ -51,6 +52,16 @@ void MaterialRenderResource::Initialize_Internal()
     HYP_SCOPE;
 
     AssertThrow(m_material != nullptr);
+
+    m_texture_render_resources.Reserve(m_textures.Size());
+
+    for (const Pair<MaterialTextureKey, Handle<Texture>> &it : m_textures) {
+        if (const Handle<Texture> &texture = it.second) {
+            AssertThrow(texture->IsReady());
+
+            m_texture_render_resources.Set(texture->GetID(), TResourceHandle<TextureRenderResource>(texture->GetRenderResource()));
+        }
+    }
     
     UpdateBufferData();
 
@@ -64,6 +75,8 @@ void MaterialRenderResource::Destroy_Internal()
     HYP_SCOPE;
 
     AssertThrow(m_material != nullptr);
+
+    m_texture_render_resources.Clear();
     
     if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
         DestroyDescriptorSets();
@@ -85,9 +98,9 @@ void MaterialRenderResource::Update_Internal()
             AssertThrow(descriptor_set != nullptr);
 
             if (texture.IsValid()) {
-                AssertThrow(texture->GetImageView() != nullptr);
+                AssertThrow(texture->GetRenderResource().GetImageView() != nullptr);
 
-                descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
+                descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetRenderResource().GetImageView());
             } else {
                 descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
             }
@@ -189,9 +202,25 @@ void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Ha
 
     Execute([this, texture_key, texture]()
     {
+        auto it = m_textures.FindAs(texture_key);
+
+        if (it != m_textures.End()) {
+            if (it->second == texture) {
+                return;
+            }
+
+            m_texture_render_resources.Erase(it->second->GetID());
+        }
+
         m_textures.Set(texture_key, texture);
 
         if (IsInitialized()) {
+            if (texture.IsValid()) {
+                AssertThrow(texture->IsReady());
+
+                m_texture_render_resources.Set(texture->GetID(), TResourceHandle<TextureRenderResource>(texture->GetRenderResource()));
+            }
+
             UpdateBufferData();
         }
     });
@@ -203,9 +232,19 @@ void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Text
 
     Execute([this, textures = std::move(textures)]()
     {
+        m_texture_render_resources.Clear();
+
         m_textures = std::move(textures);
 
         if (IsInitialized()) {
+            for (const Pair<MaterialTextureKey, Handle<Texture>> &it : m_textures) {
+                if (it.second.IsValid()) {
+                    AssertThrow(it.second->IsReady());
+
+                    m_texture_render_resources.Set(it.second->GetID(), TResourceHandle<TextureRenderResource>(it.second->GetRenderResource()));
+                }
+            }
+
             UpdateBufferData();
         }
     });
@@ -366,8 +405,8 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
             if (texture_index < textures.Size()) {
                 const Handle<Texture> &texture = textures[texture_index];
 
-                if (texture.IsValid() && texture->GetImageView() != nullptr) {
-                    descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetImageView());
+                if (texture.IsValid() && texture->GetRenderResource().GetImageView() != nullptr) {
+                    descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetRenderResource().GetImageView());
 
                     continue;
                 }

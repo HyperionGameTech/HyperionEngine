@@ -64,10 +64,13 @@ public:
     HYP_FORCE_INLINE SizeType NumIndices() const
         { return m_num_indices; }
 
+    virtual HashCode GetDataHashCode() const override
+        { return m_streamed_data ? m_streamed_data->GetDataHashCode() : HashCode(0); }
+
 protected:
     virtual bool IsInMemory_Internal() const override;
     
-    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
     
 private:

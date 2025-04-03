@@ -142,7 +142,7 @@ void AssetManager::SetBasePath(const FilePath &base_path)
     OnBaseAssetCollectorChanged(asset_collector);
 }
 
-void AssetManager::ForEachAssetCollector(const ProcRef<void, const Handle<AssetCollector> &> &callback) const
+void AssetManager::ForEachAssetCollector(const ProcRef<void(const Handle<AssetCollector> &)> &callback) const
 {
     HYP_SCOPE;
 
@@ -189,7 +189,7 @@ void AssetManager::RemoveAssetCollector(const Handle<AssetCollector> &asset_coll
     OnAssetCollectorRemoved(asset_collector);
 }
 
-const Handle<AssetCollector> &AssetManager::FindAssetCollector(ProcRef<bool, const Handle<AssetCollector> &> proc) const
+const Handle<AssetCollector> &AssetManager::FindAssetCollector(ProcRef<bool(const Handle<AssetCollector> &)> proc) const
 {
     Mutex::Guard guard(m_asset_collectors_mutex);
 

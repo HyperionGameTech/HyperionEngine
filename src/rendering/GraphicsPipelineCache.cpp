@@ -30,14 +30,14 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
     RenderPassRef                           render_pass;
     Array<FramebufferRef>                   framebuffers;
     RenderableAttributeSet                  attributes;
-    Proc<void, const GraphicsPipelineRef &> callback;
+    Proc<void(const GraphicsPipelineRef &)> callback;
 
     RENDER_COMMAND(CreateGraphicsPipeline)(
         const GraphicsPipelineRef &pipeline,
         const RenderPassRef &render_pass,
         const Array<FramebufferRef> &framebuffers,
         const RenderableAttributeSet &attributes,
-        Proc<void, const GraphicsPipelineRef &> &&callback
+        Proc<void(const GraphicsPipelineRef &)> &&callback
     ) : pipeline(pipeline),
         render_pass(render_pass),
         framebuffers(framebuffers),
@@ -125,7 +125,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
     const RenderPassRef &render_pass,
     const Array<FramebufferRef> &framebuffers,
     const RenderableAttributeSet &attributes,
-    Proc<void, const GraphicsPipelineRef &> &&on_ready_callback
+    Proc<void(const GraphicsPipelineRef &)> &&on_ready_callback
 )
 {
     HYP_SCOPE;
@@ -156,7 +156,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         graphics_pipeline->SetShader(shader);
     }
 
-    Proc<void, const GraphicsPipelineRef &> new_callback = [this, attributes, on_ready_callback = std::move(on_ready_callback)](const GraphicsPipelineRef &graphics_pipeline)
+    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes, on_ready_callback = std::move(on_ready_callback)](const GraphicsPipelineRef &graphics_pipeline)
     {
         {
             Mutex::Guard guard(m_mutex);

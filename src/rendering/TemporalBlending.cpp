@@ -4,6 +4,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
@@ -192,8 +193,10 @@ void TemporalBlending::CreateImageOutputs()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_result_texture->GetImage()->SetIsRWTexture(true);
+    m_result_texture->SetIsRWTexture(true);
     InitObject(m_result_texture);
+
+    m_result_texture->SetPersistentRenderResourceEnabled(true);
 
     m_history_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
@@ -204,8 +207,10 @@ void TemporalBlending::CreateImageOutputs()
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     });
 
-    m_history_texture->GetImage()->SetIsRWTexture(true);
+    m_history_texture->SetIsRWTexture(true);
     InitObject(m_history_texture);
+
+    m_history_texture->SetPersistentRenderResourceEnabled(true);
 }
 
 void TemporalBlending::CreateDescriptorSets()
@@ -238,7 +243,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("InImage"), input_image_view);
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("PrevImage"),  (*textures[(frame_index + 1) % 2])->GetImageView());
+            ->SetElement(NAME("PrevImage"),  (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
             ->SetElement(NAME("VelocityImage"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
@@ -251,7 +256,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("OutImage"), (*textures[frame_index % 2])->GetImageView());
+            ->SetElement(NAME("OutImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }
 
     DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
@@ -280,16 +285,13 @@ void TemporalBlending::Render(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
 
-    const FixedArray<Handle<Texture> *, 2> textures = {
-        &m_result_texture,
-        &m_history_texture
-    };
+    const ImageRef &active_image = frame->GetFrameIndex() % 2 == 0
+        ? m_result_texture->GetRenderResource().GetImage()
+        : m_history_texture->GetRenderResource().GetImage();
 
-    Handle<Texture> &active_texture = *textures[frame->GetFrameIndex() % 2];
+    active_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    active_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    const Vec3u &extent = active_texture->GetExtent();
+    const Vec3u &extent = active_image->GetExtent();
     const Vec3u depth_texture_dimensions = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
         .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent();
 
@@ -332,7 +334,7 @@ void TemporalBlending::Render(Frame *frame)
     );
 
     // set it to be able to be used as texture2D for next pass, or outside of this
-    active_texture->GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    active_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 
     m_blending_frame_counter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blending_frame_counter + 1

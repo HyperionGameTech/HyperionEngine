@@ -288,11 +288,11 @@ private:
 
     HypClassAttributeSet                                                        m_attributes;
 
-    Proc<HypData, const HypData &>                                              m_get_proc;
-    Proc<void, HypData &, const HypData &>                                      m_set_proc;
+    Proc<HypData(const HypData &)>                                              m_get_proc;
+    Proc<void(HypData &, const HypData &)>                                      m_set_proc;
 
-    Proc<fbom::FBOMData, const HypData &>                                       m_serialize_proc;
-    Proc<Result, fbom::FBOMLoadContext &, HypData &, const fbom::FBOMData &>    m_deserialize_proc;
+    Proc<fbom::FBOMData(const HypData &)>                                       m_serialize_proc;
+    Proc<Result(fbom::FBOMLoadContext &, HypData &, const fbom::FBOMData &)>    m_deserialize_proc;
 };
 
 } // namespace hyperion

@@ -21,7 +21,7 @@ namespace hyperion {
 
 class RenderSubsystem;
 
-HYP_STRUCT(Component, Label="Shadow Map Component", Description="Controls shadow map rendering for a light source.", Editor=true)
+HYP_STRUCT(Component, Label="Shadow Map Component", Description="Controls shadow map rendering for a light source.", Editor=true, Size=40)
 struct ShadowMapComponent
 {
     HYP_FIELD(Property="Mode", Serialize=true, Editor=true)
@@ -49,8 +49,6 @@ struct ShadowMapComponent
         return hash_code;
     }
 };
-
-static_assert(sizeof(ShadowMapComponent) == 32, "ShadowMapComponent size mismatch with C#");
 
 } // namespace hyperion
 

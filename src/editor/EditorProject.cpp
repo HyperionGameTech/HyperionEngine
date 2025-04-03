@@ -135,7 +135,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         return HYP_MAKE_ERROR(Error, "Failed to write project to disk");
     }
 
-    Proc<Result, const FilePath &, const Handle<AssetPackage> &> CreateAssetPackageDirectory;
+    Proc<Result(const FilePath &, const Handle<AssetPackage> &)> CreateAssetPackageDirectory;
 
     CreateAssetPackageDirectory = [&CreateAssetPackageDirectory](const FilePath &parent_directory, const Handle<AssetPackage> &package) -> Result
     {
@@ -246,7 +246,7 @@ TResult<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
 
     RC<EditorProject> project = *project_opt;
 
-    Proc<TResult<Handle<AssetPackage>>, const FilePath &> InitializePackage;
+    Proc<TResult<Handle<AssetPackage>>(const FilePath &directory)> InitializePackage;
 
     InitializePackage = [&InitializePackage](const FilePath &directory) -> TResult<Handle<AssetPackage>>
     {

@@ -216,11 +216,11 @@ public:
     virtual void Set(const UUID &uuid, HypData &&value) = 0;
     virtual void ForceUpdate(const UUID &uuid) = 0;
     virtual bool Remove(const UUID &uuid) = 0;
-    virtual void RemoveAllWithPredicate(ProcRef<bool, UIDataSourceElement *> predicate) = 0;
+    virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement *)> predicate) = 0;
 
-    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) = 0;
+    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) = 0;
 
-    HYP_FORCE_INLINE const UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) const
+    HYP_FORCE_INLINE const UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) const
     {
         return const_cast<UIDataSourceBase *>(this)->FindWithPredicate(predicate);
     }
@@ -387,7 +387,7 @@ public:
         return changed;
     }
 
-    virtual void RemoveAllWithPredicate(ProcRef<bool, UIDataSourceElement *> predicate) override
+    virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement *)> predicate) override
     {
         bool changed = false;
 
@@ -408,7 +408,7 @@ public:
         }
     }
 
-    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool, const UIDataSourceElement *> predicate) override
+    virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) override
     {
         auto it = m_values.FindIf([&predicate](const UIDataSourceElement &item) -> bool
         {

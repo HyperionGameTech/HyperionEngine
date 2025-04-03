@@ -868,7 +868,7 @@ public:
     /*! \brief Remove all child UIObjects from this object that match the predicate.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \returns The number of child UIObjects removed. */
-    virtual int RemoveAllChildUIObjects(ProcRef<bool, UIObject *> predicate);
+    virtual int RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate);
 
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
@@ -897,7 +897,7 @@ public:
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    RC<UIObject> FindChildUIObject(ProcRef<bool, UIObject *> predicate, bool deep = true) const;
+    RC<UIObject> FindChildUIObject(ProcRef<bool(UIObject *)> predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */ 
@@ -1000,7 +1000,7 @@ public:
     /*! \brief Collect all nested UIObjects in the hierarchy, calling `proc` for each collected UIObject.
      *  \param proc The function to call for each collected UIObject.
      *  \param only_visible If true, skips objects with computed visibility as non-visible */
-    void CollectObjects(ProcRef<void, UIObject *> proc, bool only_visible = true) const;
+    void CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible = true) const;
 
     /*! \brief Collect all nested UIObjects in the hierarchy and push them to the `out_objects` array.
      *  \param out_objects The array to store the collected UIObjects in.
@@ -1038,7 +1038,7 @@ public:
         { m_data_source_element_uuid = data_source_element_uuid; }
 
     /*! \internal */
-    void ForEachChildUIObject_Proc(ProcRef<IterationResult, UIObject *> proc, bool deep = true) const;
+    void ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject *)> proc, bool deep = true) const;
 
     /*! \brief Spawn a new UIObject with the given HypClass \ref{hyp_class}. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.
@@ -1176,8 +1176,8 @@ public:
     ScriptableDelegate<UIEventHandlerResult>                        OnTextChange;
 
 protected:
-    RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool, UIObject *> &proc) const;
-    RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool, UIObject *> &proc) const;
+    RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject *)> &proc) const;
+    RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject *)> &proc) const;
 
     HYP_FORCE_INLINE void SetReceivesUpdate(bool receives_update)
         { m_receives_update = receives_update; }
@@ -1237,7 +1237,7 @@ protected:
 
     void UpdateMaterial(bool update_children = true);
 
-    Array<UIObject *> FilterChildUIObjects(ProcRef<bool, UIObject *> predicate, bool deep) const;
+    Array<UIObject *> FilterChildUIObjects(ProcRef<bool(UIObject *)> predicate, bool deep) const;
 
     virtual void SetStage_Internal(UIStage *stage);
 

@@ -803,14 +803,18 @@ void EntityManager::EndAsyncUpdate()
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_mask);
 
+    for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
+        if (system_execution_group.RequiresGameThread()) {
+            continue;
+        }
+
+        system_execution_group.FinishProcessing();
+    }
+
     if (m_root_synchronous_execution_group != nullptr) {
         m_root_synchronous_execution_group->FinishProcessing(/* execute_blocking */ true);
         
         m_root_synchronous_execution_group = nullptr;
-    }
-
-    for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
-        system_execution_group.FinishProcessing();
     }
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)

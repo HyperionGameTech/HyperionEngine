@@ -18,7 +18,7 @@ class ShaderManager;
 
 extern ShaderManager *g_shader_manager;
 
-struct RENDER_COMMAND(SetUITexture);
+struct RENDER_COMMAND(SetUILayerImageView);
 
 class FinalPass;
 
@@ -42,17 +42,14 @@ public:
 class HYP_API FinalPass final : public FullScreenPass
 {
 public:
-    friend struct RENDER_COMMAND(SetUITexture);
+    friend struct RENDER_COMMAND(SetUILayerImageView);
 
     FinalPass();
     FinalPass(const FinalPass &other)               = delete;
     FinalPass &operator=(const FinalPass &other)    = delete;
     virtual ~FinalPass() override;
-
-    HYP_FORCE_INLINE const Handle<Texture> &GetUITexture() const
-        { return m_ui_texture; }
     
-    HYP_FORCE_INLINE void SetUITexture(Handle<Texture> texture);
+    void SetUILayerImageView(const ImageViewRef &image_view);
 
     HYP_FORCE_INLINE const ImageRef &GetLastFrameImage() const
         { return m_last_frame_image; }
@@ -71,7 +68,7 @@ private:
     ImageRef                    m_last_frame_image;
 
     // For UI blitting to screen
-    Handle<Texture>             m_ui_texture;
+    ImageViewRef                m_ui_layer_image_view;
     UniquePtr<FullScreenPass>   m_render_texture_to_screen_pass;
     uint8                       m_dirty_frame_indices;
 };

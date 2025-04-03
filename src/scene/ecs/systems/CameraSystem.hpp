@@ -18,7 +18,7 @@ class CameraSystem final : public System<
 
     ComponentDescriptor<NodeLinkComponent, COMPONENT_RW_FLAGS_READ, false>,
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_CAMERA_TRANSFORM>, COMPONENT_RW_FLAGS_READ_WRITE, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_CAMERA_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

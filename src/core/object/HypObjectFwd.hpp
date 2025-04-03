@@ -23,6 +23,8 @@ class Object;
 class Class;
 } // namespace dotnet
 
+enum class HypClassAllocationMethod : uint8;
+
 class HypClass;
 class HypObjectBase;
 
@@ -81,6 +83,9 @@ public:
     virtual dotnet::Object *GetManagedObject() const = 0;
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) = 0;
+
+    virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
+    virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
 };
 
 template <class T, class T2 = void>

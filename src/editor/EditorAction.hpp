@@ -46,8 +46,8 @@ protected:
 
 struct EditorActionFunctions
 {
-    Proc<void>  execute;
-    Proc<void>  revert;
+    Proc<void()>  execute;
+    Proc<void()>  revert;
 };
 
 HYP_CLASS()
@@ -56,7 +56,7 @@ class HYP_API FunctionalEditorAction : public IEditorAction
     HYP_OBJECT_BODY(FunctionalEditorAction);
 
 public:
-    FunctionalEditorAction(Name name, Proc<EditorActionFunctions> &&get_state_proc)
+    FunctionalEditorAction(Name name, Proc<EditorActionFunctions()> &&get_state_proc)
         : m_name(name),
           m_get_state_proc(std::move(get_state_proc)),
           m_get_state_proc_result(m_get_state_proc())
@@ -81,7 +81,7 @@ protected:
 
 private:
     Name                        m_name;
-    Proc<EditorActionFunctions> m_get_state_proc;
+    Proc<EditorActionFunctions()> m_get_state_proc;
     EditorActionFunctions       m_get_state_proc_result;
 };
 

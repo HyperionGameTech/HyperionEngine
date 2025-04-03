@@ -387,7 +387,10 @@ void TerrainWorldGridPlugin::Initialize()
 
     if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         Handle<Texture> albedo_texture = albedo_texture_asset->Result();
-        albedo_texture->GetImage()->SetIsSRGB(true);
+
+        TextureDesc texture_desc = albedo_texture->GetTextureDesc();
+        texture_desc.format = InternalFormat::RGBA8_SRGB;
+        albedo_texture->SetTextureDesc(texture_desc);
         
         m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
     }

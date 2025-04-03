@@ -160,7 +160,7 @@ class HashSet : public ContainerBase<HashSet<Value, KeyBy, AllocatorType>, declt
 {   
     static constexpr bool is_contiguous = false;
 
-    static constexpr SizeType initial_bucket_size = 16;
+    static constexpr SizeType initial_bucket_size = 8;
     static constexpr double desired_load_factor = 0.75;
 
     static constexpr FunctionWrapper<decltype(KeyBy)> key_by_fn { KeyBy };

@@ -723,7 +723,7 @@ public:
         const Material::TextureSet &textures = { }
     )
     {
-        return CreateMaterial(Name::Invalid(), attributes, parameters, textures);
+        return CreateMaterial(Name::Unique("Material"), attributes, parameters, textures);
     }
 
     Handle<Material> GetOrCreate(

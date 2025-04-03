@@ -188,14 +188,15 @@ void Bitset::Set(BitIndex index, bool value)
 
 void Bitset::Clear()
 {
-    m_blocks = CreateBlocks_Static_Internal< 0 >();
+    Memory::MemSet(m_blocks.Data(), 0, m_blocks.Size() * sizeof(BlockType));
+    RemoveLeadingZeros();
 }
 
 uint64 Bitset::Count() const
 {
     uint64 count = 0;
 
-    for (const auto value : m_blocks) {
+    for (const BlockType value : m_blocks) {
         count += ByteUtil::BitCount(value);
     }
 

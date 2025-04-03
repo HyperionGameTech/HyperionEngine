@@ -37,7 +37,7 @@ HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game)
 
 HYP_API void InitializeEngine(const FilePath &base_path)
 {
-    Threads::AssertOnThread(g_main_thread);
+    Threads::SetCurrentThreadID(g_main_thread);
     
     HypClassRegistry::GetInstance().Initialize();
 

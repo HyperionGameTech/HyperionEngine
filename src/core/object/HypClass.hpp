@@ -330,6 +330,12 @@ public:
     HYP_FORCE_INLINE bool UseRefCountedPtr() const
         { return GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR; }
 
+    HYP_FORCE_INLINE bool IsReferenceCounted() const
+    {
+        return GetAllocationMethod() == HypClassAllocationMethod::HANDLE
+            || GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR;
+    }
+
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
 
@@ -546,29 +552,29 @@ public:
     virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override
     {
         AssertThrow(memory.Size() == sizeof(T));
+        
+        void *address = const_cast<void *>(reinterpret_cast<const void *>(memory.Data()));
 
         if (UseHandles()) {
-            HypObjectBase *hyp_object_ptr = reinterpret_cast<HypObjectBase *>(memory.Data());
+            HypObjectBase *hyp_object_ptr = reinterpret_cast<HypObjectBase *>(address);
 
             out_hyp_data = HypData(AnyHandle(hyp_object_ptr));
 
             return true;
         } else if (UseRefCountedPtr()) {
-            EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>((void *)memory.Data());
+            EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(address);
             
             auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
             AssertThrow(ref_count_data != nullptr);
 
             RC<void> rc;
-            rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
+            rc.SetRefCountData_Internal(address, ref_count_data, /* inc_ref */ true);
 
             out_hyp_data = HypData(std::move(rc));
 
             return true;
         } else {
-            T *ptr = reinterpret_cast<T *>(memory.Data());
-    
-            out_hyp_data = HypData(Any(ptr));
+            out_hyp_data = HypData(Any(static_cast<T *>(address)));
 
             return true;
         }

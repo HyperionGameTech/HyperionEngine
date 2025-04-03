@@ -45,7 +45,7 @@ struct AtomicSemaphoreImpl
 {
     using CounterType = T;
 
-    AtomicVar<CounterType>  value;
+    mutable AtomicVar<CounterType>  value;
 
     AtomicSemaphoreImpl(CounterType initial_value)
         : value(initial_value)
@@ -79,7 +79,29 @@ struct AtomicSemaphoreImpl
         }
     }
 
-    CounterType Release(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    void Acquire(ProcRef<void()> callback) const
+    {
+        // Call `callback` when the semaphore is acquired using Compare-Exchange
+        // When the callback has been called, we can revert back to the previous state
+        while (true) {
+            CounterType current_value = value.Get(MemoryOrder::ACQUIRE);
+
+            if (ShouldSignal<CounterType, Direction>(current_value)) {
+                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE)) {
+                    if (callback.IsValid()) {
+                        callback();
+                    }
+
+                    // Go back to the previous state
+                    value.Decrement(Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1, MemoryOrder::RELEASE);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    CounterType Release(CounterType delta = 1, ProcRef<void(bool)> if_signal_state_changed_proc = ProcRef<void(bool)>(nullptr))
     {
         CounterType previous_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value - delta;
@@ -96,7 +118,7 @@ struct AtomicSemaphoreImpl
         return current_value;
     }
 
-    CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Release(CounterType delta = 1, ProcRef<void()> if_signalled_proc = ProcRef<void()>(nullptr))
     {
         CounterType previous_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value - delta;
@@ -108,7 +130,7 @@ struct AtomicSemaphoreImpl
         return current_value;
     }
 
-    CounterType Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void(bool)> if_signal_state_changed_proc = ProcRef<void(bool)>(nullptr))
     {
         CounterType previous_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value + delta;
@@ -125,7 +147,7 @@ struct AtomicSemaphoreImpl
         return current_value;
     }
 
-    CounterType Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void()> if_signalled_proc = ProcRef<void()>(nullptr))
     {
         CounterType previous_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value + delta;
@@ -175,7 +197,7 @@ struct ConditionVarSemaphoreImpl
 
     mutable std::mutex              mutex;
     mutable std::condition_variable cv;
-    AtomicVar<CounterType>          value;
+    mutable AtomicVar<CounterType>  value;
 
     ConditionVarSemaphoreImpl(CounterType initial_value)
         : value(initial_value)
@@ -211,7 +233,30 @@ struct ConditionVarSemaphoreImpl
         }
     }
 
-    CounterType Release(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    void Acquire(ProcRef<void()> callback) const
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+
+        while (true) {
+            const CounterType current_value = value.Get(MemoryOrder::ACQUIRE);
+
+            if (ShouldSignal<CounterType, Direction>(current_value)) {
+                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE)) {
+                    if (callback.IsValid()) {
+                        callback();
+                    }
+
+                    value.Decrement(Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1, MemoryOrder::RELEASE);
+
+                    break;
+                }
+            }
+
+            cv.wait(lock);
+        }
+    }
+
+    CounterType Release(CounterType delta = 1, ProcRef<void(bool)> if_signal_state_changed_proc = ProcRef<void(bool)>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -232,7 +277,7 @@ struct ConditionVarSemaphoreImpl
         return new_value;
     }
 
-    CounterType Release(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Release(CounterType delta = 1, ProcRef<void()> if_signalled_proc = ProcRef<void()>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -247,7 +292,7 @@ struct ConditionVarSemaphoreImpl
         return new_value;
     }
 
-    CounterType Produce(CounterType delta = 1, ProcRef<void, bool> if_signal_state_changed_proc = ProcRef<void, bool>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void(bool)> if_signal_state_changed_proc = ProcRef<void(bool)>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -268,7 +313,7 @@ struct ConditionVarSemaphoreImpl
         return new_value;
     }
 
-    CounterType Produce(CounterType delta = 1, ProcRef<void> if_signalled_proc = ProcRef<void>(nullptr))
+    CounterType Produce(CounterType delta = 1, ProcRef<void()> if_signalled_proc = ProcRef<void()>(nullptr))
     {
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -329,6 +374,28 @@ template <class CounterType, SemaphoreDirection Direction = SemaphoreDirection::
 class Semaphore : public SemaphoreBase
 {
 public:
+    struct Guard
+    {
+        Semaphore   &m_semaphore;
+
+        Guard(Semaphore &semaphore)
+            : m_semaphore(semaphore)
+        {
+            m_semaphore.Produce();
+        }
+
+        Guard(const Guard &)                        = delete;
+        Guard &operator=(const Guard &)             = delete;
+
+        Guard(Guard &&other) noexcept               = delete;
+        Guard &operator=(Guard &&other) noexcept    = delete;
+
+        ~Guard()
+        {
+            m_semaphore.Release();
+        }
+    };
+
     Semaphore(CounterType initial_value = 0)
         : m_impl(initial_value)
     {
@@ -348,23 +415,27 @@ public:
     HYP_FORCE_INLINE void Acquire() const
         { m_impl.Acquire(); }
 
-    HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void, bool> if_signal_state_changed_proc)
+    // Do something when the semaphore is acquired
+    HYP_FORCE_INLINE void Acquire(ProcRef<void()> callback) const
+        { m_impl.Acquire(callback); }
+
+    HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void(bool)> if_signal_state_changed_proc)
         { return m_impl.Release(delta, if_signal_state_changed_proc); }
 
-    HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void> if_signalled_proc)
+    HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void()> if_signalled_proc)
         { return m_impl.Release(delta, if_signalled_proc); }
 
     HYP_FORCE_INLINE CounterType Release(CounterType delta = 1)
-        { return m_impl.Release(delta, ProcRef<void>(nullptr)); }
+        { return m_impl.Release(delta, ProcRef<void()>(nullptr)); }
 
-    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void, bool> if_signal_state_changed_proc)
+    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void(bool)> if_signal_state_changed_proc)
         { return m_impl.Produce(increment, if_signal_state_changed_proc); }
 
-    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void> if_signalled_proc)
+    HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void()> if_signalled_proc)
         { return m_impl.Produce(increment, if_signalled_proc); }
 
     HYP_FORCE_INLINE CounterType Produce(CounterType increment = 1)
-        { return m_impl.Produce(increment, ProcRef<void>(nullptr)); }
+        { return m_impl.Produce(increment, ProcRef<void()>(nullptr)); }
 
     void WaitForValue(CounterType target_value) const
         { m_impl.WaitForValue(target_value); }

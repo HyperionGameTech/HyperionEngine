@@ -40,7 +40,7 @@ public:
         const RenderPassRef &render_pass,
         const Array<FramebufferRef> &framebuffers,
         const RenderableAttributeSet &attributes,
-        Proc<void, const GraphicsPipelineRef &> &&on_ready_callback = { }
+        Proc<void(const GraphicsPipelineRef &)> &&on_ready_callback = { }
     );
 
 private:

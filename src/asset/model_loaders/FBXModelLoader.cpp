@@ -1238,7 +1238,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 
     bool found_first_bone = false;
 
-    Proc<void, FBXNode::Type, FBXNode &, Node *> BuildNodes;
+    Proc<void(FBXNode::Type, FBXNode &, Node *)> BuildNodes;
 
     BuildNodes = [&](FBXNode::Type type, FBXNode &node, Node *parent_node)
     {
@@ -1357,7 +1357,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
         }
     };
 
-    Proc<void, FBXNode &> ApplyLocalBindPose;
+    Proc<void(FBXNode &)> ApplyLocalBindPose;
 
     ApplyLocalBindPose = [&](FBXNode &node)
     {
@@ -1410,7 +1410,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
     ApplyBindPoses();
     CalculateLocalBindPoses();
 
-    Proc<void, FBXNode &> BuildLimbNodes;
+    Proc<void(FBXNode &)> BuildLimbNodes;
 
     BuildLimbNodes = [&](FBXNode &node)
     {
@@ -1433,7 +1433,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 
 #if 0
 
-    Proc<FBXNode *, FBXNode &> FindFirstLimbNode;
+    Proc<FBXNode *(FBXNode &)> FindFirstLimbNode;
 
     FindFirstLimbNode = [&](FBXNode &node) -> FBXNode *
     {

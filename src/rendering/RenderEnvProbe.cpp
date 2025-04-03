@@ -3,8 +3,9 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderTexture.hpp>
+#include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
 #include <scene/Texture.hpp>
@@ -18,7 +19,7 @@
 
 namespace hyperion {
 
-static const InternalFormat reflection_probe_format = InternalFormat::R11G11B10F;
+static const InternalFormat reflection_probe_format = InternalFormat::R10G10B10A2;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
@@ -216,6 +217,8 @@ void EnvProbeRenderResource::CreateTexture()
         }
 
         AssertThrow(InitObject(m_texture));
+
+        m_texture->SetPersistentRenderResourceEnabled(true);
     }
 }
 
@@ -247,12 +250,12 @@ void EnvProbeRenderResource::UpdateRenderData(bool set_texture)
             case ENV_PROBE_TYPE_REFLECTION:
             case ENV_PROBE_TYPE_SKY: // fallthrough
                 g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetImageView());
+                    ->SetElement(NAME("EnvProbeTextures"), texture_slot, m_texture->GetRenderResource().GetImageView());
 
                 break;
             case ENV_PROBE_TYPE_SHADOW:
                 g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetImageView());
+                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetRenderResource().GetImageView());
 
                 break;
             default:
@@ -382,12 +385,12 @@ void EnvProbeRenderResource::Render(Frame *frame)
 
         return;
     }
-    
-    // @FIXME!
 
-    // if (!NeedsRender()) {
-    //    return;
-    // }
+    if (!m_env_probe->NeedsRender()) {
+        return;
+    }
+
+    HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe #{} (type: {})", m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
     AssertThrow(m_texture.IsValid());
 
@@ -399,7 +402,7 @@ void EnvProbeRenderResource::Render(Frame *frame)
     EnvProbeIndex probe_index;
 
     if (m_texture_slot == ~0u) {
-        HYP_LOG(EnvProbe, Warning, "Env Probe #{} (type: {}) has no value set for texture slot!",
+        HYP_LOG(EnvProbe, Warning, "EnvProbe #{} (type: {}) has no value set for texture slot!",
             m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
         return;
@@ -474,19 +477,19 @@ void EnvProbeRenderResource::Render(Frame *frame)
     const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
 
     framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+    m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-    m_texture->GetImage()->Blit(command_buffer, framebuffer_image);
+    m_texture->GetRenderResource().GetImage()->Blit(command_buffer, framebuffer_image);
 
     if (m_texture->HasMipmaps()) {
         HYPERION_PASS_ERRORS(
-            m_texture->GetImage()->GenerateMipmaps(g_engine->GetGPUDevice(), command_buffer),
+            m_texture->GetRenderResource().GetImage()->GenerateMipmaps(g_engine->GetGPUDevice(), command_buffer),
             result
         );
     }
 
     framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    m_texture->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     HYPERION_ASSERT_RESULT(result);
 

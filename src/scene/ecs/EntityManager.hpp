@@ -114,7 +114,9 @@ public:
     {
         AssertThrow(system_ptr != nullptr);
 
-        if (system_ptr->RequiresGameThread() && !RequiresGameThread()) {
+        // If the system requires to execute on game thread and the SystemExecutionGroup does not, it is not valid
+        // and if the system does not require to execute on game thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
+        if (system_ptr->RequiresGameThread() != RequiresGameThread()) {
             return false;
         }
 
@@ -225,47 +227,9 @@ private:
 #endif
 };
 
-using EntityListenerID = uint32;
-
-struct EntityListener
-{
-    static constexpr EntityListenerID invalid_id = 0;
-
-    EntityListener()                                        = default;
-
-    EntityListener(Proc<void, const Handle<Entity> &> &&on_entity_added, Proc<void, ID<Entity>> &&on_entity_removed)
-        : on_entity_added(std::move(on_entity_added)),
-          on_entity_removed(std::move(on_entity_removed))
-    {
-    }
-
-    EntityListener(const EntityListener &)                  = delete;
-    EntityListener &operator=(const EntityListener &)       = delete;
-    EntityListener(EntityListener &&) noexcept              = default;
-    EntityListener &operator=(EntityListener &&) noexcept   = default;
-    ~EntityListener()                                       = default;
-
-    Proc<void, const Handle<Entity> &>  on_entity_added;
-    Proc<void, ID<Entity>>              on_entity_removed;
-
-    void OnEntityAdded(const Handle<Entity> &entity)
-    {
-        if (on_entity_added) {
-            on_entity_added(entity);
-        }
-    }
-
-    void OnEntityRemoved(ID<Entity> entity_id)
-    {
-        if (on_entity_removed) {
-            on_entity_removed(entity_id);
-        }
-    }
-};
-
 class EntityManager;
 
-using EntityManagerCommandProc = Proc<void, EntityManager &/* mgr*/, GameCounter::TickUnit /* delta */>;
+using EntityManagerCommandProc = Proc<void(EntityManager &mgr, GameCounter::TickUnit delta)>;
 
 class HYP_API EntityManagerCommandQueue
 {

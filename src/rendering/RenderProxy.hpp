@@ -162,7 +162,8 @@ public:
     /*! \brief Mark the proxy to be removed in the next call to \ref{Advance} */
     void MarkToRemove(ID<Entity> entity);
 
-    void GetRemovedEntities(Array<ID<Entity>> &out_entities);
+    void GetAllEntities(Array<ID<Entity>> &out_entities);
+    void GetRemovedEntities(Array<ID<Entity>> &out_entities, bool include_changed = false);
     void GetAddedEntities(Array<RenderProxy *> &out_entities, bool include_changed = false);
 
     RenderProxy *GetProxyForEntity(ID<Entity> entity);
@@ -189,12 +190,6 @@ public:
     HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
         { return m_proxies; }
 
-    HYP_FORCE_INLINE RenderProxyEntityMap &GetChangedRenderProxies()
-        { return m_changed_proxies; }
-
-    HYP_FORCE_INLINE const RenderProxyEntityMap &GetChangedRenderProxies() const
-        { return m_changed_proxies; }
-
     HYP_FORCE_INLINE Bitset GetAddedEntities() const
     {
         const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
@@ -214,7 +209,6 @@ public:
 
 private:
     RenderProxyEntityMap    m_proxies;
-    RenderProxyEntityMap    m_changed_proxies;
 
     Bitset                  m_previous_entities;
     Bitset                  m_next_entities;

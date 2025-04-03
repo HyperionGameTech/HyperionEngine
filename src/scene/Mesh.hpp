@@ -152,7 +152,7 @@ private:
     mutable BoundingBox     m_aabb;
 
     MeshRenderResource      *m_render_resource;
-    ResourceHandle          m_always_claimed_render_resource_handle;
+    ResourceHandle          m_persistent_render_resource_handle;
     
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

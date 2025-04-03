@@ -45,6 +45,7 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         // allowing the managed class to override methods of an abstract class
         hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
+        // Ref counts are kept as 1 for Handle<T> and RC<T>, managed side is responsible for decrementing the ref count
         if (hyp_class->UseHandles()) {
             AnyHandle handle = std::move(value.Get<AnyHandle>());
             AssertThrow(handle.IsValid());

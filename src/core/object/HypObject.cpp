@@ -94,11 +94,22 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !hyp_class->IsAbstract()) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
+            if (hyp_class->IsReferenceCounted()) {
+                // Increment reference count for the managed object (it is responsible for decrementing the ref count)
+                initializer->IncRef(hyp_class->GetAllocationMethod(), address, /* weak */ false);
+            }
+
             managed_object = managed_class->NewObject(hyp_class, address);
+
+            if (!managed_object) {
+                HYP_FAIL("Failed to create managed object for HypClass %s", hyp_class->GetName().LookupString());
+            }
+
+            initializer->SetManagedObject(managed_object);
         }
     }
 
-    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class, managed_object);
+    InitHypObjectInitializer(initializer, address, hyp_class->GetTypeID(), hyp_class);
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(initializer_thread_id == Threads::CurrentThreadID());
@@ -166,64 +177,27 @@ HYP_API uint32 HypObjectPtr::GetRefCount_Strong() const
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 HYP_API void HypObjectPtr::IncRef(bool weak)
 {
-    AssertThrow(IsValid());
+    AssertDebug(IsValid());
 
-    const TypeID type_id = m_hyp_class->GetTypeID();
+    IHypObjectInitializer *initializer = m_hyp_class->GetObjectInitializer(m_ptr);
+    AssertDebug(initializer != nullptr);
 
-    if (m_hyp_class->UseHandles()) {
-        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
-
-        if (weak) {
-            hyp_object_ptr->GetObjectHeader_Internal()->IncRefWeak();
-        } else {
-            hyp_object_ptr->GetObjectHeader_Internal()->IncRefStrong();
-        }
-    } else if (m_hyp_class->UseRefCountedPtr()) {
-        EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr);
-        
-        auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-        AssertThrow(ref_count_data != nullptr);
-
-        if (weak) {
-            ref_count_data->IncRefCount_Weak();
-        } else {
-            ref_count_data->IncRefCount_Strong();
-        }
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
-    }
+    initializer->IncRef(m_hyp_class->GetAllocationMethod(), m_ptr, weak);
 }
 
 HYP_API void HypObjectPtr::DecRef(bool weak)
 {
-    AssertThrow(IsValid());
+    AssertDebug(IsValid());
 
-    const TypeID type_id = m_hyp_class->GetTypeID();
+    IHypObjectInitializer *initializer = m_hyp_class->GetObjectInitializer(m_ptr);
+    AssertDebug(initializer != nullptr);
 
-    if (m_hyp_class->UseHandles()) {
-        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
-        
-        if (weak) {
-            hyp_object_ptr->GetObjectHeader_Internal()->DecRefWeak();
-        } else {
-            hyp_object_ptr->GetObjectHeader_Internal()->DecRefStrong();
-        }
-    } else if (m_hyp_class->UseRefCountedPtr()) {
-        auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr)->weak.GetRefCountData_Internal();
-
-        if (weak) {
-            Weak<void> weak_ref;
-            weak_ref.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
-        } else {
-            RC<void> ref;
-            ref.SetRefCountData_Internal(ref_count_data, /* inc_ref */ false);
-        }
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
-    }
+    initializer->DecRef(m_hyp_class->GetAllocationMethod(), m_ptr, weak);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 HYP_API const IHypObjectInitializer *HypObjectPtr::GetObjectInitializer() const
 {
@@ -301,7 +275,7 @@ HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer,
     }
 }
 
-HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class, dotnet::Object *managed_object)
+HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *native_address, TypeID type_id, const HypClass *hyp_class)
 {
     AssertThrow(initializer != nullptr);
     AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for class!");
@@ -324,15 +298,6 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
             parent_initializer = nullptr;
         }
     } while (parent_initializer != nullptr);
-
-    // Managed object only needs to live on the most derived class
-    if (managed_object != nullptr) {
-        initializer->SetManagedObject(managed_object);
-
-        // sanity check
-        dotnet::ObjectReference tmp;
-        AssertThrow(initializer->GetClass()->GetManagedObject(native_address, tmp));
-    }
 }
 
 HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr)

@@ -395,7 +395,7 @@ void HyperionEditor::Init()
     
     DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
 
-    Proc<void, const NodeProxy &, int> DebugPrintNode;
+    Proc<void(const NodeProxy &, int)> DebugPrintNode;
 
     DebugPrintNode = [this, &DebugPrintNode](const NodeProxy &node, int depth)
     {
@@ -504,13 +504,23 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
 
-    if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_M) {
-        NodeProxy test_model = m_scene->FindNodeByName("test_model");
+    // if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_M) {
+    //     NodeProxy test_model = m_scene->FindNodeByName("test_model");
 
-        if (test_model) {
-            test_model->UnlockTransform();
-            test_model->Translate(Vec3f { 0.01f });
-            test_model->LockTransform();
+    //     if (test_model) {
+    //         test_model->UnlockTransform();
+    //         test_model->Translate(Vec3f { 0.01f });
+    //         test_model->LockTransform();
+    //     }
+    // }
+
+    if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_L) {
+        NodeProxy sun = m_scene->FindNodeByName("Sun");
+
+        if (sun) {
+            sun->UnlockTransform();
+            sun->SetWorldTranslation((sun->GetWorldTranslation() + Vec3f { 0.1f, 0.0f, 0.0f }).Normalize());
+            sun->LockTransform();
         }
     }
 }

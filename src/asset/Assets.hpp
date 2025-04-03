@@ -169,7 +169,7 @@ public:
     HYP_METHOD()
     Handle<AssetCollector> GetBaseAssetCollector() const;
 
-    void ForEachAssetCollector(const ProcRef<void, const Handle<AssetCollector> &> &callback) const;
+    void ForEachAssetCollector(const ProcRef<void(const Handle<AssetCollector> &)> &callback) const;
 
     HYP_METHOD()
     void AddAssetCollector(const Handle<AssetCollector> &asset_collector);
@@ -177,7 +177,7 @@ public:
     HYP_METHOD()
     void RemoveAssetCollector(const Handle<AssetCollector> &asset_collector);
 
-    const Handle<AssetCollector> &FindAssetCollector(ProcRef<bool, const Handle<AssetCollector> &>) const;
+    const Handle<AssetCollector> &FindAssetCollector(ProcRef<bool(const Handle<AssetCollector> &)>) const;
 
     template <class Loader, class ResultType, class... Formats>
     void Register(Formats &&... formats)

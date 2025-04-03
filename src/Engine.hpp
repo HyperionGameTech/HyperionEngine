@@ -211,9 +211,6 @@ public:
     HYP_FORCE_INLINE MaterialDescriptorSetManager *GetMaterialDescriptorSetManager()
         { return m_material_descriptor_set_manager.Get(); }
 
-    HYP_FORCE_INLINE NetRequestThread *GetNetRequestThread() const
-        { return m_net_request_thread.Get(); }
-
     HYP_FORCE_INLINE GPUBufferHolderMap *GetGPUBufferHolderMap() const
         { return m_gpu_buffer_holder_map.Get(); }
 
@@ -282,8 +279,6 @@ private:
     UniquePtr<FinalPass>                                    m_final_pass;
 
     UniquePtr<ScriptingService>                             m_scripting_service;
-
-    RC<NetRequestThread>                                    m_net_request_thread;
 
     UniquePtr<GPUBufferHolderMap>                           m_gpu_buffer_holder_map;
 

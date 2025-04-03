@@ -153,8 +153,8 @@ private:
     uint32                  m_size;
     HypClassAttributeSet    m_attributes;
 
-    Proc<HypData>           m_get_proc;
-    Proc<fbom::FBOMData>    m_serialize_proc;
+    Proc<HypData()>           m_get_proc;
+    Proc<fbom::FBOMData()>    m_serialize_proc;
 };
 
 } // namespace hyperion

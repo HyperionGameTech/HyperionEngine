@@ -117,7 +117,7 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
     m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
 
     if (is_visible != previous_value) {
-        SetNeedsUpdate(true);
+        Invalidate();
     }
 }
 
@@ -190,7 +190,7 @@ void EnvProbe::SetAABB(const BoundingBox &aabb)
     if (m_aabb != aabb) {
         m_aabb = aabb;
 
-        SetNeedsUpdate(true);
+        Invalidate();
     }
 }
 
@@ -208,10 +208,8 @@ void EnvProbe::SetOrigin(const Vec3f &origin)
     } else {
         m_aabb.SetCenter(origin);
     }
-
-    if (IsInitCalled()) {
-        SetNeedsUpdate(true);
-    }
+    
+    Invalidate();
 }
 
 void EnvProbe::SetParentScene(const Handle<Scene> &parent_scene)
@@ -233,6 +231,8 @@ void EnvProbe::SetParentScene(const Handle<Scene> &parent_scene)
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
         }
     }
+    
+    Invalidate();
 }
 
 void EnvProbe::EnqueueBind() const
@@ -258,30 +258,21 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    // Check if octree has changes, and we need to re-render.
-
-    Octree const *octree = &m_parent_scene->GetOctree();
-    octree->GetFittingOctant(m_aabb, octree);
-    
-    HashCode octant_hash_code = octree->GetOctantID().GetHashCode();
+    HashCode octant_hash_code = HashCode(0);
     
     if (OnlyCollectStaticEntities()) {
-        // Static entities and lights changing affect the probe
-        octant_hash_code = octant_hash_code
+        Octree const *octree = &m_parent_scene->GetOctree();
+        octree->GetFittingOctant(m_aabb, octree);
+
+        octant_hash_code = octree->GetOctantID().GetHashCode()
             .Add(octree->GetEntryListHash<EntityTag::STATIC>())
             .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
-    } else {
-        octant_hash_code = octant_hash_code
-            .Add(octree->GetEntryListHash<EntityTag::NONE>());
+    } else if (IsSkyProbe()) {
+        octant_hash_code = m_parent_scene->GetOctree().GetOctantID().GetHashCode()
+            .Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::LIGHT>());
     }
 
-    if (m_octant_hash_code != octant_hash_code) {
-        SetNeedsUpdate(true);
-
-        m_octant_hash_code = octant_hash_code;
-    }
-
-    if (!NeedsUpdate()) {
+    if (m_octant_hash_code == octant_hash_code && octant_hash_code != HashCode(0)) {
         return;
     }
 
@@ -292,8 +283,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         m_camera->Update(delta);
 
+        RenderCollector::CollectionResult collection_result;
+
         if (OnlyCollectStaticEntities()) {
-            m_parent_scene->CollectStaticEntities(
+            collection_result = m_parent_scene->CollectStaticEntities(
                 m_render_resource->GetRenderCollector(),
                 m_camera,
                 RenderableAttributeSet(
@@ -310,7 +303,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             // // Calculate visibility of entities in the octree
             // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
 
-            m_parent_scene->CollectEntities(
+            collection_result = m_parent_scene->CollectEntities(
                 m_render_resource->GetRenderCollector(),
                 m_camera,
                 RenderableAttributeSet(
@@ -323,6 +316,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 ),
                 true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
             );
+        }
+
+        if (collection_result.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {
+            SetNeedsRender(true);
         }
     }
 
@@ -340,8 +337,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
     m_render_resource->SetBufferData(buffer_data);
 
-    SetNeedsUpdate(false);
-    SetNeedsRender(true);
+    m_octant_hash_code = octant_hash_code;
 }
 
 namespace renderer {

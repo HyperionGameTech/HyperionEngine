@@ -266,8 +266,6 @@ protected:
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
 
-HYP_DISABLE_OPTIMIZATION;
-
 template <class StructType>
 class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
 {
@@ -364,8 +362,6 @@ private:
 protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
-
-HYP_ENABLE_OPTIMIZATION;
 
 template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase

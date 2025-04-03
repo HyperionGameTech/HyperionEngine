@@ -1002,8 +1002,6 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Remove(&ui_image->OnMouseDown);
         m_delegate_handlers.Add(ui_image->OnMouseDown.Bind([this, ui_image_weak = ui_image.ToWeak()](const MouseEvent &event)
         {
-            HYP_LOG(Editor, Debug, "Mouse down on scene image");
-
             if (IsHoveringManipulationWidget()) {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -1340,7 +1338,7 @@ void EditorSubsystem::InitDetailView()
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }
 
-        m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node.Get(), {}, Proc<void, Node *, const HypProperty *> { [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
+        m_editor_delegates->AddNodeWatcher(NAME("DetailView"), m_focused_node.Get(), {}, Proc<void(Node *, const HypProperty *)> { [this, hyp_class = Node::Class(), list_view_weak](Node *node, const HypProperty *property)
         {
             HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
 

@@ -33,7 +33,6 @@ HypClassRegistry::~HypClassRegistry()
 
 const HypClass *HypClassRegistry::GetClass(TypeID type_id) const
 {
-    HYP_MT_CHECK_READ(m_data_race_detector);
     AssertThrowMsg(m_is_initialized, "Cannot use GetClass() - HypClassRegistry instance not yet initialized");
 
     const auto it = m_registered_classes.Find(type_id);
@@ -47,7 +46,6 @@ const HypClass *HypClassRegistry::GetClass(TypeID type_id) const
 
 const HypClass *HypClassRegistry::GetClass(WeakName type_name) const
 {
-    HYP_MT_CHECK_READ(m_data_race_detector);
     AssertThrowMsg(m_is_initialized, "Cannot use GetClass() - HypClassRegistry instance not yet initialized");
 
     const auto it = m_registered_classes.FindIf([type_name](const Pair<TypeID, HypClass *> &item)
@@ -88,7 +86,6 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
 {
     AssertThrow(hyp_class != nullptr);
 
-    HYP_MT_CHECK_RW(m_data_race_detector);
     AssertThrowMsg(!m_is_initialized, "Cannot register class - HypClassRegistry instance already initialized");
 
     HYP_LOG(Object, Info, "Register class {}", hyp_class->GetName());
@@ -164,8 +161,6 @@ dotnet::Class *HypClassRegistry::GetManagedClass(const HypClass *hyp_class) cons
 
 void HypClassRegistry::Initialize()
 {
-    HYP_MT_CHECK_RW(m_data_race_detector);
-
     AssertThrow(!m_is_initialized);
 
     // Have to initialize here because HypClass::Initialize will call GetClass() for parent classes.

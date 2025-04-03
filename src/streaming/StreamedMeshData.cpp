@@ -35,7 +35,9 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
 
         m_streamed_data = MakeRefCountedPtr<MemoryStreamedData>(m_mesh_data->GetHashCode(), [this](HashCode hc, ByteBuffer &out) -> bool
         {
-            if (!m_mesh_data) {
+            if (!m_mesh_data.HasValue()) {
+                HYP_LOG(Streaming, Error, "StreamedMeshData: Mesh data is not set when attempting to load from memory!");
+
                 return false;
             }
 
@@ -85,7 +87,7 @@ StreamedMeshData::StreamedMeshData(MeshData &&mesh_data, ResourceHandle &out_res
 StreamedMeshData::~StreamedMeshData()
 {
     if (m_streamed_data != nullptr) {
-        m_streamed_data->WaitForCompletion();
+        m_streamed_data->WaitForFinalization();
         m_streamed_data.Reset();
     }
 }
@@ -97,8 +99,6 @@ bool StreamedMeshData::IsInMemory_Internal() const
 
 void StreamedMeshData::Unpage_Internal()
 {
-    HYP_LOG(Streaming, Debug, "Unpaging streamed mesh data {}", m_mesh_data->GetHashCode().Value());
-
     m_mesh_data.Unset();
 
     if (!m_streamed_data) {
@@ -108,17 +108,14 @@ void StreamedMeshData::Unpage_Internal()
     m_streamed_data->Unpage();
 }
 
-const ByteBuffer &StreamedMeshData::Load_Internal() const
+void StreamedMeshData::Load_Internal() const
 {
     AssertThrow(m_streamed_data != nullptr);
-
-    const ByteBuffer &byte_buffer = m_streamed_data->Load();
+    m_streamed_data->Load();
 
     if (!m_mesh_data.HasValue()) {
-        LoadMeshData(byte_buffer);
+        LoadMeshData(m_streamed_data->GetByteBuffer());
     }
-
-    return byte_buffer;
 }
 
 void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
@@ -159,9 +156,11 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer &byte_buffer) const
 
 const MeshData &StreamedMeshData::GetMeshData() const
 {
-    static const MeshData default_value { };
+    WaitForTaskCompletion();
 
     if (!m_mesh_data.HasValue()) {
+        static const MeshData default_value { };
+    
         return default_value;
     }
 

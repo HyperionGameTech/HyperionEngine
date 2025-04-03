@@ -3,6 +3,7 @@
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Texture.hpp>
@@ -129,8 +130,8 @@ void SkydomeRenderer::OnRender(Frame *frame)
     m_env_probe->GetRenderResource().Render(frame);
 
     // Copy cubemap from env probe to cubemap texture
-    const ImageRef &src_image = m_env_probe->GetRenderResource().GetTexture()->GetImage();
-    const ImageRef &dst_image = m_cubemap->GetImage();
+    const ImageRef &src_image = m_env_probe->GetRenderResource().GetTexture()->GetRenderResource().GetImage();
+    const ImageRef &dst_image = m_cubemap->GetRenderResource().GetImage();
 
     src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
     dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);

@@ -345,7 +345,7 @@ public:
         StagingBuffer *Acquire(SizeType required_size);
     };
 
-    using UseFunction = Proc<RendererResult, Context &>;
+    using UseFunction = Proc<RendererResult(Context &)>;
 
     static constexpr time_t hold_time = 1000;
     static constexpr uint32 gc_threshold = 5; /* run every 5 Use() calls */

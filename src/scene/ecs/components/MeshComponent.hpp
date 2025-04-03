@@ -31,26 +31,42 @@ struct MeshComponent
     HYP_FIELD(Property="Mesh", Serialize=true, Editor=true)
     Handle<Mesh>            mesh;
 
+    // 8
+
     HYP_FIELD(Property="Material", Serialize=true, Editor=true)
     Handle<Material>        material;
+
+    // 16
 
     HYP_FIELD(Property="Skeleton", Serialize=true, Editor=true)
     Handle<Skeleton>        skeleton;
 
+    // 24
+
     HYP_FIELD(Property="InstanceData", Serialize=true, Editor=true)
     MeshInstanceData        instance_data;
 
+    // 128
+
     HYP_FIELD()
-    RC<RenderProxy>         proxy;
+    RenderProxy             *proxy = nullptr;
+
+    // 136
 
     HYP_FIELD()
     MeshComponentFlags      flags = MESH_COMPONENT_FLAG_NONE;
 
+    // 140 + 4 padding
+
     HYP_FIELD()
     Matrix4                 previous_model_matrix;
 
+    // 208
+
     HYP_FIELD()
     MeshComponentUserData   user_data;
+
+    // 240
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -64,6 +80,8 @@ struct MeshComponent
         return hash_code;
     }
 };
+
+constexpr auto x = sizeof(RenderProxy);
 
 } // namespace hyperion
 

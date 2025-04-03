@@ -14,8 +14,6 @@ class NameRegistry;
 
 using NameID = uint64;
 
-extern NameRegistry *g_name_registry;
-
 struct Name;
 struct WeakName;
 

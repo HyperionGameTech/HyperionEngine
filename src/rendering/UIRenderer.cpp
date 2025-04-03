@@ -10,6 +10,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/EngineRenderStats.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 
@@ -64,8 +65,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 {
     RC<EntityDrawCollection>            collection;
     Array<RenderProxy>                  added_proxies;
-    Array<ID<Entity>>                   removed_proxies;
-    RenderProxyEntityMap                changed_proxies;
+    Array<ID<Entity>>                   removed_entities;
 
     Array<Pair<ID<Entity>, int>>        proxy_depths;
 
@@ -74,20 +74,22 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
         const RC<EntityDrawCollection> &collection,
-        Array<RenderProxy> &&added_proxies,
-        Array<ID<Entity>> &&removed_proxies,
-        RenderProxyEntityMap &&changed_proxies,
+        Array<RenderProxy *> &&added_proxy_ptrs,
+        Array<ID<Entity>> &&removed_entities,
         const Array<Pair<ID<Entity>, int>> &proxy_depths,
         const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
-        added_proxies(std::move(added_proxies)),
-        removed_proxies(std::move(removed_proxies)),
-        changed_proxies(std::move(changed_proxies)),
+        removed_entities(std::move(removed_entities)),
         proxy_depths(proxy_depths),
         camera(camera),
         override_attributes(override_attributes)
     {
+        added_proxies.Reserve(added_proxy_ptrs.Size());
+
+        for (RenderProxy *proxy_ptr : added_proxy_ptrs) {
+            added_proxies.PushBack(*proxy_ptr);
+        }
     }
 
     virtual ~RENDER_COMMAND(RebuildProxyGroups_UI)() override = default;
@@ -245,29 +247,19 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         // Reserve to prevent iterator invalidation
         proxy_list.Reserve(added_proxies.Size());
 
-        for (const auto &it : changed_proxies) {
-            const ID<Entity> entity = it.first;
-            const RenderProxy &proxy = it.second;
-
-            proxy.UnclaimRenderResource();
-
-            // Remove it, then add it back (changed proxies will be included in the added proxies list)
-            AssertThrow(RemoveRenderProxy(proxy_list, entity));
-        }
-
-        for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResource();
-
-            proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
-        }
-
-        for (ID<Entity> entity : removed_proxies) {
+        for (ID<Entity> entity : removed_entities) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
             proxy->UnclaimRenderResource();
 
             proxy_list.MarkToRemove(entity);
+        }
+
+        for (RenderProxy &proxy : added_proxies) {
+            proxy.ClaimRenderResource();
+
+            proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
 
         proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
@@ -318,31 +310,18 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
     collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
 
     if (collection_result.NeedsUpdate()) {
-        Array<ID<Entity>> removed_proxies;
-        proxy_list.GetRemovedEntities(removed_proxies);
+        Array<ID<Entity>> removed_entities;
+        proxy_list.GetRemovedEntities(removed_entities, true /* include_changed */);
 
         Array<RenderProxy *> added_proxies_ptrs;
         proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
 
-        RenderProxyEntityMap changed_proxies = std::move(proxy_list.GetChangedRenderProxies());
-
-        if (added_proxies_ptrs.Any() || removed_proxies.Any() || changed_proxies.Any()) {
-            Array<RenderProxy> added_proxies;
-            added_proxies.Resize(added_proxies_ptrs.Size());
-
-            for (SizeType i = 0; i < added_proxies_ptrs.Size(); i++) {
-                AssertThrow(added_proxies_ptrs[i] != nullptr);
-
-                // Copy the proxy to be added on the render thread
-                added_proxies[i] = *added_proxies_ptrs[i];
-            }
-
+        if (added_proxies_ptrs.Any() || removed_entities.Any()) {
             PUSH_RENDER_COMMAND(
                 RebuildProxyGroups_UI,
                 m_draw_collection,
-                std::move(added_proxies),
-                std::move(removed_proxies),
-                std::move(changed_proxies),
+                std::move(added_proxies_ptrs),
+                std::move(removed_entities),
                 m_proxy_depths,
                 camera,
                 override_attributes
@@ -464,7 +443,7 @@ UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
 
 UIRenderSubsystem::~UIRenderSubsystem()
 {
-    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+    g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 }
 
 void UIRenderSubsystem::Init()
@@ -505,7 +484,7 @@ void UIRenderSubsystem::Init()
             return;
         }
 
-        g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+        g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
         PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, subsystem);
     });
@@ -526,7 +505,7 @@ void UIRenderSubsystem::InitGame() { }
 void UIRenderSubsystem::OnRemoved()
 {
     SafeRelease(std::move(m_framebuffer));
-    g_engine->GetFinalPass()->SetUITexture(Handle<Texture>::empty);
+    g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
     m_on_gbuffer_resolution_changed_handle.Reset();
 }
@@ -567,10 +546,7 @@ void UIRenderSubsystem::CreateFramebuffer()
         ui_stage->SetSurfaceSize(surface_size);
     });
 
-    g_engine->GetFinalPass()->SetUITexture(CreateObject<Texture>(
-        m_framebuffer->GetAttachment(0)->GetImage(),
-        m_framebuffer->GetAttachment(0)->GetImageView()
-    ));
+    g_engine->GetFinalPass()->SetUILayerImageView(m_framebuffer->GetAttachment(0)->GetImageView());
 }
 
 #pragma endregion UIRenderSubsystem

@@ -1529,15 +1529,11 @@ void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay> &out_rays)
             continue;
         }
 
-        // temp
-        AssertThrow(mesh->GetStreamedMeshData()->IsInMemory());
-
         if (!streamed_mesh_data_refs.HasValue() || streamed_mesh_data_refs->first != mesh.GetID()) {
             streamed_mesh_data_refs.Set({ mesh.GetID(), TResourceHandle<StreamedMeshData>(*mesh->GetStreamedMeshData()) });
         }
 
         // Convert UV to world space
-        AssertThrow(streamed_mesh_data_refs->second->IsInMemory());
         const MeshData &mesh_data = streamed_mesh_data_refs->second->GetMeshData();
 
         AssertThrowMsg(
@@ -1740,7 +1736,7 @@ void Lightmapper::PerformLightmapping()
     m_sub_elements.Clear();
     m_sub_elements_by_entity.Clear();
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ)) {
+    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!mesh_component.mesh.IsValid()) {
             HYP_LOG(Lightmap, Info, "Skip entity with invalid mesh on MeshComponent");
 

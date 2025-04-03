@@ -1176,7 +1176,7 @@ struct HypDataHelper<T *, std::enable_if_t< !is_const_pointer<T *> && !std::is_s
     {
         AssertThrow(value.Is<T>());
 
-        return value.CastUnsafe<T>();
+        return value.CastUnsafe_Internal<T>();
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, T *value) const
@@ -2416,7 +2416,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     HYP_FORCE_INLINE T &Get(const RC<void> &value) const
     {
-        return *value.Cast<T>();
+        return *value.CastUnsafe_Internal<T>();
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const T &value) const

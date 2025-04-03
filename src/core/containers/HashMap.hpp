@@ -178,7 +178,7 @@ class HashMap : public ContainerBase<HashMap<Key, Value>, Key>
 {
     static constexpr bool is_contiguous = false;
 
-    static constexpr SizeType initial_bucket_size = 16;
+    static constexpr SizeType initial_bucket_size = 8;
     static constexpr double desired_load_factor = 0.75;
 
     using HashMapBucketArray = Array<detail::HashMapBucket<Key, Value>, InlineAllocator<initial_bucket_size>>;

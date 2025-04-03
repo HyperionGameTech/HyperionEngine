@@ -16,22 +16,22 @@ namespace Hyperion
         [FieldOffset(0)]
         private Handle<Mesh> meshHandle;
 
-        [FieldOffset(4)]
+        [FieldOffset(8)]
         private Handle<Material> materialHandle;
         
-        [FieldOffset(8)]
+        [FieldOffset(16)]
         private Handle<Skeleton> skeletonHandle;
 
-        [FieldOffset(16)]
+        [FieldOffset(24)]
         private MeshInstanceData instanceData;
 
-        [FieldOffset(120)]
-        private RefCountedPtr proxyRc;
-
         [FieldOffset(128)]
-        private uint meshComponentFlags;
+        private IntPtr proxyPtr;
 
         [FieldOffset(136)]
+        private uint meshComponentFlags;
+
+        [FieldOffset(144)]
         private Matrix4 previousModelMatrix;
 
         [FieldOffset(208)]

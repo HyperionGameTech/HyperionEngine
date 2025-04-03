@@ -46,8 +46,6 @@ public:
 
     Texture();
 
-    Texture(const ImageRef &image, const ImageViewRef &image_view);
-
     Texture(const TextureDesc &texture_desc);
     Texture(const TextureData &texture_data);
 
@@ -79,15 +77,11 @@ public:
     /*! \brief Set streamed data for the image. If the image has already been created, no updates will occur. */
     HYP_METHOD(Property="StreamedTextureData")
     void SetStreamedTextureData(const RC<StreamedTextureData> &streamed_texture_data);
-    
-    HYP_FORCE_INLINE const ImageRef &GetImage() const
-        { return m_image; }
-
-    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
-        { return m_image_view; }
 
     HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
         { return m_texture_desc; }
+
+    void SetTextureDesc(const TextureDesc &texture_desc);
 
     HYP_FORCE_INLINE ImageType GetType() const
         { return m_texture_desc.type; }
@@ -121,6 +115,11 @@ public:
 
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return m_texture_desc.wrap_mode; }
+
+    HYP_FORCE_INLINE bool IsRWTexture() const
+        { return m_is_rw_texture; }
+
+    void SetIsRWTexture(bool is_rw_texture);
     
     void Init();
 
@@ -137,6 +136,10 @@ public:
     Vec4f Sample2D(Vec2f uv);
     Vec4f SampleCube(Vec3f direction);
 
+    /*! \brief Set the Texture to have its render resource always enabled.
+     *  \note Init() must be called before this method. */
+    void SetPersistentRenderResourceEnabled(bool enabled);
+
 protected:
     /*! \brief Readback() implementation, without locking mutex. */
     void Readback_Internal();
@@ -144,15 +147,15 @@ protected:
     Name                    m_name;
 
     TextureRenderResource   *m_render_resource;
+    ResourceHandle          m_persistent_render_resource_handle;
 
     TextureDesc             m_texture_desc;
+
+    bool                    m_is_rw_texture;
 
     // MUST BE BEFORE m_streamed_texture_data, needs to get constructed first to use as out parameter to construct StreamedTextureData.
     mutable ResourceHandle  m_streamed_texture_data_resource_handle;
     RC<StreamedTextureData> m_streamed_texture_data;
-
-    ImageRef                m_image;
-    ImageViewRef            m_image_view;
 
     Mutex                   m_readback_mutex;
 };

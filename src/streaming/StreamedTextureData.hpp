@@ -30,17 +30,21 @@ public:
     virtual ~StreamedTextureData() override = default;
 
     const TextureData &GetTextureData() const;
+    void SetTextureData(TextureData &&texture_data);
 
-    HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
-        { return m_texture_desc; }
+    const TextureDesc &GetTextureDesc() const;
+    void SetTextureDesc(const TextureDesc &texture_desc);
 
     HYP_FORCE_INLINE SizeType GetBufferSize() const
         { return m_buffer_size; }
 
+    virtual HashCode GetDataHashCode() const override
+        { return m_streamed_data ? m_streamed_data->GetDataHashCode() : HashCode(0); }
+
 protected:
     virtual bool IsInMemory_Internal() const override;
     
-    virtual const ByteBuffer &Load_Internal() const override;
+    virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
     
 private:

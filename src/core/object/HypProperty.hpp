@@ -53,8 +53,8 @@ constexpr TypeID GetUnwrappedSerializationTypeID()
 
 struct HypPropertyGetter
 {
-    Proc<HypData, const HypData &>          get_proc;
-    Proc<fbom::FBOMData, const HypData &>   serialize_proc;
+    Proc<HypData(const HypData &)>          get_proc;
+    Proc<fbom::FBOMData(const HypData &)>   serialize_proc;
     HypPropertyTypeInfo                     type_info;
 
     HypPropertyGetter() = default;
@@ -204,8 +204,8 @@ struct HypPropertyGetter
 
 struct HypPropertySetter
 {
-    Proc<void, HypData &, const HypData &>                                  set_proc;
-    Proc<void, fbom::FBOMLoadContext &, HypData &, const fbom::FBOMData &>  deserialize_proc;
+    Proc<void(HypData &, const HypData &)>                                  set_proc;
+    Proc<void(fbom::FBOMLoadContext &, HypData &, const fbom::FBOMData &)>  deserialize_proc;
     HypPropertyTypeInfo                                                     type_info;
 
     HypPropertySetter() = default;

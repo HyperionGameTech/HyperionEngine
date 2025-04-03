@@ -351,7 +351,7 @@ const Handle<Texture> &Material::GetTextureAtIndex(uint32 index) const
 Handle<Material> Material::Clone() const
 {
     Handle<Material> material = CreateObject<Material>(
-        m_name,
+        Name::Unique(ANSIString(*m_name) + "_dynamic"),
         m_render_attributes,
         m_parameters,
         m_textures
@@ -486,38 +486,35 @@ Handle<Material> MaterialCache::GetOrCreate(
     hc.Add(parameters.GetHashCode());
     hc.Add(textures.GetHashCode());
 
+    Handle<Material> handle;
+
     {
         Mutex::Guard guard(m_mutex);
 
-        const auto it = m_map.Find(hc);
+        const auto it = m_map.FindByHash(hc);
 
         if (it != m_map.End()) {
             if (Handle<Material> handle = it->second.Lock()) {
                 return handle;
             }
         }
-    }
     
-    if (!name.IsValid()) {
-        name = CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
-    }
+        if (!name.IsValid()) {
+            name = Name::Unique(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
+        }
+    
+        handle = CreateObject<Material>(
+            name,
+            attributes,
+            parameters,
+            textures
+        );
 
-    Handle<Material> handle = CreateObject<Material>(
-        name,
-        attributes,
-        parameters,
-        textures
-    );
-
-    AssertThrow(!handle->IsDynamic());
-
-    InitObject(handle);
-
-    {
-        Mutex::Guard guard(m_mutex);
-        
         m_map.Set(hc, handle);
     }
+
+    AssertThrow(!handle->IsDynamic());
+    InitObject(handle);
 
     return handle;
 }

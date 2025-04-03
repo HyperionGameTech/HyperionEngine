@@ -101,7 +101,7 @@ public:
     ~EditorDelegates()                                          = default;
 
     /*! \brief Receive events and changes to any node that is a descendant of the given \ref{root_node}. */
-    HYP_API void AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void, Node *, const HypProperty *> &&proc);
+    HYP_API void AddNodeWatcher(Name watcher_key, Node *root_node, Span<const HypProperty> properties_to_watch, Proc<void(Node *, const HypProperty *)> &&proc);
     HYP_API int RemoveNodeWatchers(WeakName watcher_key);
 
     HYP_API void OnNodeUpdate(Node *node, const HypProperty *property);

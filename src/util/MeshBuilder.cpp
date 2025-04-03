@@ -81,6 +81,8 @@ Handle<Mesh> MeshBuilder::Quad()
         vertex_attributes
     );
 
+    mesh->SetName(NAME("MeshBuilder_Quad"));
+
     mesh->CalculateTangents();
 
     return mesh;
@@ -100,6 +102,7 @@ Handle<Mesh> MeshBuilder::Cube()
         Topology::TRIANGLES,
         vertex_attributes
     );
+    mesh->SetName(NAME("MeshBuilder_Cube"));
 
     mesh->CalculateTangents();
 
@@ -201,7 +204,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
         static_mesh_vertex_attributes
     );
 
-    AssertThrow(mesh->GetStreamedMeshData()->IsInMemory());
+    mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
 
     mesh->CalculateNormals(true);
     mesh->CalculateTangents();
@@ -232,12 +235,15 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
         vertex.SetBitangent(normal_matrix * vertex.GetBitangent());
     }
 
-    return CreateObject<Mesh>(
+    Handle<Mesh> new_mesh = CreateObject<Mesh>(
         std::move(new_vertices),
         streamed_mesh_data->GetMeshData().indices,
         mesh->GetTopology(),
         mesh->GetVertexAttributes()
     );
+    new_mesh->SetName(mesh->GetName());
+
+    return new_mesh;
 }
 
 Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform)
@@ -286,12 +292,16 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
         }
     }
 
-    return CreateObject<Mesh>(
+    Handle<Mesh> new_mesh = CreateObject<Mesh>(
         std::move(all_vertices),
         std::move(all_indices),
         a->GetTopology(),
         merged_vertex_attributes
     );
+
+    new_mesh->SetName(NAME("MeshBuilder_MergedMesh"));
+
+    return new_mesh;
 }
 
 Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)

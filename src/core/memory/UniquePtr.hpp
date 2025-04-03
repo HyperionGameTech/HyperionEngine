@@ -619,7 +619,8 @@ public:
 
         (void)Base::Release();
 
-        rc.SetRefCountData_Internal(ref_count_data, /* inc_ref */ true);
+        // FIXME: For polymorphic types, will value point to the correct place?
+        rc.SetRefCountData_Internal(Base::m_holder.value, ref_count_data, /* inc_ref */ true);
 
         return rc;
     }

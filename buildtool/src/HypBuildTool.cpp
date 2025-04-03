@@ -135,7 +135,7 @@ private:
 
     void FindModules()
     {
-        Proc<void, const FilePath &> IterateFilesAndSubdirectories;
+        Proc<void(const FilePath &)> IterateFilesAndSubdirectories;
 
         IterateFilesAndSubdirectories = [&](const FilePath &dir)
         {

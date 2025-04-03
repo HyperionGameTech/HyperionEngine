@@ -116,10 +116,6 @@ void SkySystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        if (!env_probe->NeedsUpdate()) {
-            continue;
-        }
-
         env_probe->Update(delta);
     }
 }

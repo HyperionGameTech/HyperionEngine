@@ -41,14 +41,14 @@ public:
 
     FullScreenPass(
         const ShaderRef &shader,
-        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        InternalFormat image_format = InternalFormat::RGBA8,
         Vec2u extent = Vec2u { 0, 0 }
     );
 
     FullScreenPass(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
-        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        InternalFormat image_format = InternalFormat::RGBA8,
         Vec2u extent = Vec2u { 0, 0 }
     );
 

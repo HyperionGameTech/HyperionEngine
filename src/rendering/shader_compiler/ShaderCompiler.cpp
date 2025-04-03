@@ -338,7 +338,7 @@ static bool PreprocessShaderSource(
     {
         String              filename;
 
-        Stack<Proc<void>>   deleters;
+        Stack<Proc<void()>> deleters;
 
         ~CallbacksContext()
         {
@@ -610,7 +610,7 @@ static ByteBuffer CompileToSPIRV(
         DescriptorUsage *descriptor_usage = descriptor_usages.Find(CreateWeakNameFromDynamicString(uniform_block.name.data()));
 
         if (descriptor_usage != nullptr) {
-            Proc<void, const glslang::TType *, DescriptorUsageType &> HandleType;
+            Proc<void(const glslang::TType *, DescriptorUsageType &)> HandleType;
 
             HandleType = [&HandleType](const glslang::TType *type, DescriptorUsageType &out_descriptor_usage_type)
             {
@@ -738,7 +738,7 @@ static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
 
 static void ForEachPermutation(
     const ShaderProperties &versions,
-    const ProcRef<void, const ShaderProperties &> &callback,
+    const ProcRef<void(const ShaderProperties &)> &callback,
     bool parallel
 )
 {

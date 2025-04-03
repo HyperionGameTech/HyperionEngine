@@ -7,6 +7,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
@@ -271,7 +272,7 @@ void ShadowPass::CreateDescriptors()
     PUSH_RENDER_COMMAND(
         SetShadowMapInGlobalDescriptorSet,
         m_shadow_map_index,
-        m_shadow_map_all->GetImageView()
+        m_shadow_map_all->GetRenderResource().GetImageView()
     );
 }
 
@@ -295,9 +296,11 @@ void ShadowPass::CreateShadowMap()
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         });
 
-        texture->GetImage()->SetIsRWTexture(true);
+        texture->SetIsRWTexture(true);
 
         InitObject(texture);
+
+        texture->SetPersistentRenderResourceEnabled(true);
     }
 }
 
@@ -314,8 +317,8 @@ void ShadowPass::CreateCombineShadowMapsPass()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("CombineShadowMapsDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("PrevTexture"), m_shadow_map_statics->GetImageView());
-        descriptor_set->SetElement(NAME("InTexture"), m_shadow_map_dynamics->GetImageView());
+        descriptor_set->SetElement(NAME("PrevTexture"), m_shadow_map_statics->GetRenderResource().GetImageView());
+        descriptor_set->SetElement(NAME("InTexture"), m_shadow_map_dynamics->GetRenderResource().GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
@@ -340,7 +343,7 @@ void ShadowPass::CreateComputePipelines()
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InputTexture"), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetImageView());
+        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetRenderResource().GetImageView());
     }
 
     DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
@@ -404,12 +407,12 @@ void ShadowPass::Render(Frame *frame)
 
             // copy static framebuffer image
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            m_shadow_map_statics->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-            m_shadow_map_statics->GetImage()->Blit(command_buffer, framebuffer_image);
+            m_shadow_map_statics->GetRenderResource().GetImage()->Blit(command_buffer, framebuffer_image);
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-            m_shadow_map_statics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            m_shadow_map_statics->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
             m_rerender_semaphore->Release(1);
         }
@@ -430,12 +433,12 @@ void ShadowPass::Render(Frame *frame)
 
             // copy dynamic framebuffer image
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            m_shadow_map_dynamics->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-            m_shadow_map_dynamics->GetImage()->Blit(command_buffer, framebuffer_image);
+            m_shadow_map_dynamics->GetRenderResource().GetImage()->Blit(command_buffer, framebuffer_image);
 
             framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-            m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+            m_shadow_map_dynamics->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
         }
     }
 
@@ -450,15 +453,15 @@ void ShadowPass::Render(Frame *frame)
 
         // Copy combined shadow map to the final shadow map
         attachment->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        m_shadow_map_all->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-        m_shadow_map_all->GetImage()->Blit(
+        m_shadow_map_all->GetRenderResource().GetImage()->Blit(
             command_buffer,
             attachment->GetImage()
         );
 
         attachment->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-        m_shadow_map_dynamics->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_dynamics->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 
     if (m_shadow_mode == ShadowMode::VSM) {
@@ -478,7 +481,7 @@ void ShadowPass::Render(Frame *frame)
         m_blur_shadow_map_pipeline->GetDescriptorTable()->Bind(frame, m_blur_shadow_map_pipeline, { });
 
         // put our shadow map in a state for writing
-        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+        m_shadow_map_all->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_shadow_map_pipeline->Dispatch(
             command_buffer,
@@ -490,7 +493,7 @@ void ShadowPass::Render(Frame *frame)
         );
 
         // put shadow map back into readable state
-        m_shadow_map_all->GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_all->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 

@@ -104,17 +104,14 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platfor
         /* look for srgb format */
         self->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
             support_details,
-            std::array {
-                InternalFormat::RGBA8_SRGB,
-                InternalFormat::BGRA8_SRGB
-            },
-            [this](const VkSurfaceFormatKHR &format)
+            { { InternalFormat::RGBA8_SRGB, InternalFormat::BGRA8_SRGB } },
+            [this](auto &&format)
             {
                 if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                     return false;
                 }
 
-                this->surface_format = format;
+                surface_format = format;
 
                 return true;
             }
@@ -128,14 +125,10 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platfor
     /* look for non-srgb format */
     self->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
         support_details,
-        std::array{
-            InternalFormat::R11G11B10F,
-            InternalFormat::RGBA16F,
-            InternalFormat::RGBA8
-        },
-        [this](const VkSurfaceFormatKHR &format)
+        { { InternalFormat::R11G11B10F, InternalFormat::RGBA16F, InternalFormat::RGBA8 } },
+        [this](auto &&format)
         {
-            this->surface_format = format;
+            surface_format = format;
 
             return true;
         }

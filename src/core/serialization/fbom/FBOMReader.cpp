@@ -200,12 +200,9 @@ FBOMResult FBOMReader::Deserialize(FBOMLoadContext &context, BufferedReader &rea
     if (read_header) {
         ubyte header_bytes[FBOM::header_size];
 
-        if (reader.Read(header_bytes, FBOM::header_size) != FBOM::header_size) {
-            HYP_BREAKPOINT;
-            return { FBOMResult::FBOM_ERR, "Invalid header" };
-        }
-
-        if (Memory::StrCmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0) {
+        if (reader.Read(header_bytes, FBOM::header_size) != FBOM::header_size
+            || Memory::StrCmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0)
+        {
             return { FBOMResult::FBOM_ERR, "Invalid header identifier" };
         }
 
@@ -1111,7 +1108,7 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext &context, BufferedReader *reader, 
         m_static_data_buffer = reader->ReadBytes(static_data_buffer_size);
 
         if (m_static_data_buffer.Size() != static_data_buffer_size) {
-            return { FBOMResult::FBOM_ERR, "Static data buffer size mismatch" };
+            return { FBOMResult::FBOM_ERR, "Static data buffer size mismatch - file corrupted?" };
         }
 
         if (FBOMResult err = Eat(reader, FBOM_STATIC_DATA_END)) {

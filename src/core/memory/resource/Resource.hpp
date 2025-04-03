@@ -53,7 +53,13 @@ public:
     virtual int ClaimWithoutInitialize() = 0;
     virtual int Unclaim() = 0;
 
-    virtual void WaitForCompletion() = 0;
+    /*! \brief Waits for all tasks to be completed. */
+    virtual void WaitForTaskCompletion() const = 0;
+
+    /*! \brief Waits for claim count to be 0 and all tasks to be completed.
+     *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
+     *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
+    virtual void WaitForFinalization() const = 0;
 
     virtual ResourceMemoryPoolHandle GetPoolHandle() const = 0;
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) = 0;
@@ -64,7 +70,7 @@ class HYP_API ResourceBase : public IResource
 {
 protected:
     using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-    using InitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
+    using ClaimedSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using CompletionSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
@@ -78,12 +84,16 @@ public:
 
     virtual ~ResourceBase() override;
 
+    HYP_FORCE_INLINE int32 NumClaims() const
+        { return m_claimed_semaphore.GetValue(); }
+
     virtual bool IsNull() const override final
         { return false; }
 
     virtual int Claim() override final;
     virtual int Unclaim() override final;
-    virtual void WaitForCompletion() override final;
+    virtual void WaitForTaskCompletion() const override final;
+    virtual void WaitForFinalization() const override final;
 
     virtual ResourceMemoryPoolHandle GetPoolHandle() const override final
         { return m_pool_handle; }
@@ -96,7 +106,7 @@ public:
      *  so it is safe to use this method on any thread.
      *  \param proc The operation to perform.
      *  \param force_owner_thread If true, the operation will be performed on the owner thread regardless of initialization state. */
-    void Execute(Proc<void> &&proc, bool force_owner_thread = false);
+    void Execute(Proc<void()> &&proc, bool force_owner_thread = false);
 
 protected:
     // Needed to claim resources that are initialized in LOADED state.
@@ -110,8 +120,8 @@ protected:
         { return nullptr; }
 
     virtual bool CanExecuteInline() const;
-    virtual void FlushScheduledTasks();
-    virtual void EnqueueOp(Proc<void> &&proc);
+    virtual void FlushScheduledTasks() const;
+    virtual void EnqueueOp(Proc<void()> &&proc);
 
     virtual void Initialize() = 0;
     virtual void Destroy() = 0;
@@ -119,12 +129,12 @@ protected:
 
     void SetNeedsUpdate();
 
-private:
+protected:
     bool                        m_is_initialized;
 
     AtomicVar<int16>            m_update_counter;
 
-    InitSemaphore               m_init_semaphore;
+    ClaimedSemaphore            m_claimed_semaphore;
     PreInitSemaphore            m_pre_init_semaphore;
     CompletionSemaphore         m_completion_semaphore;
 
@@ -182,8 +192,7 @@ public:
     {
         AssertThrow(ptr != nullptr);
 
-        // Wait for it to finish any tasks before destroying
-        ptr->WaitForCompletion();
+        ptr->WaitForFinalization();
 
         const ResourceMemoryPoolHandle pool_handle = ptr->GetPoolHandle();
         AssertThrowMsg(pool_handle, "Resource has no pool handle set - the resource was likely not allocated using the pool");
