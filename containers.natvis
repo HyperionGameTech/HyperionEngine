@@ -139,11 +139,21 @@
   </Type>
 
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
-    <DisplayString>{{ {($T1 *)m_ref.m_ptr->value} }}</DisplayString>
+    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
       <Item Name="[Strong Count]">(m_ref.m_ptr->strong_count)</Item>
       <Item Name="[Weak Count]">(m_ref.m_ptr->weak_count)</Item>
-      <ExpandedItem>($T1 *)m_ref.m_ptr->value</ExpandedItem>
+      <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
+    <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
+    <Expand>
+      <Item Name="[Alive]">(m_ref.m_ptr->strong_count.m_value._Storage._Value != 0)</Item>
+      <Item Name="[Strong Count]">(m_ref.m_ptr->strong_count)</Item>
+      <Item Name="[Weak Count]">(m_ref.m_ptr->weak_count)</Item>
+      <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
     </Expand>
   </Type>
 

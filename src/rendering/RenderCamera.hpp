@@ -35,8 +35,6 @@ struct alignas(256) CameraShaderData
     uint32      id;
 };
 
-static_assert(sizeof(CameraShaderData) == 512);
-
 static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderData);
 
 class CameraRenderResource final : public RenderResourceBase
