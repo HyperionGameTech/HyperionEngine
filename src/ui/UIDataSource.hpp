@@ -218,6 +218,9 @@ public:
     virtual bool Remove(const UUID &uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement *)> predicate) = 0;
 
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const = 0;
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const = 0;
+
     virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) = 0;
 
     HYP_FORCE_INLINE const UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) const
@@ -246,7 +249,7 @@ public:
     Delegate<void, UIDataSourceBase *, UIDataSourceElement *, UIDataSourceElement *>    OnElementUpdate;
 
 protected:
-    UIElementFactoryBase                                                         *m_element_factory;
+    UIElementFactoryBase                                                                *m_element_factory;
 };
 
 HYP_CLASS()
@@ -272,6 +275,21 @@ public:
     UIDataSource(TypeWrapper<T>)
         : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
           m_element_type_id(TypeID::ForType<T>())
+    {
+    }
+
+    template <class T, class CreateUIObjectFunction, class UpdateUIObjectFunction>
+    UIDataSource(TypeWrapper<T>, CreateUIObjectFunction &&create_ui_object, UpdateUIObjectFunction &&update_ui_object)
+        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
+          m_element_type_id(TypeID::ForType<T>()),
+          m_create_ui_object_proc([func = std::forward<CreateUIObjectFunction>(create_ui_object)](UIObject *parent, const HypData &value, AnyRef context) mutable
+          {
+              return func(parent, value.Get<T>(), context);
+          }),
+          m_update_ui_object_proc([func = std::forward<UpdateUIObjectFunction>(update_ui_object)](UIObject *ui_object, const HypData &value, AnyRef context) mutable
+          {
+              func(ui_object, value.Get<T>(), context);
+          })
     {
     }
 
@@ -422,6 +440,36 @@ public:
         return nullptr;
     }
 
+
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const override
+    {
+        if (m_create_ui_object_proc.IsValid()) {
+            return m_create_ui_object_proc(parent, value, context);
+        }
+
+        if (m_element_factory) {
+            return m_element_factory->CreateUIObject(parent, value, context);
+        } else {
+            HYP_FAIL("No element factory registered for the data source; unable to create UIObjects");
+        }
+
+        return nullptr;
+    }
+
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const override
+    {
+        if (m_update_ui_object_proc.IsValid()) {
+            m_update_ui_object_proc(ui_object, value, context);
+            return;
+        }
+
+        if (m_element_factory) {
+            m_element_factory->UpdateUIObject(ui_object, value, context);
+        } else {
+            HYP_FAIL("No element factory registered for the data source; unable to create UIObjects");
+        }
+    }
+
     HYP_METHOD()
     virtual int Size() const override
     {
@@ -462,8 +510,11 @@ public:
     }
 
 private:
-    TypeID                      m_element_type_id;
-    Forest<UIDataSourceElement> m_values;
+    TypeID                                                  m_element_type_id;
+    Forest<UIDataSourceElement>                             m_values;
+
+    Proc<RC<UIObject>(UIObject *, const HypData &, AnyRef)> m_create_ui_object_proc;
+    Proc<void(UIObject *, const HypData &, AnyRef)>         m_update_ui_object_proc;
 };
 
 namespace detail {

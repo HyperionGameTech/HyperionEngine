@@ -13,7 +13,7 @@ enum class KeyCode : uint16
 {
     UNKNOWN = uint16(-1),
 
-    KEY_A = 'A',
+    KEY_A = 'a',
     KEY_B,
     KEY_C,
     KEY_D,
@@ -71,11 +71,11 @@ enum class KeyCode : uint16
     RIGHT_CTRL = 228, // SDL_SCANCODE_RCTRL,
     RIGHT_ALT = 230, // SDL_SCANCODE_RALT
 
-    SPACE = 44, // SDL_SCANCODE_SPACE,
+    SPACE = 32, // SDL_SCANCODE_SPACE,
     PERIOD = 46,
-    RETURN = 257,
+    RETURN = 13,
     TAB = 258,
-    BACKSPACE = 259,
+    BACKSPACE = 8,
     CAPSLOCK = 280,
 
     ARROW_RIGHT = 79,

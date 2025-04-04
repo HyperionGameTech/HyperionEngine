@@ -13,6 +13,8 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/threading/Threads.hpp>
 
+#include <console/ConsoleCommandManager.hpp>
+
 #include <system/MessageBox.hpp>
 
 #include <rendering/SafeDeleter.hpp>
@@ -40,8 +42,8 @@ HYP_API void InitializeEngine(const FilePath &base_path)
     Threads::SetCurrentThreadID(g_main_thread);
     
     HypClassRegistry::GetInstance().Initialize();
-
     dotnet::DotNetSystem::GetInstance().Initialize(base_path);
+    ConsoleCommandManager::GetInstance().Initialize();
 
     g_engine = CreateObject<Engine>();
     InitObject(g_engine);
@@ -69,6 +71,7 @@ HYP_API void DestroyEngine()
 
     dotnet::DotNetSystem::GetInstance().Shutdown();
     ComponentInterfaceRegistry::GetInstance().Shutdown();
+    ConsoleCommandManager::GetInstance().Shutdown();
 
     g_asset_manager.Reset();
 

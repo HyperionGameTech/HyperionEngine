@@ -22,7 +22,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 UIListViewItem::UIListViewItem()
     : UIObject(UIObjectType::LIST_VIEW_ITEM),
       m_is_selected_item(false),
-      m_is_expanded(true)
+      m_is_expanded(false)
 {
 }
 
@@ -366,7 +366,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
 
         if (const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID())) {
             if (RC<UIObject> ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
-                data_source->GetElementFactory()->UpdateUIObject(ui_object.Get(), element->GetValue(), { });
+                data_source->UpdateUIObject(ui_object.Get(), element->GetValue(), { });
             } else {
                 HYP_LOG(UI, Error, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
             }
@@ -449,7 +449,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
     }).Detach();
 
     // create UIObject for the element and add it to the list view
-    list_view_item->AddChildUIObject(data_source->GetElementFactory()->CreateUIObject(list_view_item, element->GetValue(), { }));
+    list_view_item->AddChildUIObject(data_source->CreateUIObject(list_view_item, element->GetValue(), { }));
 
     if (parent) {
         // Child element - Find the parent
@@ -466,6 +466,31 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
 
     // add the list view item to the list view
     AddChildUIObject(list_view_item);
+}
+
+void UIListView::SetSelectedItemIndex(int index)
+{
+    HYP_SCOPE;
+
+    if (index < 0 || index >= m_list_view_items.Size()) {
+        return;
+    }
+
+    RC<UIListViewItem> list_view_item = m_list_view_items[index];
+
+    if (m_selected_item == list_view_item) {
+        return;
+    }
+
+    if (RC<UIListViewItem> selected_item = m_selected_item.Lock()) {
+        selected_item->SetIsSelectedItem(false);
+    }
+
+    list_view_item->SetIsSelectedItem(true);
+
+    m_selected_item = list_view_item;
+
+    OnSelectedItemChange(list_view_item);
 }
 
 #pragma region UIListView

@@ -86,6 +86,16 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
 {
     AssertThrow(hyp_class != nullptr);
 
+    if (type_id.IsDynamicType()) {
+        Mutex::Guard guard(m_dynamic_classes_mutex);
+
+        HYP_LOG(Object, Info, "Register dynamic class {}", hyp_class->GetName());
+
+        m_dynamic_classes.Set(type_id, hyp_class);
+
+        return;
+    }
+
     AssertThrowMsg(!m_is_initialized, "Cannot register class - HypClassRegistry instance already initialized");
 
     HYP_LOG(Object, Info, "Register class {}", hyp_class->GetName());
@@ -94,6 +104,49 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
     AssertThrowMsg(it == m_registered_classes.End(), "Class already registered for type: %s", *hyp_class->GetName());
 
     m_registered_classes.Set(type_id, hyp_class);
+}
+
+void HypClassRegistry::UnregisterClass(const HypClass *hyp_class)
+{
+    AssertThrowMsg(hyp_class->GetTypeID().IsDynamicType(), "Cannot unregister class - must be a dynamic HypClass to unregister");
+
+    Mutex::Guard guard(m_dynamic_classes_mutex);
+
+    auto it = m_dynamic_classes.FindIf([hyp_class](const Pair<TypeID, HypClass *> &item)
+    {
+        return item.second == hyp_class;
+    });
+
+    if (it == m_dynamic_classes.End()) {
+        return;
+    }
+
+    HYP_LOG(Object, Info, "Unregister dynamic class {}", it->second->GetName());
+
+    m_dynamic_classes.Erase(it);
+}
+
+void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass *)> &callback, bool include_dynamic_classes) const
+{
+    AssertThrowMsg(m_is_initialized, "Cannot use ForEachClass() - HypClassRegistry instance not yet initialized");
+
+    for (const Pair<TypeID, HypClass *> &it : m_registered_classes) {
+        if (callback(it.second) == IterationResult::STOP) {
+            return;
+        }
+    }
+
+    if (!include_dynamic_classes) {
+        return;
+    }
+
+    Mutex::Guard guard(m_dynamic_classes_mutex);
+
+    for (const Pair<TypeID, HypClass *> &it : m_dynamic_classes) {
+        if (callback(it.second) == IterationResult::STOP) {
+            return;
+        }
+    }
 }
 
 void HypClassRegistry::RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class)

@@ -15,7 +15,7 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/UUID.hpp>
 
-#include <core/util/ForEach.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/NodeProxy.hpp>
@@ -78,6 +78,15 @@ enum class UIObjectType : uint32
 };
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
+
+HYP_ENUM()
+enum class UIObjectPositioning : uint32
+{
+    DEFAULT     = 0,
+    ABSOLUTE,
+
+    MAX
+};
 
 HYP_STRUCT(Size=24)
 struct alignas(8) UIEventHandlerResult
@@ -550,6 +559,12 @@ public:
     void SetName(Name name);
 
     HYP_METHOD()
+    UIObjectPositioning GetPositioning() const;
+
+    HYP_METHOD()
+    void SetPositioning(UIObjectPositioning positioning);
+
+    HYP_METHOD()
     Vec2i GetPosition() const;
 
     HYP_METHOD()
@@ -761,6 +776,11 @@ public:
     HYP_METHOD(Property="BackgroundColor")
     void SetBackgroundColor(const Color &background_color);
 
+    /*! \brief Get the blended background color of the UI object, including its parents. Blends RGB components until alpha adds up to 1.0.
+     *  \note Images and other objects that use a texture will not be blended, only the background color.
+     *  \return The blended background color of the UI object */
+    Color ComputeBlendedBackgroundColor() const;
+
     /*! \brief Get the text color of the UI object
      * \return The text color of the UI object */
     HYP_METHOD(Property="TextColor")
@@ -769,7 +789,7 @@ public:
     /*! \brief Set the text color of the UI object
      *  \param text_color The text color of the UI object */
     HYP_METHOD(Property="TextColor")
-    void SetTextColor(const Color &text_color);
+    virtual void SetTextColor(const Color &text_color);
 
     /*! \brief Gets the text to render.
      * 
@@ -1262,6 +1282,8 @@ protected:
     Name                            m_name;
 
     ThreadID                        m_owner_thread_id;
+
+    UIObjectPositioning             m_positioning;
 
     Vec2i                           m_position;
     Vec2f                           m_offset_position;

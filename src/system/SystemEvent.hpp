@@ -93,10 +93,10 @@ public:
     {
         KeyCode key = GetKeyCode();
         
-        /* Set all letters to uppercase */
-        if (uint32(key) >= 'a' && uint32(key) <= 'z') {
-            key = KeyCode('A' + (uint32(key) - 'a'));
-        }
+        // /* Set all letters to uppercase */
+        // if (uint32(key) >= 'a' && uint32(key) <= 'z') {
+        //     key = KeyCode('A' + (uint32(key) - 'a'));
+        // }
 
         return key;
     }

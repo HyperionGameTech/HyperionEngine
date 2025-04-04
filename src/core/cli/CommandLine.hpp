@@ -13,6 +13,10 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/Result.hpp>
 
+#include <core/memory/Pimpl.hpp>
+
+#include <core/object/HypObject.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/json/JSON.hpp>
@@ -36,6 +40,7 @@ enum class CommandLineParserFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(CommandLineParserFlags)
 
+HYP_ENUM()
 enum class CommandLineArgumentType
 {
     STRING,
@@ -63,26 +68,29 @@ struct CommandLineArgumentDefinition
     Optional<Array<String>>             enum_values;
 };
 
+struct CommandLineArgumentDefinitionsImpl;
+
+HYP_STRUCT(Size=16)
 struct HYP_API CommandLineArgumentDefinitions
 {
-    using Iterator = typename Array<CommandLineArgumentDefinition>::Iterator;
-    using ConstIterator = typename Array<CommandLineArgumentDefinition>::ConstIterator;
+    Pimpl<CommandLineArgumentDefinitionsImpl>   m_impl;
 
-    Array<CommandLineArgumentDefinition>   definitions;
+public:
+    using Iterator = CommandLineArgumentDefinition *;
+    using ConstIterator = CommandLineArgumentDefinition *;
 
-    CommandLineArgumentDefinitions()                                                            = default;
-    CommandLineArgumentDefinitions(const Array<CommandLineArgumentDefinition> &definitions)
-        : definitions(definitions)
-    {
-    }
+    CommandLineArgumentDefinitions();
+    CommandLineArgumentDefinitions(const Array<CommandLineArgumentDefinition> &definitions);
 
-    CommandLineArgumentDefinitions(const CommandLineArgumentDefinitions &other)                 = default;
-    CommandLineArgumentDefinitions &operator=(const CommandLineArgumentDefinitions &other)      = default;
+    CommandLineArgumentDefinitions(const CommandLineArgumentDefinitions &other)                 = delete;
+    CommandLineArgumentDefinitions &operator=(const CommandLineArgumentDefinitions &other)      = delete;
 
     CommandLineArgumentDefinitions(CommandLineArgumentDefinitions &&other) noexcept             = default;
     CommandLineArgumentDefinitions &operator=(CommandLineArgumentDefinitions &&other) noexcept  = default;
 
-    ~CommandLineArgumentDefinitions()                                                           = default;
+    ~CommandLineArgumentDefinitions();
+
+    Span<CommandLineArgumentDefinition> GetDefinitions() const;
 
     // Add an argument - may be a string, int, float, bool.
     CommandLineArgumentDefinitions &Add(
@@ -104,28 +112,12 @@ struct HYP_API CommandLineArgumentDefinitions
         const CommandLineArgumentValue &default_value = { }
     );
     
-    HYP_FORCE_INLINE Iterator Find(UTF8StringView key)
-    {
-        return definitions.FindIf([key](const CommandLineArgumentDefinition &definition)
-        {
-            return definition.name == key;
-        });
-    }
-    
-    HYP_FORCE_INLINE ConstIterator Find(UTF8StringView key) const
-    {
-        return definitions.FindIf([key](const CommandLineArgumentDefinition &definition)
-        {
-            return definition.name == key;
-        });
-    }
+    CommandLineArgumentDefinition *Find(UTF8StringView key) const;
 
-    HYP_DEF_STL_BEGIN_END(
-        definitions.Begin(),
-        definitions.End()
-    )
+    HYP_DEF_STL_BEGIN_END(GetDefinitions().Begin(), GetDefinitions().End())
 };
 
+HYP_STRUCT()
 class HYP_API CommandLineArguments
 {
     String                                          command;
@@ -160,61 +152,40 @@ public:
     HYP_NODISCARD static CommandLineArguments Merge(const CommandLineArgumentDefinitions &definitions, const CommandLineArguments &a, const CommandLineArguments &b);
     HYP_NODISCARD static TResult<CommandLineArgumentValue> ParseArgumentValue(const CommandLineArgumentDefinition &definition, const String &str);
 
-    HYP_DEF_STL_BEGIN_END(
-        values.Begin(),
-        values.End()
-    )
+    HYP_DEF_STL_BEGIN_END(values.Begin(), values.End())
 };
 
 class CommandLineParser
 {
 public:
-    CommandLineParser(const CommandLineArgumentDefinitions &definitions = { }, EnumFlags<CommandLineParserFlags> flags = CommandLineParserFlags::NONE)
+    CommandLineParser()
+        : m_definitions(nullptr),
+          m_flags(CommandLineParserFlags::NONE)
+    {
+    }
+
+    CommandLineParser(const CommandLineArgumentDefinitions *definitions, EnumFlags<CommandLineParserFlags> flags = CommandLineParserFlags::NONE)
         : m_definitions(definitions),
           m_flags(flags)
     {
     }
 
-    CommandLineParser(const CommandLineParser &other)                   = default;
-    CommandLineParser &operator=(const CommandLineParser &other)        = default;
+    CommandLineParser(const CommandLineParser &other)                   = delete;
+    CommandLineParser &operator=(const CommandLineParser &other)        = delete;
     CommandLineParser(CommandLineParser &&other) noexcept               = default;
     CommandLineParser &operator=(CommandLineParser &&other) noexcept    = default;
     ~CommandLineParser()                                                = default;
 
-    HYP_FORCE_INLINE const CommandLineArgumentDefinitions &GetDefinitions() const
+    HYP_FORCE_INLINE const CommandLineArgumentDefinitions *GetDefinitions() const
         { return m_definitions; }
-
-    HYP_FORCE_INLINE void Add(
-        const String &name,
-        const String &shorthand = String::empty,
-        const String &description = String::empty,
-        EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
-        CommandLineArgumentType type = CommandLineArgumentType::STRING,
-        const CommandLineArgumentValue &default_value = { }
-    )
-    {
-        m_definitions.Add(name, shorthand, description, flags, type, default_value);
-    }
-
-    HYP_FORCE_INLINE void Add(
-        const String &name,
-        const String &shorthand = String::empty,
-        const String &description = String::empty,
-        EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
-        const Optional<Array<String>> &enum_values = { },
-        const CommandLineArgumentValue &default_value = { }
-    )
-    {
-        m_definitions.Add(name, shorthand, description, flags, enum_values, default_value);
-    }
 
     HYP_API TResult<CommandLineArguments> Parse(const String &command_line) const;
     HYP_API TResult<CommandLineArguments> Parse(int argc, char **argv) const;
     HYP_API TResult<CommandLineArguments> Parse(const String &command, const Array<String> &args) const;
 
 private:
-    CommandLineArgumentDefinitions      m_definitions;
-    EnumFlags<CommandLineParserFlags>   m_flags;
+    const CommandLineArgumentDefinitions    *m_definitions;
+    EnumFlags<CommandLineParserFlags>       m_flags;
 };
 
 } // namespace cli

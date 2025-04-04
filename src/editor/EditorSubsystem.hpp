@@ -275,6 +275,7 @@ private:
     void InitContentBrowser();
     void InitDetailView();
     void InitDebugOverlays();
+    void InitConsole();
     
     RC<FontAtlas> CreateFontAtlas();
 

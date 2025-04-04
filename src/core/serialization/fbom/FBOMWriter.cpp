@@ -13,7 +13,7 @@
 
 #include <core/compression/Archive.hpp>
 
-#include <core/util/ForEach.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>

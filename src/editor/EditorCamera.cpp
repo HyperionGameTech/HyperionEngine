@@ -27,46 +27,50 @@ EditorCameraInputHandler::EditorCameraInputHandler(CameraController *controller)
 
 bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
 {
-    static constexpr float speed = 15.0f;
+    HYP_LOG(Camera, Debug, "Key down: {}", uint32(evt.key_code));
 
-    HYP_SCOPE;
+    // static constexpr float speed = 15.0f;
 
-    Camera *camera = m_controller->GetCamera();
+    // HYP_SCOPE;
 
-    if (evt.key_code == KeyCode::KEY_W || evt.key_code == KeyCode::KEY_S || evt.key_code == KeyCode::KEY_A || evt.key_code == KeyCode::KEY_D) {
-        CameraController *camera_controller = camera->GetCameraController();
+    // Camera *camera = m_controller->GetCamera();
 
-        Vec3f translation = camera->GetTranslation();
+    // if (evt.key_code == KeyCode::KEY_W || evt.key_code == KeyCode::KEY_S || evt.key_code == KeyCode::KEY_A || evt.key_code == KeyCode::KEY_D) {
+    //     CameraController *camera_controller = camera->GetCameraController();
 
-        const Vec3f direction = camera->GetDirection();
-        const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
+    //     Vec3f translation = camera->GetTranslation();
 
-        if (evt.key_code == KeyCode::KEY_W) {
-            translation += direction * 0.01f * speed;
-        }
-        if (evt.key_code == KeyCode::KEY_S) {
-            translation -= direction * 0.01f * speed;
-        }
-        if (evt.key_code == KeyCode::KEY_A) {
-            translation -= dir_cross_y * 0.01f * speed;
-        }
-        if (evt.key_code == KeyCode::KEY_D) {
-            translation += dir_cross_y * 0.01f * speed;
-        }
+    //     const Vec3f direction = camera->GetDirection();
+    //     const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
 
-        camera->SetNextTranslation(translation);
+    //     if (evt.key_code == KeyCode::KEY_W) {
+    //         translation += direction * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_S) {
+    //         translation -= direction * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_A) {
+    //         translation -= dir_cross_y * 0.01f * speed;
+    //     }
+    //     if (evt.key_code == KeyCode::KEY_D) {
+    //         translation += dir_cross_y * 0.01f * speed;
+    //     }
 
-        return true;
-    }
+    //     camera->SetNextTranslation(translation);
 
-    return false;
+    //     return true;
+    // }
+
+    // return false;
+
+    return InputHandlerBase::OnKeyDown_Impl(evt);
 }
 
 bool EditorCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent &evt)
 {
-    HYP_SCOPE;
+    HYP_LOG(Camera, Debug, "Key up: {}", uint32(evt.key_code));
 
-    return false;
+    return InputHandlerBase::OnKeyUp_Impl(evt);
 }
 
 bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent &evt)
@@ -74,8 +78,6 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent &evt)
     HYP_SCOPE;
 
     m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
-
-    HYP_LOG(Camera, Debug, "Mouse down on editor camera");
 
     return true;
 }
@@ -187,24 +189,20 @@ void EditorCameraController::UpdateLogic(double delta)
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dir_cross_y = direction.Cross(m_camera->GetUpVector());
 
-    InputManager *input_manager = g_engine->GetAppContext()->GetInputManager().Get();
-    AssertThrow(input_manager != nullptr);
-
-    if (input_manager->IsKeyDown(KeyCode::KEY_W)) {
+    if (m_input_handler->IsKeyDown(KeyCode::KEY_W)) {
         translation += direction * delta * speed;
     }
-    if (input_manager->IsKeyDown(KeyCode::KEY_S)) {
+    if (m_input_handler->IsKeyDown(KeyCode::KEY_S)) {
         translation -= direction * delta * speed;
     }
-    if (input_manager->IsKeyDown(KeyCode::KEY_A)) {
+    if (m_input_handler->IsKeyDown(KeyCode::KEY_A)) {
         translation -= dir_cross_y * delta * speed;
     }
-    if (input_manager->IsKeyDown(KeyCode::KEY_D)) {
+    if (m_input_handler->IsKeyDown(KeyCode::KEY_D)) {
         translation += dir_cross_y * delta * speed;
     }
 
     m_camera->SetNextTranslation(translation);
-
 }
 
 void EditorCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)

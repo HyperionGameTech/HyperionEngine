@@ -67,6 +67,8 @@
 #include <rendering/lightmapper/LightmapperSubsystem.hpp>
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
 
+#include <console/ui/ConsoleUI.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <dotnet/Class.hpp>
@@ -1044,6 +1046,16 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
+        m_delegate_handlers.Remove(&ui_image->OnKeyUp);
+        m_delegate_handlers.Add(ui_image->OnKeyUp.Bind([this](const KeyboardEvent &event)
+        {
+            if (m_camera->GetCameraController()->GetInputHandler()->OnKeyUp(event)) {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
         m_delegate_handlers.Remove(&ui_image->OnGainFocus);
         m_delegate_handlers.Add(ui_image->OnGainFocus.Bind([this](const MouseEvent &event)
         {
@@ -1061,6 +1073,8 @@ void EditorSubsystem::InitViewport()
         }));
 
         ui_image->SetTexture(m_scene_texture);
+
+        InitConsole();
     } else {
         HYP_FAIL("Failed to find Scene_Image element");
     }
@@ -1162,31 +1176,31 @@ void EditorSubsystem::InitSceneOutline()
            return;
        }
 
-       if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
-           const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
+    //    if (UIDataSourceBase *data_source = list_view->GetDataSource()) {
+    //        const UIDataSourceElement *data_source_element = data_source->Get(node->GetUUID());
 
-           if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
-               if (!data_source_element) {
-                   return;
-               }
+    //        if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE) {
+    //            if (!data_source_element) {
+    //                return;
+    //            }
 
-               data_source->Remove(node->GetUUID());
-           } else {
-               if (data_source_element) {
-                   return;
-               }
+    //            data_source->Remove(node->GetUUID());
+    //        } else {
+    //            if (data_source_element) {
+    //                return;
+    //            }
 
-               Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
+    //            Weak<Node> editor_node_weak = node->WeakRefCountedPtrFromThis();
 
-               UUID parent_node_uuid = UUID::Invalid();
+    //            UUID parent_node_uuid = UUID::Invalid();
 
-               if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
-                   parent_node_uuid = parent_node->GetUUID();
-               }
+    //            if (Node *parent_node = node->GetParent(); parent_node && !parent_node->IsRoot()) {
+    //                parent_node_uuid = parent_node->GetUUID();
+    //            }
 
-               data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
-           }
-       }
+    //            data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
+    //        }
+    //    }
     });
 
     static const auto AddNodeToSceneOutline = [](const RC<UIListView> &list_view, Node *node)
@@ -1392,6 +1406,33 @@ void EditorSubsystem::InitDebugOverlays()
 
     if (RC<UIImage> scene_image = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>()) {
         scene_image->AddChildUIObject(m_debug_overlay_ui_object);
+    }
+}
+
+void EditorSubsystem::InitConsole()
+{
+    HYP_SCOPE;
+
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    RC<UIObject> console_ui = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Console"));
+    if (console_ui != nullptr) {
+        console_ui->RemoveFromParent();
+    }
+
+    console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+    AssertThrow(console_ui != nullptr);
+    
+    console_ui->SetDepth(150);
+
+    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
+        RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
+        AssertThrow(scene_image != nullptr);
+
+        scene_image->AddChildUIObject(console_ui);
+    } else {
+        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
     }
 }
 

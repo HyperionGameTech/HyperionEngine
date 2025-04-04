@@ -161,7 +161,96 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
 
 #pragma endregion CommandLineArguments
 
+#pragma region CommandLineArgumentDefinitionsImpl
+
+struct CommandLineArgumentDefinitionsImpl
+{
+    using Iterator = typename Array<CommandLineArgumentDefinition>::Iterator;
+    using ConstIterator = typename Array<CommandLineArgumentDefinition>::ConstIterator;
+
+    Array<CommandLineArgumentDefinition> definitions;
+
+    CommandLineArgumentDefinitionsImpl() = default;
+
+    CommandLineArgumentDefinitionsImpl(const Array<CommandLineArgumentDefinition> &definitions)
+        : definitions(definitions)
+    {
+    }
+
+
+    CommandLineArgumentDefinitionsImpl(const CommandLineArgumentDefinitionsImpl &other)                 = default;
+    CommandLineArgumentDefinitionsImpl &operator=(const CommandLineArgumentDefinitionsImpl &other)      = default;
+
+    CommandLineArgumentDefinitionsImpl(CommandLineArgumentDefinitionsImpl &&other) noexcept             = default;
+    CommandLineArgumentDefinitionsImpl &operator=(CommandLineArgumentDefinitionsImpl &&other) noexcept  = default;
+
+    ~CommandLineArgumentDefinitionsImpl()                                                               = default;
+
+    HYP_FORCE_INLINE void Add(CommandLineArgumentDefinition &&definition)
+    {
+        definitions.PushBack(std::move(definition));
+    }
+    
+    HYP_FORCE_INLINE Iterator Find(UTF8StringView key)
+    {
+        return definitions.FindIf([key](const CommandLineArgumentDefinition &definition)
+        {
+            return definition.name == key;
+        });
+    }
+    
+    HYP_FORCE_INLINE ConstIterator Find(UTF8StringView key) const
+    {
+        return definitions.FindIf([key](const CommandLineArgumentDefinition &definition)
+        {
+            return definition.name == key;
+        });
+    }
+
+    HYP_DEF_STL_BEGIN_END(
+        definitions.Begin(),
+        definitions.End()
+    )
+};
+
+#pragma endregion CommandLineArgumentDefinitionsImpl
+
 #pragma region CommandLineArgumentDefinitions
+
+CommandLineArgumentDefinitions::CommandLineArgumentDefinitions()
+    : m_impl(MakePimpl<CommandLineArgumentDefinitionsImpl>())
+{
+}
+
+CommandLineArgumentDefinitions::CommandLineArgumentDefinitions(const Array<CommandLineArgumentDefinition> &definitions)
+    : m_impl(MakePimpl<CommandLineArgumentDefinitionsImpl>(definitions))
+{
+}
+
+CommandLineArgumentDefinitions::~CommandLineArgumentDefinitions()
+{
+    m_impl.Reset();
+}
+
+Span<CommandLineArgumentDefinition> CommandLineArgumentDefinitions::GetDefinitions() const
+{
+    return m_impl ? m_impl->definitions.ToSpan() : Span<CommandLineArgumentDefinition>();
+}
+
+CommandLineArgumentDefinition *CommandLineArgumentDefinitions::Find(UTF8StringView key) const
+{
+    if (!m_impl) {
+        return nullptr;
+    }
+
+    auto it = m_impl->Find(key);
+
+    if (it == m_impl->End()) {
+        return nullptr;
+    }
+
+    return &(*it);
+}
 
 CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
     const String &name,
@@ -172,12 +261,16 @@ CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
     const CommandLineArgumentValue &default_value
 )
 {
-    auto it = definitions.FindIf([&name](const auto &item)
+    if (!m_impl) {
+        m_impl = MakePimpl<CommandLineArgumentDefinitionsImpl>();
+    }
+    
+    auto it = m_impl->definitions.FindIf([&name](const auto &item)
     {
         return item.name == name;
     });
 
-    if (it != definitions.End()) {
+    if (it != m_impl->definitions.End()) {
         *it = CommandLineArgumentDefinition {
             name,
             shorthand.Empty() ? Optional<String>() : shorthand,
@@ -190,7 +283,7 @@ CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
         return *this;
     }
 
-    definitions.PushBack(CommandLineArgumentDefinition {
+    m_impl->definitions.PushBack(CommandLineArgumentDefinition {
         name,
         shorthand.Empty() ? Optional<String>() : shorthand,
         description.Empty() ? Optional<String>() : description,
@@ -211,12 +304,16 @@ CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
     const CommandLineArgumentValue &default_value
 )
 {
-    auto it = definitions.FindIf([&name](const auto &item)
+    if (!m_impl) {
+        m_impl = MakePimpl<CommandLineArgumentDefinitionsImpl>();
+    }
+
+    auto it = m_impl->definitions.FindIf([&name](const auto &item)
     {
         return item.name == name;
     });
 
-    if (it != definitions.End()) {
+    if (it != m_impl->definitions.End()) {
         *it = CommandLineArgumentDefinition {
             name,
             shorthand.Empty() ? Optional<String>() : shorthand,
@@ -230,7 +327,7 @@ CommandLineArgumentDefinitions &CommandLineArgumentDefinitions::Add(
         return *this;
     }
 
-    definitions.PushBack(CommandLineArgumentDefinition {
+    m_impl->definitions.PushBack(CommandLineArgumentDefinition {
         name,
         shorthand.Empty() ? Optional<String>() : shorthand,
         description.Empty() ? Optional<String>() : description,
@@ -310,6 +407,10 @@ TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char **argv) co
 
 TResult<CommandLineArguments> CommandLineParser::Parse(const String &command, const Array<String> &args) const
 {
+    if (!m_definitions) {
+        return HYP_MAKE_ERROR(Error, "No command line argument definitions");
+    }
+
     CommandLineArguments result;
 
     HashSet<String> used_arguments;
@@ -328,9 +429,9 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String &command, co
             return HYP_MAKE_ERROR(Error, "Invalid argument");
         }
 
-        const auto it = m_definitions.Find(arg);
+        const auto it = m_definitions->Find(arg);
 
-        if (it == m_definitions.End()) {
+        if (it == m_definitions->End()) {
             // Unknown argument
             continue;
         }
@@ -370,7 +471,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String &command, co
         AppendCommandLineArgumentValue(result.values, arg, std::move(parsed_value.GetValue()), allow_multiple);
     }
 
-    for (const CommandLineArgumentDefinition &def : m_definitions) {
+    for (const CommandLineArgumentDefinition &def : *m_definitions) {
         const bool allow_multiple = def.flags[CommandLineArgumentFlags::ALLOW_MULTIPLE];
 
         if (used_arguments.Contains(def.name)) {

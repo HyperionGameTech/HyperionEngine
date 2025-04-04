@@ -24,6 +24,8 @@ public:
     UITextbox(UITextbox &&other) noexcept               = delete;
     UITextbox &operator=(UITextbox &&other) noexcept    = delete;
     virtual ~UITextbox() override                       = default;
+    
+    virtual void SetTextColor(const Color &text_color) override;
 
     /*! \brief Sets the text value of the textbox.
      * 
@@ -43,6 +45,9 @@ public:
     HYP_METHOD(Property="Placeholder", XMLAttribute="placeholder")
     void SetPlaceholder(const String &placeholder);
 
+    HYP_METHOD()
+    Color GetPlaceholderTextColor() const;
+
     virtual void Init() override;
 
 protected:
@@ -53,6 +58,7 @@ protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
     void UpdateCursor();
+    void UpdateTextColor();
 
     RC<UIText>      m_text_element;
     RC<UIObject>    m_cursor_element;

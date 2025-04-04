@@ -83,6 +83,27 @@ public:
     UIListView &operator=(UIListView &&other) noexcept  = delete;
     virtual ~UIListView() override                      = default;
 
+    HYP_FORCE_INLINE const Weak<UIListViewItem> &GetSelectedItem() const
+        { return m_selected_item; }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE int GetSelectedItemIndex() const
+    {
+        auto it = m_list_view_items.FindIf([this](const RC<UIListViewItem> &item)
+        {
+            return item == m_selected_item;
+        });
+
+        if (it != m_list_view_items.End()) {
+            return int(it - m_list_view_items.Begin());
+        }
+
+        return -1;
+    }
+
+    HYP_METHOD()
+    void SetSelectedItemIndex(int index);
+
     HYP_FORCE_INLINE const Array<RC<UIListViewItem>> &GetListViewItems() const
         { return m_list_view_items; }
 

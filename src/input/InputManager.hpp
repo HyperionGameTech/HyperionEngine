@@ -32,13 +32,10 @@ using sys::SystemEvent;
 struct InputState
 {
     bool    key_states[NUM_KEYBOARD_KEYS];
-    bool    last_key_states[NUM_KEYBOARD_KEYS];
-
     bool    mouse_button_states[int(MouseButton::MAX)];
 
     InputState()
         : key_states { false },
-          last_key_states { false },
           mouse_button_states { false }
     {
     }
