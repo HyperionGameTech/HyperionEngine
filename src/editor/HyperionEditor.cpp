@@ -504,16 +504,6 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
 {
     Game::OnInputEvent(event);
 
-    // if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_M) {
-    //     NodeProxy test_model = m_scene->FindNodeByName("test_model");
-
-    //     if (test_model) {
-    //         test_model->UnlockTransform();
-    //         test_model->Translate(Vec3f { 0.01f });
-    //         test_model->LockTransform();
-    //     }
-    // }
-
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_L) {
         NodeProxy sun = m_scene->FindNodeByName("Sun");
 

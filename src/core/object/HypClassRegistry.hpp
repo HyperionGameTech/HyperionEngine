@@ -6,6 +6,7 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <core/containers/TypeMap.hpp>
 
@@ -127,6 +128,11 @@ public:
 
     void RegisterClass(TypeID type_id, HypClass *hyp_class);
 
+    // Only for Dynamic classes
+    void UnregisterClass(const HypClass *hyp_class);
+
+    void ForEachClass(const ProcRef<IterationResult(const HypClass *)> &callback, bool include_dynamic_classes = true) const;
+
     void RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class);
     void UnregisterManagedClass(dotnet::Class *managed_class);
 
@@ -136,6 +142,9 @@ public:
 
 private:
     TypeMap<HypClass *>                     m_registered_classes;
+
+    mutable Mutex                           m_dynamic_classes_mutex;
+    TypeMap<HypClass *>                     m_dynamic_classes;
 
     bool                                    m_is_initialized;
 

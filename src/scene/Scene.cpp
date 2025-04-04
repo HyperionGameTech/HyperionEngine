@@ -152,10 +152,10 @@ void Scene::Init()
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
     AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
     AddSystemIfApplicable<RenderProxyUpdaterSystem>();
+    AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<ReflectionProbeUpdaterSystem>();
     AddSystemIfApplicable<LightVisibilityUpdaterSystem>();
     AddSystemIfApplicable<ShadowMapUpdaterSystem>();
-    AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<EnvGridUpdaterSystem>();
     AddSystemIfApplicable<LightmapSystem>();
     AddSystemIfApplicable<AnimationSystem>();

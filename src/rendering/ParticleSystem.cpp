@@ -27,7 +27,7 @@
 
 #include <core/threading/Threads.hpp>
 
-#include <core/util/ForEach.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <core/math/MathUtil.hpp>
 

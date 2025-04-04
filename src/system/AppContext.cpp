@@ -24,15 +24,22 @@ HYP_DEFINE_LOG_SUBCHANNEL(AppContext, Core);
 
 HYP_API const CommandLineArgumentDefinitions &DefaultCommandLineArgumentDefinitions()
 {
-    static const CommandLineArgumentDefinitions default_arg_parse_definitions = CommandLineArgumentDefinitions()
-        .Add("Profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false)
-        .Add("TraceURL", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING)
-        .Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER)
-        .Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER)
-        .Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false)
-        .Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
+    static const struct DefaultCommandLineArgumentDefinitionsInitializer
+    {
+        CommandLineArgumentDefinitions definitions;
 
-    return default_arg_parse_definitions;
+        DefaultCommandLineArgumentDefinitionsInitializer()
+        {
+            definitions.Add("Profile", {}, "Enable collection of profiling data for functions that opt in using HYP_SCOPE.", CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("TraceURL", {}, "The endpoint url that profiling data will be submitted to (this url will have /start appended to it to start the session and /results to add results)", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
+            definitions.Add("ResX", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
+            definitions.Add("ResY", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::INTEGER);
+            definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("Mode", "m", {}, CommandLineArgumentFlags::NONE, Array<String> { "precompile_shaders", "editor" }, String("editor"));
+        }
+    } initializer;
+
+    return initializer.definitions;
 }
 
 namespace sys {
@@ -256,12 +263,12 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
         json::JSONString config_args_string = config_args.ToString();
         Array<String> config_args_string_split = config_args_string.Split(' ');
 
-        CommandLineParser arg_parse { DefaultCommandLineArgumentDefinitions() };
+        CommandLineParser arg_parse { &DefaultCommandLineArgumentDefinitions() };
 
         TResult<CommandLineArguments> parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
 
         if (parse_result.HasValue()) { 
-            new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(arg_parse.GetDefinitions(), *parse_result, arguments));
+            new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(*arg_parse.GetDefinitions(), *parse_result, arguments));
         } else {
             HYP_LOG(AppContext, Error, "Failed to parse config command line value \"{}\":\n\t{}", config_args_string, parse_result.GetError().GetMessage());
         }

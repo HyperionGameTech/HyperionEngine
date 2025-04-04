@@ -613,6 +613,8 @@ namespace Hyperion
 
         public static unsafe bool SetObjectReferenceType(IntPtr objectReferencePtr, bool weak)
         {
+            // debugging; temp
+            Console.WriteLine("SetObjectReferenceType (" + objectReferencePtr + ", " + weak + ")");
             ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
 
             if (weak)

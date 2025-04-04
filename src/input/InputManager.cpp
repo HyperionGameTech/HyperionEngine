@@ -68,6 +68,7 @@ void InputManager::CheckEvent(SystemEvent *event)
 
     switch (event->GetType()) {
     case SystemEventType::EVENT_KEYDOWN:
+        HYP_LOG(Input, Debug, "Key down: {}", uint32(event->GetKeyCode()));
         KeyDown(event->GetNormalizedKeyCode());
         break;
     case SystemEventType::EVENT_KEYUP:

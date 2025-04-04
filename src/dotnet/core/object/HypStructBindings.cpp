@@ -21,9 +21,14 @@ public:
           m_size(size),
           m_destruct_function(destruct_function)
     {
+        // @TODO Register the ManagedClass (dotnet::Class) for this. We need the assembly.
+        HypClassRegistry::GetInstance().RegisterClass(type_id, this);
     }
 
-    virtual ~DynamicHypStructInstance() override = default;
+    virtual ~DynamicHypStructInstance() override
+    {
+        HypClassRegistry::GetInstance().UnregisterClass(this);
+    }
 
     virtual SizeType GetSize() const override
     {

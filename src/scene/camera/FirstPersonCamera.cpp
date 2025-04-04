@@ -22,60 +22,22 @@ FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(CameraController *c
 
 bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
 {
-    static constexpr float speed = 15.0f;
-
-    HYP_SCOPE;
-
-    // Camera *camera = m_controller->GetCamera();
-
-    // if (evt.key_code == KeyCode::KEY_W || evt.key_code == KeyCode::KEY_S || evt.key_code == KeyCode::KEY_A || evt.key_code == KeyCode::KEY_D) {
-    //     CameraController *camera_controller = camera->GetCameraController();
-
-    //     Vec3f translation = camera->GetTranslation();
-
-    //     const Vec3f direction = camera->GetDirection();
-    //     const Vec3f dir_cross_y = direction.Cross(camera->GetUpVector());
-
-    //     if (evt.key_code == KeyCode::KEY_W) {
-    //         translation += direction * 0.01f * speed;
-    //     }
-    //     if (evt.key_code == KeyCode::KEY_S) {
-    //         translation -= direction * 0.01f * speed;
-    //     }
-    //     if (evt.key_code == KeyCode::KEY_A) {
-    //         translation -= dir_cross_y * 0.01f * speed;
-    //     }
-    //     if (evt.key_code == KeyCode::KEY_D) {
-    //         translation += dir_cross_y * 0.01f * speed;
-    //     }
-
-    //     camera->SetNextTranslation(translation);
-
-    //     return true;
-    // }
-
-    return false;
+    return InputHandlerBase::OnKeyDown_Impl(evt);
 }
 
 bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent &evt)
 {
-    HYP_SCOPE;
-
-    return false;
+    return InputHandlerBase::OnKeyUp_Impl(evt);
 }
 
 bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent &evt)
 {
-    HYP_SCOPE;
-
-    return true;
+    return InputHandlerBase::OnMouseDown_Impl(evt);
 }
 
 bool FirstPersonCameraInputHandler::OnMouseUp_Impl(const MouseEvent &evt)
 {
-    HYP_SCOPE;
-
-    return true;
+    return InputHandlerBase::OnMouseUp_Impl(evt);
 }
 
 bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent &evt)

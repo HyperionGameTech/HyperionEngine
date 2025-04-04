@@ -235,7 +235,7 @@ struct HypData
         return AnyRef(value.GetTypeID(), value.GetPointer());
     }
 
-    HYP_FORCE_INLINE ConstAnyRef ToRef() const
+    HYP_FORCE_INLINE AnyRef ToRef() const
         { return const_cast<HypData *>(this)->ToRef(); }
 
     template <class T>

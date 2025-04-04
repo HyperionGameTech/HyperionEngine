@@ -27,7 +27,7 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
-#include <core/util/ForEach.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <asset/AssetLoader.hpp>
 

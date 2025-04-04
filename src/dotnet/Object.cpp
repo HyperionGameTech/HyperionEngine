@@ -122,17 +122,19 @@ const Property *Object::GetProperty(UTF8StringView property_name) const
     return &it->second;
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 bool Object::SetKeepAlive(bool keep_alive)
 {
     AssertThrow(bool(m_object_flags & ObjectFlags::KEEP_ALIVE) != keep_alive);
 
-    if (!DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive)) {
-        return false;
-    }
+    AssertThrow(DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive));
 
     m_object_flags[ObjectFlags::KEEP_ALIVE] = keep_alive;
 
     return true;
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::dotnet
