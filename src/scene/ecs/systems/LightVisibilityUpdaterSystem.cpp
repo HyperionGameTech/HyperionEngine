@@ -92,8 +92,6 @@ void LightVisibilityUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
-
     { // Invalidate visibility state of directional lights that have had their transforms update to refresh the octree
         for (auto [entity_id, light_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
             if (!light_component.light.IsValid() || !light_component.light->IsReady()) {
@@ -141,18 +139,24 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        // For area lights, update the material ID if the entity has a MeshComponent.
-        if (light_component.light->GetLightType() == LightType::AREA_RECT) {
-            /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {
-                light_component.light->SetMaterial(mesh_component->material);
-            } else {
-                light_component.light->SetMaterial(Handle<Material>::empty);
-            }*/
-        }
+        for (auto [camera_entity_id, camera_component] : GetEntityManager().GetEntitySet<CameraComponent>().GetScopedView(GetComponentInfos())) {
+            const Handle<Camera> &camera = camera_component.camera;
 
-        bool is_light_in_frustum = false;
-        
-        if (camera.IsValid()) {
+            if (!camera.IsValid()) {
+                continue;
+            }
+
+            // For area lights, update the material ID if the entity has a MeshComponent.
+            if (light_component.light->GetLightType() == LightType::AREA_RECT) {
+                /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {
+                    light_component.light->SetMaterial(mesh_component->material);
+                } else {
+                    light_component.light->SetMaterial(Handle<Material>::empty);
+                }*/
+            }
+
+            bool is_light_in_frustum = false;
+            
             is_light_in_frustum = camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
 
             switch (light_component.light->GetLightType()) {
@@ -171,9 +175,9 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
             default:
                 break;
             }
-        }
 
-        light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
+            light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
+        }
 
         if (light_component.light->GetMutationState().IsDirty()) {
             light_component.light->EnqueueRenderUpdates();

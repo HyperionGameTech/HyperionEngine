@@ -42,9 +42,6 @@ public:
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
     virtual bool RemoveChildUIObject(UIObject *ui_object) override;
 
-    HYP_FORCE_INLINE const RC<UIObject> &GetInnerElement() const
-        { return m_inner_element; }
-
     bool HasSubItems() const;
 
     HYP_FORCE_INLINE bool IsExpanded() const
@@ -58,7 +55,6 @@ protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
 private:
-    RC<UIObject>    m_inner_element;
     RC<UIObject>    m_expanded_element;
     bool            m_is_selected_item;
     bool            m_is_expanded;
@@ -81,7 +77,7 @@ public:
     UIListView &operator=(const UIListView &other)      = delete;
     UIListView(UIListView &&other) noexcept             = delete;
     UIListView &operator=(UIListView &&other) noexcept  = delete;
-    virtual ~UIListView() override                      = default;
+    virtual ~UIListView() override;
 
     HYP_FORCE_INLINE const Weak<UIListViewItem> &GetSelectedItem() const
         { return m_selected_item; }

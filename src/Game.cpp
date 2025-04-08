@@ -97,21 +97,8 @@ void Game::Init_Internal()
                 }
             }
 
-            Handle<Camera> camera = CreateObject<Camera>(
-                70.0f,
-                window_size.x, window_size.y,
-                0.01f, 30000.0f
-            );
-
-            InitObject(camera);
-
-            m_scene = CreateObject<Scene>(
-                SceneFlags::FOREGROUND
-            );
-
+            m_scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
             m_scene->SetName(NAME("Scene_Main"));
-            m_scene->SetCamera(camera);
-
             m_scene->SetIsAudioListener(true);
 
             const Handle<World> &world = g_engine->GetWorld();
@@ -293,20 +280,22 @@ void Game::OnInputEvent(const SystemEvent &event)
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSESCROLL:
     {
-        if (m_scene && m_scene->GetCamera()) {
-            int wheel_x;
-            int wheel_y;
+        if (m_scene.IsValid()) {
+            if (const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera()) {
+                int wheel_x;
+                int wheel_y;
 
-            event.GetMouseWheel(&wheel_x, &wheel_y);
+                event.GetMouseWheel(&wheel_x, &wheel_y);
 
-            if (const RC<CameraController> &controller = m_scene->GetCamera()->GetCameraController()) {
-                controller->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_SCROLL,
-                    .scroll_data = {
-                        .wheel_x = wheel_x,
-                        .wheel_y = wheel_y
-                    }
-                });
+                if (const RC<CameraController> &controller = primary_camera->GetCameraController()) {
+                    controller->PushCommand(CameraCommand {
+                        .command = CameraCommand::CAMERA_COMMAND_SCROLL,
+                        .scroll_data = {
+                            .wheel_x = wheel_x,
+                            .wheel_y = wheel_y
+                        }
+                    });
+                }
             }
         }
 
@@ -321,20 +310,22 @@ void Game::OnInputEvent(const SystemEvent &event)
             const float mx = (float(mouse_position.x) - float(window_size.x) * 0.5f) / (float(window_size.x));
             const float my = (float(mouse_position.y) - float(window_size.y) * 0.5f) / (float(window_size.y));
             
-            if (m_scene) {
-                if (const RC<CameraController> &controller = m_scene->GetCamera()->GetCameraController()) {
-                    controller->PushCommand(CameraCommand {
-                        .command = CameraCommand::CAMERA_COMMAND_MAG,
-                        .mag_data = {
-                            .mouse_x    = mouse_position.x,
-                            .mouse_y    = mouse_position.y,
-                            .mx         = mx,
-                            .my         = my
-                        }
-                    });
+            if (m_scene.IsValid()) {
+                if (const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera()) {
+                    if (const RC<CameraController> &controller = primary_camera->GetCameraController()) {
+                        controller->PushCommand(CameraCommand {
+                            .command = CameraCommand::CAMERA_COMMAND_MAG,
+                            .mag_data = {
+                                .mouse_x    = mouse_position.x,
+                                .mouse_y    = mouse_position.y,
+                                .mx         = mx,
+                                .my         = my
+                            }
+                        });
 
-                    if (controller->IsMouseLockRequested()) {
-                        m_app_context->GetInputManager()->SetMousePosition(Vec2i { int(window_size.x / 2), int(window_size.y / 2) });
+                        if (controller->IsMouseLockRequested()) {
+                            m_app_context->GetInputManager()->SetMousePosition(Vec2i { int(window_size.x / 2), int(window_size.y / 2) });
+                        }
                     }
                 }
             }
@@ -365,9 +356,8 @@ void Game::OnFrameBegin(Frame *frame)
 
     g_engine->GetRenderState()->SetActiveScene(scene_render_resource.GetScene());
 
-    // @FIXME: CameraRenderResource should be held on SceneRenderResource so we don't need to read from the Scene*
-    if (scene_render_resource.GetScene()->GetCamera().IsValid()) {
-        g_engine->GetRenderState()->BindCamera(scene_render_resource.GetScene()->GetCamera().Get());
+    if (const TResourceHandle<CameraRenderResource> &camera_resource_handle = scene_render_resource.GetCameraRenderResourceHandle()) {
+        g_engine->GetRenderState()->BindCamera(camera_resource_handle);
     }
 }
 
@@ -385,9 +375,8 @@ void Game::OnFrameEnd(Frame *frame)
 
     g_engine->GetRenderState()->UnsetActiveScene();
 
-    // @FIXME: CameraRenderResource should be held on SceneRenderResource so we don't need to read from the Scene*
-    if (scene_render_resource.GetScene()->GetCamera().IsValid()) {
-        g_engine->GetRenderState()->UnbindCamera(scene_render_resource.GetScene()->GetCamera().Get());
+    if (const TResourceHandle<CameraRenderResource> &camera_resource_handle = scene_render_resource.GetCameraRenderResourceHandle()) {
+        g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
     }
 }
 

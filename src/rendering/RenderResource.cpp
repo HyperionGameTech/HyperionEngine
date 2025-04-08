@@ -16,7 +16,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Resource);
-HYP_DEFINE_LOG_SUBCHANNEL(RenderResource, Resource);
 
 #pragma region RenderResourceBase
 

@@ -8,6 +8,7 @@
 
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Semaphore.hpp>
+#include <core/threading/DataRaceDetector.hpp>
 
 #include <dotnet/Method.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
@@ -21,8 +22,7 @@ namespace hyperion {
 enum class ObjectFlags : uint32
 {
     NONE                    = 0x0,
-    CREATED_FROM_MANAGED    = 0x1,
-    KEEP_ALIVE              = 0x2
+    CREATED_FROM_MANAGED    = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(ObjectFlags)
@@ -64,15 +64,20 @@ public:
     HYP_FORCE_INLINE const ObjectReference &GetObjectReference() const
         { return m_object_reference; }
 
-    HYP_FORCE_INLINE ObjectFlags GetObjectFlags() const
+    HYP_FORCE_INLINE EnumFlags<ObjectFlags> GetObjectFlags() const
         { return m_object_flags; }
 
     HYP_FORCE_INLINE bool IsValid() const
         { return m_object_reference.guid.IsValid(); }
 
+    /*! \brief Is the object set to be kept alive?
+     *  \details If true, the managed object will not be garbage collected by the .NET runtime.
+     *  \internal Use this function only for debugging
+     *  \return True if the object is set to be kept alive, false otherwise */
+    HYP_FORCE_INLINE bool ShouldKeepAlive() const
+        { return m_keep_alive.Get(MemoryOrder::ACQUIRE); }
+
     /*! \brief Set whether or not the managed object should be kept in memory (not garbage collected)
-     *  Defaults to alive for an object created from the unmanaged side. For objects created from the managed runtime,
-     *  use this method to allow it to persist beyond the initial scope.
      *  \param keep_alive Whether or not to allow the object to exist in memory persistently */
     bool SetKeepAlive(bool keep_alive);
 
@@ -150,6 +155,10 @@ private:
 #endif
     ObjectReference         m_object_reference;
     EnumFlags<ObjectFlags>  m_object_flags;
+
+    AtomicVar<bool>         m_keep_alive;
+
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion::dotnet

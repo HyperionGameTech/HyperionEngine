@@ -47,6 +47,12 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
                 continue;
             }
 
+            String managed_name = member.name;
+
+            if (const HypClassAttributeValue &attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString()) {
+                managed_name = attr.GetString();
+            }
+
             if (member.type == HypMemberType::TYPE_METHOD) {
                 if (!member.cxx_type->is_function) {
                     return HYP_MAKE_ERROR(Error, "Cannot generate script bindings for non-function type");
@@ -88,7 +94,7 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
                     method_arg_names.PushBack(parameter->name);
                 }
 
-                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_name, member.name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
+                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_name, managed_name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
                 writer.WriteString("        {\n");
 
                 if (function_type->return_type->IsVoid()) {
@@ -120,7 +126,7 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer &analyzer, const 
 
             // Generate code to get a ScriptableDelegate C# object corresponding to the C++ object
             if (member.type == HypMemberType::TYPE_FIELD && member.cxx_type->IsScriptableDelegate()) {
-                writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", member.name, hyp_class.name));
+                writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managed_name, hyp_class.name));
                 writer.WriteString("        {\n");
 
                 writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.HypClass.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.name.Data()))));

@@ -92,6 +92,11 @@ public:
      *  \param bits The bits to get the index of the lowest set bit of.
      *  \return The index of the lowest set bit in the bits. */
     static uint32 LowestSetBitIndex(uint64 bits);
+    
+    /*! \brief Gets the index of the highest set bit in a 64-bit integer.
+     *  \param bits The bits to get the index of the highest set bit of.
+     *  \return The index of the highest set bit in the bits. */
+    static uint32 HighestSetBitIndex(uint64 bits);
 
     /*! \brief Counts the number of bits set in a 64-bit integer.
      *  \param value The value to count the bits of.

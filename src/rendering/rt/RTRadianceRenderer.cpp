@@ -188,8 +188,8 @@ void RTRadianceRenderer::Render(Frame *frame)
     UpdateUniforms(frame);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
@@ -202,9 +202,9 @@ void RTRadianceRenderer::Render(Frame *frame)
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
         }
@@ -232,10 +232,10 @@ void RTRadianceRenderer::Render(Frame *frame)
     );
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && camera_render_resource->GetBufferData().view != m_previous_view_matrix) {
+    if (IsPathTracer() && camera_resource_handle->GetBufferData().view != m_previous_view_matrix) {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = camera_render_resource->GetBufferData().view;
+        m_previous_view_matrix = camera_resource_handle->GetBufferData().view;
     }
 
     m_temporal_blending->Render(frame);

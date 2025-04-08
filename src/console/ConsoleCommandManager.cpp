@@ -157,7 +157,7 @@ Result ConsoleCommandManager::ExecuteCommand(const String &command_line)
         return { };
     }
 
-    Array<String> split = command_line.Split(' ');
+    Array<String> split = command_line.Trimmed().Split(' ');
 
     if (split.Empty()) {
         return { };

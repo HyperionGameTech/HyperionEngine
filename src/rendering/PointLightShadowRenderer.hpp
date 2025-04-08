@@ -20,6 +20,8 @@ namespace hyperion {
 
 class Light;
 class EnvProbe;
+class Scene;
+class SceneRenderResource;
 
 HYP_CLASS()
 class HYP_API PointLightShadowRenderer : public RenderSubsystem
@@ -41,15 +43,15 @@ private:
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
-    Handle<Scene>       m_parent_scene;
-    Handle<Light>       m_light;
-    Vec2u               m_extent;
-    BoundingBox         m_aabb;
-    Handle<EnvProbe>    m_env_probe;
+    Handle<Scene>                           m_parent_scene;
+    Handle<Light>                           m_light;
+    Vec2u                                   m_extent;
+    BoundingBox                             m_aabb;
+    Handle<EnvProbe>                        m_env_probe;
 
-    ResourceHandle      m_camera_resource_handle;
+    TResourceHandle<SceneRenderResource>    m_scene_resource_handle;
 
-    bool                m_last_visibility_state = false;
+    bool                                    m_last_visibility_state = false;
 };
 
 

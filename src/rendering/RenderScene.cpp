@@ -22,6 +22,14 @@ SceneRenderResource::SceneRenderResource(Scene *scene)
 
 SceneRenderResource::~SceneRenderResource() = default;
 
+void SceneRenderResource::SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource> &camera_render_resource_handle)
+{
+    Execute([this, camera_render_resource_handle]()
+    {
+        m_camera_render_resource_handle = std::move(camera_render_resource_handle);
+    });
+}
+
 void SceneRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;

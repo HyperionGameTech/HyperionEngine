@@ -14,6 +14,10 @@ namespace Hyperion
         {
         }
 
+        public void Dispose()
+        {
+        }
+
         public UIObject UIObject
         {
             get

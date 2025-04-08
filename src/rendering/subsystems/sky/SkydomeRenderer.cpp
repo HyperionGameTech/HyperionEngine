@@ -35,6 +35,10 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 
     InitObject(m_cubemap);
 
+    m_virtual_scene = CreateObject<Scene>(nullptr);
+    m_virtual_scene->SetName(Name::Unique("SkydomeRendererScene"));
+    InitObject(m_virtual_scene);
+
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(m_dimensions.x), int(m_dimensions.y),
@@ -46,16 +50,12 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
     
     InitObject(m_camera);
 
-    m_virtual_scene = CreateObject<Scene>(nullptr, m_camera);
-    m_virtual_scene->SetName(Name::Unique("SkydomeRendererScene"));
-
     NodeProxy camera_node = m_virtual_scene->GetRoot()->AddChild();
     camera_node->SetName("SkydomeRendererCamera");
     
     Handle<Entity> camera_entity = m_virtual_scene->GetEntityManager()->AddEntity();
-    m_virtual_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent {
-        m_camera
-    });
+    m_virtual_scene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(camera_entity);
+    m_virtual_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { m_camera });
 
     camera_node->SetEntity(camera_entity);
 
@@ -74,7 +74,6 @@ void SkydomeRenderer::Init()
 void SkydomeRenderer::InitGame()
 {
     g_engine->GetWorld()->AddScene(m_virtual_scene);
-    InitObject(m_virtual_scene);
 
     InitObject(m_env_probe);
     m_env_probe->EnqueueBind();
@@ -120,6 +119,11 @@ void SkydomeRenderer::OnRender(Frame *frame)
     AssertThrow(m_env_probe.IsValid());
 
     if (!m_env_probe->IsReady()) {
+        return;
+    }
+
+    // @FIXME
+    if (!m_cubemap->GetRenderResource().GetImage()->IsCreated()) {
         return;
     }
 

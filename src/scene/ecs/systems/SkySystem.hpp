@@ -25,7 +25,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    void AddRenderSubsystemToEnvironment(SkyComponent &sky_component, MeshComponent &mesh_component, World *world);
+    void AddRenderSubsystemToEnvironment(World *world, EntityManager &mgr, const Handle<Entity> &entity, SkyComponent &sky_component, MeshComponent *mesh_component);
 };
 
 } // namespace hyperion

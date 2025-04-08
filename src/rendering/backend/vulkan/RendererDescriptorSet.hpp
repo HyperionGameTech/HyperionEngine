@@ -51,6 +51,27 @@ class CommandBuffer;
 
 struct VulkanDescriptorSetLayoutWrapper;
 
+struct VulkanDescriptorElementInfo
+{
+    uint32              binding;
+    uint32              index;
+    VkDescriptorType    descriptor_type;
+
+    union {
+        VkDescriptorBufferInfo                          buffer_info;
+        VkDescriptorImageInfo                           image_info;
+        VkWriteDescriptorSetAccelerationStructureKHR    acceleration_structure_info;
+    };
+};
+
+class IVulkanDescriptorElementContainer
+{
+public:
+    virtual ~IVulkanDescriptorElementContainer() = default;
+
+    virtual VulkanDescriptorElementInfo GetDescriptorElementInfo(uint32 index) const = 0;
+};
+
 template <>
 struct DescriptorSetElementTypeInfo<Platform::VULKAN, GPUBuffer<Platform::VULKAN>>
 {
@@ -79,12 +100,18 @@ struct DescriptorSetElementTypeInfo<Platform::VULKAN, TopLevelAccelerationStruct
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
 };
 
+struct DescriptorSetElementCachedValue
+{
+    VulkanDescriptorElementInfo info;
+};
+
 template <>
 struct DescriptorSetPlatformImpl<Platform::VULKAN>
 {
-    DescriptorSet<Platform::VULKAN>         *self = nullptr;
-    VkDescriptorSet                         handle = VK_NULL_HANDLE;
-    RC<VulkanDescriptorSetLayoutWrapper>    vk_layout_wrapper;
+    DescriptorSet<Platform::VULKAN>                         *self = nullptr;
+    VkDescriptorSet                                         handle = VK_NULL_HANDLE;
+    HashMap<Name, Array<DescriptorSetElementCachedValue>>   cached_elements;
+    RC<VulkanDescriptorSetLayoutWrapper>                    vk_layout_wrapper;
 
     VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
 };

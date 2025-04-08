@@ -14,7 +14,7 @@ namespace Hyperion
     
     public class Logger
     {
-        private static LogChannel defaultChannel = new LogChannel("Default");
+        private static LogChannel defaultChannel = LogChannel.ByName("Default");
 
         public static void Log(LogType logLevel, string message, params object[] args)
         {

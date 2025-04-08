@@ -29,6 +29,8 @@ namespace hyperion {
 
 using RerenderShadowsSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
 
+class CameraRenderResource;
+
 struct ShadowMapCameraData
 {
     Matrix4     view;
@@ -41,7 +43,7 @@ class ShadowPass final : public FullScreenPass
 public:
     ShadowPass(
         const Handle<Scene> &parent_scene,
-        const ResourceHandle &camera_resource_handle,
+        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const ShaderRef &shader,
         ShadowMode shadow_mode,
         Vec2u extent,
@@ -105,23 +107,23 @@ private:
     void CreateCombineShadowMapsPass();
     void CreateComputePipelines();
 
-    Handle<Scene>               m_parent_scene;
-    ResourceHandle              m_camera_resource_handle;
+    Handle<Scene>                           m_parent_scene;
+    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
-    Handle<Light>               m_light;
-    ShadowMode                  m_shadow_mode;
-    Vec3f                       m_origin;
-    uint32                      m_shadow_map_index;
-    RenderCollector             *m_render_collector_statics;
-    RenderCollector             *m_render_collector_dynamics;
-    RerenderShadowsSemaphore    *m_rerender_semaphore;
+    Handle<Light>                           m_light;
+    ShadowMode                              m_shadow_mode;
+    Vec3f                                   m_origin;
+    uint32                                  m_shadow_map_index;
+    RenderCollector                         *m_render_collector_statics;
+    RenderCollector                         *m_render_collector_dynamics;
+    RerenderShadowsSemaphore                *m_rerender_semaphore;
     
-    Handle<Texture>             m_shadow_map_statics;
-    Handle<Texture>             m_shadow_map_dynamics;
-    Handle<Texture>             m_shadow_map_all;
+    Handle<Texture>                         m_shadow_map_statics;
+    Handle<Texture>                         m_shadow_map_dynamics;
+    Handle<Texture>                         m_shadow_map_all;
 
-    UniquePtr<FullScreenPass>   m_combine_shadow_maps_pass;
-    ComputePipelineRef          m_blur_shadow_map_pipeline;
+    UniquePtr<FullScreenPass>               m_combine_shadow_maps_pass;
+    ComputePipelineRef                      m_blur_shadow_map_pipeline;
 };
 
 HYP_CLASS()

@@ -222,7 +222,7 @@ EnvGrid::EnvGrid(Name name, const Handle<Scene> &parent_scene, EnvGridOptions op
 
 EnvGrid::~EnvGrid()
 {
-    SafeRelease(std::move(m_ambient_shader));
+    SafeRelease(std::move(m_shader));
 
     SafeRelease(std::move(m_framebuffer));
 
@@ -244,6 +244,7 @@ EnvGrid::~EnvGrid()
 
     SafeRelease(std::move(m_compute_irradiance));
     SafeRelease(std::move(m_compute_filtered_depth));
+    SafeRelease(std::move(m_copy_border_texels));
 }
 
 void EnvGrid::SetCameraData(const BoundingBox &aabb, const Vec3f &position)
@@ -451,7 +452,16 @@ void EnvGrid::Init()
     CameraRenderResource &camera_resource = m_camera->GetRenderResource();
     camera_resource.SetFramebuffer(m_framebuffer);
     
-    m_camera_resource_handle = ResourceHandle(camera_resource);
+    m_camera_resource_handle = TResourceHandle<CameraRenderResource>(camera_resource);
+
+    m_render_collector.SetOverrideAttributes(RenderableAttributeSet(
+        MeshAttributes { },
+        MaterialAttributes {
+            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = FaceCullMode::BACK
+        }
+    ));
+
 
     g_engine->GetRenderState()->BindEnvGrid(this);
 }
@@ -470,23 +480,25 @@ void EnvGrid::OnRemoved()
 
     m_camera_resource_handle.Reset();
     m_camera.Reset();
-    m_render_collector.Reset();
-    m_ambient_shader.Reset();
+    m_shader.Reset();
+
+    m_render_collector.ClearState();
 
     if (m_options.type == EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD) {
-        PUSH_RENDER_COMMAND(
-            SetElementInGlobalDescriptorSet,
-            NAME("Scene"),
-            NAME("LightFieldColorTexture"),
-            g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
-        );
+        // temp commented out
+        // PUSH_RENDER_COMMAND(
+        //     SetElementInGlobalDescriptorSet,
+        //     NAME("Scene"),
+        //     NAME("LightFieldColorTexture"),
+        //     g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
+        // );
 
-        PUSH_RENDER_COMMAND(
-            SetElementInGlobalDescriptorSet,
-            NAME("Scene"),
-            NAME("LightFieldDepthTexture"),
-            g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
-        );
+        // PUSH_RENDER_COMMAND(
+        //     SetElementInGlobalDescriptorSet,
+        //     NAME("Scene"),
+        //     NAME("LightFieldDepthTexture"),
+        //     g_engine->GetPlaceholderData()->GetImageView2D1x1R8()
+        // );
     }
 
     if (m_options.flags & EnvGridFlags::USE_VOXEL_GRID) {
@@ -523,7 +535,7 @@ void EnvGrid::OnRender(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const CameraRenderResource &active_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     const BoundingBox grid_aabb = m_aabb;
 
@@ -564,7 +576,7 @@ void EnvGrid::OnRender(Frame *frame)
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_env_probe_collection.num_probes);
 
-        const Vec3f &camera_position = active_camera.GetBufferData().camera_position.GetXYZ();
+        const Vec3f &camera_position = camera_resource_handle->GetBufferData().camera_position.GetXYZ();
 
         Array<Pair<uint32, float>> indices_distances;
         indices_distances.Reserve(16);
@@ -988,12 +1000,12 @@ void EnvGrid::CreateShader()
         "WRITE_MOMENTS"
     });
 
-    m_ambient_shader = g_shader_manager->GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         NAME("RenderToCubemap"),
         shader_properties
     );
 
-    AssertThrow(m_ambient_shader.IsValid());
+    AssertThrow(m_shader.IsValid());
 }
 
 void EnvGrid::CreateFramebuffer()
@@ -1060,8 +1072,6 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
 
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
-
     // Bind a directional light
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
@@ -1071,7 +1081,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
         if (directional_lights.Any()) {
             light_render_resource_handle = &directional_lights[0];
 
-            g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);
+            g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
         }
     }
 
@@ -1086,7 +1096,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
 
     m_render_collector.ExecuteDrawCalls(
         frame,
-        camera_render_resource,
+        m_camera_resource_handle,
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr
     );
@@ -1143,9 +1153,9 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     const AttachmentRef &normals_attachment = m_framebuffer->GetAttachment(1);
     const AttachmentRef &depth_attachment = m_framebuffer->GetAttachment(2);
 
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
@@ -1215,10 +1225,10 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1242,10 +1252,10 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1293,10 +1303,10 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                         NAME("Scene"),
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                         }
                     }
                 }
@@ -1331,10 +1341,10 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle != nullptr ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1398,11 +1408,11 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
         m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
     }
 
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     // Used for sky
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     m_irradiance_texture->GetRenderResource().GetImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
@@ -1416,9 +1426,9 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1443,9 +1453,9 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }
@@ -1472,9 +1482,9 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(GetComponentIndex()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
         }

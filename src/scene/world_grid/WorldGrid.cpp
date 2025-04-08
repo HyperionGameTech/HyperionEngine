@@ -233,7 +233,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
         }
     }
 
-    const Handle<Camera> &camera = scene->GetCamera();
+    const Handle<Camera> &camera = scene->GetPrimaryCamera();
     const Vec3f camera_position = camera.IsValid() ? camera->GetTranslation() : Vec3f::Zero();
     const Vec2i camera_patch_coord = WorldSpaceToPatchCoord(*this, camera_position);
 

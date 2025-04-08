@@ -102,7 +102,7 @@ void CameraRenderResource::EnqueueBind()
 
     Execute([this]()
     {
-        g_engine->GetRenderState()->BindCamera(GetCamera());
+        g_engine->GetRenderState()->BindCamera(TResourceHandle<CameraRenderResource>(*this));
     }, /* force_render_thread */ true);
 }
 
@@ -112,7 +112,7 @@ void CameraRenderResource::EnqueueUnbind()
 
     Execute([this]()
     {
-        g_engine->GetRenderState()->UnbindCamera(GetCamera());
+        g_engine->GetRenderState()->UnbindCamera(this);
     }, /* force_render_thread */ true);
 }
 

@@ -110,6 +110,11 @@ HYP_EXPORT void NativeInterop_SetSetObjectReferenceTypeFunction(SetObjectReferen
     DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function = set_object_reference_type_function;
 }
 
+HYP_EXPORT void NativeInterop_SetTriggerGCFunction(TriggerGCFunction trigger_gc_function)
+{
+    DotNetSystem::GetInstance().GetGlobalFunctions().trigger_gc_function = trigger_gc_function;
+}
+
 HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, Class **out_class_object_ptr, ObjectReference *out_object_reference, int8 weak)
 {
     AssertThrow(ptr != nullptr);

@@ -24,6 +24,7 @@
 namespace hyperion {
 
 class Entity;
+class CameraRenderResource;
 
 enum class EnvGridFlags : uint32
 {
@@ -148,7 +149,7 @@ public:
         { return m_camera; }
 
     HYP_FORCE_INLINE const ShaderRef &GetShader() const
-        { return m_ambient_shader; }
+        { return m_shader; }
 
     HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
         { return m_render_collector; }
@@ -202,56 +203,56 @@ private:
         uint32 probe_index
     );
 
-    Handle<Scene>               m_parent_scene;
+    Handle<Scene>                           m_parent_scene;
 
-    const EnvGridOptions        m_options;
+    const EnvGridOptions                    m_options;
 
-    BoundingBox                 m_aabb;
-    BoundingBox                 m_voxel_grid_aabb;
-    Vec3f                       m_offset;
+    BoundingBox                             m_aabb;
+    BoundingBox                             m_voxel_grid_aabb;
+    Vec3f                                   m_offset;
     
-    Handle<Camera>              m_camera;
-    ResourceHandle              m_camera_resource_handle;
+    Handle<Camera>                          m_camera;
+    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
-    RenderCollector             m_render_collector;
+    RenderCollector                         m_render_collector;
 
-    ShaderRef                   m_ambient_shader;
-    FramebufferRef              m_framebuffer;
+    ShaderRef                               m_shader;
+    FramebufferRef                          m_framebuffer;
 
-    EnvProbeCollection          m_env_probe_collection;
+    EnvProbeCollection                      m_env_probe_collection;
 
-    EnvGridShaderData           m_shader_data;
-    uint32                      m_current_probe_index;
+    EnvGridShaderData                       m_shader_data;
+    uint32                                  m_current_probe_index;
 
-    ComputePipelineRef          m_clear_sh;
-    ComputePipelineRef          m_compute_sh;
-    ComputePipelineRef          m_reduce_sh;
-    ComputePipelineRef          m_finalize_sh;
+    ComputePipelineRef                      m_clear_sh;
+    ComputePipelineRef                      m_compute_sh;
+    ComputePipelineRef                      m_reduce_sh;
+    ComputePipelineRef                      m_finalize_sh;
 
-    Array<DescriptorTableRef>   m_compute_sh_descriptor_tables;
-    Array<GPUBufferRef>         m_sh_tiles_buffers;
+    Array<DescriptorTableRef>               m_compute_sh_descriptor_tables;
+    Array<GPUBufferRef>                     m_sh_tiles_buffers;
 
-    ComputePipelineRef          m_clear_voxels;
-    ComputePipelineRef          m_voxelize_probe;
-    ComputePipelineRef          m_offset_voxel_grid;
-    ComputePipelineRef          m_generate_voxel_grid_mipmaps;
+    ComputePipelineRef                      m_clear_voxels;
+    ComputePipelineRef                      m_voxelize_probe;
+    ComputePipelineRef                      m_offset_voxel_grid;
+    ComputePipelineRef                      m_generate_voxel_grid_mipmaps;
     
-    Handle<Texture>             m_voxel_grid_texture;
+    Handle<Texture>                         m_voxel_grid_texture;
 
-    Array<ImageViewRef>         m_voxel_grid_mips;
-    Array<DescriptorTableRef>   m_generate_voxel_grid_mipmaps_descriptor_tables;
+    Array<ImageViewRef>                     m_voxel_grid_mips;
+    Array<DescriptorTableRef>               m_generate_voxel_grid_mipmaps_descriptor_tables;
 
-    Handle<Texture>             m_irradiance_texture;
-    Handle<Texture>             m_depth_texture;
-    Array<GPUBufferRef>         m_uniform_buffers;
+    Handle<Texture>                         m_irradiance_texture;
+    Handle<Texture>                         m_depth_texture;
+    Array<GPUBufferRef>                     m_uniform_buffers;
 
-    ComputePipelineRef          m_compute_irradiance;
-    ComputePipelineRef          m_compute_filtered_depth;
-    ComputePipelineRef          m_copy_border_texels;
+    ComputePipelineRef                      m_compute_irradiance;
+    ComputePipelineRef                      m_compute_filtered_depth;
+    ComputePipelineRef                      m_copy_border_texels;
 
-    Queue<uint32>               m_next_render_indices;
+    Queue<uint32>                           m_next_render_indices;
 
-    HashCode                    m_octant_hash_code;
+    HashCode                                m_octant_hash_code;
 };
 
 } // namespace hyperion

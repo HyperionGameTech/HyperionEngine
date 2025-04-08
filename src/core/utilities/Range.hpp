@@ -36,6 +36,9 @@ public:
     HYP_FORCE_INLINE explicit operator bool() const
         { return Distance() > 0; }
 
+    HYP_FORCE_INLINE bool operator!() const
+        { return Distance() <= 0; }
+
     HYP_FORCE_INLINE T GetStart() const
         { return m_start; }
 

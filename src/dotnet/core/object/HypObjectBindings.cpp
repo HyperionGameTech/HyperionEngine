@@ -64,13 +64,8 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(*out_instance_ptr);
     AssertThrow(initializer != nullptr);
 
-    // make it CREATED_FROM_MANAGED since we don't want to release the object on destructor call,
-    // as it is managed by the .NET runtime
-
     dotnet::Object *object = new dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED);
     initializer->SetManagedObject(object);
-
-    DebugLog(LogType::Debug, "HypObject initialized from C# with class %s", *hyp_class->GetName());
 }
 
 HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)

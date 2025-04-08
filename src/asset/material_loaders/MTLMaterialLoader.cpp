@@ -315,7 +315,16 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
             texture_desc.filter_mode_mag = FilterMode::TEXTURE_FILTER_LINEAR;
 
             if (it.mapping.srgb) {
-                texture_desc.format = InternalFormat::RGBA8_SRGB;
+                switch (texture_desc.format) {
+                case InternalFormat::RGB8:
+                    texture_desc.format = InternalFormat::RGB8_SRGB;
+                    break;
+                case InternalFormat::RGBA8:
+                    texture_desc.format = InternalFormat::RGBA8_SRGB;
+                    break;
+                default:
+                    break;
+                }
             }
 
             texture->SetTextureDesc(texture_desc);

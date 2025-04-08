@@ -10,6 +10,11 @@ namespace Hyperion
         [FieldOffset(0)]
         private Handle<Light> lightHandle;
 
+        public void Dispose()
+        {
+            lightHandle.Dispose();
+        }
+
         public Light? Light
         {
             get
@@ -18,6 +23,8 @@ namespace Hyperion
             }
             set
             {
+                lightHandle.Dispose();
+
                 if (value == null)
                 {
                     lightHandle = Handle<Light>.Empty;

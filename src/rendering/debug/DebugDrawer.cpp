@@ -375,7 +375,7 @@ void DebugDrawer::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     GPUBufferRef &instance_buffer = m_instance_buffers[frame_index];
@@ -454,7 +454,7 @@ void DebugDrawer::Render(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                         { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) }
                     }
                 },
@@ -487,7 +487,7 @@ void DebugDrawer::Render(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                         { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) }
                     }
                 },

@@ -40,6 +40,8 @@ ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager &entity_manager)
 
             if (!new_world) {
                 shadow_map_component.render_subsystem.Reset();
+                
+                continue;
             }
 
             AddRenderSubsystemToEnvironment(shadow_map_component, light_component, new_world);
@@ -156,7 +158,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
     } else {
         switch (light_component.light->GetLightType()) {
         case LightType::DIRECTIONAL:
-            shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
+            shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
                 Name::Unique("shadow_map_renderer_directional"),
                 GetScene()->HandleFromThis(),
                 shadow_map_component.resolution,
@@ -165,7 +167,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
 
             break;
         case LightType::POINT:
-            shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
+            shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
                 Name::Unique("shadow_map_renderer_point"),
                 GetScene()->HandleFromThis(),
                 light_component.light,

@@ -115,7 +115,6 @@ Handle<Mesh> UIObject::GetQuadMesh()
 
 UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
     : m_type(type),
-      m_owner_thread_id(owner_thread_id.IsValid() ? owner_thread_id : Threads::CurrentThreadID()),
       m_stage(nullptr),
       m_is_init(false),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
@@ -127,6 +126,7 @@ UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
       m_text_size(-1.0f),
+      m_computed_text_size(-1.0f),
       m_border_radius(5),
       m_border_flags(UIObjectBorderFlags::NONE),
       m_focus_state(UIObjectFocusState::NONE),
@@ -167,33 +167,71 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    static const auto UnsetUIObjectEntity = [](Scene *scene, const Handle<Entity> &entity)
+    static const auto Impl = [](Scene *scene, Handle<Entity> entity, NodeProxy node)
     {
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
 
+        HYP_LOG(UI, Debug, "Destroying UIObject on thread {} (node UUID: {})", Threads::CurrentThreadID().GetName(), node->GetUUID().ToString());
+
+        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
+            ui_component->ui_object = nullptr;
+
+            scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
+        }
+
+        AssertThrow(node.IsValid());
+        AssertThrow(node->GetEntity() == entity);
+
+        node->SetEntity(Handle<Entity>::empty); // remove the entity from the node
+        node->Remove(); // remove from the scene
+    };
+
+    m_child_ui_objects.Clear();
+    m_vertical_scrollbar.Reset();
+    m_horizontal_scrollbar.Reset();
+    m_spawn_parent.Reset();
+
+    OnInit.RemoveAll(false);
+    OnAttached.RemoveAll(false);
+    OnRemoved.RemoveAll(false);
+    OnChildAttached.RemoveAll(false);
+    OnChildRemoved.RemoveAll(false);
+    OnMouseDown.RemoveAll(false);
+    OnMouseUp.RemoveAll(false);
+    OnMouseDrag.RemoveAll(false);
+    OnMouseHover.RemoveAll(false);
+    OnMouseLeave.RemoveAll(false);
+    OnMouseMove.RemoveAll(false);
+    OnGainFocus.RemoveAll(false);
+    OnLoseFocus.RemoveAll(false);
+    OnScroll.RemoveAll(false);
+    OnClick.RemoveAll(false);
+    OnKeyDown.RemoveAll(false);
+    OnKeyUp.RemoveAll(false);
+
+    // Unset the UIObject pointer on the UIComponent
+    if (Handle<Entity> entity = GetEntity()) {
+        Scene *scene = GetScene();
+        AssertThrow(scene != nullptr);
+
         if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
             ui_component->ui_object = nullptr;
         }
-    };
 
-    // Unset the UIObject pointer on the UIComponent
-    if (const Handle<Entity> &entity = GetEntity()) {
-        if (Threads::IsOnThread(m_owner_thread_id)) {
-            UnsetUIObjectEntity(GetScene(), entity);
+        if (Threads::IsOnThread(scene->GetOwnerThreadID())) {
+            Impl(GetScene(), std::move(entity), std::move(m_node_proxy));
         } else {
             // Keep node alive until it can be destroyed on the owner thread
-            Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity_weak = entity.ToWeak()]() mutable
+            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity = std::move(entity)]() mutable
             {
-                Handle<Entity> entity = entity_weak.Lock();
+                Impl(scene.Get(), std::move(entity), std::move(node));
+            });
 
-                if (entity.IsValid()) {
-                    UnsetUIObjectEntity(scene.Get(), entity);
-                }
-
-                node.Reset();
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+            task.Await();
         }
+
+        HYP_LOG(UI, Debug, "UIObject {} destroyed on thread {}", GetName(), Threads::CurrentThreadID().GetName());
     }
 }
 
@@ -298,10 +336,8 @@ void UIObject::OnAttached_Internal(UIObject *parent)
     HYP_SCOPE;
 
     AssertThrow(parent != nullptr);
-
-    m_stage = parent->GetStage();
     
-    SetAllChildUIObjectsStage(m_stage);
+    SetStage_Internal(parent->GetStage());
 
     if (IsInit()) {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
@@ -310,6 +346,7 @@ void UIObject::OnAttached_Internal(UIObject *parent)
         UpdatePosition();
 
         UpdateComputedDepth();
+        UpdateComputedTextSize();
 
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
@@ -324,17 +361,22 @@ void UIObject::OnRemoved_Internal()
 {
     HYP_SCOPE;
 
-    m_stage = nullptr;
+    if (m_text_size <= 0.0f) {
+        // invalidate computed text size
+        m_computed_text_size = -1.0f;
+    }
 
-    SetAllChildUIObjectsStage(nullptr);
+    SetStage_Internal(nullptr);
 
     if (IsInit()) {
         UpdateSize();
         UpdatePosition();
 
         UpdateMeshData();
+
         UpdateComputedVisibility();
         UpdateComputedDepth();
+        UpdateComputedTextSize();
     }
 
     OnRemoved();
@@ -722,6 +764,9 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
         ? MathUtil::Clamp(scroll_offset.y, 0, m_actual_inner_size.y - m_actual_size.y)
         : 0;
 
+    HYP_LOG(UI, Debug, "Setting scroll offset to {} for {}. Inner size: {}, Size: {}", scroll_offset, GetName(),
+        m_actual_inner_size, m_actual_size);
+
     m_scroll_offset.SetTarget(Vec2f(scroll_offset));
 
     if (!smooth) {
@@ -845,7 +890,7 @@ void UIObject::Blur(bool blur_children)
         return;
     }
 
-    if (m_stage->GetFocusedObject() != this) {
+    if (m_stage->GetFocusedObject().IsValid() && m_stage->GetFocusedObject().GetUnsafe() == this) {
         return;
     }
 
@@ -1005,20 +1050,7 @@ float UIObject::GetTextSize() const
 {
     HYP_SCOPE;
 
-    if (m_text_size <= 0.0f) {
-        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
-        {
-            return parent->m_text_size > 0.0f;
-        });
-
-        if (spawn_parent != nullptr) {
-            return spawn_parent->m_text_size;
-        }
-
-        return 16.0f; // default font size
-    }
-
-    return m_text_size;
+    return m_computed_text_size;
 }
 
 void UIObject::SetTextSize(float text_size)
@@ -1031,14 +1063,13 @@ void UIObject::SetTextSize(float text_size)
 
     m_text_size = text_size;
 
+    m_computed_text_size = -1.0f;
+
     if (!IsInit()) {
         return;
     }
 
-    UpdateSize();
-    UpdatePosition(/* update_children */ false);
-
-    OnTextSizeUpdate();
+    UpdateComputedTextSize();
 }
 
 bool UIObject::IsVisible() const
@@ -1125,6 +1156,34 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     }
 }
 
+void UIObject::UpdateComputedTextSize()
+{
+    if (m_computed_text_size > 0.0f) {
+        // Already computed. Needs to be invalidated by being set to -1.0f to be recomputed.
+        return;
+    }
+
+    if (m_text_size <= 0.0f) {
+        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
+        {
+            return parent->m_text_size > 0.0f;
+        });
+
+        if (spawn_parent != nullptr) {
+            m_computed_text_size = spawn_parent->m_text_size;
+        } else {
+            m_computed_text_size = 16.0f; // default font size
+        }
+    } else {
+        m_computed_text_size = m_text_size;
+    }
+
+    UpdateSize();
+    UpdatePosition(/* update_children */ false);
+
+    OnTextSizeUpdate();
+}
+
 bool UIObject::HasFocus(bool include_children) const
 {
     HYP_SCOPE;
@@ -1196,12 +1255,6 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
     }
 
     if (NodeProxy child_node = ui_object->GetNode()) {
-        if (child_node->GetParent() != nullptr && !child_node->Remove()) {
-            HYP_LOG(UI, Error, "Failed to remove child node '{}' from current parent {}", child_node->GetName(), child_node->GetParent()->GetName());
-
-            return;
-        }
-
         node->AddChild(child_node);
     } else {
         HYP_LOG(UI, Error, "Child UI object '{}' has no attachable node", ui_object->GetName());
@@ -1209,7 +1262,9 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
+    AssertThrow(!m_child_ui_objects.Contains(ui_object));
     m_child_ui_objects.PushBack(ui_object);
+
     ui_object->OnAttached_Internal(this);
 
     OnChildAttached(ui_object.Get());
@@ -1229,17 +1284,16 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    if (const NodeProxy &child_node = ui_object->GetNode()) {
+    if (NodeProxy child_node = ui_object->GetNode()) {
         if (child_node->IsOrHasParent(node.Get())) {
-            Node *parent_node = child_node->GetParent();
-            AssertThrow(parent_node != nullptr);
+            UIObject *parent_ui_object = ui_object->GetParentUIObject();
+            AssertThrow(parent_ui_object != nullptr);
 
-            if (UIComponent *ui_component = parent_node->GetScene()->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                UIObject *parent_ui_object = ui_component->ui_object;
-                AssertThrow(parent_ui_object != nullptr);
-
-                if (parent_ui_object == this) {
-                    AssertThrow(child_node->Remove());
+            if (parent_ui_object == this) {
+                {
+                    // Ensure a reference to the UIObject is held
+                    RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
+                    AssertThrow(ui_object_rc != nullptr);
 
                     ui_object->OnRemoved_Internal();
 
@@ -1249,24 +1303,19 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
 
                     if (it != m_child_ui_objects.End()) {
                         m_child_ui_objects.Erase(it);
-                        
-                        if (UseAutoSizing()) {
-                            UpdateSize();
-                        }
-
-                        return true;
                     }
-
-                    HYP_LOG(UI, Error, "Failed to remove UIObject {} from parent: Parent UIObject {} did not have the child object in its children array!", ui_object->GetName(), parent_ui_object->GetName());
-
-                    return false;
-                } else {
-                    return parent_ui_object->RemoveChildUIObject(ui_object);
                 }
-            } else {
-                HYP_LOG(UI, Error, "Failed to remove UIObject {} from parent: Parent node ({}) had no UIComponent!", ui_object->GetName(), parent_node->GetName());
 
-                return false;
+                child_node->Remove();
+                child_node.Reset();
+                
+                if (UseAutoSizing()) {
+                    UpdateSize();
+                }
+
+                return true;
+            } else {
+                return parent_ui_object->RemoveChildUIObject(ui_object);
             }
         }
     }
@@ -1778,15 +1827,15 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         parent_size = GetActualSize();
         parent_padding = GetPadding();
 
-        horizontal_scrollbar_size[1] = m_horizontal_scrollbar != nullptr ? 25 : 0;
-        vertical_scrollbar_size[0] = m_vertical_scrollbar != nullptr ? 25 : 0;
+        horizontal_scrollbar_size[1] = m_horizontal_scrollbar != nullptr && m_horizontal_scrollbar->IsVisible() ? scrollbar_size : 0;
+        vertical_scrollbar_size[0] = m_vertical_scrollbar != nullptr && m_vertical_scrollbar->IsVisible() ? scrollbar_size : 0;
     } else if (parent_ui_object != nullptr) {
         self_padding = GetPadding();
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
 
-        horizontal_scrollbar_size[1] = parent_ui_object->m_horizontal_scrollbar != nullptr ? 25 : 0;
-        vertical_scrollbar_size[0] = parent_ui_object->m_vertical_scrollbar != nullptr ? 25 : 0;
+        horizontal_scrollbar_size[1] = parent_ui_object->m_horizontal_scrollbar != nullptr && parent_ui_object->m_horizontal_scrollbar->IsVisible() ? scrollbar_size : 0;
+        vertical_scrollbar_size[0] = parent_ui_object->m_vertical_scrollbar != nullptr && parent_ui_object->m_vertical_scrollbar->IsVisible() ? scrollbar_size : 0;
     } else if (m_stage != nullptr) {
         self_padding = GetPadding();
         parent_size = m_stage->GetSurfaceSize();
@@ -2557,9 +2606,14 @@ void UIObject::ForEachParentUIObject(Lambda &&lambda) const
     }
 }
 
-void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
+void UIObject::SetStage_Internal(UIStage *stage)
 {
     HYP_SCOPE;
+
+    m_stage = stage;
+
+    OnFontAtlasUpdate_Internal();
+    OnTextSizeUpdate_Internal();
     
     ForEachChildUIObject([this, stage](UIObject *ui_object)
     {
@@ -2571,18 +2625,6 @@ void UIObject::SetAllChildUIObjectsStage(UIStage *stage)
 
         return IterationResult::CONTINUE;
     }, /* deep */ false);
-}
-
-void UIObject::SetStage_Internal(UIStage *stage)
-{
-    HYP_SCOPE;
-
-    m_stage = stage;
-
-    OnFontAtlasUpdate_Internal();
-    OnTextSizeUpdate_Internal();
-
-    SetAllChildUIObjectsStage(stage);
 }
 
 void UIObject::OnFontAtlasUpdate()
@@ -2685,18 +2727,19 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
 
     AssertThrowMsg(hyp_class->HasParent(UIObject::Class()), "Cannot spawn instance of class that is not a subclass of UIObject");
 
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     HypData ui_object_hyp_data;
     hyp_class->CreateInstance(ui_object_hyp_data);
 
-    RC<UIObject> ui_object = ui_object_hyp_data.Get<RC<UIObject>>();
+    RC<UIObject> ui_object = std::move(ui_object_hyp_data.Get<RC<UIObject>>());
+    AssertThrow(ui_object != nullptr);
 
     // AssertThrow(IsInit());
     AssertThrow(GetNode().IsValid());
 
     if (!name.IsValid()) {
-        name = CreateNameFromDynamicString(ANSIString("Unnamed_") + hyp_class->GetName().LookupString());
+        name = Name::Unique(ANSIString("Unnamed_") + hyp_class->GetName().LookupString());
     }
 
     NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
@@ -2715,7 +2758,7 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
 
     ui_object->Init();
 
-    return std::move(ui_object);
+    return ui_object;
 }
 
 #pragma endregion UIObject

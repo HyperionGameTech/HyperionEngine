@@ -95,6 +95,9 @@ public:
     HYP_FORCE_INLINE void SetOptions(const UITextOptions &options)
         { m_options = options; }
 
+    HYP_METHOD()
+    Vec2f GetCharacterOffset(int character_index) const;
+
     /*! \brief Overriden from UIObject to return false as text is not focusable
      * 
      * \return False */
@@ -138,6 +141,8 @@ private:
     BoundingBox             m_text_aabb_without_bearing;
 
     Handle<Texture>         m_current_font_atlas_texture;
+
+    Array<Vec2f>            m_character_offsets;
 };
 
 } // namespace hyperion

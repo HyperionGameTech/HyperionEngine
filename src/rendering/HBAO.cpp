@@ -26,7 +26,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
-HYP_DEFINE_LOG_SUBCHANNEL(HBAO, Rendering);
 
 struct HBAOUniforms
 {
@@ -218,7 +217,7 @@ void HBAO::Render(Frame *frame)
     const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     {
         Begin(frame);
@@ -233,7 +232,7 @@ void HBAO::Render(Frame *frame)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) }
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
                     }
                 }
             }

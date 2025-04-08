@@ -32,7 +32,7 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
     }
 
     if (GetEntityManager().GetScene()->IsAudioListener()) {
-        const Handle<Camera> &camera = GetEntityManager().GetScene()->GetCamera();
+        const Handle<Camera> &camera = GetEntityManager().GetScene()->GetPrimaryCamera();
 
         if (camera.IsValid()) {
             AudioManager::GetInstance()->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());

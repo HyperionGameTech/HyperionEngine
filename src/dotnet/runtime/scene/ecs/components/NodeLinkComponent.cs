@@ -14,6 +14,11 @@ namespace Hyperion
         {
         }
 
+        public void Dispose()
+        {
+            // node.Dispose();
+        }
+
         public Node Node
         {
             get

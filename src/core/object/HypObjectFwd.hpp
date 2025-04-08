@@ -139,8 +139,8 @@ struct HypObjectInitializerGuardBase
     HYP_API HypObjectInitializerGuardBase(const HypClass *hyp_class, void *address);
     HYP_API ~HypObjectInitializerGuardBase();
 
-    const HypClass              *hyp_class;
-    void                        *address;
+    const HypClass  *hyp_class;
+    void            *address;
 
 #ifdef HYP_DEBUG_MODE
     ThreadID        initializer_thread_id;
@@ -229,7 +229,7 @@ public:
     HYP_FORCE_INLINE void *GetPointer() const
         { return m_ptr; }
 
-    HYP_API const IHypObjectInitializer *GetObjectInitializer() const;
+    HYP_API IHypObjectInitializer *GetObjectInitializer() const;
 
     HYP_API uint32 GetRefCount_Strong() const;
 
@@ -245,6 +245,8 @@ private:
 
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count);
 HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count);
+HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count);
+HYP_API void HypObject_OnDecRefCount_Weak(HypObjectPtr ptr, uint32 count);
 
 namespace detail {
 

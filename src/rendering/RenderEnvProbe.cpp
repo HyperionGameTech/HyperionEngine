@@ -44,22 +44,19 @@ EnvProbeRenderResource::EnvProbeRenderResource(EnvProbe *env_probe)
       m_buffer_data { },
       m_texture_slot(~0u)
 {
-    if (m_env_probe->GetParentScene().IsValid()) {
-        AssertThrow(m_env_probe->GetParentScene()->IsReady());
-
-        m_scene_resource_handle = ResourceHandle(m_env_probe->GetParentScene()->GetRenderResource());
-    }
-
     if (!m_env_probe->IsControlledByEnvGrid()) {
         CreateShader();
         CreateFramebuffer();
         CreateTexture();
 
-        AssertThrow(m_env_probe->GetCamera().IsValid());
-
-        m_env_probe->GetCamera()->GetRenderResource().SetFramebuffer(m_framebuffer);
-
-        m_camera_resource_handle = ResourceHandle(m_env_probe->GetCamera()->GetRenderResource());
+        m_render_collector.SetOverrideAttributes(RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
+                .blend_function     = BlendFunction::AlphaBlending(),
+                .cull_faces         = FaceCullMode::NONE
+            }
+        ));
     }
 }
 
@@ -101,7 +98,25 @@ void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData &buffer_data
     });
 }
 
-void EnvProbeRenderResource::SetSceneResourceHandle(ResourceHandle &&scene_resource_handle)
+void EnvProbeRenderResource::SetCameraResourceHandle(TResourceHandle<CameraRenderResource> &&camera_resource_handle)
+{
+    HYP_SCOPE;
+
+    Execute([this, camera_resource_handle = std::move(camera_resource_handle)]()
+    {
+        if (m_camera_resource_handle) {
+            m_camera_resource_handle->SetFramebuffer(nullptr);
+        }
+
+        m_camera_resource_handle = std::move(camera_resource_handle);
+
+        if (m_camera_resource_handle) {
+            m_camera_resource_handle->SetFramebuffer(m_framebuffer);
+        }
+    });
+}
+
+void EnvProbeRenderResource::SetSceneResourceHandle(TResourceHandle<SceneRenderResource> &&scene_resource_handle)
 {
     HYP_SCOPE;
 
@@ -294,6 +309,8 @@ void EnvProbeRenderResource::Initialize_Internal()
 void EnvProbeRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
+
+    m_render_collector.ClearState();
 }
 
 void EnvProbeRenderResource::Update_Internal()
@@ -390,6 +407,10 @@ void EnvProbeRenderResource::Render(Frame *frame)
         return;
     }
 
+    if (!m_scene_resource_handle || !m_camera_resource_handle) {
+        return;
+    }
+
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe #{} (type: {})", m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
     AssertThrow(m_texture.IsValid());
@@ -417,8 +438,6 @@ void EnvProbeRenderResource::Render(Frame *frame)
     );
 
     BindToIndex(probe_index);
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
     
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
@@ -440,14 +459,12 @@ void EnvProbeRenderResource::Render(Frame *frame)
         g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(*this));
 
         if (light_render_resource_handle != nullptr) {
-            g_engine->GetRenderState()->SetActiveLight(**light_render_resource_handle);
+            g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
         }
 
-        if (m_scene_resource_handle) {
-            g_engine->GetRenderState()->SetActiveScene(static_cast<SceneRenderResource &>(*m_scene_resource_handle).GetScene());
-        }
+        g_engine->GetRenderState()->SetActiveScene(m_scene_resource_handle->GetScene());
 
-        g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
+        g_engine->GetRenderState()->BindCamera(m_camera_resource_handle);
 
         m_render_collector.CollectDrawCalls(
             frame,
@@ -457,15 +474,13 @@ void EnvProbeRenderResource::Render(Frame *frame)
 
         m_render_collector.ExecuteDrawCalls(
             frame,
-            camera_render_resource,
+            m_camera_resource_handle,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
-        g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
+        g_engine->GetRenderState()->UnbindCamera(m_camera_resource_handle.Get());
 
-        if (m_scene_resource_handle) {
-            g_engine->GetRenderState()->UnsetActiveScene();
-        }
+        g_engine->GetRenderState()->UnsetActiveScene();
 
         if (light_render_resource_handle != nullptr) {
             g_engine->GetRenderState()->UnsetActiveLight();

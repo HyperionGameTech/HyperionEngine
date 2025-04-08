@@ -86,8 +86,12 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
 
             AssertDebug(capacity >= count + offset);
 
-            for (SizeType i = 0; i < count; i++) {
-                new (buffer + offset + i) T(begin[i]);
+            if constexpr (std::is_trivially_copy_constructible_v<T>) {
+                Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            } else {
+                for (SizeType i = 0; i < count; i++) {
+                    new (buffer + offset + i) T(begin[i]);
+                }
             }
         }
 
@@ -97,14 +101,22 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
 
             AssertDebug(capacity >= count + offset);
 
-            for (SizeType i = 0; i < count; i++) {
-                new (buffer + offset + i) T(std::move(begin[i]));
+            if constexpr (std::is_trivially_move_constructible_v<T>) {
+                Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            } else {
+                for (SizeType i = 0; i < count; i++) {
+                    new (buffer + offset + i) T(std::move(begin[i]));
+                }
             }
         }
 
         void DestructInRange(SizeType start_index, SizeType last_index)
         {
             AssertDebug(last_index <= capacity);
+
+            if constexpr (std::is_trivially_destructible_v<T>) {
+                return;
+            }
             
             for (SizeType i = last_index; i > start_index;) {
                 buffer[--i].~T();
@@ -218,8 +230,13 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                 AssertDebug(count <= Count);
                 AssertDebug(offset + count <= Count);
 
-                for (SizeType i = 0; i < count; i++) {
-                    new (storage.GetPointer() + offset + i) T(begin[i]);
+                if constexpr (std::is_trivially_copy_constructible_v<T>) {
+                    Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                } else {
+                    // placement new
+                    for (SizeType i = 0; i < count; i++) {
+                        new (storage.GetPointer() + offset + i) T(begin[i]);
+                    }
                 }
             }
         }
@@ -234,8 +251,13 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                 AssertDebug(count <= Count);
                 AssertDebug(offset + count <= Count);
 
-                for (SizeType i = 0; i < count; i++) {
-                    new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
+                if constexpr (std::is_trivially_move_constructible_v<T>) {
+                    Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                } else {
+                    // placement new
+                    for (SizeType i = 0; i < count; i++) {
+                        new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
+                    }
                 }
             }
         }

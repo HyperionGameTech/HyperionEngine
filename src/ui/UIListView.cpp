@@ -24,17 +24,9 @@ UIListViewItem::UIListViewItem()
       m_is_selected_item(false),
       m_is_expanded(false)
 {
-}
+    SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
 
-void UIListViewItem::Init()
-{
-    UIObject::Init();
-
-    m_inner_element = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
-    m_inner_element->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-
-    // Expand / collapse subitems when selected
-    m_inner_element->OnClick.Bind([this](...)
+    OnClick.Bind([this](...)
     {
         if (HasSubItems()) {
             SetIsExpanded(!IsExpanded());
@@ -43,8 +35,11 @@ void UIListViewItem::Init()
         // allow bubbling up to the UIListViewItem parent
         return UIEventHandlerResult::OK;
     }).Detach();
+}
 
-    UIObject::AddChildUIObject(m_inner_element);
+void UIListViewItem::Init()
+{
+    UIObject::Init();
 }
 
 void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
@@ -57,7 +52,7 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
     
     if (ui_object->IsInstanceOf<UIListViewItem>()) {
         if (!m_expanded_element) {
-            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, m_inner_element->GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             m_expanded_element->SetIsVisible(m_is_expanded);
 
             UIObject::AddChildUIObject(m_expanded_element);
@@ -68,7 +63,7 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    m_inner_element->AddChildUIObject(ui_object);
+    UIObject::AddChildUIObject(ui_object);
 }
 
 bool UIListViewItem::RemoveChildUIObject(UIObject *ui_object)
@@ -96,7 +91,7 @@ bool UIListViewItem::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    return m_inner_element->RemoveChildUIObject(ui_object);
+    return UIObject::RemoveChildUIObject(ui_object);
 }
 
 bool UIListViewItem::HasSubItems() const
@@ -158,6 +153,11 @@ UIListView::UIListView()
     }).Detach();
 }
 
+UIListView::~UIListView()
+{
+    m_list_view_items.Clear();
+}
+
 void UIListView::Init()
 {
     HYP_SCOPE;
@@ -208,27 +208,24 @@ void UIListView::AddChildUIObject(const RC<UIObject> &ui_object)
         list_view_item_size = UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO });
     }
 
-    { // prevent updates from being processed immediately
-        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+    RC<UIListViewItem> list_view_item;
 
-        if (ui_object->IsInstanceOf<UIListViewItem>()) {
-            RC<UIListViewItem> list_view_item = ui_object.CastUnsafe<UIListViewItem>();
-            list_view_item->SetSize(list_view_item_size);
-            m_list_view_items.PushBack(list_view_item);
+    if (ui_object->IsInstanceOf<UIListViewItem>()) {
+        list_view_item = ui_object.CastUnsafe<UIListViewItem>();
+        list_view_item->SetSize(list_view_item_size);
+        m_list_view_items.PushBack(list_view_item);
 
-            UIObject::AddChildUIObject(ui_object);
-        } else {
-            RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, list_view_item_size);
-            list_view_item->AddChildUIObject(ui_object);
+        UIObject::AddChildUIObject(ui_object);
+    } else {
+        list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, list_view_item_size);
+        list_view_item->AddChildUIObject(ui_object);
 
-            m_list_view_items.PushBack(list_view_item);
+        m_list_view_items.PushBack(list_view_item);
 
-            UIObject::AddChildUIObject(list_view_item);
-        }
+        UIObject::AddChildUIObject(list_view_item);
     }
 
-    // Updates layout as well
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
+    UpdateLayout();
 }
 
 bool UIListView::RemoveChildUIObject(UIObject *ui_object)
@@ -247,9 +244,9 @@ bool UIListView::RemoveChildUIObject(UIObject *ui_object)
 
             for (auto it = m_list_view_items.Begin(); it != m_list_view_items.End();) {
                 if (ui_object->IsOrHasParent(*it)) {
-                    AssertThrow(UIObject::RemoveChildUIObject(ui_object));
-
                     it = m_list_view_items.Erase(it);
+                    
+                    AssertThrow(UIObject::RemoveChildUIObject(ui_object));
 
                     removed = true;
                 } else {
@@ -365,7 +362,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase *data_source)
         HYP_LOG(UI, Info, "Updating element {}", element->GetUUID().ToString());
 
         if (const UIListViewItem *list_view_item = FindListViewItem(element->GetUUID())) {
-            if (RC<UIObject> ui_object = list_view_item->GetInnerElement()->GetChildUIObject(0)) {
+            if (RC<UIObject> ui_object = list_view_item->GetChildUIObject(0)) {
                 data_source->UpdateUIObject(ui_object.Get(), element->GetValue(), { });
             } else {
                 HYP_LOG(UI, Error, "Failed to update element {}; No UIObject child at index 0", element->GetUUID().ToString());
@@ -414,10 +411,6 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
 {
     UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-    HYP_DEFER({
-        SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE);
-    });
-
     RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view_item->SetNodeTag(NodeTag(NAME("DataSourceElementUUID"), element->GetUUID()));
     list_view_item->SetDataSourceElementUUID(element->GetUUID());
@@ -457,6 +450,8 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
 
         if (parent_list_view_item) {
             parent_list_view_item->AddChildUIObject(list_view_item);
+
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
 
             return;
         } else {

@@ -40,7 +40,7 @@ struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         if (Handle<Light> light = light_weak.Lock()) {
-            g_engine->GetRenderState()->UnbindLight(light.Get());
+            g_engine->GetRenderState()->UnbindLight(&light->GetRenderResource());
         }
 
         HYPERION_RETURN_OK;
@@ -93,7 +93,7 @@ void LightRenderResource::EnqueueUnbind()
 
     Execute([this]()
     {
-        g_engine->GetRenderState()->UnbindLight(m_light);
+        g_engine->GetRenderState()->UnbindLight(this);
     }, /* force_render_thread */ true);
 }
 
@@ -166,10 +166,10 @@ void LightRenderResource::SetVisibilityBits(const Bitset &visibility_bits)
         if (previous_count != new_count) {
             if (previous_count == 0) {
                 // May cause Initialize() to be called due to Claim() being called when binding a light.
-                g_engine->GetRenderState()->BindLight(m_light);
+                g_engine->GetRenderState()->BindLight(TResourceHandle<LightRenderResource>(*this));
             } else if (new_count == 0) {
-                    // May cause Destroy() to be called due to Unclaim() being called.
-                g_engine->GetRenderState()->UnbindLight(m_light);
+                // May cause Destroy() to be called due to Unclaim() being called.
+                g_engine->GetRenderState()->UnbindLight(this);
             }
         }
     }, /* force_render_thread */ true);

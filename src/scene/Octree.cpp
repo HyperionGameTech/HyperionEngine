@@ -331,7 +331,7 @@ void Octree::Clear()
     Clear_Internal(entries, /* undivide */ true);
 
     if (m_entity_manager) {
-        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadMask()));
+        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadID()));
         
         for (Entry &entry : entries) {
             if (VisibilityStateComponent *visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entry.entity.GetID())) {
@@ -800,7 +800,7 @@ Octree::InsertResult Octree::Rebuild()
 #endif
 
     if (m_entity_manager) {
-        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadMask()));
+        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadID()));
     }
 
     Array<Entry> new_entries;
@@ -855,7 +855,7 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox &new_aabb)
     HYP_SCOPE;
 
     if (m_entity_manager) {
-        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadMask()));
+        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadID()));
     }
 
     Array<Entry> new_entries;

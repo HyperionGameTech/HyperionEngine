@@ -26,7 +26,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(WorldGrid);
-HYP_DEFINE_LOG_SUBCHANNEL(TerrainWorldGridPlugin, WorldGrid);
 
 static const float base_height = 2.0f;
 static const float mountain_height = 35.0f;
@@ -53,7 +52,7 @@ public:
         HYP_SCOPE;
 
         if (!m_mesh.IsValid()) {
-            HYP_LOG(TerrainWorldGridPlugin, Error, "Terrain mesh is invalid");
+            HYP_LOG(WorldGrid, Error, "Terrain mesh is invalid");
 
             return;
         }
@@ -373,7 +372,7 @@ void TerrainWorldGridPlugin::Initialize()
 {
     HYP_SCOPE;
 
-    HYP_LOG(TerrainWorldGridPlugin, Debug, "Initializing TerrainWorldGridPlugin");
+    HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
 
     Threads::AssertOnThread(g_game_thread);
 
@@ -406,7 +405,7 @@ void TerrainWorldGridPlugin::Shutdown()
 {
     HYP_SCOPE;
 
-    HYP_LOG(TerrainWorldGridPlugin, Info, "Shutting down TerrainWorldGridPlugin");
+    HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
 }
 
 void TerrainWorldGridPlugin::Update(GameCounter::TickUnit delta)

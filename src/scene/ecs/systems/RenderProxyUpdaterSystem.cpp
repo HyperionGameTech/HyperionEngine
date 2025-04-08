@@ -20,15 +20,13 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
-
-HYP_DECLARE_LOG_CHANNEL(ECS);
-HYP_DEFINE_LOG_SUBCHANNEL(RenderProxy, ECS);
 
 #pragma region Render commands
 
@@ -86,24 +84,30 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     InitObject(mesh_component.skeleton);
 
     AssertThrow(mesh_component.proxy == nullptr);
-    mesh_component.proxy = new RenderProxy();
 
-    *mesh_component.proxy = RenderProxy {
-        entity,
-        mesh_component.mesh,
-        mesh_component.material,
-        mesh_component.skeleton,
-        Matrix4::Identity(),
-        Matrix4::Identity(),
-        BoundingBox::Empty(),
-        mesh_component.user_data,
-        mesh_component.instance_data,
-        /* version */ 0
-    };
+    HYP_LOG(ECS, Debug, "Adding render proxy for entity {} for Scene {}", entity.GetID().Value(), GetScene()->GetName());
 
-    PUSH_RENDER_COMMAND(UpdateEntityDrawData, Array<RenderProxy *> { mesh_component.proxy });
+    if (mesh_component.mesh.IsValid() && mesh_component.material.IsValid()) {
+        mesh_component.proxy = new RenderProxy {
+            entity,
+            mesh_component.mesh,
+            mesh_component.material,
+            mesh_component.skeleton,
+            Matrix4::Identity(),
+            Matrix4::Identity(),
+            BoundingBox::Empty(),
+            mesh_component.user_data,
+            mesh_component.instance_data,
+            /* version */ 0
+        };
 
-    GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+        PUSH_RENDER_COMMAND(UpdateEntityDrawData, Array<RenderProxy *> { mesh_component.proxy });
+
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+    } else {
+        HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity.GetID().Value());
+        HYP_BREAKPOINT;
+    }
 }
 
 void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -111,6 +115,9 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+
+    HYP_LOG(ECS, Debug, "Removing render proxy for entity {} for Scene {}\tMesh name: {}", entity.Value(), GetScene()->GetName(),
+        mesh_component.mesh.IsValid() ? mesh_component.mesh->GetName() : Name());
 
     if (mesh_component.proxy) {
         delete mesh_component.proxy;
@@ -126,23 +133,34 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
     for (auto [entity_id, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos())) {
         HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity_id.Value());
 
-        const uint32 render_proxy_version = mesh_component.proxy->version + 1;
+        if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid()) {
+            HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity_id.Value());
 
-        // Update MeshComponent's proxy
-        *mesh_component.proxy = RenderProxy {
-            WeakHandle<Entity>(entity_id),
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            transform_component.transform.GetMatrix(),
-            mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            mesh_component.user_data,
-            mesh_component.instance_data,
-            render_proxy_version
-        };
+            delete mesh_component.proxy;
+            mesh_component.proxy = nullptr;
+        } else {
+            if (!mesh_component.proxy) {
+                mesh_component.proxy = new RenderProxy { };
+            }
 
-        render_proxy_ptrs.PushBack(mesh_component.proxy);
+            const uint32 render_proxy_version = mesh_component.proxy->version + 1;
+
+            // Update MeshComponent's proxy
+            *mesh_component.proxy = RenderProxy {
+                WeakHandle<Entity>(entity_id),
+                mesh_component.mesh,
+                mesh_component.material,
+                mesh_component.skeleton,
+                transform_component.transform.GetMatrix(),
+                mesh_component.previous_model_matrix,
+                bounding_box_component.world_aabb,
+                mesh_component.user_data,
+                mesh_component.instance_data,
+                render_proxy_version
+            };
+
+            render_proxy_ptrs.PushBack(mesh_component.proxy);
+        }
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix()) {
             updated_entity_ids.Insert(entity_id);

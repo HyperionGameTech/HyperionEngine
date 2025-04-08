@@ -427,8 +427,8 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     AssertReady();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     if (m_particle_spawners.GetItems().Empty()) {
@@ -506,9 +506,9 @@ void ParticleSystem::UpdateParticles(Frame *frame)
                     {
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                         }
                     }
                 }
@@ -545,8 +545,8 @@ void ParticleSystem::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     FixedArray<uint32, num_async_rendering_command_buffers> command_buffers_recorded_states { };
@@ -554,7 +554,7 @@ void ParticleSystem::Render(Frame *frame)
     ForEachInBatches(
         m_particle_spawners.GetItems(),
         num_async_rendering_command_buffers,
-        [this, &command_buffers_recorded_states, scene_render_resource, camera_render_resource, &env_probe_render_resource, env_grid, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint32 index, uint32 batch_index) {
+        [this, &command_buffers_recorded_states, scene_render_resource, &camera_resource_handle, &env_probe_resource_handle, env_grid, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint32 index, uint32 batch_index) {
             const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -573,9 +573,9 @@ void ParticleSystem::Render(Frame *frame)
                                 NAME("Scene"),
                                 {
                                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                                 }
                             }
                         }

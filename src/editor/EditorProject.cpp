@@ -41,6 +41,9 @@ EditorProject::EditorProject(Name name)
     m_asset_registry = CreateObject<AssetRegistry>();
     InitObject(m_asset_registry);
 
+    m_scene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND);
+    InitObject(m_scene);
+
     Handle<Camera> camera = CreateObject<Camera>();
     camera->SetName(Name::Unique("EditorDefaultCamera"));
     camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
@@ -48,16 +51,12 @@ EditorProject::EditorProject(Name name)
     camera->SetNear(0.01f);
     camera->SetFar(30000.0f);
 
-    m_scene = CreateObject<Scene>(nullptr, camera, SceneFlags::FOREGROUND);
-    InitObject(m_scene);
-
     NodeProxy camera_node = m_scene->GetRoot()->AddChild();
-    camera_node->SetName("Camera");
+    camera_node->SetName(camera->GetName().LookupString());
     
     Handle<Entity> camera_entity = m_scene->GetEntityManager()->AddEntity();
-    m_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent {
-        camera
-    });
+    m_scene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(camera_entity);
+    m_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { camera });
 
     camera_node->SetEntity(camera_entity);
 }

@@ -11,8 +11,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_SUBCHANNEL(INI, Core);
-
 const INIFile::Element INIFile::Element::empty = { };
 
 INIFile::INIFile(const FilePath &path)
@@ -67,7 +65,7 @@ void INIFile::Parse()
             }
 
             if (section_name.Empty()) {
-                HYP_LOG(INI, Warning, "Empty section name");
+                HYP_LOG(Core, Warning, "Empty section name in INI");
             }
 
             sections.PushBack(Pair<String, Section> { std::move(section_name), { } });
@@ -83,7 +81,7 @@ void INIFile::Parse()
         }
 
         if (split.Size() < 2) {
-            HYP_LOG(INI, Warning, "Line is not in required format (key = value): {}", line_trimmed);
+            HYP_LOG(Core, Warning, "Line is not in required format (key = value): {}", line_trimmed);
 
             continue;
         }

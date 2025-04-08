@@ -31,7 +31,7 @@ void UIMenuItem::Init()
     RC<UIMenuBar> menu_bar = GetClosestSpawnParent<UIMenuBar>();
     AssertThrow(menu_bar != nullptr);
 
-    RC<UIImage> icon_element = CreateUIObject<UIImage>(NAME("MenuItemIcon"), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
+    RC<UIImage> icon_element = CreateUIObject<UIImage>(CreateNameFromDynamicString(HYP_FORMAT("{}_Icon", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
     icon_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     icon_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     icon_element->SetIsVisible(false);
@@ -39,7 +39,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_icon_element);
 
-    RC<UIText> text_element = CreateUIObject<UIText>(NAME("MenuItemText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    RC<UIText> text_element = CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Text", GetName())), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -48,7 +48,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_text_element);
 
-    RC<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDownMenu", m_name)), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    RC<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     // drop_down_menu->SetAcceptsFocus(false);
     drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -267,10 +267,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
     m_selected_menu_item_index = index;
 
     m_container->SetIsVisible(false);
-
-    if (const NodeProxy &node = m_container->GetNode()) {
-        node->RemoveAllChildren();
-    }
+    m_container->RemoveAllChildUIObjects();
 
     for (SizeType i = 0; i < m_menu_items.Size(); i++) {
         if (i == m_selected_menu_item_index) {

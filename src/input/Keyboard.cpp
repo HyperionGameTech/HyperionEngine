@@ -24,24 +24,44 @@ HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, ch
         return true;
     }
 
-    switch (key_code) {
-    case KeyCode::SPACE:
+    switch ((int)key_code) {
+    case (int)' ':
         out_char = ' ';
         return true;
-
-    case KeyCode::PERIOD:
-        out_char = '.';
+    case (int)'`':
+        out_char = shift ? '~' : '`';
         return true;
-
-    case KeyCode::RETURN:
+    case (int)',':
+        out_char = shift ? '<' : ',';
+        return true;
+    case (int)'.':
+        out_char = shift ? '>' : '.';
+        return true;
+    case (int)'/':
+        out_char = shift ? '?' : '/';
+        return true;
+    case (int)';':
+        out_char = shift ? ':' : ';';
+        return true;
+    case (int)'\'':
+        out_char = shift ? '"' : '\'';
+        return true;
+    case (int)'-':
+        out_char = shift ? '_' : '-';
+        return true;
+    case (int)'=':
+        out_char = shift ? '+' : '=';
+        return true;
+    case (int)'\r':
         out_char = '\n';
         return true;
-
-    case KeyCode::TAB:
+    case (int)'\n':
+        out_char = '\n';
+        return true;
+    case (int)'\t':
         out_char = '\t';
         return true;
-
-    case KeyCode::BACKSPACE:
+    case (int)'\b':
         out_char = '\b';
         return true;
 

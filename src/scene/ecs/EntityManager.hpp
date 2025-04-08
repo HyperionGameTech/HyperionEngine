@@ -77,7 +77,7 @@ class Scene;
 class HYP_API SystemExecutionGroup
 {
 public:
-    SystemExecutionGroup(bool requires_game_thread = false);
+    SystemExecutionGroup(bool requires_game_thread = false, bool allow_update = true);
     SystemExecutionGroup(const SystemExecutionGroup &)                  = delete;
     SystemExecutionGroup &operator=(const SystemExecutionGroup &)       = delete;
     SystemExecutionGroup(SystemExecutionGroup &&) noexcept              = default;
@@ -86,6 +86,9 @@ public:
 
     HYP_FORCE_INLINE bool RequiresGameThread() const
         { return m_requires_game_thread; }
+
+    HYP_FORCE_INLINE bool AllowUpdate() const
+        { return m_allow_update; }
 
     HYP_FORCE_INLINE TypeMap<UniquePtr<SystemBase>> &GetSystems()
         { return m_systems; }
@@ -113,6 +116,11 @@ public:
     bool IsValidForSystem(const SystemBase *system_ptr) const
     {
         AssertThrow(system_ptr != nullptr);
+
+        // If the system does not allow update calls, and we don't as well, return true as there will be no overlap.
+        if (!AllowUpdate()) {
+            return !system_ptr->AllowUpdate();
+        }
 
         // If the system requires to execute on game thread and the SystemExecutionGroup does not, it is not valid
         // and if the system does not require to execute on game thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
@@ -217,6 +225,7 @@ public:
 
 private:
     bool                                    m_requires_game_thread;
+    bool                                    m_allow_update;
 
     TypeMap<UniquePtr<SystemBase>>          m_systems;
     UniquePtr<TaskBatch>                    m_task_batch;
@@ -266,8 +275,8 @@ private:
 
     EnumFlags<EntityManagerCommandQueueFlags>   m_flags;
     FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
-    AtomicVar<uint32>                             m_buffer_index { 0 };
-    AtomicVar<uint32>                             m_count { 0 };
+    AtomicVar<uint32>                           m_buffer_index { 0 };
+    AtomicVar<uint32>                           m_count { 0 };
     std::condition_variable                     m_condition_variable;
 };
 
@@ -336,7 +345,27 @@ public:
         it->second = new_entity_manager;
     }
 
-    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id));
+    void ForEachEntityManager(ProcRef<void(EntityManager *entity_manager)> proc) const
+    {
+        HashSet<RC<EntityManager>> entity_managers;
+
+        {
+            Mutex::Guard guard(m_mutex);
+
+            entity_managers.Reserve(m_map.Size());
+
+            for (auto &it : m_map) {
+                entity_managers.Insert(ToRefCountedPtr(it.second));
+            }
+        }
+
+        for (const RC<EntityManager> &entity_manager : entity_managers) {
+            proc(entity_manager.Get());
+        }
+    }
+
+    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback);
+    HYP_API void PerformActionWithEntity_FireAndForget(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback);
 
 private:
     HashMap<ID<Entity>, EntityManager *>    m_map;
@@ -358,7 +387,7 @@ class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
 public:
     static constexpr ComponentID invalid_component_id = 0;
 
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
+    EntityManager(const ThreadID &owner_thread_id, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
     EntityManager(EntityManager &&) noexcept            = delete;
@@ -366,6 +395,12 @@ public:
     ~EntityManager();
 
     static EntityToEntityManagerMap &GetEntityToEntityManagerMap();
+
+    HYP_FORCE_INLINE EntityContainer &GetEntities()
+        { return m_entities; }
+
+    HYP_FORCE_INLINE const EntityContainer &GetEntities() const
+        { return m_entities; }
     
     template <class Component>
     static bool IsValidComponentType()
@@ -387,13 +422,13 @@ public:
      *
      *  \return The thread mask.
      */
-    HYP_FORCE_INLINE ThreadMask GetOwnerThreadMask() const
-        { return m_owner_thread_mask; }
+    HYP_FORCE_INLINE const ThreadID &GetOwnerThreadID() const
+        { return m_owner_thread_id; }
 
     /*! \brief Sets the thread mask of the thread that owns this EntityManager.
      *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
-    HYP_FORCE_INLINE void SetOwnerThreadMask(ThreadMask owner_thread_mask)
-        { m_owner_thread_mask = owner_thread_mask; }
+    HYP_FORCE_INLINE void SetOwnerThreadID(const ThreadID &owner_thread_id)
+        { m_owner_thread_id = owner_thread_id; }
 
     /*! \brief Gets the World that this EntityManager is associated with.
      *
@@ -445,7 +480,7 @@ public:
     
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -510,7 +545,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -526,7 +561,7 @@ public:
     {
         EnsureValidComponentType(component_type_id);
 
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity_id.IsValid()) {
@@ -542,7 +577,7 @@ public:
     HYP_FORCE_INLINE Component &GetComponent(ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
 
         EnsureValidComponentType<Component>();
 
@@ -624,7 +659,7 @@ public:
     AnyRef TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         
         EnsureValidComponentType(component_type_id);
 
@@ -672,7 +707,7 @@ public:
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
     HYP_FORCE_INLINE Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -695,7 +730,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
@@ -741,7 +776,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity_id.IsValid()) {
@@ -948,7 +983,10 @@ private:
         }
 
         if (!ptr) {
-            SystemExecutionGroup &system_execution_group = m_system_execution_groups.EmplaceBack(system_ptr->RequiresGameThread());
+            SystemExecutionGroup &system_execution_group = m_system_execution_groups.EmplaceBack(
+                system_ptr->RequiresGameThread(),
+                system_ptr->AllowUpdate()
+            );
             
             ptr = static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
         }
@@ -969,7 +1007,7 @@ private:
 
     bool IsEntityInitializedForSystem(SystemBase *system, ID<Entity> entity) const;
 
-    ThreadMask                                                              m_owner_thread_mask;
+    ThreadID                                                                m_owner_thread_id;
     World                                                                   *m_world;
     Scene                                                                   *m_scene;
     EnumFlags<EntityManagerFlags>                                           m_flags;

@@ -46,6 +46,7 @@ struct FogParams
     float   end_distance = 1000.0f;
 };
 
+HYP_ENUM()
 enum class SceneFlags : uint32
 {
     NONE        = 0x0,
@@ -81,13 +82,6 @@ public:
 
     Scene(
         World *world,
-        const Handle<Camera> &camera,
-        EnumFlags<SceneFlags> flags = SceneFlags::NONE
-    );
-
-    Scene(
-        World *world,
-        const Handle<Camera> &camera,
         ThreadID owner_thread_id,
         EnumFlags<SceneFlags> flags = SceneFlags::NONE
     );
@@ -108,8 +102,16 @@ public:
      *  \note Only call this if you know what you are doing. */
     void SetOwnerThreadID(ThreadID owner_thread_id);
 
+    HYP_METHOD()
+    const Handle<Camera> &GetPrimaryCamera() const;
+
+    HYP_METHOD()
     HYP_FORCE_INLINE EnumFlags<SceneFlags> GetFlags() const
         { return m_flags; }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetFlags(EnumFlags<SceneFlags> flags)
+        { m_flags = flags; }
 
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
@@ -118,15 +120,6 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
-
-    /*! \brief Get the camera that is used to render this Scene and perform frustum culling. */
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
-        { return m_camera; }
-
-    /*! \brief Set the camera that is used to render this Scene. */
-    HYP_METHOD()
-    void SetCamera(const Handle<Camera> &camera);
 
     HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
         { return m_render_collector; }
@@ -182,9 +175,6 @@ public:
     HYP_FORCE_INLINE void SetIsAudioListener(bool is_audio_listener)
         { m_is_audio_listener = is_audio_listener; }
 
-    HYP_FORCE_INLINE const SceneDrawProxy &GetProxy() const
-        { return m_proxy; }
-
     WorldGrid *GetWorldGrid() const;
     
     void Init();
@@ -194,28 +184,30 @@ public:
     RenderCollector::CollectionResult CollectEntities(
         RenderCollector &render_collector, 
         const Handle<Camera> &camera,
-        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
     RenderCollector::CollectionResult CollectDynamicEntities(
         RenderCollector &render_collector, 
         const Handle<Camera> &camera,
-        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
     RenderCollector::CollectionResult CollectStaticEntities(
         RenderCollector &render_collector, 
         const Handle<Camera> &camera,
-        const Optional<RenderableAttributeSet> &override_attributes = { },
         bool skip_frustum_culling = false
     ) const;
 
+    HYP_METHOD()
     bool AddToWorld(World *world);
+
+    HYP_METHOD()
     bool RemoveFromWorld();
     
     void EnqueueRenderUpdates();
+
+    Delegate<void, const NodeProxy & /* new */, const NodeProxy & /* prev */>   OnRootNodeChanged;
 
 private:
     template <class SystemType>
@@ -233,7 +225,6 @@ private:
 
     World                       *m_world;
 
-    Handle<Camera>              m_camera;
     RenderCollector             m_render_collector;
 
     FogParams                   m_fog_params;
@@ -245,8 +236,6 @@ private:
     bool                        m_is_audio_listener;
 
     GameCounter::TickUnit       m_previous_delta;
-
-    SceneDrawProxy              m_proxy;
 
     SceneRenderResource         *m_render_resource;
 };

@@ -50,6 +50,8 @@ EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager &entity_manager)
 
             if (!new_world) {
                 env_grid_component.env_grid.Reset();
+
+                continue;
             }
 
             if (GetScene()->IsForegroundScene()) {
@@ -169,7 +171,7 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
 
             // Update movable envgrids
             if (env_grid_component.mobility & EnvGridMobility::FOLLOW_CAMERA) {
-                const Handle<Camera> &camera = GetScene()->GetCamera();
+                const Handle<Camera> &camera = GetScene()->GetPrimaryCamera();
 
                 if (camera.IsValid()) {
                     Vec3f translation = transform_component.transform.GetTranslation();
@@ -242,13 +244,6 @@ void EnvGridUpdaterSystem::UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridCom
     RenderCollector::CollectionResult collection_result = GetScene()->CollectStaticEntities(
         env_grid_component.env_grid->GetRenderCollector(),
         env_grid_component.env_grid->GetCamera(),
-        RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .shader_definition  = env_grid_component.env_grid->GetShader()->GetCompiledShader()->GetDefinition(),
-                .cull_faces         = FaceCullMode::BACK
-            }
-        ),
         true // skip frustum culling, until Camera supports multiple frustums.
     );
 
@@ -292,7 +287,7 @@ void EnvGridUpdaterSystem::AddRenderSubsystemToEnvironment(EnvGridComponent &env
             return;
         }
 
-        env_grid_component.env_grid = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGrid>(
+        env_grid_component.env_grid = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGrid>(
             Name::Unique("env_grid_renderer"),
             GetScene()->HandleFromThis(),
             EnvGridOptions {

@@ -37,6 +37,13 @@ namespace Hyperion
         [FieldOffset(208)]
         private fixed byte userData[32];
 
+        public void Dispose()
+        {
+            meshHandle.Dispose();
+            materialHandle.Dispose();
+            skeletonHandle.Dispose();
+        }
+
         public Mesh Mesh
         {
             get

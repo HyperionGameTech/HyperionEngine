@@ -54,13 +54,18 @@ struct FontAtlasCharacterIterator
 };
 
 template <class Callback>
-static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, Callback &&callback)
+static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, Array<Vec2f> *out_character_placements, Callback &&callback)
 {
     HYP_SCOPE;
 
-    Vec2f placement;
+    Vec2f placement = Vec2f::Zero();
 
     const SizeType length = text.Length();
+    
+    if (out_character_placements) {
+        out_character_placements->Reserve(length + 1);
+        out_character_placements->PushBack(placement);
+    }
     
     const Vec2f cell_dimensions = Vec2f(font_atlas.GetCellDimensions()) / 64.0f;
     AssertThrowMsg(cell_dimensions.x * cell_dimensions.y != 0.0f, "Cell dimensions are invalid");
@@ -92,20 +97,18 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
         const utf::u32char ch = text.GetChar(i);
 
         if (ch == utf::u32char(' ')) {
+
             if (current_word.chars.Any() && parent_bounds.x != 0 && (current_word.chars.Back().placement.x + current_word.chars.Back().char_width) * text_size >= float(parent_bounds.x)) {
                 // newline
                 placement.x = 0.0f;
                 placement.y += cell_dimensions.y;
-
-                // const Vec2f placement_origin = placement;
-                // const Vec2f placement_offset = current_word.chars.Front().placement - placement_origin;
-
-                // for (FontAtlasCharacterIterator &character_iterator : current_word.chars) {
-                //     character_iterator.placement -= placement_offset;
-                // }
             } else {
                 // add room for space
                 placement.x += cell_dimensions.x * 0.5f;
+            }
+
+            if (out_character_placements) {
+                out_character_placements->PushBack(placement);
             }
 
             IterateCurrentWord();
@@ -118,6 +121,10 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
             placement.x = 0.0f;
             placement.y += cell_dimensions.y;
 
+            if (out_character_placements) {
+                out_character_placements->PushBack(placement);
+            }
+
             IterateCurrentWord();
 
             continue;
@@ -125,13 +132,11 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
 
         Optional<Glyph::Metrics> glyph_metrics = font_atlas.GetGlyphMetrics(ch);
 
-        if (!glyph_metrics.HasValue()) {
-            // @TODO Add a placeholder character for missing glyphs
-            continue;
-        }
+        if (!glyph_metrics.HasValue() || (glyph_metrics->metrics.width == 0 || glyph_metrics->metrics.height == 0)) {
+            if (out_character_placements) {
+                out_character_placements->PushBack(placement);
+            }
 
-        if (glyph_metrics->metrics.width == 0 || glyph_metrics->metrics.height == 0) {
-            // empty width or height will cause issues
             continue;
         }
 
@@ -147,18 +152,22 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
         character_iterator.char_width = float(glyph_metrics->metrics.advance / 64) / 64.0f;
 
         placement.x += character_iterator.char_width;
+
+        if (out_character_placements) {
+            out_character_placements->PushBack(placement);
+        }
     }
 
     IterateCurrentWord();
 }
 
-static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, bool include_bearing)
+static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, bool include_bearing, Array<Vec2f> *out_character_placements = nullptr)
 {
     HYP_SCOPE;
 
     BoundingBox aabb;
 
-    ForEachCharacter(font_atlas, text, parent_bounds, text_size, [include_bearing, &aabb](const FontAtlasCharacterIterator &iter)
+    ForEachCharacter(font_atlas, text, parent_bounds, text_size, out_character_placements, [include_bearing, &aabb](const FontAtlasCharacterIterator &iter)
     {
         BoundingBox character_aabb;
 
@@ -190,10 +199,6 @@ UIText::UIText()
 
 UIText::~UIText()
 {
-    // debug
-    if (GetName() == NAME("FPSCounterDebugOverlay_TPS")) {
-        HYP_BREAKPOINT;
-    }
 }
 
 void UIText::Init()
@@ -260,6 +265,21 @@ void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
+Vec2f UIText::GetCharacterOffset(int character_index) const
+{
+    HYP_SCOPE;
+
+    if (character_index < 0 || m_character_offsets.Empty()) {
+        return Vec2f::Zero();
+    }
+
+    if (character_index >= int(m_character_offsets.Size())) {
+        character_index = int(m_character_offsets.Size()) - 1;
+    }
+
+    return m_character_offsets[character_index] * GetTextSize();
+}
+
 void UIText::UpdateTextAABB()
 {
     HYP_SCOPE;
@@ -268,8 +288,12 @@ void UIText::UpdateTextAABB()
         const Vec2i parent_bounds = GetParentBounds();
         const float text_size = GetTextSize();
 
-        m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, parent_bounds, text_size, true);
-        m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, parent_bounds, text_size, false);
+        m_character_offsets.Clear();
+
+        m_text_aabb_with_bearing = CalculateTextAABB(*font_atlas, m_text, parent_bounds, text_size, true, nullptr);
+        m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, parent_bounds, text_size, false, &m_character_offsets);
+
+        AssertThrow(m_character_offsets.Size() == m_text.Length() + 1);
     } else {
         HYP_LOG_ONCE(UI, Warning, "No font atlas for UIText {}", GetName());
     }
@@ -337,7 +361,7 @@ void UIText::UpdateMeshData_Internal()
     Array<Vec4f> instance_offsets;
     Array<Vec4f> instance_sizes;
 
-    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, [&](const FontAtlasCharacterIterator &iter)
+    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, nullptr, [&](const FontAtlasCharacterIterator &iter)
     {
         Transform character_transform;
         character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));

@@ -113,11 +113,17 @@ void EntityManagerCommandQueue::Execute(EntityManager &mgr, GameCounter::TickUni
 
 #pragma region EntityToEntityManagerMap
 
-Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id))
+Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback)
 {
     HYP_SCOPE;
 
     Task<bool> task;
+
+    if (!callback) {
+        task.Fulfill(false);
+
+        return task;
+    }
 
     m_mutex.Lock();
 
@@ -133,30 +139,90 @@ Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, void
 
     EntityManager *entity_manager = it->second;
 
-    auto Impl = [id, callback, task_executor = task.Initialize()](EntityManager &entity_manager, GameCounter::TickUnit delta)
-    {
-        AssertThrow(entity_manager.HasEntity(id));
-
-        callback(&entity_manager, id);
-
-        task_executor->Fulfill(true);
-    };
-    
-    if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID().GetValue()) {
+    if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()) || !entity_manager->GetOwnerThreadID().IsValid()) {
         // Mutex must not be locked when callback() is called - the callback could perform
         // actions that directly or undirectly require re-locking the mutex.
         // Instead, unlock the mutex once we are sure the EntityManager will not be deleted before using it
         // (either by ensuring we're on the same thread that owns the EntityManager, or by enqueuing the command)
         m_mutex.Unlock();
 
-        Impl(*entity_manager, 0.0f);
+        if (entity_manager->HasEntity(id)) {
+            callback(entity_manager, id);
+    
+            task.Fulfill(true);
+        } else {
+            task.Fulfill(false);
+        }
     } else {
-        entity_manager->PushCommand(Impl);
+        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakRefCountedPtrFromThis(), id, callback = std::move(callback), task_executor = task.Initialize()]()
+        {
+            RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+
+            if (!entity_manager) {
+                task_executor->Fulfill(false);
+
+                return;
+            }
+
+            if (entity_manager->HasEntity(id)) {
+                callback(entity_manager.Get(), id);
+        
+                task_executor->Fulfill(true);
+            } else {
+                task_executor->Fulfill(false);
+            }
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
 
         m_mutex.Unlock();
     }
 
     return task;
+}
+
+void EntityToEntityManagerMap::PerformActionWithEntity_FireAndForget(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback)
+{
+    HYP_SCOPE;
+
+    if (!callback) {
+        return;
+    }
+
+    m_mutex.Lock();
+
+    const auto it = m_map.FindAs(id);
+
+    if (it == m_map.End()) {
+        m_mutex.Unlock();
+    }
+
+    EntityManager *entity_manager = it->second;
+
+    if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()) || !entity_manager->GetOwnerThreadID().IsValid()) {
+        // Mutex must not be locked when callback() is called - the callback could perform
+        // actions that directly or undirectly require re-locking the mutex.
+        // Instead, unlock the mutex once we are sure the EntityManager will not be deleted before using it
+        // (either by ensuring we're on the same thread that owns the EntityManager, or by enqueuing the command)
+        m_mutex.Unlock();
+
+        if (entity_manager->HasEntity(id)) {
+            callback(entity_manager, id);
+        }
+    } else {
+        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakRefCountedPtrFromThis(), id, callback = std::move(callback)]()
+        {
+            RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+
+            if (!entity_manager) {
+                return;
+            }
+
+            if (entity_manager->HasEntity(id)) {
+                callback(entity_manager.Get(), id);
+            }
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+
+        m_mutex.Unlock();
+    }
 }
 
 #pragma endregion EntityToEntityManagerMap
@@ -186,12 +252,12 @@ bool EntityManager::IsEntityTagComponent(TypeID component_type_id)
     return component_interface->IsEntityTag();
 }
 
-EntityManager::EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags)
-    : m_owner_thread_mask(owner_thread_mask),
+EntityManager::EntityManager(const ThreadID &owner_thread_id, Scene *scene, EnumFlags<EntityManagerFlags> flags)
+    : m_owner_thread_id(owner_thread_id),
       m_world(scene != nullptr ? scene->GetWorld() : nullptr),
       m_scene(scene),
       m_flags(flags),
-      m_command_queue(Threads::IsThreadInMask(g_game_thread, owner_thread_mask) ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE),
+      m_command_queue(g_game_thread == owner_thread_id ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE),
       m_root_synchronous_execution_group(nullptr),
       m_is_initialized(false)
 {
@@ -218,7 +284,7 @@ EntityManager::~EntityManager()
 
 void EntityManager::Initialize()
 {
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     AssertThrow(!m_is_initialized);
@@ -252,6 +318,8 @@ void EntityManager::Initialize()
                         m_system_entity_map[system_it.second.Get()].Insert(entity);
                     }
 
+                    HYP_LOG(ECS, Debug, "Adding entity #{} to system {}", entity.GetID().Value(), system_it.second->GetName());
+
                     system_it.second->OnEntityAdded(entity);
                 }
             }
@@ -265,7 +333,7 @@ void EntityManager::SetWorld(World *world)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     if (world == m_world) {
         return;
@@ -287,7 +355,7 @@ Handle<Entity> EntityManager::AddEntity()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
         
     ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetOrCreate<Entity>();
@@ -308,7 +376,7 @@ bool EntityManager::RemoveEntity(ID<Entity> id)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     if (!id.IsValid()) {
@@ -374,7 +442,7 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
 
     // we could be on either entity manager owner thread
     // @TODO Use appropriate mutexes to protect the entity sets
-    Threads::AssertOnThread(m_owner_thread_mask | other.m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id.GetMask() | other.m_owner_thread_id.GetMask());
 
     AssertThrow(entity.IsValid());
 
@@ -464,7 +532,7 @@ void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
 
     EnsureValidComponentType(component_type_id);
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
@@ -509,7 +577,7 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
 
     EnsureValidComponentType(component_type_id);
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     if (!entity_id.IsValid()) {
@@ -563,7 +631,7 @@ bool EntityManager::HasTag(ID<Entity> entity_id, EntityTag tag) const
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     if (!entity_id.IsValid()) {
         return false;
@@ -586,7 +654,7 @@ void EntityManager::AddTag(ID<Entity> entity_id, EntityTag tag)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     if (!entity_id.IsValid()) {
         return;
@@ -647,7 +715,7 @@ bool EntityManager::RemoveTag(ID<Entity> entity_id, EntityTag tag)
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     if (!entity_id.IsValid()) {
         return false;
@@ -748,7 +816,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
 void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     m_root_synchronous_execution_group = nullptr;
     
@@ -758,6 +826,10 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
     // Prepare task dependencies
     for (SizeType index = 0; index < m_system_execution_groups.Size(); index++) {
         SystemExecutionGroup &system_execution_group = m_system_execution_groups[index];
+
+        if (!system_execution_group.AllowUpdate()) {
+            continue;
+        }
 
         TaskBatch *current_task_batch = system_execution_group.GetTaskBatch();
 
@@ -801,10 +873,10 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
 void EntityManager::EndAsyncUpdate()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
 
     for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
-        if (system_execution_group.RequiresGameThread()) {
+        if (!system_execution_group.AllowUpdate() || system_execution_group.RequiresGameThread()) {
             continue;
         }
 
@@ -836,7 +908,7 @@ void EntityManager::EndAsyncUpdate()
 void EntityManager::FlushCommandQueue(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_mask);
+    Threads::AssertOnThread(m_owner_thread_id);
     
     if (m_command_queue.HasUpdates()) {
         m_command_queue.Execute(*this, delta);
@@ -866,8 +938,9 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase *system, ID<Entity> 
 
 #pragma region SystemExecutionGroup
 
-SystemExecutionGroup::SystemExecutionGroup(bool requires_game_thread)
+SystemExecutionGroup::SystemExecutionGroup(bool requires_game_thread, bool allow_update)
     : m_requires_game_thread(requires_game_thread),
+      m_allow_update(allow_update),
       m_task_batch(MakeUnique<TaskBatch>())
 {
 }
@@ -879,6 +952,8 @@ SystemExecutionGroup::~SystemExecutionGroup()
 void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
+
+    AssertDebug(AllowUpdate());
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
     m_performance_clock.Start();
@@ -916,6 +991,8 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::FinishProcessing(bool execute_blocking)
 {
+    AssertDebug(AllowUpdate());
+
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
     if (execute_blocking) {
         m_task_batch->ExecuteBlocking(/* execute_dependent_batches */ true);

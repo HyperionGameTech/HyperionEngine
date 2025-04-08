@@ -163,7 +163,7 @@ struct FBOMObjectType : FBOMType
     }
 
     template <class T>
-    FBOMObjectType(TypeWrapper<T>)
+    explicit FBOMObjectType(TypeWrapper<T>)
         : FBOMType(TypeNameWithoutNamespace<T>(), 0, TypeID::ForType<T>(), FBOMTypeFlags::CONTAINER, FBOMBaseObjectType())
     {
     }
@@ -185,8 +185,28 @@ struct FBOMObjectType : FBOMType
             "Creating FBOMObjectType instance `%s` with parent type `%s`, but parent type does not extend `object`",
             TypeNameWithoutNamespace<T>().Data(), extends.name.Data());
     }
+    
+    FBOMObjectType(const ANSIStringView &name, const TypeID &type_id)
+        : FBOMType(name, 0, type_id, FBOMTypeFlags::CONTAINER, FBOMBaseObjectType())
+    {
+    }
 
-    FBOMObjectType(const HypClass *hyp_class);
+    FBOMObjectType(const ANSIStringView &name, const TypeID &type_id, const FBOMType &extends)
+        : FBOMType(name, 0, type_id, FBOMTypeFlags::CONTAINER, extends)
+    {
+    }
+    
+    FBOMObjectType(const ANSIStringView &name, const TypeID &type_id, EnumFlags<FBOMTypeFlags> flags)
+        : FBOMType(name, 0, type_id, flags, FBOMBaseObjectType())
+    {
+    }
+    
+    FBOMObjectType(const ANSIStringView &name, const TypeID &type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends)
+        : FBOMType(name, 0, type_id, flags, extends)
+    {
+    }
+
+    explicit FBOMObjectType(const HypClass *hyp_class);
 };
 
 struct FBOMPlaceholderType : FBOMType

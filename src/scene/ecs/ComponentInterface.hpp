@@ -63,12 +63,13 @@ public:
     virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const = 0;
 
     virtual bool CreateInstance(HypData &out) const = 0;
+    virtual bool GetShouldSerialize() const = 0;
 
     virtual bool IsEntityTag() const = 0;
     virtual EntityTag GetEntityTag() const = 0;
 };
 
-template <class Component>
+template <class Component, bool ShouldSerialize = true>
 class ComponentInterface : public IComponentInterface
 {
 public:
@@ -126,18 +127,27 @@ public:
     virtual bool CreateInstance(HypData &out) const override
         { return ComponentInterface_CreateInstance(GetClass(), out); }
 
+    virtual bool GetShouldSerialize() const override
+    {
+        return ShouldSerialize && GetClass() && GetClass()->GetAttribute("serialize") != false;
+    }
+
     virtual bool IsEntityTag() const override
-        { return false; }
+    {
+        return false;
+    }
 
     virtual EntityTag GetEntityTag() const override
-        { return (EntityTag)-1; }
+    {
+        return (EntityTag)-1;
+    }
 
 private:
     UniquePtr<IComponentFactory>    m_component_factory;
     ComponentContainerFactoryBase   *m_component_container_factory;
 };
 
-template <EntityTag Tag>
+template <EntityTag Tag, bool ShouldSerialize = true>
 class EntityTagComponentInterface : public IComponentInterface
 {
 public:
@@ -198,11 +208,20 @@ public:
         return true;
     }
 
+    virtual bool GetShouldSerialize() const override
+    {
+        return ShouldSerialize;
+    }
+
     virtual bool IsEntityTag() const override
-        { return true; }
+    {
+        return true;
+    }
 
     virtual EntityTag GetEntityTag() const override
-        { return Tag; }
+    {
+        return Tag;
+    }
 
 private:
     UniquePtr<IComponentFactory>    m_component_factory;
@@ -269,7 +288,7 @@ private:
     TypeMap<UniquePtr<IComponentInterface>>         m_interfaces;
 };
 
-template <class ComponentType>
+template <class ComponentType, bool ShouldSerialize = true>
 struct ComponentInterfaceRegistration
 {
     ComponentInterfaceRegistration()
@@ -278,7 +297,7 @@ struct ComponentInterfaceRegistration
             TypeID::ForType<ComponentType>(),
             []() -> UniquePtr<IComponentInterface>
             {
-                return MakeUnique<ComponentInterface<ComponentType>>(
+                return MakeUnique<ComponentInterface<ComponentType, ShouldSerialize>>(
                     MakeUnique<ComponentFactory<ComponentType>>(),
                     ComponentContainer<ComponentType>::GetFactory()
                 );
@@ -287,8 +306,8 @@ struct ComponentInterfaceRegistration
     }
 };
 
-template <EntityTag Tag>
-struct ComponentInterfaceRegistration<EntityTagComponent<Tag>>
+template <EntityTag Tag, bool ShouldSerialize>
+struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
 {
     ComponentInterfaceRegistration()
     {
@@ -296,7 +315,7 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>>
             TypeID::ForType<EntityTagComponent<Tag>>(),
             []() -> UniquePtr<IComponentInterface>
             {
-                return MakeUnique<EntityTagComponentInterface<Tag>>(
+                return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize>>(
                     MakeUnique<ComponentFactory<EntityTagComponent<Tag>>>(),
                     ComponentContainer<EntityTagComponent<Tag>>::GetFactory()
                 );
@@ -305,8 +324,8 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>>
     }
 };
 
-#define HYP_REGISTER_COMPONENT(type) static ComponentInterfaceRegistration< type > type##_ComponentInterface_Registration { }
-#define HYP_REGISTER_ENTITY_TAG(tag) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag > > tag##_EntityTag_ComponentInterface_Registration { }
+#define HYP_REGISTER_COMPONENT(type, ...) static ComponentInterfaceRegistration< type, ##__VA_ARGS__ > type##_ComponentInterface_Registration { }
+#define HYP_REGISTER_ENTITY_TAG(tag, ...) static ComponentInterfaceRegistration< EntityTagComponent< EntityTag::tag >, ##__VA_ARGS__ > tag##_EntityTag_ComponentInterface_Registration { }
 
 } // namespace hyperion
 

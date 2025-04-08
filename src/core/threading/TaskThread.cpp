@@ -10,7 +10,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Tasks);
-HYP_DEFINE_LOG_SUBCHANNEL(TaskThread, Tasks);
 
 namespace threading {
 
@@ -94,7 +93,7 @@ void TaskThread::operator()()
                 ++num_executed_tasks;
 
                 if (task_performance_clock.Elapsed() / 1000.0 > g_task_thread_single_task_lag_spike_threshold) {
-                    HYP_LOG(TaskThread, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
+                    HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
                         GetID().GetName(),
                         scheduled_task.debug_name.value ? scheduled_task.debug_name.value : "<unnamed task>",
                         task_performance_clock.Elapsed() / 1000.0);
@@ -106,7 +105,7 @@ void TaskThread::operator()()
             performance_clock.Stop();
 
             if (performance_clock.Elapsed() / 1000.0 > g_task_thread_lag_spike_threshold) {
-                HYP_LOG(TaskThread, Warning, "Task thread {} lag spike detected executing {} tasks: {}ms", GetID().GetName(), num_executed_tasks, performance_clock.Elapsed() / 1000.0);
+                HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected executing {} tasks: {}ms", GetID().GetName(), num_executed_tasks, performance_clock.Elapsed() / 1000.0);
             }
 #endif
             

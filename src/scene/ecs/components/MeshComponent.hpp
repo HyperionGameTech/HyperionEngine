@@ -68,6 +68,24 @@ struct MeshComponent
 
     // 240
 
+    HYP_FORCE_INLINE bool operator==(const MeshComponent &other) const
+    {
+        return mesh == other.mesh
+            && material == other.material
+            && skeleton == other.skeleton
+            && instance_data == other.instance_data;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const MeshComponent &other) const
+    {
+        return !(*this == other);
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return mesh.IsValid() && material.IsValid();
+    }
+    
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hash_code;

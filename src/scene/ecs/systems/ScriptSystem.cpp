@@ -161,7 +161,6 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
             }
 
             script_component.object.Reset(class_ptr->NewObject());
-            script_component.object->SetKeepAlive(true);
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
                 if (dotnet::Method *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
@@ -230,8 +229,6 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
                 script_component.object->InvokeMethodByName<void>("Destroy");
             }
         }
-
-        script_component.object->SetKeepAlive(false);
     }
 
     script_component.object.Reset();

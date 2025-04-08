@@ -11,33 +11,23 @@
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_SUBCHANNEL(Entity, Scene);
-
 Entity::Entity() = default;
 
 Entity::~Entity()
 {
-    // HYP_LOG(Entity, Debug, "Destroying Entity with ID #{}\tRef counts: {} strong, {} weak",
-    //     GetID().Value(),
-    //     GetObjectHeader_Internal()->GetRefCountStrong(),
-    //     GetObjectHeader_Internal()->GetRefCountWeak());
-
     const ID<Entity> id = GetID();
 
     if (!id.IsValid()) {
         return;
     }
 
-    Task<bool> success = EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity(id, [](EntityManager *entity_manager, ID<Entity> id)
+    // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
+    EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity_FireAndForget(id, [weak_this = WeakHandleFromThis()](EntityManager *entity_manager, ID<Entity> id)
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
 
         entity_manager->RemoveEntity(id);
     });
-
-    if (!success.Await()) {
-        HYP_LOG(Entity, Error, "Failed to remove Entity with ID #{} from EntityManager", id.Value());
-    }
 }
 
 } // namespace hyperion

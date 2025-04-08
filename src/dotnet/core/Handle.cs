@@ -9,23 +9,33 @@ namespace Hyperion
         internal static extern void Handle_Get(TypeID type_id, IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
 
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
-        internal static extern void Handle_Set(TypeID type_id, IntPtr ptr, [In] ref HypDataBuffer hypDataBuffer);
+        internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
+
+
+        [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
+        internal static extern void Handle_Destruct(IntPtr ptr);
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 8)]
-    public struct Handle<T> where T : HypObject
+    public struct Handle<T> : IDisposable where T : HypObject
     {
         public static readonly Handle<T> Empty = new Handle<T>();
 
         private IntPtr ptr;
 
-        public Handle(IntPtr ptr)
+        public Handle()
         {
-            this.ptr = ptr;
+            this.ptr = IntPtr.Zero;
         }
 
-        public Handle(T value)
+        public Handle(T? value)
         {
+            if (value == null)
+            {
+                ptr = IntPtr.Zero;
+                return;
+            }
+
             HypClass? hypClass = HypClass.GetClass<T>();
             
             if (hypClass == null)
@@ -33,9 +43,18 @@ namespace Hyperion
                 throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
             }
 
-            using (HypData hypData = new HypData(value))
+            using (HypData hypData = new HypData((T)value))
             {
-                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ptr, ref hypData.Buffer);
+                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ref hypData.Buffer, out ptr);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                ManagedHandleNativeBindings.Handle_Destruct(ptr);
+                ptr = IntPtr.Zero;
             }
         }
 

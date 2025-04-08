@@ -11,5 +11,9 @@ namespace Hyperion
         public BoundingBox localAabb;
         [FieldOffset(32)]
         public BoundingBox worldAabb;
+
+        public void Dispose()
+        {
+        }
     }
 }

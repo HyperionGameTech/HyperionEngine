@@ -691,6 +691,8 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
     UniquePtr<TextureData> new_texture_data;
     VkImageCreateInfo image_info;
 
+    const SizeType size_before = texture_data.buffer.Size();
+
     HYPERION_BUBBLE_ERRORS(m_platform_impl.Create(device, &texture_data, VK_IMAGE_LAYOUT_UNDEFINED, &image_info, new_texture_data));
 
     const ImageSubResource sub_resource {
@@ -708,9 +710,8 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
 
     AssertThrowMsg(
         m_size == texture_data_ptr->buffer.Size(),
-        "Invalid image size --  image size (%llu) does not match loaded data size (%llu)",
-        m_size,
-        texture_data_ptr->buffer.Size()
+        "Invalid image size --  image size (%llu) does not match loaded data size (%llu)\tBPP: %u\tFormat: %u\tSize before: %u\tOther size before: %u",
+        m_size, texture_data_ptr->buffer.Size(), m_bpp, uint32(m_texture_desc.format), uint32(size_before), uint32(texture_data.buffer.Size())
     );
 
     AssertThrowMsg(m_size % m_bpp == 0, "Invalid image size");

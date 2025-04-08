@@ -133,7 +133,7 @@ void World::Init()
     m_render_resource->Execute([this]()
     {
         for (const Handle<Scene> &scene : m_scenes) {
-            m_render_resource->GetRenderCollectorContainer().AddScene(scene.GetID());
+            m_render_resource->AddScene(scene);
         }
     }, /* force_render_thread */ false);
 
@@ -265,17 +265,13 @@ void World::Update(GameCounter::TickUnit delta)
             // sanity check
             AssertThrow(scene->GetWorld() == this);
 
-            RenderCollector &render_collector = m_render_resource->GetRenderCollectorForScene(scene->GetID());
-
-            scene->CollectEntities(render_collector, scene->GetCamera());
+            scene->CollectEntities(scene->GetRenderCollector(), scene->GetPrimaryCamera());
         }));
 #else
         // sanity check
         AssertThrow(scene->GetWorld() == this);
 
-        RenderCollector &render_collector = m_render_resource->GetRenderCollectorForScene(scene->GetID());
-
-        scene->CollectEntities(render_collector, scene->GetCamera());
+        scene->CollectEntities(scene->GetRenderCollector(), scene->GetPrimaryCamera());
 #endif
     }
 
@@ -427,18 +423,19 @@ void World::AddScene(const Handle<Scene> &scene)
     m_scenes.PushBack(scene);
 }
 
-bool World::RemoveScene(const WeakHandle<Scene> &scene_weak)
+bool World::RemoveScene(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
-    typename Array<Handle<Scene>>::Iterator it = m_scenes.FindAs(scene_weak);
+    typename Array<Handle<Scene>>::Iterator it = m_scenes.Find(scene);
     
     if (it == m_scenes.End()) {
         return false;
     }
 
-    Handle<Scene> scene = *it;
+    Handle<Scene> scene_copy = *it;
+
     m_scenes.Erase(it);
 
     if (scene.IsValid()) {
@@ -449,7 +446,7 @@ bool World::RemoveScene(const WeakHandle<Scene> &scene_weak)
                 it.second->OnSceneDetached(scene);
             }
 
-            Task<bool> task = m_render_resource->RemoveScene(scene->GetID());
+            Task<bool> task = m_render_resource->RemoveScene(scene.ToWeak());
             return task.Await();
         }
     }
