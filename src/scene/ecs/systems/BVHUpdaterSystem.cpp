@@ -12,7 +12,6 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(ECS);
-HYP_DEFINE_LOG_SUBCHANNEL(BVH, ECS);
 
 void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
@@ -29,13 +28,13 @@ void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     }
 
     if (mesh_component.mesh->BuildBVH(bvh_component.bvh, /* max_depth */ 3)) {
-        HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
+        HYP_LOG(ECS, Info, "Built BVH for Mesh #{} (name: \"{}\")",
             mesh_component.mesh->GetID().Value(),
             mesh_component.mesh->GetName());
             
         GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity);
     } else {
-        HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
+        HYP_LOG(ECS, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
             mesh_component.mesh->GetID().Value(),
             mesh_component.mesh->GetName());
     }
@@ -56,13 +55,13 @@ void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
         }
 
         if (mesh_component.mesh->BuildBVH(bvh_component.bvh, /* max_depth */ 3)) {
-            HYP_LOG(BVH, Info, "Built BVH for Mesh #{} (name: \"{}\")",
+            HYP_LOG(ECS, Info, "Built BVH for Mesh #{} (name: \"{}\")",
                 mesh_component.mesh->GetID().Value(),
                 mesh_component.mesh->GetName());
 
             updated_entity_ids.Insert(entity_id);
         } else {
-            HYP_LOG(BVH, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
+            HYP_LOG(ECS, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
                 mesh_component.mesh->GetID().Value(),
                 mesh_component.mesh->GetName());
         }

@@ -188,8 +188,14 @@ private:
     }
 
     Handle<Scene>           m_parent_scene;
+
+    HYP_FIELD(Property="AABB", Serialize=true)
     BoundingBox             m_aabb;
+
+    HYP_FIELD(Property="Dimensions", Serialize=true)
     Vec2u                   m_dimensions;
+
+    HYP_FIELD(Property="EnvProbeType", Serialize=true)
     EnvProbeType            m_env_probe_type;
 
     float                   m_camera_near;

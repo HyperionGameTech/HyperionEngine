@@ -16,6 +16,10 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>
 
+// temp; debugging
+#include <ui/UIListView.hpp>
+#include <core/debug/Debug.hpp>
+
 namespace hyperion {
 
 struct HypObjectInitializerContext
@@ -79,10 +83,15 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(const HypClass *hyp
 #endif
         }
     }
+
+    // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
+    PushHypObjectInitializerFlags(HypObjectInitializerFlags::NONE);
 }
 
 HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 {
+    PopHypObjectInitializerFlags();
+
     if (!hyp_class) {
         return;
     }
@@ -199,7 +208,7 @@ HYP_API void HypObjectPtr::DecRef(bool weak)
 }
 HYP_ENABLE_OPTIMIZATION;
 
-HYP_API const IHypObjectInitializer *HypObjectPtr::GetObjectInitializer() const
+HYP_API IHypObjectInitializer *HypObjectPtr::GetObjectInitializer() const
 {
     if (!m_hyp_class || !m_ptr) {
         return nullptr;
@@ -323,10 +332,36 @@ HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
-    if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
+    if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
         if (dotnet::Object *object = initializer->GetManagedObject()) {
             if (count == 2) {
-                AssertThrow(object->SetKeepAlive(true));
+                if (!object->SetKeepAlive(true)) {
+                    HYP_LOG(Object, Info, "Managed object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
+                        initializer->GetClass()->GetName(), ptr.GetPointer());
+
+                    // Need to recreate the managed object; could be queued for finalization.
+                    // In this case, the ref count will be decremented once the queued object is finalized
+                    const HypClass *hyp_class = initializer->GetClass();
+
+                    if (dotnet::Class *managed_class = initializer->GetManagedClass()) {
+                        if (hyp_class->IsReferenceCounted()) {
+                            // Increment reference count for the managed object
+                            initializer->IncRef(hyp_class->GetAllocationMethod(), ptr.GetPointer(), /* weak */ false);
+                        }
+            
+                        dotnet::Object *new_managed_object = managed_class->NewObject(hyp_class, ptr.GetPointer());
+            
+                        if (!new_managed_object) {
+                            HYP_FAIL("Failed to recreate managed object for HypClass %s", hyp_class->GetName().LookupString());
+                        }
+            
+                        initializer->SetManagedObject(new_managed_object);
+
+                        delete object;
+                    } else {
+                        HYP_FAIL("Failed to recreate managed object for HypClass %s", hyp_class->GetName().LookupString());
+                    }
+                }
             }
         }
     }

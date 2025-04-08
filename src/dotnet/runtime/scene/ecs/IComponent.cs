@@ -2,7 +2,7 @@ using System;
 
 namespace Hyperion
 {
-    public interface IComponent
+    public interface IComponent : IDisposable
     {
     }
 }

@@ -626,7 +626,7 @@ public:
      *  \note The reference count will not be decremented, so the object will still be alive. Thus, creating a new handle from the returned pointer will cause a memory leak as the ref count will be doubly incremented.
      *  \internal For internal use only, used for marshalling objects between C++ and C#.
      *  \return The pointer to the object that was being referenced. */
-    HYP_NODISCARD HYP_API HypObjectBase *Release();
+    HYP_NODISCARD HYP_API void *Release();
 };
 
 template <class T>

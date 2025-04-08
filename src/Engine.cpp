@@ -68,8 +68,6 @@
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_SUBCHANNEL(RenderThread, Rendering);
-
 using renderer::FillMode;
 using renderer::GPUBufferType;
 
@@ -163,7 +161,7 @@ struct RENDER_COMMAND(RecreateSwapchain) : renderer::RenderCommand
         Handle<Engine> engine = engine_weak.Lock();
 
         if (!engine) {
-            HYP_LOG(RenderThread, Warning, "Engine was destroyed before swapchain could be recreated");
+            HYP_LOG(Rendering, Warning, "Engine was destroyed before swapchain could be recreated");
             HYPERION_RETURN_OK;
         }
 
@@ -633,9 +631,23 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     m_world->GetRenderResource().PostRender(frame);
 
-    UpdateBuffersAndDescriptors((GetGPUInstance()->GetFrameHandler()->GetCurrentFrameIndex()));
-
     game->OnFrameEnd(frame);
+
+    bool any_gpu_buffers_resized = false;
+
+    for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
+        bool was_resized = false;
+
+        it.second->UpdateBufferSize(m_instance->GetDevice(), frame->GetFrameIndex(), was_resized);
+        it.second->UpdateBufferData(m_instance->GetDevice(), frame->GetFrameIndex());
+
+        any_gpu_buffers_resized |= was_resized;
+    }
+
+    if (any_gpu_buffers_resized) {
+        // Need to recreate descriptor sets if any GPU buffers were resized
+        HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame->GetFrameIndex()));
+    }
 
     frame_result = frame->Submit(&GetGPUDevice()->GetGraphicsQueue());
 
@@ -676,16 +688,6 @@ void Engine::PreFrameUpdate(Frame *frame)
     
     m_render_state->ResetStates(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_ACTIVE_LIGHT);
     m_render_state->AdvanceFrameCounter();
-}
-
-void Engine::UpdateBuffersAndDescriptors(uint32 frame_index)
-{
-    HYP_SCOPE;
-
-    for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
-        bool was_resized = false;
-        it.second->UpdateBuffer(m_instance->GetDevice(), frame_index, was_resized);
-    }
 }
 
 void Engine::RenderDeferred(Frame *frame)

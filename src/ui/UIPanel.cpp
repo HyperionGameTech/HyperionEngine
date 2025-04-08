@@ -19,7 +19,7 @@ UIPanel::UIPanel(UIObjectType type)
       m_is_scroll_enabled(UIObjectScrollbarOrientation::ALL)
 {
     SetBorderRadius(0);
-    SetBackgroundColor(Color(0x111111FFu));
+    SetBackgroundColor(Color(0.025f, 0.025f, 0.025f, 1.0f));
     SetTextColor(Color(0xFFFFFFFFu));
 
     m_on_scroll_handler = OnScroll.Bind([this](const MouseEvent &event_data) -> UIEventHandlerResult
@@ -93,7 +93,8 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
     if (visible) {
         // If scrollbar UIObject already exists and we are enabling scroll then return early
         if (!*scrollbar) {
-            RC<UIPanel> new_scrollbar = CreateUIObject<UIPanel>(Vec2i { 0, 0 }, scrollbar_size);
+            RC<UIPanel> new_scrollbar = CreateUIObject<UIPanel>(NAME("Scrollbar_Panel"), Vec2i { 0, 0 }, scrollbar_size);
+            new_scrollbar->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
             new_scrollbar->SetAffectsParentSize(false);
             new_scrollbar->SetIsPositionAbsolute(true);
             new_scrollbar->SetIsScrollEnabled(UIObjectScrollbarOrientation::ALL, false);
@@ -253,6 +254,9 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
         thumb->SetSize(thumb_size);
     } else {
         thumb = CreateUIObject<UIButton>(NAME("ScrollbarThumb"), Vec2i { 0, 0 }, thumb_size);
+        thumb->SetBorderRadius(8);
+        thumb->SetBackgroundColor(Color(0.1f, 0.15f, 0.22f, 0.75f));
+        thumb->SetPadding(0);
 
         thumb->OnMouseDown.Bind([this, orientation, thumb_weak = thumb.ToWeak()](const MouseEvent &event_data) -> UIEventHandlerResult
         {

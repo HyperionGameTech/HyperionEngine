@@ -32,6 +32,8 @@ namespace hyperion {
 
 #pragma region Render commands
 
+HYP_DISABLE_OPTIMIZATION;
+
 struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 {
     WeakHandle<Texture>                     texture_weak;
@@ -61,10 +63,18 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         if (Handle<Texture> texture = texture_weak.Lock()) {
+            HYP_LOG(Rendering, Debug, "Creating texture: {} (ID: {})", texture->GetName(), texture->GetID().Value());
+
             if (!image->IsCreated()) {
                 image->SetIsRWTexture(texture->IsRWTexture());
 
                 if (streamed_texture_data_handle && streamed_texture_data_handle->GetBufferSize() != 0) {
+                    const TextureData &texture_data = streamed_texture_data_handle->GetTextureData();
+                    const TextureDesc &texture_desc = streamed_texture_data_handle->GetTextureDesc();
+
+                    AssertThrow(texture_data.desc == texture_desc);
+                    AssertThrow(texture_data.buffer.Size() == texture_desc.GetByteSize());
+
                     AssertThrowMsg(streamed_texture_data_handle->GetTextureData().buffer.Size() == streamed_texture_data_handle->GetBufferSize(),
                         "Streamed texture data buffer size mismatch! Expected: %u, Actual: %u (HashCode: %llu)",
                         streamed_texture_data_handle->GetBufferSize(), streamed_texture_data_handle->GetTextureData().buffer.Size(),
@@ -88,6 +98,8 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
         HYPERION_RETURN_OK;
     }
 };
+
+HYP_ENABLE_OPTIMIZATION;
 
 struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 {

@@ -52,15 +52,24 @@ UIStage::UIStage(ThreadID owner_thread_id)
 {
     SetName(NAME("Stage"));
     SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+
+    m_camera = CreateObject<Camera>();
+    m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+        0.0f, -float(m_surface_size.x),
+        0.0f, float(m_surface_size.y),
+        float(min_depth), float(max_depth)
+    ));
+    
+    InitObject(m_camera);
 }
 
 UIStage::~UIStage()
 {
     if (m_scene.IsValid()) {
-        if (Threads::IsOnThread(m_owner_thread_id)) {
+        if (Threads::IsOnThread(m_scene->GetOwnerThreadID())) {
             m_scene->RemoveFromWorld();
         } else {
-            Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([scene = m_scene]()
+            Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = m_scene]()
             {
                 scene->RemoveFromWorld();
             }, TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -71,17 +80,17 @@ UIStage::~UIStage()
 void UIStage::SetSurfaceSize(Vec2i surface_size)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     m_surface_size = surface_size;
     
-    if (m_scene.IsValid() && m_scene->GetCamera().IsValid()) {
-        m_scene->GetCamera()->SetWidth(surface_size.x);
-        m_scene->GetCamera()->SetHeight(surface_size.y);
+    if (m_camera.IsValid()) {
+        m_camera->SetWidth(surface_size.x);
+        m_camera->SetHeight(surface_size.y);
 
         // @FIXME: needs to remove and re-add the camera controller
 
-        m_scene->GetCamera()->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+        m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
             0.0f, -float(surface_size.x),
             0.0f, float(surface_size.y),
             float(min_depth), float(max_depth)
@@ -106,34 +115,19 @@ Scene *UIStage::GetScene() const
 void UIStage::SetScene(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
 
     Handle<Scene> new_scene = scene;
 
     if (!new_scene.IsValid()) {
-        Handle<Camera> camera = CreateObject<Camera>();
-        camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
-            0.0f, -float(m_surface_size.x),
-            0.0f, float(m_surface_size.y),
-            float(min_depth), float(max_depth)
-        ));
+        const ThreadID owner_thread_id = m_scene.IsValid() ? m_scene->GetOwnerThreadID() : ThreadID::Current();
 
         new_scene = CreateObject<Scene>(
             nullptr,
-            camera,
-            m_owner_thread_id,
+            owner_thread_id,
             SceneFlags::FOREGROUND | SceneFlags::UI
         );
 
-        NodeProxy camera_node = new_scene->GetRoot()->AddChild();
-        camera_node->SetName("UICamera");
-        
-        Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
-        new_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent {
-            camera
-        });
-
-        camera_node->SetEntity(camera_entity);
+        new_scene->SetName(CreateNameFromDynamicString(HYP_FORMAT("UIStage_{}_Scene", GetName())));
     }
 
     if (new_scene == m_scene) {
@@ -151,6 +145,14 @@ void UIStage::SetScene(const Handle<Scene> &scene)
         new_scene->SetRoot(std::move(current_root_node));
     }
 
+    NodeProxy camera_node = new_scene->GetRoot()->AddChild();
+    camera_node->SetName("UICamera");
+    
+    Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
+    new_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { m_camera });
+
+    camera_node->SetEntity(camera_entity);
+
     g_engine->GetWorld()->AddScene(new_scene);
     
     InitObject(new_scene);
@@ -165,7 +167,6 @@ void UIStage::SetScene(const Handle<Scene> &scene)
 const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
 {
     HYP_SCOPE;
-    // Threads::AssertOnThread(m_owner_thread_id);
 
     if (m_default_font_atlas != nullptr) {
         return m_default_font_atlas;
@@ -182,7 +183,7 @@ const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
 void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     m_default_font_atlas = std::move(font_atlas);
     
@@ -192,7 +193,7 @@ void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
 void UIStage::Init()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
         const auto UpdateSurfaceSize = [this](ApplicationWindow *window)
@@ -205,8 +206,8 @@ void UIStage::Init()
 
             m_surface_size = Vec2i(size);
 
-            if (m_scene.IsValid()) {
-                m_scene->GetCamera()->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+            if (m_camera.IsValid()) {
+                m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
                     0.0f, -float(m_surface_size.x),
                     0.0f, float(m_surface_size.y),
                     float(min_depth), float(max_depth)
@@ -239,8 +240,7 @@ void UIStage::Init()
 void UIStage::AddChildUIObject(const RC<UIObject> &ui_object)
 {
     HYP_SCOPE;
-
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     if (!ui_object) {
         return;
@@ -258,7 +258,7 @@ void UIStage::AddChildUIObject(const RC<UIObject> &ui_object)
 void UIStage::Update_Internal(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     UIObject::Update_Internal(delta);
 
@@ -270,7 +270,7 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
 void UIStage::OnAttached_Internal(UIObject *parent)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     AssertThrow(parent != nullptr);
     AssertThrow(parent->GetNode() != nullptr);
@@ -284,7 +284,7 @@ void UIStage::OnAttached_Internal(UIObject *parent)
 void UIStage::OnRemoved_Internal()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     // Re-set scene root to be our node proxy
     m_scene->SetRoot(m_node_proxy);
@@ -296,7 +296,7 @@ void UIStage::OnRemoved_Internal()
 void UIStage::SetStage_Internal(UIStage *stage)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     m_stage = stage;
     
@@ -305,21 +305,10 @@ void UIStage::SetStage_Internal(UIStage *stage)
     // Do not update children
 }
 
-void UIStage::SetOwnerThreadID(ThreadID thread_id)
-{
-    AssertThrowMsg(thread_id.IsValid(), "Invalid thread ID");
-
-    m_owner_thread_id = thread_id;
-
-    if (m_scene.IsValid()) {
-        m_scene->SetOwnerThreadID(thread_id);
-    }
-}
-
 bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     const Vec4f world_position = Vec4f(position.x * float(GetSurfaceSize().x), position.y * float(GetSurfaceSize().y), 0.0f, 1.0f);
     const Vec3f direction { world_position.x / world_position.w, world_position.y / world_position.w, 0.0f };
@@ -370,7 +359,7 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
         if (ui_component->ui_object != nullptr) {
@@ -384,13 +373,13 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     if (ui_object == m_focused_object) {
         return;
     }
 
-    RC<UIObject> current_focused_ui_object = m_focused_object;
+    RC<UIObject> current_focused_ui_object = m_focused_object.Lock();
 
     // Be sure to set the focused object to nullptr before calling Blur() to prevent infinite recursion
     // due to Blur() calling SetFocusedObject() again.
@@ -413,7 +402,7 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 void UIStage::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     // stage with a parent stage: treat self like a normal UIObject
     if (m_stage != nullptr) {
@@ -438,7 +427,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 )
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     UIEventHandlerResult event_handler_result = UIEventHandlerResult::OK;
 
@@ -775,7 +764,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     {
         const KeyCode key_code = event.GetNormalizedKeyCode();
 
-        RC<UIObject> ui_object = m_focused_object;
+        RC<UIObject> ui_object = m_focused_object.Lock();
 
         while (ui_object != nullptr) {
             HYP_LOG(UI, Debug, "Key pressed: {} on {}", uint32(key_code), ui_object->GetName());
@@ -832,7 +821,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 bool UIStage::Remove(ID<Entity> entity)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    AssertOnOwnerThread();
 
     if (!m_scene.IsValid()) {
         return false;
@@ -847,7 +836,9 @@ bool UIStage::Remove(ID<Entity> entity)
     }
 
     if (NodeProxy child_node = GetNode()->FindChildWithEntity(entity)) {
-        return child_node.Remove();
+        child_node.Remove();
+
+        return true;
     }
 
     return false;

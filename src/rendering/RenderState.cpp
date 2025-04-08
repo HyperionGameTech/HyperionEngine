@@ -45,54 +45,33 @@ void RenderState::Init()
     } default_camera_initializer;
 
     // Ensure the default camera is always set
-    camera_bindings.PushBack(&default_camera_initializer.camera->GetRenderResource());
+    camera_bindings.PushBack(TResourceHandle<CameraRenderResource>(default_camera_initializer.camera->GetRenderResource()));
 
     SetReady(true);
 }
 
-/*void RenderState::UnbindScene(const Scene *scene)
+void RenderState::BindCamera(const TResourceHandle<CameraRenderResource> &resource_handle)
 {
-    AssertThrow(scene != nullptr);
-    AssertThrow(scene->IsReady());
-
-    Threads::AssertOnThread(g_render_thread);
-
-    SceneRenderResource *scene_render_resource = &scene->GetRenderResource();
-
-    for (auto it = scene_bindings.Begin(); it != scene_bindings.End();) {
-        if ((*it) == scene_render_resource) {
-            it = scene_bindings.Erase(it);
-
-            // Stop iterating at first match
-            break;
-        } else {
-            ++it;
-        }
+    if (!resource_handle) {
+        return;
     }
-}*/
-
-void RenderState::BindCamera(Camera *camera)
-{
-    AssertThrow(camera != nullptr);
-    AssertThrow(camera->IsReady());
 
     Threads::AssertOnThread(g_render_thread);
     
     // Allow multiple of the same so we can always override the topmost camera
-    camera_bindings.PushBack(&camera->GetRenderResource());
+    camera_bindings.PushBack(resource_handle);
 }
 
-void RenderState::UnbindCamera(Camera *camera)
+void RenderState::UnbindCamera(const CameraRenderResource *camera_render_resource)
 {
-    AssertThrow(camera != nullptr);
-    AssertThrow(camera->IsReady());
+    if (!camera_render_resource) {
+        return;
+    }
 
     Threads::AssertOnThread(g_render_thread);
 
-    CameraRenderResource *camera_render_resource = &camera->GetRenderResource();
-
     for (auto it = camera_bindings.Begin(); it != camera_bindings.End();) {
-        if ((*it) == camera_render_resource) {
+        if ((*it).Get() == camera_render_resource) {
             it = camera_bindings.Erase(it);
 
             // Stop iterating at first match
@@ -103,14 +82,14 @@ void RenderState::UnbindCamera(Camera *camera)
     }
 }
 
-const CameraRenderResource &RenderState::GetActiveCamera() const
+const TResourceHandle<CameraRenderResource> &RenderState::GetActiveCamera() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const CameraRenderResource empty { nullptr };
+    static const TResourceHandle<CameraRenderResource> empty;
 
     return camera_bindings.Any()
-        ? *camera_bindings.Back()
+        ? camera_bindings.Back()
         : empty;
 }
 
@@ -126,39 +105,28 @@ const TResourceHandle<EnvProbeRenderResource> &RenderState::GetActiveEnvProbe() 
         : empty;
 }
 
-void RenderState::BindLight(Light *light)
+void RenderState::BindLight(const TResourceHandle<LightRenderResource> &light_resource_handle)
 {
-    AssertThrow(light != nullptr);
-    AssertThrow(light->IsReady());
-
     Threads::AssertOnThread(g_render_thread);
 
-    auto &array = bound_lights[uint32(light->GetLightType())];
+    auto &array = bound_lights[uint32(light_resource_handle->GetLight()->GetLightType())];
 
-    auto it = array.FindIf([light](const TResourceHandle<LightRenderResource> &item)
-    {
-        return item->GetLight() == light;
-    });
+    auto it = array.Find(light_resource_handle);
 
-    if (it != array.End()) {
-        *it = TResourceHandle<LightRenderResource>(light->GetRenderResource());
-    } else {
-        array.PushBack(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
+    if (it == array.End()) {
+        array.PushBack(light_resource_handle);
     }
 }
 
-void RenderState::UnbindLight(Light *light)
+void RenderState::UnbindLight(const LightRenderResource *light_render_resource)
 {
-    AssertThrow(light != nullptr);
-    AssertThrow(light->IsReady());
-
     Threads::AssertOnThread(g_render_thread);
 
-    auto &array = bound_lights[uint32(light->GetLightType())];
+    auto &array = bound_lights[uint32(light_render_resource->GetLight()->GetLightType())];
 
-    auto it = array.FindIf([light](const TResourceHandle<LightRenderResource> &item)
+    auto it = array.FindIf([light_render_resource](const TResourceHandle<LightRenderResource> &item)
     {
-        return item->GetLight() == light;
+        return item.Get() == light_render_resource;
     });
 
     if (it != array.End()) {
@@ -177,11 +145,11 @@ const TResourceHandle<LightRenderResource> &RenderState::GetActiveLight() const
         : empty;
 }
 
-void RenderState::SetActiveLight(LightRenderResource &light_render_resource)
+void RenderState::SetActiveLight(const TResourceHandle<LightRenderResource> &light_resource_handle)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    light_bindings.Push(TResourceHandle<LightRenderResource>(light_render_resource));
+    light_bindings.Push(light_resource_handle);
 }
 
 void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource> &&resource_handle)

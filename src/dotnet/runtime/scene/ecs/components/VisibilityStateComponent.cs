@@ -23,5 +23,9 @@ namespace Hyperion
         public VisibilityStateFlags visibilityStateFlags;
         public OctantID octantID;
         public IntPtr visibilityStatePtr;
+
+        public void Dispose()
+        {
+        }
     }
 }

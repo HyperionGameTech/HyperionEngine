@@ -1,6 +1,4 @@
-﻿#include "SampleStreamer.hpp"
-
-#include <editor/HyperionEditor.hpp>
+﻿#include <editor/HyperionEditor.hpp>
 
 #include <system/App.hpp>
 
@@ -65,7 +63,6 @@ int main(int argc, char **argv)
     signal(SIGSEGV, HandleSignal);
 
     HyperionEditor editor;
-    // SampleStreamer editor;
     App app;
 
     CommandLineParser arg_parse { &DefaultCommandLineArgumentDefinitions() };

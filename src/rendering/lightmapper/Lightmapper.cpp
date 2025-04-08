@@ -672,8 +672,8 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     UpdateUniforms(frame, ray_offset);
@@ -722,9 +722,9 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
         }
@@ -1121,17 +1121,17 @@ private:
     void CreateUniformBuffer();
     void UpdateUniforms(Frame *frame, uint32 ray_offset);
 
-    Handle<Scene>           m_scene;
-    LightmapShadingType     m_shading_type;
+    Handle<Scene>                           m_scene;
+    LightmapShadingType                     m_shading_type;
 
-    Handle<Camera>          m_camera;
-    ResourceHandle          m_camera_resource_handle;
+    Handle<Camera>                          m_camera;
+    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
-    FramebufferRef          m_framebuffer;
-    ShaderRef               m_shader;
-    RenderCollector         m_render_collector;
+    FramebufferRef                          m_framebuffer;
+    ShaderRef                               m_shader;
+    RenderCollector                         m_render_collector;
 
-    RenderSemaphore         m_render_semaphore;
+    RenderSemaphore                         m_render_semaphore;
 };
 
 LightmapRasterizer::LightmapRasterizer(const Handle<Scene> &scene, LightmapShadingType shading_type)
@@ -1202,8 +1202,16 @@ void LightmapRasterizer::Create()
         CameraRenderResource &camera_render_resource = m_camera->GetRenderResource();
         camera_render_resource.SetFramebuffer(m_framebuffer);
         
-        m_camera_resource_handle = ResourceHandle(camera_render_resource);
+        m_camera_resource_handle = TResourceHandle<CameraRenderResource>(camera_render_resource);
     }
+
+    m_render_collector.SetOverrideAttributes(RenderableAttributeSet(
+        MeshAttributes { },
+        MaterialAttributes {
+            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = FaceCullMode::BACK
+        }
+    ));
 }
 
 void LightmapRasterizer::UpdateRays(Span<const LightmapRay> rays)
@@ -1228,17 +1236,7 @@ void LightmapRasterizer::UpdateRays(Span<const LightmapRay> rays)
     // Compute visible objects
     m_scene->GetOctree().CalculateVisibility(m_camera);
 
-    m_scene->CollectStaticEntities(
-        m_render_collector,
-        m_camera,
-        RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
-                .cull_faces         = FaceCullMode::BACK
-            }
-        )
-    );
+    m_scene->CollectStaticEntities(m_render_collector, m_camera);
 }
 
 void LightmapRasterizer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
@@ -1283,10 +1281,8 @@ void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const Light
     const uint32 frame_index = frame->GetFrameIndex();
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
-
     g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
-    g_engine->GetRenderState()->BindCamera(camera_render_resource.GetCamera());
+    g_engine->GetRenderState()->BindCamera(m_camera_resource_handle);
 
     // Render the scene from the given texel
 
@@ -1298,11 +1294,11 @@ void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const Light
 
     m_render_collector.ExecuteDrawCalls(
         frame,
-        camera_render_resource,
+        m_camera_resource_handle,
         Bitset(1 << BUCKET_OPAQUE)
     );
 
-    g_engine->GetRenderState()->UnbindCamera(camera_render_resource.GetCamera());
+    g_engine->GetRenderState()->UnbindCamera(m_camera_resource_handle.Get());
     g_engine->GetRenderState()->UnsetActiveScene();
 
     m_render_semaphore.Release();

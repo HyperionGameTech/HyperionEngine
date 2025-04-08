@@ -11,17 +11,10 @@
 
 namespace hyperion {
 
-HYP_DEFINE_LOG_SUBCHANNEL(Entity, Scene);
-
 Entity::Entity() = default;
 
 Entity::~Entity()
 {
-    // HYP_LOG(Entity, Debug, "Destroying Entity with ID #{}\tRef counts: {} strong, {} weak",
-    //     GetID().Value(),
-    //     GetObjectHeader_Internal()->GetRefCountStrong(),
-    //     GetObjectHeader_Internal()->GetRefCountWeak());
-
     const ID<Entity> id = GetID();
 
     if (!id.IsValid()) {
@@ -36,7 +29,7 @@ Entity::~Entity()
     });
 
     if (!success.Await()) {
-        HYP_LOG(Entity, Error, "Failed to remove Entity with ID #{} from EntityManager", id.Value());
+        HYP_LOG(Scene, Error, "Failed to remove Entity with ID #{} from EntityManager", id.Value());
     }
 }
 

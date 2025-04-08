@@ -120,7 +120,7 @@ AnyRef AnyHandle::ToRef() const
         return AnyRef(type_id, nullptr);
     }
 
-    return AnyRef(type_id, ptr->container->GetObject(ptr));
+    return AnyRef(type_id, ptr->container->GetObjectPointer(ptr));
 }
 
 void AnyHandle::Reset()
@@ -132,18 +132,18 @@ void AnyHandle::Reset()
     ptr = nullptr;
 }
 
-HypObjectBase *AnyHandle::Release()
+void *AnyHandle::Release()
 {
     if (!IsValid()) {
         return nullptr;
     }
 
-    HypObjectBase *hyp_object_ptr = ptr->Release();
-    AssertThrow(hyp_object_ptr != nullptr);
+    void *address = ptr->Release();
+    AssertThrow(address != nullptr);
 
     ptr = nullptr;
 
-    return hyp_object_ptr;
+    return address;
 }
 
 #pragma endregion AnyHandle

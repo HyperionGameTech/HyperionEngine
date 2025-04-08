@@ -152,7 +152,7 @@ class RenderState : public HypObject<RenderState>
 
 public:
     Stack<TResourceHandle<SceneRenderResource>>                                     scene_bindings;
-    Array<CameraRenderResource *>                                                   camera_bindings;
+    Array<TResourceHandle<CameraRenderResource>>                                    camera_bindings;
     FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
     Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
     Array<EnvGrid *>                                                                env_grid_bindings;
@@ -192,7 +192,7 @@ public:
 
     HYP_FORCE_INLINE void UnbindEnvGrid(EnvGrid *env_grid)
     {
-        for (auto it = env_grid_bindings.Begin(); it != env_grid_bindings.End(); ++it) {
+        for (auto it = env_grid_bindings.Begin(); it != env_grid_bindings.End();) {
             if (*it == env_grid) {
                 it = env_grid_bindings.Erase(it);
             } else {
@@ -219,10 +219,10 @@ public:
         return count;
     }
 
-    void BindLight(Light *light);
-    void UnbindLight(Light *light);
+    void BindLight(const TResourceHandle<LightRenderResource> &light_resource_handle);
+    void UnbindLight(const LightRenderResource *light_render_resoruce);
 
-    void SetActiveLight(LightRenderResource &light_render_resource);
+    void SetActiveLight(const TResourceHandle<LightRenderResource> &light_resource_handle);
 
     HYP_FORCE_INLINE void UnsetActiveLight()
     {
@@ -256,10 +256,10 @@ public:
         }
     }
 
-    void BindCamera(Camera *camera);
-    void UnbindCamera(Camera *camera);
+    void BindCamera(const TResourceHandle<CameraRenderResource> &resource_handle);
+    void UnbindCamera(const CameraRenderResource *camera_render_resource);
 
-    const CameraRenderResource &GetActiveCamera() const;
+    const TResourceHandle<CameraRenderResource> &GetActiveCamera() const;
 
     void BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource> &&resource_handle);
     void UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource *env_probe_render_resource);

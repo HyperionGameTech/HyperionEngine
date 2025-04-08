@@ -11,6 +11,8 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -58,7 +60,7 @@ public:
                 return;
             }
 
-            FlatSet<TypeID> serialized_components;
+            HashSet<TypeID> serialized_components;
 
             for (const auto &it : *all_components) {
                 const TypeID component_type_id = it.first;
@@ -71,12 +73,24 @@ public:
                     return;
                 }
 
-                if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("serialize") == false) {
+                if (!component_interface->GetShouldSerialize()) {
                     continue;
                 }
 
                 if (serialized_components.Contains(component_type_id)) {
                     HYP_LOG(Serialization, Warning, "Entity has multiple components of the type {}", component_interface->GetTypeName());
+
+                    continue;
+                }
+
+                if (component_interface->IsEntityTag()) {
+                    EntityTag entity_tag = component_interface->GetEntityTag();
+
+                    FBOMObject entity_tag_object { FBOMObjectType(component_interface->GetTypeName(), component_interface->GetTypeID(), FBOMTypeFlags::DEFAULT) };
+                    entity_tag_object.SetProperty("EntityTag", uint32(entity_tag));
+                    out.AddChild(std::move(entity_tag_object));
+
+                    serialized_components.Insert(component_type_id);
 
                     continue;
                 }
@@ -162,7 +176,29 @@ public:
                 continue;
             }
 
-            if (component_interface->GetClass() != nullptr && component_interface->GetClass()->GetAttribute("serialize") == false) {
+            if (!component_interface->GetShouldSerialize()) {
+                continue;
+            }
+
+            if (component_interface->IsEntityTag()) {
+                HYP_NAMED_SCOPE("Deserializing entity tag");
+
+                uint32 entity_tag_value = 0;
+
+                if (FBOMResult err = child.GetProperty("EntityTag").ReadUInt32(&entity_tag_value)) {
+                    return err;
+                }
+
+                EntityTag entity_tag = EntityTag(entity_tag_value);
+
+                if (!entity_manager->IsEntityTagComponent(component_interface->GetTypeID())) {
+                    HYP_LOG(Serialization, Warning, "Component with TypeID {} is not an entity tag component", component_interface->GetTypeID().Value());
+
+                    continue;
+                }
+
+                entity_manager->AddTag(entity, entity_tag);
+
                 continue;
             }
 

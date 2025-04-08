@@ -100,10 +100,15 @@ private:
     Bitset                      m_mask_bitset;
 };
 
+using LoggerWriteFnPtr = void(*)(void *context, const LogChannel &channel, const LogMessage &message);
+
 class ILoggerOutputStream
 {
 public:
     virtual ~ILoggerOutputStream() = default;
+
+    virtual int AddRedirect(const Bitset &channel_mask, void *context, LoggerWriteFnPtr write_fnptr, LoggerWriteFnPtr write_error_fnptr) = 0;
+    virtual void RemoveRedirect(int id) = 0;
 
     virtual void Write(const LogChannel &channel, const LogMessage &message) = 0;
     virtual void WriteError(const LogChannel &channel, const LogMessage &message) = 0;
@@ -124,6 +129,9 @@ public:
     Logger(Logger &&other) noexcept             = delete;
     Logger &operator=(Logger &&other) noexcept  = delete;
     ~Logger();
+
+    HYP_FORCE_INLINE ILoggerOutputStream *GetOutputStream() const
+        { return m_output_stream; }
 
     void RegisterChannel(LogChannel *channel);
 
@@ -204,6 +212,8 @@ using logging::Logger;
 using logging::LogChannel;
 using logging::LogLevel;
 using logging::LogCategory;
+using logging::LogMessage;
+using logging::ILoggerOutputStream;
 
 } // namespace hyperion
 

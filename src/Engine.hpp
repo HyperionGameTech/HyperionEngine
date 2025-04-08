@@ -243,8 +243,6 @@ public:
     Delegate<void, EngineRenderStats>                       OnRenderStatsUpdated;
 
 private:
-    void UpdateBuffersAndDescriptors(uint32 frame_index);
-
     void PreFrameUpdate(Frame *frame);
     void RenderDeferred(Frame *frame);
 

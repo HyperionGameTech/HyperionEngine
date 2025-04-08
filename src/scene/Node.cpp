@@ -376,7 +376,7 @@ NodeProxy Node::AddChild(const NodeProxy &node)
         HYP_LOG(Node, Warning, "Attaching node {} to {} when it already has a parent node ({}). Node will be detached from parent.",
             node->GetName(), GetName(), node->GetParent()->GetName());
 
-        AssertThrowMsg(node->Remove(), "Node %s could not be detached from parent", node->GetName().Data());
+        node->Remove();
     }
 
     AssertThrowMsg(
@@ -387,9 +387,22 @@ NodeProxy Node::AddChild(const NodeProxy &node)
     );
 
     m_child_nodes.PushBack(node);
+
+    bool was_transform_locked = false;
+
+    if (node->m_transform_locked) {
+        was_transform_locked = true;
+
+        node->UnlockTransform();
+    }
     
     node->m_parent_node = this;
     node->SetScene(m_scene);
+    node->UpdateWorldTransform();
+
+    if (was_transform_locked) {
+        node->LockTransform();
+    }
 
     Node *current_parent = this;
 
@@ -405,8 +418,6 @@ NodeProxy Node::AddChild(const NodeProxy &node)
         OnNestedNodeAdded(nested, false);
     }
 
-    node->UpdateWorldTransform();
-
     return node;
 }
 
@@ -419,6 +430,22 @@ bool Node::RemoveChild(NodeList::Iterator iter)
     if (NodeProxy &node = *iter) {
         AssertThrow(node.IsValid());
         AssertThrow(node->GetParent() == this);
+
+        bool was_transform_locked = false;
+
+        if (node->m_transform_locked) {
+            was_transform_locked = true;
+
+            node->UnlockTransform();
+        }
+
+        node->m_parent_node = nullptr;
+        node->SetScene(nullptr);
+        node->UpdateWorldTransform();
+
+        if (was_transform_locked) {
+            node->LockTransform();
+        }
 
         Node *current_parent = this;
 
@@ -433,9 +460,6 @@ bool Node::RemoveChild(NodeList::Iterator iter)
         }
 
         OnNestedNodeRemoved(node, true);
-
-        node->m_parent_node = nullptr;
-        node->SetScene(nullptr);
     }
 
     m_child_nodes.Erase(iter);
@@ -458,13 +482,18 @@ bool Node::RemoveAt(int index)
     return RemoveChild(m_child_nodes.Begin() + index);
 }
 
-bool Node::Remove()
+void Node::Remove()
 {
-    if (m_parent_node == nullptr) {
-        return false;
+    if (!m_parent_node) {
+        SetScene(nullptr);
+
+        return;
     }
 
-    return m_parent_node->RemoveChild(m_parent_node->FindChild(this));
+    auto it = m_parent_node->FindChild(this);
+    AssertDebug(it != m_parent_node->GetChildren().End());
+
+    m_parent_node->RemoveChild(it);
 }
 
 void Node::RemoveAllChildren()
@@ -686,7 +715,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
             // Move entity to detached scene
             m_scene->GetEntityManager()->MoveEntity(m_entity, *GetDefaultScene()->GetEntityManager());
         } else {
-            Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue(
+            Task<void> task = Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue(
                 HYP_STATIC_MESSAGE("Remove NodeLinkComponent from entity"),
                 [entity = m_entity, scene = m_scene->HandleFromThis()]()
                 {
@@ -694,9 +723,10 @@ void Node::SetEntity(const Handle<Entity> &entity)
 
                     // Move entity to detached scene
                     scene->GetEntityManager()->MoveEntity(entity, *GetDefaultScene()->GetEntityManager());
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET
+                }
             );
+
+            task.Await();
         }
     }
 
@@ -749,9 +779,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
         if (NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
             node_link_component->node = WeakRefCountedPtrFromThis();
         } else {
-            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, {
-                WeakRefCountedPtrFromThis()
-            });
+            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, { WeakRefCountedPtrFromThis() });
         }
 
         if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity)) {
@@ -899,9 +927,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
             if (TransformComponent *transform_component = entity_manager->TryGetComponent<TransformComponent>(m_entity)) {
                 transform_component->transform = m_world_transform;
             } else {
-                entity_manager->AddComponent<TransformComponent>(m_entity, TransformComponent {
-                    m_world_transform
-                });
+                entity_manager->AddComponent<TransformComponent>(m_entity, TransformComponent { m_world_transform });
             }
 
             entity_manager->AddTags<

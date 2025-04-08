@@ -25,7 +25,7 @@ public:
     ConsoleUI &operator=(const ConsoleUI &other)        = delete;
     ConsoleUI(ConsoleUI &&other) noexcept               = delete;
     ConsoleUI &operator=(ConsoleUI &&other) noexcept    = delete;
-    virtual ~ConsoleUI() override                       = default;
+    virtual ~ConsoleUI() override;
 
     virtual void Init() override;
 
@@ -40,6 +40,8 @@ protected:
     Pimpl<ConsoleHistory>   m_history;
 
     String                  m_current_command_text;
+
+    int                     m_logger_redirect_id;
 };
 
 } // namespace hyperion

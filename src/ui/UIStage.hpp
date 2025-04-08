@@ -102,6 +102,10 @@ public:
     HYP_METHOD()
     void SetScene(const Handle<Scene> &scene);
 
+    HYP_METHOD()
+    const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
     /*! \brief Get the default font atlas to use for text rendering.
      *  UIText objects will use this font atlas if they don't have a font atlas set.
      * 
@@ -116,8 +120,7 @@ public:
 
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \return The focused UI object. */
-    HYP_METHOD()
-    HYP_FORCE_INLINE const RC<UIObject> &GetFocusedObject() const
+    HYP_FORCE_INLINE const Weak<UIObject> &GetFocusedObject() const
         { return m_focused_object; }
 
     UIEventHandlerResult OnInputEvent(
@@ -127,12 +130,6 @@ public:
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
     bool TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);
-
-    /*! \brief Set the owner thread ID for the UIStage, as well as its
-     *  underlying UIObjects.
-     *  \note Ensure that the UIStage will not be accessed from any other
-     *  thread than the one specified. This method is not thread-safe. */
-    void SetOwnerThreadID(ThreadID thread_id);
 
     virtual void Init() override;
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
@@ -160,6 +157,7 @@ private:
     Vec2i                                           m_surface_size;
 
     Handle<Scene>                                   m_scene;
+    Handle<Camera>                                  m_camera;
 
     RC<FontAtlas>                                   m_default_font_atlas;
 
@@ -167,7 +165,7 @@ private:
     FlatSet<Weak<UIObject>>                         m_hovered_ui_objects;
     HashMap<KeyCode, Array<Weak<UIObject>>>         m_keyed_down_objects;
 
-    RC<UIObject>                                    m_focused_object;
+    Weak<UIObject>                                  m_focused_object;
 
     DelegateHandler                                 m_on_current_window_changed_handler;
 };

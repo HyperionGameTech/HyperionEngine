@@ -19,34 +19,6 @@
 
 namespace hyperion {
 
-#pragma region RenderCollectorContainer
-
-void RenderCollectorContainer::AddScene(ID<Scene> scene_id)
-{
-    if (!scene_id.IsValid()) {
-        return;
-    }
-
-    AssertThrow(scene_id.ToIndex() < max_scenes);
-
-    RenderCollector &render_collector = m_render_collectors_by_id_index[scene_id.ToIndex()];
-
-    const uint32 render_collector_index = m_num_render_collectors.Increment(1u, MemoryOrder::ACQUIRE_RELEASE);
-    m_render_collectors[render_collector_index] = &render_collector;
-}
-
-void RenderCollectorContainer::RemoveScene(ID<Scene> scene_id)
-{
-    AssertThrow(scene_id.IsValid());
-    
-    m_num_render_collectors.Decrement(1u, MemoryOrder::RELEASE);
-
-    RenderCollector &render_collector = m_render_collectors_by_id_index[scene_id.ToIndex()];
-    render_collector.Reset();
-}
-
-#pragma endregion RenderCollectorContainer
-
 #pragma region WorldRenderResource
 
 WorldRenderResource::WorldRenderResource(World *world)
@@ -69,23 +41,27 @@ void WorldRenderResource::AddScene(const Handle<Scene> &scene)
     Execute([this, scene_weak = scene.ToWeak()]()
     {
         if (Handle<Scene> scene = scene_weak.Lock()) {
-            m_render_collector_container.AddScene(scene.GetID());
-
             m_bound_scenes.PushBack(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
         }
-    });          
+    }, /* force_owner_thread */ true);          
 }
 
-Task<bool> WorldRenderResource::RemoveScene(ID<Scene> scene_id)
+Task<bool> WorldRenderResource::RemoveScene(const WeakHandle<Scene> &scene_weak)
 {
     HYP_SCOPE;
 
     Task<bool> task;
     auto task_executor = task.Initialize();
 
-    Execute([this, scene_id, task_executor]()
+    if (!scene_weak.IsValid()) {
+        task_executor->Fulfill(false);
+
+        return task;
+    }
+
+    Execute([this, scene_weak, task_executor]()
     {
-        m_render_collector_container.RemoveScene(scene_id);
+        const ID<Scene> scene_id = scene_weak.GetID();
 
         auto bound_scenes_it = m_bound_scenes.FindIf([&scene_id](const TResourceHandle<SceneRenderResource> &item)
         {
@@ -99,7 +75,7 @@ Task<bool> WorldRenderResource::RemoveScene(ID<Scene> scene_id)
         } else {
             task_executor->Fulfill(false);
         }
-    });
+    }, /* force_owner_thread */ true);
 
     return task;
 }
@@ -156,16 +132,6 @@ void WorldRenderResource::PreRender(renderer::Frame *frame)
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
-
-    // const uint32 num_render_collectors = m_render_collector_container.NumRenderCollectors();
-
-    // for (uint32 i = 0; i < num_render_collectors; i++) {
-    //     RenderCollector *render_collector = m_render_collector_container.GetRenderCollectorAtIndex(i);
-
-    //     if (const Handle<Camera> &camera = render_collector->GetCamera()) {
-    //         m_bound_cameras.PushBack(TResourceHandle<CameraRenderResource>(camera->GetRenderResource()));
-    //     }
-    // }
 }
 
 void WorldRenderResource::PostRender(renderer::Frame *frame)

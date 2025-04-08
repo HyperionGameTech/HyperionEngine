@@ -19,6 +19,19 @@ uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
     return uint32(bit_index);
 }
 
+uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
+{
+#ifdef HYP_CLANG_OR_GCC
+    const int bit_index = 63 - __builtin_clzll(bits);
+#elif defined(HYP_MSVC)
+    unsigned long bit_index = 0;
+    _BitScanReverse64(&bit_index, bits);
+#else
+    #error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
+#endif
+    return uint32(bit_index);
+}
+
 uint64 ByteUtil::BitCount(uint64 value)
 {
 #if HYP_WINDOWS

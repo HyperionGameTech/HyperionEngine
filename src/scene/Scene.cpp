@@ -4,6 +4,7 @@
 #include <scene/World.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
@@ -28,6 +29,7 @@
 #include <scene/ecs/systems/BVHUpdaterSystem.hpp>
 #include <scene/ecs/systems/PhysicsSystem.hpp>
 #include <scene/ecs/systems/ScriptSystem.hpp>
+#include <scene/ecs/systems/ScenePrimaryCameraSystem.hpp>
 
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
@@ -59,35 +61,28 @@
 namespace hyperion {
 
 Scene::Scene()
-    : Scene(nullptr, Handle<Camera>::empty, g_game_thread, { })
+    : Scene(nullptr, g_game_thread, { })
 {
 }
     
 Scene::Scene(EnumFlags<SceneFlags> flags)
-    : Scene(nullptr, Handle<Camera>::empty, g_game_thread, flags)
-{
-}
-    
-Scene::Scene(World *world, EnumFlags<SceneFlags> flags)
-    : Scene(world, Handle<Camera>::empty, g_game_thread, flags)
+    : Scene(nullptr, g_game_thread, flags)
 {
 }
 
-Scene::Scene(World *world, const Handle<Camera> &camera, EnumFlags<SceneFlags> flags)
-    : Scene(world, camera, g_game_thread, flags)
+Scene::Scene(World *world, EnumFlags<SceneFlags> flags)
+    : Scene(world, g_game_thread, flags)
 {
 }
 
 Scene::Scene(
     World *world,
-    const Handle<Camera> &camera,
     ThreadID owner_thread_id,
     EnumFlags<SceneFlags> flags
 ) : m_name(Name::Unique("Scene")),
     m_flags(flags),
     m_owner_thread_id(owner_thread_id),
     m_world(world),
-    m_camera(std::move(camera)),
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
     m_is_audio_listener(false),
     m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id.GetMask(), this)),
@@ -107,8 +102,6 @@ Scene::~Scene()
 {
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();
-
-    m_camera.Reset();
 
     if (m_root_node_proxy.IsValid()) {
         m_root_node_proxy->SetScene(nullptr);
@@ -146,9 +139,8 @@ void Scene::Init()
 
     m_render_resource = AllocateResource<SceneRenderResource>(this);
 
-    InitObject(m_camera);
-
     AddSystemIfApplicable<CameraSystem>();
+    AddSystemIfApplicable<ScenePrimaryCameraSystem>();
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
     AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
     AddSystemIfApplicable<RenderProxyUpdaterSystem>();
@@ -166,9 +158,11 @@ void Scene::Init()
     AddSystemIfApplicable<PhysicsSystem>();
     AddSystemIfApplicable<ScriptSystem>();
 
-    m_entity_manager->Initialize();
-
+    // Scene must be ready before entity manager is initialized
+    // (OnEntityAdded() calls on Systems may require this)
     SetReady(true);
+
+    m_entity_manager->Initialize();
 }
 
 void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
@@ -187,16 +181,22 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
     }
 }
 
-void Scene::SetCamera(const Handle<Camera> &camera)
+const Handle<Camera> &Scene::GetPrimaryCamera() const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    m_camera = camera;
-
-    if (IsInitCalled()) {
-        InitObject(m_camera);
+    if (!m_entity_manager) {
+        return Handle<Camera>::empty;
     }
+
+    for (auto [entity_id, camera_component, _] : m_entity_manager->GetEntitySet<CameraComponent, EntityTagComponent<EntityTag::CAMERA_PRIMARY>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+        if (camera_component.camera.IsValid()) {
+            return camera_component.camera;
+        }
+    }
+
+    return Handle<Camera>::empty;
 }
 
 void Scene::SetWorld(World *world)
@@ -209,7 +209,7 @@ void Scene::SetWorld(World *world)
     }
 
     if (m_world != nullptr && m_world->HasScene(GetID())) {
-        m_world->RemoveScene(WeakHandleFromThis());
+        m_world->RemoveScene(HandleFromThis());
     }
 
     // When world is changed, entity manager needs all systems to have this change reflected
@@ -295,7 +295,6 @@ void Scene::Update(GameCounter::TickUnit delta)
 RenderCollector::CollectionResult Scene::CollectEntities(
     RenderCollector &render_collector,
     const Handle<Camera> &camera,
-    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
@@ -338,23 +337,19 @@ RenderCollector::CollectionResult Scene::CollectEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushEntityToRender(
-            entity_id,
-            *mesh_component.proxy
-        );
+        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
     }
     
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
 
-    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
+    return render_collector.PushUpdatesToRenderThread(camera);
 }
 
 RenderCollector::CollectionResult Scene::CollectDynamicEntities(
     RenderCollector &render_collector,
     const Handle<Camera> &camera,
-    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
@@ -391,19 +386,15 @@ RenderCollector::CollectionResult Scene::CollectDynamicEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushEntityToRender(
-            entity_id,
-            *mesh_component.proxy
-        );
+        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
     }
 
-    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
+    return render_collector.PushUpdatesToRenderThread(camera);
 }
 
 RenderCollector::CollectionResult Scene::CollectStaticEntities(
     RenderCollector &render_collector,
     const Handle<Camera> &camera,
-    const Optional<RenderableAttributeSet> &override_attributes,
     bool skip_frustum_culling
 ) const
 {
@@ -413,7 +404,7 @@ RenderCollector::CollectionResult Scene::CollectStaticEntities(
 
     if (!camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
+        return render_collector.PushUpdatesToRenderThread(camera);
     }
 
     const ID<Camera> camera_id = camera.GetID();
@@ -440,13 +431,10 @@ RenderCollector::CollectionResult Scene::CollectStaticEntities(
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushEntityToRender(
-            entity_id,
-            *mesh_component.proxy
-        );
+        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
     }
 
-    return render_collector.PushUpdatesToRenderThread(camera, override_attributes);
+    return render_collector.PushUpdatesToRenderThread(camera);
 }
 
 void Scene::EnqueueRenderUpdates()
@@ -465,11 +453,16 @@ void Scene::EnqueueRenderUpdates()
 void Scene::SetRoot(const NodeProxy &root)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(m_owner_thread_id);
 
-    if (m_root_node_proxy.IsValid() && m_root_node_proxy->GetScene() == this) {
-        m_root_node_proxy->SetScene(nullptr);
+    if (root == m_root_node_proxy) {
+        return;
+    }
+
+    NodeProxy prev_root = m_root_node_proxy;
+
+    if (prev_root.IsValid() && prev_root->GetScene() == this) {
+        prev_root->SetScene(nullptr);
     }
 
     m_root_node_proxy = root;
@@ -477,6 +470,8 @@ void Scene::SetRoot(const NodeProxy &root)
     if (m_root_node_proxy.IsValid()) {
         m_root_node_proxy->SetScene(this);
     }
+
+    OnRootNodeChanged(m_root_node_proxy, prev_root);
 }
 
 bool Scene::AddToWorld(World *world)
@@ -484,8 +479,6 @@ bool Scene::AddToWorld(World *world)
     HYP_SCOPE;
     
     Threads::AssertOnThread(g_game_thread);
-
-    AssertReady();
 
     if (world == m_world) {
         // World is same, just return true
@@ -507,13 +500,11 @@ bool Scene::RemoveFromWorld()
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
-    AssertReady();
-
     if (m_world == nullptr) {
         return false;
     }
 
-    m_world->RemoveScene(WeakHandleFromThis());
+    m_world->RemoveScene(HandleFromThis());
 
     return true;
 }

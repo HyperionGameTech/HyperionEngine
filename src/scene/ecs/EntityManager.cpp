@@ -252,6 +252,8 @@ void EntityManager::Initialize()
                         m_system_entity_map[system_it.second.Get()].Insert(entity);
                     }
 
+                    HYP_LOG(ECS, Debug, "Adding entity #{} to system {}", entity.GetID().Value(), system_it.second->GetName());
+
                     system_it.second->OnEntityAdded(entity);
                 }
             }
@@ -759,6 +761,10 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
     for (SizeType index = 0; index < m_system_execution_groups.Size(); index++) {
         SystemExecutionGroup &system_execution_group = m_system_execution_groups[index];
 
+        if (!system_execution_group.AllowUpdate()) {
+            continue;
+        }
+
         TaskBatch *current_task_batch = system_execution_group.GetTaskBatch();
 
         current_task_batch->ResetState();
@@ -804,7 +810,7 @@ void EntityManager::EndAsyncUpdate()
     Threads::AssertOnThread(m_owner_thread_mask);
 
     for (SystemExecutionGroup &system_execution_group : m_system_execution_groups) {
-        if (system_execution_group.RequiresGameThread()) {
+        if (!system_execution_group.AllowUpdate() || system_execution_group.RequiresGameThread()) {
             continue;
         }
 
@@ -866,8 +872,9 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase *system, ID<Entity> 
 
 #pragma region SystemExecutionGroup
 
-SystemExecutionGroup::SystemExecutionGroup(bool requires_game_thread)
+SystemExecutionGroup::SystemExecutionGroup(bool requires_game_thread, bool allow_update)
     : m_requires_game_thread(requires_game_thread),
+      m_allow_update(allow_update),
       m_task_batch(MakeUnique<TaskBatch>())
 {
 }
@@ -879,6 +886,8 @@ SystemExecutionGroup::~SystemExecutionGroup()
 void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
+
+    AssertDebug(AllowUpdate());
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
     m_performance_clock.Start();
@@ -916,6 +925,8 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 
 void SystemExecutionGroup::FinishProcessing(bool execute_blocking)
 {
+    AssertDebug(AllowUpdate());
+
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
     if (execute_blocking) {
         m_task_batch->ExecuteBlocking(/* execute_dependent_batches */ true);

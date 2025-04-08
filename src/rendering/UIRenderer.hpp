@@ -46,7 +46,7 @@ public:
     );
 
     void CollectDrawCalls(Frame *frame);
-    void ExecuteDrawCalls(Frame *frame, const CameraRenderResource &camera_render_resource, const FramebufferRef &framebuffer) const;
+    void ExecuteDrawCalls(Frame *frame, const TResourceHandle<CameraRenderResource> &camera_resource_handle, const FramebufferRef &framebuffer) const;
 
 private:
     Array<Pair<ID<Entity>, int>>    m_proxy_depths;
@@ -84,15 +84,15 @@ private:
 
     void CreateFramebuffer();
 
-    RC<UIStage>         m_ui_stage;
+    RC<UIStage>                             m_ui_stage;
 
-    FramebufferRef      m_framebuffer;
-    ShaderRef           m_shader;
-    UIRenderCollector   m_render_collector;
+    FramebufferRef                          m_framebuffer;
+    ShaderRef                               m_shader;
+    UIRenderCollector                       m_render_collector;
 
-    ResourceHandle      m_camera_resource_handle;
+    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
-    DelegateHandler     m_on_gbuffer_resolution_changed_handle;
+    DelegateHandler                         m_on_gbuffer_resolution_changed_handle;
 };
 
 } // namespace hyperion

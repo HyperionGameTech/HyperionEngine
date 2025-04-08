@@ -440,6 +440,7 @@ public:
             RC<UIButton> add_entity_button = parent->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             add_entity_button->SetText("Add Entity");
 
+            #if 0
             add_entity_button->OnClick.Bind([world = Handle<World>(parent->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
             {
                 HYP_LOG(Editor, Debug, "Add Entity clicked");
@@ -481,6 +482,7 @@ public:
 
                 return UIEventHandlerResult::ERR;
             }).Detach();
+            #endif
 
             column->AddChildUIObject(add_entity_button);
 
@@ -613,6 +615,7 @@ public:
                 RC<UIGridColumn> components_grid_container_add_component_button_column = components_grid_container_header_row->AddColumn();
                 components_grid_container_add_component_button_column->SetColumnSize(6);
 
+                #if 0
                 RC<UIButton> add_component_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 add_component_button->SetText("Add Component");
                 add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
@@ -639,6 +642,7 @@ public:
                 }).Detach();
 
                 components_grid_container_add_component_button_column->AddChildUIObject(add_component_button);
+                #endif
             }
         }
 
@@ -646,6 +650,7 @@ public:
             RC<UIGridRow> components_grid_container_script_row = components_grid_container->AddRow();
             RC<UIGridColumn> components_grid_container_script_column = components_grid_container_script_row->AddColumn();
 
+            #if 0
             // @TODO: Rewrite this once working
             if (entity_manager->HasComponent<ScriptComponent>(entity)) {
                 RC<UIButton> edit_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
@@ -739,6 +744,7 @@ public:
 
                 components_grid_container_script_column->AddChildUIObject(attach_script_button);
             }
+            #endif
         }
 
         RC<UIGridRow> components_grid_container_content_row = components_grid_container->AddRow();

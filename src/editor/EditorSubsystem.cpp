@@ -520,7 +520,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
             }));
         }
 
-        m_camera = m_scene->GetCamera();
+        m_camera = m_scene->GetPrimaryCamera();
         AssertThrowMsg(InitObject(m_camera), "Failed to initialize editor camera for scene %s", *m_scene->GetName());
 
         // // @TODO: Don't serialize the editor camera controller
@@ -547,6 +547,13 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
         InitSceneOutline();
 
         m_manipulation_widget_holder.Initialize();
+
+        m_delegate_handlers.Remove("OnRootNodeChanged");
+        m_delegate_handlers.Add(NAME("OnRootNodeChanged"), m_scene->OnRootNodeChanged.Bind([this](const NodeProxy &new_root, const NodeProxy &prev_root)
+        {
+            // Reinitialize scene outline when the root node changes.
+            InitSceneOutline();
+        }));
 
         m_delegate_handlers.Add(NAME("OnGameStateChange"), GetWorld()->OnGameStateChange.Bind([this](World *world, GameStateMode game_state_mode)
         {
@@ -602,9 +609,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 
         if (prev_widget.GetManipulationMode() != EditorManipulationMode::NONE) {
             if (prev_widget.GetNode().IsValid() && prev_widget.GetNode()->GetScene() == m_scene.Get()) {
-                if (!prev_widget.GetNode()->Remove()) {
-                    HYP_LOG(Editor, Warning, "Failed to remove manipulation widget node from scene");
-                }
+                prev_widget.GetNode()->Remove();
             }
 
             prev_widget.UpdateWidget(NodeProxy::empty);
@@ -655,13 +660,13 @@ void EditorSubsystem::Initialize()
 
     NewProject();
 
-    /*auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject2");
+    // auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject612");
 
-    if (!result) {
-        HYP_BREAKPOINT;
-    }
+    // if (!result) {
+    //     HYP_BREAKPOINT;
+    // }
 
-    OpenProject(*result);*/
+    // OpenProject(*result);
 
     InitDetailView();
     InitDebugOverlays();
@@ -738,7 +743,6 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     RC<UIStage> loaded_ui = loaded_ui_asset->Result().Cast<UIStage>();
     AssertThrowMsg(loaded_ui != nullptr, "Failed to load editor UI");
 
-    loaded_ui->SetOwnerThreadID(ThreadID::Current());
     loaded_ui->SetDefaultFontAtlas(font_atlas);
 
     ui_subsystem->GetUIStage()->AddChildUIObject(loaded_ui);
@@ -843,7 +847,13 @@ void EditorSubsystem::InitViewport()
         RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
         AssertThrow(ui_image != nullptr);
 
-        const Vec2i viewport_size = MathUtil::Max(m_scene->GetCamera()->GetDimensions(), Vec2i::One());
+        Vec2i viewport_size = Vec2i { 1024, 1024 };
+
+        const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera();
+
+        if (primary_camera.IsValid()) {
+            viewport_size = MathUtil::Max(primary_camera->GetDimensions(), Vec2i::One());
+        }
 
         m_scene_texture.Reset();
 
@@ -1089,7 +1099,6 @@ void EditorSubsystem::InitSceneOutline()
     AssertThrow(list_view != nullptr);
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    
     list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<Weak<Node>> { }));
     
     m_delegate_handlers.Remove(&list_view->OnSelectedItemChange);
@@ -1142,7 +1151,6 @@ void EditorSubsystem::InitSceneOutline()
     }));
 
     m_editor_delegates->RemoveNodeWatchers("SceneView");
-
     m_editor_delegates->AddNodeWatcher(NAME("SceneView"), m_scene->GetRoot().Get(), { Node::Class()->GetProperty(NAME("Name")), 1 }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node *node, const HypProperty *property)
     {
        // Update name in list view
@@ -1308,8 +1316,6 @@ void EditorSubsystem::InitDetailView()
             return;
         }
 
-        HYP_LOG(Editor, Debug, "Focused node: {}", node->GetName());
-
         list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<EditorNodePropertyRef> { }));
 
         UIDataSourceBase *data_source = list_view->GetDataSource();
@@ -1346,8 +1352,6 @@ void EditorSubsystem::InitDetailView()
             if (const HypClassAttributeValue &attr = it.second->GetAttribute("description")) {
                 node_property_ref.description = attr.GetString();
             }
-
-            HYP_LOG(Editor, Debug, "Push property {} (title: {}) to data source", it.first, node_property_ref.title);
 
             data_source->Push(UUID(), HypData(std::move(node_property_ref)));
         }

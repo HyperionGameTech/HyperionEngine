@@ -77,7 +77,7 @@ class Scene;
 class HYP_API SystemExecutionGroup
 {
 public:
-    SystemExecutionGroup(bool requires_game_thread = false);
+    SystemExecutionGroup(bool requires_game_thread = false, bool allow_update = true);
     SystemExecutionGroup(const SystemExecutionGroup &)                  = delete;
     SystemExecutionGroup &operator=(const SystemExecutionGroup &)       = delete;
     SystemExecutionGroup(SystemExecutionGroup &&) noexcept              = default;
@@ -86,6 +86,9 @@ public:
 
     HYP_FORCE_INLINE bool RequiresGameThread() const
         { return m_requires_game_thread; }
+
+    HYP_FORCE_INLINE bool AllowUpdate() const
+        { return m_allow_update; }
 
     HYP_FORCE_INLINE TypeMap<UniquePtr<SystemBase>> &GetSystems()
         { return m_systems; }
@@ -113,6 +116,11 @@ public:
     bool IsValidForSystem(const SystemBase *system_ptr) const
     {
         AssertThrow(system_ptr != nullptr);
+
+        // If the system does not allow update calls, and we don't as well, return true as there will be no overlap.
+        if (!AllowUpdate()) {
+            return !system_ptr->AllowUpdate();
+        }
 
         // If the system requires to execute on game thread and the SystemExecutionGroup does not, it is not valid
         // and if the system does not require to execute on game thread and the SystemExecutionGroup does, it is not valid (it could be better parallelized)
@@ -217,6 +225,7 @@ public:
 
 private:
     bool                                    m_requires_game_thread;
+    bool                                    m_allow_update;
 
     TypeMap<UniquePtr<SystemBase>>          m_systems;
     UniquePtr<TaskBatch>                    m_task_batch;
@@ -266,8 +275,8 @@ private:
 
     EnumFlags<EntityManagerCommandQueueFlags>   m_flags;
     FixedArray<EntityManagerCommandBuffer, 2>   m_command_buffers;
-    AtomicVar<uint32>                             m_buffer_index { 0 };
-    AtomicVar<uint32>                             m_count { 0 };
+    AtomicVar<uint32>                           m_buffer_index { 0 };
+    AtomicVar<uint32>                           m_count { 0 };
     std::condition_variable                     m_condition_variable;
 };
 
@@ -336,6 +345,25 @@ public:
         it->second = new_entity_manager;
     }
 
+    void ForEachEntityManager(ProcRef<void(EntityManager *entity_manager)> proc) const
+    {
+        HashSet<RC<EntityManager>> entity_managers;
+
+        {
+            Mutex::Guard guard(m_mutex);
+
+            entity_managers.Reserve(m_map.Size());
+
+            for (auto &it : m_map) {
+                entity_managers.Insert(ToRefCountedPtr(it.second));
+            }
+        }
+
+        for (const RC<EntityManager> &entity_manager : entity_managers) {
+            proc(entity_manager.Get());
+        }
+    }
+
     HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id));
 
 private:
@@ -366,6 +394,12 @@ public:
     ~EntityManager();
 
     static EntityToEntityManagerMap &GetEntityToEntityManagerMap();
+
+    HYP_FORCE_INLINE EntityContainer &GetEntities()
+        { return m_entities; }
+
+    HYP_FORCE_INLINE const EntityContainer &GetEntities() const
+        { return m_entities; }
     
     template <class Component>
     static bool IsValidComponentType()
@@ -948,7 +982,10 @@ private:
         }
 
         if (!ptr) {
-            SystemExecutionGroup &system_execution_group = m_system_execution_groups.EmplaceBack(system_ptr->RequiresGameThread());
+            SystemExecutionGroup &system_execution_group = m_system_execution_groups.EmplaceBack(
+                system_ptr->RequiresGameThread(),
+                system_ptr->AllowUpdate()
+            );
             
             ptr = static_cast<SystemType *>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
         }

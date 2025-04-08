@@ -112,6 +112,8 @@ void MaterialRenderResource::Update_Internal()
     if (!use_bindless_textures) {
         Handle<Material> material_locked = m_material->HandleFromThis();
 
+        HYP_LOG(Material, Debug, "Updating material with ID #{} (name: {})", material_locked->GetID().Value(), *material_locked->GetName());
+
         for (const auto &it : m_textures) {
             const uint32 texture_index = uint32(Material::TextureSet::EnumToOrdinal(it.first));
 

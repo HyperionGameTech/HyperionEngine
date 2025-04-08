@@ -12,6 +12,7 @@ namespace Hyperion
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetObjectReferenceTypeDelegate(IntPtr objectReferencePtr, bool weak);
+    public delegate void TriggerGCDelegate();
 
     internal enum LoadAssemblyResult : int
     {
@@ -41,6 +42,9 @@ namespace Hyperion
         public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
             Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPathStringPtr);
+
+            // AppDomain currentDomain = AppDomain.CurrentDomain;
+            // currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
             try
             {
@@ -91,6 +95,7 @@ namespace Hyperion
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
                 NativeInterop_SetSetObjectReferenceTypeFunction(Marshal.GetFunctionPointerForDelegate<SetObjectReferenceTypeDelegate>(SetObjectReferenceType));
+                NativeInterop_SetTriggerGCFunction(Marshal.GetFunctionPointerForDelegate<TriggerGCDelegate>(TriggerGC));
 
                 Type[] types = assembly.GetExportedTypes();
 
@@ -177,13 +182,15 @@ namespace Hyperion
             for (int i = 0; i < attributes.Length; i++)
             {
                 object attribute = attributes[i];
+                Assert.Throw(attribute != null);
+
                 Type attributeType = attribute.GetType();
 
                 IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType);
 
                 // add the attribute to the object cache
                 Guid attributeGuid = Guid.NewGuid();
-                ObjectReference attributeObjectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, attributeGuid, attribute, false, null);
+                ObjectReference attributeObjectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, attributeGuid, attribute, keepAlive: false, gcHandle: null);
 
                 ref ManagedAttribute managedAttribute = ref Unsafe.AsRef<ManagedAttribute>((void*)(managedAttributeHolder.managedAttributesPtr + (i * Marshal.SizeOf<ManagedAttribute>())));
                 managedAttribute.classObjectPtr = attributeManagedClassObjectPtr;
@@ -426,6 +433,7 @@ namespace Hyperion
             {
                 // Allocate the object
                 object obj = RuntimeHelpers.GetUninitializedObject(type);
+                Assert.Throw(obj != null);
 
                 // Call the constructor
                 ConstructorInfo? constructorInfo;
@@ -476,7 +484,9 @@ namespace Hyperion
 
                 Guid objectGuid = Guid.NewGuid();
                 
-                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive, gcHandle);
+                ObjectReference result = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive, gcHandle);
+
+                return result;
             }));
 
             managedClass.SetFreeObjectFunction(assemblyGuid, new FreeObjectDelegate(FreeObject));
@@ -491,6 +501,7 @@ namespace Hyperion
 
                 // Marshal object from pointer
                 object obj = Marshal.PtrToStructure(ptr, type);
+                Assert.Throw(obj != null, "Failed to marshal object from pointer");
 
                 Guid objectGuid = Guid.NewGuid();
 
@@ -562,11 +573,6 @@ namespace Hyperion
             propertyInfo.SetValue((object)thisObject, value);
         }
 
-        /// <summary>
-        /// Adds a managed object to the managed object cache. The object is not kept alive,
-        /// as it is intended for objects that are already handled by the .NET runtime,
-        /// with no dotnet::Object instance in C++.
-        /// </summary>
         public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak)
         {
             ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
@@ -613,16 +619,22 @@ namespace Hyperion
 
         public static unsafe bool SetObjectReferenceType(IntPtr objectReferencePtr, bool weak)
         {
-            // debugging; temp
-            Console.WriteLine("SetObjectReferenceType (" + objectReferencePtr + ", " + weak + ")");
             ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
 
             if (weak)
-            {
                 return ManagedObjectCache.Instance.MakeWeakReference(objectReference.guid);
-            }
 
             return ManagedObjectCache.Instance.MakeStrongReference(objectReference.guid);
+        }
+
+        public static unsafe void TriggerGC()
+        {
+            GC.Collect();
+        }
+
+        public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Logger.Log(LogType.Error, "Unhandled exception: {0}", ((Exception)e.ExceptionObject).Message);
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
@@ -650,5 +662,8 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetSetObjectReferenceTypeFunction")]
         private static extern void NativeInterop_SetSetObjectReferenceTypeFunction(IntPtr setObjectReferenceTypePtr);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetTriggerGCFunction")]
+        private static extern void NativeInterop_SetTriggerGCFunction(IntPtr setTriggerGCFunctionPtr);
     }
 }

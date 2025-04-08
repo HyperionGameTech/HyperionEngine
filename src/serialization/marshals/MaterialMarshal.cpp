@@ -64,8 +64,6 @@ public:
 
         FixedArray<uint32, Material::max_textures> texture_keys = { 0 };
 
-        // temp commented out
-
         // for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
         //     if (texture_index >= texture_keys.Size()) {
         //         break;
@@ -170,6 +168,7 @@ public:
         );
 
         for (const FBOMObject &child : in.GetChildren()) {
+            HYP_LOG(Serialization, Debug, "Material : Child TypeID: {}, TypeName: {}", child.GetType().GetNativeTypeID().Value(), child.GetType().name);
             if (child.GetType().IsOrExtends("Texture")) {
                 if (texture_index < texture_keys.Size()) {
                     if (Optional<const Handle<Texture> &> texture_opt = child.m_deserialized_object->TryGet<Handle<Texture>>()) {

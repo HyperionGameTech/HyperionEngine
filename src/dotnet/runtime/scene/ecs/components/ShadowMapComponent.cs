@@ -30,6 +30,11 @@ namespace Hyperion
         {
         }
 
+        public void Dispose()
+        {
+            // renderer.Dispose();
+        }
+
         public ShadowMapFilter Filter
         {
             get

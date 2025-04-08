@@ -750,6 +750,10 @@ RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     bool *out_size_changed
 )
 {
+    if (minimum_size == 0) {
+        HYPERION_RETURN_OK;
+    }
+
     RendererResult result;
 
     if (minimum_size <= m_platform_impl.size) {

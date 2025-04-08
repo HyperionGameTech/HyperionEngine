@@ -352,7 +352,7 @@ void DeferredPass::Record(uint32 frame_index)
     static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
 
@@ -429,7 +429,7 @@ void DeferredPass::Record(uint32 frame_index)
                             render_group->GetPipeline(),
                             {
                                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resource) },
                                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
@@ -620,7 +620,7 @@ void EnvGridPass::Render(Frame *frame)
     AssertThrow(env_grid != nullptr);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
 
@@ -667,7 +667,7 @@ void EnvGridPass::Render(Frame *frame)
             render_group->GetPipeline(),
             {
                 { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetComponentIndex()) }
             },
             scene_descriptor_set_index
@@ -888,7 +888,7 @@ void ReflectionsPass::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     if (ShouldRenderSSR()) { // screen space reflection
         m_ssr_renderer->Render(frame);
@@ -953,9 +953,9 @@ void ReflectionsPass::Render(Frame *frame)
             const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
             const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
     
-            m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
+            render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
         } else {
-            m_render_group->GetPipeline()->Bind(command_buffer);
+            render_group->GetPipeline()->Bind(command_buffer);
         }
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
@@ -982,7 +982,7 @@ void ReflectionsPass::Render(Frame *frame)
                     render_group->GetPipeline(),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                         { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) }
                     },
                     scene_descriptor_set_index
@@ -1233,7 +1233,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
@@ -1446,7 +1446,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                     NAME("Scene"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                         { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
                         { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
                     }
@@ -1515,9 +1515,9 @@ void DeferredRenderer::ApplyCameraJitter()
 
     static const float jitter_scale = 0.25f;
 
-    const CameraRenderResource &active_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
-    const uint32 camera_buffer_index = active_camera.GetBufferIndex();
+    const uint32 camera_buffer_index = camera_resource_handle->GetBufferIndex();
     AssertThrow(camera_buffer_index != ~0u);
 
     Vec4f jitter = Vec4f::Zero();
@@ -1598,13 +1598,10 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
     HYP_SCOPE;
 
-    WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
+    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
 
-    const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
-
-    for (uint32 index = 0; index < num_render_collectors; index++) {
-        render_collector_container.GetRenderCollectorAtIndex(index)->CollectDrawCalls(
+    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
+        scene_resource_handle->GetScene()->GetRenderCollector().CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
             &m_cull_data
@@ -1617,16 +1614,12 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
     HYP_SCOPE;
 
     const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
-    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
-
-    const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
-
-    for (uint32 index = 0; index < num_render_collectors; index++) {
-        render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
+    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
+        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            camera_render_resource,
+            camera_resource_handle,
             nullptr,
             Bitset((1 << BUCKET_SKYBOX)),
             &m_cull_data
@@ -1639,16 +1632,12 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
     HYP_SCOPE;
 
     const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
-    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
-
-    const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
-
-    for (uint32 index = 0; index < num_render_collectors; index++) {
-        render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
+    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
+        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            camera_render_resource,
+            camera_resource_handle,
             nullptr,
             Bitset((1 << BUCKET_OPAQUE)),
             &m_cull_data
@@ -1661,16 +1650,12 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
     HYP_SCOPE;
 
     const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const CameraRenderResource &camera_render_resource = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
-    const RenderCollectorContainer &render_collector_container = world_render_resource.GetRenderCollectorContainer();
-
-    const uint32 num_render_collectors = render_collector_container.NumRenderCollectors();
-
-    for (uint32 index = 0; index < num_render_collectors; index++) {
-        render_collector_container.GetRenderCollectorAtIndex(index)->ExecuteDrawCalls(
+    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
+        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            camera_render_resource,
+            camera_resource_handle,
             nullptr,
             Bitset((1 << BUCKET_TRANSLUCENT)),
             &m_cull_data

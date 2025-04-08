@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace Hyperion
@@ -14,62 +15,69 @@ namespace Hyperion
         public GCHandle gcHandle;
         public GCHandle? gcHandleStrong;
 
-        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive, GCHandle? gcHandle)
+        public StoredManagedObject(Guid objectGuid, Guid assemblyGuid, object obj, bool keepAlive, GCHandle? gcHandleStrong)
         {
+            // if (obj == null)
+            // {
+            //     throw new ArgumentNullException(nameof(obj), "Object cannot be null");
+            // }
+
             this.guid = objectGuid;
             this.assemblyGuid = assemblyGuid;
 
-            if (gcHandle != null)
-            {
-                this.gcHandle = (GCHandle)gcHandle;
-            }
-            else
-            {
-                // Create initial weak handle
-                this.gcHandle = GCHandle.Alloc(obj, GCHandleType.Weak);
-            }
+            // Create initial weak handle
+            this.gcHandle = GCHandle.Alloc(obj, GCHandleType.Weak);
 
+            // Create initial weak handle
             this.weakReference = new WeakReference(obj);
 
             // If keepAlive is true, create a strong handle that can be used
             // to ensure the managed object exists as long as the unmanged object does.
-            if (keepAlive)
+            if (gcHandleStrong != null)
             {
-                gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+                this.gcHandleStrong = (GCHandle)gcHandleStrong;
+            }
+            else if (keepAlive)
+            {
+                this.gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
             }
         }
 
         public void Dispose()
         {
-            Console.WriteLine("Disposing object \"" + guid + "\" (type: " + weakReference.Target?.GetType().Name + ")");
-
             gcHandle.Free();
 
             gcHandleStrong?.Free();
             gcHandleStrong = null;
         }
 
-        public void MakeStrongReference()
+        public bool MakeStrongReference()
         {
             if (gcHandleStrong != null)
             {
-                return;
+                return true;
             }
 
             object? obj = weakReference.Target;
 
             if (obj == null)
             {
-                throw new Exception("Failed to create strong reference, weak reference target returned null!");
+                // throw new Exception("Failed to create strong reference, weak reference target returned null!");
+
+                return false;
             }
 
             gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
+
+            return true;
         }
 
-        public void MakeWeakReference()
+        public bool MakeWeakReference()
         {
             gcHandleStrong?.Free();
             gcHandleStrong = null;
+
+            return true;
         }
 
         public object? Value
@@ -139,12 +147,14 @@ namespace Hyperion
             {
                 if (objects.ContainsKey(guid))
                 {
-                    if (objects[guid].Value == null)
+                    object? value = objects[guid].Value;
+
+                    if (value == null)
                     {
                         throw new Exception("Failed to get object, weak reference target with guid \"" + guid + "\" returned null!");
                     }
 
-                    return objects[guid].Value;
+                    return value;
                 }
             }
 
@@ -171,30 +181,47 @@ namespace Hyperion
         {
             lock (lockObject)
             {
-                if (objects.ContainsKey(guid))
+                StoredManagedObject stored;
+
+                if (!objects.TryGetValue(guid, out stored))
                 {
-                    objects[guid].MakeStrongReference();
-                    
-                    return true;
+                    throw new Exception("Failed to make strong reference for guid \"" + guid + "\", not found in cache!");
                 }
+
+                bool result = objects[guid].MakeStrongReference();
+
+                // Update the stored object in the cache
+                objects[guid] = stored;
+
+                if (!result)
+                {
+                    Logger.Log(LogType.Warn, "Failed to make strong reference for guid \"" + guid + "\", weak reference target returned null!");
+                }
+
+                return result;
             }
-            
-            return false;
         }
 
         public bool MakeWeakReference(Guid guid)
         {
+            StoredManagedObject stored;
             lock (lockObject)
             {
-                if (objects.ContainsKey(guid))
+                if (!objects.TryGetValue(guid, out stored))
                 {
-                    objects[guid].MakeWeakReference();
-                    
-                    return true;
+                    throw new Exception("Failed to make weak reference for guid \"" + guid + "\", not found in cache!");
                 }
             }
+
+            // NOTE: modify outside of the lock to prevent deadlocks
+            bool result = stored.MakeWeakReference();
+
+            lock (lockObject)
+            {
+                objects[guid] = stored;
+            }
             
-            return false;
+            return result;
         }
 
         public int RemoveForAssembly(Guid assemblyGuid)

@@ -689,7 +689,7 @@ AssetLoadResult UILoader::LoadAsset(LoaderState &state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", sax_result.message);
     }
 
-    return LoadedAsset { ui_stage };
+    return LoadedAsset { std::move(ui_stage) };
 }
 
 } // namespace hyperion

@@ -353,7 +353,7 @@ public:
 
     /*! \brief Remove this node from the parent Node's list of child Nodes. */
     HYP_METHOD()
-    bool Remove();
+    void Remove();
 
     HYP_METHOD()
     void RemoveAllChildren();

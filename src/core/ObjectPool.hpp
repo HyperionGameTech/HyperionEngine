@@ -54,9 +54,9 @@ public:
     virtual void DecRefWeak(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountStrong(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountWeak(HypObjectHeader *) = 0;
-    virtual HypObjectBase *Release(HypObjectHeader *) = 0;
+    virtual void *Release(HypObjectHeader *) = 0;
 
-    virtual HypObjectBase *GetObject(HypObjectHeader *) = 0;
+    virtual void *GetObjectPointer(HypObjectHeader *) = 0;
     virtual HypObjectHeader *GetObjectHeader(uint32 index) = 0;
     virtual HypObjectHeader *GetDefaultObjectHeader() = 0;
     virtual uint32 GetObjectIndex(const HypObjectHeader *ptr) = 0;
@@ -120,7 +120,7 @@ struct HypObjectHeader
     HYP_FORCE_INLINE void DecRefWeak()
         { container->DecRefWeak(this); }
 
-    HYP_FORCE_INLINE HypObjectBase *Release()
+    HYP_FORCE_INLINE void *Release()
         { return container->Release(this); }
 };
 
@@ -353,12 +353,12 @@ public:
         return static_cast<HypObjectMemory *>(ptr)->GetRefCountWeak();
     }
 
-    virtual HypObjectBase *Release(HypObjectHeader *ptr) override
+    virtual void *Release(HypObjectHeader *ptr) override
     {
         return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::Release();
     }
 
-    virtual HypObjectBase *GetObject(HypObjectHeader *ptr) override
+    virtual void *GetObjectPointer(HypObjectHeader *ptr) override
     {
         if (!ptr) {
             return nullptr;

@@ -29,12 +29,15 @@ namespace Hyperion
                 throw new Exception("Component size mismatch: " + componentHypClass.Size + " != " + Marshal.SizeOf(component));
             }
 
-            IntPtr componentPtr = Marshal.AllocHGlobal(Marshal.SizeOf(component));
-            Marshal.StructureToPtr(component, componentPtr, false);
+            AddComponent<T>(entity, componentHypClass, ref component);
+        }
 
-            EntityManager_AddComponent(NativeAddress, entity.ID, componentHypClass.TypeID, componentPtr);
-
-            Marshal.FreeHGlobal(componentPtr);
+        private unsafe void AddComponent<T>(Entity entity, HypClass componentHypClass, ref T component)
+        {
+            fixed (void* ptr = &component)
+            {
+                EntityManager_AddComponent(NativeAddress, entity.ID, componentHypClass.TypeID, new IntPtr(ptr));
+            }
         }
 
         public ref T GetComponent<T>(Entity entity) where T : struct, IComponent

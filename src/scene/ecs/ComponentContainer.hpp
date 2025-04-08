@@ -318,7 +318,9 @@ public:
         auto it = m_components.Find(id);
 
         if (it != m_components.End()) {
-            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(it->second)).first;
+            Component &component = it->second;
+            
+            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(component)).first;
 
             m_components.Erase(it);
 

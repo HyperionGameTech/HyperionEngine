@@ -267,6 +267,11 @@ namespace Hyperion
         {
         }
 
+        ~UIObject()
+        {
+            Console.WriteLine(string.Format("UIObject Destructor called: {0}", HypClass.Name));
+        }
+
         public T Spawn<T>() where T : UIObject
         {
             return Spawn<T>(Name.Invalid);

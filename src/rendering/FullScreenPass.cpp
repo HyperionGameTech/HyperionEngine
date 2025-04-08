@@ -531,8 +531,8 @@ void FullScreenPass::Record(uint32 frame_index)
     Threads::AssertOnThread(g_render_thread);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
@@ -559,9 +559,9 @@ void FullScreenPass::Record(uint32 frame_index)
                 NAME("Scene"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource, 0) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
         }
@@ -580,7 +580,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     AssertThrow(m_render_texture_to_screen_pass != nullptr);
 
@@ -609,7 +609,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
                         NAME("Scene"),
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource, 0) }
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) }
                         }
                     }
                 }
@@ -653,9 +653,6 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
     Threads::AssertOnThread(g_render_thread);
 
     const uint32 frame_index = frame->GetFrameIndex();
-
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const CameraRenderResource *camera_render_resource = &g_engine->GetRenderState()->GetActiveCamera();
 
     AssertThrow(m_merge_half_res_textures_pass != nullptr);
 

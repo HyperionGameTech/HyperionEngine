@@ -150,8 +150,6 @@ void EnvProbe::Init()
     }));
 
     if (!IsControlledByEnvGrid()) {
-        AssertThrow(m_parent_scene.IsValid());
-
         m_camera = CreateObject<Camera>(
             90.0f,
             -int(m_dimensions.x), int(m_dimensions.y),
@@ -164,7 +162,14 @@ void EnvProbe::Init()
         InitObject(m_camera);
     }
 
+    AssertThrow(m_parent_scene.IsValid());
+
     m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
+
+    if (m_camera.IsValid()) {
+        m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
+    }
 
     EnvProbeShaderData buffer_data { };
     buffer_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
@@ -246,7 +251,9 @@ void EnvProbe::EnqueueBind() const
 
 void EnvProbe::EnqueueUnbind() const
 {
-    AssertReady();
+    if (!IsReady()) {
+        return;
+    }
 
     if (!IsControlledByEnvGrid()) {
         PUSH_RENDER_COMMAND(UnbindEnvProbe, GetEnvProbeType(), WeakHandleFromThis());
@@ -289,14 +296,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             collection_result = m_parent_scene->CollectStaticEntities(
                 m_render_resource->GetRenderCollector(),
                 m_camera,
-                RenderableAttributeSet(
-                    MeshAttributes { },
-                    MaterialAttributes {
-                        .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                        .blend_function     = BlendFunction::AlphaBlending(),
-                        .cull_faces         = FaceCullMode::NONE
-                    }
-                ),
                 true // skip frustum culling
             );
         } else {
@@ -306,14 +305,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
             collection_result = m_parent_scene->CollectEntities(
                 m_render_resource->GetRenderCollector(),
                 m_camera,
-                RenderableAttributeSet(
-                    MeshAttributes { },
-                    MaterialAttributes {
-                        .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                        .blend_function     = BlendFunction::AlphaBlending(),
-                        .cull_faces         = FaceCullMode::NONE
-                    }
-                ),
                 true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
             );
         }

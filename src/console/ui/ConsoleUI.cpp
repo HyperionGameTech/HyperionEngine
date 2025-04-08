@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <console/ui/ConsoleUI.hpp>
+#include <console/ConsoleCommandManager.hpp>
 
 #include <ui/UIDataSource.hpp>
 #include <ui/UITextbox.hpp>
@@ -13,13 +14,23 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
+HYP_DECLARE_LOG_CHANNEL(Console);
 
 #pragma region ConsoleHistory
 
+enum class ConsoleHistoryEntryType : uint32
+{
+    NONE,
+    TEXT,
+    COMMAND,
+    ERROR
+};
+
 struct ConsoleHistoryEntry
 {
-    UUID    uuid;
-    String  text;
+    UUID                    uuid;
+    ConsoleHistoryEntryType type = ConsoleHistoryEntryType::NONE;
+    String                  text;
 };
 
 class ConsoleHistory
@@ -39,7 +50,7 @@ public:
     HYP_FORCE_INLINE const RC<UIDataSource> &GetDataSource() const
         { return m_data_source; }
 
-    void AddEntry(const String &text)
+    void AddEntry(const String &text, ConsoleHistoryEntryType entry_type)
     {
         if (m_entries.Any() && int(m_entries.Size() + 1) > m_max_history_size) {
             ConsoleHistoryEntry *entry = &m_entries.Front();
@@ -52,9 +63,8 @@ public:
         }
         
         ConsoleHistoryEntry entry;
+        entry.type = entry_type;
         entry.text = text;
-
-        HYP_LOG(UI, Info, "ConsoleHistory : Adding entry: {}", entry.text);
 
         if (m_data_source) {
             m_data_source->Push(entry.uuid, HypData(entry), UUID::Invalid());
@@ -83,7 +93,8 @@ private:
 #pragma region ConsoleUI
 
 ConsoleUI::ConsoleUI()
-    : UIObject(UIObjectType::OBJECT)
+    : UIObject(UIObjectType::OBJECT),
+      m_logger_redirect_id(-1)
 {
     SetBorderRadius(0);
     SetBorderFlags(UIObjectBorderFlags::ALL);
@@ -93,6 +104,34 @@ ConsoleUI::ConsoleUI()
     SetTextSize(12.0f);
     SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
+
+    m_logger_redirect_id = Logger::GetInstance().GetOutputStream()->AddRedirect(
+        Log_Console.GetMaskBitset(),
+        (void *)this,
+        [](void *context, const LogChannel &channel, const LogMessage &message)
+        {
+            ConsoleUI *console_ui = (ConsoleUI *)context;
+
+            if (console_ui->m_history) {
+                console_ui->m_history->AddEntry(message.message, ConsoleHistoryEntryType::TEXT);
+            }
+        },
+        [](void *context, const LogChannel &channel, const LogMessage &message)
+        {
+            ConsoleUI *console_ui = (ConsoleUI *)context;
+
+            if (console_ui->m_history) {
+                console_ui->m_history->AddEntry(message.message, ConsoleHistoryEntryType::ERROR);
+            }
+        }
+    );
+}
+
+ConsoleUI::~ConsoleUI()
+{
+    if (m_logger_redirect_id != -1) {
+        Logger::GetInstance().GetOutputStream()->RemoveRedirect(m_logger_redirect_id);
+    }
 }
 
 void ConsoleUI::Init()
@@ -120,9 +159,23 @@ void ConsoleUI::Init()
         {
             RC<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             text->SetText(value.text);
-            text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
             text->SetTextSize(12.0f);
-
+            
+            switch (value.type) {
+            case ConsoleHistoryEntryType::COMMAND:
+                text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
+                break;
+            case ConsoleHistoryEntryType::TEXT:
+                text->SetTextColor(Vec4f { 0.9f, 0.9f, 0.9f, 1.0f });
+                break;
+            case ConsoleHistoryEntryType::ERROR:
+                text->SetTextColor(Vec4f { 1.0f, 0.0f, 0.0f, 1.0f });
+                break;
+            default:
+                text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
+                break;
+            }
+            
             return text;
         },
         [](UIObject *ui_object, ConsoleHistoryEntry &value, AnyRef context) -> void
@@ -138,6 +191,17 @@ void ConsoleUI::Init()
     history_list_view->SetBackgroundColor(Vec4f { 0.0f, 0.0f, 0.0f, 0.0f });
     history_list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     history_list_view->SetDataSource(data_source);
+
+    history_list_view->OnChildAttached.Bind([this](UIObject *child) -> UIEventHandlerResult
+    {
+        // m_history_list_view->SetScrollOffset(Vec2i {
+        //     m_history_list_view->GetScrollOffset().x,
+        //     m_history_list_view->GetActualInnerSize().y - m_history_list_view->GetActualSize().y
+        // }, /* smooth */ false);
+
+        return UIEventHandlerResult::STOP_BUBBLING;
+    }).Detach();
+    
     AddChildUIObject(history_list_view);
 
     m_history_list_view = history_list_view;
@@ -171,13 +235,20 @@ void ConsoleUI::Init()
                 if (text.ToLower() == "clear") {
                     m_history->ClearHistory();
                 } else {
-                    m_history->AddEntry(text);
+                    m_history->AddEntry(text, ConsoleHistoryEntryType::COMMAND);
+                }
+
+                if (Result result = ConsoleCommandManager::GetInstance().ExecuteCommand(text); result.HasError()) {
+                    HYP_LOG(Console, Error, "Error executing command: {}", result.GetError().GetMessage());
+                } else {
+                    HYP_LOG(Console, Info, "Executed command: {}", text);
                 }
 
                 m_current_command_text.Clear();
                 m_textbox->SetText("");
             }
         } else if (event_data.key_code == KeyCode::ARROW_UP) {
+            // @TODO Only cycle through COMMAND items..
             if (m_history_list_view && m_history_list_view->GetListViewItems().Any()) {
                 const int selected_item_index = m_history_list_view->GetSelectedItemIndex() - 1;
 
@@ -209,6 +280,10 @@ void ConsoleUI::Init()
 
         return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
+
+    for (int i = 0; i < 10; i++) {
+        HYP_LOG(Console, Info, "Console initialized {}", i);
+    }
 }
 
 void ConsoleUI::UpdateSize_Internal(bool update_children)

@@ -144,8 +144,6 @@ public:
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        AssertThrow(m_managed_object == nullptr);
-
         m_managed_object = managed_object;
     }
 

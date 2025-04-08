@@ -107,7 +107,7 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-    //return;
+    // return;
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(
@@ -254,7 +254,7 @@ void HyperionEditor::Init()
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
-    //batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    // batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     //batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     // batch->Add("house", "models/house.obj");
@@ -274,7 +274,7 @@ void HyperionEditor::Init()
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
-        //node.Scale(3.0f);
+        // node.Scale(3.0f);
         node->Scale(0.03f);
         node.SetName("test_model");
         node.LockTransform();
@@ -286,7 +286,7 @@ void HyperionEditor::Init()
 
         GetScene()->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
         Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
@@ -316,7 +316,7 @@ void HyperionEditor::Init()
             }
         }
 
-        if (true) {
+        if (false) {
             // testing reflection capture
             Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
 

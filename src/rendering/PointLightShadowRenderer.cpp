@@ -42,6 +42,7 @@ PointLightShadowRenderer::~PointLightShadowRenderer() = default;
 void PointLightShadowRenderer::Init()
 {
     AssertThrow(m_parent_scene.IsValid());
+    AssertThrow(m_parent_scene->IsReady());
 
     if (!InitObject(m_light)) {
         HYP_LOG(Shadows, Warning, "Point shadow renderer attached to invalid Light");
@@ -64,10 +65,7 @@ void PointLightShadowRenderer::Init()
     m_env_probe->EnqueueBind();
     m_last_visibility_state = true;
 
-    AssertThrow(m_parent_scene->GetCamera().IsValid());
-    AssertThrow(m_parent_scene->GetCamera()->IsReady());
-
-    m_camera_resource_handle = ResourceHandle(m_parent_scene->GetCamera()->GetRenderResource());
+    m_scene_resource_handle = TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource());
 }
 
 // called from game thread
@@ -118,15 +116,17 @@ void PointLightShadowRenderer::OnRender(Frame *frame)
         return;
     }
 
-    if (!m_camera_resource_handle) {
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = m_scene_resource_handle->GetCameraRenderResourceHandle();
+
+    if (!camera_render_resource_handle) {
         return;
     }
-   
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
+
+    const ID<Camera> camera_id = camera_render_resource_handle->GetCamera()->GetID();
 
     LightRenderResource &light_render_resource = m_light->GetRenderResource();
 
-    if (light_render_resource.GetVisibilityBits().Test(camera_render_resource.GetCamera()->GetID().ToIndex())) {
+    if (light_render_resource.GetVisibilityBits().Test(camera_id.ToIndex())) {
         if (!m_last_visibility_state) {
             g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(m_env_probe->GetRenderResource()));
 

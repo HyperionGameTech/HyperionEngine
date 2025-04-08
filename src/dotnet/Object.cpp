@@ -10,14 +10,16 @@ namespace hyperion::dotnet {
 Object::Object()
     : m_class_ptr(nullptr),
       m_object_reference { ManagedGuid { 0, 0 }, nullptr },
-      m_object_flags(ObjectFlags::NONE)
+      m_object_flags(ObjectFlags::NONE),
+      m_keep_alive(false)
 {
 }
 
 Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, EnumFlags<ObjectFlags> object_flags)
     : m_class_ptr(class_ptr),
       m_object_reference(object_reference),
-      m_object_flags(object_flags)
+      m_object_flags(object_flags),
+      m_keep_alive(false)
 {
     if (class_ptr != nullptr) {
 #ifdef HYP_DOTNET_OBJECT_KEEP_ASSEMBLY_ALIVE
@@ -29,36 +31,14 @@ Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, Enu
 
     if (m_object_reference.guid.IsValid()) {
         AssertThrowMsg(m_class_ptr != nullptr, "Class pointer not set!");
+
+        if (!(m_object_flags & ObjectFlags::CREATED_FROM_MANAGED)) {
+            // set keep_alive to true if reference is valid so we can clean up on destructor.
+            // If we call this constructor the managed object should be alive anyway (See NativeInterop.cs)
+            m_keep_alive.Set(true, MemoryOrder::RELEASE);
+        }
     }
 }
-
-// Object::Object(Object &&other) noexcept
-//     : m_class_ptr(std::move(other.m_class_ptr)),
-//       m_assembly(std::move(other.m_assembly)),
-//       m_object_reference(other.m_object_reference),
-//       m_object_flags(other.m_object_flags)
-// {
-//     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
-//     other.m_object_flags = ObjectFlags::NONE;
-// }
-
-// Object &Object::operator=(Object &&other) noexcept
-// {
-//     if (this == &other) {
-//         return *this;
-//     }
-
-//     Reset();
-
-//     m_class_ptr = std::move(other.m_class_ptr);
-//     m_object_reference = other.m_object_reference;
-//     m_object_flags = other.m_object_flags;
-
-//     other.m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
-//     other.m_object_flags = ObjectFlags::NONE;
-
-//     return *this;
-// }
 
 Object::~Object()
 {
@@ -67,14 +47,17 @@ Object::~Object()
 
 void Object::Reset()
 {
-    if (IsValid()) {
-        AssertThrowMsg(!(m_object_flags & ObjectFlags::KEEP_ALIVE), "Object is being destroyed while KEEP_ALIVE flag is set!");
+    HYP_MT_CHECK_RW(m_data_race_detector);
+
+    if (IsValid() && m_keep_alive.Get(MemoryOrder::ACQUIRE)) {
+        AssertThrowMsg(SetKeepAlive(false), "Failed to set keep alive to false!");
     }
 
     m_class_ptr.Reset();
     m_assembly.Reset();
     m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
     m_object_flags = ObjectFlags::NONE;
+    m_keep_alive.Set(false, MemoryOrder::RELEASE);
 }
 
 void Object::InvokeMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
@@ -122,19 +105,23 @@ const Property *Object::GetProperty(UTF8StringView property_name) const
     return &it->second;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 bool Object::SetKeepAlive(bool keep_alive)
 {
-    AssertThrow(bool(m_object_flags & ObjectFlags::KEEP_ALIVE) != keep_alive);
+    if (!IsValid()) {
+        return false;
+    }
 
-    AssertThrow(DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive));
+    if (m_keep_alive.Get(MemoryOrder::ACQUIRE) == keep_alive) {
+        return true;
+    }
 
-    m_object_flags[ObjectFlags::KEEP_ALIVE] = keep_alive;
+    if (DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive)) {
+        m_keep_alive.Set(keep_alive, MemoryOrder::RELEASE);
 
-    return true;
+        return true;
+    }
+
+    return false;
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion::dotnet

@@ -45,6 +45,12 @@ struct ShaderDataOffset
     {
     }
 
+    template <class RenderResourceType, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<RenderResourceType>> && !std::is_integral_v<NormalizedType<RenderResourceType>>>>
+    ShaderDataOffset(const RenderResourceType &render_resource)
+        : index(render_resource.GetBufferIndex())
+    {
+    }
+
     HYP_FORCE_INLINE operator uint32() const
     {
         AssertDebugMsg(index != invalid_index, "Index was ~0u when converting to uint32");

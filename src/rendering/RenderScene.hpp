@@ -15,6 +15,7 @@ namespace hyperion {
 
 class Scene;
 class RenderEnvironment;
+class CameraRenderResource;
 
 struct SceneShaderData
 {
@@ -43,6 +44,11 @@ public:
     HYP_FORCE_INLINE Scene *GetScene() const
         { return m_scene; }
 
+    HYP_FORCE_INLINE const TResourceHandle<CameraRenderResource> &GetCameraRenderResourceHandle() const
+        { return m_camera_render_resource_handle; }
+
+    void SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource> &camera_render_resource_handle);
+
     void SetBufferData(const SceneShaderData &buffer_data);
 
     /*! \note Only to be called from render thread or render task */
@@ -59,8 +65,11 @@ protected:
 private:
     void UpdateBufferData();
 
-    Scene           *m_scene;
-    SceneShaderData m_buffer_data;
+    Scene                                   *m_scene;
+
+    TResourceHandle<CameraRenderResource>   m_camera_render_resource_handle;
+
+    SceneShaderData                         m_buffer_data;
 };
 
 template <>

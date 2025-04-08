@@ -50,7 +50,6 @@ private:
     {
         Handle<Scene> scene = CreateObject<Scene>(
             world,
-            Handle<Camera>::empty,
             thread_id,
             SceneFlags::DETACHED
         );
@@ -137,8 +136,11 @@ public:
     HYP_METHOD()
     void StopSimulating();
 
+    HYP_METHOD()
     void AddScene(const Handle<Scene> &scene);
-    bool RemoveScene(const WeakHandle<Scene> &scene);
+
+    HYP_METHOD()
+    bool RemoveScene(const Handle<Scene> &scene);
 
     /*! \brief Get the number of Scenes in the World. Must be called on the game thread.
      *  \return The number of Scenes in the World. */

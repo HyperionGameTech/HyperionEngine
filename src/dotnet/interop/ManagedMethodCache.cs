@@ -67,6 +67,9 @@ namespace Hyperion
 
         public int RemoveForAssembly(Guid assemblyGuid)
         {
+            Console.WriteLine("Removing methods for assembly: " + assemblyGuid);
+            Console.Out.Flush();
+
             List<Guid> keysToRemove = new List<Guid>();
             int numKeysToRemove = 0;
 

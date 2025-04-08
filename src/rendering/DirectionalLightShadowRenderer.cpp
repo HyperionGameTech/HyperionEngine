@@ -191,7 +191,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
 ShadowPass::ShadowPass(
     const Handle<Scene> &parent_scene,
-    const ResourceHandle &camera_resource_handle,
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const ShaderRef &shader,
     ShadowMode shadow_mode,
     Vec2u extent, 
@@ -364,6 +364,17 @@ void ShadowPass::Create()
     CreateCombineShadowMapsPass();
     CreateComputePipelines();
     CreateCommandBuffers();
+
+    const RenderableAttributeSet override_attributes(
+        MeshAttributes { },
+        MaterialAttributes {
+            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = m_shadow_mode == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+        }
+    );
+
+    m_render_collector_statics->SetOverrideAttributes(override_attributes);
+    m_render_collector_dynamics->SetOverrideAttributes(override_attributes);
 }
 
 void ShadowPass::Render(Frame *frame)
@@ -373,8 +384,6 @@ void ShadowPass::Render(Frame *frame)
     if (!m_camera_resource_handle) {
         return;
     }
-
-    CameraRenderResource &camera_render_resource = static_cast<CameraRenderResource &>(*m_camera_resource_handle);
 
     const ImageRef &framebuffer_image = GetFramebuffer()->GetAttachment(0)->GetImage();
 
@@ -400,7 +409,7 @@ void ShadowPass::Render(Frame *frame)
 
             m_render_collector_statics->ExecuteDrawCalls(
                 frame,
-                camera_render_resource,
+                m_camera_resource_handle,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -426,7 +435,7 @@ void ShadowPass::Render(Frame *frame)
 
             m_render_collector_dynamics->ExecuteDrawCalls(
                 frame,
-                camera_render_resource,
+                m_camera_resource_handle,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -519,9 +528,6 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
     m_shadow_pass.Reset();
-
-    m_render_collector_statics.Reset();
-    m_render_collector_dynamics.Reset();
 }
 
 // called from render thread
@@ -531,7 +537,7 @@ void DirectionalLightShadowRenderer::Init()
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
-        ResourceHandle(m_camera->GetRenderResource()),
+        TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()),
         m_shader,
         m_shadow_mode,
         m_resolution,
@@ -564,14 +570,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     Octree &octree = m_parent_scene->GetOctree();
     octree.CalculateVisibility(m_camera);
 
-    RenderableAttributeSet renderable_attribute_set(
-        MeshAttributes { },
-        MaterialAttributes {
-            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = m_shadow_mode == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
-        }
-    );
-
     // Render data update
     EnumFlags<ShadowFlags> flags = ShadowFlags::NONE;
 
@@ -594,8 +592,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     {
         return m_parent_scene->CollectStaticEntities(
             m_render_collector_statics,
-            m_camera,
-            renderable_attribute_set
+            m_camera
         );
     });
 
@@ -603,21 +600,18 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     {
         m_parent_scene->CollectDynamicEntities(
             m_render_collector_dynamics,
-            m_camera,
-            renderable_attribute_set
+            m_camera
         );
     });
 #else
     RenderCollector::CollectionResult statics_collection_result = m_parent_scene->CollectStaticEntities(
         m_render_collector_statics,
-        m_camera,
-        renderable_attribute_set
+        m_camera
     );
 
     m_parent_scene->CollectDynamicEntities(
         m_render_collector_dynamics,
-        m_camera,
-        renderable_attribute_set
+        m_camera
     );
 #endif
 
