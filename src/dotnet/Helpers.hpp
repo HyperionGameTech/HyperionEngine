@@ -60,50 +60,50 @@ struct TransformArgument<ID<T>>
     }
 };
 
-template <>
-struct TransformArgument<Object *>
-{
-    HYP_API void *operator()(Object *value) const;
-};
+// template <>
+// struct TransformArgument<Object *>
+// {
+//     HYP_API void *operator()(Object *value) const;
+// };
 
-template <class T>
-struct TransformArgument<T *, std::enable_if_t<IsHypObject<T>::value>>
-{
-    HYP_FORCE_INLINE void *operator()(T *value) const
-    {
-        if (!value) {
-            return nullptr;
-        }
+// template <class T>
+// struct TransformArgument<T *, std::enable_if_t<IsHypObject<T>::value>>
+// {
+//     HYP_FORCE_INLINE void *operator()(T *value) const
+//     {
+//         if (!value) {
+//             return nullptr;
+//         }
 
-        return TransformArgument<Object *>{}(value->GetManagedObject());
-    }
-};
+//         return TransformArgument<Object *>{}(value->GetManagedObject());
+//     }
+// };
 
-template <class T>
-struct TransformArgument<RC<T>, std::enable_if_t<IsHypObject<T>::value>>
-{
-    HYP_FORCE_INLINE void *operator()(const RC<T> &value) const
-    {
-        if (!value) {
-            return nullptr;
-        }
+// template <class T>
+// struct TransformArgument<RC<T>, std::enable_if_t<IsHypObject<T>::value>>
+// {
+//     HYP_FORCE_INLINE void *operator()(const RC<T> &value) const
+//     {
+//         if (!value) {
+//             return nullptr;
+//         }
 
-        return TransformArgument<Object *>{}(value->GetManagedObject());
-    }
-};
+//         return TransformArgument<Object *>{}(value->GetManagedObject());
+//     }
+// };
 
-template <class T>
-struct TransformArgument<Handle<T>, std::enable_if_t<IsHypObject<T>::value>>
-{
-    HYP_FORCE_INLINE void *operator()(const Handle<T> &value) const
-    {
-        if (!value) {
-            return nullptr;
-        }
+// template <class T>
+// struct TransformArgument<Handle<T>, std::enable_if_t<IsHypObject<T>::value>>
+// {
+//     HYP_FORCE_INLINE void *operator()(const Handle<T> &value) const
+//     {
+//         if (!value) {
+//             return nullptr;
+//         }
 
-        return TransformArgument<Object *>{}(value->GetManagedObject());
-    }
-};
+//         return TransformArgument<Object *>{}(value->GetManagedObject());
+//     }
+// };
 
 template <>
 struct TransformArgument<String>

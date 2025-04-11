@@ -22,7 +22,7 @@ struct ManagedAttribute
     ObjectReference object_reference;
 };
 
-static_assert(sizeof(ManagedAttribute) == 32, "sizeof(ManagedAttribute) must match C# struct size");
+static_assert(sizeof(ManagedAttribute) == 24, "sizeof(ManagedAttribute) must match C# struct size");
 
 struct ManagedAttributeHolder
 {

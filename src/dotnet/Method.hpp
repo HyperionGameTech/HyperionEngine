@@ -36,8 +36,6 @@ void FillArgs_HypData(std::index_sequence<Indices...>, HypData *arr, const HypDa
     ((array_ptr[Indices] = SetArg_HypData(arr, Indices, std::forward<Args>(args))), ...);
 }
 
-// @TODO: Change Method to hold a pointer to the managed C# function or hold the value of GCHandle.
-
 class Method
 {
 public:

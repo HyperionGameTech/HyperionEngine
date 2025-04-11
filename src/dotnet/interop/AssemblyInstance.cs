@@ -309,7 +309,6 @@ namespace Hyperion
                 referencedAssembly.Unload();
             }
 
-            int numObjectsRemoved = ManagedObjectCache.Instance.RemoveForAssembly(guid);
             int numMethodsRemoved = ManagedMethodCache.Instance.RemoveForAssembly(guid);
             int numDelegatesRemoved = DelegateCache.Instance.RemoveForAssembly(guid);
 
@@ -322,7 +321,7 @@ namespace Hyperion
                 numCachedObjectsRemoved.Add(kvp.Key, numRemoved);
             }
 
-            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed:\n\t{numObjectsRemoved} object(s)\n\t{numMethodsRemoved} method(s)\n\t{numDelegatesRemoved} delegate(s)");
+            Logger.Log(LogType.Info, $"Unloaded assembly {guid}, removed:\n\t{numMethodsRemoved} method(s)\n\t{numDelegatesRemoved} delegate(s)");
 
             foreach (KeyValuePair<Type, int> kvp in numCachedObjectsRemoved)
             {

@@ -62,9 +62,9 @@ class HYP_API Class : public EnableRefCountedPtrFromThis<Class>
 {
 public:
     /*! \brief Function to create a new object of this class.
-     *  If keep_alive is true, the object will be stored in the ManagedObjectCache and will not be collected by the .NET runtime
+     *  If keep_alive is true, the object will have a strong GCHandle allocated for it, and it will not be collected by the .NET runtime
      *  until the object is released via \ref{Class::~Class}.
-     *  If it is false, it will be stored in the ManagedObjectCache as a weak object, and is not expected to be removed via \ref{Class::~Class}.
+     *  If false, only a weak GCHandle will be created.
      *  
      *  If hyp_class is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
      *  In this case, native_object_ptr must also be provided.
@@ -72,7 +72,6 @@ public:
     using InitializeObjectCallbackFunction = void(*)(void *ctx, void *dst, uint32 dst_size);
 
     using NewObjectFunction = ObjectReference(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr, void *context_ptr, InitializeObjectCallbackFunction callback);
-    using FreeObjectFunction = void(*)(ObjectReference);
     using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
 
     Class(const Weak<Assembly> &assembly, String name, uint32 size, TypeID type_id, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
@@ -83,7 +82,6 @@ public:
           m_parent_class(parent_class),
           m_flags(flags),
           m_new_object_fptr(nullptr),
-          m_free_object_fptr(nullptr),
           m_marshal_object_fptr(nullptr)
     {
     }
@@ -114,12 +112,6 @@ public:
 
     HYP_FORCE_INLINE void SetNewObjectFunction(NewObjectFunction new_object_fptr)
         { m_new_object_fptr = new_object_fptr; }
-
-    HYP_FORCE_INLINE FreeObjectFunction GetFreeObjectFunction() const
-        { return m_free_object_fptr; }
-
-    HYP_FORCE_INLINE void SetFreeObjectFunction(FreeObjectFunction free_object_fptr)
-        { m_free_object_fptr = free_object_fptr; }
 
     HYP_FORCE_INLINE void SetMarshalObjectFunction(MarshalObjectFunction marshal_object_fptr)
         { m_marshal_object_fptr = marshal_object_fptr; }
@@ -375,7 +367,6 @@ private:
     Weak<Assembly>                  m_assembly;
 
     NewObjectFunction               m_new_object_fptr;
-    FreeObjectFunction              m_free_object_fptr;
     MarshalObjectFunction           m_marshal_object_fptr;
 
     AttributeSet                    m_attributes;

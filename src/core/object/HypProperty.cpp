@@ -145,7 +145,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod *getter, const HypMetho
         result.m_setter.type_info.value_type_id = setter->GetParameters()[0].type_id;
         result.m_setter.set_proc = [setter](HypData &target, const HypData &value) -> void
         {
-            setter->Invoke(Array<HypData *> { &target, const_cast<HypData *>(&value) });
+            setter->Invoke(Span<HypData *> { { &target, const_cast<HypData *>(&value) } });
         };
         result.m_setter.deserialize_proc = [setter](fbom::FBOMLoadContext &context, HypData &target, const fbom::FBOMData &value) -> void
         {

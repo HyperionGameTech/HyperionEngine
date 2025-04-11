@@ -105,9 +105,9 @@ HYP_EXPORT void NativeInterop_SetAddObjectToCacheFunction(AddObjectToCacheFuncti
     DotNetSystem::GetInstance().GetGlobalFunctions().add_object_to_cache_function = add_object_to_cache_fptr;
 }
 
-HYP_EXPORT void NativeInterop_SetSetObjectReferenceTypeFunction(SetObjectReferenceTypeFunction set_object_reference_type_function)
+HYP_EXPORT void NativeInterop_SetSetKeepAliveFunction(SetKeepAliveFunction set_keep_alive_function)
 {
-    DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function = set_object_reference_type_function;
+    DotNetSystem::GetInstance().GetGlobalFunctions().set_keep_alive_function = set_keep_alive_function;
 }
 
 HYP_EXPORT void NativeInterop_SetTriggerGCFunction(TriggerGCFunction trigger_gc_function)
@@ -224,14 +224,6 @@ HYP_EXPORT void ManagedClass_SetNewObjectFunction(ManagedClass *managed_class, C
     AssertThrow(managed_class->class_object != nullptr);
 
     managed_class->class_object->SetNewObjectFunction(new_object_fptr);
-}
-
-HYP_EXPORT void ManagedClass_SetFreeObjectFunction(ManagedClass *managed_class, Class::FreeObjectFunction free_object_fptr)
-{
-    AssertThrow(managed_class != nullptr);
-    AssertThrow(managed_class->class_object != nullptr);
-
-    managed_class->class_object->SetFreeObjectFunction(free_object_fptr);
 }
 
 HYP_EXPORT void ManagedClass_SetMarshalObjectFunction(ManagedClass *managed_class, Class::MarshalObjectFunction marshal_object_fptr)

@@ -172,18 +172,6 @@ namespace Hyperion
 
             ManagedClass_SetNewObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
         }
-        public void SetFreeObjectFunction(Guid assemblyGuid, FreeObjectDelegate value)
-        {
-            if (freeObjectGuid != Guid.Empty)
-                DelegateCache.Instance.Remove(freeObjectGuid);
-
-            freeObjectGuid = Guid.NewGuid();
-
-            GCHandle handle = GCHandle.Alloc(value);
-            DelegateCache.Instance.Add(assemblyGuid, freeObjectGuid, handle);
-
-            ManagedClass_SetFreeObjectFunction(ref this, Marshal.GetFunctionPointerForDelegate(value));
-        }
 
         public void SetMarshalObjectFunction(Guid assemblyGuid, MarshalObjectDelegate value)
         {
@@ -209,9 +197,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetNewObjectFunction")]
         private static extern void ManagedClass_SetNewObjectFunction([In] ref ManagedClass managedClass, IntPtr newObjectFunctionPtr);
-
-        [DllImport("hyperion", EntryPoint = "ManagedClass_SetFreeObjectFunction")]
-        private static extern void ManagedClass_SetFreeObjectFunction([In] ref ManagedClass managedClass, IntPtr freeObjectFunctionPtr);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_SetMarshalObjectFunction")]
         private static extern void ManagedClass_SetMarshalObjectFunction([In] ref ManagedClass managedClass, IntPtr marshalObjectFunctionPtr);
