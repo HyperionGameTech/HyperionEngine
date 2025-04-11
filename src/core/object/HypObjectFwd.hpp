@@ -245,6 +245,8 @@ private:
 
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count);
 HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count);
+HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count);
+HYP_API void HypObject_OnDecRefCount_Weak(HypObjectPtr ptr, uint32 count);
 
 namespace detail {
 

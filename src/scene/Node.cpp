@@ -709,7 +709,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         // For destructor call.
         // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
-        if (Threads::IsThreadInMask(ThreadID::Current(), m_scene->GetEntityManager()->GetOwnerThreadMask())) {
+        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadID())) {
             m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
 
             // Move entity to detached scene

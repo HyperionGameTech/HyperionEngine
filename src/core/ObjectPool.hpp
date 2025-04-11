@@ -147,10 +147,10 @@ struct HypObjectMemory final : HypObjectHeader
         AssertThrow(!has_value.Exchange(true, MemoryOrder::SEQUENTIAL));
 #endif
 
-        T *ptr = reinterpret_cast<T *>(&bytes[0]);
+        T *ptr = GetPointer();
 
         // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
-        HypObjectInitializerGuard<T> context { ptr };
+        HypObjectInitializerGuard<T> context { static_cast<void *>(ptr) };
 
         // Set the object header to point to this
         ptr->HypObjectBase::m_header = static_cast<HypObjectHeader *>(this);
@@ -191,7 +191,7 @@ struct HypObjectMemory final : HypObjectHeader
 
             HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
 
-            reinterpret_cast<T *>(bytes)->~T();
+            GetPointer()->~T();
 
             if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1) {
 #ifdef HYP_DEBUG_MODE
@@ -235,7 +235,7 @@ struct HypObjectMemory final : HypObjectHeader
 
     HYP_NODISCARD T *Release()
     {
-        T *ptr = reinterpret_cast<T *>(bytes);
+        T *ptr = reinterpret_cast<T *>(&bytes[0]);
 
 #ifdef HYP_DEBUG_MODE
         AssertThrow(has_value.Get(MemoryOrder::SEQUENTIAL));
@@ -248,13 +248,13 @@ struct HypObjectMemory final : HypObjectHeader
     }
 
     HYP_FORCE_INLINE T &Get()
-        { return *reinterpret_cast<T *>(bytes); }
+        { return *reinterpret_cast<T *>(&bytes[0]); }
 
     HYP_FORCE_INLINE T *GetPointer()
-        { return reinterpret_cast<T *>(bytes); }
+        { return reinterpret_cast<T *>(&bytes[0]); }
 
     HYP_FORCE_INLINE const T *GetPointer() const
-        { return reinterpret_cast<const T *>(bytes); }
+        { return reinterpret_cast<const T *>(&bytes[0]); }
 
     /*! \brief Gets the offset past the header (in bytes) of the memory of the actual object held by a HypObjectMemory<T>. */
     HYP_FORCE_INLINE static constexpr uintptr_t GetAlignedOffset()

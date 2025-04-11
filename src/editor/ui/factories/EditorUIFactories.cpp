@@ -750,16 +750,14 @@ public:
         RC<UIGridRow> components_grid_container_content_row = components_grid_container->AddRow();
         RC<UIGridColumn> components_grid_container_content_column = components_grid_container_content_row->AddColumn();
 
-        if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID().GetValue()) {
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID())) {
             components_grid_container_content_column->AddChildUIObject(CreateComponentsGrid());
         } else {
             HYP_NAMED_SCOPE("Awaiting async component UI element creation");
 
-            Task<RC<UIObject>> task;
-
-            entity_manager->PushCommand([&CreateComponentsGrid, executor = task.Initialize()](EntityManager &mgr, GameCounter::TickUnit delta)
+            Task<RC<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([&CreateComponentsGrid]()
             {
-                executor->Fulfill(CreateComponentsGrid());
+                return CreateComponentsGrid();
             });
 
             components_grid_container_content_column->AddChildUIObject(task.Await());

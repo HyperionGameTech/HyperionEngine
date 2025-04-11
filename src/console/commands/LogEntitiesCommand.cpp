@@ -60,7 +60,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
         }
 
         entity_manager_json["scene"] = entity_manager->GetScene()->GetName().LookupString();
-        entity_manager_json["thread_mask"] = uint32(entity_manager->GetOwnerThreadMask());
+        entity_manager_json["owner_thread_id"] = entity_manager->GetOwnerThreadID().GetName().LookupString();
 
         json::JSONArray entity_manager_entities_json;
         

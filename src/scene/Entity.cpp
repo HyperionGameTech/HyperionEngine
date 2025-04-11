@@ -21,16 +21,13 @@ Entity::~Entity()
         return;
     }
 
-    Task<bool> success = EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity(id, [](EntityManager *entity_manager, ID<Entity> id)
+    // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
+    EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity_FireAndForget(id, [weak_this = WeakHandleFromThis()](EntityManager *entity_manager, ID<Entity> id)
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
 
         entity_manager->RemoveEntity(id);
     });
-
-    if (!success.Await()) {
-        HYP_LOG(Scene, Error, "Failed to remove Entity with ID #{} from EntityManager", id.Value());
-    }
 }
 
 } // namespace hyperion

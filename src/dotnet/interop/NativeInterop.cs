@@ -190,7 +190,7 @@ namespace Hyperion
 
                 // add the attribute to the object cache
                 Guid attributeGuid = Guid.NewGuid();
-                ObjectReference attributeObjectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, attributeGuid, attribute, keepAlive: false, gcHandle: null);
+                ObjectReference attributeObjectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, attributeGuid, attribute, gcHandle: null);
 
                 ref ManagedAttribute managedAttribute = ref Unsafe.AsRef<ManagedAttribute>((void*)(managedAttributeHolder.managedAttributesPtr + (i * Marshal.SizeOf<ManagedAttribute>())));
                 managedAttribute.classObjectPtr = attributeManagedClassObjectPtr;
@@ -394,6 +394,9 @@ namespace Hyperion
                         ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
                         thisObject = objectReferenceRef.LoadObject();
+
+                        if (thisObject == null)
+                            throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
                     }
 
                     if (methodInfo.ReturnType == typeof(void))
@@ -481,10 +484,14 @@ namespace Hyperion
                         gcHandle = null;
                     }
                 }
+                else if (keepAlive)
+                {
+                    gcHandle = GCHandle.Alloc(obj, GCHandleType.Normal);
+                }
 
                 Guid objectGuid = Guid.NewGuid();
                 
-                ObjectReference result = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive, gcHandle);
+                ObjectReference result = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, gcHandle);
 
                 return result;
             }));
@@ -505,7 +512,7 @@ namespace Hyperion
 
                 Guid objectGuid = Guid.NewGuid();
 
-                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, false, null);
+                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, null);
             }));
 
             return managedClass.ClassObjectPtr;
@@ -581,9 +588,7 @@ namespace Hyperion
             object obj = objectWrapperRef.obj;
 
             if (obj == null)
-            {
                 throw new ArgumentNullException(nameof(obj));
-            }
 
             Type type = obj.GetType();
 
@@ -605,8 +610,15 @@ namespace Hyperion
 
             Guid objectGuid = Guid.NewGuid();
 
+            GCHandle? gcHandle = null;
+
+            if (!weak)
+            {
+                gcHandle = GCHandle.Alloc(obj, GCHandleType.Normal);
+            }
+
             // reassign ref
-            objectReferenceRef = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, keepAlive: !weak, gcHandle: null);
+            objectReferenceRef = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, gcHandle);
         }
 
         public static void FreeObject(ObjectReference obj)

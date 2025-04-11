@@ -107,6 +107,8 @@ namespace Hyperion
 
             if (IsValid)
             {
+                Logger.Log(LogType.Debug, $"Finalizing HypObject of type {HypClass.Name} at address 0x{(long)NativeAddress:X}");
+                
                 if (HypClass.IsReferenceCounted)
                 {
 #if DEBUG
@@ -131,7 +133,7 @@ namespace Hyperion
                     HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
                 }
 
-                GC.SuppressFinalize(this);
+                // GC.SuppressFinalize(this);
             }
 
             _hypClassPtr = IntPtr.Zero;

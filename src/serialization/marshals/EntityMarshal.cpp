@@ -122,17 +122,20 @@ public:
             }
         };
 
-        if (entity_manager->GetOwnerThreadMask() & Threads::CurrentThreadID().GetValue()) {
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID())) {
             SerializeEntityAndComponents();
         } else {
             HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-            entity_manager->PushCommand([&SerializeEntityAndComponents](EntityManager &mgr, GameCounter::TickUnit delta)
-            {
-                SerializeEntityAndComponents();
-            });
+            Task<void> serialize_entity_and_components_task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(
+                HYP_STATIC_MESSAGE("Serialize Entity and Components"),
+                [&SerializeEntityAndComponents]()
+                {
+                    SerializeEntityAndComponents();
+                }
+            );
 
-            entity_manager->GetCommandQueue().AwaitEmpty();
+            serialize_entity_and_components_task.Await();
         }
 
         return result;

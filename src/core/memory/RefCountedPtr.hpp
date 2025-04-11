@@ -78,6 +78,10 @@ static inline uint32 IncRefCount_Impl(void *ptr, RefCountDataType &ref_count_dat
         } else {
             count_value = ref_count_data.weak_count.Increment(1, MemoryOrder::ACQUIRE_RELEASE) + 1;
         }
+
+        if constexpr (IsHypObject<T>::value) {
+            HypObject_OnIncRefCount_Weak(static_cast<T *>(ptr), count_value);
+        }
     }
 
     return count_value;
@@ -103,6 +107,10 @@ static inline uint32 DecRefCount_Impl(void *ptr, RefCountDataType &ref_count_dat
             count_value = --ref_count_data.weak_count;
         } else {
             count_value = ref_count_data.weak_count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) - 1;
+        }
+        
+        if constexpr (IsHypObject<T>::value) {
+            HypObject_OnDecRefCount_Weak(static_cast<T *>(ptr), count_value);
         }
     }
 

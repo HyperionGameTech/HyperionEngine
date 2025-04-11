@@ -333,8 +333,8 @@ HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
-        if (dotnet::Object *object = initializer->GetManagedObject()) {
-            if (count == 2) {
+        if (count == 2) {
+            if (dotnet::Object *object = initializer->GetManagedObject()) {
                 if (!object->SetKeepAlive(true)) {
                     HYP_LOG(Object, Info, "Managed object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
                         initializer->GetClass()->GetName(), ptr.GetPointer());
@@ -370,12 +370,22 @@ HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
-        if (dotnet::Object *object = initializer->GetManagedObject()) {
-            if (count == 1) {
+        if (count == 1) {
+            if (dotnet::Object *object = initializer->GetManagedObject()) {
+                HYP_LOG(Object, Info, "Setting managed object for object with HypClass {} at address {} to weak",
+                    initializer->GetClass()->GetName(), ptr.GetPointer());
                 AssertThrow(object->SetKeepAlive(false));
             }
         }
     }
+}
+
+HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count)
+{
+}
+
+HYP_API void HypObject_OnDecRefCount_Weak(HypObjectPtr ptr, uint32 count)
+{
 }
 
 } // namespace hyperion

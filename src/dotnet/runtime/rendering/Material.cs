@@ -254,10 +254,5 @@ namespace Hyperion
         public Material()
         {
         }
-
-        ~Material()
-        {
-            Logger.Log(LogType.Debug, $"Finalizing material at address 0x{(long)NativeAddress:X}");
-        }
     }
 }

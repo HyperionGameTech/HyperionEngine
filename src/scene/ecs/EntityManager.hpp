@@ -364,7 +364,8 @@ public:
         }
     }
 
-    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, void(*callback)(EntityManager *entity_manager, ID<Entity> id));
+    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback);
+    HYP_API void PerformActionWithEntity_FireAndForget(ID<Entity> id, Proc<void(EntityManager *entity_manager, ID<Entity> id)> &&callback);
 
 private:
     HashMap<ID<Entity>, EntityManager *>    m_map;
@@ -386,7 +387,7 @@ class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
 public:
     static constexpr ComponentID invalid_component_id = 0;
 
-    EntityManager(ThreadMask owner_thread_mask, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
+    EntityManager(const ThreadID &owner_thread_id, Scene *scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager &)                = delete;
     EntityManager &operator=(const EntityManager &)     = delete;
     EntityManager(EntityManager &&) noexcept            = delete;
@@ -421,13 +422,13 @@ public:
      *
      *  \return The thread mask.
      */
-    HYP_FORCE_INLINE ThreadMask GetOwnerThreadMask() const
-        { return m_owner_thread_mask; }
+    HYP_FORCE_INLINE const ThreadID &GetOwnerThreadID() const
+        { return m_owner_thread_id; }
 
     /*! \brief Sets the thread mask of the thread that owns this EntityManager.
      *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
-    HYP_FORCE_INLINE void SetOwnerThreadMask(ThreadMask owner_thread_mask)
-        { m_owner_thread_mask = owner_thread_mask; }
+    HYP_FORCE_INLINE void SetOwnerThreadID(const ThreadID &owner_thread_id)
+        { m_owner_thread_id = owner_thread_id; }
 
     /*! \brief Gets the World that this EntityManager is associated with.
      *
@@ -479,7 +480,7 @@ public:
     
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -544,7 +545,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -560,7 +561,7 @@ public:
     {
         EnsureValidComponentType(component_type_id);
 
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity_id.IsValid()) {
@@ -576,7 +577,7 @@ public:
     HYP_FORCE_INLINE Component &GetComponent(ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
 
         EnsureValidComponentType<Component>();
 
@@ -658,7 +659,7 @@ public:
     AnyRef TryGetComponent(TypeID component_type_id, ID<Entity> entity)
     {
         // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         
         EnsureValidComponentType(component_type_id);
 
@@ -706,7 +707,7 @@ public:
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
     HYP_FORCE_INLINE Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
-        // Threads::AssertOnThread(m_owner_thread_mask);
+        // Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -729,7 +730,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
@@ -775,7 +776,7 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        Threads::AssertOnThread(m_owner_thread_mask);
+        Threads::AssertOnThread(m_owner_thread_id);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity_id.IsValid()) {
@@ -1006,7 +1007,7 @@ private:
 
     bool IsEntityInitializedForSystem(SystemBase *system, ID<Entity> entity) const;
 
-    ThreadMask                                                              m_owner_thread_mask;
+    ThreadID                                                                m_owner_thread_id;
     World                                                                   *m_world;
     Scene                                                                   *m_scene;
     EnumFlags<EntityManagerFlags>                                           m_flags;

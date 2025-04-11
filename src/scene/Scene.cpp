@@ -85,7 +85,7 @@ Scene::Scene(
     m_world(world),
     m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
     m_is_audio_listener(false),
-    m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id.GetMask(), this)),
+    m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id, this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
     m_previous_delta(0.01667f),
     m_render_resource(nullptr)
@@ -172,7 +172,7 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
     }
 
     m_owner_thread_id = owner_thread_id;
-    m_entity_manager->SetOwnerThreadMask(owner_thread_id.GetMask());
+    m_entity_manager->SetOwnerThreadID(owner_thread_id);
 
     if (m_owner_thread_id == g_game_thread) {
         m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() | EntityManagerCommandQueueFlags::EXEC_COMMANDS);
