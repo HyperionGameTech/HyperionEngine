@@ -460,7 +460,6 @@ protected:
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const = 0;
 
     virtual void CreateInstance_Internal(HypData &out) const = 0;
-    virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
@@ -616,31 +615,6 @@ protected:
             } else {
                 out = HypData(T());
             }
-        } else {
-            HYP_NOT_IMPLEMENTED_VOID();
-        }
-    }
-
-    virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const override
-    {
-        // Suppress default managed object creation if a managed object has been passed in
-        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
-
-        if constexpr (std::is_default_constructible_v<T>) {
-            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
-                out = HypData(CreateObject<T>());
-            } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
-                out = HypData(MakeRefCountedPtr<T>());
-            } else {
-                out = HypData(T());
-            }
-
-            void *address = out.ToRef().GetPointer();
-
-            IHypObjectInitializer *initializer = GetObjectInitializer(address);
-            AssertThrow(initializer != nullptr);
-
-            initializer->SetManagedObject(managed_object.Release());
         } else {
             HYP_NOT_IMPLEMENTED_VOID();
         }

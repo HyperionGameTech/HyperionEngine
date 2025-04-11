@@ -38,6 +38,8 @@ struct HypObjectHeader;
 template <class T>
 struct HypObjectMemory;
 
+class ManagedObjectResource;
+
 enum class HypClassFlags : uint32;
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
@@ -79,7 +81,9 @@ public:
 
     virtual dotnet::Class *GetManagedClass() const = 0;
 
-    virtual void SetManagedObject(dotnet::Object *managed_object) = 0;
+    virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) = 0;
+    virtual ManagedObjectResource *GetManagedObjectResource() const = 0;
+    
     virtual dotnet::Object *GetManagedObject() const = 0;
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) = 0;

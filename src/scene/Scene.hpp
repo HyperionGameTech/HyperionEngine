@@ -18,7 +18,6 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/Shader.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

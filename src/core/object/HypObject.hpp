@@ -9,6 +9,7 @@
 
 #include <core/object/HypObjectFwd.hpp>
 #include <core/object/HypObjectEnums.hpp>
+#include <core/object/managed/ManagedObjectResource.hpp>
 
 #include <core/utilities/TypeID.hpp>
 
@@ -47,7 +48,6 @@ extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 
 // Ensure the current HypObjectInitializer being constructed is the same as the one passed
 extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address);
-extern HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr);
 
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
@@ -113,7 +113,7 @@ class HypObjectInitializer final : public IHypObjectInitializer
 
 public:
     HypObjectInitializer(T *_this)
-        : m_managed_object(nullptr)
+        : m_managed_object_resource(nullptr)
     {
         CheckHypObjectInitializer(this, GetTypeID_Static(), GetClass_Static(), _this);
     }
@@ -122,7 +122,10 @@ public:
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        CleanupHypObjectInitializer(GetClass_Static(), m_managed_object);
+        if (m_managed_object_resource) {
+            FreeResource(m_managed_object_resource);
+            m_managed_object_resource = nullptr;
+        }
     }
 
     virtual TypeID GetTypeID() const override
@@ -140,18 +143,20 @@ public:
         return GetHypClassManagedClass(GetClass_Static());
     }
 
-    virtual void SetManagedObject(dotnet::Object *managed_object) override
+    virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) override
     {
-        HYP_MT_CHECK_RW(m_data_race_detector);
+        AssertThrow(m_managed_object_resource == nullptr);
+        m_managed_object_resource = managed_object_resource;
+    }
 
-        m_managed_object = managed_object;
+    virtual ManagedObjectResource *GetManagedObjectResource() const override
+    {
+        return m_managed_object_resource;
     }
 
     virtual dotnet::Object *GetManagedObject() const override
     {
-        HYP_MT_CHECK_READ(m_data_race_detector);
-
-        return m_managed_object;
+        return m_managed_object_resource ? m_managed_object_resource->GetManagedObject() : nullptr;
     }
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
@@ -249,7 +254,7 @@ public:
     }
 
 private:
-    dotnet::Object  *m_managed_object;
+    ManagedObjectResource   *m_managed_object_resource;
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
@@ -275,8 +280,8 @@ private:
         HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer() const \
             { return m_hyp_object_initializer_ptr; } \
         \
-        HYP_FORCE_INLINE dotnet::Object *GetManagedObject() const \
-            { return m_hyp_object_initializer_ptr->GetManagedObject(); } \
+        HYP_FORCE_INLINE ManagedObjectResource *GetManagedObjectResource() const \
+            { return m_hyp_object_initializer_ptr->GetManagedObjectResource(); } \
         \
         HYP_FORCE_INLINE const HypClass *InstanceClass() const \
             { return m_hyp_object_initializer_ptr->GetClass(); } \

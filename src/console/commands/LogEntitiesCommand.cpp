@@ -145,14 +145,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
                                 { "name", json::JSONString(*ui_object->GetName()) },
                                 { "type", json::JSONString(*ui_object->InstanceClass()->GetName()) },
                                 { "num_strong_refs", ui_object_ref.GetRefCountData_Internal()->UseCount_Strong() - 1 },
-                                { "num_weak_refs", ui_object_ref.GetRefCountData_Internal()->UseCount_Weak() },
-                                {
-                                    "managed_object",
-                                    json::JSONObject({
-                                        { "alive", ui_object->GetManagedObject() != nullptr && ui_object->GetManagedObject()->ShouldKeepAlive() },
-                                        { "type", ui_object->GetManagedObject() ? json::JSONValue(json::JSONString(ui_object->GetManagedObject()->GetClass()->GetName())) : json::JSONValue(json::JSONNull()) }
-                                    })
-                                }
+                                { "num_weak_refs", ui_object_ref.GetRefCountData_Internal()->UseCount_Weak() }
                             });
                         }
                     }
@@ -162,12 +155,6 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
             }
 
             entity_json["components"] = std::move(components_json);
-
-            entity_json["managed_object"] = json::JSONObject({
-                { "alive", entity->GetManagedObject() != nullptr && entity->GetManagedObject()->ShouldKeepAlive() },
-                { "type", entity->GetManagedObject() ? json::JSONValue(json::JSONString(entity->GetManagedObject()->GetClass()->GetName())) : json::JSONValue(json::JSONNull()) }
-            });
-            
             entity_manager_entities_json.PushBack(std::move(entity_json));
         }
 

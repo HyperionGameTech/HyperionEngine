@@ -64,6 +64,8 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
         }
 
         if (has_scriptable_methods) {
+            writer.WriteString("#include <core/object/managed/ManagedObjectResource.hpp>\n");
+            writer.WriteString("\n");
             writer.WriteString("#include <dotnet/Object.hpp>\n");
             writer.WriteString("#include <dotnet/Class.hpp>\n");
             writer.WriteString("#include <dotnet/Method.hpp>\n");
@@ -223,9 +225,12 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
                         writer.WriteString(HYP_FORMAT("void {}::{}({}){}", hyp_class.name, member.name, method_args_string_sig, function_type->is_const_method ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
-                        writer.WriteString("    if (dotnet::Object *managed_object = GetManagedObject()) {\n");
+                        writer.WriteString("    if (ManagedObjectResource *managed_object_resource = GetManagedObjectResource()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object->GetClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("            TResourceHandle<ManagedObjectResource> resource_handle(*managed_object_resource);\n");
+                        writer.WriteString("            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();\n");
+                        writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("            managed_object->InvokeMethod<void>(method_ptr{});\n", method_args_string_call.Any() ? ", " + method_args_string_call : ""));
                         writer.WriteString("            return;\n");
                         writer.WriteString("        }\n");
@@ -238,9 +243,12 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
                         writer.WriteString(HYP_FORMAT("{} {}::{}({}){}", return_type_string, hyp_class.name, member.name, method_args_string_sig, function_type->is_const_method ? " const" : ""));
                         writer.WriteString("\n");
                         writer.WriteString("{\n");
-                        writer.WriteString("    if (dotnet::Object *managed_object = GetManagedObject()) {\n");
+                        writer.WriteString("    if (ManagedObjectResource *managed_object_resource = GetManagedObjectResource()) {\n");
                         writer.WriteString(HYP_FORMAT("        constexpr HashCode hash_code = HashCode::GetHashCode(\"{}\");\n", member.name));
-                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object->GetClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("        if (dotnet::Method *method_ptr = managed_object_resource->GetManagedClass()->GetMethodByHash(hash_code)) {\n");
+                        writer.WriteString("            TResourceHandle<ManagedObjectResource> resource_handle(*managed_object_resource);\n");
+                        writer.WriteString("            dotnet::Object *managed_object = managed_object_resource->GetManagedObject();\n");
+                        writer.WriteString("\n");
                         writer.WriteString(HYP_FORMAT("            return managed_object->InvokeMethod<{}>(method_ptr{});\n", return_type_string, method_args_string_call.Any() ? ", " + method_args_string_call : ""));
                         writer.WriteString("        }\n");
                         // writer.WriteString(HYP_FORMAT("        HYP_FAIL(\"No method '{}' on managed object of type %s\", managed_object->GetClass()->GetName().Data());\n", member.name));
