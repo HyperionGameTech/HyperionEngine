@@ -13,14 +13,14 @@ extern "C" {
 
 struct ObjectReference
 {
-    ManagedGuid guid;
-    void        *ptr;
+    void        *weak_handle;
+    void        *strong_handle;
 
     bool operator==(const ObjectReference &other) const = default;
     bool operator!=(const ObjectReference &other) const = default;
 };
 
-static_assert(sizeof(ObjectReference) == 24, "ObjectReference size mismatch with C#");
+static_assert(sizeof(ObjectReference) == 16, "ObjectReference size mismatch with C#");
 
 } // extern "C"
 

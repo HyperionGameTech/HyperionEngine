@@ -9,7 +9,7 @@ namespace hyperion::dotnet {
 
 Object::Object()
     : m_class_ptr(nullptr),
-      m_object_reference { ManagedGuid { 0, 0 }, nullptr },
+      m_object_reference { nullptr, nullptr },
       m_object_flags(ObjectFlags::NONE),
       m_keep_alive(false)
 {
@@ -29,7 +29,7 @@ Object::Object(const RC<Class> &class_ptr, ObjectReference object_reference, Enu
 #endif
     }
 
-    if (m_object_reference.guid.IsValid()) {
+    if (m_object_reference.weak_handle != nullptr) {
         AssertThrowMsg(m_class_ptr != nullptr, "Class pointer not set!");
 
         if (!(m_object_flags & ObjectFlags::CREATED_FROM_MANAGED)) {
@@ -55,7 +55,7 @@ void Object::Reset()
 
     m_class_ptr.Reset();
     m_assembly.Reset();
-    m_object_reference = ObjectReference { ManagedGuid { 0, 0 }, nullptr };
+    m_object_reference = ObjectReference { nullptr, nullptr };
     m_object_flags = ObjectFlags::NONE;
     m_keep_alive.Set(false, MemoryOrder::RELEASE);
 }
@@ -115,7 +115,7 @@ bool Object::SetKeepAlive(bool keep_alive)
         return true;
     }
 
-    if (DotNetSystem::GetInstance().GetGlobalFunctions().set_object_reference_type_function(&m_object_reference, !keep_alive)) {
+    if (DotNetSystem::GetInstance().GetGlobalFunctions().set_keep_alive_function(&m_object_reference, keep_alive)) {
         m_keep_alive.Set(keep_alive, MemoryOrder::RELEASE);
 
         return true;

@@ -11,7 +11,7 @@ namespace Hyperion
     public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
-    public delegate bool SetObjectReferenceTypeDelegate(IntPtr objectReferencePtr, bool weak);
+    public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
     public delegate void TriggerGCDelegate();
 
     internal enum LoadAssemblyResult : int
@@ -94,7 +94,7 @@ namespace Hyperion
                 NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
-                NativeInterop_SetSetObjectReferenceTypeFunction(Marshal.GetFunctionPointerForDelegate<SetObjectReferenceTypeDelegate>(SetObjectReferenceType));
+                NativeInterop_SetSetKeepAliveFunction(Marshal.GetFunctionPointerForDelegate<SetKeepAliveDelegate>(SetKeepAlive));
                 NativeInterop_SetTriggerGCFunction(Marshal.GetFunctionPointerForDelegate<TriggerGCDelegate>(TriggerGC));
 
                 Type[] types = assembly.GetExportedTypes();
@@ -188,9 +188,10 @@ namespace Hyperion
 
                 IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType);
 
-                // add the attribute to the object cache
-                Guid attributeGuid = Guid.NewGuid();
-                ObjectReference attributeObjectReference = ManagedObjectCache.Instance.AddObject(assemblyGuid, attributeGuid, attribute, gcHandle: null);
+                ObjectReference attributeObjectReference = new ObjectReference {
+                    weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
+                    strongHandle = IntPtr.Zero
+                };
 
                 ref ManagedAttribute managedAttribute = ref Unsafe.AsRef<ManagedAttribute>((void*)(managedAttributeHolder.managedAttributesPtr + (i * Marshal.SizeOf<ManagedAttribute>())));
                 managedAttribute.classObjectPtr = attributeManagedClassObjectPtr;
@@ -466,37 +467,36 @@ namespace Hyperion
 
                 constructorInfo.Invoke(obj, parameters);
 
-                GCHandle? gcHandle = null;
+                GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
+                GCHandle? gcHandleStrong = null;
 
                 if (callbackPtr != IntPtr.Zero)
                 {
                     if (!type.IsValueType)
                         throw new InvalidOperationException("InitializeObjectCallback can only be used with value types");
 
-                    gcHandle = GCHandle.Alloc(obj, GCHandleType.Pinned);
+                    gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Pinned);
 
                     InitializeObjectCallbackDelegate callbackDelegate = Marshal.GetDelegateForFunctionPointer<InitializeObjectCallbackDelegate>(callbackPtr);
-                    callbackDelegate(contextPtr, ((GCHandle)gcHandle).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
+                    callbackDelegate(contextPtr, ((GCHandle)gcHandleStrong).AddrOfPinnedObject(), (uint)Marshal.SizeOf(type));
 
                     if (!keepAlive)
                     {
-                        ((GCHandle)gcHandle).Free();
-                        gcHandle = null;
+                        ((GCHandle)gcHandleStrong).Free();
+                        gcHandleStrong = null;
                     }
                 }
                 else if (keepAlive)
                 {
-                    gcHandle = GCHandle.Alloc(obj, GCHandleType.Normal);
+                    gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
                 }
-
-                Guid objectGuid = Guid.NewGuid();
                 
-                ObjectReference result = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, gcHandle);
-
-                return result;
+                return new ObjectReference
+                {
+                    weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
+                    strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr((GCHandle)gcHandleStrong) : IntPtr.Zero
+                };
             }));
-
-            managedClass.SetFreeObjectFunction(assemblyGuid, new FreeObjectDelegate(FreeObject));
 
             managedClass.SetMarshalObjectFunction(assemblyGuid, new MarshalObjectDelegate((IntPtr ptr, uint size) =>
             {
@@ -510,9 +510,10 @@ namespace Hyperion
                 object obj = Marshal.PtrToStructure(ptr, type);
                 Assert.Throw(obj != null, "Failed to marshal object from pointer");
 
-                Guid objectGuid = Guid.NewGuid();
-
-                return ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, null);
+                return new ObjectReference {
+                    weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Weak)),
+                    strongHandle = IntPtr.Zero
+                };
             }));
 
             return managedClass.ClassObjectPtr;
@@ -608,35 +609,30 @@ namespace Hyperion
                 throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
             }
 
-            Guid objectGuid = Guid.NewGuid();
-
-            GCHandle? gcHandle = null;
+            GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
+            GCHandle? gcHandleStrong = null;
 
             if (!weak)
             {
-                gcHandle = GCHandle.Alloc(obj, GCHandleType.Normal);
+                gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
             }
 
-            // reassign ref
-            objectReferenceRef = ManagedObjectCache.Instance.AddObject(assemblyGuid, objectGuid, obj, gcHandle);
-        }
-
-        public static void FreeObject(ObjectReference obj)
-        {
-            if (!ManagedObjectCache.Instance.Remove(obj.guid))
+            // @NOTE: reassign ref
+            objectReferenceRef = new ObjectReference 
             {
-                throw new Exception("Failed to remove object from cache: " + obj.guid);
-            }
+                weakHandle = GCHandle.ToIntPtr(gcHandleWeak),
+                strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
+            };
         }
 
-        public static unsafe bool SetObjectReferenceType(IntPtr objectReferencePtr, bool weak)
+        public static unsafe bool SetKeepAlive(IntPtr objectReferencePtr, bool keepAlive)
         {
             ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
 
-            if (weak)
-                return ManagedObjectCache.Instance.MakeWeakReference(objectReference.guid);
+            if (keepAlive)
+                return objectReference.MakeStrong();
 
-            return ManagedObjectCache.Instance.MakeStrongReference(objectReference.guid);
+            return objectReference.MakeWeak();
         }
 
         public static unsafe void TriggerGC()
@@ -672,8 +668,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetAddObjectToCacheFunction")]
         private static extern void NativeInterop_SetAddObjectToCacheFunction(IntPtr addObjectToCachePtr);
 
-        [DllImport("hyperion", EntryPoint = "NativeInterop_SetSetObjectReferenceTypeFunction")]
-        private static extern void NativeInterop_SetSetObjectReferenceTypeFunction(IntPtr setObjectReferenceTypePtr);
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetSetKeepAliveFunction")]
+        private static extern void NativeInterop_SetSetKeepAliveFunction(IntPtr setKeepAlivePtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetTriggerGCFunction")]
         private static extern void NativeInterop_SetTriggerGCFunction(IntPtr setTriggerGCFunctionPtr);

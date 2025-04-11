@@ -383,8 +383,6 @@ HYP_EXPORT int8 HypData_GetHypStruct(const HypData *hyp_data, dotnet::ObjectRefe
     AssertThrow(managed_class != nullptr);
     AssertThrow(managed_class->GetMarshalObjectFunction() != nullptr);
 
-    // @TODO: Find another way to marshal it without needing to add to ManagedObjectCache.
-    //  maybe we need to pass the function pointer back to C# so it can invoke it.
     *out_object_reference = managed_class->GetMarshalObjectFunction()(ref.GetPointer(), uint32(hyp_class->GetSize()));
 
     return true;

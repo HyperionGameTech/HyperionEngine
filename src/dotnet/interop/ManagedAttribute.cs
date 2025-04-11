@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Explicit, Size = 32, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 24, Pack = 8)]
     public struct ManagedAttribute
     {
         [FieldOffset(0)]

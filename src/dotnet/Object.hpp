@@ -68,7 +68,7 @@ public:
         { return m_object_flags; }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return m_object_reference.guid.IsValid(); }
+        { return m_object_reference.weak_handle != nullptr; }
 
     /*! \brief Is the object set to be kept alive?
      *  \details If true, the managed object will not be garbage collected by the .NET runtime.

@@ -451,6 +451,11 @@ public:
         return m_proc(arg_ptrs, args.Size());
     }
 
+    HYP_FORCE_INLINE HypData Invoke(Span<HypData *> args) const
+    {
+        return m_proc(args.Data(), args.Size());
+    }
+
     HYP_FORCE_INLINE HypData Invoke(const Array<HypData *> &args) const
     {
         return m_proc(const_cast<HypData **>(args.Data()), args.Size());
