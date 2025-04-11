@@ -235,11 +235,6 @@ protected:
         }
     }
 
-    virtual void CreateInstance_Internal(HypData &out, UniquePtr<dotnet::Object> &&managed_object) const override
-    {
-        HYP_NOT_IMPLEMENTED_VOID();
-    }
-
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override
     {
         if constexpr (HYP_HAS_METHOD(T, GetHashCode)) {

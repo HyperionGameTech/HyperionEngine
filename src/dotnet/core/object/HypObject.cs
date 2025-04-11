@@ -70,10 +70,6 @@ namespace Hyperion
                     _hypClassPtr = hypClass.Address;
                     
                     HypObject_Initialize(_hypClassPtr, classObjectPtr, ref objectReference, out _nativeAddress);
-
-#if DEBUG
-                    HypObject_Verify(_hypClassPtr, _nativeAddress, objectReferencePtr);
-#endif
                 }
 
                 Console.WriteLine("Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
@@ -92,10 +88,6 @@ namespace Hyperion
                 {
                     throw new Exception("Native address is null - object is not correctly initialized");
                 }
-
-#if DEBUG
-                HypObject_Verify(_hypClassPtr, _nativeAddress, IntPtr.Zero);
-#endif
             }
             
             // Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
@@ -108,7 +100,7 @@ namespace Hyperion
             if (IsValid)
             {
                 Logger.Log(LogType.Debug, $"Finalizing HypObject of type {HypClass.Name} at address 0x{(long)NativeAddress:X}");
-                
+
                 if (HypClass.IsReferenceCounted)
                 {
 #if DEBUG
@@ -225,9 +217,6 @@ namespace Hyperion
         
         [DllImport("hyperion", EntryPoint = "HypObject_Initialize")]
         private static extern void HypObject_Initialize([In] IntPtr hypClassPtr, [In] IntPtr classObjectPtr, [In] ref ObjectReference objectReference, [Out] out IntPtr outInstancePtr);
-
-        [DllImport("hyperion", EntryPoint = "HypObject_Verify")]
-        private static extern void HypObject_Verify([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress, [In] IntPtr objectReferencePtr);
 
         [DllImport("hyperion", EntryPoint = "HypObject_GetRefCount_Strong")]
         private static extern uint HypObject_GetRefCount_Strong([In] IntPtr hypClassPtr, [In] IntPtr nativeAddress);

@@ -33,6 +33,8 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     AssertThrow(object_reference != nullptr);
     AssertThrow(out_instance_ptr != nullptr);
 
+    HypObjectPtr ptr;
+
     *out_instance_ptr = nullptr;
 
     {
@@ -50,38 +52,27 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
             AnyHandle handle = std::move(value.Get<AnyHandle>());
             AssertThrow(handle.IsValid());
 
-            *out_instance_ptr = handle.Release();
+            ptr = HypObjectPtr(hyp_class, handle.Release());
         } else if (hyp_class->UseRefCountedPtr()) {
             RC<void> rc = std::move(value.Get<RC<void>>());
             AssertThrow(rc != nullptr);
 
-            *out_instance_ptr = rc.Release();
+            ptr = HypObjectPtr(hyp_class, rc.Release());
         } else {
             HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
         }
     }
 
-    IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(*out_instance_ptr);
+    *out_instance_ptr = ptr.GetPointer();
+
+    IHypObjectInitializer *initializer = ptr.GetObjectInitializer();
     AssertThrow(initializer != nullptr);
 
-    dotnet::Object *object = new dotnet::Object(class_object_ptr->RefCountedPtrFromThis(), *object_reference, ObjectFlags::CREATED_FROM_MANAGED);
-    initializer->SetManagedObject(object);
-}
-
-HYP_EXPORT void HypObject_Verify(const HypClass *hyp_class, void *native_address, dotnet::ObjectReference *object_reference)
-{
-    if (!hyp_class || !native_address) {
-        return;
-    }
-
-    AssertThrow(hyp_class->GetObjectInitializer(native_address) != nullptr);
-
-    // Object reference is only available when creating a HypObject, initiated from the C# side,
-    // in which case GetManagedObject() should not return null
-    if (object_reference != nullptr) {
-        AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject() != nullptr);
-        AssertThrow(hyp_class->GetObjectInitializer(native_address)->GetManagedObject()->GetObjectReference() == *object_reference);
-    }
+    initializer->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(
+        ptr,
+        *object_reference,
+        ObjectFlags::CREATED_FROM_MANAGED
+    ));
 }
 
 HYP_EXPORT uint32 HypObject_GetRefCount_Strong(const HypClass *hyp_class, void *native_address)

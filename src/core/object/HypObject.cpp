@@ -16,10 +16,6 @@
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>
 
-// temp; debugging
-#include <ui/UIListView.hpp>
-#include <core/debug/Debug.hpp>
-
 namespace hyperion {
 
 struct HypObjectInitializerContext
@@ -99,22 +95,13 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     IHypObjectInitializer *initializer = hyp_class->GetObjectInitializer(address);
     AssertThrow(initializer != nullptr);
 
-    dotnet::Object *managed_object = nullptr;
+    ManagedObjectResource *managed_object_resource = nullptr;
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !hyp_class->IsAbstract()) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-            if (hyp_class->IsReferenceCounted()) {
-                // Increment reference count for the managed object (it is responsible for decrementing the ref count)
-                initializer->IncRef(hyp_class->GetAllocationMethod(), address, /* weak */ false);
-            }
+            managed_object_resource = AllocateResource<ManagedObjectResource>(HypObjectPtr(hyp_class, address));
 
-            managed_object = managed_class->NewObject(hyp_class, address);
-
-            if (!managed_object) {
-                HYP_FAIL("Failed to create managed object for HypClass %s", hyp_class->GetName().LookupString());
-            }
-
-            initializer->SetManagedObject(managed_object);
+            initializer->SetManagedObjectResource(managed_object_resource);
         }
     }
 
@@ -309,13 +296,6 @@ HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *
     } while (parent_initializer != nullptr);
 }
 
-HYP_API void CleanupHypObjectInitializer(const HypClass *hyp_class, dotnet::Object *managed_object_ptr)
-{
-    if (managed_object_ptr != nullptr) {
-        delete managed_object_ptr;
-    }
-}
-
 HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class)
 {
     AssertThrow(hyp_class != nullptr);
@@ -333,35 +313,9 @@ HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
-        if (count == 2) {
-            if (dotnet::Object *object = initializer->GetManagedObject()) {
-                if (!object->SetKeepAlive(true)) {
-                    HYP_LOG(Object, Info, "Managed object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
-                        initializer->GetClass()->GetName(), ptr.GetPointer());
-
-                    // Need to recreate the managed object; could be queued for finalization.
-                    // In this case, the ref count will be decremented once the queued object is finalized
-                    const HypClass *hyp_class = initializer->GetClass();
-
-                    if (dotnet::Class *managed_class = initializer->GetManagedClass()) {
-                        if (hyp_class->IsReferenceCounted()) {
-                            // Increment reference count for the managed object
-                            initializer->IncRef(hyp_class->GetAllocationMethod(), ptr.GetPointer(), /* weak */ false);
-                        }
-            
-                        dotnet::Object *new_managed_object = managed_class->NewObject(hyp_class, ptr.GetPointer());
-            
-                        if (!new_managed_object) {
-                            HYP_FAIL("Failed to recreate managed object for HypClass %s", hyp_class->GetName().LookupString());
-                        }
-            
-                        initializer->SetManagedObject(new_managed_object);
-
-                        delete object;
-                    } else {
-                        HYP_FAIL("Failed to recreate managed object for HypClass %s", hyp_class->GetName().LookupString());
-                    }
-                }
+        if (count > 1) {
+            if (ManagedObjectResource *managed_object_resource = initializer->GetManagedObjectResource()) {
+                managed_object_resource->Claim();
             }
         }
     }
@@ -370,11 +324,9 @@ HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
-        if (count == 1) {
-            if (dotnet::Object *object = initializer->GetManagedObject()) {
-                HYP_LOG(Object, Info, "Setting managed object for object with HypClass {} at address {} to weak",
-                    initializer->GetClass()->GetName(), ptr.GetPointer());
-                AssertThrow(object->SetKeepAlive(false));
+        if (count >= 1) {
+            if (ManagedObjectResource *managed_object_resource = initializer->GetManagedObjectResource()) {
+                managed_object_resource->Unclaim();
             }
         }
     }
