@@ -442,7 +442,7 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
 
     // we could be on either entity manager owner thread
     // @TODO Use appropriate mutexes to protect the entity sets
-    Threads::AssertOnThread(m_owner_thread_id.GetMask() | other.m_owner_thread_id.GetMask());
+    Threads::AssertOnThread(m_owner_thread_id.GetMask());
 
     AssertThrow(entity.IsValid());
 
@@ -454,14 +454,7 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
     // Notify systems of the entity being removed from this EntityManager
     NotifySystemsOfEntityRemoved(entity, entity_data.components);
 
-    other.m_entities.AddEntity(entity);
-    
-    GetEntityToEntityManagerMap().Remap(entity, &other);
-
-    const auto other_entities_it = other.m_entities.Find(entity);
-    AssertThrow(other_entities_it != other.m_entities.End());
-
-    EntityData &other_entity_data = other_entities_it->second;
+    EntityData other_entity_data { };
 
     TypeMap<ComponentID> new_component_ids;
 
@@ -522,8 +515,23 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &othe
         m_entities.Erase(entities_it);
     }
 
-    // Notify systems of the entity being added to the other EntityManager
-    other.NotifySystemsOfEntityAdded(entity, new_component_ids);
+    auto Impl = [&]()
+    {
+        other.m_entities.AddEntity(entity, std::move(other_entity_data));
+        
+        GetEntityToEntityManagerMap().Remap(entity, &other);
+
+        const auto other_entities_it = other.m_entities.Find(entity);
+        AssertThrow(other_entities_it != other.m_entities.End());
+
+        other.NotifySystemsOfEntityAdded(entity, new_component_ids);
+    };
+
+    if (Threads::IsOnThread(other.GetOwnerThreadID())) {
+        Impl();
+    } else {
+        Threads::GetThread(other.GetOwnerThreadID())->GetScheduler().Enqueue(std::move(Impl)).Await();
+    }
 }
 
 void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)

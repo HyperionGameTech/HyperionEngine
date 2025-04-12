@@ -39,40 +39,6 @@ void MeshInstanceData_PostLoad(MeshInstanceData &mesh_instance_data)
     }
 }
 
-#pragma region RenderProxy
-
-void RenderProxy::ClaimRenderResources() const
-{
-    // if (material) {
-    //     material->Claim();
-    // }
-
-    // if (mesh) {
-    //     mesh->Claim();
-    // }
-
-    // if (skeleton) {
-    //     skeleton->Claim();
-    // }
-}
-
-void RenderProxy::UnclaimRenderResources() const
-{
-    // if (material) {
-    //     material->Unclaim();
-    // }
-
-    // if (mesh) {
-    //     mesh->Unclaim();
-    // }
-
-    // if (skeleton) {
-    //     skeleton->Unclaim();
-    // }
-}
-
-#pragma endregion RenderProxy
-
 #pragma region RenderProxyList
 
 void RenderProxyList::Reserve(SizeType capacity)

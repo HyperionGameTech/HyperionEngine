@@ -48,10 +48,10 @@ public:
     virtual SizeType NumAllocatedElements() const = 0;
     virtual SizeType NumAllocatedBytes() const = 0;
     
-    virtual void IncRefStrong(HypObjectHeader *) = 0;
-    virtual void IncRefWeak(HypObjectHeader *) = 0;
-    virtual void DecRefStrong(HypObjectHeader *) = 0;
-    virtual void DecRefWeak(HypObjectHeader *) = 0;
+    virtual uint32 IncRefStrong(HypObjectHeader *) = 0;
+    virtual uint32 IncRefWeak(HypObjectHeader *) = 0;
+    virtual uint32 DecRefStrong(HypObjectHeader *) = 0;
+    virtual uint32 DecRefWeak(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountStrong(HypObjectHeader *) = 0;
     virtual uint32 GetRefCountWeak(HypObjectHeader *) = 0;
     virtual void *Release(HypObjectHeader *) = 0;
@@ -108,17 +108,17 @@ struct HypObjectHeader
     HYP_FORCE_INLINE uint32 GetRefCountWeak() const
         { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
 
-    HYP_FORCE_INLINE void IncRefStrong()
-        { container->IncRefStrong(this); }
+    HYP_FORCE_INLINE uint32 IncRefStrong()
+        { return container->IncRefStrong(this); }
 
-    HYP_FORCE_INLINE void IncRefWeak()
-        { container->IncRefWeak(this); }
+    HYP_FORCE_INLINE uint32 IncRefWeak()
+        { return container->IncRefWeak(this); }
 
-    HYP_FORCE_INLINE void DecRefStrong()
-        { container->DecRefStrong(this); }
+    HYP_FORCE_INLINE uint32 DecRefStrong()
+        { return container->DecRefStrong(this); }
 
-    HYP_FORCE_INLINE void DecRefWeak()
-        { container->DecRefWeak(this); }
+    HYP_FORCE_INLINE uint32 DecRefWeak()
+        { return container->DecRefWeak(this); }
 
     HYP_FORCE_INLINE void *Release()
         { return container->Release(this); }
@@ -321,26 +321,26 @@ public:
         return element;
     }
 
-    virtual void IncRefStrong(HypObjectHeader *ptr) override
+    virtual uint32 IncRefStrong(HypObjectHeader *ptr) override
     {
-        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::IncRefStrong();
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::IncRefStrong();
     }
 
-    virtual void IncRefWeak(HypObjectHeader *ptr) override
+    virtual uint32 IncRefWeak(HypObjectHeader *ptr) override
     {
-        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::IncRefWeak();
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::IncRefWeak();
     }
 
-    virtual void DecRefStrong(HypObjectHeader *ptr) override
+    virtual uint32 DecRefStrong(HypObjectHeader *ptr) override
     {
         // Have to call the derived implementation or it will recursive infinitely
-        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefStrong();
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefStrong();
     }
 
-    virtual void DecRefWeak(HypObjectHeader *ptr) override
+    virtual uint32 DecRefWeak(HypObjectHeader *ptr) override
     {
         // Have to call the derived implementation or it will recursive infinitely
-        static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefWeak();
+        return static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefWeak();
     }
 
     virtual uint32 GetRefCountStrong(HypObjectHeader *ptr) override

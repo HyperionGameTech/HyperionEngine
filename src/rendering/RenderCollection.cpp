@@ -197,20 +197,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         proxy_list.MarkToRemove(entity);
 
         return removed;
-
-        // HYP_SCOPE;
-
-        // bool removed = false;
-
-        // for (auto &render_groups_by_attributes : collection->GetProxyGroups()) {
-        //     for (auto &it : render_groups_by_attributes) {
-        //         removed |= it.second->RemoveRenderProxy(entity);
-        //     }
-        // }
-
-        // proxy_list.MarkToRemove(entity);
-
-        // return removed;
     }
 
     virtual RendererResult operator()() override
@@ -235,8 +221,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 Debug,
                 "Added proxy for entity {} (mesh={}, count: {}, material={}, count: {})",
                 added.entity.GetID().Value(),
-                added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumClaims() : 0,
-                added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumClaims() : 0
+                added.mesh ? *added.mesh->GetMesh()->GetName() : "null", added.mesh ? added.mesh->NumClaims() : 0,
+                added.material ? *added.material->GetMaterial()->GetName() : "null", added.material ? added.material->NumClaims() : 0
             );
         }
 
@@ -254,8 +240,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
-            // proxy->UnclaimRenderResources();
-
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -263,8 +247,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            // proxy.ClaimRenderResources();
-
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 

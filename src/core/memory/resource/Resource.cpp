@@ -16,6 +16,9 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Memory);
 HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 
+static constexpr uint32 g_update_write_flag = 0x1u;
+static constexpr uint32 g_update_read_mask = ~0u << 1;
+
 #pragma region Memory Pool
 
 static TypeMap<UniquePtr<IResourceMemoryPool>> g_resource_memory_pools;
@@ -40,13 +43,15 @@ HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 ResourceBase::ResourceBase()
     : m_is_initialized(false),
-      m_update_counter(0)
+      m_update_counter(0),
+      m_update_rw_mask(0)
 {
 }
 
 ResourceBase::ResourceBase(ResourceBase &&other) noexcept
     : m_is_initialized(other.m_is_initialized),
-      m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
+      m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+      m_update_rw_mask(0)
 {
     other.m_is_initialized = false;
 }
@@ -54,6 +59,7 @@ ResourceBase::ResourceBase(ResourceBase &&other) noexcept
 ResourceBase::~ResourceBase()
 {
     // Ensure that the resources are no longer being used
+    AssertThrowMsg(m_completion_semaphore.IsInSignalState(), "Resource destroyed while still in use, was WaitForTaskCompletion() called?");
     AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Resource destroyed while still in use, was WaitForFinalization() called?");
 }
 
@@ -75,7 +81,11 @@ int ResourceBase::Claim()
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
             // Wait for pre-init to complete
-            m_pre_init_semaphore.Acquire();
+            uint64 state = m_update_rw_mask.BitOr(g_update_write_flag, MemoryOrder::ACQUIRE);
+            while (state & g_update_read_mask) {
+                state = m_update_rw_mask.Get(MemoryOrder::ACQUIRE);
+                Threads::Sleep(0);
+            }
 
             HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -104,6 +114,7 @@ int ResourceBase::Claim()
         }
 
         m_completion_semaphore.Release(1);
+        m_update_rw_mask.BitAnd(~g_update_write_flag, MemoryOrder::RELEASE);
     };
 
     HYP_SCOPE;
@@ -131,6 +142,7 @@ int ResourceBase::Claim()
     return result;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 int ResourceBase::Unclaim()
 {
     auto Impl = [this]()
@@ -173,6 +185,7 @@ int ResourceBase::Unclaim()
 
     return result;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void ResourceBase::SetNeedsUpdate()
 {
@@ -205,8 +218,14 @@ void ResourceBase::SetNeedsUpdate()
     // If not yet initialized, increment the counter and return immediately
     // Otherwise, we need to push a command to the owner thread
     if (m_claimed_semaphore.IsInSignalState()) {
-        m_pre_init_semaphore.Produce(1);
-        HYP_DEFER({ m_pre_init_semaphore.Release(1); });
+        uint64 state;
+        while (((state = m_update_rw_mask.Increment(2, MemoryOrder::ACQUIRE)) & g_update_write_flag)) {
+            m_update_rw_mask.Decrement(2, MemoryOrder::RELAXED);
+            // wait for write flag to be released
+            Threads::Sleep(0);
+        }
+
+        HYP_DEFER({ m_update_rw_mask.Decrement(2, MemoryOrder::RELEASE); });
 
         // Check again, as it might have been initialized in between the initial check and the increment
         if (m_claimed_semaphore.IsInSignalState()) {
@@ -235,7 +254,11 @@ void ResourceBase::WaitForTaskCompletion() const
 
     if (CanExecuteInline()) {
         // Wait for any threads that are using this Resource pre-initialization to stop
-        m_pre_init_semaphore.Acquire();
+        uint64 state = m_update_rw_mask.BitOr(g_update_write_flag, MemoryOrder::ACQUIRE);
+        while (state & g_update_read_mask) {
+            state = m_update_rw_mask.Get(MemoryOrder::ACQUIRE);
+            Threads::Sleep(0);
+        }
 
         if (!m_completion_semaphore.IsInSignalState()) {
             if (GetOwnerThread() == nullptr) { // No owner thread is used to execute tasks on.
@@ -253,6 +276,8 @@ void ResourceBase::WaitForTaskCompletion() const
             AssertThrow(m_completion_semaphore.IsInSignalState());
         }
 
+        m_update_rw_mask.BitAnd(~g_update_write_flag, MemoryOrder::RELEASE);
+
         return;
     }
 
@@ -264,9 +289,8 @@ void ResourceBase::WaitForFinalization() const
 {
     HYP_SCOPE;
 
-    WaitForTaskCompletion();
-
     m_claimed_semaphore.Acquire();
+    WaitForTaskCompletion();
 }
 
 void ResourceBase::Execute(Proc<void()> &&proc, bool force_owner_thread)
@@ -277,10 +301,15 @@ void ResourceBase::Execute(Proc<void()> &&proc, bool force_owner_thread)
 
     if (!force_owner_thread) {
         if (m_claimed_semaphore.IsInSignalState()) {
-            // Initialization (happens on owner thread) will wait for this value to hit zero
-            m_pre_init_semaphore.Produce(1);
+            // Initialization (happens on owner thread) will wait for the mask to be cleared
+            uint64 state;
+            while (((state = m_update_rw_mask.Increment(2, MemoryOrder::ACQUIRE)) & g_update_write_flag)) {
+                m_update_rw_mask.Decrement(2, MemoryOrder::RELAXED);
+                // wait for write flag to be released
+                Threads::Sleep(0);
+            }
 
-            HYP_DEFER({ m_pre_init_semaphore.Release(1); });
+            HYP_DEFER({ m_update_rw_mask.Decrement(2, MemoryOrder::RELEASE); });
 
             // Check again, as it might have been initialized in between the initial check and the increment
             if (m_claimed_semaphore.IsInSignalState()) {
@@ -331,6 +360,8 @@ void ResourceBase::FlushScheduledTasks() const
 {
     IThread *owner_thread = GetOwnerThread();
     AssertThrow(owner_thread != nullptr);
+
+    HYP_LOG(Resource, Debug, "Flushing scheduled tasks for Resource on thread {}", owner_thread->GetID().GetName());
 
     owner_thread->GetScheduler().Flush([](auto &operation)
     {

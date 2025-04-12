@@ -108,7 +108,7 @@ public:
      *   \param frame_index The frame index to get the descriptor set for
      *   \returns The descriptor set for the given material and frame index or nullptr if not found
      */
-    const DescriptorSetRef &GetDescriptorSet(ID<Material> id, uint32 frame_index) const;
+    const DescriptorSetRef &GetDescriptorSet(MaterialRenderResource *material_render_resource, uint32 frame_index) const;
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
@@ -117,7 +117,7 @@ public:
      *  be created on the next call to Update.
      *  \param material The material to add
      */
-    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(MaterialRenderResource *material_render_resource);
 
     /*! \brief Add a material to the manager. This will create a descriptor set for
      *  the material and add it to the manager. Usable from any thread.
@@ -127,20 +127,20 @@ public:
      *  \param material The material to add
      *  \param textures The textures to add to the material
      */
-    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
+    FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(MaterialRenderResource *material_render_resource, FixedArray<Handle<Texture>, max_bound_textures> &&textures);
 
     /*! \brief Remove a material from the manager. This will remove the descriptor set
      *  for the material from the manager. Usable from any thread.
      *  \param material A weak handle to the material to remove
      */
-    void EnqueueRemoveMaterial(const WeakHandle<Material> &material);
+    void EnqueueRemoveMaterial(MaterialRenderResource *material_render_resource);
 
     /*! \brief Remove a material from the manager. Only to be used from the render thread.
      *  \param material The ID of the material to remove
      */
-    void RemoveMaterial(ID<Material> material);
+    void RemoveMaterial(MaterialRenderResource *material_render_resource);
 
-    void SetNeedsDescriptorSetUpdate(const Handle<Material> &material);
+    void SetNeedsDescriptorSetUpdate(MaterialRenderResource *material_render_resource);
 
     /*! \brief Initialize the MaterialDescriptorSetManager - Only to be used by the owning Engine instance. */
     void Initialize();
@@ -154,16 +154,16 @@ public:
 private:
     void CreateInvalidMaterialDescriptorSet();
 
-    HashMap<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
+    HashMap<MaterialRenderResource *, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
 
-    Array<Pair<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
-    Array<WeakHandle<Material>>                                                             m_pending_removal;
-    Mutex                                                                                   m_pending_mutex;
-    AtomicVar<bool>                                                                         m_pending_addition_flag;
+    Array<Pair<MaterialRenderResource *, FixedArray<DescriptorSetRef, max_frames_in_flight>>>   m_pending_addition;
+    Array<MaterialRenderResource *>                                                             m_pending_removal;
+    Mutex                                                                                       m_pending_mutex;
+    AtomicVar<bool>                                                                             m_pending_addition_flag;
 
-    FixedArray<Array<WeakHandle<Material>>, max_frames_in_flight>                           m_descriptor_sets_to_update;
-    Mutex                                                                                   m_descriptor_sets_to_update_mutex;
-    AtomicVar<uint32>                                                                       m_descriptor_sets_to_update_flag;
+    FixedArray<Array<MaterialRenderResource *>, max_frames_in_flight>                           m_descriptor_sets_to_update;
+    Mutex                                                                                       m_descriptor_sets_to_update_mutex;
+    AtomicVar<uint32>                                                                           m_descriptor_sets_to_update_flag;
 };
 
 } // namespace hyperion

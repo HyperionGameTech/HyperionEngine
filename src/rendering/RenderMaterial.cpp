@@ -76,6 +76,8 @@ void MaterialRenderResource::Destroy_Internal()
 
     AssertThrow(m_material != nullptr);
 
+    HYP_LOG(Rendering, Debug, "Destroying material render resource for material {}.", m_material->GetName());
+
     m_texture_render_resources.Clear();
     
     if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
@@ -91,10 +93,10 @@ void MaterialRenderResource::Update_Internal()
     
     const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
 
-    auto SetMaterialTexture = [](const Handle<Material> &material, uint32 texture_index, const Handle<Texture> &texture)
+    auto SetMaterialTexture = [this](uint32 texture_index, const Handle<Texture> &texture)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager()->GetDescriptorSet(material.GetID(), frame_index);
+            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager()->GetDescriptorSet(this, frame_index);
             AssertThrow(descriptor_set != nullptr);
 
             if (texture.IsValid()) {
@@ -106,14 +108,10 @@ void MaterialRenderResource::Update_Internal()
             }
         }
 
-        g_engine->GetMaterialDescriptorSetManager()->SetNeedsDescriptorSetUpdate(material);
+        g_engine->GetMaterialDescriptorSetManager()->SetNeedsDescriptorSetUpdate(this);
     };
 
     if (!use_bindless_textures) {
-        Handle<Material> material_locked = m_material->HandleFromThis();
-
-        HYP_LOG(Material, Debug, "Updating material with ID #{} (name: {})", material_locked->GetID().Value(), *material_locked->GetName());
-
         for (const auto &it : m_textures) {
             const uint32 texture_index = uint32(Material::TextureSet::EnumToOrdinal(it.first));
 
@@ -125,7 +123,7 @@ void MaterialRenderResource::Update_Internal()
 
             const Handle<Texture> &texture = it.second;
 
-            SetMaterialTexture(material_locked, texture_index, texture);
+            SetMaterialTexture(texture_index, texture);
         }
     }
 }
@@ -138,8 +136,6 @@ GPUBufferHolderBase *MaterialRenderResource::GetGPUBufferHolder() const
 void MaterialRenderResource::CreateDescriptorSets()
 {
     HYP_SCOPE;
-
-    AssertThrow(m_material != nullptr);
 
     FixedArray<Handle<Texture>, max_bound_textures> texture_bindings;
 
@@ -155,16 +151,14 @@ void MaterialRenderResource::CreateDescriptorSets()
         }
     }
 
-    m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager()->AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
+    m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager()->AddMaterial(this, std::move(texture_bindings));
 }
 
 void MaterialRenderResource::DestroyDescriptorSets()
 {
     HYP_SCOPE;
-
-    AssertThrow(m_material != nullptr);
     
-    g_engine->GetMaterialDescriptorSetManager()->RemoveMaterial(m_material->GetID());
+    g_engine->GetMaterialDescriptorSetManager()->RemoveMaterial(this);
     m_descriptor_sets = { };
 }
 
@@ -329,14 +323,14 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 
     DeferCreate(invalid_descriptor_set, g_engine->GetGPUDevice());
 
-    m_material_descriptor_sets.Set(WeakHandle<Material> {}, { invalid_descriptor_set, invalid_descriptor_set });
+    m_material_descriptor_sets.Set(nullptr, { invalid_descriptor_set, invalid_descriptor_set });
 }
 
-const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Material> id, uint32 frame_index) const
+const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(MaterialRenderResource *material_render_resource, uint32 frame_index) const
 {
     Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    const auto it = m_material_descriptor_sets.FindAs(id);
+    const auto it = m_material_descriptor_sets.Find(material_render_resource);
 
     if (it == m_material_descriptor_sets.End()) {
         return DescriptorSetRef::unset;
@@ -345,9 +339,9 @@ const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Materi
     return it->second[frame_index];
 }
 
-FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material)
+FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(MaterialRenderResource *material_render_resource)
 {
-    if (!material.IsValid()) {
+    if (!material_render_resource) {
         return { };
     }
 
@@ -372,12 +366,12 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
             HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
         }
 
-        m_material_descriptor_sets.Insert(material, descriptor_sets);
+        m_material_descriptor_sets.Insert(material_render_resource, descriptor_sets);
     } else {
         Mutex::Guard guard(m_pending_mutex);
 
         m_pending_addition.PushBack({
-            material,
+            material_render_resource,
             descriptor_sets
         });
 
@@ -387,9 +381,9 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     return descriptor_sets;
 }
 
-FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(const Handle<Material> &material, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
+FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager::AddMaterial(MaterialRenderResource *material_render_resource, FixedArray<Handle<Texture>, max_bound_textures> &&textures)
 {
-    if (!material.IsValid()) {
+    if (!material_render_resource) {
         return { };
     }
 
@@ -424,12 +418,12 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
             HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
         }
 
-        m_material_descriptor_sets.Insert(material, descriptor_sets);
+        m_material_descriptor_sets.Insert(material_render_resource, descriptor_sets);
     } else {
         Mutex::Guard guard(m_pending_mutex);
 
         m_pending_addition.PushBack({
-            material,
+            material_render_resource,
             std::move(descriptor_sets)
         });
 
@@ -439,20 +433,18 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     return descriptor_sets;
 }
 
-void MaterialDescriptorSetManager::EnqueueRemoveMaterial(const WeakHandle<Material> &material)
+void MaterialDescriptorSetManager::EnqueueRemoveMaterial(MaterialRenderResource *material_render_resource)
 {
-    if (!material.IsValid()) {
+    if (!material_render_resource) {
         return;
     }
-
-    HYP_LOG(Material, Debug, "EnqueueRemove material with ID {} from thread {}", material.GetID().Value(), Threads::CurrentThreadID().GetName());
 
     Mutex::Guard guard(m_pending_mutex);
     
     while (true) {
-        const auto pending_addition_it = m_pending_addition.FindIf([&material](const auto &item)
+        const auto pending_addition_it = m_pending_addition.FindIf([material_render_resource](const auto &item)
         {
-            return item.first == material;
+            return item.first == material_render_resource;
         });
 
         if (pending_addition_it == m_pending_addition.End()) {
@@ -462,18 +454,18 @@ void MaterialDescriptorSetManager::EnqueueRemoveMaterial(const WeakHandle<Materi
         m_pending_addition.Erase(pending_addition_it);
     }
 
-    if (!m_pending_removal.Contains(material)) {
-        m_pending_removal.PushBack(material);
+    if (!m_pending_removal.Contains(material_render_resource)) {
+        m_pending_removal.PushBack(material_render_resource);
     }
 
     m_pending_addition_flag.Set(true, MemoryOrder::RELEASE);
 }
 
-void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
+void MaterialDescriptorSetManager::RemoveMaterial(MaterialRenderResource *material_render_resource)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    if (!id.IsValid()) {
+    if (!material_render_resource) {
         return;
     }
 
@@ -481,9 +473,9 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
         Mutex::Guard guard(m_pending_mutex);
     
         while (true) {
-            const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
+            const auto pending_addition_it = m_pending_addition.FindIf([material_render_resource](const auto &item)
             {
-                return item.first.GetID() == id;
+                return item.first == material_render_resource;
             });
 
             if (pending_addition_it == m_pending_addition.End()) {
@@ -493,14 +485,14 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
             m_pending_addition.Erase(pending_addition_it);
         }
 
-        const auto pending_removal_it = m_pending_removal.FindAs(id);
+        const auto pending_removal_it = m_pending_removal.Find(material_render_resource);
 
         if (pending_removal_it != m_pending_removal.End()) {
             m_pending_removal.Erase(pending_removal_it);
         }
     }
 
-    const auto material_descriptor_sets_it = m_material_descriptor_sets.FindAs(id);
+    const auto material_descriptor_sets_it = m_material_descriptor_sets.Find(material_render_resource);
 
     if (material_descriptor_sets_it != m_material_descriptor_sets.End()) {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -511,22 +503,22 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
     }
 }
 
-void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(const Handle<Material> &material)
+void MaterialDescriptorSetManager::SetNeedsDescriptorSetUpdate(MaterialRenderResource *material_render_resource)
 {
-    if (!material.IsValid()) {
+    if (!material_render_resource) {
         return;
     }
 
     Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const auto it = m_descriptor_sets_to_update[frame_index].FindAs(material);
+        const auto it = m_descriptor_sets_to_update[frame_index].Find(material_render_resource);
 
         if (it != m_descriptor_sets_to_update[frame_index].End()) {
             continue;
         }
 
-        m_descriptor_sets_to_update[frame_index].PushBack(material);
+        m_descriptor_sets_to_update[frame_index].PushBack(material_render_resource);
     }
 
     m_descriptor_sets_to_update_flag.Set(0x3, MemoryOrder::RELEASE);
@@ -589,8 +581,8 @@ void MaterialDescriptorSetManager::Update(Frame *frame)
     if (descriptor_sets_to_update_flag & (1u << frame_index)) {
         Mutex::Guard guard(m_descriptor_sets_to_update_mutex);
 
-        for (const WeakHandle<Material> &material : m_descriptor_sets_to_update[frame_index]) {
-            const auto it = m_material_descriptor_sets.Find(material);
+        for (MaterialRenderResource *material_render_resource : m_descriptor_sets_to_update[frame_index]) {
+            const auto it = m_material_descriptor_sets.Find(material_render_resource);
 
             if (it == m_material_descriptor_sets.End()) {
                 continue;

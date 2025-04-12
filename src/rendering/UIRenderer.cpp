@@ -253,14 +253,10 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
-            // proxy->UnclaimRenderResource();
-
             proxy_list.MarkToRemove(entity);
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            // proxy.ClaimRenderResource();
-
             proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
 

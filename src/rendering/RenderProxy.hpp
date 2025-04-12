@@ -107,9 +107,6 @@ struct RenderProxy
     MeshInstanceData                        instance_data;
     uint32                                  version = 0;
 
-    void ClaimRenderResources() const;
-    void UnclaimRenderResources() const;
-
     bool operator==(const RenderProxy &other) const
     {
         return entity == other.entity

@@ -307,7 +307,26 @@ void Node::SetScene(Scene *scene)
             if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr) {
                 AssertThrow(m_scene->GetEntityManager() != nullptr);
                 
-                previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
+                if (Threads::IsOnThread(previous_scene->GetEntityManager()->GetOwnerThreadID())) {
+                    previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
+                } else {
+                    Threads::GetThread(previous_scene->GetEntityManager()->GetOwnerThreadID())->GetScheduler().Enqueue(
+                        [this, entity_weak = m_entity.ToWeak(), previous_entity_manager_weak = previous_scene->GetEntityManager()->WeakRefCountedPtrFromThis(), entity_manager_weak = m_scene->GetEntityManager()->WeakRefCountedPtrFromThis()]()
+                        {
+                            Handle<Entity> entity = entity_weak.Lock();
+
+                            RC<EntityManager> previous_entity_manager = previous_entity_manager_weak.Lock();
+                            RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+
+                            if (!entity || !previous_entity_manager || !entity_manager) {
+                                return;
+                            }
+
+                            previous_entity_manager->MoveEntity(entity, *entity_manager);
+                        },
+                        TaskEnqueueFlags::FIRE_AND_FORGET
+                    );
+                }
             } else {
                 // Entity manager null - exiting engine is likely cause here
 

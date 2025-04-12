@@ -107,9 +107,23 @@ public:
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        EntityData data;
-
         auto it = m_entities.Insert(handle.ToWeak(), {});
+        AssertThrow(it.second);
+    }
+
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle, const EntityData &entity_data)
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        auto it = m_entities.Insert(handle.ToWeak(), entity_data);
+        AssertThrow(it.second);
+    }
+
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle, EntityData &&entity_data)
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        auto it = m_entities.Insert(handle.ToWeak(), std::move(entity_data));
         AssertThrow(it.second);
     }
 

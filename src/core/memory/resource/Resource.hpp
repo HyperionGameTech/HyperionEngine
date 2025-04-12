@@ -135,8 +135,8 @@ protected:
     AtomicVar<int16>            m_update_counter;
 
     ClaimedSemaphore            m_claimed_semaphore;
-    PreInitSemaphore            m_pre_init_semaphore;
     CompletionSemaphore         m_completion_semaphore;
+    mutable AtomicVar<uint32>   m_update_rw_mask;
 
     ResourceMemoryPoolHandle    m_pool_handle;
     
