@@ -21,8 +21,8 @@
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
-static const double g_system_execution_group_lag_spike_threshold = 50.0;
-static const uint32 g_entity_manager_command_queue_warning_size = 8192;
+static constexpr double g_system_execution_group_lag_spike_threshold = 50.0;
+static constexpr uint32 g_entity_manager_command_queue_warning_size = 8192;
 
 #define HYP_SYSTEMS_PARALLEL_EXECUTION
 // #define HYP_SYSTEMS_LAG_SPIKE_DETECTION
@@ -259,7 +259,8 @@ EntityManager::EntityManager(const ThreadID &owner_thread_id, Scene *scene, Enum
       m_flags(flags),
       m_command_queue(g_game_thread == owner_thread_id ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE),
       m_root_synchronous_execution_group(nullptr),
-      m_is_initialized(false)
+      m_is_initialized(false),
+      m_move_entity_rw_mask(0)
 {
     AssertThrow(scene != nullptr);
 
@@ -287,6 +288,8 @@ void EntityManager::Initialize()
     Threads::AssertOnThread(m_owner_thread_id);
 
     AssertThrow(!m_is_initialized);
+
+    MoveEntityGuard move_entity_guard(*this);
 
     for (SystemExecutionGroup &group : m_system_execution_groups) {
         for (auto &system_it : group.GetSystems()) {
@@ -363,7 +366,8 @@ Handle<Entity> EntityManager::AddEntity()
     
     Handle<Entity> entity { memory };
 
-    Mutex::Guard entities_guard(m_entities_mutex);
+    MoveEntityGuard move_entity_guard(*this);
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     m_entities.AddEntity(entity);
 
@@ -385,61 +389,56 @@ bool EntityManager::RemoveEntity(ID<Entity> id)
     // to keep ID valid while removing the entity
     WeakHandle<Entity> entity_weak { id };
 
-    TypeMap<ComponentID> component_ids;
+    MoveEntityGuard move_entity_guard(*this);
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    {
-        Mutex::Guard entities_guard(m_entities_mutex);
+    auto entities_it = m_entities.Find(id);
 
-        auto entities_it = m_entities.Find(id);
-
-        if (entities_it == m_entities.End()) {
-            return false;
-        }
-
-        EntityData &entity_data = entities_it->second;
-
-        component_ids = entity_data.components;
-
-        // Lock the entity sets mutex
-        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-        for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();) {
-            const TypeID component_type_id = component_info_pair_it->first;
-            const ComponentID component_id = component_info_pair_it->second;
-
-            auto component_container_it = m_containers.Find(component_type_id);
-
-            AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
-            AssertThrow(component_container_it->second->RemoveComponent(component_id));
-
-            // Erase the component from the entity's component map,
-            // advance the iterator
-            component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
-
-            auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-            if (component_entity_sets_it != m_component_entity_sets.End()) {
-                // For each entity set that can contain this component type, update the entity set
-                for (TypeID entity_set_type_id : component_entity_sets_it->second) {
-                    EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
-                    
-                    entity_set.OnEntityUpdated(id);
-                }
-            }
-        }
-        
-        GetEntityToEntityManagerMap().Remove(id);
-
-        m_entities.Erase(entities_it);
+    if (entities_it == m_entities.End()) {
+        return false;
     }
 
+    EntityData &entity_data = entities_it->second;
+
     // Notify systems of the entity being removed from this EntityManager
-    NotifySystemsOfEntityRemoved(id, component_ids);
+    NotifySystemsOfEntityRemoved(id, entity_data.components);
+
+    // Lock the entity sets mutex
+    Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+
+    for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();) {
+        const TypeID component_type_id = component_info_pair_it->first;
+        const ComponentID component_id = component_info_pair_it->second;
+
+        auto component_container_it = m_containers.Find(component_type_id);
+
+        AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+        AssertThrow(component_container_it->second->RemoveComponent(component_id));
+
+        // Erase the component from the entity's component map,
+        // advance the iterator
+        component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
+
+        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+        if (component_entity_sets_it != m_component_entity_sets.End()) {
+            // For each entity set that can contain this component type, update the entity set
+            for (TypeID entity_set_type_id : component_entity_sets_it->second) {
+                EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
+                
+                entity_set.OnEntityUpdated(id);
+            }
+        }
+    }
+    
+    GetEntityToEntityManagerMap().Remove(id);
+
+    m_entities.Erase(entities_it);
 
     return true;
 }
 
-Task<bool> EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other)
+void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other)
 {
     HYP_SCOPE;
 
@@ -447,26 +446,35 @@ Task<bool> EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<Enti
     AssertThrow(other != nullptr);
 
     if (this == other.Get()) {
-        Task<bool> task;
-        task.Fulfill(false);
-        
-        return task;
+        return;
+    }
+
+    {
+        MoveEntityGuard move_entity_guard(*this);
+
+        HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+        const auto entities_it = m_entities.Find(entity);
+        AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
+
+        EntityData &entity_data = entities_it->second;
+        NotifySystemsOfEntityRemoved(entity, entity_data.components);
+    }
+
+    uint64 state = m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE)
+        | other->m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE);
+
+    // Wait for read mask to be empty
+    while (state & g_move_entity_read_mask) {
+        state = m_move_entity_rw_mask.Get(MemoryOrder::ACQUIRE)
+            | other->m_move_entity_rw_mask.Get(MemoryOrder::ACQUIRE);
+
+        Threads::Sleep(0);
     }
 
     TypeMap<ComponentID> new_component_ids;
-    TypeMap<ComponentID> removed_component_ids;
 
     {
-        Mutex::Guard entities_guard(m_entities_mutex);
-        removed_component_ids = m_entities.GetEntityData(entity).components;
-    }
-
-    NotifySystemsOfEntityRemoved(entity, removed_component_ids);
-
-    {
-        Mutex::Guard guard1(m_entities_mutex);
-        Mutex::Guard guard2(other->m_entities_mutex);
-
         HYP_MT_CHECK_RW(m_entities_data_race_detector);
         HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
 
@@ -474,7 +482,7 @@ Task<bool> EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<Enti
         AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
 
         EntityData &entity_data = entities_it->second;
-
+        
         other->m_entities.AddEntity(entity);
         EntityData &other_entity_data = other->m_entities.GetEntityData(entity);
 
@@ -541,10 +549,8 @@ Task<bool> EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<Enti
 
     other->NotifySystemsOfEntityAdded(entity, new_component_ids);
 
-    Task<bool> task;
-    task.Fulfill(true);
-
-    return task;
+    m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
+    other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
 }
 
 void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
@@ -559,7 +565,7 @@ void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
     TypeMap<ComponentID> component_ids;
 
     { // critical section for entity data
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         EntityData &entity_data = m_entities.GetEntityData(entity_id);
@@ -605,14 +611,12 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
 
     Threads::AssertOnThread(m_owner_thread_id);
 
-    TypeMap<ComponentID> removed_component_ids;
-
-    Mutex::Guard entities_guard(m_entities_mutex);
-    HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
     if (!entity_id.IsValid()) {
         return false;
     }
+
+    MoveEntityGuard move_entity_guard(*this);
+    HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     EntityData &entity_data = m_entities.GetEntityData(entity_id);
 
@@ -623,6 +627,8 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
 
     const ComponentID component_id = component_it->second;
 
+    // Notify systems that entity is being removed from them
+    TypeMap<ComponentID> removed_component_ids;
     removed_component_ids.Set(component_type_id, component_id);
     
     NotifySystemsOfEntityRemoved(entity_id, removed_component_ids);

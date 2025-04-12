@@ -307,7 +307,7 @@ void Node::SetScene(Scene *scene)
             if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr) {
                 AssertThrow(m_scene->GetEntityManager() != nullptr);
 
-                previous_scene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager()).Await();
+                previous_scene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager());
             } else {
                 // Entity manager null - exiting engine is likely cause here
 
@@ -711,7 +711,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
 
         // Move entity to detached scene
-        m_scene->GetEntityManager()->MoveEntity(m_entity, GetDefaultScene()->GetEntityManager()).Await();
+        m_scene->GetEntityManager()->MoveEntity(m_entity, GetDefaultScene()->GetEntityManager());
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
@@ -733,7 +733,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
 
         // need to move the entity between EntityManagers
         if (previous_entity_manager != nullptr && previous_entity_manager != m_scene->GetEntityManager().Get()) {
-            previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager()).Await();
+            previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
 
 #ifdef HYP_DEBUG_MODE
             // Sanity check

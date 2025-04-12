@@ -73,6 +73,9 @@ HYP_MAKE_ENUM_FLAGS(EntityManagerCommandQueueFlags)
 class World;
 class Scene;
 
+static constexpr uint32 g_move_entity_write_flag = 0x1u;
+static constexpr uint32 g_move_entity_read_mask = ~0u << 1;
+
 /*! \brief A group of Systems that are able to be processed concurrently, as they do not share any dependencies.
  */
 class HYP_API SystemExecutionGroup
@@ -385,6 +388,30 @@ class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
     // Allow Entity destructor to call RemoveEntity().
     friend class Entity;
 
+    // Prevents an Entity from being moved while it is being processed on another thread.
+    // When an Entity is being moved from one EntityManager to another, the g_move_entity_write_flag is set.
+    // This prevents any other thread from reading the EntityManager while it is being moved.
+    struct MoveEntityGuard
+    {
+        const EntityManager &m_entity_manager;
+
+        MoveEntityGuard(const EntityManager &entity_manager)
+            : m_entity_manager(entity_manager)
+        {
+            uint64 state;
+            while (((state = m_entity_manager.m_move_entity_rw_mask.Increment(2, MemoryOrder::ACQUIRE)) & g_move_entity_write_flag)) {
+                m_entity_manager.m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELAXED);
+                // wait for write flag to be released
+                Threads::Sleep(0);
+            }
+        }
+
+        ~MoveEntityGuard()
+        {
+            m_entity_manager.m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
+        }
+    };
+
 public:
     static constexpr ComponentID invalid_component_id = 0;
 
@@ -470,15 +497,14 @@ public:
      *
      *  \param[in] entity The Entity to move.
      *  \param[in] other The EntityManager to move the entity to.
-     *  \return A Task that will be completed when the entity has been moved.
      */
-    Task<bool> MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other);
+    void MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other);
     
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_id);
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -547,12 +573,10 @@ public:
             return false;
         }
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
-        const EntityData &entity_data = m_entities.GetEntityData(entity);
-
-        return entity_data.HasComponent<Component>();
+        return m_entities.GetEntityData(entity).HasComponent<Component>();
     }
 
     bool HasComponent(TypeID component_type_id, ID<Entity> entity_id) const
@@ -563,12 +587,10 @@ public:
             return false;
         }
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
         
-        const EntityData &entity_data = m_entities.GetEntityData(entity_id);
-
-        return entity_data.HasComponent(component_type_id);
+        return m_entities.GetEntityData(entity_id).HasComponent(component_type_id);
     }
 
     template <class Component>
@@ -578,9 +600,8 @@ public:
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
         
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData &entity_data = m_entities.GetEntityData(entity);
@@ -611,9 +632,8 @@ public:
             return nullptr;
         }
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData *entity_data = m_entities.TryGetEntityData(entity);
@@ -666,9 +686,8 @@ public:
             return AnyRef::Empty();
         }
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData &entity_data = m_entities.GetEntityData(entity);
@@ -712,7 +731,8 @@ public:
             return { };
         }
 
-        Mutex::Guard entities_guard(m_entities_mutex);
+        MoveEntityGuard move_entity_guard(*this);
+        HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
         auto it = m_entities.Find(entity);
         if (it == m_entities.End()) {
@@ -734,12 +754,14 @@ public:
 
         Threads::AssertOnThread(m_owner_thread_id);
 
+        // To keep ID valid for NotifySystemsOfEntityAdded()
+        WeakHandle<Entity> entity_weak { entity_id };
+
         Component *component_ptr = nullptr;
         TypeMap<ComponentID> component_ids;
 
         {
-
-            Mutex::Guard entities_guard(m_entities_mutex);
+            MoveEntityGuard move_entity_guard(*this);
             HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
             EntityData &entity_data = m_entities.GetEntityData(entity_id);
@@ -796,7 +818,7 @@ public:
         WeakHandle<Entity> entity_weak { entity_id };
 
         { // critical section for entity data
-            Mutex::Guard entities_guard(m_entities_mutex);
+            MoveEntityGuard move_entity_guard(*this);
             HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
             EntityData &entity_data = m_entities.GetEntityData(entity_id);
@@ -915,7 +937,10 @@ public:
     template <class Callback>
     HYP_FORCE_INLINE void ForEachEntity(Callback &&callback) const
     {
-        ForEach(m_entities, m_entities_mutex, [callback = std::forward<Callback>(callback)](const auto &it)
+        MoveEntityGuard move_entity_guard(*this);
+        HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+        ForEach(m_entities, [callback = std::forward<Callback>(callback)](const auto &it)
         {
             const WeakHandle<Entity> &entity_weak = it.first;
             const EntityData &entity_data = it.second;
@@ -1050,11 +1075,12 @@ private:
     DataRaceDetector                                                        m_containers_data_race_detector;
     EntityContainer                                                         m_entities;
     DataRaceDetector                                                        m_entities_data_race_detector;
-    mutable Mutex                                                           m_entities_mutex;
     HashMap<TypeID, UniquePtr<EntitySetBase>>                               m_entity_sets;
     mutable Mutex                                                           m_entity_sets_mutex;
     TypeMap<HashSet<TypeID>>                                                m_component_entity_sets;
     EntityManagerCommandQueue                                               m_command_queue;
+
+    mutable AtomicVar<uint32>                                               m_move_entity_rw_mask;
 
     Array<SystemExecutionGroup>                                             m_system_execution_groups;
 
