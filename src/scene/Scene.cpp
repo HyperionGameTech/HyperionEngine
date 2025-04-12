@@ -116,8 +116,6 @@ Scene::~Scene()
 
         m_render_resource = nullptr;
     }
-
-    HYP_SYNC_RENDER();
 }
     
 void Scene::Init()

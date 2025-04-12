@@ -285,7 +285,6 @@ EntityManager::~EntityManager()
 void EntityManager::Initialize()
 {
     Threads::AssertOnThread(m_owner_thread_id);
-    HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     AssertThrow(!m_is_initialized);
 
@@ -356,7 +355,6 @@ Handle<Entity> EntityManager::AddEntity()
     HYP_SCOPE;
 
     Threads::AssertOnThread(m_owner_thread_id);
-    HYP_MT_CHECK_RW(m_entities_data_race_detector);
         
     ObjectContainer<Entity> &container = ObjectPool::GetObjectContainerHolder().GetOrCreate<Entity>();
     
@@ -365,9 +363,11 @@ Handle<Entity> EntityManager::AddEntity()
     
     Handle<Entity> entity { memory };
 
-    GetEntityToEntityManagerMap().Add(entity.GetID(), this);
+    Mutex::Guard entities_guard(m_entities_mutex);
 
     m_entities.AddEntity(entity);
+
+    GetEntityToEntityManagerMap().Add(entity.GetID(), this);
 
     return entity;
 }
@@ -377,198 +377,224 @@ bool EntityManager::RemoveEntity(ID<Entity> id)
     HYP_SCOPE;
 
     Threads::AssertOnThread(m_owner_thread_id);
-    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     if (!id.IsValid()) {
         return false;
     }
 
-    auto entities_it = m_entities.Find(id);
+    // to keep ID valid while removing the entity
+    WeakHandle<Entity> entity_weak { id };
 
-    if (entities_it == m_entities.End()) {
-        return false;
-    }
+    TypeMap<ComponentID> component_ids;
 
-    EntityData &entity_data = entities_it->second;
+    {
+        Mutex::Guard entities_guard(m_entities_mutex);
 
-    // Notify systems of the entity being removed from this EntityManager
-    NotifySystemsOfEntityRemoved(id, entity_data.components);
+        auto entities_it = m_entities.Find(id);
 
-    // Lock the entity sets mutex
-    Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-    for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();) {
-        const TypeID component_type_id = component_info_pair_it->first;
-        const ComponentID component_id = component_info_pair_it->second;
-
-        auto component_container_it = m_containers.Find(component_type_id);
-
-        AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
-        AssertThrow(component_container_it->second->RemoveComponent(component_id));
-
-        // Erase the component from the entity's component map,
-        // advance the iterator
-        component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
-
-        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-        if (component_entity_sets_it != m_component_entity_sets.End()) {
-            // For each entity set that can contain this component type, update the entity set
-            for (TypeID entity_set_type_id : component_entity_sets_it->second) {
-                EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
-                
-                entity_set.OnEntityUpdated(id);
-            }
+        if (entities_it == m_entities.End()) {
+            return false;
         }
-    }
-    
-    GetEntityToEntityManagerMap().Remove(id);
 
-    m_entities.Erase(entities_it);
+        EntityData &entity_data = entities_it->second;
 
-    return true;
-}
+        component_ids = entity_data.components;
 
-void EntityManager::MoveEntity(const Handle<Entity> &entity, EntityManager &other)
-{
-    HYP_SCOPE;
-
-    if (std::addressof(*this) == std::addressof(other)) {
-        return;
-    }
-
-    HYP_MT_CHECK_RW(m_entities_data_race_detector);
-    HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
-
-    // we could be on either entity manager owner thread
-    // @TODO Use appropriate mutexes to protect the entity sets
-    Threads::AssertOnThread(m_owner_thread_id.GetMask() | other.m_owner_thread_id.GetMask());
-
-    AssertThrow(entity.IsValid());
-
-    const auto entities_it = m_entities.Find(entity);
-    AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
-
-    EntityData &entity_data = entities_it->second;
-
-    // Notify systems of the entity being removed from this EntityManager
-    NotifySystemsOfEntityRemoved(entity, entity_data.components);
-
-    other.m_entities.AddEntity(entity);
-    
-    GetEntityToEntityManagerMap().Remap(entity, &other);
-
-    const auto other_entities_it = other.m_entities.Find(entity);
-    AssertThrow(other_entities_it != other.m_entities.End());
-
-    EntityData &other_entity_data = other_entities_it->second;
-
-    TypeMap<ComponentID> new_component_ids;
-
-    { // Critical section
+        // Lock the entity sets mutex
         Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-        Mutex::Guard other_entity_sets_guard(other.m_entity_sets_mutex);
 
         for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();) {
             const TypeID component_type_id = component_info_pair_it->first;
             const ComponentID component_id = component_info_pair_it->second;
 
             auto component_container_it = m_containers.Find(component_type_id);
+
             AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
-            AssertThrowMsg(component_container_it->second->HasComponent(component_id), "Component does not exist in component container");
+            AssertThrow(component_container_it->second->RemoveComponent(component_id));
 
-            auto other_component_container_it = other.m_containers.Find(component_type_id);
-
-            if (other_component_container_it == other.m_containers.End()) {
-                auto insert_result = other.m_containers.Set(component_type_id, component_container_it->second->GetFactory()->Create());
-                AssertThrowMsg(insert_result.second, "Failed to insert component container");
-
-                other_component_container_it = insert_result.first;
-            }
-
-            Optional<ComponentID> new_component_id = component_container_it->second->MoveComponent(component_id, *other_component_container_it->second);
-            AssertThrowMsg(new_component_id.HasValue(), "Failed to move component");
-
-            new_component_ids.Set(component_type_id, *new_component_id);
-
-            other_entity_data.components.Set(component_type_id, *new_component_id);
-
-            // Update iterator, erase the component from the entity's component map
+            // Erase the component from the entity's component map,
+            // advance the iterator
             component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
 
-            // Update our entity sets to reflect the change
+            auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+            if (component_entity_sets_it != m_component_entity_sets.End()) {
+                // For each entity set that can contain this component type, update the entity set
+                for (TypeID entity_set_type_id : component_entity_sets_it->second) {
+                    EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
+                    
+                    entity_set.OnEntityUpdated(id);
+                }
+            }
+        }
+        
+        GetEntityToEntityManagerMap().Remove(id);
+
+        m_entities.Erase(entities_it);
+    }
+
+    // Notify systems of the entity being removed from this EntityManager
+    NotifySystemsOfEntityRemoved(id, component_ids);
+
+    return true;
+}
+
+Task<bool> EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other)
+{
+    HYP_SCOPE;
+
+    AssertThrow(entity.IsValid());
+    AssertThrow(other != nullptr);
+
+    if (this == other.Get()) {
+        Task<bool> task;
+        task.Fulfill(false);
+        
+        return task;
+    }
+
+    TypeMap<ComponentID> new_component_ids;
+    TypeMap<ComponentID> removed_component_ids;
+
+    {
+        Mutex::Guard entities_guard(m_entities_mutex);
+        removed_component_ids = m_entities.GetEntityData(entity).components;
+    }
+
+    NotifySystemsOfEntityRemoved(entity, removed_component_ids);
+
+    {
+        Mutex::Guard guard1(m_entities_mutex);
+        Mutex::Guard guard2(other->m_entities_mutex);
+
+        HYP_MT_CHECK_RW(m_entities_data_race_detector);
+        HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
+
+        const auto entities_it = m_entities.Find(entity);
+        AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
+
+        EntityData &entity_data = entities_it->second;
+
+        other->m_entities.AddEntity(entity);
+        EntityData &other_entity_data = other->m_entities.GetEntityData(entity);
+
+        { // Critical section
+            Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+            Mutex::Guard other_entity_sets_guard(other->m_entity_sets_mutex);
+
+            for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();) {
+                const TypeID component_type_id = component_info_pair_it->first;
+                const ComponentID component_id = component_info_pair_it->second;
+
+                auto component_container_it = m_containers.Find(component_type_id);
+                AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+                AssertThrowMsg(component_container_it->second->HasComponent(component_id), "Component does not exist in component container");
+
+                auto other_component_container_it = other->m_containers.Find(component_type_id);
+
+                if (other_component_container_it == other->m_containers.End()) {
+                    auto insert_result = other->m_containers.Set(component_type_id, component_container_it->second->GetFactory()->Create());
+                    AssertThrowMsg(insert_result.second, "Failed to insert component container");
+
+                    other_component_container_it = insert_result.first;
+                }
+
+                Optional<ComponentID> new_component_id = component_container_it->second->MoveComponent(component_id, *other_component_container_it->second);
+                AssertThrowMsg(new_component_id.HasValue(), "Failed to move component");
+
+                new_component_ids.Set(component_type_id, *new_component_id);
+
+                other_entity_data.components.Set(component_type_id, *new_component_id);
+
+                // Update iterator, erase the component from the entity's component map
+                component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
+
+                // Update our entity sets to reflect the change
+                auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+                if (component_entity_sets_it != m_component_entity_sets.End()) {
+                    for (TypeID entity_set_type_id : component_entity_sets_it->second) {
+                        EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
+
+                        entity_set.OnEntityUpdated(entity);
+                    }
+                }
+
+                // Update other's entity sets to reflect the change
+                auto other_component_entity_sets_it = other->m_component_entity_sets.Find(component_type_id);
+
+                if (other_component_entity_sets_it != other->m_component_entity_sets.End()) {
+                    for (TypeID entity_set_type_id : other_component_entity_sets_it->second) {
+                        EntitySetBase &entity_set = *other->m_entity_sets.At(entity_set_type_id);
+
+                        entity_set.OnEntityUpdated(entity);
+                    }
+                }
+            }
+
+        }
+        
+        m_entities.Erase(entities_it);
+
+        GetEntityToEntityManagerMap().Remap(entity, other);
+    }
+
+    other->NotifySystemsOfEntityAdded(entity, new_component_ids);
+
+    Task<bool> task;
+    task.Fulfill(true);
+
+    return task;
+}
+
+void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
+{
+    const TypeID component_type_id = component.GetTypeID();
+    EnsureValidComponentType(component_type_id);
+
+    AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
+
+    Threads::AssertOnThread(m_owner_thread_id);
+
+    TypeMap<ComponentID> component_ids;
+
+    { // critical section for entity data
+        Mutex::Guard entities_guard(m_entities_mutex);
+        HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
+        EntityData &entity_data = m_entities.GetEntityData(entity_id);
+
+        // Update the EntityData
+        auto component_it = entity_data.FindComponent(component_type_id);
+        // @TODO: Replace the component if it already exists
+        AssertThrowMsg(component_it == entity_data.components.End(), "Entity already has component of type %u", component_type_id.Value());
+
+        ComponentContainerBase *container = TryGetContainer(component_type_id);
+        AssertThrowMsg(container != nullptr, "Component container does not exist for component type %u", component_type_id.Value());
+
+        const ComponentID component_id = container->AddComponent(component);
+        entity_data.components.Set(component.GetTypeID(), component_id);
+
+        { // Lock the entity sets mutex
+            Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+
+            // Update entity sets
             auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 
             if (component_entity_sets_it != m_component_entity_sets.End()) {
                 for (TypeID entity_set_type_id : component_entity_sets_it->second) {
                     EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
 
-                    entity_set.OnEntityUpdated(entity);
-                }
-            }
-
-            // Update other's entity sets to reflect the change
-            auto other_component_entity_sets_it = other.m_component_entity_sets.Find(component_type_id);
-
-            if (other_component_entity_sets_it != other.m_component_entity_sets.End()) {
-                for (TypeID entity_set_type_id : other_component_entity_sets_it->second) {
-                    EntitySetBase &entity_set = *other.m_entity_sets.At(entity_set_type_id);
-
-                    entity_set.OnEntityUpdated(entity);
+                    entity_set.OnEntityUpdated(entity_id);
                 }
             }
         }
 
-        m_entities.Erase(entities_it);
-    }
-
-    // Notify systems of the entity being added to the other EntityManager
-    other.NotifySystemsOfEntityAdded(entity, new_component_ids);
-}
-
-void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
-{
-    const TypeID component_type_id = component.GetTypeID();
-
-    EnsureValidComponentType(component_type_id);
-
-    Threads::AssertOnThread(m_owner_thread_id);
-    HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
-    AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
-
-    EntityData &entity_data = m_entities.GetEntityData(entity_id);
-
-    TypeMap<ComponentID> component_ids;
-
-    // Update the EntityData
-    auto component_it = entity_data.FindComponent(component_type_id);
-    // @TODO: Replace the component if it already exists
-    AssertThrowMsg(component_it == entity_data.components.End(), "Entity already has component of type %u", component_type_id.Value());
-
-    ComponentContainerBase *container = TryGetContainer(component_type_id);
-    AssertThrowMsg(container != nullptr, "Component container does not exist for component type %u", component_type_id.Value());
-
-    const ComponentID component_id = container->AddComponent(component);
-    entity_data.components.Set(component.GetTypeID(), component_id);
-
-    { // Lock the entity sets mutex
-        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-        // Update entity sets
-        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-        if (component_entity_sets_it != m_component_entity_sets.End()) {
-            for (TypeID entity_set_type_id : component_entity_sets_it->second) {
-                EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
-
-                entity_set.OnEntityUpdated(entity_id);
-            }
-        }
+        component_ids = entity_data.components;
     }
 
     // Notify systems that entity is being added to them
-    NotifySystemsOfEntityAdded(entity_id, entity_data.components);
+    NotifySystemsOfEntityAdded(entity_id, component_ids);
 }
 
 bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_id)
@@ -578,6 +604,10 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
     EnsureValidComponentType(component_type_id);
 
     Threads::AssertOnThread(m_owner_thread_id);
+
+    TypeMap<ComponentID> removed_component_ids;
+
+    Mutex::Guard entities_guard(m_entities_mutex);
     HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
     if (!entity_id.IsValid()) {
@@ -593,8 +623,6 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
 
     const ComponentID component_id = component_it->second;
 
-    // Notify systems that entity is being removed from them
-    TypeMap<ComponentID> removed_component_ids;
     removed_component_ids.Set(component_type_id, component_id);
     
     NotifySystemsOfEntityRemoved(entity_id, removed_component_ids);
@@ -686,29 +714,6 @@ void EntityManager::AddTag(ID<Entity> entity_id, EntityTag tag)
     }
 
     AddComponent(entity_id, component_hyp_data.ToRef());
-
-    /*const ComponentID component_id = container->AddComponent(component_hyp_data.ToRef());
-
-    EntityData &entity_data = m_entities.GetEntityData(entity_id);
-    entity_data.components.Set(component_type_id, component_id);
-
-    { // Lock the entity sets mutex
-        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-        // Update entity sets
-        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-        if (component_entity_sets_it != m_component_entity_sets.End()) {
-            for (TypeID entity_set_type_id : component_entity_sets_it->second) {
-                EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
-
-                entity_set.OnEntityUpdated(entity_id);
-            }
-        }
-    }
-
-    // Notify systems that entity is being added to them
-    NotifySystemsOfEntityAdded(entity_id, entity_data.components);*/
 }
 
 bool EntityManager::RemoveTag(ID<Entity> entity_id, EntityTag tag)
@@ -737,7 +742,6 @@ bool EntityManager::RemoveTag(ID<Entity> entity_id, EntityTag tag)
 void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity_id, const TypeMap<ComponentID> &component_ids)
 {
     HYP_SCOPE;
-    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     if (!entity_id.IsValid()) {
         return;
@@ -776,7 +780,6 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity_id, const TypeM
 void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMap<ComponentID> &component_ids)
 {
     HYP_SCOPE;
-    HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     if (!entity.IsValid()) {
         return;

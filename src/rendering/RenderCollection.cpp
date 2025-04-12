@@ -356,11 +356,7 @@ RenderCollector::RenderCollector()
 {
 }
 
-RenderCollector::~RenderCollector()
-{
-    // Clear out all render proxies from the draw collection on destruction
-    ClearState();
-}
+RenderCollector::~RenderCollector() = default;
 
 RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera)
 {

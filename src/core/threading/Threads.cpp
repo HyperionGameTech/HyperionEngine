@@ -101,9 +101,9 @@ static ThreadMap g_dynamic_thread_map = { };
 thread_local IThread *g_current_thread = nullptr;
 
 #ifdef HYP_ENABLE_THREAD_ID
-thread_local ThreadID g_current_thread_id = g_main_thread;
+thread_local ThreadID g_current_thread_id = ThreadID::Invalid();
 #else
-static const ThreadID g_current_thread_id = g_main_thread;
+static const ThreadID g_current_thread_id = ThreadID::Invalid();
 #endif
 
 void Threads::SetCurrentThreadID(const ThreadID &id)

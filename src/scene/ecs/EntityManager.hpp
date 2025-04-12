@@ -24,6 +24,7 @@
 
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/ForEach.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -395,12 +396,6 @@ public:
     ~EntityManager();
 
     static EntityToEntityManagerMap &GetEntityToEntityManagerMap();
-
-    HYP_FORCE_INLINE EntityContainer &GetEntities()
-        { return m_entities; }
-
-    HYP_FORCE_INLINE const EntityContainer &GetEntities() const
-        { return m_entities; }
     
     template <class Component>
     static bool IsValidComponentType()
@@ -475,12 +470,15 @@ public:
      *
      *  \param[in] entity The Entity to move.
      *  \param[in] other The EntityManager to move the entity to.
+     *  \return A Task that will be completed when the entity has been moved.
      */
-    void MoveEntity(const Handle<Entity> &entity, EntityManager &other);
+    Task<bool> MoveEntity(const Handle<Entity> &entity, const RC<EntityManager> &other);
     
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
         Threads::AssertOnThread(m_owner_thread_id);
+
+        Mutex::Guard entities_guard(m_entities_mutex);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         if (!entity.IsValid()) {
@@ -545,12 +543,12 @@ public:
     {
         EnsureValidComponentType<Component>();
 
-        // Threads::AssertOnThread(m_owner_thread_id);
-        HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         if (!entity.IsValid()) {
             return false;
         }
+
+        Mutex::Guard entities_guard(m_entities_mutex);
+        HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         const EntityData &entity_data = m_entities.GetEntityData(entity);
 
@@ -561,13 +559,13 @@ public:
     {
         EnsureValidComponentType(component_type_id);
 
-        // Threads::AssertOnThread(m_owner_thread_id);
-        HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         if (!entity_id.IsValid()) {
             return false;
         }
 
+        Mutex::Guard entities_guard(m_entities_mutex);
+        HYP_MT_CHECK_READ(m_entities_data_race_detector);
+        
         const EntityData &entity_data = m_entities.GetEntityData(entity_id);
 
         return entity_data.HasComponent(component_type_id);
@@ -576,14 +574,13 @@ public:
     template <class Component>
     HYP_FORCE_INLINE Component &GetComponent(ID<Entity> entity)
     {
-        // // Temporarily remove this check because OnEntityAdded() and OnEntityRemoved() are called from the game thread
-        // Threads::AssertOnThread(m_owner_thread_id);
-
         EnsureValidComponentType<Component>();
 
         AssertThrowMsg(entity.IsValid(), "Invalid entity ID");
         
+        Mutex::Guard entities_guard(m_entities_mutex);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData &entity_data = m_entities.GetEntityData(entity);
@@ -614,7 +611,9 @@ public:
             return nullptr;
         }
 
+        Mutex::Guard entities_guard(m_entities_mutex);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData *entity_data = m_entities.TryGetEntityData(entity);
@@ -667,7 +666,9 @@ public:
             return AnyRef::Empty();
         }
 
+        Mutex::Guard entities_guard(m_entities_mutex);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
         HYP_MT_CHECK_READ(m_containers_data_race_detector);
 
         EntityData &entity_data = m_entities.GetEntityData(entity);
@@ -707,12 +708,11 @@ public:
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
     HYP_FORCE_INLINE Optional<const TypeMap<ComponentID> &> GetAllComponents(ID<Entity> entity) const
     {
-        // Threads::AssertOnThread(m_owner_thread_id);
-        HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
         if (!entity.IsValid()) {
             return { };
         }
+
+        Mutex::Guard entities_guard(m_entities_mutex);
 
         auto it = m_entities.Find(entity);
         if (it == m_entities.End()) {
@@ -729,27 +729,96 @@ public:
     Component &AddComponent(ID<Entity> entity_id, U &&component)
     {
         EnsureValidComponentType<Component>();
-
-        Threads::AssertOnThread(m_owner_thread_id);
-        HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
+        
         AssertThrowMsg(entity_id.IsValid(), "Invalid entity ID");
 
-        EntityData &entity_data = m_entities.GetEntityData(entity_id);
+        Threads::AssertOnThread(m_owner_thread_id);
 
         Component *component_ptr = nullptr;
+        TypeMap<ComponentID> component_ids;
 
-        auto component_it = entity_data.FindComponent<Component>();
-        // @TODO: Replace the component if it already exists
-        AssertThrowMsg(component_it == entity_data.components.End(), "Entity already has component of type %s", TypeNameWithoutNamespace<Component>().Data());
+        {
 
-        static const TypeID component_type_id = TypeID::ForType<Component>();
+            Mutex::Guard entities_guard(m_entities_mutex);
+            HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
-        const Pair<ComponentID, Component &> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
+            EntityData &entity_data = m_entities.GetEntityData(entity_id);
 
-        entity_data.components.Set<Component>(component_insert_result.first);
+            auto component_it = entity_data.FindComponent<Component>();
+            // @TODO: Replace the component if it already exists
+            AssertThrowMsg(component_it == entity_data.components.End(), "Entity already has component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
-        { // Lock the entity sets mutex
+            static const TypeID component_type_id = TypeID::ForType<Component>();
+
+            const Pair<ComponentID, Component &> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
+
+            entity_data.components.Set<Component>(component_insert_result.first);
+
+            { // Lock the entity sets mutex
+                Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
+
+                auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+                if (component_entity_sets_it != m_component_entity_sets.End()) {
+                    for (TypeID entity_set_type_id : component_entity_sets_it->second) {
+                        EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
+
+                        entity_set.OnEntityUpdated(entity_id);
+                    }
+                }
+            }
+
+            component_ptr = &component_insert_result.second;
+
+            component_ids = entity_data.components;
+        }
+
+        // Notify systems that entity is being added to them
+        NotifySystemsOfEntityAdded(entity_id, component_ids);
+        
+        return *component_ptr;
+    }
+
+    template <class Component>
+    bool RemoveComponent(ID<Entity> entity_id)
+    {
+        EnsureValidComponentType<Component>();
+
+        if (!entity_id.IsValid()) {
+            return false;
+        }
+
+        Threads::AssertOnThread(m_owner_thread_id);
+
+        TypeMap<ComponentID> removed_component_ids;
+
+        // To keep ID valid while removing the component
+        WeakHandle<Entity> entity_weak { entity_id };
+
+        { // critical section for entity data
+            Mutex::Guard entities_guard(m_entities_mutex);
+            HYP_MT_CHECK_READ(m_entities_data_race_detector);
+
+            EntityData &entity_data = m_entities.GetEntityData(entity_id);
+
+            auto component_it = entity_data.FindComponent<Component>();
+            if (component_it == entity_data.components.End()) {
+                return false;
+            }
+
+            const TypeID component_type_id = component_it->first;
+            const ComponentID component_id = component_it->second;
+
+            // Notify systems that entity is being removed from them
+            removed_component_ids.Set(component_type_id, component_id);
+
+            entity_data.components.Erase(component_it);
+
+            if (!GetContainer<Component>().RemoveComponent(component_id)) {
+                return false;
+            }
+
+            // Lock the entity sets mutex
             Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
             auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
@@ -763,60 +832,7 @@ public:
             }
         }
 
-        component_ptr = &component_insert_result.second;
-
-        // Notify systems that entity is being added to them
-        NotifySystemsOfEntityAdded(entity_id, entity_data.components);
-        
-        return *component_ptr;
-    }
-
-    template <class Component>
-    bool RemoveComponent(ID<Entity> entity_id)
-    {
-        EnsureValidComponentType<Component>();
-
-        Threads::AssertOnThread(m_owner_thread_id);
-        HYP_MT_CHECK_READ(m_entities_data_race_detector);
-
-        if (!entity_id.IsValid()) {
-            return false;
-        }
-
-        EntityData &entity_data = m_entities.GetEntityData(entity_id);
-
-        auto component_it = entity_data.FindComponent<Component>();
-        if (component_it == entity_data.components.End()) {
-            return false;
-        }
-
-        const TypeID component_type_id = component_it->first;
-        const ComponentID component_id = component_it->second;
-
-        // Notify systems that entity is being removed from them
-        TypeMap<ComponentID> removed_component_ids;
-        removed_component_ids.Set(component_type_id, component_id);
-        
         NotifySystemsOfEntityRemoved(entity_id, removed_component_ids);
-
-        if (!GetContainer<Component>().RemoveComponent(component_id)) {
-            return false;
-        }
-
-        entity_data.components.Erase(component_it);
-
-        // Lock the entity sets mutex
-        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-        if (component_entity_sets_it != m_component_entity_sets.End()) {
-            for (TypeID entity_set_type_id : component_entity_sets_it->second) {
-                EntitySetBase &entity_set = *m_entity_sets.At(entity_set_type_id);
-
-                entity_set.OnEntityUpdated(entity_id);
-            }
-        }
 
         return true;
     }
@@ -894,6 +910,24 @@ public:
         }
 
         return nullptr;
+    }
+
+    template <class Callback>
+    HYP_FORCE_INLINE void ForEachEntity(Callback &&callback) const
+    {
+        ForEach(m_entities, m_entities_mutex, [callback = std::forward<Callback>(callback)](const auto &it)
+        {
+            const WeakHandle<Entity> &entity_weak = it.first;
+            const EntityData &entity_data = it.second;
+
+            Handle<Entity> entity = entity_weak.Lock();
+
+            if (entity.IsValid()) {
+                return callback(entity, entity_data);
+            }
+
+            return IterationResult::CONTINUE;
+        });
     }
 
     void Initialize();
@@ -1016,6 +1050,7 @@ private:
     DataRaceDetector                                                        m_containers_data_race_detector;
     EntityContainer                                                         m_entities;
     DataRaceDetector                                                        m_entities_data_race_detector;
+    mutable Mutex                                                           m_entities_mutex;
     HashMap<TypeID, UniquePtr<EntitySetBase>>                               m_entity_sets;
     mutable Mutex                                                           m_entity_sets_mutex;
     TypeMap<HashSet<TypeID>>                                                m_component_entity_sets;
