@@ -10,6 +10,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderSkeleton.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -77,16 +78,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy &proxy) const
     {
         HYP_SCOPE;
-        
-        const Handle<Mesh> &mesh = proxy.mesh;
-        AssertThrow(mesh.IsValid());
-
-        const Handle<Material> &material = proxy.material;
-        AssertThrow(material.IsValid());
 
         RenderableAttributeSet attributes {
-            mesh->GetMeshAttributes(),
-            material->GetRenderAttributes()
+            proxy.mesh->GetMesh()->GetMeshAttributes(),
+            proxy.material->GetMaterial()->GetRenderAttributes()
         };
 
         if (override_attributes.HasValue()) {
@@ -259,7 +254,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
-            proxy->UnclaimRenderResource();
+            // proxy->UnclaimRenderResources();
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -268,14 +263,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResource();
-
-            const Handle<Mesh> &mesh = proxy.mesh;
-            AssertThrow(mesh.IsValid());
-            AssertThrow(mesh->IsReady());
-
-            const Handle<Material> &material = proxy.material;
-            AssertThrow(material.IsValid());
+            // proxy.ClaimRenderResources();
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -409,9 +397,6 @@ void RenderCollector::PushEntityToRender(ID<Entity> entity, const RenderProxy &p
     HYP_MT_CHECK_READ(m_data_race_detector);
 
     AssertThrow(entity.IsValid());
-    
-    AssertThrow(proxy.mesh.IsValid());
-    AssertThrow(proxy.material.IsValid());
 
     RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
     proxy_list.Add(entity, RenderProxy(proxy));

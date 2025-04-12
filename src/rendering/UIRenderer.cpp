@@ -9,6 +9,8 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/EngineRenderStats.hpp>
 #include <rendering/PlaceholderData.hpp>
 
@@ -154,16 +156,16 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
                 continue;
             }
 
-            const Handle<Mesh> &mesh = proxy->mesh;
-            const Handle<Material> &material = proxy->material;
+            const TResourceHandle<MeshRenderResource> &mesh_resource_handle = proxy->mesh;
+            const TResourceHandle<MaterialRenderResource> &material_resource_handle = proxy->material;
 
-            if (!mesh.IsValid() || !material.IsValid()) {
+            if (!mesh_resource_handle || !material_resource_handle) {
                 continue;
             }
 
             RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet {
-                mesh->GetMeshAttributes(),
-                material->GetRenderAttributes()
+                mesh_resource_handle->GetMesh()->GetMeshAttributes(),
+                material_resource_handle->GetMaterial()->GetRenderAttributes()
             });
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -251,13 +253,13 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
 
-            proxy->UnclaimRenderResource();
+            // proxy->UnclaimRenderResource();
 
             proxy_list.MarkToRemove(entity);
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResource();
+            // proxy.ClaimRenderResource();
 
             proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }

@@ -12,6 +12,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderSkeleton.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderMesh.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 
@@ -54,10 +55,10 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
                 .world_aabb_max         = Vec4f(proxy.aabb.max, 1.0f),
                 .world_aabb_min         = Vec4f(proxy.aabb.min, 1.0f),
                 .entity_index           = proxy.entity.GetID().ToIndex(),
-                .material_index         = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u,
-                .skeleton_index         = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u,
-                .bucket                 = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_INVALID,
-                .flags                  = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
+                .material_index         = proxy.material ? proxy.material->GetBufferIndex() : ~0u,
+                .skeleton_index         = proxy.skeleton ? proxy.skeleton->GetBufferIndex() : ~0u,
+                .bucket                 = proxy.material ? proxy.material->GetMaterial()->GetRenderAttributes().bucket : BUCKET_INVALID,
+                .flags                  = proxy.skeleton ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
                 .user_data              = proxy.user_data.ReinterpretAs<EntityUserData>()
             });
         }
@@ -85,14 +86,12 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     AssertThrow(mesh_component.proxy == nullptr);
 
-    HYP_LOG(ECS, Debug, "Adding render proxy for entity {} for Scene {}", entity.GetID().Value(), GetScene()->GetName());
-
     if (mesh_component.mesh.IsValid() && mesh_component.material.IsValid()) {
         mesh_component.proxy = new RenderProxy {
             entity,
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
+            mesh_component.mesh.IsValid() ? TResourceHandle<MeshRenderResource>(mesh_component.mesh->GetRenderResource()) : TResourceHandle<MeshRenderResource>(),
+            mesh_component.material.IsValid() ? TResourceHandle<MaterialRenderResource>(mesh_component.material->GetRenderResource()) : TResourceHandle<MaterialRenderResource>(),
+            mesh_component.skeleton.IsValid() ? TResourceHandle<SkeletonRenderResource>(mesh_component.skeleton->GetRenderResource()) : TResourceHandle<SkeletonRenderResource>(),
             Matrix4::Identity(),
             Matrix4::Identity(),
             BoundingBox::Empty(),
@@ -115,9 +114,6 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
-
-    HYP_LOG(ECS, Debug, "Removing render proxy for entity {} for Scene {}\tMesh name: {}", entity.Value(), GetScene()->GetName(),
-        mesh_component.mesh.IsValid() ? mesh_component.mesh->GetName() : Name());
 
     if (mesh_component.proxy) {
         delete mesh_component.proxy;
@@ -148,9 +144,9 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
             // Update MeshComponent's proxy
             *mesh_component.proxy = RenderProxy {
                 WeakHandle<Entity>(entity_id),
-                mesh_component.mesh,
-                mesh_component.material,
-                mesh_component.skeleton,
+                mesh_component.mesh.IsValid() ? TResourceHandle<MeshRenderResource>(mesh_component.mesh->GetRenderResource()) : TResourceHandle<MeshRenderResource>(),
+                mesh_component.material.IsValid() ? TResourceHandle<MaterialRenderResource>(mesh_component.material->GetRenderResource()) : TResourceHandle<MaterialRenderResource>(),
+                mesh_component.skeleton.IsValid() ? TResourceHandle<SkeletonRenderResource>(mesh_component.skeleton->GetRenderResource()) : TResourceHandle<SkeletonRenderResource>(),
                 transform_component.transform.GetMatrix(),
                 mesh_component.previous_model_matrix,
                 bounding_box_component.world_aabb,

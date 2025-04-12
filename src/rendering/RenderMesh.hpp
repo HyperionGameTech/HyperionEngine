@@ -40,6 +40,9 @@ public:
     MeshRenderResource(MeshRenderResource &&other) noexcept;
     virtual ~MeshRenderResource() override;
 
+    HYP_FORCE_INLINE Mesh *GetMesh() const
+        { return m_mesh; }
+
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE const GPUBufferRef &GetVertexBuffer() const
         { return m_vbo; }

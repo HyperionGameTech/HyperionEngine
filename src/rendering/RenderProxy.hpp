@@ -21,6 +21,9 @@ class Entity;
 class Mesh;
 class Material;
 class Skeleton;
+class MeshRenderResource;
+class MaterialRenderResource;
+class SkeletonRenderResource;
 struct MeshInstanceData;
 
 HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData &);
@@ -93,19 +96,19 @@ struct MeshInstanceData
 
 struct RenderProxy
 {
-    WeakHandle<Entity>  entity;
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Handle<Skeleton>    skeleton;
-    Matrix4             model_matrix;
-    Matrix4             previous_model_matrix;
-    BoundingBox         aabb;
-    UserData<32, 16>    user_data;
-    MeshInstanceData    instance_data;
-    uint32              version = 0;
+    WeakHandle<Entity>                      entity;
+    TResourceHandle<MeshRenderResource>     mesh;
+    TResourceHandle<MaterialRenderResource> material;
+    TResourceHandle<SkeletonRenderResource> skeleton;
+    Matrix4                                 model_matrix;
+    Matrix4                                 previous_model_matrix;
+    BoundingBox                             aabb;
+    UserData<32, 16>                        user_data;
+    MeshInstanceData                        instance_data;
+    uint32                                  version = 0;
 
-    void ClaimRenderResource() const;
-    void UnclaimRenderResource() const;
+    void ClaimRenderResources() const;
+    void UnclaimRenderResources() const;
 
     bool operator==(const RenderProxy &other) const
     {

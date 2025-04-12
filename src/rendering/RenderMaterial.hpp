@@ -57,6 +57,9 @@ public:
     MaterialRenderResource(MaterialRenderResource &&other) noexcept;
     virtual ~MaterialRenderResource() override;
 
+    HYP_FORCE_INLINE Material *GetMaterial() const
+        { return m_material; }
+
     /*! \note Only call this method from the render thread or task initiated by the render thread */
     HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight> &GetDescriptorSets() const
         { return m_descriptor_sets; }

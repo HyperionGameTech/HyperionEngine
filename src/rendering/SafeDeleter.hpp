@@ -147,9 +147,9 @@ public:
 
     void SafeRelease(RenderProxy &&proxy)
     {
-        SafeRelease(std::move(proxy.mesh));
-        SafeRelease(std::move(proxy.material));
-        SafeRelease(std::move(proxy.skeleton));
+        // SafeRelease(std::move(proxy.mesh));
+        // SafeRelease(std::move(proxy.material));
+        // SafeRelease(std::move(proxy.skeleton));
     }
 
     void PerformEnqueuedDeletions();

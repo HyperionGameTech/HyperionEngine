@@ -41,34 +41,34 @@ void MeshInstanceData_PostLoad(MeshInstanceData &mesh_instance_data)
 
 #pragma region RenderProxy
 
-void RenderProxy::ClaimRenderResource() const
+void RenderProxy::ClaimRenderResources() const
 {
-    if (material.IsValid()) {
-        material->GetRenderResource().Claim();
-    }
+    // if (material) {
+    //     material->Claim();
+    // }
 
-    if (mesh.IsValid()) {
-        mesh->GetRenderResource().Claim();
-    }
+    // if (mesh) {
+    //     mesh->Claim();
+    // }
 
-    if (skeleton.IsValid()) {
-        skeleton->GetRenderResource().Claim();
-    }
+    // if (skeleton) {
+    //     skeleton->Claim();
+    // }
 }
 
-void RenderProxy::UnclaimRenderResource() const
+void RenderProxy::UnclaimRenderResources() const
 {
-    if (material.IsValid()) {
-        material->GetRenderResource().Unclaim();
-    }
+    // if (material) {
+    //     material->Unclaim();
+    // }
 
-    if (mesh.IsValid()) {
-        mesh->GetRenderResource().Unclaim();
-    }
+    // if (mesh) {
+    //     mesh->Unclaim();
+    // }
 
-    if (skeleton.IsValid()) {
-        skeleton->GetRenderResource().Unclaim();
-    }
+    // if (skeleton) {
+    //     skeleton->Unclaim();
+    // }
 }
 
 #pragma endregion RenderProxy
@@ -82,9 +82,6 @@ void RenderProxyList::Reserve(SizeType capacity)
 
 RenderProxyEntityMap::Iterator RenderProxyList::Add(ID<Entity> entity, RenderProxy &&proxy)
 {
-    AssertDebug(proxy.mesh.IsValid());
-    AssertDebug(proxy.material.IsValid());
-
     RenderProxyEntityMap::Iterator iter = m_proxies.End();
 
     AssertThrowMsg(!m_next_entities.Test(entity.ToIndex()), "Entity #%u already marked to be added for this iteration!", entity.Value());

@@ -6,6 +6,8 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <core/object/HypClassUtils.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -56,6 +58,8 @@ void MeshRenderResource::Initialize_Internal()
 void MeshRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
+
+    HYP_LOG(Rendering, Debug, "Destroying mesh render resource for mesh {}.", m_mesh->GetName());
 
     SafeRelease(std::move(m_vbo));
     SafeRelease(std::move(m_ibo));
