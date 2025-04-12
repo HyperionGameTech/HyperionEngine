@@ -150,13 +150,6 @@ namespace Hyperion
         private static extern IntPtr UIEventHandlerResult_GetFunctionName(ref UIEventHandlerResult result);
     }
 
-    [HypClassBinding(Name="UIObjectPositioning")]
-    public enum UIObjectPositioning : uint
-    {
-        Default = 0,
-        Absolute = 1
-    }
-
     [HypClassBinding(Name="UIObjectAlignment")]
     public enum UIObjectAlignment : uint
     {

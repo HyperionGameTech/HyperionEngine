@@ -68,11 +68,6 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-EnumFlags<SceneFlags> RenderProxyUpdaterSystem::GetRequiredSceneFlags() const
-{
-    return SceneFlags::NONE;
-}
-
 void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
@@ -146,6 +141,7 @@ void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
             const uint32 render_proxy_version = mesh_component.proxy->version + 1;
 
             // Update MeshComponent's proxy
+            // @TODO: Include RT info on RenderProxy, add a system that will update BLAS on the render thread.
             *mesh_component.proxy = RenderProxy {
                 WeakHandle<Entity>(entity_id),
                 mesh_component.mesh,

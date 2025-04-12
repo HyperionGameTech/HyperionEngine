@@ -275,13 +275,6 @@ AccelerationStructure<Platform::VULKAN>::~AccelerationStructure()
         m_scratch_buffer == nullptr,
         "Scratch buffer should have been destroyed before destructor call"
     );
-
-    for (auto &geometry : m_geometries) {
-        AssertThrowMsg(
-            geometry == nullptr,
-            "Each geometry should have been destroyed before destructor call"
-        );
-    }
 }
 
 template <>
@@ -349,8 +342,8 @@ RendererResult AccelerationStructure<Platform::VULKAN>::CreateAccelerationStruct
         &was_rebuilt
     ));
 
-    // force recreate (TEMP)
-    //was_rebuilt = true;
+    // force recreate (for debug)
+    was_rebuilt = true;
 
     if (was_rebuilt) {
         out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
@@ -487,10 +480,7 @@ RendererResult AccelerationStructure<Platform::VULKAN>::Destroy(Device<Platform:
 {
     RendererResult result;
 
-    for (auto &geometry : m_geometries) {
-        SafeRelease(std::move(geometry));
-    }
-    
+    SafeRelease(std::move(m_geometries));
     SafeRelease(std::move(m_buffer));
     SafeRelease(std::move(m_instances_buffer));
     SafeRelease(std::move(m_scratch_buffer));
@@ -596,6 +586,10 @@ RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::Create(
 {
     AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
 
+    if (m_blas.Empty()) {
+        return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one BLAS");
+    }
+
     HYPERION_BUBBLE_ERRORS(CreateOrRebuildInstancesBuffer(instance));
 
     RTUpdateStateFlags update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
@@ -641,17 +635,7 @@ RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::Destroy(Device<P
 
     SafeRelease(std::move(m_mesh_descriptions_buffer));
     SafeRelease(std::move(m_scratch_buffer));
-
-    /*for (auto &blas : m_blas) {
-        if (blas == nullptr) {
-            continue;
-        }
-
-        HYPERION_PASS_ERRORS(
-            blas->Destroy(device),
-            result
-        );
-    }*/
+    SafeRelease(std::move(m_blas));
 
     HYPERION_PASS_ERRORS(
         AccelerationStructure::Destroy(device),
@@ -693,6 +677,8 @@ void TopLevelAccelerationStructure<Platform::VULKAN>::RemoveBLAS(const BLASRef<P
 template <>
 RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::CreateOrRebuildInstancesBuffer(Instance<Platform::VULKAN> *instance)
 {
+    Threads::AssertOnThread(g_render_thread);
+
     Device<Platform::VULKAN> *device = instance->GetDevice();
 
     Array<VkAccelerationStructureInstanceKHR> instances;
@@ -875,7 +861,6 @@ RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::UpdateMeshDescri
 
             mesh_description.vertex_buffer_address = blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
             mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
-            mesh_description.entity_index = entity_weak.IsValid() ? entity_weak.GetID().ToIndex() : 0;
             mesh_description.material_index = material.IsValid() ? material->GetRenderResource().GetBufferIndex() : ~0u;
             mesh_description.num_indices = uint32(blas->GetGeometries()[0]->GetPackedIndices().Size());
             mesh_description.num_vertices = uint32(blas->GetGeometries()[0]->GetPackedVertices().Size());

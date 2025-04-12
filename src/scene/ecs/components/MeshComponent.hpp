@@ -25,7 +25,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Size=240, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
+HYP_STRUCT(Component, Size=256, Label="Mesh Component", Description="Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor=true)
 struct MeshComponent
 {
     HYP_FIELD(Property="Mesh", Serialize=true, Editor=true)
@@ -60,13 +60,18 @@ struct MeshComponent
 
     HYP_FIELD()
     Matrix4                 previous_model_matrix;
-
+    
     // 208
+
+    HYP_FIELD()
+    MeshRaytracingData      *raytracing_data = nullptr;
+
+    // 224
 
     HYP_FIELD()
     MeshComponentUserData   user_data;
 
-    // 240
+    // 256
 
     HYP_FORCE_INLINE bool operator==(const MeshComponent &other) const
     {
@@ -98,8 +103,6 @@ struct MeshComponent
         return hash_code;
     }
 };
-
-constexpr auto x = sizeof(RenderProxy);
 
 } // namespace hyperion
 

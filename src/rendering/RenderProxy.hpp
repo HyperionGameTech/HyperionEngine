@@ -4,16 +4,20 @@
 #define HYPERION_RENDER_PROXY_HPP
 
 #include <core/ID.hpp>
+
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/EnumFlags.hpp>
+
 #include <core/containers/Bitset.hpp>
 #include <core/containers/FlatMap.hpp>
+#include <core/containers/FixedArray.hpp>
 
 #include <core/math/Transform.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Matrix4.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
 
@@ -89,6 +93,13 @@ struct MeshInstanceData
 
         return hc;
     }
+};
+
+HYP_STRUCT()
+struct MeshRaytracingData
+{
+    HYP_FIELD()
+    FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
 };
 
 struct RenderProxy

@@ -45,8 +45,8 @@ struct HYP_API NodeProxyChildren
         HYP_FORCE_INLINE bool operator!=(const Iterator &other) const
             { return node != other.node || index != other.index; }
 
-        NodeProxy &operator*();
-        NodeProxy *operator->();
+        const NodeProxy &operator*() const;
+        const NodeProxy *operator->() const;
 
         HYP_FORCE_INLINE Iterator &operator++()
         {

@@ -23,10 +23,14 @@
 
 namespace hyperion {
 
+HYP_DECLARE_LOG_CHANNEL(Rendering);
+
 CrashHandler::CrashHandler()
     : m_is_initialized(false)
 {
 }
+
+HYP_DISABLE_OPTIMIZATION;
 
 void CrashHandler::Initialize()
 {
@@ -76,22 +80,22 @@ void CrashHandler::Initialize()
             if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
             {
                 // Print information about the GPU page fault.
-                DebugLog(LogType::Error, "GPU page fault at 0x%016llx", fault_info.faultingGpuVA);
-                DebugLog(LogType::Error, "Fault Type: %u", fault_info.faultType);
-                DebugLog(LogType::Error, "Access Type: %u", fault_info.accessType);
-                DebugLog(LogType::Error, "Engine: %u", fault_info.engine);
-                DebugLog(LogType::Error, "Client: %u", fault_info.client);
+                HYP_LOG(Rendering, Error, "GPU page fault at {}", fault_info.faultingGpuVA);
+                HYP_LOG(Rendering, Error, "Fault Type: {}", fault_info.faultType);
+                HYP_LOG(Rendering, Error, "Access Type: {}", fault_info.accessType);
+                HYP_LOG(Rendering, Error, "Engine: {}", fault_info.engine);
+                HYP_LOG(Rendering, Error, "Client: {}", fault_info.client);
                 if (fault_info.bHasResourceInfo)
                 {
-                    DebugLog(LogType::Error, "Fault in resource starting at 0x%016llx", fault_info.resourceInfo.gpuVa);
-                    DebugLog(LogType::Error, "Size of resource: (w x h x d x ml) = {%u, %u, %u, %u} = %llu bytes",
+                    HYP_LOG(Rendering, Error, "Fault in resource starting at {}", fault_info.resourceInfo.gpuVa);
+                    HYP_LOG(Rendering, Error, "Size of resource: (w x h x d x ml) = ({}, {}, {}, {}) = {} bytes",
                         fault_info.resourceInfo.width,
                         fault_info.resourceInfo.height,
                         fault_info.resourceInfo.depth,
                         fault_info.resourceInfo.mipLevels,
                         fault_info.resourceInfo.size);
-                    DebugLog(LogType::Error, "Format of resource: %u", fault_info.resourceInfo.format);
-                    DebugLog(LogType::Error, "Resource was destroyed: %d", fault_info.resourceInfo.bWasDestroyed);
+                    HYP_LOG(Rendering, Error, "Format of resource: {}", fault_info.resourceInfo.format);
+                    HYP_LOG(Rendering, Error, "Resource was destroyed: {}", fault_info.resourceInfo.bWasDestroyed);
                 }
             }
 
@@ -112,7 +116,7 @@ void CrashHandler::Initialize()
                         // Print information for each active shader
                         for (const GFSDK_Aftermath_GpuCrashDump_GpuInfo& info : infos)
                         {
-                            //HYP_BREAKPOINT;
+                            HYP_BREAKPOINT;
                         }
                     }
                 }
@@ -135,7 +139,7 @@ void CrashHandler::Initialize()
                         // Print information for each active shader
                         for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo &info : infos)
                         {
-                            DebugLog(LogType::Error, "Active shader: ShaderHash = 0x%016llx ShaderInstance = 0x%016llx Shadertype = %u",
+                            HYP_LOG(Rendering, Error, "Active shader: ShaderHash = {} ShaderInstance = {} Shadertype = {}",
                                 info.shaderHash,
                                 info.shaderInstance,
                                 info.shaderType);
@@ -190,13 +194,13 @@ void CrashHandler::Initialize()
 #endif
 }
 
+HYP_ENABLE_OPTIMIZATION;
+
 void CrashHandler::HandleGPUCrash(RendererResult result)
 {
     if (result) {
         return;
     }
-
-    DebugLog(LogType::Error, "GPU Crash Detected!\n");
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
@@ -217,9 +221,9 @@ void CrashHandler::HandleGPUCrash(RendererResult result)
 
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
     }
-
-    std::terminate();
 #endif
+
+    HYP_LOG(Rendering, Fatal, "GPU Crash Detected!");
 }
 
 } // namespace hyperion

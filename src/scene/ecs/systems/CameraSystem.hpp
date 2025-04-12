@@ -29,8 +29,6 @@ public:
 
     virtual ~CameraSystem() override = default;
 
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const override;
-
     virtual bool RequiresGameThread() const override
         { return true; }
 

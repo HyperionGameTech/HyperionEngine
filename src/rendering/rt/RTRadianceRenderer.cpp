@@ -113,11 +113,6 @@ RTRadianceRenderer::~RTRadianceRenderer()
 
 void RTRadianceRenderer::Create()
 {
-    AssertThrowMsg(
-        m_tlas.IsValid(),
-        "Invalid TLAS provided"
-    );
-
     CreateImages();
     CreateUniformBuffer();
     CreateTemporalBlending();
@@ -282,12 +277,12 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
-            descriptor_set->SetElement(NAME("TLAS"), m_tlas);
+            descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         }
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
             // update mesh descriptions buffer in descriptor set
-            descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
+            descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
         }
 
         m_updates[frame_index] |= RT_RADIANCE_UPDATES_TLAS;
@@ -309,11 +304,13 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        AssertThrow(m_top_level_acceleration_structures[frame_index] != nullptr);
+
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("TLAS"), m_tlas);
-        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
+        descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
+        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(NAME("OutputImage"), m_texture->GetRenderResource().GetImageView());
         

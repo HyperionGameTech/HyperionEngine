@@ -136,7 +136,7 @@ Node::Node(Node &&other) noexcept
     m_child_nodes = std::move(other.m_child_nodes);
     m_descendants = std::move(other.m_descendants);
 
-    for (NodeProxy &node : m_child_nodes) {
+    for (const NodeProxy &node : m_child_nodes) {
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
@@ -145,6 +145,10 @@ Node::Node(Node &&other) noexcept
 
 Node &Node::operator=(Node &&other) noexcept
 {
+    if (this == &other) {
+        return *this;
+    }
+
     RemoveAllChildren();
 
     SetEntity(Handle<Entity>::empty);
@@ -188,7 +192,7 @@ Node &Node::operator=(Node &&other) noexcept
     m_child_nodes = std::move(other.m_child_nodes);
     m_descendants = std::move(other.m_descendants);
 
-    for (NodeProxy &node : m_child_nodes) {
+    for (const NodeProxy &node : m_child_nodes) {
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
@@ -199,8 +203,13 @@ Node &Node::operator=(Node &&other) noexcept
 
 Node::~Node()
 {
-    RemoveAllChildren();
-    SetEntity(Handle<Entity>::empty);
+    for (const NodeProxy &child : m_child_nodes) {
+        if (!child.IsValid()) {
+            continue;
+        }
+
+        child->m_parent_node = nullptr;
+    }
 }
 
 void Node::SetName(const String &name)
@@ -306,8 +315,8 @@ void Node::SetScene(Scene *scene)
         if (m_entity.IsValid()) {
             if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr) {
                 AssertThrow(m_scene->GetEntityManager() != nullptr);
-                
-                previous_scene->GetEntityManager()->MoveEntity(m_entity, *m_scene->GetEntityManager());
+
+                previous_scene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager());
             } else {
                 // Entity manager null - exiting engine is likely cause here
 
@@ -324,8 +333,8 @@ void Node::SetScene(Scene *scene)
         }
     }
 
-    for (NodeProxy &child : m_child_nodes) {
-        if (!child) {
+    for (const NodeProxy &child : m_child_nodes) {
+        if (!child.IsValid()) {
             continue;
         }
 
@@ -427,7 +436,7 @@ bool Node::RemoveChild(NodeList::Iterator iter)
         return false;
     }
 
-    if (NodeProxy &node = *iter) {
+    if (const NodeProxy &node = *iter) {
         AssertThrow(node.IsValid());
         AssertThrow(node->GetParent() == this);
 
@@ -482,6 +491,7 @@ bool Node::RemoveAt(int index)
     return RemoveChild(m_child_nodes.Begin() + index);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void Node::Remove()
 {
     if (!m_parent_node) {
@@ -495,11 +505,12 @@ void Node::Remove()
 
     m_parent_node->RemoveChild(it);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void Node::RemoveAllChildren()
 {
     for (auto it = m_child_nodes.begin(); it != m_child_nodes.end();) {
-        if (NodeProxy &node = *it) {
+        if (const NodeProxy &node = *it) {
             AssertThrow(node.IsValid());
             AssertThrow(node->GetParent() == this);
 
@@ -657,7 +668,7 @@ void Node::LockTransform()
         m_transform_changed = false;
     }
 
-    for (NodeProxy &child : m_child_nodes) {
+    for (const NodeProxy &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -670,7 +681,7 @@ void Node::UnlockTransform()
 {
     m_transform_locked = false;
 
-    for (NodeProxy &child : m_child_nodes) {
+    for (const NodeProxy &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -707,27 +718,11 @@ void Node::SetEntity(const Handle<Entity> &entity)
 
     // Remove the NodeLinkComponent from the old entity
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
-        // For destructor call.
         // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
-        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadID())) {
-            m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
+        m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
 
-            // Move entity to detached scene
-            m_scene->GetEntityManager()->MoveEntity(m_entity, *GetDefaultScene()->GetEntityManager());
-        } else {
-            Task<void> task = Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue(
-                HYP_STATIC_MESSAGE("Remove NodeLinkComponent from entity"),
-                [entity = m_entity, scene = m_scene->HandleFromThis()]()
-                {
-                    scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(entity);
-
-                    // Move entity to detached scene
-                    scene->GetEntityManager()->MoveEntity(entity, *GetDefaultScene()->GetEntityManager());
-                }
-            );
-
-            task.Await();
-        }
+        // Move entity to detached scene
+        m_scene->GetEntityManager()->MoveEntity(m_entity, GetDefaultScene()->GetEntityManager());
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
@@ -749,7 +744,7 @@ void Node::SetEntity(const Handle<Entity> &entity)
 
         // need to move the entity between EntityManagers
         if (previous_entity_manager != nullptr && previous_entity_manager != m_scene->GetEntityManager().Get()) {
-            previous_entity_manager->MoveEntity(m_entity, *m_scene->GetEntityManager());
+            previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
 
 #ifdef HYP_DEBUG_MODE
             // Sanity check
@@ -940,7 +935,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     }
 
     if (update_child_transforms) {
-        for (NodeProxy &node : m_child_nodes) {
+        for (const NodeProxy &node : m_child_nodes) {
             node->UpdateWorldTransform(true);
         }
     }
