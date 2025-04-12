@@ -116,8 +116,6 @@ Scene::~Scene()
 
         m_render_resource = nullptr;
     }
-
-    HYP_SYNC_RENDER();
 }
     
 void Scene::Init()
@@ -514,9 +512,7 @@ void Scene::AddSystemIfApplicable()
 {
     UniquePtr<SystemType> system = MakeUnique<SystemType>(*m_entity_manager);
 
-    const EnumFlags<SceneFlags> required_scene_flags = system->GetRequiredSceneFlags();
-
-    if (required_scene_flags != SceneFlags::NONE && !(required_scene_flags & m_flags)) {
+    if (system->ShouldCreateForScene(this)) {
         return;
     }
 

@@ -133,8 +133,8 @@ public:
     HYP_FORCE_INLINE const Array<AccelerationGeometryRef<PLATFORM>> &GetGeometries() const
         { return m_geometries; }
 
-    HYP_FORCE_INLINE void AddGeometry(AccelerationGeometryRef<PLATFORM> geometry)
-        { m_geometries.PushBack(std::move(geometry)); SetNeedsRebuildFlag(); }
+    HYP_FORCE_INLINE void AddGeometry(const AccelerationGeometryRef<PLATFORM> &geometry)
+        { m_geometries.PushBack(geometry); SetNeedsRebuildFlag(); }
 
     HYP_API void RemoveGeometry(uint32 index);
 

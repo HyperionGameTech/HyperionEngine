@@ -14,11 +14,6 @@
 
 namespace hyperion {
 
-EnumFlags<SceneFlags> EntityMeshDirtyStateSystem::GetRequiredSceneFlags() const
-{
-    return SceneFlags::NONE;
-}
-
 void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);

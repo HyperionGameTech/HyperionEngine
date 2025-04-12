@@ -341,8 +341,13 @@ public:
 
             const uint32 index = block_index * Base::num_elements_per_block;
 
-            const SizeType offset = index;
-            const SizeType count = Base::num_elements_per_block;
+            SizeType offset = (range_start > index)
+                ? range_start
+                : index;
+
+            SizeType count = (range_end < index + Base::num_elements_per_block)
+                ? range_end - offset
+                : Base::num_elements_per_block - offset;
 
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());

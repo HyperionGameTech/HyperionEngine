@@ -5,6 +5,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
@@ -13,6 +14,8 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <rendering/backend/rt/RendererAccelerationStructure.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
@@ -20,6 +23,11 @@
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
+
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion {
 
@@ -94,7 +102,7 @@ RenderEnvironment::~RenderEnvironment()
 
     PUSH_RENDER_COMMAND(RemoveAllRenderSubsystems, std::move(m_render_subsystems));
 
-    SafeRelease(std::move(m_tlas));
+    SafeRelease(std::move(m_top_level_acceleration_structures));
 
     HYP_SYNC_RENDER();
 }
@@ -123,14 +131,12 @@ void RenderEnvironment::Init()
     if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {
-        CreateTLAS();
-    }
-    
-    if (m_tlas) {
-        m_rt_radiance->SetTLAS(m_tlas);
+        CreateTopLevelAccelerationStructures();
+
+        m_rt_radiance->SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
         m_rt_radiance->Create();
 
-        m_ddgi.SetTLAS(m_tlas);
+        m_ddgi.SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
         m_ddgi.Init();
 
         m_has_rt_radiance = true;
@@ -269,10 +275,10 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
         InitializeRT();
     }
     
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+    if (m_rt_initialized) {
         RTUpdateStateFlags update_state_flags;
 
-        m_tlas->UpdateStructure(
+        m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(
             g_engine->GetGPUInstance(),
             update_state_flags
         );
@@ -475,61 +481,81 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass *hy
 void RenderEnvironment::InitializeRT()
 {
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        if (m_tlas) {
-            if (m_has_rt_radiance) {
-                m_rt_radiance->Destroy();
-            }
-
-            if (m_has_ddgi_probes) {
-                m_ddgi.Destroy();
-            }
-                
-            m_ddgi.SetTLAS(m_tlas);
-            m_rt_radiance->SetTLAS(m_tlas);
-
-            m_rt_radiance->Create();
-            m_ddgi.Init();
-
-            m_has_rt_radiance = true;
-            m_has_ddgi_probes = true;
-
-            HYP_SYNC_RENDER();
-        } else {
-            if (m_has_rt_radiance) {
-                m_rt_radiance->Destroy();
-            }
-
-            if (m_has_ddgi_probes) {
-                m_ddgi.Destroy();
-            }
-
-            m_has_rt_radiance = false;
-            m_has_ddgi_probes = false;
-
-            HYP_SYNC_RENDER();
+        if (m_has_rt_radiance) {
+            m_rt_radiance->Destroy();
         }
+
+        if (m_has_ddgi_probes) {
+            m_ddgi.Destroy();
+        }
+                
+        m_ddgi.SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
+        m_rt_radiance->SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
+
+        m_rt_radiance->Create();
+        m_ddgi.Init();
+
+        m_has_rt_radiance = true;
+        m_has_ddgi_probes = true;
+    } else {
+        if (m_has_rt_radiance) {
+            m_rt_radiance->Destroy();
+        }
+
+        if (m_has_ddgi_probes) {
+            m_ddgi.Destroy();
+        }
+
+        m_has_rt_radiance = false;
+        m_has_ddgi_probes = false;
     }
 
     m_rt_initialized = true;
 }
 
-bool RenderEnvironment::CreateTLAS()
+bool RenderEnvironment::CreateTopLevelAccelerationStructures()
 {
     HYP_SCOPE;
 
     AssertIsInitCalled();
-
-    if (m_tlas) {
-        // TLAS already exists
-        return true;
-    }
     
     if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         return false;
     }
 
-    m_tlas = MakeRenderObject<TLAS>();
-    DeferCreate(m_tlas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    // @FIXME: Hack solution since TLAS can only be created if it has a non-zero number of BLASes.
+    // This whole thing should be reworked
+    Handle<Mesh> default_mesh = MeshBuilder::Cube();
+    InitObject(default_mesh);
+
+    Handle<Material> default_material = CreateObject<Material>();
+    InitObject(default_material);
+
+    AccelerationGeometryRef geometry;
+    
+    {
+        TResourceHandle<MeshRenderResource> mesh_resource_handle(default_mesh->GetRenderResource());
+
+        geometry = MakeRenderObject<AccelerationGeometry>(
+            mesh_resource_handle->BuildPackedVertices(),
+            mesh_resource_handle->BuildPackedIndices(),
+            WeakHandle<Entity>(),
+            default_material
+        );
+
+        DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    }
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        BLASRef blas = MakeRenderObject<BLAS>(Matrix4::identity);
+        blas->AddGeometry(geometry);
+        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+
+        m_top_level_acceleration_structures[frame_index] = MakeRenderObject<TLAS>();
+        m_top_level_acceleration_structures[frame_index]->AddBLAS(blas);
+
+        DeferCreate(m_top_level_acceleration_structures[frame_index], g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    }
 
     return true;
 }

@@ -28,15 +28,15 @@
           <Break Condition="idx == (m_size - m_start_offset)" />
           
           <If Condition="m_allocation.allocation_type == 1">
-            <Item Name="[{ idx }]">((($T1 *)m_allocation.buffer) + m_start_offset + idx)</Item>
+            <Item Name="[{ idx }]">*((($T1 *)m_allocation.buffer) + m_start_offset + idx)</Item>
           </If>
           
           <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">
-            <Item Name="[{ idx }]">((($T1 *)&amp;m_allocation.storage.data[0]) + m_start_offset + idx)</Item>
+            <Item Name="[{ idx }]">*((($T1 *)&amp;m_allocation.storage.data[0]) + m_start_offset + idx)</Item>
           </If>
           
           <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">
-            <Item Name="[{ idx }]">((($T1 *)m_allocation.dynamic_allocation.buffer) + m_start_offset + idx)</Item>
+            <Item Name="[{ idx }]">*((($T1 *)m_allocation.dynamic_allocation.buffer) + m_start_offset + idx)</Item>
           </If>
         
           <Exec>idx++</Exec>

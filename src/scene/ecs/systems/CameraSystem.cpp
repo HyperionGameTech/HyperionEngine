@@ -15,11 +15,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
-EnumFlags<SceneFlags> CameraSystem::GetRequiredSceneFlags() const
-{
-    return SceneFlags::NONE;
-}
-
 void CameraSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);

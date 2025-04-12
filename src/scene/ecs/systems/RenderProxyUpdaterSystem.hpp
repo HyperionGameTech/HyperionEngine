@@ -31,8 +31,6 @@ public:
 
     virtual ~RenderProxyUpdaterSystem() override = default;
 
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const override;
-
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 

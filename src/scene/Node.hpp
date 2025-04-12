@@ -398,11 +398,6 @@ public:
 
     /*! \brief Get the child Nodes of this Node.
      *  \returns Array of child Nodes */
-    HYP_FORCE_INLINE NodeList &GetChildren()
-        { return m_child_nodes; }
-
-    /*! \brief Get the child Nodes of this Node.
-     *  \returns Array of child Nodes */
     HYP_FORCE_INLINE const NodeList &GetChildren() const
         { return m_child_nodes; }
 
@@ -655,8 +650,12 @@ public:
         hc.Add(m_world_transform);
         hc.Add(m_entity);
 
-        for (auto &child : m_child_nodes) {
-            hc.Add(child);
+        for (const NodeProxy &child : m_child_nodes) {
+            if (!child.IsValid()) {
+                continue;
+            }
+
+            hc.Add(*child);
         }
 
         return hc;

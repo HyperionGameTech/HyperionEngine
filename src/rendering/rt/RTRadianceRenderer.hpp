@@ -45,8 +45,8 @@ public:
     HYP_FORCE_INLINE bool IsPathTracer() const
         { return m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER; }
     
-    HYP_FORCE_INLINE void SetTLAS(const TLASRef &tlas)
-        { m_tlas = tlas; }
+    HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight> &tlas)
+        { m_top_level_acceleration_structures = tlas; }
 
     HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
@@ -65,7 +65,8 @@ private:
     RTRadianceRendererOptions                           m_options;
 
     Vec2u                                               m_extent;
-    TLASRef                                             m_tlas;
+
+    FixedArray<TLASRef, max_frames_in_flight>           m_top_level_acceleration_structures;
     
     FixedArray<uint32, max_frames_in_flight>            m_updates;
 

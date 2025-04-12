@@ -58,8 +58,6 @@ public:
     static void SetCurrentThreadObject(IThread *);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-    HYP_DEPRECATED static ThreadType CurrentThreadType();
-
     static SizeType NumCores();
 
     static void Sleep(uint32 milliseconds);

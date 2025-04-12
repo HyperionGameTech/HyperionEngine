@@ -130,8 +130,6 @@ protected:
     void SetNeedsUpdate();
 
 protected:
-    bool                        m_is_initialized;
-
     AtomicVar<int16>            m_update_counter;
 
     ClaimedSemaphore            m_claimed_semaphore;
@@ -141,6 +139,9 @@ protected:
     ResourceMemoryPoolHandle    m_pool_handle;
     
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
+
+private:
+    bool                        m_is_initialized;
 };
 
 class IResourceMemoryPool

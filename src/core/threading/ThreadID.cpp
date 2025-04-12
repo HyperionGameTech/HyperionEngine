@@ -45,11 +45,7 @@ public:
 
     uint32 AllocateIndex(Name name)
     {
-        Name *name_ptr = nullptr;
-
         const uint32 index = m_id_generator.NextID();
-
-        *name_ptr = name;
 
         {
             Mutex::Guard guard(m_mutex);

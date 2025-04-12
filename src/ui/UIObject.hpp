@@ -79,15 +79,6 @@ enum class UIObjectType : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
 
-HYP_ENUM()
-enum class UIObjectPositioning : uint32
-{
-    DEFAULT     = 0,
-    ABSOLUTE,
-
-    MAX
-};
-
 HYP_STRUCT(Size=24)
 struct alignas(8) UIEventHandlerResult
 {
@@ -559,12 +550,6 @@ public:
     
     HYP_METHOD()
     void SetName(Name name);
-
-    HYP_METHOD()
-    UIObjectPositioning GetPositioning() const;
-
-    HYP_METHOD()
-    void SetPositioning(UIObjectPositioning positioning);
 
     HYP_METHOD()
     Vec2i GetPosition() const;
@@ -1291,8 +1276,6 @@ protected:
     Weak<UIObject>                  m_spawn_parent;
 
     Name                            m_name;
-
-    UIObjectPositioning             m_positioning;
 
     Vec2i                           m_position;
     Vec2f                           m_offset_position;

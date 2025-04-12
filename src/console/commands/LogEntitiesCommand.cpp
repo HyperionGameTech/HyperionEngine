@@ -66,31 +66,25 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
         
         // HYP_LOG(LogEntities, Info, "Logging entities for scene {}", entity_manager->GetScene()->GetName());
 
-        for (auto &it : entity_manager->GetEntities()) {
-            Handle<Entity> entity = it.first.Lock();
-            if (!entity.IsValid()) {
-                continue;
-            }
-
+        entity_manager->ForEachEntity([&](const Handle<Entity> &entity, const EntityData &entity_data)
+        {
             if (only_orphan_nodes) {
                 NodeLinkComponent *node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity);
 
                 if (!node_link_component) {
-                    continue;
+                    return IterationResult::CONTINUE;
                 }
 
                 RC<Node> node = node_link_component->node.Lock();
                 
                 if (node == nullptr || node->GetParent() != nullptr) {
-                    continue;
+                    return IterationResult::CONTINUE;
                 }
 
                 if (entity_manager->GetScene()->GetRoot().Get() == node.Get()) {
-                    continue; // skip root node
+                    return IterationResult::CONTINUE; // skip root node
                 }
             }
-
-            const EntityData &entity_data = it.second;
 
             json::JSONObject entity_json;
             entity_json["id"] = entity.GetID().Value();
@@ -156,7 +150,9 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
 
             entity_json["components"] = std::move(components_json);
             entity_manager_entities_json.PushBack(std::move(entity_json));
-        }
+
+            return IterationResult::CONTINUE;
+        });
 
         entity_manager_json["entities"] = std::move(entity_manager_entities_json);
 

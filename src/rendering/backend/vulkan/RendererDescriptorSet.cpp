@@ -18,6 +18,8 @@
 
 #include <vulkan/vulkan.h>
 
+#define HYP_DESCRIPTOR_SET_AUTO_UPDATE
+
 namespace hyperion {
 namespace renderer {
 namespace platform {
@@ -301,6 +303,7 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
 
     Array<VulkanDescriptorElementInfo> dirty_descriptor_element_infos;
 
+#ifdef HYP_DESCRIPTOR_SET_AUTO_UPDATE
     // Ensure all cached value containers are prepared
     for (auto &it : m_elements) {
         const Name name = it.first;
@@ -318,6 +321,7 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
             cached_values.Resize(element.values.Size());
         }
     }
+#endif
 
     // detect changes from cached_values
     for (auto &it : m_elements) {
@@ -327,15 +331,26 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
         const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
         AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
 
+#ifdef HYP_DESCRIPTOR_SET_AUTO_UPDATE
         auto cached_it = m_platform_impl.cached_elements.Find(name);
         AssertDebug(cached_it != m_platform_impl.cached_elements.End());
 
         Array<DescriptorSetElementCachedValue> &cached_values = cached_it->second;
         AssertDebug(cached_values.Size() == element.values.Size());
-
+#else
+        if (!element.IsDirty()) {
+            continue;
+        }
+#endif
+        
+#ifdef HYP_DESCRIPTOR_SET_AUTO_UPDATE
         for (auto &values_it : element.values) {
             const uint32 index = values_it.first;
             const DescriptorSetElement<Platform::VULKAN>::ValueType &value = values_it.second;
+#else
+        for (uint32 index = element.dirty_range.GetStart(); index < element.dirty_range.GetEnd(); index++) {
+            const const DescriptorSetElement<Platform::VULKAN>::ValueType &value = element.values.At(index);
+#endif
 
             VulkanDescriptorElementInfo descriptor_element_info { };
             descriptor_element_info.binding = layout_element->binding;
@@ -401,7 +416,8 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
             } else {
                 HYP_UNREACHABLE();
             }
-
+            
+#ifdef HYP_DESCRIPTOR_SET_AUTO_UPDATE
             AssertThrowMsg(index < cached_values.Size(), "Index out of range for cached values");
 
             if (Memory::MemCmp(&cached_values[index].info, &descriptor_element_info, sizeof(VulkanDescriptorElementInfo)) != 0) {
@@ -414,6 +430,9 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
 
                 // HYP_LOG(RenderingBackend, Debug, "Marked Dirty descriptor set element: {}.{}[{}]", m_layout.GetName().LookupString(), name.LookupString(), index);
             }
+#else
+            dirty_descriptor_element_infos.PushBack(descriptor_element_info);
+#endif
         }
     }
 

@@ -668,7 +668,7 @@ struct alignas(16) MeshDescription
     uint64 vertex_buffer_address;
     uint64 index_buffer_address;
 
-    uint32 entity_index;
+    uint32 _pad0;
     uint32 material_index;
     uint32 num_indices;
     uint32 num_vertices;
