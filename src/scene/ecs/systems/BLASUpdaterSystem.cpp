@@ -14,6 +14,8 @@
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <Engine.hpp>
@@ -24,13 +26,13 @@ namespace hyperion {
 
 struct RENDER_COMMAND(UpdateBLASTransform) : renderer::RenderCommand
 {
-    BLASRef blas;
-    Matrix4 transform;
+    FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
+    Matrix4                                     transform;
 
     RENDER_COMMAND(UpdateBLASTransform)(
-        const BLASRef &blas,
+        const FixedArray<BLASRef, max_frames_in_flight> &bottom_level_acceleration_structures,
         const Matrix4 &transform
-    ) : blas(blas),
+    ) : bottom_level_acceleration_structures(bottom_level_acceleration_structures),
         transform(transform)
     {
     }
@@ -39,7 +41,13 @@ struct RENDER_COMMAND(UpdateBLASTransform) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        blas->SetTransform(transform);
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            if (!bottom_level_acceleration_structures[frame_index].IsValid()) {
+                continue;
+            }
+
+            bottom_level_acceleration_structures[frame_index]->SetTransform(transform);
+        }
 
         HYPERION_RETURN_OK;
     }
@@ -47,16 +55,15 @@ struct RENDER_COMMAND(UpdateBLASTransform) : renderer::RenderCommand
 
 struct RENDER_COMMAND(AddBLASToTLAS) : renderer::RenderCommand
 {
-    WeakHandle<RenderEnvironment>   environment_weak;
-    BLASRef                         blas;
+    WeakHandle<RenderEnvironment>               environment_weak;
+    FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
 
     RENDER_COMMAND(AddBLASToTLAS)(
         const WeakHandle<RenderEnvironment> &environment_weak,
-        const BLASRef &blas
+        const FixedArray<BLASRef, max_frames_in_flight> &bottom_level_acceleration_structures
     ) : environment_weak(environment_weak),
-        blas(blas)
+        bottom_level_acceleration_structures(bottom_level_acceleration_structures)
     {
-        AssertThrow(blas.IsValid());
     }
 
     virtual ~RENDER_COMMAND(AddBLASToTLAS)() override = default;
@@ -64,9 +71,11 @@ struct RENDER_COMMAND(AddBLASToTLAS) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         if (Handle<RenderEnvironment> environment = environment_weak.Lock()) {
-            AssertThrow(environment->GetTLAS().IsValid());
-
-            environment->GetTLAS()->AddBLAS(blas);
+            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                if (bottom_level_acceleration_structures[frame_index].IsValid()) {
+                    environment->GetTopLevelAccelerationStructures()[frame_index]->AddBLAS(bottom_level_acceleration_structures[frame_index]);
+                }
+            }
         }
 
         HYPERION_RETURN_OK;
@@ -75,16 +84,15 @@ struct RENDER_COMMAND(AddBLASToTLAS) : renderer::RenderCommand
 
 struct RENDER_COMMAND(RemoveBLASFromTLAS) : renderer::RenderCommand
 {
-    WeakHandle<RenderEnvironment>   environment_weak;
-    BLASRef                         blas;
+    WeakHandle<RenderEnvironment>               environment_weak;
+    FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
 
     RENDER_COMMAND(RemoveBLASFromTLAS)(
         const WeakHandle<RenderEnvironment> &environment_weak,
-        const BLASRef &blas
+        const FixedArray<BLASRef, max_frames_in_flight> &bottom_level_acceleration_structures
     ) : environment_weak(environment_weak),
-        blas(blas)
+        bottom_level_acceleration_structures(bottom_level_acceleration_structures)
     {
-        AssertThrow(blas.IsValid());
     }
 
     virtual ~RENDER_COMMAND(RemoveBLASFromTLAS)() override = default;
@@ -92,9 +100,11 @@ struct RENDER_COMMAND(RemoveBLASFromTLAS) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         if (Handle<RenderEnvironment> environment = environment_weak.Lock()) {
-            AssertThrow(environment->GetTLAS().IsValid());
-
-            environment->GetTLAS()->RemoveBLAS(blas);
+            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                if (bottom_level_acceleration_structures[frame_index].IsValid()) {
+                    environment->GetTopLevelAccelerationStructures()[frame_index]->RemoveBLAS(bottom_level_acceleration_structures[frame_index]);
+                }
+            }
         }
 
         HYPERION_RETURN_OK;
@@ -110,16 +120,21 @@ BLASUpdaterSystem::BLASUpdaterSystem(EntityManager &entity_manager)
     {
         Threads::AssertOnThread(g_game_thread);
 
-        for (auto [entity_id, blas_component] : GetEntityManager().GetEntitySet<BLASComponent>().GetScopedView(GetComponentInfos())) {
-            if (previous_world != nullptr && blas_component.blas != nullptr) {
-                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
+        for (auto [entity_id, mesh_component] : GetEntityManager().GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos())) {
+            if (previous_world != nullptr && mesh_component.raytracing_data != nullptr) {
+                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
             }
 
-            if (new_world != nullptr && blas_component.blas != nullptr) {
-                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
+            if (new_world != nullptr && mesh_component.raytracing_data != nullptr) {
+                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
             }
         }
     }));
+}
+
+EnumFlags<SceneFlags> BLASUpdaterSystem::GetRequiredSceneFlags() const
+{
+    return SceneFlags::FOREGROUND;
 }
 
 void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
@@ -130,7 +145,6 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
     TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
@@ -138,47 +152,71 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    blas_component.transform_hash_code = transform_component.transform.GetHashCode();
-    blas_component.blas = MakeRenderObject<BLAS>(transform_component.transform.GetMatrix());
+    AssertThrow(mesh_component.raytracing_data == nullptr);
 
     InitObject(mesh_component.mesh);
     AssertThrow(mesh_component.mesh->IsReady());
 
-    AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
-        mesh_component.mesh->GetRenderResource().BuildPackedVertices(),
-        mesh_component.mesh->GetRenderResource().BuildPackedIndices(),
-        entity,
-        mesh_component.material
-    );
+    AccelerationGeometryRef geometry;
+    
+    {
+        TResourceHandle<MeshRenderResource> mesh_resource_handle(mesh_component.mesh->GetRenderResource());
 
-    DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        geometry = MakeRenderObject<AccelerationGeometry>(
+            mesh_resource_handle->BuildPackedVertices(),
+            mesh_resource_handle->BuildPackedIndices(),
+            entity,
+            mesh_component.material
+        );
 
-    blas_component.blas->AddGeometry(std::move(geometry));
+        DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    }
 
-    DeferCreate(blas_component.blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    MeshRaytracingData *mesh_raytracing_data = new MeshRaytracingData;
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        BLASRef blas = MakeRenderObject<BLAS>(transform_component.transform.GetMatrix());
+
+        blas->AddGeometry(geometry);
+
+        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+
+        mesh_raytracing_data->bottom_level_acceleration_structures[frame_index] = std::move(blas);
+    }
+
+    mesh_component.raytracing_data = mesh_raytracing_data;
     
     if (!GetWorld()) {
         return;
     }
 
-    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
+    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
+
+    GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity);
 }
 
 void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+
+    if (!mesh_component.raytracing_data) {
         return;
     }
 
-    BLASComponent &blas_component = GetEntityManager().GetComponent<BLASComponent>(entity);
+    PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
 
-    if (blas_component.blas.IsValid()) {
-        PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), blas_component.blas);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        BLASRef &blas = mesh_component.raytracing_data->bottom_level_acceleration_structures[frame_index];
 
-        SafeRelease(std::move(blas_component.blas));
+        if (blas.IsValid()) {
+            SafeRelease(std::move(blas));
+        }
     }
+
+    delete mesh_component.raytracing_data;
+    mesh_component.raytracing_data = nullptr;
 }
 
 void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
@@ -187,12 +225,13 @@ void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
         return;
     }
 
-    for (auto [entity_id, blas_component, mesh_component, transform_component] : GetEntityManager().GetEntitySet<BLASComponent, MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
-        const HashCode transform_hash_code = transform_component.transform.GetHashCode();
+    HashSet<ID<Entity>> updated_entity_ids;
 
-        if (!blas_component.blas.IsValid()) {
+    for (auto [entity_id, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BLAS>>().GetScopedView(GetComponentInfos())) {
+        if (!mesh_component.raytracing_data) {
             continue;
         }
+
 
         /// vvv FIXME
         // if (blas_component.blas->GetMesh() != mesh_component.mesh) {
@@ -203,11 +242,18 @@ void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
         //     blas_component.blas->SetMaterial(mesh_component.material);
         // }
 
-        if (transform_hash_code != blas_component.transform_hash_code) {
-            PUSH_RENDER_COMMAND(UpdateBLASTransform, blas_component.blas, transform_component.transform.GetMatrix());
+        PUSH_RENDER_COMMAND(UpdateBLASTransform, mesh_component.raytracing_data->bottom_level_acceleration_structures, transform_component.transform.GetMatrix());
 
-            blas_component.transform_hash_code = transform_hash_code;
-        }
+        updated_entity_ids.Insert(entity_id);
+    }
+
+    if (updated_entity_ids.Any()) {
+        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        {
+            for (const ID<Entity> &entity_id : entity_ids) {
+                GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity_id);
+            }
+        });
     }
 }
 

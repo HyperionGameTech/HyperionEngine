@@ -26,7 +26,8 @@ void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         GetEntityManager().AddTags<
             EntityTag::UPDATE_RENDER_PROXY,
             EntityTag::UPDATE_VISIBILITY_STATE,
-            EntityTag::UPDATE_ENV_PROBE_TRANSFORM
+            EntityTag::UPDATE_ENV_PROBE_TRANSFORM,
+            EntityTag::UPDATE_BLAS
         >(entity);
 
         GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity);
@@ -55,7 +56,8 @@ void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
                 GetEntityManager().AddTags<
                     EntityTag::UPDATE_RENDER_PROXY,
                     EntityTag::UPDATE_VISIBILITY_STATE,
-                    EntityTag::UPDATE_ENV_PROBE_TRANSFORM
+                    EntityTag::UPDATE_ENV_PROBE_TRANSFORM,
+                    EntityTag::UPDATE_BLAS
                 >(entity_id);
 
                 GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_id);

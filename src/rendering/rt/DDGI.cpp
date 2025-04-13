@@ -153,17 +153,6 @@ DDGI::~DDGI()
 
 void DDGI::Init()
 {
-    AssertThrowMsg(
-        m_tlas.IsValid(),
-        "Invalid TLAS provided"
-    );
-
-    DebugLog(
-        LogType::Info,
-        "Creating %u DDGI probes\n",
-        m_grid_info.NumProbes()
-    );
-
     const Vec3u grid = m_grid_info.NumProbesPerDimension();
     m_probes.Resize(m_grid_info.NumProbes());
 
@@ -221,14 +210,16 @@ void DDGI::CreatePipelines()
     DescriptorTableRef raytracing_pipeline_descriptor_table = MakeRenderObject<DescriptorTable>(raytracing_pipeline_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        AssertThrow(m_top_level_acceleration_structures[frame_index] != nullptr);
+
         const DescriptorSetRef &descriptor_set = raytracing_pipeline_descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("TLAS"), m_tlas);
+        descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         
         descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
+        descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(NAME("DDGIUniforms"), m_uniform_buffer);
         descriptor_set->SetElement(NAME("ProbeRayData"), m_radiance_buffer);
@@ -403,12 +394,12 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
-            descriptor_set->SetElement(NAME("TLAS"), m_tlas);
+            descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         }
 
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
             // update mesh descriptions buffer in descriptor set
-            descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_tlas->GetMeshDescriptionsBuffer());
+            descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
         }
 
         descriptor_set->Update(g_engine->GetGPUDevice());

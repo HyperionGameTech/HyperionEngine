@@ -317,32 +317,6 @@ const ThreadID &Threads::CurrentThreadID()
     return g_current_thread_id;
 }
 
-ThreadType Threads::CurrentThreadType()
-{
-    const ThreadID &thread_id = Threads::CurrentThreadID();
-
-    if (thread_id == g_game_thread) {
-        return THREAD_TYPE_GAME;
-    }
-
-    if (thread_id == g_render_thread) {
-        return THREAD_TYPE_RENDER;
-    }
-
-    switch (thread_id.GetCategory()) {
-    case THREAD_CATEGORY_TASK:
-        return THREAD_TYPE_TASK;
-    default:
-        if (thread_id.IsDynamic()) {
-            return THREAD_TYPE_DYNAMIC;
-        }
-
-        break;
-    }
-
-    return THREAD_TYPE_INVALID;
-}
-
 void Threads::SetCurrentThreadPriority(ThreadPriorityValue priority)
 {
 #ifdef HYP_WINDOWS

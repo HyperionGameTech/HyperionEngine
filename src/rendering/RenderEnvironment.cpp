@@ -94,7 +94,7 @@ RenderEnvironment::~RenderEnvironment()
 
     PUSH_RENDER_COMMAND(RemoveAllRenderSubsystems, std::move(m_render_subsystems));
 
-    SafeRelease(std::move(m_tlas));
+    SafeRelease(std::move(m_top_level_acceleration_structures));
 
     HYP_SYNC_RENDER();
 }
@@ -123,14 +123,12 @@ void RenderEnvironment::Init()
     if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {
-        CreateTLAS();
-    }
-    
-    if (m_tlas) {
-        m_rt_radiance->SetTLAS(m_tlas);
+        CreateTopLevelAccelerationStructures();
+
+        m_rt_radiance->SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
         m_rt_radiance->Create();
 
-        m_ddgi.SetTLAS(m_tlas);
+        m_ddgi.SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
         m_ddgi.Init();
 
         m_has_rt_radiance = true;
@@ -272,7 +270,7 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         RTUpdateStateFlags update_state_flags;
 
-        m_tlas->UpdateStructure(
+        m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(
             g_engine->GetGPUInstance(),
             update_state_flags
         );
@@ -475,61 +473,52 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass *hy
 void RenderEnvironment::InitializeRT()
 {
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
-        if (m_tlas) {
-            if (m_has_rt_radiance) {
-                m_rt_radiance->Destroy();
-            }
-
-            if (m_has_ddgi_probes) {
-                m_ddgi.Destroy();
-            }
-                
-            m_ddgi.SetTLAS(m_tlas);
-            m_rt_radiance->SetTLAS(m_tlas);
-
-            m_rt_radiance->Create();
-            m_ddgi.Init();
-
-            m_has_rt_radiance = true;
-            m_has_ddgi_probes = true;
-
-            HYP_SYNC_RENDER();
-        } else {
-            if (m_has_rt_radiance) {
-                m_rt_radiance->Destroy();
-            }
-
-            if (m_has_ddgi_probes) {
-                m_ddgi.Destroy();
-            }
-
-            m_has_rt_radiance = false;
-            m_has_ddgi_probes = false;
-
-            HYP_SYNC_RENDER();
+        if (m_has_rt_radiance) {
+            m_rt_radiance->Destroy();
         }
+
+        if (m_has_ddgi_probes) {
+            m_ddgi.Destroy();
+        }
+                
+        m_ddgi.SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
+        m_rt_radiance->SetTopLevelAccelerationStructures(m_top_level_acceleration_structures);
+
+        m_rt_radiance->Create();
+        m_ddgi.Init();
+
+        m_has_rt_radiance = true;
+        m_has_ddgi_probes = true;
+    } else {
+        if (m_has_rt_radiance) {
+            m_rt_radiance->Destroy();
+        }
+
+        if (m_has_ddgi_probes) {
+            m_ddgi.Destroy();
+        }
+
+        m_has_rt_radiance = false;
+        m_has_ddgi_probes = false;
     }
 
     m_rt_initialized = true;
 }
 
-bool RenderEnvironment::CreateTLAS()
+bool RenderEnvironment::CreateTopLevelAccelerationStructures()
 {
     HYP_SCOPE;
 
     AssertIsInitCalled();
-
-    if (m_tlas) {
-        // TLAS already exists
-        return true;
-    }
     
     if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
         return false;
     }
 
-    m_tlas = MakeRenderObject<TLAS>();
-    DeferCreate(m_tlas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_top_level_acceleration_structures[frame_index] = MakeRenderObject<TLAS>();
+        DeferCreate(m_top_level_acceleration_structures[frame_index], g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    }
 
     return true;
 }

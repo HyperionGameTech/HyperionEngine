@@ -36,7 +36,6 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/BVHComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
@@ -519,9 +518,6 @@ void LightmapGPUPathTracer::Create()
     AssertThrow(m_scene->GetWorld() != nullptr);
     AssertThrow(m_scene->GetWorld()->IsReady());
 
-    const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTLAS();
-    AssertThrow(tlas != nullptr);
-
     CreateUniformBuffer();
 
     DeferCreate(
@@ -559,6 +555,9 @@ void LightmapGPUPathTracer::Create()
     DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTopLevelAccelerationStructures()[frame_index];
+        AssertThrow(tlas != nullptr);
+
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
@@ -1752,15 +1751,10 @@ void Lightmapper::PerformLightmapping()
             continue;
         }
 
-        // GPU path tracing mode requires a raytracing BLAS to be attached
-        if (m_config.trace_mode == LightmapTraceMode::GPU_PATH_TRACING) {
-            BLASComponent *blas_component = mgr.TryGetComponent<BLASComponent>(entity_id);
+        if (!mesh_component.raytracing_data) {
+            HYP_LOG(Lightmap, Info, "Skipping entity #{} because it has no raytracing data set", entity_id.Value());
 
-            if (!blas_component || !blas_component->blas) {
-                HYP_LOG(Lightmap, Info, "Skipping entity #{} because it has no bottom level acceleration structure attached", entity_id.Value());
-
-                continue;
-            }
+            continue;
         }
 
         Handle<Entity> entity { entity_id };

@@ -275,13 +275,6 @@ AccelerationStructure<Platform::VULKAN>::~AccelerationStructure()
         m_scratch_buffer == nullptr,
         "Scratch buffer should have been destroyed before destructor call"
     );
-
-    for (auto &geometry : m_geometries) {
-        AssertThrowMsg(
-            geometry == nullptr,
-            "Each geometry should have been destroyed before destructor call"
-        );
-    }
 }
 
 template <>
@@ -487,10 +480,7 @@ RendererResult AccelerationStructure<Platform::VULKAN>::Destroy(Device<Platform:
 {
     RendererResult result;
 
-    for (auto &geometry : m_geometries) {
-        SafeRelease(std::move(geometry));
-    }
-    
+    SafeRelease(std::move(m_geometries));
     SafeRelease(std::move(m_buffer));
     SafeRelease(std::move(m_instances_buffer));
     SafeRelease(std::move(m_scratch_buffer));
