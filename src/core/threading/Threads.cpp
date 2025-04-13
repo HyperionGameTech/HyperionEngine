@@ -206,7 +206,7 @@ void Threads::AssertOnThread(ThreadMask mask, const char *message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    const ThreadID current_thread_id = g_current_thread_id;
+    thread_local const ThreadID &current_thread_id = CurrentThreadID();
 
     AssertThrowMsg(
         mask & current_thread_id.GetMask(),
@@ -227,7 +227,7 @@ void Threads::AssertOnThread(const ThreadID &thread_id, const char *message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
-    const ThreadID current_thread_id = g_current_thread_id;
+    thread_local const ThreadID &current_thread_id = CurrentThreadID();
 
     AssertThrowMsg(
         thread_id == current_thread_id,
@@ -250,7 +250,7 @@ bool Threads::IsThreadInMask(const ThreadID &thread_id, ThreadMask mask)
 bool Threads::IsOnThread(ThreadMask mask)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    const ThreadID &current_thread_id = g_current_thread_id;
+    thread_local const ThreadID &current_thread_id = CurrentThreadID();
 
     if (mask & current_thread_id.GetMask()) {
         return true;
@@ -266,7 +266,9 @@ bool Threads::IsOnThread(ThreadMask mask)
 bool Threads::IsOnThread(const ThreadID &thread_id)
 {
 #ifdef HYP_ENABLE_THREAD_ID
-    if (thread_id == g_current_thread_id) {
+    thread_local const ThreadID &current_thread_id = CurrentThreadID();
+
+    if (thread_id == current_thread_id) {
         return true;
     }
 
@@ -279,6 +281,39 @@ bool Threads::IsOnThread(const ThreadID &thread_id)
 
 const ThreadID &Threads::CurrentThreadID()
 {
+    // For non-thread object threads (e.g .NET finalizer threads),
+    // read the thread name from the OS and allocate a new thread ID.
+    // SetCurrentThreadID() should be called before CurrentThreadID() for any threads that should not use the OS-created name.
+    if (!g_current_thread_id.IsValid()) {
+#ifdef HYP_WINDOWS
+        PWCHAR thread_name[256];
+        HRESULT result = GetThreadDescription(GetCurrentThread(), &thread_name[0]);
+
+        char thread_name_mb[256];
+        WideCharToMultiByte(
+            CP_ACP,
+            0,
+            thread_name[0],
+            -1,
+            thread_name_mb,
+            sizeof(thread_name_mb),
+            nullptr,
+            nullptr
+        );
+
+        if (SUCCEEDED(result)) {
+            g_current_thread_id = ThreadID(CreateNameFromDynamicString(&thread_name_mb[0]), /* force_unique */ true);
+        } else {
+            g_current_thread_id = ThreadID(NAME("Unknown"), /* force_unique */ true);
+        }
+#elif HYP_UNIX
+        char thread_name[256];
+        pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
+
+        g_current_thread_id = ThreadID(CreateNameFromDynamicString(thread_name), /* force_unique */ true);
+#endif
+    }
+
     return g_current_thread_id;
 }
 

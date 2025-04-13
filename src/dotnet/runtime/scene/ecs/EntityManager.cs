@@ -32,7 +32,7 @@ namespace Hyperion
             AddComponent<T>(entity, componentHypClass, ref component);
         }
 
-        private unsafe void AddComponent<T>(Entity entity, HypClass componentHypClass, ref T component)
+        private unsafe void AddComponent<T>(Entity entity, HypClass componentHypClass, ref T component) where T : struct, IComponent
         {
             fixed (void* ptr = &component)
             {

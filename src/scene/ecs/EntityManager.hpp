@@ -778,7 +778,7 @@ public:
             MoveEntityGuard move_entity_guard(*this);
             HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
-            EntityData *entity_data = m_entities.GetEntityData(entity_id);
+            EntityData *entity_data = m_entities.TryGetEntityData(entity_id);
             AssertThrow(entity_data != nullptr);
 
             auto component_it = entity_data->FindComponent<Component>();

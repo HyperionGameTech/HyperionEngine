@@ -693,6 +693,8 @@ void TopLevelAccelerationStructure<Platform::VULKAN>::RemoveBLAS(const BLASRef<P
 template <>
 RendererResult TopLevelAccelerationStructure<Platform::VULKAN>::CreateOrRebuildInstancesBuffer(Instance<Platform::VULKAN> *instance)
 {
+    Threads::AssertOnThread(g_render_thread);
+
     Device<Platform::VULKAN> *device = instance->GetDevice();
 
     Array<VkAccelerationStructureInstanceKHR> instances;

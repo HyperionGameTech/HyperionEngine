@@ -23,7 +23,7 @@ enum class ConsoleHistoryEntryType : uint32
     NONE,
     TEXT,
     COMMAND,
-    ERROR
+    ERR
 };
 
 struct ConsoleHistoryEntry
@@ -121,7 +121,7 @@ ConsoleUI::ConsoleUI()
             ConsoleUI *console_ui = (ConsoleUI *)context;
 
             if (console_ui->m_history) {
-                console_ui->m_history->AddEntry(message.message, ConsoleHistoryEntryType::ERROR);
+                console_ui->m_history->AddEntry(message.message, ConsoleHistoryEntryType::ERR);
             }
         }
     );
@@ -168,7 +168,7 @@ void ConsoleUI::Init()
             case ConsoleHistoryEntryType::TEXT:
                 text->SetTextColor(Vec4f { 0.9f, 0.9f, 0.9f, 1.0f });
                 break;
-            case ConsoleHistoryEntryType::ERROR:
+            case ConsoleHistoryEntryType::ERR:
                 text->SetTextColor(Vec4f { 1.0f, 0.0f, 0.0f, 1.0f });
                 break;
             default:

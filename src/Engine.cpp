@@ -267,7 +267,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
-    constexpr bool use_debug_layers = true;
+    constexpr bool use_debug_layers = false;// true;
 #else
     constexpr bool use_debug_layers = false;
 #endif

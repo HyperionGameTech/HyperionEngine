@@ -119,7 +119,6 @@ UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
       m_is_init(false),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
-      m_positioning(UIObjectPositioning::DEFAULT),
       m_position(0, 0),
       m_is_position_absolute(false),
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
@@ -412,24 +411,6 @@ Name UIObject::GetName() const
 void UIObject::SetName(Name name)
 {
     m_name = name;
-}
-
-UIObjectPositioning UIObject::GetPositioning() const
-{
-    return m_positioning;
-}
-
-void UIObject::SetPositioning(UIObjectPositioning positioning)
-{
-    HYP_SCOPE;
-
-    if (m_positioning == positioning) {
-        return;
-    }
-
-    m_positioning = positioning;
-
-    UpdatePosition(/* update_children */ false);
 }
 
 Vec2i UIObject::GetPosition() const
