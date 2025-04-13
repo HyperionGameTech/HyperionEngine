@@ -547,10 +547,17 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
         GetEntityToEntityManagerMap().Remap(entity, other);
     }
 
-    other->NotifySystemsOfEntityAdded(entity, new_component_ids);
-
     m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
     other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
+
+    if (Threads::IsOnThread(other->GetOwnerThreadID())) {
+        other->NotifySystemsOfEntityAdded(entity, new_component_ids);
+    } else {
+        Threads::GetThread(other->GetOwnerThreadID())->GetScheduler().Enqueue([other, entity, new_component_ids = std::move(new_component_ids)]()
+        {
+            other->NotifySystemsOfEntityAdded(entity, new_component_ids);
+        }, TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 }
 
 void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
@@ -568,18 +575,19 @@ void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
         MoveEntityGuard move_entity_guard(*this);
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
-        EntityData &entity_data = m_entities.GetEntityData(entity_id);
+        EntityData *entity_data = m_entities.GetEntityData(entity_id);
+        AssertThrow(entity_data != nullptr);
 
         // Update the EntityData
-        auto component_it = entity_data.FindComponent(component_type_id);
+        auto component_it = entity_data->FindComponent(component_type_id);
         // @TODO: Replace the component if it already exists
-        AssertThrowMsg(component_it == entity_data.components.End(), "Entity already has component of type %u", component_type_id.Value());
+        AssertThrowMsg(component_it == entity_data->components.End(), "Entity already has component of type %u", component_type_id.Value());
 
         ComponentContainerBase *container = TryGetContainer(component_type_id);
         AssertThrowMsg(container != nullptr, "Component container does not exist for component type %u", component_type_id.Value());
 
         const ComponentID component_id = container->AddComponent(component);
-        entity_data.components.Set(component.GetTypeID(), component_id);
+        entity_data->components.Set(component.GetTypeID(), component_id);
 
         { // Lock the entity sets mutex
             Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
@@ -596,7 +604,7 @@ void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
             }
         }
 
-        component_ids = entity_data.components;
+        component_ids = entity_data->components;
     }
 
     // Notify systems that entity is being added to them
@@ -618,10 +626,14 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
     MoveEntityGuard move_entity_guard(*this);
     HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
-    EntityData &entity_data = m_entities.GetEntityData(entity_id);
+    EntityData *entity_data = m_entities.TryGetEntityData(entity_id);
 
-    auto component_it = entity_data.FindComponent(component_type_id);
-    if (component_it == entity_data.components.End()) {
+    if (!entity_data) {
+        return false;
+    }
+
+    auto component_it = entity_data->FindComponent(component_type_id);
+    if (component_it == entity_data->components.End()) {
         return false;
     }
 
@@ -643,7 +655,7 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, ID<Entity> entity_
         return false;
     }
 
-    entity_data.components.Erase(component_it);
+    entity_data->components.Erase(component_it);
 
     // Lock the entity sets mutex
     Mutex::Guard entity_sets_guard(m_entity_sets_mutex);

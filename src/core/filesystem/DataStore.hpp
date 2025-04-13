@@ -116,7 +116,7 @@ private:
     ResourceMemoryPoolHandle    m_pool_handle;
     String                      m_prefix;
     DataStoreOptions            m_options;
-    ClaimedSemaphore               m_claimed_semaphore;
+    ClaimedSemaphore            m_claimed_semaphore;
     ShutdownSemaphore           m_shutdown_semaphore;
 };
 
