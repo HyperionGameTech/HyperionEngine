@@ -316,7 +316,7 @@ void HyperionEditor::Init()
             }
         }
 
-        if (false) {
+        if (true) {
             // testing reflection capture
             Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
 

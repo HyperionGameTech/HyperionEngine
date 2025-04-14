@@ -42,6 +42,9 @@ public:
     HYP_FORCE_INLINE const SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
+    HYP_FORCE_INLINE const FrameHandlerRef<PLATFORM> &GetFrameHandler() const
+        { return m_frame_handler; }
+
     HYP_FORCE_INLINE SizeType NumImages() const
         { return m_images.Size(); }
 
@@ -58,6 +61,8 @@ public:
 
 private:
     Array<ImageRef<PLATFORM>>       m_images;
+
+    FrameHandlerRef<PLATFORM>       m_frame_handler;
 
     SwapchainPlatformImpl<PLATFORM> m_platform_impl;
 };

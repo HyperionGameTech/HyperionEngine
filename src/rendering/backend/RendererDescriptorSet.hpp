@@ -544,7 +544,7 @@ public:
 
     HYP_API RendererResult Create(Device<PLATFORM> *device);
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
-    HYP_API RendererResult Update(Device<PLATFORM> *device);
+    HYP_API void Update(Device<PLATFORM> *device);
 
     bool HasElement(Name name) const;
 
@@ -827,7 +827,7 @@ public:
         \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
         \return The result of the operation */
-    RendererResult Update(Device<PLATFORM> *device, uint32 frame_index)
+    void Update(Device<PLATFORM> *device, uint32 frame_index)
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
@@ -840,29 +840,8 @@ public:
                 continue;
             }
 
-            const RendererResult set_result = set->Update(device);
-
-            if (!set_result) {
-                return set_result;
-            }
+            set->Update(device);
         }
-
-        return { };
-    }
-
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const GraphicsPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets)
-    {
-        Bind<GraphicsPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
-    }
-
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const ComputePipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
-    {
-        Bind<ComputePipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
-    }
-
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const RaytracingPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
-    {
-        Bind<RaytracingPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
     }
 
     /*! \brief Bind all descriptor sets in the table

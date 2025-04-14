@@ -275,7 +275,7 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
         InitializeRT();
     }
     
-    if (m_rt_initialized) {
+    if (m_rt_initialized && m_top_level_acceleration_structures[frame->GetFrameIndex()].IsValid()) {
         RTUpdateStateFlags update_state_flags;
 
         m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(
@@ -536,15 +536,10 @@ bool RenderEnvironment::CreateTopLevelAccelerationStructures()
     {
         TResourceHandle<MeshRenderResource> mesh_resource_handle(default_mesh->GetRenderResource());
 
-        geometry = MakeRenderObject<AccelerationGeometry>(
-            mesh_resource_handle->BuildPackedVertices(),
-            mesh_resource_handle->BuildPackedIndices(),
-            WeakHandle<Entity>(),
-            default_material
-        );
-
-        DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        geometry = mesh_resource_handle->BuildAccelerationGeometry(default_material);
     }
+
+    AssertThrow(geometry != nullptr);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         BLASRef blas = MakeRenderObject<BLAS>(Matrix4::identity);

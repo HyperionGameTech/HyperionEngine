@@ -5,6 +5,8 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderTexture.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
+
 #include <scene/World.hpp>
 #include <scene/Texture.hpp>
 
@@ -137,15 +139,15 @@ void SkydomeRenderer::OnRender(Frame *frame)
     const ImageRef &src_image = m_env_probe->GetRenderResource().GetTexture()->GetRenderResource().GetImage();
     const ImageRef &dst_image = m_cubemap->GetRenderResource().GetImage();
 
-    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
 
-    dst_image->Blit(frame->GetCommandBuffer(), src_image);
-    
-    dst_image->GenerateMipmaps(g_engine->GetGPUDevice(), frame->GetCommandBuffer());
+    frame->GetCommandList().Add<Blit>(src_image, dst_image);
 
-    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
+
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

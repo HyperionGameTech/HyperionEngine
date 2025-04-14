@@ -54,9 +54,8 @@ public:
     static constexpr PlatformType platform = PLATFORM;
 
     HYP_API AccelerationGeometry(
-        const Array<PackedVertex> &packed_vertices,
-        const Array<uint32> &packed_indices,
-        const WeakHandle<Entity> &entity,
+        const GPUBufferRef<PLATFORM> &packed_vertices_buffer,
+        const GPUBufferRef<PLATFORM> &packed_indices_buffer,
         const Handle<Material> &material
     );
 
@@ -64,20 +63,11 @@ public:
     AccelerationGeometry &operator=(const AccelerationGeometry &other)  = delete;
     HYP_API ~AccelerationGeometry();
 
-    HYP_FORCE_INLINE const Array<PackedVertex> &GetPackedVertices() const
-        { return m_packed_vertices; }
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedVerticesBuffer() const
+        { return m_packed_vertices_buffer; }
 
-    HYP_FORCE_INLINE const Array<uint32> &GetPackedIndices() const
-        { return m_packed_indices; }
-
-    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedVertexStorageBuffer() const
-        { return m_packed_vertex_buffer; }
-
-    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedIndexStorageBuffer() const
-        { return m_packed_index_buffer; }
-
-    HYP_FORCE_INLINE const WeakHandle<Entity> &GetEntity() const
-        { return m_entity; }
+    HYP_FORCE_INLINE const GPUBufferRef<PLATFORM> &GetPackedIndicesBuffer() const
+        { return m_packed_indices_buffer; }
 
     HYP_FORCE_INLINE const Handle<Material> &GetMaterial() const
         { return m_material; }
@@ -89,13 +79,9 @@ public:
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
 
 private:
-    Array<PackedVertex>                         m_packed_vertices;
-    Array<uint32>                               m_packed_indices;
-
-    GPUBufferRef<PLATFORM>                      m_packed_vertex_buffer;
-    GPUBufferRef<PLATFORM>                      m_packed_index_buffer;
+    GPUBufferRef<PLATFORM>                      m_packed_vertices_buffer;
+    GPUBufferRef<PLATFORM>                      m_packed_indices_buffer;
     
-    WeakHandle<Entity>                          m_entity;
     Handle<Material>                            m_material;
 
     VkAccelerationStructureGeometryKHR          m_geometry;

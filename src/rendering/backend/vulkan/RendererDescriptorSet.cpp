@@ -295,7 +295,7 @@ DescriptorSet<Platform::VULKAN>::~DescriptorSet()
 }
 
 template <>
-RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
+void DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> *device)
 {
     static_assert(std::is_trivial_v<VulkanDescriptorElementInfo>, "VulkanDescriptorElementInfo should be a trivial type for fast copy and move operations");
 
@@ -472,8 +472,6 @@ RendererResult DescriptorSet<Platform::VULKAN>::Update(Device<Platform::VULKAN> 
 
         element.dirty_range = { };
     }
-    
-    return RendererResult { };
 }
 
 template <>
@@ -483,7 +481,7 @@ RendererResult DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
 
     m_platform_impl.vk_layout_wrapper = device->GetDescriptorSetManager()->GetOrCreateVkDescriptorSetLayout(device, m_layout);
 
-    RendererResult result = RendererResult { };
+    RendererResult result;
 
     HYPERION_PASS_ERRORS(
         device->GetDescriptorSetManager()->CreateDescriptorSet(device, m_platform_impl.vk_layout_wrapper, m_platform_impl.handle),
@@ -504,10 +502,7 @@ RendererResult DescriptorSet<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
         });
     }
 
-    HYPERION_PASS_ERRORS(
-        Update(device),
-        result
-    );
+    Update(device);
 
     return result;
 }

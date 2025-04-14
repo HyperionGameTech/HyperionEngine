@@ -12,6 +12,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -84,25 +85,25 @@ static bool ResizeIndirectDrawCommandsBuffer(
         staging_buffer->Size(),
         0 // fill buffer with zeros
     );
-
-    staging_buffer->InsertBarrier(
-        frame->GetCommandBuffer(),
+    
+    frame->GetCommandList().Add<InsertBarrier>(
+        staging_buffer,
         renderer::ResourceState::COPY_SRC
     );
 
-    indirect_buffer->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<InsertBarrier>(
+        indirect_buffer,
         renderer::ResourceState::COPY_DST
     );
 
-    indirect_buffer->CopyFrom(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<CopyBuffer>(
         staging_buffer,
+        indirect_buffer,
         staging_buffer->Size()
     );
 
-    indirect_buffer->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<InsertBarrier>(
+        indirect_buffer,
         renderer::ResourceState::INDIRECT_ARG
     );
 
@@ -198,21 +199,21 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
     {
         renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
-        commands.Push([this](const CommandBufferRef &command_buffer) -> RendererResult
+        commands.Push([this](RHICommandList &cmd)
         {
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                Frame frame = Frame::TemporaryFrame(command_buffer, frame_index);
+                FrameRef frame = Frame::TemporaryFrame(frame_index);
 
-                if (!ResizeIndirectDrawCommandsBuffer(&frame, IndirectDrawState::initial_count, indirect_buffers[frame_index], staging_buffers[frame_index])) {
-                    return HYP_MAKE_ERROR(RendererError, "Failed to create indirect draw commands buffer!");
+                if (!ResizeIndirectDrawCommandsBuffer(frame, IndirectDrawState::initial_count, indirect_buffers[frame_index], staging_buffers[frame_index])) {
+                    HYP_FAIL("Failed to create indirect draw commands buffer!");
                 }
 
-                if (!ResizeInstancesBuffer(&frame, IndirectDrawState::initial_count, instance_buffers[frame_index], staging_buffers[frame_index])) {
-                    return HYP_MAKE_ERROR(RendererError, "Failed to create instances buffer!");
+                if (!ResizeInstancesBuffer(frame, IndirectDrawState::initial_count, instance_buffers[frame_index], staging_buffers[frame_index])) {
+                    HYP_FAIL("Failed to create instances buffer!");
                 }
+
+                cmd.Concat(std::move(frame->GetCommandList()));
             }
-
-            HYPERION_RETURN_OK;
         });
 
         return commands.Execute();
@@ -329,24 +330,24 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
             m_draw_commands.Data()
         );
 
-        m_staging_buffers[frame_index]->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_staging_buffers[frame_index],
             renderer::ResourceState::COPY_SRC
         );
 
-        m_indirect_buffers[frame_index]->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_indirect_buffers[frame_index],
             renderer::ResourceState::COPY_DST
         );
 
-        m_indirect_buffers[frame_index]->CopyFrom(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<CopyBuffer>(
             m_staging_buffers[frame_index],
+            m_indirect_buffers[frame_index],
             m_staging_buffers[frame_index]->Size()
         );
 
-        m_indirect_buffers[frame_index]->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_indirect_buffers[frame_index],
             renderer::ResourceState::INDIRECT_ARG
         );
     }
@@ -451,7 +452,6 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
@@ -492,10 +492,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     //     m_cached_cull_data_updated_bits &= ~(1u << frame_index);
     // }
 
-    m_object_visibility->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_object_visibility->GetDescriptorTable(),
         m_object_visibility,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -505,11 +505,12 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame_index
     );
-    
-    m_indirect_draw_state.GetIndirectBuffer(frame_index)->InsertBarrier(
-        frame->GetCommandBuffer(),
+
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_indirect_draw_state.GetIndirectBuffer(frame_index),
         renderer::ResourceState::INDIRECT_ARG
     );
 
@@ -526,12 +527,15 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 
     m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    m_object_visibility->Bind(command_buffer);
-    
-    m_object_visibility->Dispatch(command_buffer, Vec3u { num_batches, 1, 1 });
-    
-    m_indirect_draw_state.GetIndirectBuffer(frame_index)->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<BindComputePipeline>(m_object_visibility);
+
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_object_visibility,
+        Vec3u { num_batches, 1, 1 }
+    );
+
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_indirect_draw_state.GetIndirectBuffer(frame_index),
         renderer::ResourceState::INDIRECT_ARG
     );
 }

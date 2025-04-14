@@ -13,6 +13,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
@@ -172,7 +173,7 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
         AssertThrow(descriptor_set.IsValid());
 
-        HYPERION_ASSERT_RESULT(descriptor_set->Update(g_engine->GetGPUDevice()));
+        descriptor_set->Update(g_engine->GetGPUDevice());
 
         m_updates[frame->GetFrameIndex()] = RT_RADIANCE_UPDATES_NONE;
     }
@@ -187,12 +188,12 @@ void RTRadianceRenderer::Render(Frame *frame)
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
-    m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
-
-    m_raytracing_pipeline->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindRaytracingPipeline>(m_raytracing_pipeline);
+    
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_raytracing_pipeline->GetDescriptorTable(),
         m_raytracing_pipeline,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -202,27 +203,24 @@ void RTRadianceRenderer::Render(Frame *frame)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_texture->GetRenderResource().GetImage()->InsertBarrier(
-        frame->GetCommandBuffer(),
-        ResourceState::UNORDERED_ACCESS
-    );
+    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), ResourceState::UNORDERED_ACCESS);
 
     const Vec3u image_extent = m_texture->GetRenderResource().GetImage()->GetExtent();
 
     const SizeType num_pixels = image_extent.Volume();
     //const SizeType half_num_pixels = num_pixels / 2;
 
-    m_raytracing_pipeline->TraceRays(
-        g_engine->GetGPUDevice(),
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<TraceRays>(
+        m_raytracing_pipeline,
         Vec3u { uint32(num_pixels), 1, 1 }
     );
 
-    m_texture->GetRenderResource().GetImage()->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_texture->GetRenderResource().GetImage(),
         ResourceState::SHADER_RESOURCE
     );
 

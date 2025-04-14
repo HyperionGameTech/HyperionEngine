@@ -24,7 +24,7 @@ FrameHandler<Platform::VULKAN>::FrameHandler(uint32 num_frames, NextImageFunctio
 }
 
 template <>
-RendererResult FrameHandler<Platform::VULKAN>::CreateFrames(
+RendererResult FrameHandler<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
     DeviceQueue<Platform::VULKAN> *queue
 )
@@ -36,14 +36,11 @@ RendererResult FrameHandler<Platform::VULKAN>::CreateFrames(
         CommandBufferRef<Platform::VULKAN> command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
         command_buffer->GetPlatformImpl().command_pool = pool;
         HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
+        m_command_buffers[i] = std::move(command_buffer);
 
         FrameRef<Platform::VULKAN> frame = MakeRenderObject<Frame<Platform::VULKAN>>(i);
 
-        HYPERION_BUBBLE_ERRORS(frame->Create(
-            device,
-            std::move(command_buffer)
-        ));
-
+        HYPERION_BUBBLE_ERRORS(frame->Create(device));
         m_frames[i] = std::move(frame);
     }
 
@@ -116,6 +113,7 @@ template <>
 RendererResult FrameHandler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     SafeRelease(std::move(m_frames));
+    SafeRelease(std::move(m_command_buffers));
 
     return RendererResult { };
 }

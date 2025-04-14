@@ -159,6 +159,9 @@ RendererResult CommandBuffer<Platform::VULKAN>::SubmitPrimary(
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &m_platform_impl.command_buffer;
 
+    AssertThrow(fence != nullptr);
+    AssertThrow(fence->GetPlatformImpl().handle != VK_NULL_HANDLE);
+
     HYPERION_VK_CHECK_MSG(
         vkQueueSubmit(queue->queue, 1, &submit_info, fence->GetPlatformImpl().handle),
         "Failed to submit command"

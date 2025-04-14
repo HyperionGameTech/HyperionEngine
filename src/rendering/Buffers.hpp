@@ -226,7 +226,7 @@ public:
 
     virtual void MarkDirty(uint32 index) = 0;
 
-    virtual void UpdateBufferSize(Device *device, uint32 frame_index, bool &out_was_resized) = 0;
+    virtual void UpdateBufferSize(Device *device, uint32 frame_index) = 0;
     virtual void UpdateBufferData(Device *device, uint32 frame_index) = 0;
 
     virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) = 0;
@@ -293,15 +293,12 @@ public:
         MarkDirty(index);
     }
 
-    void EnsureGPUBufferCapacity(Device *device, const GPUBufferRef &buffer, uint32 frame_index, bool &out_was_resized)
+    void EnsureGPUBufferCapacity(Device *device, const GPUBufferRef &buffer, uint32 frame_index)
     {
-        out_was_resized = false;
+        bool was_resized = false;
+        HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(device, Base::NumAllocatedElements() * sizeof(StructType), &was_resized));
 
-        HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(device, Base::NumAllocatedElements() * sizeof(StructType), &out_was_resized));
-
-        if (out_was_resized) {
-            DebugLog(LogType::Debug, "Buffer resized to %llu bytes", buffer->Size());
-
+        if (was_resized) {
             // Reset the dirty ranges
             m_dirty_ranges[frame_index].SetStart(0);
             m_dirty_ranges[frame_index].SetEnd(Base::NumAllocatedElements());
@@ -337,17 +334,12 @@ public:
                 break;
             }
 
-            SizeType buffer_size = buffer->Size();
+            const SizeType buffer_size = buffer->Size();
 
             const uint32 index = block_index * Base::num_elements_per_block;
 
-            SizeType offset = (range_start > index)
-                ? range_start
-                : index;
-
-            SizeType count = (range_end < index + Base::num_elements_per_block)
-                ? range_end - offset
-                : Base::num_elements_per_block - offset;
+            const SizeType offset = index;
+            const SizeType count = Base::num_elements_per_block;
 
             // sanity checks
             AssertThrow(offset - index < begin_it->elements.Size());
@@ -406,10 +398,10 @@ public:
         return m_pool.num_elements_per_block;
     }
 
-    virtual void UpdateBufferSize(Device *device, uint32 frame_index, bool &out_was_resized) override
+    virtual void UpdateBufferSize(Device *device, uint32 frame_index) override
     {
         m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGPUBufferCapacity(device, m_buffers[frame_index], frame_index, out_was_resized);
+        m_pool.EnsureGPUBufferCapacity(device, m_buffers[frame_index], frame_index);
     }
 
     virtual void UpdateBufferData(Device *device, uint32 frame_index) override

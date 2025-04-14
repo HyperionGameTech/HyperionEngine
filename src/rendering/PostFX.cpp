@@ -104,7 +104,6 @@ void PostProcessingEffect::RenderEffect(Frame *frame, uint32 slot)
 
     m_pass.SetPushConstants(&push_constants, sizeof(push_constants));
     
-    m_pass.Record(frame->GetFrameIndex());
     m_pass.Render(frame);
 }
 

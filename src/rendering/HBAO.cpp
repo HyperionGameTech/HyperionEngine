@@ -9,6 +9,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <scene/Mesh.hpp>
@@ -204,17 +205,12 @@ void HBAO::Resize_Internal(Vec2u new_size)
     PUSH_RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet, GetFinalImageView());
 }
 
-void HBAO::Record(uint32 frame_index)
-{
-}
-
 void HBAO::Render(Frame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     const uint32 frame_index = frame->GetFrameIndex();
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
@@ -222,12 +218,10 @@ void HBAO::Render(Frame *frame)
     {
         Begin(frame);
 
-        Frame temporary_frame = Frame::TemporaryFrame(GetCommandBuffer(frame_index), frame_index);
-        
-        GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind(
-            &temporary_frame,
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
             GetRenderGroup()->GetPipeline(),
-            {
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
                     NAME("Scene"),
                     {
@@ -235,10 +229,11 @@ void HBAO::Render(Frame *frame)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
                     }
                 }
-            }
+            },
+            frame_index
         );
         
-        GetQuadMesh()->GetRenderResource().Render(GetCommandBuffer(frame_index));
+        GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
         End(frame);
     }
 }

@@ -99,10 +99,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 
 RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
-    const TextureData *in_texture_data,
-    VkImageLayout initial_layout,
-    VkImageCreateInfo *out_image_info,
-    UniquePtr<TextureData> &out_texture_data
+    VkImageLayout initial_layout
 )
 {
     if (!is_handle_owned) {
@@ -198,72 +195,8 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     );
 
     if (!format_support_result) {
-        // try a series of fixes to get the image in a valid state.
-
-        Array<Pair<const char *, Proc<RendererResult()>>> potential_fixes;
-
-        if (!IsDepthFormat(self->GetTextureFormat())) {
-            // convert to 32bpp image
-            if (self->GetBPP() != 4) {
-                potential_fixes.EmplaceBack(
-                    "Convert to 32-bpp image",
-                    [&]() -> RendererResult
-                    {
-                        return ConvertTo32BPP(
-                            device,
-                            in_texture_data,
-                            vk_image_type,
-                            vk_image_create_flags,
-                            &vk_image_format_properties,
-                            &vk_format,
-                            out_texture_data
-                        );
-                    }
-                );
-            }
-        }
-
-        for (auto &fix : potential_fixes) {
-            HYP_LOG(RenderingBackend, Debug, "Attempting fix '{}'...\n", fix.first);
-
-            RendererResult fix_result = fix.second();
-
-            if (!fix_result) {
-                HYP_LOG(RenderingBackend, Debug, "Fix '{}' failed: {}", fix.first, fix_result.GetError().GetMessage());
-
-                continue;
-            }
-
-            // try checking format support result again
-            if ((format_support_result = device->GetFeatures().GetImageFormatProperties(
-                vk_format, vk_image_type, tiling, usage_flags, vk_image_create_flags, &vk_image_format_properties))) {
-                
-                HYP_LOG(RenderingBackend, Debug, "Fix '{}' succeeded.\n", fix.first);
-
-                break;
-            }
-
-            HYP_LOG(RenderingBackend, Debug, "Fix '{}' failed: {}", fix.first, format_support_result.GetError().GetMessage());
-        }
-
         HYPERION_BUBBLE_ERRORS(format_support_result);
     }
-
-    // if (format_features != 0) {
-    //     if (!device->GetFeatures().IsSupportedFormat(format, m_internal_info.tiling, format_features)) {
-    //         DebugLog(
-    //             LogType::Error,
-    //             "Device does not support the format %u with requested tiling %d and format features %d\n",
-    //             static_cast<uint32>(format),
-    //             static_cast<int>(m_internal_info.tiling),
-    //             static_cast<int>(format_features)
-    //         );
-
-    //         HYP_BREAKPOINT;
-
-    //         return Result(Result::RENDERER_ERR, "Format does not support requested features.");
-    //     }
-    // }
 
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
@@ -284,8 +217,6 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     image_info.flags = vk_image_create_flags;
     image_info.pQueueFamilyIndices = image_family_indices;
     image_info.queueFamilyIndexCount = uint32(std::size(image_family_indices));
-
-    *out_image_info = image_info;
 
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
@@ -332,6 +263,7 @@ void ImagePlatformImpl<Platform::VULKAN>::SetResourceState(ResourceState new_sta
 void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     ResourceState new_state,
+    ShaderModuleType shader_module_type,
     ImageSubResourceFlagBits flags
 )
 {
@@ -342,14 +274,16 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
             .num_layers = VK_REMAINING_ARRAY_LAYERS,
             .num_levels = VK_REMAINING_MIP_LEVELS
         },
-        new_state
+        new_state,
+        shader_module_type
     );
 }
 
 void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
-    ResourceState new_state
+    ResourceState new_state,
+    ShaderModuleType shader_module_type
 )
 {
     /* Clear any sub-resources that are in a separate state */
@@ -391,8 +325,8 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
 
     vkCmdPipelineBarrier(
         command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(resource_state, true, ShaderModuleType::UNSET),
-        GetVkShaderStageMask(new_state, false, ShaderModuleType::UNSET),
+        GetVkShaderStageMask(resource_state, true, shader_module_type),
+        GetVkShaderStageMask(new_state, false, shader_module_type),
         0,
         0, nullptr,
         0, nullptr,
@@ -405,7 +339,8 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
 void ImagePlatformImpl<Platform::VULKAN>::InsertSubResourceBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
-    ResourceState new_state
+    ResourceState new_state,
+    ShaderModuleType shader_module_type
 )
 {
     if (handle == VK_NULL_HANDLE) {
@@ -450,8 +385,8 @@ void ImagePlatformImpl<Platform::VULKAN>::InsertSubResourceBarrier(
 
     vkCmdPipelineBarrier(
         command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(prev_resource_state, true, ShaderModuleType::UNSET),
-        GetVkShaderStageMask(new_state, false, ShaderModuleType::UNSET),
+        GetVkShaderStageMask(prev_resource_state, true, shader_module_type),
+        GetVkShaderStageMask(new_state, false, shader_module_type),
         0,
         0, nullptr,
         0, nullptr,
@@ -547,10 +482,7 @@ bool Image<Platform::VULKAN>::IsCreated() const
     { return m_platform_impl.handle != VK_NULL_HANDLE; }
 
 template <>
-RendererResult Image<Platform::VULKAN>::GenerateMipmaps(
-    Device<Platform::VULKAN> *device,
-    CommandBuffer<Platform::VULKAN> *command_buffer
-)
+RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::VULKAN> *command_buffer)
 {
     if (m_platform_impl.handle == VK_NULL_HANDLE) {
         return HYP_MAKE_ERROR(RendererError, "Cannot generate mipmaps on uninitialized image");
@@ -585,7 +517,8 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(
             m_platform_impl.InsertSubResourceBarrier(
                 command_buffer,
                 src,
-                ResourceState::COPY_SRC
+                ResourceState::COPY_SRC,
+                ShaderModuleType::UNSET
             );
 
             if (i == int32(num_mipmaps)) {
@@ -673,140 +606,7 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
         HYPERION_RETURN_OK;
     }
 
-    UniquePtr<TextureData> new_texture_data;
-    VkImageCreateInfo image_info;
-
-    return m_platform_impl.Create(device, nullptr, VK_IMAGE_LAYOUT_UNDEFINED, &image_info, new_texture_data);
-}
-
-template <>
-RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, ResourceState state, const TextureData &texture_data)
-{
-    if (IsCreated()) {
-        HYPERION_RETURN_OK;
-    }
-
-    RendererResult result;
-
-    UniquePtr<TextureData> new_texture_data;
-    VkImageCreateInfo image_info;
-
-    const SizeType size_before = texture_data.buffer.Size();
-
-    HYPERION_BUBBLE_ERRORS(m_platform_impl.Create(device, &texture_data, VK_IMAGE_LAYOUT_UNDEFINED, &image_info, new_texture_data));
-
-    const ImageSubResource sub_resource {
-        .num_layers = NumFaces(),
-        .num_levels = NumMipmaps()
-    };
-
-    SingleTimeCommands<Platform::VULKAN> commands { device };
-
-    GPUBufferRef<Platform::VULKAN> staging_buffer;
-
-    const TextureData *texture_data_ptr = new_texture_data != nullptr
-        ? new_texture_data.Get()
-        : &texture_data;
-
-    AssertThrowMsg(
-        m_size == texture_data_ptr->buffer.Size(),
-        "Invalid image size --  image size (%llu) does not match loaded data size (%llu)\tBPP: %u\tFormat: %u\tSize before: %u\tOther size before: %u",
-        m_size, texture_data_ptr->buffer.Size(), m_bpp, uint32(m_texture_desc.format), uint32(size_before), uint32(texture_data.buffer.Size())
-    );
-
-    AssertThrowMsg(m_size % m_bpp == 0, "Invalid image size");
-    AssertThrowMsg((m_size / m_bpp) % NumFaces() == 0, "Invalid image size");
-
-    staging_buffer = MakeRenderObject<GPUBuffer<Platform::VULKAN>>(GPUBufferType::STAGING_BUFFER);
-    HYPERION_PASS_ERRORS(staging_buffer->Create(device, m_size), result);
-
-    if (!result) {
-        HYPERION_IGNORE_ERRORS(Destroy(device));
-
-        return result;            
-    }
-
-    staging_buffer->Copy(device, m_size, texture_data_ptr->buffer.Data());
-
-    new_texture_data.Reset(); // We don't need it anymore here, release the memory
-
-    commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-    {
-        m_platform_impl.InsertBarrier(
-            command_buffer,
-            sub_resource,
-            ResourceState::COPY_DST
-        );
-
-        HYPERION_RETURN_OK;
-    });
-
-    // copy from staging to image
-    const uint32 buffer_offset_step = uint32(m_size) / NumFaces();
-
-    AssertThrowMsg(m_size % buffer_offset_step == 0, "Invalid image size");
-    AssertThrowMsg(m_size / buffer_offset_step == NumFaces(), "Invalid image size");
-
-    for (uint32 face_index = 0; face_index < NumFaces(); face_index++) {
-        commands.Push([this, &staging_buffer, &image_info, face_index, buffer_offset_step](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-        {
-            const uint32 buffer_size = staging_buffer->Size();
-            const uint32 total_size = m_size;
-
-            VkBufferImageCopy region { };
-            region.bufferOffset = face_index * buffer_offset_step;
-            region.bufferRowLength = 0;
-            region.bufferImageHeight = 0;
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel = 0;
-            region.imageSubresource.baseArrayLayer = face_index;
-            region.imageSubresource.layerCount = 1;
-            region.imageOffset = { 0, 0, 0 };
-            region.imageExtent = image_info.extent;
-
-            vkCmdCopyBufferToImage(
-                command_buffer->GetPlatformImpl().command_buffer,
-                staging_buffer->GetPlatformImpl().handle,
-                m_platform_impl.handle,
-                GetVkImageLayout(m_platform_impl.GetResourceState()),
-                1,
-                &region
-            );
-
-            HYPERION_RETURN_OK;
-        });
-    }
-
-    /* Generate mipmaps if it applies */
-    if (HasMipmaps()) {
-        /* Assuming device supports this format with linear blitting -- check is done in CreateImage() */
-
-        /* Generate our mipmaps
-        */
-        commands.Push([this, device](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-        {
-            return GenerateMipmaps(device, command_buffer);
-        });
-    }
-
-    /* Transition from whatever the previous layout state was to our destination state */
-    commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-    {
-        m_platform_impl.InsertBarrier(
-            command_buffer,
-            sub_resource,
-            state
-        );
-
-        HYPERION_RETURN_OK;
-    });
-
-    // execute command stack
-    HYPERION_PASS_ERRORS(commands.Execute(), result);
-
-    SafeRelease(std::move(staging_buffer));
-
-    return result;
+    return m_platform_impl.Create(device, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 template <>
@@ -815,21 +615,13 @@ RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device,
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
-    
-    TextureData texture_data;
-    texture_data.desc = m_texture_desc;
-    texture_data.buffer.SetSize(m_size); // Fill with zeros
 
-    return Create(device, initial_state, texture_data);
+    return m_platform_impl.Create(device, GetVkImageLayout(initial_state));
 }
 
 template <>
 ResourceState Image<Platform::VULKAN>::GetResourceState() const
     { return m_platform_impl.GetResourceState(); }
-
-template <>
-void Image<Platform::VULKAN>::SetResourceState(ResourceState new_state)
-    { m_platform_impl.SetResourceState(new_state); }
 
 template <>
 ResourceState Image<Platform::VULKAN>::GetSubResourceState(const ImageSubResource &sub_resource) const
@@ -842,7 +634,8 @@ void Image<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_re
 template <>
 void Image<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state
+    ResourceState new_state,
+    ShaderModuleType shader_module_type
 )
 {
     ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_NONE;
@@ -853,27 +646,29 @@ void Image<Platform::VULKAN>::InsertBarrier(
         flags |= IMAGE_SUB_RESOURCE_FLAGS_COLOR;
     }
 
-    m_platform_impl.InsertBarrier(command_buffer, new_state, flags);
+    m_platform_impl.InsertBarrier(command_buffer, new_state, shader_module_type, flags);
 }
 
 template <>
 void Image<Platform::VULKAN>::InsertBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
-    ResourceState new_state
+    ResourceState new_state,
+    ShaderModuleType shader_module_type
 )
 {
-    m_platform_impl.InsertBarrier(command_buffer, sub_resource, new_state);
+    m_platform_impl.InsertBarrier(command_buffer, sub_resource, new_state, shader_module_type);
 }
 
 template <>
 void Image<Platform::VULKAN>::InsertSubResourceBarrier(
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
-    ResourceState new_state
+    ResourceState new_state,
+    ShaderModuleType shader_module_type
 )
 {
-    m_platform_impl.InsertSubResourceBarrier(command_buffer, sub_resource, new_state);
+    m_platform_impl.InsertSubResourceBarrier(command_buffer, sub_resource, new_state, shader_module_type);
 }
 
 template <>
@@ -1130,52 +925,6 @@ void Image<Platform::VULKAN>::CopyToBuffer(
             &region
         );
     }
-}
-
-template <>
-ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const
-{
-    if (m_size == 0) {
-        return ByteBuffer(0, nullptr);
-    }
-
-    StagingBuffer<Platform::VULKAN> staging_buffer;
-
-    SingleTimeCommands<Platform::VULKAN> commands { device };
-
-    RendererResult result = RendererResult { };
-
-    HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
-
-    if (!result) {
-        return ByteBuffer(0, nullptr);
-    }
-
-    commands.Push([non_const_this = const_cast<Image *>(this), &staging_buffer](const CommandBufferRef<Platform::VULKAN> &command_buffer)
-    {
-        const ResourceState previous_resource_state = non_const_this->GetResourceState();
-
-        non_const_this->InsertBarrier(command_buffer.Get(), ResourceState::COPY_SRC);
-        non_const_this->CopyToBuffer(command_buffer, &staging_buffer);
-        non_const_this->InsertBarrier(command_buffer.Get(), previous_resource_state);
-
-        HYPERION_RETURN_OK;
-    });
-
-    // execute command stack
-    HYPERION_PASS_ERRORS(commands.Execute(), result);
-
-    ByteBuffer byte_buffer(m_size);
-    staging_buffer.Read(device, m_size, byte_buffer.Data());
-
-    if (result) {
-        // destroy staging buffer
-        HYPERION_PASS_ERRORS(staging_buffer.Destroy(device), result);
-    } else {
-        HYPERION_IGNORE_ERRORS(staging_buffer.Destroy(device));
-    }
-
-    return byte_buffer;
 }
 
 #pragma endregion Image

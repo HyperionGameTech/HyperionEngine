@@ -7,8 +7,6 @@
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererFrameHandler.hpp>
 
 #include <system/vma/VmaUsage.hpp>
 
@@ -48,15 +46,6 @@ public:
 
     HYP_FORCE_INLINE const SwapchainRef<Platform::VULKAN> &GetSwapchain() const
         { return m_swapchain; }
-                                                          
-    HYP_FORCE_INLINE FrameHandler<Platform::VULKAN> *GetFrameHandler() const
-        { return frame_handler; }
-
-    HYP_FORCE_INLINE StagingBufferPool &GetStagingBufferPool()
-        { return m_staging_buffer_pool; }
-
-    HYP_FORCE_INLINE const StagingBufferPool &GetStagingBufferPool() const
-        { return m_staging_buffer_pool; }
 
     HYP_FORCE_INLINE VmaAllocator GetAllocator() const
         { return allocator; }
@@ -72,9 +61,6 @@ public:
     const char                      *app_name;
     const char                      *engine_name;
 
-    /* Per frame data */
-    FrameHandler<Platform::VULKAN>  *frame_handler;
-
 private:
     void CreateSurface();
 
@@ -87,8 +73,6 @@ private:
     SwapchainRef<Platform::VULKAN>  m_swapchain;
     
     Array<const char *>             validation_layers;
-
-    StagingBufferPool               m_staging_buffer_pool;
 
 #ifndef HYPERION_BUILD_RELEASE
     VkDebugUtilsMessengerEXT        debug_messenger;

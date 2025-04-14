@@ -54,7 +54,7 @@ RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> 
 
         new_image->SetIsAttachmentTexture(true);
 
-        DeferCreate(new_image, device);
+        DeferCreate(new_image, device, ResourceState::SHADER_RESOURCE);
 
         AttachmentRef<Platform::VULKAN> new_attachment = MakeRenderObject<Attachment<Platform::VULKAN>>(
             new_image,
@@ -77,20 +77,7 @@ RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> 
         };
     }
 
-    SingleTimeCommands<Platform::VULKAN> commands { device };
-
-    commands.Push([&](const CommandBufferRef<Platform::VULKAN> &command_buffer) -> RendererResult
-    {
-        for (KeyValuePair<uint32, AttachmentDef<Platform::VULKAN>> &it : attachments) {
-            AttachmentDef<Platform::VULKAN> &def = it.second;
-
-            def.image->InsertBarrier(command_buffer, ResourceState::SHADER_RESOURCE);
-        }
-
-        HYPERION_RETURN_OK;
-    });
-
-    return commands.Execute();
+    HYPERION_RETURN_OK;
 }
 
 #pragma endregion AttachmentMap
@@ -105,8 +92,7 @@ Framebuffer<Platform::VULKAN>::Framebuffer(
     uint32 num_multiview_layers
 ) : m_platform_impl { this, VK_NULL_HANDLE },
     m_extent(extent),
-    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers)),
-    m_is_capturing(false)
+    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers))
 {
 }
 
@@ -270,21 +256,13 @@ bool Framebuffer<Platform::VULKAN>::RemoveAttachment(uint32 binding)
 template <>
 void Framebuffer<Platform::VULKAN>::BeginCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
 {
-    AssertThrow(!m_is_capturing);
-
     m_render_pass->Begin(command_buffer, this, frame_index);
-
-    m_is_capturing = true;
 }
 
 template <>
 void Framebuffer<Platform::VULKAN>::EndCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
 {
-    AssertThrow(m_is_capturing);
-
     m_render_pass->End(command_buffer);
-    
-    m_is_capturing = false;
 }
 
 #pragma endregion Framebuffer

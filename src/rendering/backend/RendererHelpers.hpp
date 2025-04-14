@@ -12,6 +12,9 @@
 #include <Types.hpp>
 
 namespace hyperion {
+
+class RHICommandList;
+
 namespace renderer {
 namespace helpers {
 
@@ -44,43 +47,18 @@ public:
     SingleTimeCommands &operator=(SingleTimeCommands &&other) noexcept  = delete;
     HYP_API ~SingleTimeCommands();
 
-    void Push(Proc<RendererResult(const platform::CommandBufferRef<PLATFORM> &)> &&fn)
+    void Push(Proc<void(RHICommandList &command_list)> &&fn)
     {
         m_functions.PushBack(std::move(fn));
     }
 
-    RendererResult Execute()
-    {
-        HYPERION_BUBBLE_ERRORS(Begin());
-
-        RendererResult result;
-
-        for (auto &fn : m_functions) {
-            HYPERION_PASS_ERRORS(fn(m_command_buffer), result);
-
-            if (!result) {
-                break;
-            }
-        }
-
-        m_functions.Clear();
-
-        HYPERION_PASS_ERRORS(End(), result);
-
-        return result;
-    }
+    RendererResult Execute();
 
 private:
-    SingleTimeCommandsPlatformImpl<PLATFORM>                                    m_platform_impl;
+    SingleTimeCommandsPlatformImpl<PLATFORM>        m_platform_impl;
 
-    HYP_API RendererResult Begin();
-    HYP_API RendererResult End();
-
-    Device<PLATFORM>                                                            *m_device;
-    Array<Proc<RendererResult(const platform::CommandBufferRef<PLATFORM> &)>>   m_functions;
-    FenceRef<PLATFORM>                                                          m_fence;
-
-    CommandBufferRef<PLATFORM>                                                  m_command_buffer;
+    Device<PLATFORM>                                *m_device;
+    Array<Proc<void(RHICommandList &command_list)>> m_functions;
 };
 
 } // namespace platform

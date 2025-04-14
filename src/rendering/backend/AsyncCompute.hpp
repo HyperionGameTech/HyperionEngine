@@ -8,10 +8,13 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/ArrayMap.hpp>
 
-#include <rendering/backend/RenderObject.hpp>
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <core/math/MathUtil.hpp>
 #include <core/math/Extent.hpp>
@@ -45,33 +48,20 @@ public:
     HYP_FORCE_INLINE bool IsSupported() const
         { return m_is_supported; }
 
+    HYP_FORCE_INLINE RHICommandList &GetCommandList(uint32 frame_index)
+        { return m_command_lists[frame_index]; }
+
+    HYP_FORCE_INLINE const RHICommandList &GetCommandList(uint32 frame_index) const
+        { return m_command_lists[frame_index]; }
+
     HYP_API RendererResult Create(Device<PLATFORM> *device);
     HYP_API RendererResult Submit(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
 
     HYP_API RendererResult PrepareForFrame(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
     HYP_API RendererResult WaitForFence(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
 
-    HYP_API void InsertBarrier(
-        Frame<PLATFORM> *frame,
-        const GPUBufferRef<PLATFORM> &buffer,
-        ResourceState resource_state
-    ) const;
-
-    HYP_API void Dispatch(
-        Frame<PLATFORM> *frame,
-        const ComputePipelineRef<PLATFORM> &ref,
-        const Vec3u &extent
-    ) const;
-
-    HYP_API void Dispatch(
-        Frame<PLATFORM> *frame,
-        const ComputePipelineRef<PLATFORM> &ref,
-        const Vec3u &extent,
-        const DescriptorTableRef<PLATFORM> &descriptor_table,
-        const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets = { }
-    ) const;
-
 private:
+    FixedArray<RHICommandList, max_frames_in_flight>                m_command_lists;
     FixedArray<CommandBufferRef<PLATFORM>, max_frames_in_flight>    m_command_buffers;
     FixedArray<FenceRef<PLATFORM>, max_frames_in_flight>            m_fences;
     bool                                                            m_is_supported;

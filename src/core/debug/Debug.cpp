@@ -76,5 +76,11 @@ HYP_API void DebugLog_FlushOutputStream()
     fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 
+HYP_API void WriteToStandardError(const char *msg)
+{
+    fputs(msg, stderr);
+    fflush(stderr);
+}
+
 } // namespace debug
 } // namespace hyperion

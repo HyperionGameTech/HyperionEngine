@@ -32,7 +32,6 @@ public:
     HYP_API void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
     
     HYP_API void TraceRays(
-        Device<Platform::VULKAN> *device,
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const Vec3u &extent
     ) const;
