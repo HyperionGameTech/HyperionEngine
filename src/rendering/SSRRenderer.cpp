@@ -9,6 +9,9 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
@@ -324,26 +327,23 @@ void SSRRenderer::Render(Frame *frame)
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
     /* ========== BEGIN SSR ========== */
-    DebugMarker begin_ssr_marker(command_buffer, "Begin SSR");
-
     const uint32 total_pixels_in_image = m_config.extent.Volume();
 
     const uint32 num_dispatch_calls = (total_pixels_in_image + 255) / 256;
 
     // PASS 1 -- write UVs
 
-    m_uvs_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    m_write_uvs->Bind(command_buffer);
+    frame->GetCommandList().Add<BindComputePipeline>(m_write_uvs);
 
-    m_write_uvs->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_write_uvs->GetDescriptorTable(),
         m_write_uvs,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -351,25 +351,29 @@ void SSRRenderer::Render(Frame *frame)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
                 }
             }
-        }
+        },
+        frame_index
     );
 
-    m_write_uvs->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_write_uvs,
+        Vec3u { num_dispatch_calls, 1, 1 }
+    );
 
     // transition the UV image back into read state
-    m_uvs_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_sampled_result_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    m_sample_gbuffer->Bind(command_buffer);
+    frame->GetCommandList().Add<BindComputePipeline>(m_sample_gbuffer);
 
-    m_sample_gbuffer->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_sample_gbuffer->GetDescriptorTable(),
         m_sample_gbuffer,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -377,13 +381,17 @@ void SSRRenderer::Render(Frame *frame)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
                 }
             }
-        }
+        },
+        frame_index
     );
 
-    m_sample_gbuffer->Dispatch(command_buffer, Vec3u { num_dispatch_calls, 1, 1 });
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_sample_gbuffer,
+        Vec3u { num_dispatch_calls, 1, 1 }
+    );
 
     // transition sample image back into read state
-    m_sampled_result_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
         m_temporal_blending->Render(frame);

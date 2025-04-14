@@ -111,9 +111,6 @@ public:
     HYP_FORCE_INLINE ResourceState GetResourceState() const
         { return m_resource_state; }
 
-    HYP_FORCE_INLINE void SetResourceState(ResourceState resource_state)
-        { m_resource_state = resource_state; }
-
     HYP_API bool IsCreated() const;
     HYP_API bool IsCPUAccessible() const;
     HYP_API uint32 Size() const;

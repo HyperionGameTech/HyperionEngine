@@ -4,6 +4,8 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderTexture.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
+
 #include <scene/Texture.hpp>
 
 #include <Engine.hpp>
@@ -40,7 +42,6 @@ void ScreenCaptureRenderSubsystem::Init()
 
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
     HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetRenderResource().GetImage()->GetByteSize()));
-    m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 }
 
 void ScreenCaptureRenderSubsystem::InitGame()
@@ -61,8 +62,6 @@ void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
 
 void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
 {
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
-
     FinalPass *final_pass = g_engine->GetFinalPass();
     AssertThrow(final_pass != nullptr);
 
@@ -72,7 +71,7 @@ void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
     const ImageRef &image_ref = final_pass->GetLastFrameImage();
     AssertThrow(image_ref.IsValid());
 
-    image_ref->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(image_ref, renderer::ResourceState::COPY_SRC);
 
     switch (m_screen_capture_mode) {
     case ScreenCaptureMode::TO_TEXTURE:
@@ -81,27 +80,19 @@ void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
             HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
         }
 
-        m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
 
-        m_texture->GetRenderResource().GetImage()->Blit(
-            command_buffer,
-            image_ref
-        );
+        frame->GetCommandList().Add<Blit>(m_texture->GetRenderResource().GetImage(), image_ref);
 
-        m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
         break;
     case ScreenCaptureMode::TO_BUFFER:
         AssertThrow(m_buffer.IsValid() && m_buffer->Size() >= image_ref->GetByteSize());
 
-        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-        image_ref->CopyToBuffer(
-            command_buffer,
-            m_buffer
-        );
-    
-        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(m_buffer, renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<CopyImageToBuffer>(image_ref, m_buffer);
+        frame->GetCommandList().Add<InsertBarrier>(m_buffer, renderer::ResourceState::COPY_SRC);
 
         break;
     default:

@@ -27,6 +27,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererSwapchain.hpp>
+#include <rendering/backend/RendererFrameHandler.hpp>
 #include <rendering/backend/RenderConfig.hpp>
 
 #include <asset/Assets.hpp>
@@ -267,7 +269,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
     m_instance = MakeUnique<Instance>();
     
 #ifdef HYP_DEBUG_MODE
-    constexpr bool use_debug_layers = false;// true;
+    constexpr bool use_debug_layers = true;
 #else
     constexpr bool use_debug_layers = false;
 #endif
@@ -562,13 +564,13 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     OnRenderStatsUpdated(m_render_stats);
 #endif
 
-    RendererResult frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
+    RendererResult frame_result = GetGPUInstance()->GetSwapchain()->GetFrameHandler()->PrepareFrame(
         GetGPUInstance()->GetDevice(),
         GetGPUInstance()->GetSwapchain(),
         m_should_recreate_swapchain
     );
 
-    Frame *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
+    Frame *frame = GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentFrame();
 
     if (m_should_recreate_swapchain) {
         m_should_recreate_swapchain = false;
@@ -579,12 +581,10 @@ HYP_API void Engine::RenderNextFrame(Game *game)
         HYPERION_ASSERT_RESULT(GetGPUInstance()->RecreateSwapchain());
         HYPERION_ASSERT_RESULT(GetGPUDevice()->Wait());
 
-        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetFrameHandler()->GetCurrentFrame()->RecreateFence(
-            GetGPUInstance()->GetDevice()
-        ));
+        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentFrame()->RecreateFence(GetGPUInstance()->GetDevice()));
 
         // Need to prepare frame again now that swapchain has been recreated.
-        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetFrameHandler()->PrepareFrame(
+        HYPERION_ASSERT_RESULT(GetGPUInstance()->GetSwapchain()->GetFrameHandler()->PrepareFrame(
             GetGPUInstance()->GetDevice(),
             GetGPUInstance()->GetSwapchain(),
             m_should_recreate_swapchain
@@ -597,9 +597,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
         m_final_pass = MakeUnique<FinalPass>();
         m_final_pass->Create();
 
-        //m_final_pass->Resize(GetGPUInstance()->GetSwapchain()->extent);
-
-        frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
+        frame = GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentFrame();
 
         GetDelegates().OnAfterSwapchainRecreated();
     }
@@ -613,7 +611,6 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     }
 
     HYPERION_ASSERT_RESULT(GetGPUDevice()->GetAsyncCompute()->PrepareForFrame(GetGPUDevice(), frame));
-    HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
 
     PreFrameUpdate(frame);
     
@@ -627,33 +624,23 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     m_final_pass->Render(frame);
 
-    HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
-
     m_world->GetRenderResource().PostRender(frame);
 
     game->OnFrameEnd(frame);
 
-    /*bool any_gpu_buffers_resized = false;
-
-    for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
-        bool was_resized = false;
-
-        it.second->UpdateBufferSize(m_instance->GetDevice(), frame->GetFrameIndex(), was_resized);
-        it.second->UpdateBufferData(m_instance->GetDevice(), frame->GetFrameIndex());
-
-        any_gpu_buffers_resized |= was_resized;
-    }
-
-    if (any_gpu_buffers_resized) {
-        // Need to recreate descriptor sets if any GPU buffers were resized
-        HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame->GetFrameIndex()));
-    }*/
-
     for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
         it.second->UpdateBufferData(m_instance->GetDevice(), frame->GetFrameIndex());
     }
 
-    frame_result = frame->Submit(&GetGPUDevice()->GetGraphicsQueue());
+    // Add commands from the frame's command list to the command buffer
+    const CommandBufferRef &command_buffer = GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentCommandBuffer();
+    AssertThrow(command_buffer != nullptr);
+
+    command_buffer->Begin(GetGPUDevice());
+    frame->GetCommandList().Execute(command_buffer);
+    command_buffer->End(GetGPUDevice());
+
+    frame_result = command_buffer->SubmitPrimary(&GetGPUDevice()->GetGraphicsQueue(), frame->GetFence(), &frame->GetPresentSemaphores());
 
     if (!frame_result) {
         m_crash_handler.HandleGPUCrash(frame_result);
@@ -665,8 +652,8 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     HYPERION_ASSERT_RESULT(GetGPUDevice()->GetAsyncCompute()->Submit(GetGPUDevice(), frame));
 
-    GetGPUInstance()->GetFrameHandler()->PresentFrame(&GetGPUDevice()->GetGraphicsQueue(), GetGPUInstance()->GetSwapchain());
-    GetGPUInstance()->GetFrameHandler()->NextFrame();
+    GetGPUInstance()->GetSwapchain()->GetFrameHandler()->PresentFrame(&GetGPUDevice()->GetGraphicsQueue(), GetGPUInstance()->GetSwapchain());
+    GetGPUInstance()->GetSwapchain()->GetFrameHandler()->NextFrame();
 }
 
 void Engine::PreFrameUpdate(Frame *frame)

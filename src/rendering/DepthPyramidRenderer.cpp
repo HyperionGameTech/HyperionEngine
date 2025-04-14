@@ -8,6 +8,7 @@
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -240,10 +241,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
-
-    DebugMarker marker(command_buffer, "Depth pyramid generation");
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips.Size();
 
@@ -257,10 +255,10 @@ void DepthPyramidRenderer::Render(Frame *frame)
         // level 0 == write just-rendered depth image into mip 0
 
         // put the mip into writeable state
-        m_depth_pyramid->InsertSubResourceBarrier(
-            command_buffer,
-            renderer::ImageSubResource { .base_mip_level = mip_level },
-            renderer::ResourceState::UNORDERED_ACCESS
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_depth_pyramid,
+            renderer::ResourceState::UNORDERED_ACCESS,
+            renderer::ImageSubResource { .base_mip_level = mip_level }
         );
         
         const uint32 prev_mip_width = mip_width,
@@ -269,7 +267,12 @@ void DepthPyramidRenderer::Render(Frame *frame)
         mip_width = MathUtil::Max(1u, depth_pyramid_extent.x >> (mip_level));
         mip_height = MathUtil::Max(1u, depth_pyramid_extent.y >> (mip_level));
 
-        m_mip_descriptor_tables[mip_level]->Bind(frame, m_generate_depth_pyramid, { });
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            m_mip_descriptor_tables[mip_level],
+            m_generate_depth_pyramid,
+            ArrayMap<Name, ArrayMap<Name, uint32>> { },
+            frame_index
+        );
 
         struct alignas(128)
         {
@@ -285,11 +288,10 @@ void DepthPyramidRenderer::Render(Frame *frame)
         m_generate_depth_pyramid->SetPushConstants(&depth_pyramid_data, sizeof(depth_pyramid_data));
 
         // set push constant data for the current mip level
-        m_generate_depth_pyramid->Bind(command_buffer);
-        
-        // dispatch to generate this mip level
-        m_generate_depth_pyramid->Dispatch(
-            command_buffer,
+        frame->GetCommandList().Add<BindComputePipeline>(m_generate_depth_pyramid);
+
+        frame->GetCommandList().Add<DispatchCompute>(
+            m_generate_depth_pyramid,
             Vec3u {
                 (mip_width + 31) / 32,
                 (mip_height + 31) / 32,
@@ -298,15 +300,15 @@ void DepthPyramidRenderer::Render(Frame *frame)
         );
 
         // put this mip into readable state
-        m_depth_pyramid->InsertSubResourceBarrier(
-            command_buffer,
-            renderer::ImageSubResource { .base_mip_level = mip_level },
-            renderer::ResourceState::SHADER_RESOURCE
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_depth_pyramid,
+            renderer::ResourceState::SHADER_RESOURCE,
+            renderer::ImageSubResource { .base_mip_level = mip_level }
         );
     }
 
-    // all mip levels have been transitioned into this state
-    m_depth_pyramid->SetResourceState(
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_depth_pyramid,
         renderer::ResourceState::SHADER_RESOURCE
     );
 

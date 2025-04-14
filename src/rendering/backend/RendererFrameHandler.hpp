@@ -4,10 +4,12 @@
 #define HYPERION_BACKEND_RENDERER_FRAME_HANDLER_HPP
 
 #include <core/containers/FixedArray.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/Platform.hpp>
+
 #include <Types.hpp>
 #include <core/Defines.hpp>
 
@@ -49,6 +51,9 @@ public:
     HYP_FORCE_INLINE const FrameRef<PLATFORM> &GetCurrentFrame() const
         { return m_frames[m_current_frame_index]; }
 
+    HYP_FORCE_INLINE const CommandBufferRef<PLATFORM> &GetCurrentCommandBuffer() const
+        { return m_command_buffers[m_current_frame_index]; }
+
     HYP_FORCE_INLINE uint32 GetAcquiredImageIndex() const
         { return m_acquired_image_index; }
 
@@ -63,14 +68,15 @@ public:
     /* Advance the current frame index; call at the end of a render loop. */
     HYP_API void NextFrame();
     /* Create our Frame objects (count is same as num_frames) */
-    HYP_API RendererResult CreateFrames(Device<PLATFORM> *device, DeviceQueue<PLATFORM> *queue);
+    HYP_API RendererResult Create(Device<PLATFORM> *device, DeviceQueue<PLATFORM> *queue);
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
 
 private:
-    FixedArray<FrameRef<PLATFORM>, max_frames_in_flight>    m_frames;
-    NextImageFunction                                       m_next_image;
-    uint32                                                  m_acquired_image_index;
-    uint32                                                  m_current_frame_index;
+    FixedArray<FrameRef<PLATFORM>, max_frames_in_flight>            m_frames;
+    FixedArray<CommandBufferRef<PLATFORM>, max_frames_in_flight>    m_command_buffers;
+    NextImageFunction                                               m_next_image;
+    uint32                                                          m_acquired_image_index;
+    uint32                                                          m_current_frame_index;
 };
 
 } // namespace platform

@@ -515,7 +515,6 @@ void RenderCollector::ExecuteDrawCalls(
     
     AssertThrow(m_draw_collection != nullptr);
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
     if (bucket_bits.Count() == 0) {
@@ -533,7 +532,7 @@ void RenderCollector::ExecuteDrawCalls(
         }
 
         if (framebuffer) {
-            framebuffer->BeginCapture(command_buffer, frame_index);
+            frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
 
         g_engine->GetRenderState()->BindCamera(camera_resource_handle);
@@ -558,7 +557,7 @@ void RenderCollector::ExecuteDrawCalls(
         g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
 
         if (framebuffer) {
-            framebuffer->EndCapture(command_buffer, frame_index);
+            frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
     } else {
         bool all_empty = false;
@@ -576,7 +575,7 @@ void RenderCollector::ExecuteDrawCalls(
         }
 
         if (framebuffer) {
-            framebuffer->BeginCapture(command_buffer, frame_index);
+            frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
 
         g_engine->GetRenderState()->BindCamera(camera_resource_handle);
@@ -609,7 +608,7 @@ void RenderCollector::ExecuteDrawCalls(
         g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
 
         if (framebuffer) {
-            framebuffer->EndCapture(command_buffer, frame_index);
+            frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
     }
 }

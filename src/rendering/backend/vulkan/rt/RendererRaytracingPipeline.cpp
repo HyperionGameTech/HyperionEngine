@@ -8,6 +8,8 @@
 #include <core/math/MathUtil.hpp>
 #include <core/math/Transform.hpp>
 
+#include <Engine.hpp>
+
 #include <cstring>
 
 namespace hyperion {
@@ -180,12 +182,11 @@ void RaytracingPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> 
 }
 
 void RaytracingPipeline<Platform::VULKAN>::TraceRays(
-    Device<Platform::VULKAN> *device,
     CommandBuffer<Platform::VULKAN> *command_buffer,
     const Vec3u &extent
 ) const
 {
-    device->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
+    g_engine->GetGPUDevice()->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
         command_buffer->GetPlatformImpl().command_buffer,
         &m_shader_binding_table_entries.ray_gen,
         &m_shader_binding_table_entries.ray_miss,

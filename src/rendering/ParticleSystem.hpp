@@ -108,16 +108,11 @@ public:
 
 private:
     void CreateBuffers();
-    void CreateCommandBuffers();
 
     Handle<Mesh>                                                                                        m_quad_mesh;
 
     // for zeroing out data
     GPUBufferRef                                                                                        m_staging_buffer;
-
-    // for each frame in flight - have an array of command buffers to use
-    // for async command buffer recording. size will never change once created
-    FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> m_command_buffers;
 
     ThreadSafeContainer<ParticleSpawner>                                                                m_particle_spawners;
 

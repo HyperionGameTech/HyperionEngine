@@ -850,21 +850,6 @@ public:
         return { };
     }
 
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const GraphicsPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets)
-    {
-        Bind<GraphicsPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
-    }
-
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const ComputePipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
-    {
-        Bind<ComputePipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
-    }
-
-    HYP_FORCE_INLINE void Bind(Frame<PLATFORM> *frame, const RaytracingPipelineRef<PLATFORM> &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
-    {
-        Bind<RaytracingPipelineRef<PLATFORM>>(frame->GetCommandBuffer(), frame->GetFrameIndex(), pipeline, offsets);
-    }
-
     /*! \brief Bind all descriptor sets in the table
         \param command_buffer The command buffer to push the bind commands to
         \param frame_index The index of the frame to bind the descriptor sets for

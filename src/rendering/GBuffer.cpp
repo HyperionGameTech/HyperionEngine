@@ -205,11 +205,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
-
-    if (bucket == BUCKET_SWAPCHAIN /*|| bucket == BUCKET_UI*/) {
-        mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
-    }
+    renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
 
     Vec2u framebuffer_extent = resolution;
 

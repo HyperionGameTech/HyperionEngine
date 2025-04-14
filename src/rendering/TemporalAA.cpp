@@ -10,6 +10,9 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
@@ -193,7 +196,6 @@ void TemporalAA::Render(Frame *frame)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
     
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
@@ -202,7 +204,7 @@ void TemporalAA::Render(Frame *frame)
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
 
-    active_image->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
 
     struct alignas(128) {
         Vec2u   dimensions;
@@ -218,20 +220,26 @@ void TemporalAA::Render(Frame *frame)
     push_constants.camera_near_far = Vec2f { camera_resource_handle->GetBufferData().camera_near, camera_resource_handle->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_compute_taa->Bind(command_buffer);
+    
+    frame->GetCommandList().Add<BindComputePipeline>(m_compute_taa);
 
-    m_compute_taa->GetDescriptorTable()->Bind(frame, m_compute_taa, { });
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_compute_taa->GetDescriptorTable(),
+        m_compute_taa,
+        ArrayMap<Name, ArrayMap<Name, uint32>> { },
+        frame_index
+    );
 
-    m_compute_taa->Dispatch(
-        command_buffer,
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_compute_taa,
         Vec3u {
             (m_extent.x + 7) / 8,
             (m_extent.y + 7) / 8,
             1
         }
     );
-    
-    active_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+
+    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

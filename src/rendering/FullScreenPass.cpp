@@ -13,6 +13,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
@@ -139,7 +140,6 @@ FullScreenPass::~FullScreenPass()
     m_full_screen_quad.Reset();
 
     SafeRelease(std::move(m_framebuffer));
-    SafeRelease(std::move(m_command_buffers));
 
     if (m_is_initialized) {
         // Prevent dangling reference from render commands
@@ -200,7 +200,6 @@ void FullScreenPass::Create()
     );
 
     CreateQuad();
-    CreateCommandBuffers();
     CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
     CreateRenderTextureToScreenPass();
@@ -279,18 +278,6 @@ void FullScreenPass::CreateQuad()
     m_full_screen_quad->SetPersistentRenderResourceEnabled(true);
 }
 
-void FullScreenPass::CreateCommandBuffers()
-{
-    HYP_SCOPE;
-
-    for (uint32 i = 0; i < max_frames_in_flight; i++) {
-        m_command_buffers[i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
-    }
-
-    // create command buffers in render thread
-    PUSH_RENDER_COMMAND(CreateCommandBuffers, m_command_buffers);
-}
-
 void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
@@ -317,8 +304,7 @@ void FullScreenPass::CreateFramebuffer()
 
     m_framebuffer = MakeRenderObject<Framebuffer>(
         framebuffer_extent,
-        renderer::RenderPassStage::SHADER,
-        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
+        renderer::RenderPassStage::SHADER
     );
 
     ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
@@ -525,53 +511,6 @@ void FullScreenPass::CreateDescriptors()
 {
 }
 
-void FullScreenPass::Record(uint32 frame_index)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
-    const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
-
-    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
-
-    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
-    
-    if (ShouldRenderHalfRes()) {
-        const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
-
-        m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
-    } else {
-        m_render_group->GetPipeline()->Bind(command_buffer);
-    }
-
-    m_render_group->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-        command_buffer,
-        frame_index,
-        m_render_group->GetPipeline(),
-        {
-            {
-                NAME("Scene"),
-                {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
-                }
-            }
-        }
-    );
-
-    m_full_screen_quad->GetRenderResource().Render(command_buffer);
-
-    command_buffer->End(g_engine->GetGPUDevice());
-}
-
 void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
 {
     HYP_SCOPE;
@@ -584,43 +523,38 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
 
     AssertThrow(m_render_texture_to_screen_pass != nullptr);
 
-    m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->Record(
-        g_engine->GetGPUInstance()->GetDevice(),
-        m_render_group->GetPipeline()->GetRenderPass(),
-        [&](CommandBuffer *cmd)
-        {
-            if (ShouldRenderHalfRes()) {
-                const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
-                const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
+    
+    if (ShouldRenderHalfRes()) {
+        const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-                // render previous frame's result to screen
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd, viewport_offset, viewport_extent);
-            } else {
-                // render previous frame's result to screen
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(cmd);
-            }
-            
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-                cmd,
-                frame_index,
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+        // render previous frame's result to screen
+        frame->GetCommandList().Add<BindGraphicsPipeline>(
+            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            viewport_offset,
+            viewport_extent
+        );
+    } else {
+        // render previous frame's result to screen
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline());
+    }
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
                 {
-                    {
-                        NAME("Scene"),
-                        {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) }
-                        }
-                    }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) }
                 }
-            );
+            }
+        },
+        frame_index
+    );
 
-            m_full_screen_quad->GetRenderResource().Render(cmd);
-
-            HYPERION_RETURN_OK;
-        });
-
-    HYPERION_ASSERT_RESULT(m_render_texture_to_screen_pass->GetCommandBuffer(frame_index)->SubmitSecondary(frame->GetCommandBuffer()));
+    m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 }
 
 void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
@@ -635,16 +569,13 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
     const ImageRef &src_image = m_framebuffer->GetAttachment(0)->GetImage();
     const ImageRef &dst_image = m_previous_texture->GetRenderResource().GetImage();
 
-    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
 
-    dst_image->Blit(
-        frame->GetCommandBuffer(),
-        src_image
-    );
+    frame->GetCommandList().Add<Blit>(src_image, dst_image);
 
-    src_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    dst_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void FullScreenPass::MergeHalfResTextures(Frame *frame)
@@ -656,7 +587,6 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
 
     AssertThrow(m_merge_half_res_textures_pass != nullptr);
 
-    m_merge_half_res_textures_pass->Record(frame_index);
     m_merge_half_res_textures_pass->Render(frame);
 }
 
@@ -667,11 +597,7 @@ void FullScreenPass::Render(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    m_framebuffer->BeginCapture(frame->GetCommandBuffer(), frame_index);
-
     RenderToFramebuffer(frame, m_framebuffer);
-
-    m_framebuffer->EndCapture(frame->GetCommandBuffer(), frame_index);
 
     if (ShouldRenderHalfRes()) {
         MergeHalfResTextures(frame);
@@ -691,15 +617,49 @@ void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &fra
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    AssertThrow(framebuffer->IsCapturing());
-
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
         RenderPreviousTextureToScreen(frame);
     }
 
-    const CommandBufferRef &secondary_command_buffer = m_command_buffers[frame->GetFrameIndex()];
-    HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+
+    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+    
+    if (ShouldRenderHalfRes()) {
+        const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
+        const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
+
+        frame->GetCommandList().Add<BindGraphicsPipeline>(
+            m_render_group->GetPipeline(),
+            viewport_offset,
+            viewport_extent
+        );
+    } else {
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
+    }
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_render_group->GetPipeline()->GetDescriptorTable(),
+        m_render_group->GetPipeline(),
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
+                }
+            }
+        },
+        frame->GetFrameIndex()
+    );
+
+    m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 
     m_is_first_frame = false;
 }
@@ -711,17 +671,17 @@ void FullScreenPass::Begin(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
-
-    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetRenderPass());
-
     if (ShouldRenderHalfRes()) {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
         const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        m_render_group->GetPipeline()->Bind(command_buffer, viewport_offset, viewport_extent);
+        frame->GetCommandList().Add<BindGraphicsPipeline>(
+            m_render_group->GetPipeline(),
+            viewport_offset,
+            viewport_extent
+        );
     } else {
-        m_render_group->GetPipeline()->Bind(command_buffer);
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
     }
 }
 
@@ -732,19 +692,10 @@ void FullScreenPass::End(Frame *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
-    command_buffer->End(g_engine->GetGPUDevice());
-
-    m_framebuffer->BeginCapture(frame->GetCommandBuffer(), frame_index);
-
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
         RenderPreviousTextureToScreen(frame);
     }
-    
-    HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
-
-    m_framebuffer->EndCapture(frame->GetCommandBuffer(), frame_index);
 
     if (ShouldRenderHalfRes()) {
         MergeHalfResTextures(frame);

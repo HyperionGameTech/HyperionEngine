@@ -810,14 +810,14 @@ public:
         return static_cast<ManuallyFulfilledTaskExecutorInstance<void> *>(m_executor);
     }
 
-    // /*! \brief Emplace a value of type \ref{ReturnType} to resolve the task with. Constructs it in place. */
-    // void Fulfill(Args... args)
-    // {
-    //     AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot manually Fulfill() scheduled tasks!");
+    void Fulfill()
+    {
+        AssertThrowMsg(m_assigned_scheduler == nullptr, "Cannot call Fulfill() on a task that has already been initialized");
 
-    //     m_executor->Execute(std::forward<Args>(args)...);
-    //     m_executor->GetSemaphore().Release(1);
-    // }
+        ManuallyFulfilledTaskExecutorInstance<void> *executor = Initialize();
+
+        executor->Fulfill();
+    }
 
     HYP_FORCE_INLINE void Await()
     {

@@ -16,6 +16,9 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/EnvGrid.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -359,12 +362,6 @@ ParticleSystem::ParticleSystem()
 
 ParticleSystem::~ParticleSystem()
 {
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (auto &command_buffer : m_command_buffers[frame_index]) {
-            SafeRelease(std::move(command_buffer));
-        }
-    }
-
     SafeRelease(std::move(m_staging_buffer));
 
     m_quad_mesh.Reset();
@@ -392,7 +389,6 @@ void ParticleSystem::Init()
     m_quad_mesh->SetPersistentRenderResourceEnabled(true);
 
     CreateBuffers();
-    CreateCommandBuffers();
 
     SetReady(true);
 }
@@ -406,17 +402,6 @@ void ParticleSystem::CreateBuffers()
         m_staging_buffer,
         m_quad_mesh
     );
-}
-
-void ParticleSystem::CreateCommandBuffers()
-{
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (uint32 i = 0; i < num_async_rendering_command_buffers; i++) {
-            m_command_buffers[frame_index][i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
-        }
-    }
-
-    PUSH_RENDER_COMMAND(CreateParticleSystemCommandBuffers, m_command_buffers);
 }
 
 void ParticleSystem::UpdateParticles(Frame *frame)
@@ -439,10 +424,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         return;
     }
 
-    m_staging_buffer->InsertBarrier(
-        frame->GetCommandBuffer(),
-        renderer::ResourceState::COPY_SRC
-    );
+    frame->GetCommandList().Add<InsertBarrier>(m_staging_buffer, renderer::ResourceState::COPY_SRC);
 
     for (auto &spawner : m_particle_spawners) {
         const SizeType max_particles = spawner->GetParams().max_particles;
@@ -450,20 +432,20 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         AssertThrow(spawner->GetIndirectBuffer()->Size() == sizeof(IndirectDrawCommand));
         AssertThrow(spawner->GetParticleBuffer()->Size() >= sizeof(ParticleShaderData) * max_particles);
 
-        spawner->GetIndirectBuffer()->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            spawner->GetIndirectBuffer(),
             renderer::ResourceState::COPY_DST
         );
 
         // copy zeros to buffer (to reset instance count)
-        spawner->GetIndirectBuffer()->CopyFrom(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<CopyBuffer>(
             m_staging_buffer,
+            spawner->GetIndirectBuffer(),
             sizeof(IndirectDrawCommand)
         );
 
-        spawner->GetIndirectBuffer()->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            spawner->GetIndirectBuffer(),
             renderer::ResourceState::INDIRECT_ARG
         );
 
@@ -495,11 +477,12 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
         spawner->GetComputePipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
 
-        spawner->GetComputePipeline()->Bind(frame->GetCommandBuffer());
+        frame->GetCommandList().Add<BindComputePipeline>(spawner->GetComputePipeline());
 
-        spawner->GetComputePipeline()->GetDescriptorTable()->Bind(
-            frame,
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            spawner->GetComputePipeline()->GetDescriptorTable(),
             spawner->GetComputePipeline(),
+            ArrayMap<Name, ArrayMap<Name, uint32>> 
             {
                 {
                     NAME("Scene"),
@@ -512,16 +495,17 @@ void ParticleSystem::UpdateParticles(Frame *frame)
                         }
                     }
                 }
-            }
+            },
+            frame->GetFrameIndex()
         );
 
-        spawner->GetComputePipeline()->Dispatch(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<DispatchCompute>(
+            spawner->GetComputePipeline(),
             Vec3u { uint32((max_particles + 255) / 256), 1, 1 }
         );
 
-        spawner->GetIndirectBuffer()->InsertBarrier(
-            frame->GetCommandBuffer(),
+        frame->GetCommandList().Add<InsertBarrier>(
+            spawner->GetIndirectBuffer(),
             renderer::ResourceState::INDIRECT_ARG
         );
     }
@@ -549,59 +533,29 @@ void ParticleSystem::Render(Frame *frame)
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
-    FixedArray<uint32, num_async_rendering_command_buffers> command_buffers_recorded_states { };
-    
-    ForEachInBatches(
-        m_particle_spawners.GetItems(),
-        num_async_rendering_command_buffers,
-        [this, &command_buffers_recorded_states, scene_render_resource, &camera_resource_handle, &env_probe_resource_handle, env_grid, frame_index](const Handle<ParticleSpawner> &particle_spawner, uint32 index, uint32 batch_index) {
-            const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
+    for (const Handle<ParticleSpawner> &particle_spawner : m_particle_spawners.GetItems()) {
+        const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
-            m_command_buffers[frame_index][batch_index]->Record(
-                g_engine->GetGPUDevice(),
-                pipeline->GetRenderPass(),
-                [&](CommandBuffer *secondary)
+        frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            pipeline->GetDescriptorTable(),
+            pipeline,
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    pipeline->Bind(secondary);
-
-                    pipeline->GetDescriptorTable()->Bind(
-                        secondary,
-                        frame_index,
-                        pipeline,
-                        {
-                            {
-                                NAME("Scene"),
-                                {
-                                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
-                                }
-                            }
-                        }
-                    );
-
-                    m_quad_mesh->GetRenderResource().RenderIndirect(
-                        secondary,
-                        particle_spawner->GetIndirectBuffer().Get()
-                    );
-
-                    HYPERION_RETURN_OK;
+                    NAME("Scene"),
+                    {
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
+                    }
                 }
-            );
+            },
+            frame_index
+        );
 
-            command_buffers_recorded_states[batch_index] = 1u;
-
-            return IterationResult::CONTINUE;
-        }
-    );
-
-    const uint32 num_recorded_command_buffers = command_buffers_recorded_states.Sum();
-
-    // submit all command buffers
-    for (uint32 i = 0; i < num_recorded_command_buffers; i++) {
-        m_command_buffers[frame_index][i]
-            ->SubmitSecondary(frame->GetCommandBuffer());
+        m_quad_mesh->GetRenderResource().RenderIndirect(frame->GetCommandList(), particle_spawner->GetIndirectBuffer());
     }
 }
 

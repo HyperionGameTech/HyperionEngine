@@ -17,6 +17,7 @@
 
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
 #include <scene/Mesh.hpp>
@@ -153,93 +154,6 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const C
 }
 
 #pragma endregion PlaneDebugDrawShape
-
-#pragma region DebugDrawerRenderGroupProxy
-
-class DebugDrawerRenderGroupProxy
-{
-public:
-    DebugDrawerRenderGroupProxy(RenderGroup *render_group)
-        : m_render_group(render_group)
-    {
-    }
-
-    const CommandBufferRef &GetCommandBuffer(Frame *frame) const;
-
-    const GraphicsPipelineRef &GetGraphicsPipeline() const;
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void Bind(Frame *frame);
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void DrawMesh(Frame *frame, Mesh *mesh);
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void Submit(Frame *frame);
-
-private:
-    RenderGroup *m_render_group;
-};
-
-const CommandBufferRef &DebugDrawerRenderGroupProxy::GetCommandBuffer(Frame *frame) const
-{
-    if (m_render_group->m_command_buffers != nullptr) {
-        return (*m_render_group->m_command_buffers)[frame->GetFrameIndex()].Front();
-    }
-
-    return frame->GetCommandBuffer();
-}
-
-const GraphicsPipelineRef &DebugDrawerRenderGroupProxy::GetGraphicsPipeline() const
-{
-    return m_render_group->m_pipeline;
-}
-
-void DebugDrawerRenderGroupProxy::Bind(Frame *frame)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    CommandBuffer *command_buffer = GetCommandBuffer(frame);
-    AssertThrow(command_buffer != nullptr);
-
-    if (command_buffer != frame->GetCommandBuffer()) {
-        command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetRenderPass());
-    }
-
-    m_render_group->m_pipeline->Bind(command_buffer);
-}
-
-void DebugDrawerRenderGroupProxy::DrawMesh(Frame *frame, Mesh *mesh)
-{
-    HYP_SCOPE;
-
-    AssertThrow(mesh != nullptr);
-    AssertThrow(mesh->IsReady());
-
-    CommandBuffer *command_buffer = GetCommandBuffer(frame);
-    AssertThrow(command_buffer != nullptr);
-
-    mesh->GetRenderResource().Render(command_buffer);
-}
-
-void DebugDrawerRenderGroupProxy::Submit(Frame *frame)
-{
-    HYP_SCOPE;
-
-    CommandBuffer *command_buffer = GetCommandBuffer(frame);
-    AssertThrow(command_buffer != nullptr);
-
-    if (command_buffer != frame->GetCommandBuffer()) {
-        command_buffer->End(g_engine->GetGPUDevice());
-        command_buffer->SubmitSecondary(frame->GetCommandBuffer());
-    }
-}
-
-#pragma endregion DebugDrawerRenderGroupProxy
 
 #pragma region DebugDrawer
 
@@ -422,15 +336,14 @@ void DebugDrawer::Render(Frame *frame)
         shader_data.Data()
     );
 
-    DebugDrawerRenderGroupProxy proxy(m_render_group.Get());
-    proxy.Bind(frame);
+    frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
 
-    const uint32 debug_drawer_descriptor_set_index = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
+    const uint32 debug_drawer_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
     AssertThrow(debug_drawer_descriptor_set_index != ~0u);
 
     // Update descriptor set if instance buffer was rebuilt
     if (was_instance_buffer_rebuilt) {
-        const DescriptorSetRef &descriptor_set = proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
+        const DescriptorSetRef &descriptor_set = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), instance_buffer);
@@ -439,11 +352,10 @@ void DebugDrawer::Render(Frame *frame)
     }
 
     if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
-        proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-            proxy.GetCommandBuffer(frame),
-            frame_index,
-            proxy.GetGraphicsPipeline(),
-            {
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            m_render_group->GetPipeline()->GetDescriptorTable(),
+            m_render_group->GetPipeline(),
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
                     NAME("DebugDrawerDescriptorSet"),
                     {
@@ -469,14 +381,15 @@ void DebugDrawer::Render(Frame *frame)
                         { NAME("EntityInstanceBatchesBuffer"), 0 }
                     }
                 }
-            }
+            },
+            frame_index
         );
     } else {
-        proxy.GetGraphicsPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-            proxy.GetCommandBuffer(frame),
-            frame_index,
-            proxy.GetGraphicsPipeline(),
-            {
+
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            m_render_group->GetPipeline()->GetDescriptorTable(),
+            m_render_group->GetPipeline(),
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
                     NAME("DebugDrawerDescriptorSet"),
                     {
@@ -502,17 +415,18 @@ void DebugDrawer::Render(Frame *frame)
                         { NAME("EntityInstanceBatchesBuffer"), 0 }
                     }
                 }
-            }
+            },
+            frame_index
         );
     }
 
     for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
         const DebugDrawCommand &draw_command = *m_draw_commands[index];
 
-        proxy.GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DebugDrawerDescriptorSet"), frame_index)->Bind(
-            proxy.GetCommandBuffer(frame),
-            proxy.GetGraphicsPipeline(),
-            {
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index),
+            m_render_group->GetPipeline(),
+            ArrayMap<Name, uint32> {
                 { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(index) }
             },
             debug_drawer_descriptor_set_index
@@ -522,15 +436,15 @@ void DebugDrawer::Render(Frame *frame)
         case DebugDrawType::MESH:
         {
             MeshDebugDrawShapeBase *mesh_shape = static_cast<MeshDebugDrawShapeBase *>(draw_command.shape);
-            proxy.DrawMesh(frame, mesh_shape->GetMesh().Get());
+
+            mesh_shape->GetMesh()->GetRenderResource().Render(frame->GetCommandList());
+
             break;
         }
         default:
             HYP_UNREACHABLE();
         }
     }
-
-    proxy.Submit(frame);
 
     m_draw_commands.Clear();
 }

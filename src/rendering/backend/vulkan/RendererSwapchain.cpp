@@ -4,6 +4,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/RendererFrameHandler.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -13,6 +14,34 @@ namespace platform {
 
 static const bool use_srgb = true;
 static const VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+static RendererResult HandleNextFrame(
+    Device<Platform::VULKAN> *device,
+    Swapchain<Platform::VULKAN> *swapchain,
+    Frame<Platform::VULKAN> *frame,
+    uint32 *index,
+    bool &out_needs_recreate
+)
+{
+    VkResult vk_result = vkAcquireNextImageKHR(
+        device->GetDevice(),
+        swapchain->GetPlatformImpl().handle,
+        UINT64_MAX,
+        frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetSemaphore(),
+        VK_NULL_HANDLE,
+        index
+    );
+
+    if (vk_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        out_needs_recreate = true;
+
+        return { };
+    } else if (vk_result != VK_SUCCESS && vk_result != VK_SUBOPTIMAL_KHR) {
+        return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vk_result));
+    }
+
+    return { };
+}
 
 #pragma region SwapchainPlatformImpl
 
@@ -85,11 +114,17 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
 
     RetrieveImageHandles(device);
 
+    self->m_frame_handler = MakeRenderObject<FrameHandler<Platform::VULKAN>>(self->m_images.Size(), HandleNextFrame);
+    HYPERION_BUBBLE_ERRORS(self->m_frame_handler->Create(device, &device->GetGraphicsQueue()));
+
     HYPERION_RETURN_OK;
 }
 
 RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
+    self->m_frame_handler->Destroy(device);
+    self->m_frame_handler.Reset();
+
     vkDestroySwapchainKHR(device->GetDevice(), handle, nullptr);
     handle = VK_NULL_HANDLE;
 

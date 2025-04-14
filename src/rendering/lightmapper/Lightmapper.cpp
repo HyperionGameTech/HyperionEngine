@@ -15,6 +15,8 @@
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderConfig.hpp>
+#include <rendering/backend/RendererFrameHandler.hpp>
+#include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -103,7 +105,7 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Frame *frame = g_engine->GetGPUInstance()->GetFrameHandler()->GetCurrentFrame();
+        Frame *frame = g_engine->GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentFrame();
 
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
@@ -630,25 +632,24 @@ void LightmapGPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_h
     GPUBufferRef staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
     HYPERION_ASSERT_RESULT(staging_buffer->Create(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit)));
     staging_buffer->Memset(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit), 0);
-    staging_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 
     renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
 
-    commands.Push([&](CommandBuffer *cmd)
+    commands.Push([&](RHICommandList &cmd)
     {
         const renderer::ResourceState previous_resource_state = hits_buffer->GetResourceState();
 
         // put src image in state for copying from
-        hits_buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+        cmd.Add<InsertBarrier>(hits_buffer, renderer::ResourceState::COPY_SRC);
 
         // put dst buffer in state for copying to
-        staging_buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);
-        staging_buffer->CopyFrom(cmd, hits_buffer, out_hits.Size() * sizeof(LightmapHit));
-        staging_buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+        cmd.Add<InsertBarrier>(staging_buffer, renderer::ResourceState::COPY_DST);
 
-        hits_buffer->InsertBarrier(cmd, previous_resource_state);
+        cmd.Add<CopyBuffer>(staging_buffer, hits_buffer, out_hits.Size() * sizeof(LightmapHit));
 
-        HYPERION_RETURN_OK;
+        cmd.Add<InsertBarrier>(staging_buffer, renderer::ResourceState::COPY_SRC);
+
+        cmd.Add<InsertBarrier>(hits_buffer, previous_resource_state);
     });
 
     HYPERION_ASSERT_RESULT(commands.Execute());
@@ -710,13 +711,13 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
             HYPERION_ASSERT_RESULT(m_raytracing_pipeline->GetDescriptorTable()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex()));
         }
     }
-    
-    m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
 
-    m_raytracing_pipeline->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindRaytracingPipeline>(m_raytracing_pipeline);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_raytracing_pipeline->GetDescriptorTable(),
         m_raytracing_pipeline,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -726,24 +727,18 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_hits_buffer_gpu->InsertBarrier(
-        frame->GetCommandBuffer(),
-        renderer::ResourceState::UNORDERED_ACCESS
-    );
+    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
 
-    m_raytracing_pipeline->TraceRays(
-        g_engine->GetGPUDevice(),
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<TraceRays>(
+        m_raytracing_pipeline,
         Vec3u { uint32(rays.Size()), 1, 1 }
     );
 
-    m_hits_buffer_gpu->InsertBarrier(
-        frame->GetCommandBuffer(),
-        renderer::ResourceState::UNORDERED_ACCESS
-    );
+    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapGPUPathTracer
@@ -1091,220 +1086,6 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob *job, const Lightmap
 
 #pragma endregion LightmapCPUPathTracer
 
-#pragma region LightmapRasterizer
-
-class HYP_API LightmapRasterizer : public ILightmapRenderer
-{
-public:
-    LightmapRasterizer(const Handle<Scene> &scene, LightmapShadingType shading_type);
-    LightmapRasterizer(const LightmapRasterizer &other)                 = delete;
-    LightmapRasterizer &operator=(const LightmapRasterizer &other)      = delete;
-    LightmapRasterizer(LightmapRasterizer &&other) noexcept             = delete;
-    LightmapRasterizer &operator=(LightmapRasterizer &&other) noexcept  = delete;
-    virtual ~LightmapRasterizer() override;
-
-    virtual uint32 MaxRaysPerFrame() const override
-        { return 1; }
-
-    virtual LightmapShadingType GetShadingType() const override
-        { return m_shading_type; }
-
-    virtual void Create() override;
-    virtual void UpdateRays(Span<const LightmapRay> rays) override;
-    virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
-
-private:
-    using RenderSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-
-    void CreateUniformBuffer();
-    void UpdateUniforms(Frame *frame, uint32 ray_offset);
-
-    Handle<Scene>                           m_scene;
-    LightmapShadingType                     m_shading_type;
-
-    Handle<Camera>                          m_camera;
-    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
-
-    FramebufferRef                          m_framebuffer;
-    ShaderRef                               m_shader;
-    RenderCollector                         m_render_collector;
-
-    RenderSemaphore                         m_render_semaphore;
-};
-
-LightmapRasterizer::LightmapRasterizer(const Handle<Scene> &scene, LightmapShadingType shading_type)
-    : m_scene(scene),
-      m_shading_type(shading_type)
-{
-}
-
-LightmapRasterizer::~LightmapRasterizer()
-{
-}
-
-void LightmapRasterizer::Create()
-{
-    constexpr Vec2i dimensions { 32, 32 };
-
-    // Framebuffer
-    {
-        m_framebuffer = MakeRenderObject<Framebuffer>(
-            Vec2u(dimensions),
-            renderer::RenderPassStage::SHADER,
-            renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-        );
-
-        constexpr InternalFormat format = InternalFormat::RGBA8;
-
-        AttachmentRef color_attachment = m_framebuffer->AddAttachment(
-            0,
-            format,
-            ImageType::TEXTURE_TYPE_2D,
-            renderer::RenderPassStage::SHADER,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE
-        );
-
-        m_framebuffer->AddAttachment(
-            1,
-            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            ImageType::TEXTURE_TYPE_2D,
-            renderer::RenderPassStage::SHADER,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE
-        );
-
-        DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
-    }
-
-    { // Shader (enforce forward lighting)
-        m_shader = g_shader_manager->GetOrCreate({
-            NAME("Forward"),
-            ShaderProperties(static_mesh_vertex_attributes, { "LIGHTMAP_BAKE" })
-        });
-
-        AssertThrow(m_shader != nullptr);
-    }
-
-    { // Camera
-        m_camera = CreateObject<Camera>(
-            90.0f,
-            -dimensions.x, dimensions.y,
-            0.001f, 1000.0f
-        );
-
-        m_camera->SetName(Name::Unique("LightmapRasterizerCamera"));
-
-        InitObject(m_camera);
-
-        CameraRenderResource &camera_render_resource = m_camera->GetRenderResource();
-        camera_render_resource.SetFramebuffer(m_framebuffer);
-        
-        m_camera_resource_handle = TResourceHandle<CameraRenderResource>(camera_render_resource);
-    }
-
-    m_render_collector.SetOverrideAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = FaceCullMode::BACK
-        }
-    ));
-}
-
-void LightmapRasterizer::UpdateRays(Span<const LightmapRay> rays)
-{
-    if (rays.Size() == 0) {
-        return;
-    }
-
-    AssertThrow(m_scene.IsValid());
-
-    // wait for it to reach zero (all rendering tasks completed)
-    m_render_semaphore.Acquire();
-
-    m_camera->SetViewMatrix(Matrix4::LookAt(
-        rays[0].ray.position,
-        rays[0].ray.direction,
-        rays[0].ray.direction.Cross(Vec3f(0.0f, 1.0f, 0.0f))
-    ));
-    
-    m_camera->Update(0.016f);
-
-    // Compute visible objects
-    m_scene->GetOctree().CalculateVisibility(m_camera);
-
-    m_scene->CollectStaticEntities(m_render_collector, m_camera);
-}
-
-void LightmapRasterizer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    if (out_hits.Size() != 1) {
-        return;
-    }
-
-    const ImageRef &image = m_framebuffer->GetAttachment(0)->GetImage();
-
-    ByteBuffer byte_buffer = image->ReadBack(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
-    AssertThrow(byte_buffer.Size() == image->GetByteSize());
-
-    Bitmap<4> bitmap(m_framebuffer->GetWidth(), m_framebuffer->GetHeight());
-    bitmap.SetPixels(byte_buffer);
-    
-    const float pixel_size = float(1.0f) / float(bitmap.GetWidth() * bitmap.GetHeight());
-
-    Vec4f avg = Vec4f(0.0f);
-
-    for (uint32 x = 0; x < bitmap.GetWidth(); x++) {
-        for (uint32 y = 0; y < bitmap.GetHeight(); y++) {
-            const auto &pixel = bitmap.GetPixel(x, y);
-
-            avg += pixel.GetRGBA() * pixel_size;
-        }
-    }
-
-    out_hits[0].color = avg;
-}
-
-void LightmapRasterizer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    m_render_semaphore.Produce();
-
-    const uint32 frame_index = frame->GetFrameIndex();
-    const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
-
-    g_engine->GetRenderState()->SetActiveScene(m_scene.Get());
-    g_engine->GetRenderState()->BindCamera(m_camera_resource_handle);
-
-    // Render the scene from the given texel
-
-    m_render_collector.CollectDrawCalls(
-        frame,
-        Bitset(1 << BUCKET_OPAQUE),
-        nullptr
-    );
-
-    m_render_collector.ExecuteDrawCalls(
-        frame,
-        m_camera_resource_handle,
-        Bitset(1 << BUCKET_OPAQUE)
-    );
-
-    g_engine->GetRenderState()->UnbindCamera(m_camera_resource_handle.Get());
-    g_engine->GetRenderState()->UnsetActiveScene();
-
-    m_render_semaphore.Release();
-}
-
-#pragma endregion LightmapRasterizer
-
 #pragma region LightmapJob
 
 static constexpr uint32 g_max_concurrent_rendering_tasks_per_job = 1;
@@ -1649,9 +1430,6 @@ Lightmapper::Lightmapper(LightmapperConfig &&config, const Handle<Scene> &scene)
             break;
         case LightmapTraceMode::CPU_PATH_TRACING:
             lightmap_renderer.EmplaceAs<LightmapCPUPathTracer>(m_scene, LightmapShadingType(i));
-            break;
-        case LightmapTraceMode::RASTERIZATION:
-            lightmap_renderer.EmplaceAs<LightmapRasterizer>(m_scene, LightmapShadingType(i));
             break;
         default:
             HYP_UNREACHABLE();

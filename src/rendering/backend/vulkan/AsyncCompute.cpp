@@ -82,6 +82,10 @@ RendererResult AsyncCompute<Platform::VULKAN>::Submit(Device<Platform::VULKAN> *
 
     const uint32 frame_index = frame->GetFrameIndex();
 
+    RHICommandList &command_list = m_command_lists[frame_index];
+
+    HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->Begin(device));
+    command_list.Execute(m_command_buffers[frame_index]);
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->End(device));
 
     DeviceQueue<Platform::VULKAN> &compute_queue = device->GetComputeQueue();
@@ -97,8 +101,6 @@ RendererResult AsyncCompute<Platform::VULKAN>::PrepareForFrame(Device<Platform::
     const uint32 frame_index = frame->GetFrameIndex();
     
     HYPERION_BUBBLE_ERRORS(WaitForFence(device, frame));
-
-    HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->Begin(device));
 
     HYPERION_RETURN_OK;
 }
@@ -119,59 +121,6 @@ RendererResult AsyncCompute<Platform::VULKAN>::WaitForFence(Device<Platform::VUL
     HYPERION_PASS_ERRORS(m_fences[frame_index]->Reset(device), result);
 
     return result;
-}
-
-template <>
-void AsyncCompute<Platform::VULKAN>::InsertBarrier(
-    Frame<Platform::VULKAN> *frame,
-    const GPUBufferRef<Platform::VULKAN> &buffer,
-    ResourceState resource_state
-) const
-{
-    HYP_SCOPE;
-
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    buffer->InsertBarrier(m_command_buffers[frame_index], resource_state, ShaderModuleType::COMPUTE);
-}
-
-template <>
-void AsyncCompute<Platform::VULKAN>::Dispatch(
-    Frame<Platform::VULKAN> *frame,
-    const ComputePipelineRef<Platform::VULKAN> &ref,
-    const Vec3u &extent
-) const
-{
-    HYP_SCOPE;
-
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    ref->Bind(m_command_buffers[frame_index]);
-    ref->Dispatch(m_command_buffers[frame_index], extent);
-}
-
-template <>
-void AsyncCompute<Platform::VULKAN>::Dispatch(
-    Frame<Platform::VULKAN> *frame,
-    const ComputePipelineRef<Platform::VULKAN> &ref,
-    const Vec3u &extent,
-    const DescriptorTableRef<Platform::VULKAN> &descriptor_table,
-    const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets
-) const
-{
-    HYP_SCOPE;
-
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    descriptor_table->Bind<ComputePipelineRef<Platform::VULKAN>>(
-        m_command_buffers[frame_index],
-        frame_index,
-        ref,
-        offsets
-    );
-
-    ref->Bind(m_command_buffers[frame_index]);
-    ref->Dispatch(m_command_buffers[frame_index], extent);
 }
 
 } // namespace platform

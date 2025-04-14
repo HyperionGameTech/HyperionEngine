@@ -56,7 +56,6 @@ public:
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Record(uint32 frame_index) override;
     virtual void Render(Frame *frame) override;
 
 protected:
@@ -104,7 +103,6 @@ public:
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Record(uint32 frame_index) override;
     virtual void Render(Frame *frame) override;
     virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
@@ -145,7 +143,6 @@ public:
     virtual ~ReflectionsPass() override;
     
     virtual void Create() override;
-    virtual void Record(uint32 frame_index) override;
     virtual void Render(Frame *frame) override;
     virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
@@ -159,7 +156,6 @@ private:
         
     virtual void CreatePipeline() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
-    virtual void CreateCommandBuffers() override;
 
     bool ShouldRenderSSR() const;
 
@@ -170,7 +166,6 @@ private:
     virtual void Resize_Internal(Vec2u new_size) override;
 
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
-    FixedArray<FixedArray<CommandBufferRef, max_frames_in_flight>, ApplyReflectionProbeMode::MAX>   m_command_buffers;
 
     UniquePtr<SSRRenderer>                                                                          m_ssr_renderer;
 
@@ -234,7 +229,7 @@ private:
     void RenderOpaqueObjects(Frame *frame);
     void RenderTranslucentObjects(Frame *frame);
 
-    void GenerateMipChain(Frame *frame, Image *image);
+    void GenerateMipChain(Frame *frame, const ImageRef &image);
 
     UniquePtr<GBuffer>                                  m_gbuffer;
 

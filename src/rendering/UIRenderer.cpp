@@ -14,6 +14,7 @@
 
 #include <rendering/font/FontAtlas.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
@@ -377,11 +378,10 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const TResourceHandle<Cam
     
     AssertThrow(m_draw_collection != nullptr);
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
 
     if (framebuffer.IsValid()) {
-        framebuffer->BeginCapture(command_buffer, frame_index);
+        frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
     }
 
     g_engine->GetRenderState()->BindCamera(camera_resource_handle);
@@ -427,7 +427,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const TResourceHandle<Cam
     g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
     
     if (framebuffer.IsValid()) {
-        framebuffer->EndCapture(command_buffer, frame_index);
+        frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
     }
 }
 

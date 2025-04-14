@@ -32,6 +32,8 @@ using renderer::Topology;
 using renderer::IndirectDrawCommand;
 
 class Mesh;
+class Material;
+class RHICommandList;
 
 class MeshRenderResource final : public RenderResourceBase
 {
@@ -52,28 +54,25 @@ public:
     HYP_FORCE_INLINE uint32 NumIndices() const
         { return m_num_indices; }
 
-    Array<PackedVertex> BuildPackedVertices() const;
-    Array<uint32> BuildPackedIndices() const;
-
     void SetVertexAttributes(const VertexAttributeSet &vertex_attributes);
     void SetStreamedMeshData(const RC<StreamedMeshData> &streamed_mesh_data);
-
-    void Render(CommandBuffer *cmd, uint32 num_instances = 1, uint32 instance_index = 0) const;
-
-    void RenderIndirect(
-        CommandBuffer *cmd,
-        const GPUBuffer *indirect_buffer,
-        uint32 buffer_offset = 0
-    ) const;
-
+    
+    void Render(RHICommandList &cmd, uint32 num_instances = 1, uint32 instance_index = 0) const;
+    void RenderIndirect(RHICommandList &cmd, const GPUBufferRef &indirect_buffer, uint32 buffer_offset = 0) const;
+    
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
 
+    AccelerationGeometryRef BuildAccelerationGeometry(const Handle<Material> &material) const;
+    
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
-
+        
 private:
+    Array<PackedVertex> BuildPackedVertices() const;
+    Array<uint32> BuildPackedIndices() const;
+
     static Array<float> BuildVertexBuffer(const VertexAttributeSet &vertex_attributes, const MeshData &mesh_data);
 
     void UploadMeshData();

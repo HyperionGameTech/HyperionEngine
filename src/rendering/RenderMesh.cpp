@@ -2,9 +2,17 @@
 
 #include <rendering/RenderMesh.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
+#include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
+#include <rendering/backend/rt/RendererAccelerationStructure.hpp>
+
+#include <core/threading/Task.hpp>
+
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -133,36 +141,30 @@ void MeshRenderResource::UploadMeshData()
         HYPERION_ASSERT_RESULT(m_ibo->Create(device, packed_indices_size));
     }
 
-    HYPERION_ASSERT_RESULT(instance->GetStagingBufferPool().Use(
-        device,
-        [&](renderer::StagingBufferPool::Context &holder)
-        {
-            renderer::SingleTimeCommands commands { device };
+    GPUBufferRef staging_buffer_vertices = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+    HYPERION_ASSERT_RESULT(staging_buffer_vertices->Create(g_engine->GetGPUDevice(), packed_buffer_size));
+    staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_buffer.Data());
 
-            auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
-            staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_buffer.Data());
+    GPUBufferRef staging_buffer_indices = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+    HYPERION_ASSERT_RESULT(staging_buffer_indices->Create(g_engine->GetGPUDevice(), packed_indices_size));
+    staging_buffer_indices->Copy(device, packed_indices_size, index_buffer.Data());
 
-            auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
-            staging_buffer_indices->Copy(device, packed_indices_size, index_buffer.Data());
+    renderer::SingleTimeCommands commands { device };
 
-            commands.Push([&](CommandBuffer *cmd)
-            {
-                m_vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
+    commands.Push([&](RHICommandList &cmd)
+    {
+        cmd.Add<CopyBuffer>(staging_buffer_vertices, m_vbo, packed_buffer_size);
+    });
 
-                HYPERION_RETURN_OK;
-            });
+    commands.Push([&](RHICommandList &cmd)
+    {
+        cmd.Add<CopyBuffer>(staging_buffer_indices, m_ibo, packed_indices_size);
+    });
 
-            commands.Push([&](CommandBuffer *cmd)
-            {
-                m_ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
+    HYPERION_ASSERT_RESULT(commands.Execute());
 
-                HYPERION_RETURN_OK;
-            });
-
-            HYPERION_BUBBLE_ERRORS(commands.Execute());
-
-            HYPERION_RETURN_OK;
-        }));
+    staging_buffer_vertices->Destroy(g_engine->GetGPUDevice());
+    staging_buffer_indices->Destroy(g_engine->GetGPUDevice());
 }
 
 void MeshRenderResource::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
@@ -302,27 +304,119 @@ Array<uint32> MeshRenderResource::BuildPackedIndices() const
     return Array<uint32>(mesh_data.indices.Begin(), mesh_data.indices.End());
 }
 
-void MeshRenderResource::Render(CommandBuffer *cmd, uint32 num_instances, uint32 instance_index) const
+AccelerationGeometryRef MeshRenderResource::BuildAccelerationGeometry(const Handle<Material> &material) const
 {
-    cmd->BindVertexBuffer(GetVertexBuffer());
-    cmd->BindIndexBuffer(GetIndexBuffer());
+    Array<PackedVertex> packed_vertices = BuildPackedVertices();
+    Array<uint32> packed_indices = BuildPackedIndices();
 
-    cmd->DrawIndexed(NumIndices(), num_instances, instance_index);
+    if (packed_vertices.Empty() || packed_indices.Empty()) {
+        return nullptr;
+    }
+
+    // some assertions to prevent gpu faults down the line
+    for (SizeType i = 0; i < packed_indices.Size(); i++) {
+        AssertThrow(packed_indices[i] < packed_vertices.Size());
+    }
+
+    struct RENDER_COMMAND(BuildAccelerationGeometry) : public renderer::RenderCommand
+    {
+        Task<AccelerationGeometryRef>   *task;
+        Handle<Material>                material;
+        Array<PackedVertex>             packed_vertices;
+        Array<uint32>                   packed_indices;
+
+        RENDER_COMMAND(BuildAccelerationGeometry)(
+            Task<AccelerationGeometryRef> *task,
+            const Handle<Material> &material,
+            Array<PackedVertex> &&packed_vertices,
+            Array<uint32> &&packed_indices
+        ) : task(task),
+            material(material),
+            packed_vertices(std::move(packed_vertices)),
+            packed_indices(std::move(packed_indices))
+        {
+            AssertThrow(task != nullptr);
+        }
+
+        virtual ~RENDER_COMMAND(BuildAccelerationGeometry)() override = default;
+
+        virtual RendererResult operator()() override
+        {
+            GPUBufferRef vertices_staging_buffer;
+            GPUBufferRef indices_staging_buffer;
+
+            GPUBufferRef packed_vertices_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::RT_MESH_VERTEX_BUFFER);
+            GPUBufferRef packed_indices_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::RT_MESH_INDEX_BUFFER);
+
+            AccelerationGeometryRef geometry = MakeRenderObject<AccelerationGeometry>(
+                packed_vertices_buffer,
+                packed_indices_buffer,
+                material
+            );
+
+            HYP_DEFER({
+                if (task) {
+                    task->Fulfill(geometry);
+                }
+
+                SafeRelease(std::move(packed_vertices_buffer));
+                SafeRelease(std::move(packed_indices_buffer));
+                SafeRelease(std::move(vertices_staging_buffer));
+                SafeRelease(std::move(indices_staging_buffer));
+            });
+
+            const SizeType packed_vertices_size = packed_vertices.Size() * sizeof(PackedVertex);
+            const SizeType packed_indices_size = packed_indices.Size() * sizeof(uint32);
+        
+            HYPERION_BUBBLE_ERRORS(packed_vertices_buffer->Create(g_engine->GetGPUDevice(), packed_vertices_size));
+            HYPERION_BUBBLE_ERRORS(packed_indices_buffer->Create(g_engine->GetGPUDevice(), packed_indices_size));
+
+            vertices_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
+            HYPERION_BUBBLE_ERRORS(vertices_staging_buffer->Create(g_engine->GetGPUDevice(), packed_vertices_size));
+            vertices_staging_buffer->Memset(g_engine->GetGPUDevice(), packed_vertices_size, 0); // zero out
+            vertices_staging_buffer->Copy(g_engine->GetGPUDevice(), packed_vertices.Size() * sizeof(PackedVertex), packed_vertices.Data());
+            
+            indices_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
+            HYPERION_BUBBLE_ERRORS(indices_staging_buffer->Create(g_engine->GetGPUDevice(), packed_indices_size));
+            indices_staging_buffer->Memset(g_engine->GetGPUDevice(), packed_indices_size, 0); // zero out
+            indices_staging_buffer->Copy(g_engine->GetGPUDevice(), packed_indices.Size() * sizeof(uint32), packed_indices.Data());
+            
+            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+        
+            commands.Push([&](RHICommandList &cmd)
+            {
+                cmd.Add<CopyBuffer>(vertices_staging_buffer, packed_vertices_buffer, packed_vertices_size);
+                cmd.Add<CopyBuffer>(indices_staging_buffer, packed_indices_buffer, packed_indices_size);
+            });
+
+            commands.Push([&](RHICommandList &)
+            {
+                geometry->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+            });
+        
+            return commands.Execute();
+        }
+    };
+
+    Task<AccelerationGeometryRef> task;
+
+    PUSH_RENDER_COMMAND(BuildAccelerationGeometry, &task, material, std::move(packed_vertices), std::move(packed_indices));
+
+    return std::move(task).Await();
 }
 
-void MeshRenderResource::RenderIndirect(
-    CommandBuffer *cmd,
-    const GPUBuffer *indirect_buffer,
-    uint32 buffer_offset
-) const
+void MeshRenderResource::Render(RHICommandList &cmd, uint32 num_instances, uint32 instance_index) const
 {
-    cmd->BindVertexBuffer(GetVertexBuffer());
-    cmd->BindIndexBuffer(GetIndexBuffer());
+    cmd.Add<BindVertexBuffer>(GetVertexBuffer());
+    cmd.Add<BindIndexBuffer>(GetIndexBuffer());
+    cmd.Add<DrawIndexed>(NumIndices(), num_instances,instance_index);
+}
 
-    cmd->DrawIndexedIndirect(
-        indirect_buffer,
-        buffer_offset
-    );
+void MeshRenderResource::RenderIndirect(RHICommandList &cmd, const GPUBufferRef &indirect_buffer, uint32 buffer_offset) const
+{
+    cmd.Add<BindVertexBuffer>(GetVertexBuffer());
+    cmd.Add<BindIndexBuffer>(GetIndexBuffer());
+    cmd.Add<DrawIndexedIndirect>(indirect_buffer, buffer_offset);
 }
 
 void MeshRenderResource::PopulateIndirectDrawCommand(IndirectDrawCommand &out)

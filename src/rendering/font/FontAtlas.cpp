@@ -4,6 +4,8 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
@@ -70,17 +72,20 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
         AssertThrowMsg(cell_dimensions.x >= extent.x, "Cell width (%u) is less than glyph width (%u)", cell_dimensions.x, extent.x);
         AssertThrowMsg(cell_dimensions.y >= extent.y, "Cell height (%u) is less than glyph height (%u)", cell_dimensions.y, extent.y);
 
-        commands.Push([&](CommandBuffer *command_buffer)
+        commands.Push([&](RHICommandList &cmd)
         {
             // put src image in state for copying from
-            image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+            cmd.Add<InsertBarrier>(image, renderer::ResourceState::COPY_SRC);
+
             // put dst image in state for copying to
-            atlas_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            cmd.Add<InsertBarrier>(atlas_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
 
-            //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
-            atlas_texture->GetRenderResource().GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
-
-            HYPERION_RETURN_OK;
+            cmd.Add<BlitRect>(
+                image,
+                atlas_texture->GetRenderResource().GetImage(),
+                src_rect,
+                dest_rect
+            );
         });
 
         return commands.Execute();
@@ -341,7 +346,6 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
 
             buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
             HYPERION_ASSERT_RESULT(buffer->Create(g_engine->GetGPUDevice(), buffer_size));
-            buffer->SetResourceState(renderer::ResourceState::COPY_DST);
 
             if (!result) {
                 return result;
@@ -352,20 +356,17 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
             AssertThrow(atlas);
             AssertThrow(atlas->IsReady());
 
-            commands.Push([&](CommandBuffer *cmd)
+            commands.Push([&](RHICommandList &cmd)
             {
-
                 // put src image in state for copying from
-                atlas->GetRenderResource().GetImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+                cmd.Add<InsertBarrier>(atlas->GetRenderResource().GetImage(), renderer::ResourceState::COPY_SRC);
                 
                 // put dst buffer in state for copying to
-                buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);
+                cmd.Add<InsertBarrier>(buffer, renderer::ResourceState::COPY_DST);
 
-                atlas->GetRenderResource().GetImage()->CopyToBuffer(cmd, buffer);
+                cmd.Add<CopyImageToBuffer>(atlas->GetRenderResource().GetImage(), buffer);
 
-                buffer->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
-
-                HYPERION_RETURN_OK;
+                cmd.Add<InsertBarrier>(buffer, renderer::ResourceState::COPY_SRC);
             });
 
             HYPERION_PASS_ERRORS(commands.Execute(), result);

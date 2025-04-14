@@ -5,6 +5,7 @@
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
 #include <scene/World.hpp>
 
 #include <rendering/RenderMesh.hpp>
@@ -16,11 +17,15 @@
 
 #include <core/containers/HashSet.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region Render commands
 
@@ -165,19 +170,21 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     InitObject(mesh_component.mesh);
     AssertThrow(mesh_component.mesh->IsReady());
 
+    InitObject(mesh_component.material);
+    AssertThrow(mesh_component.material->IsReady());
+
     AccelerationGeometryRef geometry;
     
     {
         TResourceHandle<MeshRenderResource> mesh_resource_handle(mesh_component.mesh->GetRenderResource());
 
-        geometry = MakeRenderObject<AccelerationGeometry>(
-            mesh_resource_handle->BuildPackedVertices(),
-            mesh_resource_handle->BuildPackedIndices(),
-            entity,
-            mesh_component.material
-        );
+        geometry = mesh_resource_handle->BuildAccelerationGeometry(mesh_component.material);
 
-        DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        if (!geometry) {
+            HYP_LOG(Rendering, Error, "Failed to build acceleration geometry for mesh #{} ({})", mesh_component.mesh.GetID().Value(), mesh_component.mesh->GetName());
+
+            return;
+        }
     }
 
     MeshRaytracingData *mesh_raytracing_data = new MeshRaytracingData;

@@ -49,10 +49,7 @@ struct ImagePlatformImpl<Platform::VULKAN>
 
     RendererResult Create(
         Device<Platform::VULKAN> *device,
-        const TextureData *in_texture_data,
-        VkImageLayout initial_layout,
-        VkImageCreateInfo *out_image_info,
-        UniquePtr<TextureData> &out_texture_data
+        VkImageLayout initial_layout
     );
 
     RendererResult Destroy(
@@ -70,19 +67,22 @@ struct ImagePlatformImpl<Platform::VULKAN>
     void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state,
+        ShaderModuleType shader_module_type,
         ImageSubResourceFlagBits flags = ImageSubResourceFlags::IMAGE_SUB_RESOURCE_FLAGS_COLOR
     );
 
     void InsertBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
-        ResourceState new_state
+        ResourceState new_state,
+        ShaderModuleType shader_module_type
     );
 
     void InsertSubResourceBarrier(
         CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
-        ResourceState new_state
+        ResourceState new_state,
+        ShaderModuleType shader_module_type
     );
 };
 

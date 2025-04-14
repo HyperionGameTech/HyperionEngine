@@ -38,7 +38,6 @@ enum class LightmapTraceMode : int
 {
     GPU_PATH_TRACING = 0,
     CPU_PATH_TRACING,
-    RASTERIZATION,
 
     MAX
 };

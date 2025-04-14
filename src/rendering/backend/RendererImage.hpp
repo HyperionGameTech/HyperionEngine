@@ -47,16 +47,8 @@ public:
     HYP_FORCE_INLINE const TextureDesc &GetTextureDesc() const
         { return m_texture_desc; }
 
-    /*
-     * Create the image. No texture data will be copied.
-     */
     HYP_API RendererResult Create(Device<PLATFORM> *device);
-
-    /* Create the image and transfer the provided texture data into it if given.
-     * The image is transitioned into the given state.
-     */
     HYP_API RendererResult Create(Device<PLATFORM> *device, ResourceState initial_state);
-    HYP_API RendererResult Create(Device<PLATFORM> *device, ResourceState initial_state, const TextureData &texture_data);
     
     HYP_API RendererResult Destroy(Device<PLATFORM> *device);
 
@@ -64,27 +56,28 @@ public:
 
     HYP_API ResourceState GetResourceState() const;
 
-    HYP_API void SetResourceState(ResourceState new_state);
-
     HYP_API ResourceState GetSubResourceState(const ImageSubResource &sub_resource) const;
 
     HYP_API void SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state);
 
     HYP_API void InsertBarrier(
         CommandBuffer<PLATFORM> *command_buffer,
-        ResourceState new_state
+        ResourceState new_state,
+        ShaderModuleType shader_module_type
     );
 
     HYP_API void InsertBarrier(
         CommandBuffer<PLATFORM> *command_buffer,
         const ImageSubResource &sub_resource,
-        ResourceState new_state
+        ResourceState new_state,
+        ShaderModuleType shader_module_type
     );
 
     HYP_API void InsertSubResourceBarrier(
         CommandBuffer<PLATFORM> *command_buffer,
         const ImageSubResource &sub_resource,
-        ResourceState new_state
+        ResourceState new_state,
+        ShaderModuleType shader_module_type
     );
 
     HYP_API RendererResult Blit(
@@ -108,10 +101,7 @@ public:
         uint32 dst_mip
     );
 
-    HYP_API RendererResult GenerateMipmaps(
-        Device<PLATFORM> *device,
-        CommandBuffer<PLATFORM> *command_buffer
-    );
+    HYP_API RendererResult GenerateMipmaps(CommandBuffer<PLATFORM> *command_buffer);
 
     HYP_API void CopyFromBuffer(
         CommandBuffer<PLATFORM> *command_buffer,
@@ -122,8 +112,6 @@ public:
         CommandBuffer<PLATFORM> *command_buffer,
         GPUBuffer<PLATFORM> *dst_buffer
     ) const;
-
-    HYP_NODISCARD HYP_API ByteBuffer ReadBack(Device<PLATFORM> *device, Instance<PLATFORM> *instance) const;
 
     HYP_FORCE_INLINE bool IsRWTexture() const
         { return m_is_rw_texture; }
