@@ -5,6 +5,8 @@
 
 #include <rendering/RenderableAttributes.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
@@ -64,9 +66,6 @@ public:
 
     const AttachmentRef &GetAttachment(uint32 attachment_index) const;
 
-    HYP_FORCE_INLINE const CommandBufferRef &GetCommandBuffer(uint32 index) const
-        { return m_command_buffers[index]; }
-
     HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
 
@@ -101,7 +100,6 @@ public:
      *  Callable on any thread, as it enqueues a render command. */
     void Resize(Vec2u new_size);
 
-    virtual void CreateCommandBuffers();
     virtual void CreateFramebuffer();
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
     virtual void CreatePipeline();
@@ -112,7 +110,6 @@ public:
 
     virtual void Render(Frame *frame);
     virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer);
-    virtual void Record(uint32 frame_index);
 
     void Begin(Frame *frame);
     void End(Frame *frame);
@@ -137,7 +134,6 @@ protected:
 
     void MergeHalfResTextures(Frame *frame);
 
-    FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;
     Handle<RenderGroup>                                 m_render_group;

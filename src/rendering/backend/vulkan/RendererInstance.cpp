@@ -91,34 +91,6 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
     return devices;
 }
 
-static RendererResult HandleNextFrame(
-    Device<Platform::VULKAN> *device,
-    Swapchain<Platform::VULKAN> *swapchain,
-    Frame<Platform::VULKAN> *frame,
-    uint32 *index,
-    bool &out_needs_recreate
-)
-{
-    VkResult vk_result = vkAcquireNextImageKHR(
-        device->GetDevice(),
-        swapchain->GetPlatformImpl().handle,
-        UINT64_MAX,
-        frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetSemaphore(),
-        VK_NULL_HANDLE,
-        index
-    );
-
-    if (vk_result == VK_ERROR_OUT_OF_DATE_KHR) {
-        out_needs_recreate = true;
-
-        return { };
-    } else if (vk_result != VK_SUCCESS && vk_result != VK_SUBOPTIMAL_KHR) {
-        return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vk_result));
-    }
-
-    return { };
-}
-
 // Returns supported vulkan debug layers
 static Array<const char *> CheckValidationLayerSupport(const Array<const char *> &requested_layers)
 {
@@ -243,8 +215,7 @@ RendererResult Instance<Platform::VULKAN>::SetupDebug()
 }
 
 Instance<Platform::VULKAN>::Instance()
-    : frame_handler(nullptr),
-      m_surface(VK_NULL_HANDLE),
+    : m_surface(VK_NULL_HANDLE),
       m_instance(VK_NULL_HANDLE),
       m_swapchain(MakeRenderObject<Swapchain<Platform::VULKAN>>())
 {
@@ -343,14 +314,6 @@ RendererResult Instance<Platform::VULKAN>::Initialize(const AppContext &app_cont
     HYPERION_BUBBLE_ERRORS(CreateDevice());
     HYPERION_BUBBLE_ERRORS(CreateSwapchain());
 
-    /* Set up our frame handler - this class lets us abstract
-     * away a little bit of the double/triple buffering stuff */
-    DebugLog(LogType::RenDebug, "Num swapchain images: %d\n", m_swapchain->NumImages());
-    this->frame_handler = new FrameHandler<Platform::VULKAN>(m_swapchain->NumImages(), HandleNextFrame);
-    
-    /* Our command pool will have a command buffer for each frame we can render to. */
-    HYPERION_BUBBLE_ERRORS(this->frame_handler->CreateFrames(m_device, &m_device->GetGraphicsQueue()));
-
     SetupDebugMessenger();
     m_device->SetupAllocator(this);
 
@@ -373,12 +336,6 @@ RendererResult Instance<Platform::VULKAN>::Destroy()
     RendererResult result;
 
     HYPERION_PASS_ERRORS(m_device->Wait(), result);
-
-    HYPERION_PASS_ERRORS(m_staging_buffer_pool.Destroy(m_device), result);
-
-    this->frame_handler->Destroy(m_device);
-    delete this->frame_handler;
-    this->frame_handler = nullptr;
 
     m_device->DestroyAllocator();
 

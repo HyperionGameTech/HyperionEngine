@@ -4,6 +4,8 @@
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
@@ -158,41 +160,46 @@ SingleTimeCommands<Platform::VULKAN>::SingleTimeCommands(Device<Platform::VULKAN
 template <>
 SingleTimeCommands<Platform::VULKAN>::~SingleTimeCommands()
 {
-    SafeRelease(std::move(m_fence));
-    SafeRelease(std::move(m_command_buffer));
 }
 
 template <>
-RendererResult SingleTimeCommands<Platform::VULKAN>::Begin()
+RendererResult SingleTimeCommands<Platform::VULKAN>::Execute()
 {
-    m_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
+    RHICommandList command_list;
 
-    m_command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-    m_command_buffer->GetPlatformImpl().command_pool = m_device->GetGraphicsQueue().command_pools[0];
-    HYPERION_BUBBLE_ERRORS(m_command_buffer->Create(m_device));
+    for (auto &fn : m_functions) {
+        fn(command_list);
+    }
 
-    return m_command_buffer->Begin(m_device);
-}
+    m_functions.Clear();
 
-template <>
-RendererResult SingleTimeCommands<Platform::VULKAN>::End()
-{
     RendererResult result;
 
-    HYPERION_PASS_ERRORS(m_command_buffer->End(m_device), result);
+    FenceRef<Platform::VULKAN> fence = MakeRenderObject<Fence<Platform::VULKAN>>();
 
-    HYPERION_PASS_ERRORS(m_fence->Create(m_device), result);
-    HYPERION_PASS_ERRORS(m_fence->Reset(m_device), result);
+    CommandBufferRef<Platform::VULKAN> command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
+    command_buffer->GetPlatformImpl().command_pool = m_device->GetGraphicsQueue().command_pools[0];
+    HYPERION_BUBBLE_ERRORS(command_buffer->Create(m_device));
+
+    HYPERION_BUBBLE_ERRORS(command_buffer->Begin(m_device));
+
+    // Execute the command list
+    command_list.Execute(command_buffer);
+
+    HYPERION_PASS_ERRORS(command_buffer->End(m_device), result);
+
+    HYPERION_PASS_ERRORS(fence->Create(m_device), result);
+    HYPERION_PASS_ERRORS(fence->Reset(m_device), result);
 
     // Submit to the queue
     DeviceQueue<Platform::VULKAN> &queue_graphics = m_device->GetGraphicsQueue();
 
-    HYPERION_PASS_ERRORS(m_command_buffer->SubmitPrimary(&queue_graphics, m_fence, nullptr), result);
+    HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&queue_graphics, fence, nullptr), result);
     
-    HYPERION_PASS_ERRORS(m_fence->WaitForGPU(m_device), result);
-    HYPERION_PASS_ERRORS(m_fence->Destroy(m_device), result);
+    HYPERION_PASS_ERRORS(fence->WaitForGPU(m_device), result);
+    HYPERION_PASS_ERRORS(fence->Destroy(m_device), result);
 
-    HYPERION_PASS_ERRORS(m_command_buffer->Destroy(m_device), result);
+    HYPERION_PASS_ERRORS(command_buffer->Destroy(m_device), result);
 
     return result;
 }

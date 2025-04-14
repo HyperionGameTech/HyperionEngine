@@ -41,6 +41,8 @@ extern HYP_API void DebugLog_FlushOutputStream();
 
 extern HYP_API void LogStackTrace(int depth = 10);
 
+extern HYP_API void WriteToStandardError(const char *msg);
+
 } // namespace debug
 
 using debug::LogType;
@@ -53,6 +55,7 @@ using debug::LogType;
     #ifdef HYP_DEBUG_MODE
         #define HYP_THROW(msg) \
             do { \
+                debug::WriteToStandardError(&msg[0]); \
                 HYP_PRINT_STACK_TRACE(); \
                 std::terminate(); \
             } while (0)
@@ -62,12 +65,12 @@ using debug::LogType;
 #endif
 
 #define HYP_UNREACHABLE() \
-    HYP_THROW("Unreachable code hit in function " HYP_DEBUG_FUNC)
+    HYP_THROW("Unreachable code hit in function " HYP_STR(HYP_DEBUG_FUNC))
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-    #define HYP_NOT_IMPLEMENTED() do { HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC); std::terminate(); } while (0)
+    #define HYP_NOT_IMPLEMENTED() do { HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); std::terminate(); } while (0)
 #else
-    #define HYP_NOT_IMPLEMENTED() HYP_THROW("Function not implemented: " HYP_DEBUG_FUNC)
+    #define HYP_NOT_IMPLEMENTED() HYP_THROW("Not implemented: " HYP_STR(HYP_DEBUG_FUNC))
 #endif
 
 // obsolete

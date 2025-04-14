@@ -68,7 +68,6 @@ void DOFBlur::Render(Frame *frame)
     push_constants.dimension = m_extent;
 
     const uint32 frame_index = frame->GetFrameIndex();
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
 
     FixedArray<FullScreenPass *, 2> directional_passes {
         m_blur_horizontal_pass.Get(),
@@ -77,12 +76,10 @@ void DOFBlur::Render(Frame *frame)
 
     for (FullScreenPass *pass : directional_passes) {
         pass->SetPushConstants(&push_constants, sizeof(push_constants));
-        pass->Record(frame_index);
         pass->Render(frame);
     }
     
     m_blur_mix_pass->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_blur_mix_pass->Record(frame_index);
     m_blur_mix_pass->Render(frame);
 }
 

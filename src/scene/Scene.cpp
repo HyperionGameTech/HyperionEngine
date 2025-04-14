@@ -512,7 +512,7 @@ void Scene::AddSystemIfApplicable()
 {
     UniquePtr<SystemType> system = MakeUnique<SystemType>(*m_entity_manager);
 
-    if (system->ShouldCreateForScene(this)) {
+    if (!system->ShouldCreateForScene(this)) {
         return;
     }
 

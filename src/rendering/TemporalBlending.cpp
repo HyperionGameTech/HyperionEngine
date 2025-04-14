@@ -10,6 +10,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/SafeDeleter.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 
 #include <scene/Texture.hpp>
@@ -289,7 +290,7 @@ void TemporalBlending::Render(Frame *frame)
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
 
-    active_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
 
     const Vec3u &extent = active_image->GetExtent();
     const Vec3u depth_texture_dimensions = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
@@ -308,12 +309,13 @@ void TemporalBlending::Render(Frame *frame)
     push_constants.blending_frame_counter = m_blending_frame_counter;
 
     m_perform_blending->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_perform_blending->Bind(frame->GetCommandBuffer());
 
-    m_descriptor_table->Bind(
-        frame,
+    frame->GetCommandList().Add<BindComputePipeline>(m_perform_blending);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_descriptor_table,
         m_perform_blending,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -321,11 +323,12 @@ void TemporalBlending::Render(Frame *frame)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_perform_blending->Dispatch(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_perform_blending,
         Vec3u {
             (extent.x + 7) / 8,
             (extent.y + 7) / 8,
@@ -334,7 +337,7 @@ void TemporalBlending::Render(Frame *frame)
     );
 
     // set it to be able to be used as texture2D for next pass, or outside of this
-    active_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
 
     m_blending_frame_counter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blending_frame_counter + 1

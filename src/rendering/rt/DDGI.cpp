@@ -10,6 +10,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -445,7 +446,7 @@ void DDGI::RenderProbes(Frame *frame)
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
-    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
 
     m_random_generator.Next();
 
@@ -459,12 +460,13 @@ void DDGI::RenderProbes(Frame *frame)
     push_constants.time = m_time++;
 
     m_pipeline->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_pipeline->Bind(frame->GetCommandBuffer());
-    
-    m_pipeline->GetDescriptorTable()->Bind(
-        frame,
+
+    frame->GetCommandList().Add<BindRaytracingPipeline>(m_pipeline);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_pipeline->GetDescriptorTable(),
         m_pipeline,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -474,12 +476,12 @@ void DDGI::RenderProbes(Frame *frame)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_pipeline->TraceRays(
-        g_engine->GetGPUDevice(),
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<TraceRays>(
+        m_pipeline,
         Vec3u {
             m_grid_info.NumProbes(),
             m_grid_info.num_rays_per_probe,
@@ -487,7 +489,10 @@ void DDGI::RenderProbes(Frame *frame)
         }
     );
 
-    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_radiance_buffer,
+        ResourceState::UNORDERED_ACCESS
+    );
 }
 
 void DDGI::ComputeIrradiance(Frame *frame)
@@ -501,22 +506,22 @@ void DDGI::ComputeIrradiance(Frame *frame)
 
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_irradiance_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_irradiance_image,
         ResourceState::UNORDERED_ACCESS
     );
 
-    m_depth_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<InsertBarrier>(
+        m_depth_image,
         ResourceState::UNORDERED_ACCESS
     );
-    
-    m_update_irradiance->Bind(frame->GetCommandBuffer());
 
-    m_update_irradiance->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindComputePipeline>(m_update_irradiance);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_update_irradiance->GetDescriptorTable(),
         m_update_irradiance,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -526,11 +531,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_update_irradiance->Dispatch(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_update_irradiance,
         Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
@@ -538,12 +544,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
         }
     );
 
-    m_update_depth->Bind(frame->GetCommandBuffer());
+    frame->GetCommandList().Add<BindComputePipeline>(m_update_depth);
 
-    m_update_depth->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_update_depth->GetDescriptorTable(),
         m_update_depth,
-        {
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
                 NAME("Scene"),
                 {
@@ -553,11 +559,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
                 }
             }
-        }
+        },
+        frame->GetFrameIndex()
     );
 
-    m_update_depth->Dispatch(
-        frame->GetCommandBuffer(),
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_update_depth,
         Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
@@ -567,17 +574,17 @@ void DDGI::ComputeIrradiance(Frame *frame)
     
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     m_irradiance_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         ResourceState::UNORDERED_ACCESS
     );
 
     // now copy border texels
-    m_copy_border_texels_irradiance->Bind(frame->GetCommandBuffer());
+    m_copy_border_texels_irradiance->Bind(frame->GetCommandList());
 
     m_copy_border_texels_irradiance->GetDescriptorTable()->Bind(
         frame,
@@ -596,7 +603,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     );
 
     m_copy_border_texels_irradiance->Dispatch(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         Vec3u {
             (probe_counts.x * probe_counts.y * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.x)) + 7 / 8,
             (probe_counts.z * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.z)) + 7 / 8,
@@ -604,7 +611,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
         }
     );
     
-    m_copy_border_texels_depth->Bind(frame->GetCommandBuffer());
+    m_copy_border_texels_depth->Bind(frame->GetCommandList());
 
     m_copy_border_texels_depth->GetDescriptorTable()->Bind(
         frame,
@@ -623,7 +630,7 @@ void DDGI::ComputeIrradiance(Frame *frame)
     );
     
     m_copy_border_texels_depth->Dispatch(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         Vec3u {
             (probe_counts.x * probe_counts.y * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.x)) + 15 / 16,
             (probe_counts.z * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.z)) + 15 / 16,
@@ -632,12 +639,12 @@ void DDGI::ComputeIrradiance(Frame *frame)
     );
 
     m_irradiance_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         ResourceState::SHADER_RESOURCE
     );
 
     m_depth_image->InsertBarrier(
-        frame->GetCommandBuffer(),
+        frame->GetCommandList(),
         ResourceState::SHADER_RESOURCE
     );
 #endif

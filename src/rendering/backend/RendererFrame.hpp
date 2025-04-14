@@ -7,6 +7,9 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RenderObject.hpp>
+
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Types.hpp>
@@ -37,22 +40,22 @@ class Frame
 public:
     static constexpr PlatformType platform = PLATFORM;
     
-    static Frame TemporaryFrame(CommandBufferRef<PLATFORM> command_buffer, uint32 frame_index = 0)
+    static FrameRef<PLATFORM> TemporaryFrame(uint32 frame_index = 0)
     {
-        Frame frame;
-        frame.m_command_buffer = std::move(command_buffer);
-        frame.m_frame_index = frame_index;
+        FrameRef<PLATFORM> frame = MakeRenderObject<Frame<PLATFORM>>();
+        frame->m_frame_index = frame_index;
         return frame;
     }
 
     explicit Frame();
     Frame(uint32 frame_index);
-    Frame(const Frame &other) = delete;
-    Frame &operator=(const Frame &other) = delete;
-    Frame(Frame &&other) noexcept;
+    Frame(const Frame &other)                   = delete;
+    Frame &operator=(const Frame &other)        = delete;
+    Frame(Frame &&other) noexcept               = delete;
+    Frame &operator=(Frame &&other) noexcept    = delete;
     ~Frame();
 
-    RendererResult Create(Device<PLATFORM> *device, CommandBufferRef<PLATFORM> cmd);
+    RendererResult Create(Device<PLATFORM> *device);
     RendererResult Destroy(Device<PLATFORM> *device);
 
     HYP_FORCE_INLINE const FenceRef<PLATFORM> &GetFence() const
@@ -61,8 +64,11 @@ public:
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
         { return m_frame_index; }
     
-    HYP_FORCE_INLINE const CommandBufferRef<PLATFORM> &GetCommandBuffer() const
-        { return m_command_buffer; }
+    HYP_FORCE_INLINE RHICommandList &GetCommandList()
+        { return m_command_list; }
+    
+    HYP_FORCE_INLINE const RHICommandList &GetCommandList() const
+        { return m_command_list; }
 
     HYP_FORCE_INLINE SemaphoreChain &GetPresentSemaphores()
         { return m_present_semaphores; }
@@ -70,21 +76,13 @@ public:
     HYP_FORCE_INLINE const SemaphoreChain &GetPresentSemaphores() const
         { return m_present_semaphores; }
 
-    /* Start recording into the command buffer */
-    RendererResult BeginCapture(Device<PLATFORM> *device);
-    /* Stop recording into the command buffer */
-    RendererResult EndCapture(Device<PLATFORM> *device);
-    /* Submit command buffer to the given queue */
-    RendererResult Submit(DeviceQueue<PLATFORM> *queue);
-
     RendererResult RecreateFence(Device<PLATFORM> *device);
-    
-    CommandBufferRef<PLATFORM>  m_command_buffer;
 
 private:
     uint32              m_frame_index;
     SemaphoreChain      m_present_semaphores;
     FenceRef<PLATFORM>  m_queue_submit_fence;
+    RHICommandList      m_command_list;
 };
 
 } // namespace platform

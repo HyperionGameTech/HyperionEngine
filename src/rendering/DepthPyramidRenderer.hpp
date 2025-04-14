@@ -22,9 +22,6 @@ public:
     HYP_FORCE_INLINE const ImageViewRef &GetResultImageView() const
         { return m_depth_pyramid_view; }
 
-    HYP_FORCE_INLINE const Array<ImageViewRef> &GetMipImageVIews() const
-        { return m_depth_pyramid_mips; }
-
     HYP_FORCE_INLINE bool IsRendered() const
         { return m_is_rendered; }
 
@@ -39,7 +36,8 @@ private:
 
     ImageRef                    m_depth_pyramid;
     ImageViewRef                m_depth_pyramid_view;
-    Array<ImageViewRef>         m_depth_pyramid_mips;
+    Array<ImageViewRef>         m_mip_image_views;
+    Array<GPUBufferRef>         m_mip_uniform_buffers;
     Array<DescriptorTableRef>   m_mip_descriptor_tables;
     SamplerRef                  m_depth_pyramid_sampler;
 

@@ -8,6 +8,8 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
+
 #include <scene/Texture.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -167,7 +169,7 @@ void EnvProbeRenderResource::CreateFramebuffer()
     m_framebuffer = MakeRenderObject<Framebuffer>(
         m_env_probe->GetDimensions(),
         renderer::RenderPassStage::SHADER,
-        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
+        renderer::RenderPassMode::RENDER_PASS_INLINE,
         6
     );
 
@@ -415,10 +417,7 @@ void EnvProbeRenderResource::Render(Frame *frame)
 
     AssertThrow(m_texture.IsValid());
 
-    const CommandBufferRef &command_buffer = frame->GetCommandBuffer();
     const uint32 frame_index = frame->GetFrameIndex();
-
-    RendererResult result;
 
     EnvProbeIndex probe_index;
 
@@ -491,22 +490,17 @@ void EnvProbeRenderResource::Render(Frame *frame)
 
     const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
 
-    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+    frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
 
-    m_texture->GetRenderResource().GetImage()->Blit(command_buffer, framebuffer_image);
+    frame->GetCommandList().Add<Blit>(framebuffer_image, m_texture->GetRenderResource().GetImage());
 
     if (m_texture->HasMipmaps()) {
-        HYPERION_PASS_ERRORS(
-            m_texture->GetRenderResource().GetImage()->GenerateMipmaps(g_engine->GetGPUDevice(), command_buffer),
-            result
-        );
+        frame->GetCommandList().Add<GenerateMipmaps>(m_texture->GetRenderResource().GetImage());
     }
 
-    framebuffer_image->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    m_texture->GetRenderResource().GetImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-
-    HYPERION_ASSERT_RESULT(result);
+    frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     // Temp; refactor
     m_env_probe->SetNeedsRender(false);

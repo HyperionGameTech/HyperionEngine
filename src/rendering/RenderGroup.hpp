@@ -49,11 +49,7 @@ class HYP_API RenderGroup : public HypObject<RenderGroup>
 {
     HYP_OBJECT_BODY(RenderGroup);
 
-    friend class DebugDrawerRenderGroupProxy;
-
 public:
-    using AsyncCommandBuffers = FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight>;
-
     RenderGroup();
 
     RenderGroup(
@@ -129,13 +125,7 @@ public:
 
 private:
     void CreateIndirectRenderer();
-    void CreateCommandBuffers();
     void CreateGraphicsPipeline();
-
-    void BindDescriptorSets(
-        CommandBuffer *command_buffer,
-        uint32 scene_index
-    );
 
     EnumFlags<RenderGroupFlags>                         m_flags;
 
@@ -152,18 +142,8 @@ private:
 
     Array<FramebufferRef>                               m_fbos;
 
-    // for each frame in flight - have an array of command buffers to use
-    // for async command buffer recording.
-    UniquePtr<AsyncCommandBuffers>                      m_command_buffers;
-
     // cache so we don't allocate every frame
     Array<Span<const DrawCall>>                         m_divided_draw_calls;
-
-    // cycle through command buffers, so you can call Render()
-    // multiple times in a single pass, only running into issues if you
-    // try to call it more than num_async_rendering_command_buffers
-    // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
-    uint32                                              m_command_buffer_index = 0u;
 
     DrawCallCollection                                  m_draw_state;
 

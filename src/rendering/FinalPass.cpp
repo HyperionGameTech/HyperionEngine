@@ -8,6 +8,8 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderTexture.hpp>
 
+#include <rendering/backend/RendererFrameHandler.hpp>
+#include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -119,7 +121,6 @@ void CompositePass::Create()
 {
     CreateShader();
     FullScreenPass::CreateQuad();
-    FullScreenPass::CreateCommandBuffers();
     FullScreenPass::CreateFramebuffer();
     FullScreenPass::CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
@@ -131,26 +132,6 @@ void CompositePass::Create()
             .flags          = MaterialAttributeFlags::NONE
         }
     ));
-}
-
-void CompositePass::Record(uint32 frame_index)
-{
-    FullScreenPass::Record(frame_index);
-}
-
-void CompositePass::Render(Frame *frame)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-    
-    uint32 frame_index = frame->GetFrameIndex();
-
-    GetFramebuffer()->BeginCapture(frame->GetCommandBuffer(), frame_index);
-
-    const CommandBufferRef &command_buffer = m_command_buffers[frame_index];
-    HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
-
-    GetFramebuffer()->EndCapture(frame->GetCommandBuffer(), frame_index);
 }
 
 #pragma endregion CompositePass
@@ -304,10 +285,6 @@ void FinalPass::Resize_Internal(Vec2u)
     }
 }
 
-void FinalPass::Record(uint32 frame_index)
-{
-}
-
 void FinalPass::Render(Frame *frame)
 {
     HYP_SCOPE;
@@ -316,68 +293,68 @@ void FinalPass::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const GraphicsPipelineRef &pipeline = m_render_group->GetPipeline();
-    const uint32 acquired_image_index = g_engine->GetGPUInstance()->GetFrameHandler()->GetAcquiredImageIndex();
+    const uint32 acquired_image_index = g_engine->GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetAcquiredImageIndex();
 
-    m_composite_pass->Record(frame->GetFrameIndex());
     m_composite_pass->Render(frame);
 
     { // Copy result to store previous frame's color buffer
         const ImageRef &source_image = m_composite_pass->GetAttachment(0)->GetImage();
 
-        source_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        m_last_frame_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<InsertBarrier>(source_image, renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(m_last_frame_image, renderer::ResourceState::COPY_DST);
 
-        m_last_frame_image->Blit(frame->GetCommandBuffer(), source_image);
+        frame->GetCommandList().Add<Blit>(source_image, m_last_frame_image);
 
-        m_last_frame_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        source_image->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+        // put the images back into a state for reading
+        frame->GetCommandList().Add<InsertBarrier>(source_image, renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_last_frame_image, renderer::ResourceState::SHADER_RESOURCE);
     }
 
-    m_render_group->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer(), 0);
+    frame->GetCommandList().Add<BeginFramebuffer>(m_render_group->GetFramebuffers()[acquired_image_index], 0);
 
-    pipeline->Bind(frame->GetCommandBuffer());
+    frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
 
-    pipeline->GetDescriptorTable()->Bind(
-        frame,
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        pipeline->GetDescriptorTable(),
         pipeline,
-        { }
+        ArrayMap<Name, ArrayMap<Name, uint32>> { },
+        frame_index
     );
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->GetRenderResource().Render(frame->GetCommandBuffer());
+    m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 
 #ifdef HYP_RENDER_UI_IN_COMPOSITE_PASS
     // Render UI onto screen, blending with the scene render pass
     if (m_ui_layer_image_view != nullptr) {
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index)) {
-            HYPERION_ASSERT_RESULT(
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
-                    ->Update(g_engine->GetGPUDevice(), frame_index)
-            );
+            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
+                ->Update(g_engine->GetGPUDevice(), frame_index);
 
             m_dirty_frame_indices &= ~(1u << frame_index);
         }
 
         // render previous frame's result to screen
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->Bind(frame->GetCommandBuffer());
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Bind<GraphicsPipelineRef>(
-            frame->GetCommandBuffer(),
-            frame_index,
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline());
+
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
-            {
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
                     NAME("Scene"),
                     { }
                 }
-            }
+            },
+            frame_index
         );
 
-        m_full_screen_quad->GetRenderResource().Render(frame->GetCommandBuffer());
+        m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
     }
 #endif
 
-    m_render_group->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer(), 0);
+    frame->GetCommandList().Add<EndFramebuffer>(m_render_group->GetFramebuffers()[acquired_image_index], 0);
 }
 
 #pragma endregion FinalPass
