@@ -132,9 +132,17 @@ BLASUpdaterSystem::BLASUpdaterSystem(EntityManager &entity_manager)
     }));
 }
 
-EnumFlags<SceneFlags> BLASUpdaterSystem::GetRequiredSceneFlags() const
+bool BLASUpdaterSystem::ShouldCreateForScene(Scene *scene) const
 {
-    return SceneFlags::FOREGROUND;
+    if (!scene->IsForegroundScene()) {
+        return false;
+    }
+
+    if (scene->GetFlags() & SceneFlags::UI) {
+        return false;
+    }
+
+    return true;
 }
 
 void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)

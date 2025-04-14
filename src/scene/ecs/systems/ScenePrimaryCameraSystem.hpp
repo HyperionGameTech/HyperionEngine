@@ -27,8 +27,6 @@ public:
     virtual bool AllowUpdate() const override
         { return false; }
 
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const override;
-
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 

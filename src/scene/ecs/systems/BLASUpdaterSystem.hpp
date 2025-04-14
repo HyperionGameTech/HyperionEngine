@@ -22,7 +22,7 @@ public:
     BLASUpdaterSystem(EntityManager &entity_manager);
     virtual ~BLASUpdaterSystem() override = default;
     
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const override;
+    virtual bool ShouldCreateForScene(Scene *scene) const override;
 
     virtual void OnEntityAdded(const Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;

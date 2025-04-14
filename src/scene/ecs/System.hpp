@@ -38,7 +38,8 @@ public:
 
     virtual TypeID GetTypeID() const = 0;
 
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const;
+    virtual bool ShouldCreateForScene(Scene *scene) const
+        { return true; }
 
     virtual bool AllowParallelExecution() const
         { return true; }
@@ -222,9 +223,6 @@ public:
     {
         return TypeID::ForType<Derived>();
     }
-
-    virtual EnumFlags<SceneFlags> GetRequiredSceneFlags() const override
-        { return SystemBase::GetRequiredSceneFlags(); }
 
     virtual void Process(GameCounter::TickUnit delta) override = 0;
 };

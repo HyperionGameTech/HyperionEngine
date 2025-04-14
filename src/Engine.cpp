@@ -633,7 +633,7 @@ HYP_API void Engine::RenderNextFrame(Game *game)
 
     game->OnFrameEnd(frame);
 
-    bool any_gpu_buffers_resized = false;
+    /*bool any_gpu_buffers_resized = false;
 
     for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
         bool was_resized = false;
@@ -647,6 +647,10 @@ HYP_API void Engine::RenderNextFrame(Game *game)
     if (any_gpu_buffers_resized) {
         // Need to recreate descriptor sets if any GPU buffers were resized
         HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame->GetFrameIndex()));
+    }*/
+
+    for (auto &it : m_gpu_buffer_holder_map->GetItems()) {
+        it.second->UpdateBufferData(m_instance->GetDevice(), frame->GetFrameIndex());
     }
 
     frame_result = frame->Submit(&GetGPUDevice()->GetGraphicsQueue());
@@ -676,11 +680,11 @@ void Engine::PreFrameUpdate(Frame *frame)
     m_material_descriptor_set_manager->UpdatePendingDescriptorSets(frame);
     m_material_descriptor_set_manager->Update(frame);
 
+    HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
+
     HYPERION_ASSERT_RESULT(m_global_descriptor_table->Update(m_instance->GetDevice(), frame->GetFrameIndex()));
 
     m_deferred_renderer->GetPostProcessing().PerformUpdates();
-
-    HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 
     RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();
 

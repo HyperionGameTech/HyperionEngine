@@ -5,6 +5,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderMesh.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
@@ -13,6 +14,8 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <rendering/backend/rt/RendererAccelerationStructure.hpp>
+
 #include <system/AppContext.hpp>
 
 #include <core/object/HypClassUtils.hpp>
@@ -20,6 +23,11 @@
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <scene/Mesh.hpp>
+#include <scene/Material.hpp>
+
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion {
 
@@ -267,7 +275,7 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
         InitializeRT();
     }
     
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool()) {
+    if (m_rt_initialized) {
         RTUpdateStateFlags update_state_flags;
 
         m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(
@@ -515,8 +523,37 @@ bool RenderEnvironment::CreateTopLevelAccelerationStructures()
         return false;
     }
 
+    // @FIXME: Hack solution since TLAS can only be created if it has a non-zero number of BLASes.
+    // This whole thing should be reworked
+    Handle<Mesh> default_mesh = MeshBuilder::Cube();
+    InitObject(default_mesh);
+
+    Handle<Material> default_material = CreateObject<Material>();
+    InitObject(default_material);
+
+    AccelerationGeometryRef geometry;
+    
+    {
+        TResourceHandle<MeshRenderResource> mesh_resource_handle(default_mesh->GetRenderResource());
+
+        geometry = MakeRenderObject<AccelerationGeometry>(
+            mesh_resource_handle->BuildPackedVertices(),
+            mesh_resource_handle->BuildPackedIndices(),
+            WeakHandle<Entity>(),
+            default_material
+        );
+
+        DeferCreate(geometry, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+    }
+
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        BLASRef blas = MakeRenderObject<BLAS>(Matrix4::identity);
+        blas->AddGeometry(geometry);
+        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+
         m_top_level_acceleration_structures[frame_index] = MakeRenderObject<TLAS>();
+        m_top_level_acceleration_structures[frame_index]->AddBLAS(blas);
+
         DeferCreate(m_top_level_acceleration_structures[frame_index], g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
     }
 

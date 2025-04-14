@@ -68,11 +68,6 @@ struct RENDER_COMMAND(UpdateEntityDrawData) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-EnumFlags<SceneFlags> RenderProxyUpdaterSystem::GetRequiredSceneFlags() const
-{
-    return SceneFlags::NONE;
-}
-
 void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);

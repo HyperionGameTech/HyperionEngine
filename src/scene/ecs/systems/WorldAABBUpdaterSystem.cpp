@@ -13,11 +13,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(ECS);
 
-EnumFlags<SceneFlags> WorldAABBUpdaterSystem::GetRequiredSceneFlags() const
-{
-    return SceneFlags::NONE;
-}
-
 void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 {
     SystemBase::OnEntityAdded(entity);
