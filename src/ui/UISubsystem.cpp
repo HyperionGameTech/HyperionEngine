@@ -76,11 +76,11 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
 
             MeshComponent &mesh_component = node->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(entity);
 
-            if (!mesh_component->proxy) {
+            if (!mesh_component.proxy) {
                 return;
             }
 
-            render_collector.PushEntityToRender(entity, *mesh_component->proxy, ui_object->GetComputedDepth());
+            render_collector.PushEntityToRender(entity, *mesh_component.proxy, ui_object->GetComputedDepth());
         }, /* only_visible */ true);
 
         render_collector.PushUpdatesToRenderThread();
