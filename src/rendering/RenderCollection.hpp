@@ -25,19 +25,6 @@
 
 #include <Types.hpp>
 
-namespace hyperion::renderer {
-
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Frame;
-
-} // namespace platform
-
-using Frame = platform::Frame<Platform::CURRENT>;
-
-} // namespace hyperion::renderer
-
 namespace hyperion {
 
 class Scene;
@@ -116,13 +103,13 @@ public:
     CollectionResult PushUpdatesToRenderThread(const Handle<Camera> &camera = Handle<Camera>::empty);
 
     void CollectDrawCalls(
-        Frame *frame,
+        FrameBase *frame,
         const Bitset &bucket_bits,
         const CullData *cull_data
     );
 
     void ExecuteDrawCalls(
-        Frame *frame,
+        FrameBase *frame,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
@@ -130,7 +117,7 @@ public:
     ) const;
 
     void ExecuteDrawCalls(
-        Frame *frame,
+        FrameBase *frame,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,

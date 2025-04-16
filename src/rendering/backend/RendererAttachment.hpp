@@ -4,24 +4,26 @@
 #define HYPERION_BACKEND_RENDERER_ATTACHMENT_HPP
 
 #include <core/Defines.hpp>
+
 #include <core/containers/Array.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/Platform.hpp>
-#include <core/math/Extent.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
 
-enum class RenderPassStage
+enum class RenderPassStage : uint8
 {
     NONE,
     PRESENT, /* for presentation on screen */
     SHADER   /* for use as a sampled texture in a shader */
 };
 
-enum class LoadOperation
+enum class LoadOperation : uint8
 {
     UNDEFINED,
     NONE,
@@ -29,61 +31,29 @@ enum class LoadOperation
     LOAD
 };
 
-enum class StoreOperation
+enum class StoreOperation : uint8
 {
     UNDEFINED,
     NONE,
     STORE
 };
 
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-class Instance;
-
-template <PlatformType PLATFORM>
-struct AttachmentPlatformImpl;
-
-template <PlatformType PLATFORM>
-class Attachment
+class AttachmentBase : public RenderObject<AttachmentBase>
 {
 public:
-    static constexpr PlatformType platform = PLATFORM;
-    
-    HYP_API Attachment(
-        const ImageRef<PLATFORM> &image,
-        RenderPassStage stage,
-        LoadOperation load_operation = LoadOperation::CLEAR,
-        StoreOperation store_operation = StoreOperation::STORE,
-        BlendFunction blend_function = BlendFunction::None()
-    );
-    Attachment(const Attachment &other)             = delete;
-    Attachment &operator=(const Attachment &other)  = delete;
-    HYP_API ~Attachment();
+    virtual ~AttachmentBase() override = default;
 
-    HYP_FORCE_INLINE AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl()
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const AttachmentPlatformImpl<PLATFORM> &GetPlatformImpl() const
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const ImageRef<PLATFORM> &GetImage() const
+    HYP_FORCE_INLINE const ImageRef &GetImage() const
         { return m_image; }
 
-    HYP_FORCE_INLINE const ImageViewRef<PLATFORM> &GetImageView() const
+    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
         { return m_image_view; }
-
-    HYP_FORCE_INLINE RenderPassStage GetRenderPassStage() const
-        { return m_stage; }
 
     HYP_FORCE_INLINE InternalFormat GetFormat() const
         { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
-        { return m_image ? m_image->IsDepthStencil() : false; }
+        { return m_image && m_image->GetTextureDesc().IsDepthStencil(); }
 
     HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
         { return m_load_operation; }
@@ -118,45 +88,39 @@ public:
     HYP_FORCE_INLINE void SetAllowBlending(bool allow_blending)
         { m_allow_blending = allow_blending; }
 
-    HYP_API bool IsCreated() const;
+    virtual bool IsCreated() const = 0;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
 
-private:
-    AttachmentPlatformImpl<PLATFORM>    m_platform_impl;
+protected:
+    AttachmentBase(
+        const ImageRef &image,
+        LoadOperation load_operation,
+        StoreOperation store_operation,
+        BlendFunction blend_function
+    ) : m_image(image),
+        m_load_operation(load_operation),
+        m_store_operation(store_operation),
+        m_blend_function(blend_function),
+        m_clear_color(Vec4f::Zero())
+    {
+    }
 
-    ImageRef<PLATFORM>                  m_image;
-    ImageViewRef<PLATFORM>              m_image_view;
-
-    RenderPassStage                     m_stage;
+    ImageRef        m_image;
+    ImageViewRef    m_image_view;
     
-    LoadOperation                       m_load_operation;
-    StoreOperation                      m_store_operation;
+    LoadOperation   m_load_operation;
+    StoreOperation  m_store_operation;
 
-    BlendFunction                       m_blend_function;
+    BlendFunction   m_blend_function;
 
-    Vec4f                               m_clear_color;
+    Vec4f           m_clear_color;
 
-    uint32                              m_binding = MathUtil::MaxSafeValue<uint32>();
+    uint32          m_binding = MathUtil::MaxSafeValue<uint32>();
 
-    bool                                m_allow_blending = true;
+    bool            m_allow_blending = true;
 };
-
-} // namespace platform
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererAttachment.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-namespace hyperion {
-namespace renderer {
-
-using Attachment = platform::Attachment<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

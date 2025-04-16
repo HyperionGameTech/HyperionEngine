@@ -107,18 +107,13 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
             definition.GetProperties().GetHashCode().Value()
         );
 
-        HYP_LOG(Shader, Debug, "Creating shader '{}'", definition.GetName());
-
-        shader = MakeRenderObject<Shader>(MakeRefCountedPtr<CompiledShader>(std::move(compiled_shader)));
-
-        HYP_LOG(Shader, Debug, "Shader '{}' created", definition.GetName());
+        shader = g_rendering_api->MakeShader(MakeRefCountedPtr<CompiledShader>(std::move(compiled_shader)));
 
 #ifdef HYP_DEBUG_MODE
         AssertThrow(EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));
 #endif
 
-
-        DeferCreate(shader, g_engine->GetGPUDevice());
+        DeferCreate(shader);
 
         // Update the entry
         entry->shader = shader;

@@ -1,7 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/RendererBuffer.hpp>
+#include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -12,18 +14,27 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <Engine.hpp>
+
 #include <cstring>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
-namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region Helpers
 
-static uint32 FindMemoryType(Device<Platform::VULKAN> *device, uint32 vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
+static uint32 FindMemoryType(uint32 vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
-    vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
+    vkGetPhysicalDeviceMemoryProperties(GetRenderingAPI()->GetDevice()->GetPhysicalDevice(), &mem_properties);
 
     for (uint32 i = 0; i < mem_properties.memoryTypeCount; i++) {
         if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & vk_memory_property_flags) == vk_memory_property_flags) {
@@ -284,90 +295,417 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
 
 #pragma endregion Helpers
 
-// GPUMemory<Platform::VULKAN>::GPUMemory()
-//     : m_id(0),
-//       sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
-//       size(0),
-//       map(nullptr),
-//       resource_state(ResourceState::UNDEFINED),
-//       allocation(VK_NULL_HANDLE),
-//       m_is_created(false)
-// {
-//     static uint32 allocations = 0;
+#pragma region VulkanGPUBuffer
 
-//     m_id = allocations++;
-// }
-
-// GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
-//     : m_id(other.m_id),
-//       sharing_mode(other.sharing_mode),
-//       size(other.size),
-//       map(other.map),
-//       resource_state(other.resource_state),
-//       allocation(other.allocation),
-//       m_is_created(other.m_is_created)
-// {
-//     other.m_id = 0;
-//     other.size = 0;
-//     other.map = nullptr;
-//     other.resource_state = ResourceState::UNDEFINED;
-//     other.allocation = VK_NULL_HANDLE;
-//     other.m_is_created = false;
-// }
-
-// GPUMemory<Platform::VULKAN>::~GPUMemory()
-// {
-// }
-
-#pragma region GPUBufferPlatformImpl
-
-void GPUBufferPlatformImpl<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device) const
+VulkanGPUBuffer::VulkanGPUBuffer(GPUBufferType type, SizeType size, SizeType alignment)
+    : GPUBufferBase(type, size, alignment)
 {
-    vmaMapMemory(device->GetAllocator(), vma_allocation, &mapping);
 }
 
-void GPUBufferPlatformImpl<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device) const
+VulkanGPUBuffer::~VulkanGPUBuffer()
 {
-    vmaUnmapMemory(device->GetAllocator(), vma_allocation);
-    mapping = nullptr;
+    AssertThrowMsg(m_handle == VK_NULL_HANDLE, "buffer should have been destroyed!");
 }
 
-VkBufferCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
+void VulkanGPUBuffer::Memset(SizeType count, ubyte value)
+{    
+    if (m_mapping == nullptr) {
+        Map();
+    }
+
+    Memory::MemSet(m_mapping, value, count);
+}
+
+void VulkanGPUBuffer::Copy(SizeType count, const void *ptr)
 {
-    const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
+    if (m_mapping == nullptr) {
+        Map();
+    }
+
+    Memory::MemCpy(m_mapping, ptr, count);
+}
+
+void VulkanGPUBuffer::Copy(SizeType offset, SizeType count, const void *ptr)
+{
+    if (m_mapping == nullptr) {
+        Map();
+    }
+
+    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_mapping) + offset), ptr, count);
+}
+
+void VulkanGPUBuffer::Map() const
+{
+    if (m_mapping != nullptr) {
+        return;
+    }
+
+    vmaMapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), m_vma_allocation, &m_mapping);
+}
+
+void VulkanGPUBuffer::Unmap() const
+{
+    if (m_mapping == nullptr) {
+        return;
+    }
+
+    vmaUnmapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), m_vma_allocation);
+    m_mapping = nullptr;
+}
+
+void VulkanGPUBuffer::Read(SizeType count, void *out_ptr) const
+{
+    if (m_mapping == nullptr) {
+        Map();
+
+        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+    }
+
+    Memory::MemCpy(out_ptr, m_mapping, count);
+}
+
+void VulkanGPUBuffer::Read(SizeType offset, SizeType count, void *out_ptr) const
+{
+    if (m_mapping == nullptr) {
+        Map();
+
+        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
+    }
+
+    Memory::MemCpy(out_ptr, reinterpret_cast<void *>(uintptr_t(m_mapping) + uintptr_t(offset)), count);
+}
+
+bool VulkanGPUBuffer::IsCreated() const
+{
+    return m_handle != VK_NULL_HANDLE;
+}
+
+bool VulkanGPUBuffer::IsCPUAccessible() const
+{
+    return m_vma_usage != VMA_MEMORY_USAGE_GPU_ONLY;
+}
+
+RendererResult VulkanGPUBuffer::CheckCanAllocate(SizeType size) const
+{
+    const VkBufferCreateInfo create_info = GetBufferCreateInfo();
+    const VmaAllocationCreateInfo alloc_info = GetAllocationCreateInfo();
+
+    return CheckCanAllocate(create_info, alloc_info, m_size);
+}
+
+uint64 VulkanGPUBuffer::GetBufferDeviceAddress() const
+{
+    AssertThrowMsg(
+        GetRenderingAPI()->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!"
+    );
+
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
+    VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+    info.buffer = m_handle;
+
+	return GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
+        GetRenderingAPI()->GetDevice()->GetDevice(),
+        &info
+    );
+}
+
+void VulkanGPUBuffer::InsertBarrier(CommandBufferBase *command_buffer, ResourceState new_state) const
+{
+    InsertBarrier(
+        static_cast<VulkanCommandBuffer *>(command_buffer),
+        new_state
+    );
+}
+
+void VulkanGPUBuffer::InsertBarrier(CommandBufferBase *command_buffer, ResourceState new_state, ShaderModuleType shader_type) const
+{
+    InsertBarrier(
+        static_cast<VulkanCommandBuffer *>(command_buffer),
+        new_state,
+        shader_type
+    );
+}
+
+void VulkanGPUBuffer::InsertBarrier(
+    VulkanCommandBuffer *command_buffer,
+    ResourceState new_state
+) const
+{
+    if (!IsCreated()) {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
+
+        return;
+    }
+
+    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.buffer = m_handle;
+    barrier.offset = 0;
+    barrier.size = m_size;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        command_buffer->GetVulkanHandle(),
+        GetVkShaderStageMask(m_resource_state, true),
+        GetVkShaderStageMask(new_state, false),
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr
+    );
+
+    m_resource_state = new_state;
+}
+
+void VulkanGPUBuffer::InsertBarrier(
+    VulkanCommandBuffer *command_buffer,
+    ResourceState new_state,
+    ShaderModuleType shader_type
+) const
+{
+    if (!IsCreated()) {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
+
+        return;
+    }
+
+    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.buffer = m_handle;
+    barrier.offset = 0;
+    barrier.size = m_size;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        command_buffer->GetVulkanHandle(),
+        GetVkShaderStageMask(m_resource_state, true, shader_type),
+        GetVkShaderStageMask(new_state, false, shader_type),
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr
+    );
+
+    m_resource_state = new_state;
+}
+
+void VulkanGPUBuffer::CopyFrom(
+    CommandBufferBase *command_buffer,
+    const GPUBufferBase *src_buffer,
+    SizeType count
+)
+{
+    if (!IsCreated()) {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");
+
+        return;
+    }
+
+    if (!src_buffer->IsCreated()) {
+        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but src buffer was not created");
+
+        return;
+    }
+
+    InsertBarrier(command_buffer, ResourceState::COPY_DST);
+    src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
+
+    VkBufferCopy region { };
+    region.size = count;
+
+    vkCmdCopyBuffer(
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+        static_cast<const VulkanGPUBuffer *>(src_buffer)->m_handle,
+        m_handle,
+        1,
+        &region
+    );
+}
+
+RendererResult VulkanGPUBuffer::Destroy()
+{
+    if (!IsCreated()) {
+        HYPERION_RETURN_OK;
+    }
+
+    if (m_mapping != nullptr) {
+        Unmap();
+    }
+
+    vmaDestroyBuffer(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_vma_allocation);
+
+    m_handle = VK_NULL_HANDLE;
+    m_vma_allocation = VK_NULL_HANDLE;
+    m_resource_state = ResourceState::UNDEFINED;
+
+    HYPERION_RETURN_OK;
+}
+
+RendererResult VulkanGPUBuffer::Create()
+{
+    if (IsCreated()) {
+        HYP_LOG(RenderingBackend, Warning, "Create() called on a buffer that has not been destroyed!\n"
+            "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
+            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...");
+
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(false, "Create() called on a buffer that has not been destroyed!");
+#endif
+
+        HYPERION_BUBBLE_ERRORS(Destroy());
+    }
+
+    m_vk_buffer_usage_flags = GetVkUsageFlags(m_type);
+    m_vma_usage = GetVkMemoryUsage(m_type);
+    m_vma_allocation_create_flags = GetVkAllocationCreateFlags(m_type)
+        | VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+    
+    if (m_size == 0) {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(false, "Creating empty gpu buffer will result in errors!");
+#endif
+
+        return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
+    }
+
+    const auto create_info = GetBufferCreateInfo();
+    const auto alloc_info = GetAllocationCreateInfo();
+
+    HYPERION_BUBBLE_ERRORS(CheckCanAllocate(create_info, alloc_info, m_size));
+
+    if (m_alignment != 0) {
+        HYPERION_VK_CHECK_MSG(
+            vmaCreateBufferWithAlignment(
+                GetRenderingAPI()->GetDevice()->GetAllocator(),
+                &create_info,
+                &alloc_info,
+                m_alignment,
+                &m_handle,
+                &m_vma_allocation,
+                nullptr
+            ),
+            "Failed to create aligned gpu buffer!"
+        );
+    } else {
+        HYPERION_VK_CHECK_MSG(
+            vmaCreateBuffer(
+                GetRenderingAPI()->GetDevice()->GetAllocator(),
+                &create_info,
+                &alloc_info,
+                &m_handle,
+                &m_vma_allocation,
+                nullptr
+            ),
+            "Failed to create gpu buffer!"
+        );
+    }
+
+    if (IsCPUAccessible()) {
+        // Memset all to zero
+        Memset(m_size, 0);
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+RendererResult VulkanGPUBuffer::EnsureCapacity(
+    SizeType minimum_size,
+    SizeType alignment,
+    bool *out_size_changed
+)
+{
+    if (minimum_size == 0) {
+        HYPERION_RETURN_OK;
+    }
+
+    RendererResult result;
+
+    if (minimum_size <= m_size) {
+        if (out_size_changed != nullptr) {
+            *out_size_changed = false;
+        }
+
+        HYPERION_RETURN_OK;
+    }
+
+    if (m_handle != VK_NULL_HANDLE) {
+        HYPERION_PASS_ERRORS(Destroy(), result);
+
+        if (!result) {
+            if (out_size_changed != nullptr) {
+                *out_size_changed = false;
+            }
+
+            return result;
+        }
+    }
+
+    m_size = minimum_size;
+    m_alignment = alignment;
+
+    HYPERION_PASS_ERRORS(Create(), result);
+
+    if (result) {
+        if (out_size_changed != nullptr) {
+            *out_size_changed = true;
+        }
+    } else {
+        m_size = 0;
+        m_alignment = 0;
+    }
+
+    return result;
+}
+
+RendererResult VulkanGPUBuffer::EnsureCapacity(
+    SizeType minimum_size,
+    bool *out_size_changed
+)
+{
+    return EnsureCapacity(minimum_size, 0, out_size_changed);
+}
+
+VkBufferCreateInfo VulkanGPUBuffer::GetBufferCreateInfo() const
+{
+    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
     const uint32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    vk_buffer_info.size = size;
-    vk_buffer_info.usage = vk_buffer_usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vk_buffer_info.size = m_size;
+    vk_buffer_info.usage = m_vk_buffer_usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     vk_buffer_info.pQueueFamilyIndices = buffer_family_indices;
     vk_buffer_info.queueFamilyIndexCount = ArraySize(buffer_family_indices);
 
     return vk_buffer_info;
 }
 
-VmaAllocationCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const
+VmaAllocationCreateInfo VulkanGPUBuffer::GetAllocationCreateInfo() const
 {
     /* @TODO: Property debug names */
     char debug_name_buffer[1024] = { 0 };
     snprintf(debug_name_buffer, sizeof(debug_name_buffer), "Unnamed buffer %p", this);
 
     VmaAllocationCreateInfo alloc_info { };
-    alloc_info.flags = vma_allocation_create_flags;
-    alloc_info.usage = vma_usage;
+    alloc_info.flags = m_vma_allocation_create_flags;
+    alloc_info.usage = m_vma_usage;
     alloc_info.pUserData = debug_name_buffer;
 
     return alloc_info;
 }
 
-RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
-    Device<Platform::VULKAN> *device,
+RendererResult VulkanGPUBuffer::CheckCanAllocate(
     const VkBufferCreateInfo &buffer_create_info,
     const VmaAllocationCreateInfo &allocation_create_info,
     SizeType size
 ) const
 {
-    const Features &features = device->GetFeatures();
+    const Features &features = GetRenderingAPI()->GetDevice()->GetFeatures();
 
     RendererResult result;
 
@@ -375,7 +713,7 @@ RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            device->GetAllocator(),
+            GetRenderingAPI()->GetDevice()->GetAllocator(),
             &buffer_create_info,
             &allocation_create_info,
             &memory_type_index
@@ -399,414 +737,7 @@ RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
     return result;
 }
 
-#pragma endregion GPUBufferPlatformImpl
+#pragma endregion VulkanGPUBuffer
 
-#pragma region GPUBuffer
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value)
-{    
-    if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
-    }
-
-    Memory::MemSet(m_platform_impl.mapping, value, count);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr)
-{
-    if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
-    }
-
-    Memory::MemCpy(m_platform_impl.mapping, ptr, count);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr)
-{
-    if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
-    }
-
-    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_platform_impl.mapping) + offset), ptr, count);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device)
-{
-    if (m_platform_impl.mapping != nullptr) {
-        return;
-    }
-
-    m_platform_impl.Map(device);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device)
-{
-    if (m_platform_impl.mapping == nullptr) {
-        return;
-    }
-
-    m_platform_impl.Unmap(device);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const
-{
-    if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
-
-        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
-    }
-
-    Memory::MemCpy(out_ptr, m_platform_impl.mapping, count);
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, void *out_ptr) const
-{
-    if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
-
-        HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
-    }
-
-    Memory::MemCpy(out_ptr, reinterpret_cast<void *>(uintptr_t(m_platform_impl.mapping) + uintptr_t(offset)), count);
-}
-
-template <>
-GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
-    : m_platform_impl { this },
-      m_type(type),
-      m_resource_state(ResourceState::UNDEFINED)
-{
-}
-
-template <>
-GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBuffer &&other) noexcept
-    : m_platform_impl { this },
-      m_type(other.m_type),
-      m_resource_state(other.m_resource_state)
-{
-    m_platform_impl = std::move(other.m_platform_impl);
-    m_platform_impl.self = this;
-
-    other.m_platform_impl = { &other };
-    other.m_type = GPUBufferType::NONE;
-    other.m_resource_state = ResourceState::UNDEFINED;
-}
-
-template <>
-GPUBuffer<Platform::VULKAN>::~GPUBuffer()
-{
-    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "buffer should have been destroyed!");
-}
-
-template <>
-bool GPUBuffer<Platform::VULKAN>::IsCreated() const
-{
-    return m_platform_impl.handle != VK_NULL_HANDLE;
-}
-
-template <>
-uint32 GPUBuffer<Platform::VULKAN>::Size() const
-{
-    return m_platform_impl.size;
-}
-
-template <>
-bool GPUBuffer<Platform::VULKAN>::IsCPUAccessible() const
-{
-    return m_platform_impl.vma_usage != VMA_MEMORY_USAGE_GPU_ONLY;
-}
-
-template <>
-RendererResult GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device<Platform::VULKAN> *device, SizeType size) const
-{
-    const VkBufferCreateInfo create_info = m_platform_impl.GetBufferCreateInfo(device);
-    const VmaAllocationCreateInfo alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
-
-    return m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size);
-}
-
-template <>
-uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
-{
-    AssertThrowMsg(
-        device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
-        "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!"
-    );
-
-    AssertThrow(m_platform_impl.handle != VK_NULL_HANDLE);
-
-    VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
-    info.buffer = m_platform_impl.handle;
-
-	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
-        device->GetDevice(),
-        &info
-    );
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state
-) const
-{
-    if (!IsCreated()) {
-        HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
-
-        return;
-    }
-
-    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
-    barrier.dstAccessMask = GetVkAccessMask(new_state);
-    barrier.buffer = m_platform_impl.handle;
-    barrier.offset = 0;
-    barrier.size = m_platform_impl.size;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(m_resource_state, true),
-        GetVkShaderStageMask(new_state, false),
-        0,
-        0, nullptr,
-        1, &barrier,
-        0, nullptr
-    );
-
-    m_resource_state = new_state;
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state,
-    ShaderModuleType shader_type
-) const
-{
-    if (!IsCreated()) {
-        HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
-
-        return;
-    }
-
-    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
-    barrier.dstAccessMask = GetVkAccessMask(new_state);
-    barrier.buffer = m_platform_impl.handle;
-    barrier.offset = 0;
-    barrier.size = m_platform_impl.size;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(m_resource_state, true, shader_type),
-        GetVkShaderStageMask(new_state, false, shader_type),
-        0,
-        0, nullptr,
-        1, &barrier,
-        0, nullptr
-    );
-
-    m_resource_state = new_state;
-}
-
-template <>
-void GPUBuffer<Platform::VULKAN>::CopyFrom(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const GPUBuffer *src_buffer,
-    SizeType count
-)
-{
-    if (!IsCreated()) {
-        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");
-
-        return;
-    }
-
-    if (!src_buffer->IsCreated()) {
-        HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but src buffer was not created");
-
-        return;
-    }
-
-    InsertBarrier(command_buffer, ResourceState::COPY_DST);
-    src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
-
-    VkBufferCopy region { };
-    region.size = count;
-
-    vkCmdCopyBuffer(
-        command_buffer->GetPlatformImpl().command_buffer,
-        src_buffer->m_platform_impl.handle,
-        m_platform_impl.handle,
-        1,
-        &region
-    );
-}
-
-template <>
-RendererResult GPUBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    if (!IsCreated()) {
-        HYPERION_RETURN_OK;
-    }
-
-    if (m_platform_impl.mapping != nullptr) {
-        m_platform_impl.Unmap(device);
-    }
-
-    vmaDestroyBuffer(device->GetAllocator(), m_platform_impl.handle, m_platform_impl.vma_allocation);
-    
-    m_platform_impl = { this };
-    m_resource_state = ResourceState::UNDEFINED;
-
-    HYPERION_RETURN_OK;
-}
-
-template <>
-RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, SizeType size, SizeType alignment)
-{
-    if (IsCreated()) {
-        HYP_LOG(RenderingBackend, Warning, "Create() called on a buffer that has not been destroyed!\n"
-            "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
-            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...");
-
-#ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(false, "Create() called on a buffer that has not been destroyed!");
-#endif
-
-        HYPERION_BUBBLE_ERRORS(Destroy(device));
-    }
-
-    m_platform_impl.vk_buffer_usage_flags = GetVkUsageFlags(m_type);
-    m_platform_impl.vma_usage = GetVkMemoryUsage(m_type);
-    m_platform_impl.vma_allocation_create_flags = GetVkAllocationCreateFlags(m_type)
-        | VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-    m_platform_impl.size = size;
-    
-    if (size == 0) {
-#ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(false, "Creating empty gpu buffer will result in errors!");
-#endif
-
-        return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
-    }
-
-    const auto create_info = m_platform_impl.GetBufferCreateInfo(device);
-    const auto alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
-
-    HYPERION_BUBBLE_ERRORS(m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size));
-
-    if (alignment != 0) {
-        HYPERION_VK_CHECK_MSG(
-            vmaCreateBufferWithAlignment(
-                device->GetAllocator(),
-                &create_info,
-                &alloc_info,
-                alignment,
-                &m_platform_impl.handle,
-                &m_platform_impl.vma_allocation,
-                nullptr
-            ),
-            "Failed to create aligned gpu buffer!"
-        );
-    } else {
-        HYPERION_VK_CHECK_MSG(
-            vmaCreateBuffer(
-                device->GetAllocator(),
-                &create_info,
-                &alloc_info,
-                &m_platform_impl.handle,
-                &m_platform_impl.vma_allocation,
-                nullptr
-            ),
-            "Failed to create gpu buffer!"
-        );
-    }
-
-    if (IsCPUAccessible()) {
-        // Memset all to zero
-        Memset(device, size, 0);
-    }
-
-    HYPERION_RETURN_OK;
-}
-
-template <>
-RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
-    Device<Platform::VULKAN> *device,
-    SizeType minimum_size,
-    SizeType alignment,
-    bool *out_size_changed
-)
-{
-    if (minimum_size == 0) {
-        HYPERION_RETURN_OK;
-    }
-
-    RendererResult result;
-
-    if (minimum_size <= m_platform_impl.size) {
-        if (out_size_changed != nullptr) {
-            *out_size_changed = false;
-        }
-
-        HYPERION_RETURN_OK;
-    }
-
-    if (m_platform_impl.handle != VK_NULL_HANDLE) {
-        HYPERION_PASS_ERRORS(Destroy(device), result);
-
-        if (!result) {
-            if (out_size_changed != nullptr) {
-                *out_size_changed = false;
-            }
-
-            return result;
-        }
-    }
-
-    HYPERION_PASS_ERRORS(Create(device, minimum_size, alignment), result);
-
-    if (out_size_changed != nullptr) {
-        *out_size_changed = bool(result);
-    }
-
-    return result;
-}
-
-template <>
-RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
-    Device<Platform::VULKAN> *device,
-    SizeType minimum_size,
-    bool *out_size_changed
-)
-{
-    return EnsureCapacity(device, minimum_size, 0, out_size_changed);
-}
-
-#pragma endregion GPUBuffer
-
-#pragma region ShaderBindingTableBuffer
-
-ShaderBindingTableBuffer<Platform::VULKAN>::ShaderBindingTableBuffer()
-    : GPUBuffer<Platform::VULKAN>(GPUBufferType::SHADER_BINDING_TABLE),
-      region { }
-{
-}
-
-#pragma endregion ShaderBindingTableBuffer
-
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion

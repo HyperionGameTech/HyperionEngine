@@ -1,12 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/vulkan/RendererImage.hpp>
+#include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <util/img/ImageUtil.hpp>
 
@@ -24,17 +26,23 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+    
 namespace renderer {
-namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
 extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModuleType);
 
-#pragma region ImagePlatformImpl
 
+#if 0
 RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
-    Device<Platform::VULKAN> *device,
     const TextureData *in_texture_data,
     VkImageType image_type,
     VkImageCreateFlags image_create_flags,
@@ -45,14 +53,14 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
 {
     constexpr uint8 new_bpp = 4;
 
-    const uint32 num_faces = self->NumFaces();
+    const uint32 num_faces = NumFaces();
 
-    const TextureDesc &current_desc = self->GetTextureDesc();
+    const TextureDesc &current_desc = GetTextureDesc();
 
-    const uint32 size = self->m_size;
+    const uint32 size = m_size;
     const uint32 face_offset_step = size / num_faces;
 
-    const uint8 bpp = self->m_bpp;
+    const uint8 bpp = m_bpp;
 
     const uint32 new_size = num_faces * new_bpp * current_desc.extent.x * current_desc.extent.y * current_desc.extent.z;
     const uint32 new_face_offset_step = new_size / num_faces;
@@ -73,7 +81,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
             );
         }
 
-        self->m_texture_desc = TextureDesc {
+        m_texture_desc = TextureDesc {
             current_desc.type,
             new_format,
             current_desc.extent,
@@ -84,424 +92,59 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
         };
 
         out_texture_data.Emplace(TextureData {
-            self->m_texture_desc,
+            m_texture_desc,
             std::move(new_byte_buffer)
         });
     }
 
-    self->m_bpp = new_bpp;
-    self->m_size = new_size;
+    m_bpp = new_bpp;
+    m_size = new_size;
 
-    *out_format = helpers::ToVkFormat(self->m_texture_desc.format);
-
-    HYPERION_RETURN_OK;
-}
-
-RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
-    VkImageLayout initial_layout
-)
-{
-    if (!is_handle_owned) {
-        AssertThrowMsg(handle != VK_NULL_HANDLE, "If is_handle_owned is set to false, the image handle must not be VK_NULL_HANDLE.");
-
-        HYPERION_RETURN_OK;
-    }
-
-    const Vec3u extent = self->GetExtent();
-    const InternalFormat format = self->GetTextureFormat();
-    const ImageType type = self->GetType();
-
-    const bool is_attachment_texture = self->IsAttachmentTexture();
-    const bool is_rw_texture = self->IsRWTexture();
-
-    const bool is_depth_stencil = self->IsDepthStencil();
-    const bool is_blended = self->IsBlended();
-    const bool is_srgb = self->IsSRGB();
-
-    const bool is_cubemap = self->IsTextureCube();
-
-    const bool has_mipmaps = self->HasMipmaps();
-    const uint32 num_mipmaps = self->NumMipmaps();
-
-    const uint32 num_faces = self->NumFaces();
-
-    if (extent.Volume() == 0) {
-        return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
-    }
-
-    VkFormat vk_format = helpers::ToVkFormat(format);
-    VkImageType vk_image_type = helpers::ToVkType(type);
-    VkImageCreateFlags vk_image_create_flags = 0;
-    VkFormatFeatureFlags vk_format_features = 0;
-    VkImageFormatProperties vk_image_format_properties { };
-
-    tiling = VK_IMAGE_TILING_OPTIMAL;
-
-    if (is_attachment_texture) {
-        usage_flags |= (is_depth_stencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            | VK_IMAGE_USAGE_SAMPLED_BIT
-            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
-    }
-
-    if (is_rw_texture) {
-        usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
-            | VK_IMAGE_USAGE_STORAGE_BIT
-            | VK_IMAGE_USAGE_SAMPLED_BIT;
-    } else {
-        usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-            | VK_IMAGE_USAGE_SAMPLED_BIT;
-    }
-
-    if (has_mipmaps) {
-        /* Mipmapped image needs linear blitting. */
-        vk_format_features |= VK_FORMAT_FEATURE_BLIT_DST_BIT
-            | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
-
-        usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-        switch (self->GetMinFilterMode()) {
-        case FilterMode::TEXTURE_FILTER_LINEAR: // fallthrough
-        case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
-            vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-            break;
-        case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
-            vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (is_blended) {
-        HYP_LOG(RenderingBackend, Debug, "Image requires blending, enabling format flag...");
-
-        vk_format_features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
-    }
-
-    if (is_cubemap) {
-        HYP_LOG(RenderingBackend, Debug, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
-
-        vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-    }
-
-    auto format_support_result = device->GetFeatures().GetImageFormatProperties(
-        vk_format,
-        vk_image_type,
-        tiling,
-        usage_flags,
-        vk_image_create_flags,
-        &vk_image_format_properties
-    );
-
-    if (!format_support_result) {
-        HYPERION_BUBBLE_ERRORS(format_support_result);
-    }
-
-    const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
-
-    VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-    image_info.imageType = vk_image_type;
-    image_info.extent.width = extent.x;
-    image_info.extent.height = extent.y;
-    image_info.extent.depth = extent.z;
-    image_info.mipLevels = num_mipmaps;
-    image_info.arrayLayers = num_faces;
-    image_info.format = vk_format;
-    image_info.tiling = tiling;
-    image_info.initialLayout = initial_layout;
-    image_info.usage = usage_flags;
-    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_info.flags = vk_image_create_flags;
-    image_info.pQueueFamilyIndices = image_family_indices;
-    image_info.queueFamilyIndexCount = uint32(std::size(image_family_indices));
-
-    VmaAllocationCreateInfo alloc_info { };
-    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-
-    HYPERION_VK_CHECK_MSG(
-        vmaCreateImage(
-            device->GetAllocator(),
-            &image_info,
-            &alloc_info,
-            &handle,
-            &allocation,
-            nullptr
-        ),
-        "Failed to create gpu image!"
-    );
+    *out_format = helpers::ToVkFormat(m_texture_desc.format);
 
     HYPERION_RETURN_OK;
 }
+#endif
 
-RendererResult ImagePlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
-{
-    if (allocation != VK_NULL_HANDLE) {
-        AssertThrowMsg(is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+#pragma endregion VulkanImagePlatformImpl
 
-        vmaDestroyImage(device->GetAllocator(), handle, allocation);
-        allocation = VK_NULL_HANDLE;
-    }
+#pragma region VulkanImage
 
-    handle = VK_NULL_HANDLE;
-
-    // reset back to default
-    is_handle_owned = true;
-
-    HYPERION_RETURN_OK;
-}
-
-void ImagePlatformImpl<Platform::VULKAN>::SetResourceState(ResourceState new_state)
-{
-    resource_state = new_state;
-
-    sub_resources.Clear();
-}
-
-void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    ResourceState new_state,
-    ShaderModuleType shader_module_type,
-    ImageSubResourceFlagBits flags
-)
-{
-    InsertBarrier(
-        command_buffer,
-        ImageSubResource {
-            .flags = flags,
-            .num_layers = VK_REMAINING_ARRAY_LAYERS,
-            .num_levels = VK_REMAINING_MIP_LEVELS
-        },
-        new_state,
-        shader_module_type
-    );
-}
-
-void ImagePlatformImpl<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const ImageSubResource &sub_resource,
-    ResourceState new_state,
-    ShaderModuleType shader_module_type
-)
-{
-    /* Clear any sub-resources that are in a separate state */
-    if (!sub_resources.Empty()) {
-        sub_resources.Clear();
-    }
-
-    if (handle == VK_NULL_HANDLE) {
-        HYP_LOG(
-            RenderingBackend,
-            Warning,
-            "Attempt to insert a resource barrier but image was not defined"
-        );
-
-        return;
-    }
-
-    const VkImageAspectFlags aspect_flag_bits = 
-        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageSubresourceRange range { };
-    range.aspectMask = aspect_flag_bits;
-    range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount = sub_resource.num_layers;
-    range.baseMipLevel = sub_resource.base_mip_level;
-    range.levelCount = sub_resource.num_levels;
-
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout = GetVkImageLayout(resource_state);
-    barrier.newLayout = GetVkImageLayout(new_state);
-    barrier.srcAccessMask = GetVkAccessMask(resource_state);
-    barrier.dstAccessMask = GetVkAccessMask(new_state);
-    barrier.image = handle;
-    barrier.subresourceRange = range;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(resource_state, true, shader_module_type),
-        GetVkShaderStageMask(new_state, false, shader_module_type),
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    resource_state = new_state;
-}
-
-void ImagePlatformImpl<Platform::VULKAN>::InsertSubResourceBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const ImageSubResource &sub_resource,
-    ResourceState new_state,
-    ShaderModuleType shader_module_type
-)
-{
-    if (handle == VK_NULL_HANDLE) {
-        HYP_LOG(
-            RenderingBackend,
-            Debug,
-            "Attempt to insert a resource barrier but image was not defined"
-        );
-
-        return;
-    }
-
-    ResourceState prev_resource_state = resource_state;
-
-    auto it = sub_resources.Find(sub_resource);
-
-    if (it != sub_resources.End()) {
-        prev_resource_state = it->second;
-    }
-
-    const VkImageAspectFlags aspect_flag_bits = 
-        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageSubresourceRange range { };
-    range.aspectMask = aspect_flag_bits;
-    range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount = sub_resource.num_layers;
-    range.baseMipLevel = sub_resource.base_mip_level;
-    range.levelCount = sub_resource.num_levels;
-
-    VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    barrier.oldLayout = GetVkImageLayout(prev_resource_state);
-    barrier.newLayout = GetVkImageLayout(new_state);
-    barrier.srcAccessMask = GetVkAccessMask(prev_resource_state);
-    barrier.dstAccessMask = GetVkAccessMask(new_state);
-    barrier.image = handle;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange = range;
-
-    vkCmdPipelineBarrier(
-        command_buffer->GetPlatformImpl().command_buffer,
-        GetVkShaderStageMask(prev_resource_state, true, shader_module_type),
-        GetVkShaderStageMask(new_state, false, shader_module_type),
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    sub_resources.Insert({ sub_resource, new_state });
-}
-
-auto ImagePlatformImpl<Platform::VULKAN>::GetSubResourceState(const ImageSubResource &sub_resource) const -> ResourceState
-{
-    const auto it = sub_resources.Find(sub_resource);
-
-    if (it == sub_resources.End()) {
-        return resource_state;
-    }
-
-    return it->second;
-}
-
-void ImagePlatformImpl<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
-{
-    sub_resources[sub_resource] = new_state;
-}
-
-#pragma endregion ImagePlatformImpl
-
-#pragma region Image
-
-template <>
-Image<Platform::VULKAN>::Image(const TextureDesc &texture_desc)
-    : m_platform_impl { this },
-      m_texture_desc(texture_desc),
-      m_is_blended(false),
-      m_is_rw_texture(false),
-      m_is_attachment_texture(false),
+VulkanImage::VulkanImage(const TextureDesc &texture_desc)
+    : ImageBase(texture_desc),
       m_bpp(NumComponents(GetBaseFormat(texture_desc.format)))
 {
-    m_size = GetByteSize();
+    m_size = texture_desc.GetByteSize();
 }
 
-template <>
-Image<Platform::VULKAN>::Image(Image &&other) noexcept
-    : m_texture_desc(other.m_texture_desc),
-      m_is_blended(other.m_is_blended),
-      m_is_rw_texture(other.m_is_rw_texture),
-      m_is_attachment_texture(other.m_is_attachment_texture),
-      m_size(other.m_size),
-      m_bpp(other.m_bpp)
+VulkanImage::~VulkanImage()
 {
-    m_platform_impl = std::move(other.m_platform_impl);
-    m_platform_impl.self = this;
-    other.m_platform_impl = { &other };
-
-    other.m_is_blended = false;
-    other.m_is_rw_texture = false;
-    other.m_is_attachment_texture = false;
-    other.m_size = 0;
-    other.m_bpp = 0;
+    AssertThrow(m_handle == VK_NULL_HANDLE);
 }
 
-template <>
-Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexcept
+bool VulkanImage::IsCreated() const
+    { return m_handle != VK_NULL_HANDLE; }
+
+RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase *command_buffer)
 {
-    m_platform_impl = std::move(other.m_platform_impl);
-    m_platform_impl.self = this;
-    other.m_platform_impl = { &other };
-
-    m_texture_desc = std::move(other.m_texture_desc);
-    m_is_blended = other.m_is_blended;
-    m_is_rw_texture = other.m_is_rw_texture;
-    m_is_attachment_texture = other.m_is_attachment_texture;
-    m_size = other.m_size;
-    m_bpp = other.m_bpp;
-
-    other.m_is_blended = false;
-    other.m_is_rw_texture = false;
-    other.m_is_attachment_texture = false;
-    other.m_size = 0;
-    other.m_bpp = 0;
-
-    return *this;
-}
-
-template <>
-Image<Platform::VULKAN>::~Image()
-{
-    AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
-}
-
-template <>
-bool Image<Platform::VULKAN>::IsCreated() const
-    { return m_platform_impl.handle != VK_NULL_HANDLE; }
-
-template <>
-RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::VULKAN> *command_buffer)
-{
-    if (m_platform_impl.handle == VK_NULL_HANDLE) {
+    if (m_handle == VK_NULL_HANDLE) {
         return HYP_MAKE_ERROR(RendererError, "Cannot generate mipmaps on uninitialized image");
     }
 
-    const auto num_faces = NumFaces();
-    const auto num_mipmaps = NumMipmaps();
+    const uint32 num_faces = NumFaces();
+    const uint32 num_mipmaps = NumMipmaps();
 
     for (uint32 face = 0; face < num_faces; face++) {
         for (int32 i = 1; i < int32(num_mipmaps + 1); i++) {
-            const auto mip_width = int32(helpers::MipmapSize(m_texture_desc.extent.x, i)),
-                mip_height = int32(helpers::MipmapSize(m_texture_desc.extent.y, i)),
-                mip_depth = int32(helpers::MipmapSize(m_texture_desc.extent.z, i));
+            const int mip_width = int(helpers::MipmapSize(m_texture_desc.extent.x, i)),
+                mip_height = int(helpers::MipmapSize(m_texture_desc.extent.y, i)),
+                mip_depth = int(helpers::MipmapSize(m_texture_desc.extent.z, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
 
             const ImageSubResource src {
-                .flags = IsDepthStencil()
+                .flags = m_texture_desc.IsDepthStencil()
                     ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                     : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .base_array_layer = face,
@@ -514,7 +157,7 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
                 .base_mip_level = uint32(i)
             };
             
-            m_platform_impl.InsertSubResourceBarrier(
+            InsertSubResourceBarrier(
                 command_buffer,
                 src,
                 ResourceState::COPY_SRC,
@@ -525,7 +168,7 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
                 if (face == num_faces - 1) {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
-                    m_platform_impl.SetResourceState(ResourceState::COPY_SRC);
+                    SetResourceState(ResourceState::COPY_SRC);
                 }
 
                 break;
@@ -572,13 +215,13 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
             };
 
             vkCmdBlitImage(
-                command_buffer->GetPlatformImpl().command_buffer,
-                m_platform_impl.handle,
+                static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+                m_handle,
                 GetVkImageLayout(ResourceState::COPY_SRC),
-                m_platform_impl.handle,
+                m_handle,
                 GetVkImageLayout(ResourceState::COPY_DST),
                 1, &blit,
-                IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
+                m_texture_desc.IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
             );
         }
     }
@@ -586,95 +229,346 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanImage::Destroy()
 {
     RendererResult result;
 
     if (IsCreated()) {
-        HYPERION_PASS_ERRORS(m_platform_impl.Destroy(device), result);
-        m_platform_impl.handle = VK_NULL_HANDLE;
+        if (m_allocation != VK_NULL_HANDLE) {
+            AssertThrowMsg(m_is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+
+            vmaDestroyImage(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            m_allocation = VK_NULL_HANDLE;
+        }
+
+        m_handle = VK_NULL_HANDLE;
+
+        // reset back to default
+        m_is_handle_owned = true;
+
+        HYPERION_RETURN_OK;
     }
 
     return result;
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanImage::Create()
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    return m_platform_impl.Create(device, VK_IMAGE_LAYOUT_UNDEFINED);
+    return Create(ResourceState::UNDEFINED);
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, ResourceState initial_state)
+RendererResult VulkanImage::Create(ResourceState initial_state)
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    return m_platform_impl.Create(device, GetVkImageLayout(initial_state));
+    VkImageLayout initial_layout = GetVkImageLayout(initial_state);
+
+    if (!m_is_handle_owned) {
+        AssertThrowMsg(m_handle != VK_NULL_HANDLE, "If is_handle_owned is set to false, the image handle must not be VK_NULL_HANDLE.");
+
+        HYPERION_RETURN_OK;
+    }
+
+    const Vec3u extent = GetExtent();
+    const InternalFormat format = GetTextureFormat();
+    const ImageType type = GetType();
+
+    const bool is_attachment_texture = m_texture_desc.image_format_capabilities[ImageFormatCapabilities::ATTACHMENT];
+    const bool is_rw_texture = m_texture_desc.image_format_capabilities[ImageFormatCapabilities::STORAGE];
+    const bool is_depth_stencil = m_texture_desc.IsDepthStencil();
+    const bool is_blended = m_texture_desc.IsBlended();
+    const bool is_srgb = m_texture_desc.IsSRGB();
+
+    const bool is_cubemap = m_texture_desc.IsTextureCube();
+
+    const bool has_mipmaps = m_texture_desc.HasMipmaps();
+    const uint32 num_mipmaps = m_texture_desc.NumMipmaps();
+    const uint32 num_faces = m_texture_desc.NumFaces();
+
+    if (extent.Volume() == 0) {
+        return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
+    }
+
+    VkFormat vk_format = helpers::ToVkFormat(format);
+    VkImageType vk_image_type = helpers::ToVkType(type);
+    VkImageCreateFlags vk_image_create_flags = 0;
+    VkFormatFeatureFlags vk_format_features = 0;
+    VkImageFormatProperties vk_image_format_properties { };
+
+    m_tiling = VK_IMAGE_TILING_OPTIMAL;
+    m_usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    if (is_attachment_texture) {
+        m_usage_flags |= (is_depth_stencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
+    }
+
+    if (is_rw_texture) {
+        m_usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
+            | VK_IMAGE_USAGE_STORAGE_BIT;
+    } else {
+        m_usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+
+    if (has_mipmaps) {
+        /* Mipmapped image needs linear blitting. */
+        vk_format_features |= VK_FORMAT_FEATURE_BLIT_DST_BIT
+            | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+
+        m_usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        switch (GetMinFilterMode()) {
+        case FilterMode::TEXTURE_FILTER_LINEAR: // fallthrough
+        case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
+            vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            break;
+        case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
+            vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (is_blended) {
+        HYP_LOG(RenderingBackend, Debug, "Image requires blending, enabling format flag...");
+
+        vk_format_features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+    }
+
+    if (is_cubemap) {
+        HYP_LOG(RenderingBackend, Debug, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
+
+        vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    }
+
+    RendererResult format_support_result = GetRenderingAPI()->GetDevice()->GetFeatures().GetImageFormatProperties(
+        vk_format,
+        vk_image_type,
+        m_tiling,
+        m_usage_flags,
+        vk_image_create_flags,
+        &vk_image_format_properties
+    );
+
+    if (!format_support_result) {
+        HYP_BREAKPOINT;
+        HYPERION_BUBBLE_ERRORS(format_support_result);
+    }
+
+    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
+    const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
+
+    VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+    image_info.imageType = vk_image_type;
+    image_info.extent.width = extent.x;
+    image_info.extent.height = extent.y;
+    image_info.extent.depth = extent.z;
+    image_info.mipLevels = num_mipmaps;
+    image_info.arrayLayers = num_faces;
+    image_info.format = vk_format;
+    image_info.tiling = m_tiling;
+    image_info.initialLayout = initial_layout;
+    image_info.usage = m_usage_flags;
+    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_info.flags = vk_image_create_flags;
+    image_info.pQueueFamilyIndices = image_family_indices;
+    image_info.queueFamilyIndexCount = uint32(std::size(image_family_indices));
+
+    VmaAllocationCreateInfo alloc_info { };
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+    HYPERION_VK_CHECK_MSG(
+        vmaCreateImage(
+            GetRenderingAPI()->GetDevice()->GetAllocator(),
+            &image_info,
+            &alloc_info,
+            &m_handle,
+            &m_allocation,
+            nullptr
+        ),
+        "Failed to create gpu image!"
+    );
+
+    HYPERION_RETURN_OK;
 }
 
-template <>
-ResourceState Image<Platform::VULKAN>::GetResourceState() const
-    { return m_platform_impl.GetResourceState(); }
+void VulkanImage::SetResourceState(ResourceState new_state)
+{
+    m_resource_state = new_state;
 
-template <>
-ResourceState Image<Platform::VULKAN>::GetSubResourceState(const ImageSubResource &sub_resource) const
-    { return m_platform_impl.GetSubResourceState(sub_resource); }
+    m_sub_resources.Clear();
+}
 
-template <>
-void Image<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
-    { m_platform_impl.SetSubResourceState(sub_resource, new_state); }
+ResourceState VulkanImage::GetSubResourceState(const ImageSubResource &sub_resource) const
+{
+    const auto it = m_sub_resources.Find(sub_resource);
 
-template <>
-void Image<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
+    if (it == m_sub_resources.End()) {
+        return m_resource_state;
+    }
+
+    return it->second;
+}
+
+void VulkanImage::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
+{    
+    m_sub_resources[sub_resource] = new_state;
+}
+
+void VulkanImage::InsertBarrier(
+    CommandBufferBase *command_buffer,
     ResourceState new_state,
     ShaderModuleType shader_module_type
 )
 {
     ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_NONE;
 
-    if (IsDepthStencil()) {
+    if (m_texture_desc.IsDepthStencil()) {
         flags |= IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL;
     } else {
         flags |= IMAGE_SUB_RESOURCE_FLAGS_COLOR;
     }
 
-    m_platform_impl.InsertBarrier(command_buffer, new_state, shader_module_type, flags);
+    InsertBarrier(
+        command_buffer,
+        ImageSubResource {
+            .flags = flags,
+            .num_layers = VK_REMAINING_ARRAY_LAYERS,
+            .num_levels = VK_REMAINING_MIP_LEVELS
+        },
+        new_state,
+        shader_module_type
+    );
 }
 
-template <>
-void Image<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
+void VulkanImage::InsertBarrier(
+    CommandBufferBase *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state,
     ShaderModuleType shader_module_type
 )
 {
-    m_platform_impl.InsertBarrier(command_buffer, sub_resource, new_state, shader_module_type);
+    /* Clear any sub-resources that are in a separate state */
+    if (!m_sub_resources.Empty()) {
+        m_sub_resources.Clear();
+    }
+
+    if (m_handle == VK_NULL_HANDLE) {
+        HYP_LOG(
+            RenderingBackend,
+            Warning,
+            "Attempt to insert a resource barrier but image was not defined"
+        );
+
+        return;
+    }
+
+    const VkImageAspectFlags aspect_flag_bits = 
+        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+
+    VkImageSubresourceRange range { };
+    range.aspectMask = aspect_flag_bits;
+    range.baseArrayLayer = sub_resource.base_array_layer;
+    range.layerCount = sub_resource.num_layers;
+    range.baseMipLevel = sub_resource.base_mip_level;
+    range.levelCount = sub_resource.num_levels;
+
+    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    barrier.oldLayout = GetVkImageLayout(m_resource_state);
+    barrier.newLayout = GetVkImageLayout(new_state);
+    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.image = m_handle;
+    barrier.subresourceRange = range;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+        GetVkShaderStageMask(m_resource_state, true, shader_module_type),
+        GetVkShaderStageMask(new_state, false, shader_module_type),
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    m_resource_state = new_state;
 }
 
-template <>
-void Image<Platform::VULKAN>::InsertSubResourceBarrier(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
+void VulkanImage::InsertSubResourceBarrier(
+    CommandBufferBase *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state,
     ShaderModuleType shader_module_type
 )
 {
-    m_platform_impl.InsertSubResourceBarrier(command_buffer, sub_resource, new_state, shader_module_type);
+    if (m_handle == VK_NULL_HANDLE) {
+        HYP_LOG(
+            RenderingBackend,
+            Debug,
+            "Attempt to insert a resource barrier but image was not defined"
+        );
+
+        return;
+    }
+
+    ResourceState prev_resource_state = m_resource_state;
+
+    auto it = m_sub_resources.Find(sub_resource);
+
+    if (it != m_sub_resources.End()) {
+        prev_resource_state = it->second;
+    }
+
+    const VkImageAspectFlags aspect_flag_bits = 
+        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+
+    VkImageSubresourceRange range { };
+    range.aspectMask = aspect_flag_bits;
+    range.baseArrayLayer = sub_resource.base_array_layer;
+    range.layerCount = sub_resource.num_layers;
+    range.baseMipLevel = sub_resource.base_mip_level;
+    range.levelCount = sub_resource.num_levels;
+
+    VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    barrier.oldLayout = GetVkImageLayout(prev_resource_state);
+    barrier.newLayout = GetVkImageLayout(new_state);
+    barrier.srcAccessMask = GetVkAccessMask(prev_resource_state);
+    barrier.dstAccessMask = GetVkAccessMask(new_state);
+    barrier.image = m_handle;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange = range;
+
+    vkCmdPipelineBarrier(
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+        GetVkShaderStageMask(prev_resource_state, true, shader_module_type),
+        GetVkShaderStageMask(new_state, false, shader_module_type),
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    m_sub_resources.Insert({ sub_resource, new_state });
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Blit(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const Image *src_image,
+RendererResult VulkanImage::Blit(
+    CommandBufferBase *command_buffer,
+    const ImageBase *src_image,
     Rect<uint32> src_rect,
     Rect<uint32> dst_rect,
     uint32 src_mip,
@@ -685,7 +579,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
 
     for (uint32 face = 0; face < num_faces; face++) {
         const ImageSubResource src {
-            .flags = src_image->IsDepthStencil()
+            .flags = src_image->GetTextureDesc().IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer   = face,
@@ -693,7 +587,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         const ImageSubResource dst {
-            .flags = IsDepthStencil()
+            .flags = m_texture_desc.IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer = face,
@@ -733,11 +627,11 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         vkCmdBlitImage(
-            command_buffer->GetPlatformImpl().command_buffer,
-            src_image->m_platform_impl.handle,
-            GetVkImageLayout(src_image->m_platform_impl.GetResourceState()),
-            m_platform_impl.handle,
-            GetVkImageLayout(m_platform_impl.GetResourceState()),
+            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+            static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
+            GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
+            m_handle,
+            GetVkImageLayout(GetResourceState()),
             1, &blit,
             helpers::ToVkFilter(GetMinFilterMode())
         );
@@ -746,10 +640,9 @@ RendererResult Image<Platform::VULKAN>::Blit(
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Blit(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const Image *src_image,
+RendererResult VulkanImage::Blit(
+    CommandBufferBase *command_buffer,
+    const ImageBase *src_image,
     Rect<uint32> src_rect,
     Rect<uint32> dst_rect
 )
@@ -758,7 +651,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
 
     for (uint32 face = 0; face < num_faces; face++) {
         const ImageSubResource src {
-            .flags = src_image->IsDepthStencil()
+            .flags = src_image->GetTextureDesc().IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer   = face,
@@ -766,7 +659,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         const ImageSubResource dst {
-            .flags = IsDepthStencil()
+            .flags = m_texture_desc.IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer = face,
@@ -806,11 +699,11 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         vkCmdBlitImage(
-            command_buffer->GetPlatformImpl().command_buffer,
-            src_image->m_platform_impl.handle,
-            GetVkImageLayout(src_image->m_platform_impl.GetResourceState()),
-            m_platform_impl.handle,
-            GetVkImageLayout(m_platform_impl.GetResourceState()),
+            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+            static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
+            GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
+            m_handle,
+            GetVkImageLayout(GetResourceState()),
             1, &blit,
             helpers::ToVkFilter(GetMinFilterMode())
         );
@@ -819,10 +712,9 @@ RendererResult Image<Platform::VULKAN>::Blit(
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Image<Platform::VULKAN>::Blit(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const Image *src
+RendererResult VulkanImage::Blit(
+    CommandBufferBase *command_buffer,
+    const ImageBase *src
 )
 {
     return Blit(
@@ -843,13 +735,9 @@ RendererResult Image<Platform::VULKAN>::Blit(
     );
 }
 
-template <>
-void Image<Platform::VULKAN>::CopyFromBuffer(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const GPUBuffer<Platform::VULKAN> *src_buffer
-) const
+void VulkanImage::CopyFromBuffer(CommandBufferBase *command_buffer, const GPUBufferBase *src_buffer) const
 {
-    const auto flags = IsDepthStencil()
+    const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
         : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
 
@@ -859,8 +747,8 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
         | (flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
             
     // copy from staging to image
-    const auto num_faces = NumFaces();
-    const auto buffer_offset_step = uint32(m_size) / num_faces;
+    const uint32 num_faces = m_texture_desc.NumFaces();
+    const uint32 buffer_offset_step = uint32(m_size) / num_faces;
 
     for (uint32 i = 0; i < num_faces; i++) {
         VkBufferImageCopy region { };
@@ -875,23 +763,19 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
         region.imageExtent = VkExtent3D { m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z };
 
         vkCmdCopyBufferToImage(
-            command_buffer->GetPlatformImpl().command_buffer,
-            src_buffer->GetPlatformImpl().handle,
-            m_platform_impl.handle,
-            GetVkImageLayout(m_platform_impl.GetResourceState()),
+            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+            static_cast<const VulkanGPUBuffer *>(src_buffer)->GetVulkanHandle(),
+            m_handle,
+            GetVkImageLayout(m_resource_state),
             1,
             &region
         );
     }
 }
 
-template <>
-void Image<Platform::VULKAN>::CopyToBuffer(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    GPUBuffer<Platform::VULKAN> *dst_buffer
-) const
+void VulkanImage::CopyToBuffer(CommandBufferBase *command_buffer, GPUBufferBase *dst_buffer) const
 {
-    const auto flags = IsDepthStencil()
+    const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
         : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
 
@@ -917,18 +801,17 @@ void Image<Platform::VULKAN>::CopyToBuffer(
         region.imageExtent = VkExtent3D { m_texture_desc.extent.x, m_texture_desc.extent.y, m_texture_desc.extent.z };
 
         vkCmdCopyImageToBuffer(
-            command_buffer->GetPlatformImpl().command_buffer,
-            m_platform_impl.handle,
-            GetVkImageLayout(m_platform_impl.GetResourceState()),
-            dst_buffer->GetPlatformImpl().handle,
+            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+            m_handle,
+            GetVkImageLayout(m_resource_state),
+            static_cast<VulkanGPUBuffer *>(dst_buffer)->GetVulkanHandle(),
             1,
             &region
         );
     }
 }
 
-#pragma endregion Image
+#pragma endregion VulkanImage
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion

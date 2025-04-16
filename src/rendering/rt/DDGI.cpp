@@ -110,8 +110,8 @@ struct RENDER_COMMAND(CreateDDGIUniformBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(DDGIUniforms)));
-        uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(DDGIUniforms), &uniforms);
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create());
+        uniform_buffer->Copy(sizeof(DDGIUniforms), &uniforms);
 
         HYPERION_RETURN_OK;
     }
@@ -132,8 +132,8 @@ struct RENDER_COMMAND(CreateDDGIRadianceBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData)));
-        radiance_buffer->Memset(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData), 0x0);
+        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create());
+        radiance_buffer->Memset(radiance_buffer->Size(), 0);
 
         HYPERION_RETURN_OK;
     }
@@ -208,7 +208,7 @@ void DDGI::CreatePipelines()
     AssertThrow(m_shader.IsValid());
 
     const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef raytracing_pipeline_descriptor_table = MakeRenderObject<DescriptorTable>(raytracing_pipeline_descriptor_table_decl);
+    DescriptorTableRef raytracing_pipeline_descriptor_table = g_rendering_api->MakeDescriptorTable(raytracing_pipeline_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         AssertThrow(m_top_level_acceleration_structures[frame_index] != nullptr);
@@ -226,16 +226,16 @@ void DDGI::CreatePipelines()
         descriptor_set->SetElement(NAME("ProbeRayData"), m_radiance_buffer);
     }
 
-    DeferCreate(raytracing_pipeline_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(raytracing_pipeline_descriptor_table);
 
     // Create raytracing pipeline
 
-    m_pipeline = MakeRenderObject<RaytracingPipeline>(
+    m_pipeline = g_rendering_api->MakeRaytracingPipeline(
         m_shader,
         raytracing_pipeline_descriptor_table
     );
 
-    DeferCreate(m_pipeline, g_engine->GetGPUDevice());
+    DeferCreate(m_pipeline);
 
     ShaderRef update_irradiance_shader = g_shader_manager->GetOrCreate(NAME("RTProbeUpdateIrradiance"));
     ShaderRef update_depth_shader = g_shader_manager->GetOrCreate(NAME("RTProbeUpdateDepth"));
@@ -254,7 +254,7 @@ void DDGI::CreatePipelines()
         
         const DescriptorTableDeclaration descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
@@ -267,20 +267,20 @@ void DDGI::CreatePipelines()
             descriptor_set->SetElement(NAME("OutputDepthImage"), m_depth_image_view);
         }
 
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
-        it.second = MakeRenderObject<ComputePipeline>(
+        it.second = g_rendering_api->MakeComputePipeline(
             it.first,
             descriptor_table
         );
 
-        DeferCreate(it.second, g_engine->GetGPUDevice());
+        DeferCreate(it.second);
     }
 }
 
 void DDGI::CreateUniformBuffer()
 {
-    m_uniform_buffer = MakeRenderObject<GPUBuffer>(UniformBuffer());
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms));
 
     const Vec2u grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Vec3u num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
@@ -330,7 +330,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_radiance_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
+    m_radiance_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_grid_info.GetImageDimensions().x * m_grid_info.GetImageDimensions().y * sizeof(ProbeRayData));
 
     PUSH_RENDER_COMMAND(
         CreateDDGIRadianceBuffer,
@@ -345,19 +345,24 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_irradiance_image = MakeRenderObject<Image>(StorageImage(
-            extent,
+        m_irradiance_image = g_rendering_api->MakeImage(TextureDesc {
+            renderer::ImageType::TEXTURE_TYPE_2D,
             ddgi_irradiance_format,
-            ImageType::TEXTURE_TYPE_2D
-        ));
+            extent,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
+        });
 
-        DeferCreate(m_irradiance_image, g_engine->GetGPUDevice());
+        DeferCreate(m_irradiance_image);
     }
 
     { // irradiance image view
-        m_irradiance_image_view = MakeRenderObject<ImageView>();
+        m_irradiance_image_view = g_rendering_api->MakeImageView();
 
-        DeferCreate(m_irradiance_image_view, g_engine->GetGPUDevice(), m_irradiance_image);
+        DeferCreate(m_irradiance_image_view, m_irradiance_image);
     }
 
     { // depth image
@@ -367,19 +372,24 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_depth_image = MakeRenderObject<Image>(StorageImage(
-            extent,
+        m_depth_image = g_rendering_api->MakeImage(TextureDesc {
+            renderer::ImageType::TEXTURE_TYPE_2D,
             ddgi_depth_format,
-            ImageType::TEXTURE_TYPE_2D
-        ));
+            extent,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
+        });
 
-        DeferCreate(m_depth_image, g_engine->GetGPUDevice());
+        DeferCreate(m_depth_image);
     }
 
     { // depth image view
-        m_depth_image_view = MakeRenderObject<ImageView>();
+        m_depth_image_view = g_rendering_api->MakeImageView();
 
-        DeferCreate(m_depth_image_view, g_engine->GetGPUDevice(), m_depth_image);
+        DeferCreate(m_depth_image_view, m_depth_image);
     }
 }
 
@@ -403,13 +413,13 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
             descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
         }
 
-        descriptor_set->Update(g_engine->GetGPUDevice());
+        descriptor_set->Update();
 
         m_updates[frame_index] &= ~PROBE_SYSTEM_UPDATES_TLAS;
     }
 }
 
-void DDGI::UpdateUniforms(Frame *frame)
+void DDGI::UpdateUniforms(FrameBase *frame)
 {
     const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(m_uniforms.light_indices));
     uint32 num_bound_lights = 0;
@@ -430,12 +440,12 @@ void DDGI::UpdateUniforms(Frame *frame)
 
     m_uniforms.params[3] = num_bound_lights;
 
-    m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(DDGIUniforms), &m_uniforms);
+    m_uniform_buffer->Copy(sizeof(DDGIUniforms), &m_uniforms);
 
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::RenderProbes(Frame *frame)
+void DDGI::RenderProbes(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -495,7 +505,7 @@ void DDGI::RenderProbes(Frame *frame)
     );
 }
 
-void DDGI::ComputeIrradiance(Frame *frame)
+void DDGI::ComputeIrradiance(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 

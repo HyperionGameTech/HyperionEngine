@@ -5,10 +5,13 @@
 
 #include <core/containers/Array.hpp>
 
+#include <rendering/backend/RendererSwapchain.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/vulkan/RendererSemaphore.hpp>
+#include <rendering/backend/vulkan/RendererFramebuffer.hpp>
+
 #include <rendering/backend/RendererStructs.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSemaphore.hpp>
-#include <rendering/backend/RendererFramebuffer.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -17,32 +20,55 @@
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-class Device;
-
-template <>
-struct SwapchainPlatformImpl<Platform::VULKAN>
+class VulkanSwapchain final : public SwapchainBase
 {
-    Swapchain<Platform::VULKAN> *self = nullptr;
+public:
+    friend class platform::Instance<Platform::VULKAN>;
 
-    VkSwapchainKHR              handle = VK_NULL_HANDLE;
-    VkSurfaceKHR                surface = VK_NULL_HANDLE;
-    VkSurfaceFormatKHR          surface_format;
-    VkPresentModeKHR            present_mode;
-    SwapchainSupportDetails     support_details;
+    static constexpr PlatformType platform = Platform::VULKAN;
+    
+    HYP_API VulkanSwapchain();
+    HYP_API virtual ~VulkanSwapchain() override;
 
-    RendererResult Create(Device<Platform::VULKAN> *device);
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    HYP_FORCE_INLINE VkSwapchainKHR GetVulkanHandle() const
+        { return m_handle; }
 
-    void ChooseSurfaceFormat(Device<Platform::VULKAN> *device);
-    void ChoosePresentMode();
-    void RetrieveSupportDetails(Device<Platform::VULKAN> *device);
-    void RetrieveImageHandles(Device<Platform::VULKAN> *device);
+    HYP_FORCE_INLINE const VulkanFrameRef &GetCurrentFrame() const
+        { return m_frames[m_current_frame_index]; }
+
+    HYP_FORCE_INLINE const VulkanCommandBufferRef &GetCurrentCommandBuffer() const
+        { return m_command_buffers[m_current_frame_index]; }
+
+    HYP_FORCE_INLINE uint32 NumAcquiredImages() const
+        { return uint32(m_images.Size()); }
+
+    HYP_API virtual bool IsCreated() const override;
+
+    HYP_API void NextFrame();
+    
+    HYP_API RendererResult PrepareFrame(bool &out_needs_recreate);
+    HYP_API RendererResult PresentFrame(VulkanDeviceQueue *queue) const;
+
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
+
+private:
+    RendererResult ChooseSurfaceFormat();
+    RendererResult ChoosePresentMode();
+    RendererResult RetrieveSupportDetails();
+    RendererResult RetrieveImageHandles();
+
+    FixedArray<VulkanFrameRef, max_frames_in_flight>            m_frames;
+    FixedArray<VulkanCommandBufferRef, max_frames_in_flight>    m_command_buffers;
+
+    VkSwapchainKHR                                              m_handle;
+    VkSurfaceKHR                                                m_surface;
+    VkSurfaceFormatKHR                                          m_surface_format;
+    VkPresentModeKHR                                            m_present_mode;
+    SwapchainSupportDetails                                     m_support_details;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

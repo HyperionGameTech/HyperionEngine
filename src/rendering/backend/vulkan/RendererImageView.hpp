@@ -3,37 +3,48 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_IMAGE_VIEW_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_IMAGE_VIEW_HPP
 
+#include <rendering/backend/RendererImageView.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-class Device;
+class VulkanImage;
 
-template <>
-struct ImageViewPlatformImpl<Platform::VULKAN>
+class VulkanImageView final : public ImageViewBase
 {
-    ImageView<Platform::VULKAN> *self = nullptr;
-    VkImageView                 handle = VK_NULL_HANDLE;
+public:
+    static constexpr PlatformType platform = Platform::VULKAN;
 
-    RendererResult Create(
-        Device<Platform::VULKAN> *device,
-        VkImage image,
-        VkFormat format,
-        VkImageAspectFlags aspect_flags,
-        VkImageViewType view_type,
+    HYP_API VulkanImageView();
+    HYP_API virtual ~VulkanImageView() override;
+    
+    HYP_FORCE_INLINE VkImageView GetVulkanHandle() const
+        { return m_handle; }
+    
+    HYP_FORCE_INLINE uint32 NumFaces() const
+        { return m_num_faces; }
+
+    HYP_API virtual bool IsCreated() const override;
+
+    HYP_API virtual RendererResult Create(const ImageBase *image) override;
+    HYP_API virtual RendererResult Create(
+        const ImageBase *image,
         uint32 mipmap_layer,
         uint32 num_mipmaps,
         uint32 face_layer,
         uint32 num_faces
-    );
+    ) override;
 
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    HYP_API virtual RendererResult Destroy() override;
+
+private:
+    VkImageView                     m_handle;
+
+    uint32                          m_num_faces;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

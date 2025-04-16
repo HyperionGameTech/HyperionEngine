@@ -3,44 +3,42 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_RAYTRACING_PIPELINE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_RAYTRACING_PIPELINE_HPP
 
+#include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
+#include <rendering/backend/vulkan/RendererPipeline.hpp>
+
 #include <core/containers/Array.hpp>
 
 #include <Types.hpp>
 
-#include <rendering/backend/RendererPipeline.hpp>
-#include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
-#include <rendering/backend/RendererShader.hpp>
-
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <>
-class RaytracingPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
+class VulkanShader;
+
+class VulkanRaytracingPipeline final : public RaytracingPipelineBase, public VulkanPipelineBase
 {
 public:
-    HYP_API RaytracingPipeline();
-    HYP_API RaytracingPipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table);
-    RaytracingPipeline(const RaytracingPipeline &other)             = delete;
-    RaytracingPipeline &operator=(const RaytracingPipeline &other)  = delete;
-    HYP_API ~RaytracingPipeline();
+    HYP_API VulkanRaytracingPipeline();
+    HYP_API VulkanRaytracingPipeline(const VulkanShaderRef &shader, const VulkanDescriptorTableRef &descriptor_table);
+    HYP_API virtual ~VulkanRaytracingPipeline() override;
 
-    HYP_API RendererResult Create(Device<Platform::VULKAN> *device);
-    HYP_API RendererResult Destroy(Device<Platform::VULKAN> *device);
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
 
-    HYP_API void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
+    HYP_API virtual void Bind(CommandBufferBase *command_buffer) override;
     
-    HYP_API void TraceRays(
-        CommandBuffer<Platform::VULKAN> *command_buffer,
+    HYP_API virtual void TraceRays(
+        CommandBufferBase *command_buffer,
         const Vec3u &extent
-    ) const;
+    ) const override;
+
+    HYP_API virtual void SetPushConstants(const void *data, SizeType size) override;
 
 private:
     struct ShaderBindingTableEntry
     {
-        UniquePtr<ShaderBindingTableBuffer<Platform::VULKAN>>   buffer;
-        VkStridedDeviceAddressRegionKHR                         strided_device_address_region;
+        VulkanGPUBufferRef              buffer;
+        VkStridedDeviceAddressRegionKHR strided_device_address_region;
     };
 
     struct
@@ -53,10 +51,9 @@ private:
 
     using ShaderBindingTableMap = std::unordered_map<ShaderModuleType, ShaderBindingTableEntry>;
 
-    RendererResult CreateShaderBindingTables(Device<Platform::VULKAN> *device, Shader<Platform::VULKAN> *shader);
+    RendererResult CreateShaderBindingTables(VulkanShader *shader);
 
     RendererResult CreateShaderBindingTableEntry(
-        Device<Platform::VULKAN> *device,
         uint32 num_shaders,
         ShaderBindingTableEntry &out
     );
@@ -64,7 +61,6 @@ private:
     ShaderBindingTableMap m_shader_binding_table_buffers;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

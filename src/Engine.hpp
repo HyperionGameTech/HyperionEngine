@@ -5,8 +5,9 @@
 
 #include <Config.hpp>
 
-#include <rendering/DefaultFormats.hpp>
 #include <rendering/EngineRenderStats.hpp>
+
+#include <rendering/backend/RenderingAPI.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RenderObject.hpp>
@@ -18,8 +19,6 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/functional/Delegate.hpp>
-
-#include <rendering/CrashHandler.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
@@ -68,26 +67,7 @@ extern Handle<AssetManager> g_asset_manager;
 extern ShaderManager *g_shader_manager;
 extern MaterialCache *g_material_system;
 extern SafeDeleter *g_safe_deleter;
-
-class GlobalDescriptorSetManager
-{
-public:
-    GlobalDescriptorSetManager(Engine *engine);
-    GlobalDescriptorSetManager(const GlobalDescriptorSetManager &)                  = delete;
-    GlobalDescriptorSetManager &operator=(const GlobalDescriptorSetManager &)       = delete;
-    GlobalDescriptorSetManager(GlobalDescriptorSetManager &&) noexcept              = delete;
-    GlobalDescriptorSetManager &operator=(GlobalDescriptorSetManager &&) noexcept   = delete;
-    ~GlobalDescriptorSetManager();
-
-    void Initialize(Engine *engine);
-
-    void AddDescriptorSet(Name name, const DescriptorSetRef &ref);
-    DescriptorSetRef GetDescriptorSet(Name name) const;
-
-private:
-    HashMap<Name, DescriptorSetRef> m_descriptor_sets;
-    mutable Mutex                   m_mutex;
-};
+extern IRenderingAPI *g_rendering_api;
 
 class GPUBufferHolderMap;
 
@@ -114,12 +94,6 @@ public:
 
     HYP_FORCE_INLINE const RC<AppContext> &GetAppContext() const
         { return m_app_context; }
-
-    HYP_FORCE_INLINE Instance *GetGPUInstance() const
-        { return m_instance.Get(); }
-
-    HYP_FORCE_INLINE Device *GetGPUDevice() const
-        { return m_instance ? m_instance->GetDevice() : nullptr; }
     
     HYP_FORCE_INLINE DeferredRenderer *GetDeferredRenderer() const
         { return m_deferred_renderer.Get(); }
@@ -155,9 +129,6 @@ public:
     
     HYP_FORCE_INLINE DebugDrawer *GetDebugDrawer() const
         { return m_debug_drawer.Get(); }
-    
-    HYP_FORCE_INLINE InternalFormat GetDefaultFormat(TextureFormatDefault type) const
-        { return m_texture_format_defaults.At(type); }
     
     HYP_FORCE_INLINE FinalPass *GetFinalPass() const
         { return m_final_pass.Get(); }
@@ -203,16 +174,14 @@ public:
     Delegate<void, EngineRenderStats>                       OnRenderStatsUpdated;
 
 private:
-    void PreFrameUpdate(Frame *frame);
-    void RenderDeferred(Frame *frame);
+    void PreFrameUpdate(FrameBase *frame);
+    void RenderDeferred(FrameBase *frame);
 
     void FindTextureFormatDefaults();
 
     RC<AppContext>                                          m_app_context;
 
     UniquePtr<RenderThread>                                 m_render_thread;
-    
-    UniquePtr<Instance>                                     m_instance;
 
     ShaderCompiler                                          m_shader_compiler;
 
@@ -221,8 +190,6 @@ private:
     DescriptorTableRef                                      m_global_descriptor_table;
 
     UniquePtr<MaterialDescriptorSetManager>                 m_material_descriptor_set_manager;
-
-    HashMap<TextureFormatDefault, InternalFormat>           m_texture_format_defaults;
 
     UniquePtr<DeferredRenderer>                             m_deferred_renderer;
 
@@ -243,8 +210,6 @@ private:
     UniquePtr<GraphicsPipelineCache>                        m_graphics_pipeline_cache;
 
     Handle<RenderState>                                     m_render_state;
-
-    CrashHandler                                            m_crash_handler;
 
     EngineDelegates                                         m_delegates;
 

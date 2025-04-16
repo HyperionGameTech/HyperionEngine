@@ -8,6 +8,8 @@
 
 namespace hyperion::fbom {
 
+#if 0
+
 template <>
 class FBOMMarshaler<SubShader> : public FBOMObjectMarshalerBase<SubShader>
 {
@@ -43,5 +45,7 @@ public:
 };
 
 HYP_DEFINE_MARSHAL(SubShader, FBOMMarshaler<SubShader>);
+
+#endif
 
 } // namespace hyperion::fbom

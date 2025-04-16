@@ -3,10 +3,12 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_RENDER_PASS_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_RENDER_PASS_HPP
 
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererSampler.hpp>
-#include <rendering/backend/RendererAttachment.hpp>
+#include <rendering/backend/vulkan/RendererImage.hpp>
+#include <rendering/backend/vulkan/RendererImageView.hpp>
+#include <rendering/backend/vulkan/RendererSampler.hpp>
+#include <rendering/backend/vulkan/RendererAttachment.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
 
 #include <core/math/Vector4.hpp>
 #include <core/containers/Array.hpp>
@@ -18,57 +20,44 @@
 namespace hyperion {
 namespace renderer {
 
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-class CommandBuffer;
-
-template <PlatformType PLATFORM>
-class GraphicsPipeline;
-
-template <PlatformType PLATFORM>
-class Framebuffer;
-
-template <>
-class RenderPass<Platform::VULKAN>
+enum RenderPassMode
 {
-    friend class Framebuffer<Platform::VULKAN>;
-    friend class GraphicsPipeline<Platform::VULKAN>;
+    RENDER_PASS_INLINE = 0,
+    RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
+};
 
+class VulkanRenderPass final : public RenderObject<VulkanRenderPass>
+{
 public:
     static constexpr PlatformType platform = Platform::VULKAN;
     
-    RenderPass(RenderPassStage stage, RenderPassMode mode);
-    RenderPass(RenderPassStage stage, RenderPassMode mode, uint32 num_multiview_layers);
-    RenderPass(const RenderPass &other) = delete;
-    RenderPass &operator=(const RenderPass &other) = delete;
-    ~RenderPass();
+    VulkanRenderPass(RenderPassStage stage, RenderPassMode mode);
+    VulkanRenderPass(RenderPassStage stage, RenderPassMode mode, uint32 num_multiview_layers);
+    virtual ~VulkanRenderPass() override;
+
+    HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
+        { return m_handle; }
 
     RenderPassStage GetStage() const
         { return m_stage; }
 
     bool IsMultiview() const
-        { return m_num_multiview_layers != 0; }
+        { return m_num_multiview_layers > 1; }
 
     uint32 NumMultiviewLayers() const
         { return m_num_multiview_layers; }
 
-    void AddAttachment(AttachmentRef<Platform::VULKAN> attachment);
-    bool RemoveAttachment(const AttachmentRef<Platform::VULKAN> &attachment);
+    void AddAttachment(VulkanAttachmentRef attachment);
+    bool RemoveAttachment(const VulkanAttachment *attachment);
 
-    auto &GetAttachments() { return m_render_pass_attachments; }
-    const auto &GetAttachments() const { return m_render_pass_attachments; }
+    const Array<VulkanAttachmentRef> &GetAttachments() const
+        { return m_render_pass_attachments; }
 
-    VkRenderPass GetHandle() const { return m_handle; }
+    RendererResult Create();
+    RendererResult Destroy();
 
-    RendererResult Create(Device<Platform::VULKAN> *device);
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
-
-    void Begin(CommandBuffer<Platform::VULKAN> *cmd, Framebuffer<Platform::VULKAN> *framebuffer, uint32 frame_index);
-    void End(CommandBuffer<Platform::VULKAN> *cmd);
+    void Begin(VulkanCommandBuffer *cmd, VulkanFramebuffer *framebuffer, uint32 frame_index);
+    void End(VulkanCommandBuffer *cmd);
 
 private:
     void CreateDependencies();
@@ -76,19 +65,21 @@ private:
     void AddDependency(const VkSubpassDependency &dependency)
         { m_dependencies.PushBack(dependency); }
 
-    RenderPassStage                         m_stage;
-    RenderPassMode                          m_mode;
-    uint32                                  m_num_multiview_layers;
+    RenderPassStage                 m_stage;
+    RenderPassMode                  m_mode;
+    uint32                          m_num_multiview_layers;
 
-    Array<AttachmentRef<Platform::VULKAN>>  m_render_pass_attachments;
+    Array<VulkanAttachmentRef>      m_render_pass_attachments;
 
-    Array<VkSubpassDependency>              m_dependencies;
-    Array<VkClearValue>                     m_vk_clear_values;
+    Array<VkSubpassDependency>      m_dependencies;
+    Array<VkClearValue>             m_vk_clear_values;
 
-    VkRenderPass                            m_handle;
+    VkRenderPass                    m_handle;
 };
 
-} // namespace platform
+using VulkanRenderPassRef = RenderObjectHandle_Strong<VulkanRenderPass>;
+using VulkanRenderPassWeakRef = RenderObjectHandle_Weak<VulkanRenderPass>;
+
 } // namespace renderer
 } // namespace hyperion
 

@@ -6,20 +6,25 @@
 #include <core/containers/FixedArray.hpp>
 #include <Types.hpp>
 
+#include <vulkan/vulkan.h>
+
 namespace hyperion {
 namespace renderer {
 
-namespace platform {
-
-template <>
-struct DeviceQueue<Platform::VULKAN>
+enum class VulkanDeviceQueueType : uint8
 {
-    DeviceQueueType                 type;
+    GRAPHICS,
+    COMPUTE,
+    TRANSFER,
+    PRESENT
+};
+
+struct VulkanDeviceQueue
+{
+    VulkanDeviceQueueType           type;
     VkQueue                         queue;
     FixedArray<VkCommandPool, 8>    command_pools;
 };
-
-} // namespace platform
 
 } // namespace renderer
 } // namespace hyperion

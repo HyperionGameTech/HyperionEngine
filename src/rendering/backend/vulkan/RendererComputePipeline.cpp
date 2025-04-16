@@ -1,7 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererComputePipeline.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/RendererComputePipeline.hpp>
+#include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/RendererShader.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -16,42 +18,46 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
-namespace platform {
 
-template <>
-ComputePipeline<Platform::VULKAN>::ComputePipeline()
-    : Pipeline<Platform::VULKAN>()
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
+VulkanComputePipeline::VulkanComputePipeline()
+    : VulkanPipelineBase(),
+      ComputePipelineBase()
 {
 }
 
-
-template <>
-ComputePipeline<Platform::VULKAN>::ComputePipeline(const ShaderRef<Platform::VULKAN> &shader, const DescriptorTableRef<Platform::VULKAN> &descriptor_table)
-    : Pipeline<Platform::VULKAN>(shader, descriptor_table)
+VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderRef &shader, const VulkanDescriptorTableRef &descriptor_table)
+    : VulkanPipelineBase(),
+      ComputePipelineBase(shader, descriptor_table)
 {
 }
 
-template <>
-ComputePipeline<Platform::VULKAN>::~ComputePipeline()
+VulkanComputePipeline::~VulkanComputePipeline()
 {
 }
 
-template <>
-void ComputePipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *command_buffer) const
+void VulkanComputePipeline::Bind(CommandBufferBase *command_buffer)
 {
-    AssertThrow(m_platform_impl.handle != VK_NULL_HANDLE);
+    AssertThrow(m_handle != VK_NULL_HANDLE);
 
     vkCmdBindPipeline(
-        command_buffer->GetPlatformImpl().command_buffer,
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
-        m_platform_impl.handle
+        m_handle
     );
 
     if (m_push_constants) {
         vkCmdPushConstants(
-            command_buffer->GetPlatformImpl().command_buffer,
-            m_platform_impl.layout,
+            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+            m_layout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0,
             m_push_constants.Size(),
@@ -60,36 +66,33 @@ void ComputePipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *co
     }
 }
 
-template <>
-void ComputePipeline<Platform::VULKAN>::Dispatch(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
+void VulkanComputePipeline::Dispatch(
+    CommandBufferBase *command_buffer,
     const Vec3u &group_size
 ) const
 {
     vkCmdDispatch(
-        command_buffer->GetPlatformImpl().command_buffer,
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         group_size.x,
         group_size.y,
         group_size.z
     );
 }
 
-template <>
-void ComputePipeline<Platform::VULKAN>::DispatchIndirect(
-    CommandBuffer<Platform::VULKAN> *command_buffer,
-    const IndirectBuffer<Platform::VULKAN> *indirect,
+void VulkanComputePipeline::DispatchIndirect(
+    CommandBufferBase *command_buffer,
+    const GPUBufferRef &indirect_buffer,
     SizeType offset
 ) const
 {
     vkCmdDispatchIndirect(
-        command_buffer->GetPlatformImpl().command_buffer,
-        indirect->GetPlatformImpl().handle,
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+        static_cast<VulkanGPUBuffer *>(indirect_buffer.Get())->GetVulkanHandle(),
         offset
     );
 }
 
-template <>
-RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanComputePipeline::Create()
 {
     AssertThrowMsg(m_descriptor_table.IsValid(), "To use this function, you must use a DescriptorTable");
 
@@ -98,15 +101,15 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
         {
             .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset     = 0,
-            .size       = uint32(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size       = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
     
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
-    const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const Array<VkDescriptorSetLayout> used_layouts = GetPipelineVulkanDescriptorSetLayouts(*this);
+    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
 #if 0
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
@@ -132,7 +135,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &m_platform_impl.layout),
+        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_layout),
         "Failed to create compute pipeline layout"
     );
 
@@ -142,7 +145,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
         return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
-    const Array<VkPipelineShaderStageCreateInfo> &stages = m_shader->GetPlatformImpl().vk_shader_stages;
+    const Array<VkPipelineShaderStageCreateInfo> &stages = static_cast<VulkanShader *>(m_shader.Get())->GetVulkanShaderStages();
 
     if (stages.Size() == 0) {
         return HYP_MAKE_ERROR(RendererError, "Compute pipelines must have at least one shader stage");
@@ -153,24 +156,30 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     }
 
     pipeline_info.stage = stages.Front();
-    pipeline_info.layout = m_platform_impl.layout;
+    pipeline_info.layout = m_layout;
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     pipeline_info.basePipelineIndex = -1;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateComputePipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_platform_impl.handle),
+        vkCreateComputePipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
         "Failed to create compute pipeline"
     );
 
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult ComputePipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanComputePipeline::Destroy()
 {
-    return Pipeline<Platform::VULKAN>::Destroy(device);
+    SafeRelease(std::move(m_shader));
+    SafeRelease(std::move(m_descriptor_table));
+
+    return VulkanPipelineBase::Destroy();
 }
 
-} // namespace platform
+void VulkanComputePipeline::SetPushConstants(const void *data, SizeType size)
+{
+    VulkanPipelineBase::SetPushConstants(data, size);
+}
+
 } // namespace renderer
 } // namespace hyperion

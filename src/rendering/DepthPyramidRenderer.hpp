@@ -29,7 +29,7 @@ public:
 
     void Create();
 
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
 private:
     AttachmentRef               m_depth_attachment;

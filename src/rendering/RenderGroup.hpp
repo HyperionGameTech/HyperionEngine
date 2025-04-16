@@ -113,13 +113,13 @@ public:
     void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(Frame *frame);
+    void PerformRendering(FrameBase *frame);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(Frame *frame);
+    void PerformRenderingIndirect(FrameBase *frame);
 
-    void PerformOcclusionCulling(Frame *frame, const CullData *cull_data);
+    void PerformOcclusionCulling(FrameBase *frame, const CullData *cull_data);
 
     void Init();
 

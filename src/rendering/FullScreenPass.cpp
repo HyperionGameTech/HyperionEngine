@@ -41,31 +41,6 @@ struct MergeHalfResTexturesUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
-{
-    FixedArray<CommandBufferRef, max_frames_in_flight>  command_buffers;
-
-    RENDER_COMMAND(CreateCommandBuffers)(const FixedArray<CommandBufferRef, max_frames_in_flight> &command_buffers)
-        : command_buffers(command_buffers)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateCommandBuffers)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 i = 0; i < max_frames_in_flight; i++) {
-#ifdef HYP_VULKAN
-            command_buffers[i]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[0];
-#endif
-
-            HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(g_engine->GetGPUDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer) : renderer::RenderCommand
 {
     FullScreenPass  &full_screen_pass;
@@ -159,9 +134,9 @@ const ImageViewRef &FullScreenPass::GetFinalImageView() const
         return m_merge_half_res_textures_pass->GetFinalImageView();
     }
 
-    const AttachmentRef &color_attachment = GetAttachment(0);
+    AttachmentBase *color_attachment = GetAttachment(0);
 
-    if (!color_attachment.IsValid()) {
+    if (!color_attachment) {
         return ImageViewRef::Null();
     }
 
@@ -172,9 +147,9 @@ const ImageViewRef &FullScreenPass::GetPreviousFrameColorImageView() const
 {
     // If we're rendering at half res, we use the same image we render to but at an offset.
     if (ShouldRenderHalfRes()) {
-        const AttachmentRef &color_attachment = GetAttachment(0);
+        AttachmentBase *color_attachment = GetAttachment(0);
 
-        if (!color_attachment.IsValid()) {
+        if (!color_attachment) {
             return ImageViewRef::Null();
         }
 
@@ -219,7 +194,7 @@ void FullScreenPass::SetShader(const ShaderRef &shader)
     m_shader = shader;
 }
 
-const AttachmentRef &FullScreenPass::GetAttachment(uint32 attachment_index) const
+AttachmentBase *FullScreenPass::GetAttachment(uint32 attachment_index) const
 {
     AssertThrow(m_framebuffer.IsValid());
 
@@ -302,38 +277,34 @@ void FullScreenPass::CreateFramebuffer()
         DebugLog(LogType::Debug, "Reshaped extent: %d, %d to %d, %d", m_extent.x, m_extent.y, framebuffer_extent.x, framebuffer_extent.y);
     }
 
-    m_framebuffer = MakeRenderObject<Framebuffer>(
-        framebuffer_extent,
-        renderer::RenderPassStage::SHADER
-    );
+    m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_extent);
 
-    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
-        framebuffer_extent,
-        m_image_format
-    ));
+    TextureDesc texture_desc;
+    texture_desc.type = ImageType::TEXTURE_TYPE_2D;
+    texture_desc.format = m_image_format;
+    texture_desc.extent = Vec3u { framebuffer_extent, 1 };
+    texture_desc.filter_mode_min = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.filter_mode_mag = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
 
-    attachment_image->SetIsAttachmentTexture(true);
+    ImageRef attachment_image = g_rendering_api->MakeImage(texture_desc);
+    DeferCreate(attachment_image);
 
-    DeferCreate(attachment_image, g_engine->GetGPUDevice());
-
-    AttachmentRef attachment = MakeRenderObject<Attachment>(
+    AttachmentRef attachment = m_framebuffer->AddAttachment(
+        0,
         attachment_image,
-        renderer::RenderPassStage::SHADER,
         ShouldRenderHalfRes() ? renderer::LoadOperation::LOAD : renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
-
-    attachment->SetBinding(0);
 
     if (m_blend_function != BlendFunction::None()) {
         attachment->SetAllowBlending(true);
     }
 
-    DeferCreate(attachment, g_engine->GetGPUDevice());
-    
-    m_framebuffer->AddAttachment(attachment);
+    DeferCreate(attachment);
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
 void FullScreenPass::CreatePipeline()
@@ -440,7 +411,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
@@ -449,7 +420,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
         descriptor_set->SetElement(NAME("InTexture"), GetPreviousFrameColorImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -475,17 +446,16 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         MergeHalfResTexturesUniforms uniforms;
         uniforms.dimensions = m_extent;
 
-        merge_half_res_textures_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-        HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(uniforms)));
-
-        merge_half_res_textures_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+        merge_half_res_textures_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create());
+        merge_half_res_textures_uniform_buffer->Copy(sizeof(uniforms), &uniforms);
     }
 
     ShaderRef merge_half_res_textures_shader = g_shader_manager->GetOrCreate(NAME("MergeHalfResTextures"));
     AssertThrow(merge_half_res_textures_shader.IsValid());
 
     const DescriptorTableDeclaration descriptor_table_decl = merge_half_res_textures_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("MergeHalfResTexturesDescriptorSet"), frame_index);
@@ -495,7 +465,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         descriptor_set->SetElement(NAME("UniformBuffer"), merge_half_res_textures_uniform_buffer);
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_merge_half_res_textures_pass = MakeUnique<FullScreenPass>(
         merge_half_res_textures_shader,
@@ -511,7 +481,7 @@ void FullScreenPass::CreateDescriptors()
 {
 }
 
-void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
+void FullScreenPass::RenderPreviousTextureToScreen(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -557,7 +527,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 }
 
-void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
+void FullScreenPass::CopyResultToPreviousTexture(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -578,7 +548,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
     frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
-void FullScreenPass::MergeHalfResTextures(Frame *frame)
+void FullScreenPass::MergeHalfResTextures(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -590,7 +560,7 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
     m_merge_half_res_textures_pass->Render(frame);
 }
 
-void FullScreenPass::Render(Frame *frame)
+void FullScreenPass::Render(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -616,7 +586,7 @@ void FullScreenPass::Render(Frame *frame)
     }
 }
 
-void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer)
+void FullScreenPass::RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -670,7 +640,7 @@ void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &fra
     m_is_first_frame = false;
 }
 
-void FullScreenPass::Begin(Frame *frame)
+void FullScreenPass::Begin(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -693,7 +663,7 @@ void FullScreenPass::Begin(Frame *frame)
     }
 }
 
-void FullScreenPass::End(Frame *frame)
+void FullScreenPass::End(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

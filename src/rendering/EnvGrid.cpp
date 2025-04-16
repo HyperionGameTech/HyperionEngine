@@ -14,6 +14,7 @@
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/AsyncCompute.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -33,10 +34,6 @@
 #include <Engine.hpp>
 
 namespace hyperion {
-
-using renderer::Image;
-using renderer::StorageImage;
-using renderer::ImageView;
 
 #pragma region Globals
 
@@ -531,7 +528,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread);
 }
 
-void EnvGrid::OnRender(Frame *frame)
+void EnvGrid::OnRender(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -666,10 +663,11 @@ void EnvGrid::CreateVoxelGridData()
             voxel_grid_dimensions,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
             FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
         }
     );
-
-    m_voxel_grid_texture->SetIsRWTexture(true);
 
     InitObject(m_voxel_grid_texture);
 
@@ -685,7 +683,6 @@ void EnvGrid::CreateVoxelGridData()
 
     // Create shader, descriptor sets for voxelizing probes
     AssertThrowMsg(m_framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
-    AssertThrowMsg(m_framebuffer->GetAttachmentMap().Size() >= 3, "Framebuffer must have at least 3 attachments (color, normals, distances)");
 
     ShaderRef voxelize_probe_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), {{ "MODE_VOXELIZE" }});
     ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), {{ "MODE_OFFSET" }});
@@ -693,7 +690,7 @@ void EnvGrid::CreateVoxelGridData()
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         // create descriptor sets for depth pyramid generation.
@@ -712,33 +709,33 @@ void EnvGrid::CreateVoxelGridData()
         AssertThrow(m_voxel_grid_texture->GetRenderResource().GetImageView() != nullptr);
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     { // Compute shader to clear the voxel grid at a specific position
-        m_clear_voxels = MakeRenderObject<ComputePipeline>(
+        m_clear_voxels = g_rendering_api->MakeComputePipeline(
             clear_voxels_shader,
             descriptor_table
         );
 
-        DeferCreate(m_clear_voxels, g_engine->GetGPUDevice());
+        DeferCreate(m_clear_voxels);
     }
 
     { // Compute shader to voxelize a probe into voxel grid
-        m_voxelize_probe = MakeRenderObject<ComputePipeline>(
+        m_voxelize_probe = g_rendering_api->MakeComputePipeline(
             voxelize_probe_shader,
             descriptor_table
         );
 
-        DeferCreate(m_voxelize_probe, g_engine->GetGPUDevice());
+        DeferCreate(m_voxelize_probe);
     }
 
     { // Compute shader to 'offset' the voxel grid
-        m_offset_voxel_grid = MakeRenderObject<ComputePipeline>(
+        m_offset_voxel_grid = g_rendering_api->MakeComputePipeline(
             offset_voxel_grid_shader,
             descriptor_table
         );
 
-        DeferCreate(m_offset_voxel_grid, g_engine->GetGPUDevice());
+        DeferCreate(m_offset_voxel_grid);
     }
 
     { // Compute shader to generate mipmaps for voxel grid
@@ -751,18 +748,17 @@ void EnvGrid::CreateVoxelGridData()
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
 
         for (uint32 mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
-            m_voxel_grid_mips[mip_level] = MakeRenderObject<ImageView>();
+            m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView();
 
             DeferCreate(
                 m_voxel_grid_mips[mip_level],
-                g_engine->GetGPUDevice(),
                 m_voxel_grid_texture->GetRenderResource().GetImage(),
                 mip_level, 1,
                 0, m_voxel_grid_texture->GetRenderResource().GetImage()->NumFaces()
             );
 
             // create descriptor sets for mip generation.
-            DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(generate_voxel_grid_mipmaps_descriptor_table_decl);
+            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(generate_voxel_grid_mipmaps_descriptor_table_decl);
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 const DescriptorSetRef &mip_descriptor_set = descriptor_table->GetDescriptorSet(NAME("GenerateMipmapDescriptorSet"), frame_index);
@@ -778,17 +774,17 @@ void EnvGrid::CreateVoxelGridData()
                 mip_descriptor_set->SetElement(NAME("OutputTexture"), m_voxel_grid_mips[mip_level]);
             }
 
-            DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+            DeferCreate(descriptor_table);
 
             m_generate_voxel_grid_mipmaps_descriptor_tables.PushBack(std::move(descriptor_table));
         }
 
-        m_generate_voxel_grid_mipmaps = MakeRenderObject<ComputePipeline>(
+        m_generate_voxel_grid_mipmaps = g_rendering_api->MakeComputePipeline(
             generate_voxel_grid_mipmaps_shader,
             m_generate_voxel_grid_mipmaps_descriptor_tables[0]
         );
 
-        DeferCreate(m_generate_voxel_grid_mipmaps, g_engine->GetGPUDevice());
+        DeferCreate(m_generate_voxel_grid_mipmaps);
     }
 }
 
@@ -801,12 +797,10 @@ void EnvGrid::CreateSphericalHarmonicsData()
     m_sh_tiles_buffers.Resize(sh_num_levels);
 
     for (uint32 i = 0; i < sh_num_levels; i++) {
-        m_sh_tiles_buffers[i] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+        const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
+        m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, size);
 
-        DeferCreate(
-            m_sh_tiles_buffers[i],
-            g_engine->GetGPUDevice(), sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i)
-        );
+        DeferCreate(m_sh_tiles_buffers[i]);
     }
 
     FixedArray<ShaderRef, 4> shaders = {
@@ -825,7 +819,7 @@ void EnvGrid::CreateSphericalHarmonicsData()
     m_compute_sh_descriptor_tables.Resize(sh_num_levels);
     
     for (uint32 i = 0; i < sh_num_levels; i++) {
-        m_compute_sh_descriptor_tables[i] = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+        m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const DescriptorSetRef &compute_sh_descriptor_set = m_compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
@@ -843,36 +837,36 @@ void EnvGrid::CreateSphericalHarmonicsData()
             }
         }
 
-        DeferCreate(m_compute_sh_descriptor_tables[i], g_engine->GetGPUDevice());
+        DeferCreate(m_compute_sh_descriptor_tables[i]);
     }
 
-    m_clear_sh = MakeRenderObject<ComputePipeline>(
+    m_clear_sh = g_rendering_api->MakeComputePipeline(
         shaders[0],
         m_compute_sh_descriptor_tables[0]
     );
 
-    DeferCreate(m_clear_sh, g_engine->GetGPUDevice());
+    DeferCreate(m_clear_sh);
 
-    m_compute_sh = MakeRenderObject<ComputePipeline>(
+    m_compute_sh = g_rendering_api->MakeComputePipeline(
         shaders[1],
         m_compute_sh_descriptor_tables[0]
     );
 
-    DeferCreate(m_compute_sh, g_engine->GetGPUDevice());
+    DeferCreate(m_compute_sh);
 
-    m_reduce_sh = MakeRenderObject<ComputePipeline>(
+    m_reduce_sh = g_rendering_api->MakeComputePipeline(
         shaders[2],
         m_compute_sh_descriptor_tables[0]
     );
 
-    DeferCreate(m_reduce_sh, g_engine->GetGPUDevice());
+    DeferCreate(m_reduce_sh);
 
-    m_finalize_sh = MakeRenderObject<ComputePipeline>(
+    m_finalize_sh = g_rendering_api->MakeComputePipeline(
         shaders[3],
         m_compute_sh_descriptor_tables[0]
     );
 
-    DeferCreate(m_finalize_sh, g_engine->GetGPUDevice());
+    DeferCreate(m_finalize_sh);
 }
 
 void EnvGrid::CreateLightFieldData()
@@ -892,11 +886,12 @@ void EnvGrid::CreateLightFieldData()
                 1
             },
             FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
         }
     );
-
-    m_irradiance_texture->SetIsRWTexture(true);
 
     InitObject(m_irradiance_texture);
 
@@ -920,11 +915,12 @@ void EnvGrid::CreateLightFieldData()
                 1
             },
             FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
         }
     );
-
-    m_depth_texture->SetIsRWTexture(true);
 
     InitObject(m_depth_texture);
 
@@ -938,13 +934,9 @@ void EnvGrid::CreateLightFieldData()
     );
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        GPUBufferRef light_field_uniforms = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+        GPUBufferRef light_field_uniforms = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(LightFieldUniforms));
 
-        DeferCreate(
-            light_field_uniforms,
-            g_engine->GetGPUDevice(),
-            sizeof(LightFieldUniforms)
-        );
+        DeferCreate(light_field_uniforms);
 
         m_uniform_buffers.PushBack(std::move(light_field_uniforms));
     }
@@ -967,7 +959,7 @@ void EnvGrid::CreateLightFieldData()
 
         const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("LightFieldProbeDescriptorSet"), frame_index);
@@ -984,10 +976,10 @@ void EnvGrid::CreateLightFieldData()
             descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetRenderResource().GetImageView());
         }
 
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
-        pipeline = MakeRenderObject<ComputePipeline>(shader, descriptor_table);
-        DeferCreate(pipeline, g_engine->GetGPUDevice());
+        pipeline = g_rendering_api->MakeComputePipeline(shader, descriptor_table);
+        DeferCreate(pipeline);
     }
 }
 
@@ -1013,18 +1005,12 @@ void EnvGrid::CreateFramebuffer()
 {
     HYP_SCOPE;
 
-    m_framebuffer = MakeRenderObject<Framebuffer>(
-        framebuffer_dimensions,
-        renderer::RenderPassStage::SHADER,
-        renderer::RenderPassMode::RENDER_PASS_INLINE,
-        6
-    );
+    m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_dimensions, 6);
 
     m_framebuffer->AddAttachment(
         0,
         ambient_probe_format,
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
@@ -1034,7 +1020,6 @@ void EnvGrid::CreateFramebuffer()
         1,
         InternalFormat::RG16F,
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
@@ -1044,7 +1029,6 @@ void EnvGrid::CreateFramebuffer()
         2,
         InternalFormat::RG16F,
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
@@ -1054,17 +1038,16 @@ void EnvGrid::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         3,
-        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
-void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
+void EnvGrid::RenderEnvProbe(FrameBase *frame, uint32 probe_index)
 {
     HYP_SCOPE;
 
@@ -1140,7 +1123,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, uint32 probe_index)
     probe->SetNeedsRender(false);
 }
 
-void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const Handle<EnvProbe> &probe)
+void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, const Handle<EnvProbe> &probe)
 {
     HYP_SCOPE;
 
@@ -1148,9 +1131,9 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
 
     const uint32 probe_index = probe->m_grid_slot;
 
-    const AttachmentRef &color_attachment = m_framebuffer->GetAttachment(0);
-    const AttachmentRef &normals_attachment = m_framebuffer->GetAttachment(1);
-    const AttachmentRef &depth_attachment = m_framebuffer->GetAttachment(2);
+    AttachmentBase *color_attachment = m_framebuffer->GetAttachment(0);
+    AttachmentBase *normals_attachment = m_framebuffer->GetAttachment(1);
+    AttachmentBase *depth_attachment = m_framebuffer->GetAttachment(2);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
@@ -1198,13 +1181,13 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
             ->SetElement(NAME("InDepthCubemap"), depth_attachment->GetImageView());
 
-        descriptor_set_ref->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex());
+        descriptor_set_ref->Update(frame->GetFrameIndex());
     }
 
     m_clear_sh->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    RHICommandList &async_compute_command_list = g_engine->GetGPUDevice()->GetAsyncCompute()->GetCommandList(frame->GetFrameIndex());
+    RHICommandList &async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
 
     async_compute_command_list.Add<InsertBarrier>(
         m_sh_tiles_buffers[0],
@@ -1366,7 +1349,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(Frame *frame, const H
     );
 }
 
-void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<EnvProbe> &probe)
+void EnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase *frame, const Handle<EnvProbe> &probe)
 {
     HYP_SCOPE;
 
@@ -1414,7 +1397,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
 
         uniforms.num_bound_lights = num_bound_lights;
 
-        m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+        m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
     }
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
@@ -1523,7 +1506,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_LightField(Frame *frame, const Handle<En
     );
 }
 
-void EnvGrid::OffsetVoxelGrid(Frame *frame, Vec3i offset)
+void EnvGrid::OffsetVoxelGrid(FrameBase *frame, Vec3i offset)
 {
     HYP_SCOPE;
 
@@ -1575,7 +1558,7 @@ void EnvGrid::OffsetVoxelGrid(Frame *frame, Vec3i offset)
 }
 
 void EnvGrid::VoxelizeProbe(
-    Frame *frame,
+    FrameBase *frame,
     uint32 probe_index
 )
 {

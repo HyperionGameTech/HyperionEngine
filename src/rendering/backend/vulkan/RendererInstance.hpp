@@ -44,7 +44,7 @@ public:
     HYP_FORCE_INLINE Device<Platform::VULKAN> *GetDevice() const
         { return m_device; }
 
-    HYP_FORCE_INLINE const SwapchainRef<Platform::VULKAN> &GetSwapchain() const
+    HYP_FORCE_INLINE const VulkanSwapchainRef &GetSwapchain() const
         { return m_swapchain; }
 
     HYP_FORCE_INLINE VmaAllocator GetAllocator() const
@@ -70,7 +70,7 @@ private:
     VmaAllocator                    allocator = nullptr;
 
     Device<Platform::VULKAN>        *m_device = nullptr;
-    SwapchainRef<Platform::VULKAN>  m_swapchain;
+    VulkanSwapchainRef              m_swapchain;
     
     Array<const char *>             validation_layers;
 

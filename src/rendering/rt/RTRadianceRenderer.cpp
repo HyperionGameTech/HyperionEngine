@@ -75,30 +75,6 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet) : renderer::Ren
     }
 };
 
-struct RENDER_COMMAND(CreateRTRadianceUniformBuffers) : renderer::RenderCommand
-{
-    FixedArray<GPUBufferRef, max_frames_in_flight>  uniform_buffers;
-
-    RENDER_COMMAND(CreateRTRadianceUniformBuffers)(FixedArray<GPUBufferRef, max_frames_in_flight> uniform_buffers)
-        : uniform_buffers(std::move(uniform_buffers))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateRTRadianceUniformBuffers)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const GPUBufferRef &uniform_buffer = uniform_buffers[frame_index];
-
-            HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms)));
-            uniform_buffer->Memset(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms), 0x0);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 #pragma endregion Render commands
 
 RTRadianceRenderer::RTRadianceRenderer(const Vec2u &extent, RTRadianceRendererOptions options)
@@ -136,7 +112,7 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::UpdateUniforms(Frame *frame)
+void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
 {
     RTRadianceUniforms uniforms { };
 
@@ -165,7 +141,7 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
     uniforms.num_bound_lights = num_bound_lights;
 
-    m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+    m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 
     if (m_updates[frame->GetFrameIndex()]) {
         const DescriptorSetRef &descriptor_set = m_raytracing_pipeline->GetDescriptorTable()
@@ -173,13 +149,13 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
         AssertThrow(descriptor_set.IsValid());
 
-        descriptor_set->Update(g_engine->GetGPUDevice());
+        descriptor_set->Update();
 
         m_updates[frame->GetFrameIndex()] = RT_RADIANCE_UPDATES_NONE;
     }
 }
 
-void RTRadianceRenderer::Render(Frame *frame)
+void RTRadianceRenderer::Render(FrameBase *frame)
 {
     UpdateUniforms(frame);
 
@@ -242,10 +218,11 @@ void RTRadianceRenderer::CreateImages()
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
     });
 
-    m_texture->SetIsRWTexture(true);
     InitObject(m_texture);
 
     m_texture->SetPersistentRenderResourceEnabled(true);
@@ -253,12 +230,18 @@ void RTRadianceRenderer::CreateImages()
 
 void RTRadianceRenderer::CreateUniformBuffer()
 {
+    RTRadianceUniforms uniforms;
+    Memory::MemSet(&uniforms, 0, sizeof(uniforms));
+
     m_uniform_buffers = {
-        MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER),
-        MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER)
+        g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
+        g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms))
     };
 
-    PUSH_RENDER_COMMAND(CreateRTRadianceUniformBuffers, m_uniform_buffers);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        HYPERION_ASSERT_RESULT(m_uniform_buffers[frame_index]->Create());
+        m_uniform_buffers[frame_index]->Copy(sizeof(uniforms), &uniforms);
+    }
 }
 
 void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
@@ -299,7 +282,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         AssertThrow(m_top_level_acceleration_structures[frame_index] != nullptr);
@@ -317,20 +300,14 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }
 
-    DeferCreate(
-        descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(descriptor_table);
 
-    m_raytracing_pipeline = MakeRenderObject<RaytracingPipeline>(
+    m_raytracing_pipeline = g_rendering_api->MakeRaytracingPipeline(
         m_shader,
         descriptor_table
     );
 
-    DeferCreate(
-        m_raytracing_pipeline,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_raytracing_pipeline);
 
     PUSH_RENDER_COMMAND(
         SetRTRadianceImageInGlobalDescriptorSet,

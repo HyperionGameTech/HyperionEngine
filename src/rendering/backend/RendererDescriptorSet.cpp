@@ -8,6 +8,8 @@
 namespace hyperion {
 namespace renderer {
 
+#pragma region DescriptorSetDeclaration
+
 DescriptorDeclaration *DescriptorSetDeclaration::FindDescriptorDeclaration(Name name) const
 {
     for (uint32 slot_index = 0; slot_index < DESCRIPTOR_SLOT_MAX; slot_index++) {
@@ -79,13 +81,152 @@ DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration()
     return initializer.decl;
 }
 
-static struct GlobalDescriptorSetsDeclarations
+#pragma endregion DescriptorSetDeclaration
+
+#pragma region DescriptorSetLayout
+
+DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration &decl)
+    : m_decl(decl)
 {
-    GlobalDescriptorSetsDeclarations()
-    {
-#include <rendering/inl/DescriptorSets.inl>
+    const DescriptorSetDeclaration *decl_ptr = &decl;
+
+    if (decl.is_reference) {
+        decl_ptr = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl.name);
+
+        AssertThrowMsg(decl_ptr != nullptr, "Invalid global descriptor set reference: %s", decl.name.LookupString());
     }
-} s_global_descriptor_sets_declarations;
+
+    for (const Array<DescriptorDeclaration> &slot : decl_ptr->slots) {
+        for (const DescriptorDeclaration &descriptor : slot) {
+            const uint32 descriptor_index = decl_ptr->CalculateFlatIndex(descriptor.slot, descriptor.name);
+            AssertThrow(descriptor_index != ~0u);
+            
+            if (descriptor.cond != nullptr && !descriptor.cond()) {
+                // Skip this descriptor, condition not met
+                continue;
+            }
+
+            // HYP_LOG(RenderingBackend, Debug, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
+            //     decl_ptr->name, descriptor.name, descriptor_index, int(descriptor.slot),
+            //     descriptor.count, descriptor.size, descriptor.is_dynamic);
+
+            switch (descriptor.slot) {
+            case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
+                AddElement(descriptor.name, DescriptorSetElementType::IMAGE, descriptor_index, descriptor.count);
+    
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_UAV:
+                AddElement(descriptor.name, DescriptorSetElementType::IMAGE_STORAGE, descriptor_index, descriptor.count);
+                    
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_CBUFF:
+                if (descriptor.is_dynamic) {
+                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC, descriptor_index, descriptor.count, descriptor.size);
+                } else {
+                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER, descriptor_index, descriptor.count, descriptor.size);
+                }
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_SSBO:
+                if (descriptor.is_dynamic) {
+                    AddElement(descriptor.name, DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC, descriptor_index, descriptor.count, descriptor.size);
+                } else {
+                    AddElement(descriptor.name, DescriptorSetElementType::STORAGE_BUFFER, descriptor_index, descriptor.count, descriptor.size);
+                }
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
+                AddElement(descriptor.name, DescriptorSetElementType::TLAS, descriptor_index, descriptor.count);
+
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER:
+                AddElement(descriptor.name, DescriptorSetElementType::SAMPLER, descriptor_index, descriptor.count);
+
+                break;
+            default:
+                AssertThrowMsg(false, "Invalid descriptor slot");
+                break;
+            }
+        }
+    }
+
+    // build a list of dynamic elements, paired by their element index so we can sort it after.
+    Array<Pair<Name, uint32>> dynamic_elements_with_index;
+
+    // Add to list of dynamic buffer names
+    for (const auto &it : m_elements) {
+        if (it.second.type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
+            || it.second.type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
+        {
+            dynamic_elements_with_index.PushBack({ it.first, it.second.binding });
+        }
+    }
+
+    std::sort(dynamic_elements_with_index.Begin(), dynamic_elements_with_index.End(), [](const Pair<Name, uint32> &a, const Pair<Name, uint32> &b)
+    {
+        return a.second < b.second;
+    });
+
+    m_dynamic_elements.Resize(dynamic_elements_with_index.Size());
+
+    for (SizeType i = 0; i < dynamic_elements_with_index.Size(); i++) {
+        m_dynamic_elements[i] = std::move(dynamic_elements_with_index[i].first);
+    }
+}
+
+#pragma endregion DescriptorSetLayout
+
+#pragma region DescriptorSetBase
+
+bool DescriptorSetBase::HasElement(Name name) const
+{
+    return m_elements.Find(name) != m_elements.End();
+}
+
+void DescriptorSetBase::SetElement(Name name, uint32 index, const GPUBufferRef &ref)
+{
+    SetElement<GPUBufferRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef &ref)
+{
+    SetElement<GPUBufferRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, const GPUBufferRef &ref)
+{
+    SetElement(name, 0, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, uint32 index, const ImageViewRef &ref)
+{
+    SetElement<ImageViewRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, const ImageViewRef &ref)
+{
+    SetElement(name, 0, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, uint32 index, const SamplerRef &ref)
+{
+    SetElement<SamplerRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, const SamplerRef &ref)
+{
+    SetElement(name, 0, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, uint32 index, const TLASRef &ref)
+{
+    SetElement<TLASRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(Name name, const TLASRef &ref)
+{
+    SetElement(name, 0, ref);
+}
+
+#pragma endregion DescriptorSetBase
 
 } // namespace renderer
 } // namespace hyperion

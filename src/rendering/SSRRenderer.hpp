@@ -93,7 +93,7 @@ public:
     void Create();
     void Destroy();
 
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
 private:
     ShaderProperties GetShaderProperties() const;

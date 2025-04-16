@@ -42,7 +42,7 @@ void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 }
 
 /*! \brief Perform rendering. Called from RENDER thread. */
-void RenderSubsystem::ComponentRender(Frame *frame)
+void RenderSubsystem::ComponentRender(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

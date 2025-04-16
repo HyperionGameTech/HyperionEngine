@@ -48,7 +48,6 @@ Texture::Texture()
 Texture::Texture(const TextureDesc &texture_desc)
     : m_render_resource(nullptr),
       m_texture_desc(texture_desc),
-      m_is_rw_texture(false),
       m_streamed_texture_data(MakeRefCountedPtr<StreamedTextureData>(TextureData { texture_desc }, m_streamed_texture_data_resource_handle))
 {
 }
@@ -56,7 +55,6 @@ Texture::Texture(const TextureDesc &texture_desc)
 Texture::Texture(const TextureData &texture_data)
     : m_render_resource(nullptr),
       m_texture_desc(texture_data.desc),
-      m_is_rw_texture(false),
       m_streamed_texture_data(MakeRefCountedPtr<StreamedTextureData>(texture_data, m_streamed_texture_data_resource_handle))
 {
 }
@@ -64,7 +62,6 @@ Texture::Texture(const TextureData &texture_data)
 Texture::Texture(const RC<StreamedTextureData> &streamed_texture_data)
     : m_render_resource(nullptr),
       m_texture_desc(streamed_texture_data != nullptr ? streamed_texture_data->GetTextureDesc() : TextureDesc { }),
-      m_is_rw_texture(false),
       m_streamed_texture_data(streamed_texture_data)
 {
     if (m_streamed_texture_data) {
@@ -181,17 +178,6 @@ void Texture::SetTextureDesc(const TextureDesc &texture_desc)
     if (IsInitCalled()) {
         // @TODO Reupload texture data
     }
-}
-
-void Texture::SetIsRWTexture(bool is_rw_texture)
-{
-    if (m_is_rw_texture == is_rw_texture) {
-        return;
-    }
-
-    AssertThrowMsg(!IsReady(), "Cannot set RW texture after initialization");
-
-    m_is_rw_texture = is_rw_texture;
 }
 
 void Texture::GenerateMipmaps()

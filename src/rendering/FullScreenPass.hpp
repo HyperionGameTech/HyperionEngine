@@ -64,7 +64,7 @@ public:
     HYP_FORCE_INLINE InternalFormat GetFormat() const
         { return m_image_format; }
 
-    const AttachmentRef &GetAttachment(uint32 attachment_index) const;
+    AttachmentBase *GetAttachment(uint32 attachment_index) const;
 
     HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
         { return m_framebuffer; }
@@ -108,11 +108,11 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    virtual void Render(Frame *frame);
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer);
+    virtual void Render(FrameBase *frame);
+    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer);
 
-    void Begin(Frame *frame);
-    void End(Frame *frame);
+    void Begin(FrameBase *frame);
+    void End(FrameBase *frame);
 
 protected:
     virtual bool UsesTemporalBlending() const
@@ -129,10 +129,10 @@ protected:
     
     void CreateQuad();
 
-    void RenderPreviousTextureToScreen(Frame *frame);
-    void CopyResultToPreviousTexture(Frame *frame);
+    void RenderPreviousTextureToScreen(FrameBase *frame);
+    void CopyResultToPreviousTexture(FrameBase *frame);
 
-    void MergeHalfResTextures(Frame *frame);
+    void MergeHalfResTextures(FrameBase *frame);
 
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;

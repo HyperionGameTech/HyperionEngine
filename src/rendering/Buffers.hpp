@@ -226,8 +226,8 @@ public:
 
     virtual void MarkDirty(uint32 index) = 0;
 
-    virtual void UpdateBufferSize(Device *device, uint32 frame_index) = 0;
-    virtual void UpdateBufferData(Device *device, uint32 frame_index) = 0;
+    virtual void UpdateBufferSize(uint32 frame_index) = 0;
+    virtual void UpdateBufferData(uint32 frame_index) = 0;
 
     virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -256,7 +256,7 @@ public:
     }
 
 protected:
-    void CreateBuffers(SizeType count, SizeType size, SizeType alignment = 0);
+    void CreateBuffers(GPUBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
 
     virtual void *Get_Internal(uint32 index) = 0;
     virtual void Set_Internal(uint32 index, const void *ptr) = 0;
@@ -293,10 +293,10 @@ public:
         MarkDirty(index);
     }
 
-    void EnsureGPUBufferCapacity(Device *device, const GPUBufferRef &buffer, uint32 frame_index)
+    void EnsureGPUBufferCapacity(const GPUBufferRef &buffer, uint32 frame_index)
     {
         bool was_resized = false;
-        HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(device, Base::NumAllocatedElements() * sizeof(StructType), &was_resized));
+        HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &was_resized));
 
         if (was_resized) {
             // Reset the dirty ranges
@@ -305,7 +305,7 @@ public:
         }
     }
 
-    void CopyToGPUBuffer(Device *device, const GPUBufferRef &buffer, uint32 frame_index)
+    void CopyToGPUBuffer(const GPUBufferRef &buffer, uint32 frame_index)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -350,7 +350,6 @@ public:
                 (offset + count) * sizeof(StructType));
 
             buffer->Copy(
-                device,
                 offset * sizeof(StructType),
                 count * sizeof(StructType),
                 &begin_it->elements[offset - index]
@@ -376,11 +375,7 @@ public:
         : GPUBufferHolderBase(TypeWrapper<StructType> { }),
           m_pool(count)
     {
-        for (uint32 frame_index = 0; frame_index < m_buffers.Size(); frame_index++) {
-            m_buffers[frame_index] = MakeRenderObject<GPUBuffer>(BufferType);
-        }
-
-        GPUBufferHolderBase::CreateBuffers(count, sizeof(StructType));
+        GPUBufferHolderBase::CreateBuffers(BufferType, count, sizeof(StructType));
     }
 
     GPUBufferHolder(const GPUBufferHolder &other)               = delete;
@@ -398,15 +393,15 @@ public:
         return m_pool.num_elements_per_block;
     }
 
-    virtual void UpdateBufferSize(Device *device, uint32 frame_index) override
+    virtual void UpdateBufferSize(uint32 frame_index) override
     {
         m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGPUBufferCapacity(device, m_buffers[frame_index], frame_index);
+        m_pool.EnsureGPUBufferCapacity(m_buffers[frame_index], frame_index);
     }
 
-    virtual void UpdateBufferData(Device *device, uint32 frame_index) override
+    virtual void UpdateBufferData(uint32 frame_index) override
     {
-        m_pool.CopyToGPUBuffer(device, m_buffers[frame_index], frame_index);
+        m_pool.CopyToGPUBuffer(m_buffers[frame_index], frame_index);
     }
 
     virtual void MarkDirty(uint32 index) override

@@ -3,11 +3,8 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_ATTACHMENT_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_ATTACHMENT_HPP
 
+#include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/Platform.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -18,18 +15,36 @@
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <>
-struct AttachmentPlatformImpl<Platform::VULKAN>
+class VulkanAttachment final : public AttachmentBase
 {
-    Attachment<Platform::VULKAN>    *self = nullptr;
+public:
+    static constexpr PlatformType platform = Platform::VULKAN;
+    
+    HYP_API VulkanAttachment(
+        const VulkanImageRef &image,
+        RenderPassStage stage,
+        LoadOperation load_operation = LoadOperation::CLEAR,
+        StoreOperation store_operation = StoreOperation::STORE,
+        BlendFunction blend_function = BlendFunction::None()
+    );
+    HYP_API virtual ~VulkanAttachment() override;
 
-    HYP_API VkAttachmentDescription GetAttachmentDescription() const;
-    HYP_API VkAttachmentReference GetHandle() const;
+    HYP_API VkAttachmentReference GetVulkanHandle() const;
+    HYP_API VkAttachmentDescription GetVulkanAttachmentDescription() const;
+
+    HYP_FORCE_INLINE RenderPassStage GetRenderPassStage() const
+        { return m_stage; }
+
+    HYP_API virtual bool IsCreated() const override;
+
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
+
+private:
+    RenderPassStage                     m_stage;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

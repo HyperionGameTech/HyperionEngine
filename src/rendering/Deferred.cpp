@@ -23,7 +23,6 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -106,14 +105,12 @@ static ShaderProperties GetDeferredShaderProperties()
 
     properties.Set(
         "RT_REFLECTIONS_ENABLED",
-        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
-            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
     );
 
     properties.Set(
         "RT_GI_ENABLED",
-        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
-            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
     );
     
     properties.Set(
@@ -222,13 +219,13 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
     }
 
     { // linear transform cosines texture data
-        m_ltc_sampler = MakeRenderObject<Sampler>(
+        m_ltc_sampler = g_rendering_api->MakeSampler(
             renderer::FilterMode::TEXTURE_FILTER_NEAREST,
             renderer::FilterMode::TEXTURE_FILTER_LINEAR,
             renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         );
 
-        DeferCreate(m_ltc_sampler, g_engine->GetGPUDevice());
+        DeferCreate(m_ltc_sampler);
 
         ByteBuffer ltc_matrix_data(sizeof(s_ltc_matrix), s_ltc_matrix);
 
@@ -273,7 +270,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
@@ -286,7 +283,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             descriptor_set->SetElement(NAME("LTCBRDFTexture"), m_ltc_brdf_texture->GetRenderResource().GetImageView());
         }
 
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -334,7 +331,7 @@ void DeferredPass::AddToGlobalDescriptorSet()
     }
 }
 
-void DeferredPass::Render(Frame *frame)
+void DeferredPass::Render(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -349,7 +346,7 @@ void DeferredPass::Render(Frame *frame)
         return;
     }
 
-    static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
@@ -544,8 +541,8 @@ void EnvGridPass::CreatePipeline()
         
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -589,7 +586,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     AddToGlobalDescriptorSet();
 }
 
-void EnvGridPass::Render(Frame *frame)
+void EnvGridPass::Render(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -672,7 +669,7 @@ void EnvGridPass::Render(Frame *frame)
 #pragma region ReflectionsPass
 
 ReflectionsPass::ReflectionsPass()
-    : FullScreenPass(InternalFormat::RGBA8),
+    : FullScreenPass(InternalFormat::R10G10B10A2),
       m_is_first_frame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -743,8 +740,8 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_at
         
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-        DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -778,7 +775,7 @@ void ReflectionsPass::CreateSSRRenderer()
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
@@ -787,7 +784,7 @@ void ReflectionsPass::CreateSSRRenderer()
         descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_ssr_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -822,7 +819,7 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     AddToGlobalDescriptorSet();
 }
 
-void ReflectionsPass::Render(Frame *frame)
+void ReflectionsPass::Render(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -953,8 +950,8 @@ void ReflectionsPass::Render(Frame *frame)
 
 #pragma region Deferred renderer
 
-DeferredRenderer::DeferredRenderer()
-    : m_gbuffer(MakeUnique<GBuffer>()),
+DeferredRenderer::DeferredRenderer(SwapchainBase *swapchain)
+    : m_gbuffer(MakeUnique<GBuffer>(swapchain)),
       m_is_initialized(false)
 {
 }
@@ -994,7 +991,7 @@ void DeferredRenderer::Create()
                     ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
 
                 // depth attachment goes into separate slot
-                const AttachmentRef &depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+                AttachmentBase *depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
                 AssertThrow(depth_attachment != nullptr);
 
                 g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
@@ -1092,7 +1089,7 @@ void DeferredRenderer::CreateCombinePass()
 
     PUSH_RENDER_COMMAND(
         SetDeferredResultInGlobalDescriptorSet,
-        GetCombinedResult()->GetImageView()
+        GetCombinedResultAttachment()->GetImageView()
     );
 }
 
@@ -1153,11 +1150,12 @@ void DeferredRenderer::Resize(Vec2u new_size)
     m_reflections_pass->Resize(new_size);
 }
 
-void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
+
+    static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -1171,11 +1169,11 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool do_particles = true;
     const bool do_gaussian_splatting = false;//environment && environment->IsReady();
 
-    const bool use_rt_radiance = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+    const bool use_rt_radiance = is_raytracing_supported
         && (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             || g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
 
-    const bool use_ddgi = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+    const bool use_ddgi = is_raytracing_supported
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool();
     
     const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
@@ -1374,7 +1372,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     // m_dof_blur->Render(frame);
 }
 
-void DeferredRenderer::GenerateMipChain(Frame *frame, const ImageRef &src_image)
+void DeferredRenderer::GenerateMipChain(FrameBase *frame, const ImageRef &src_image)
 {
     HYP_SCOPE;
 
@@ -1439,15 +1437,24 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
     static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
     static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
 
-    UniquePtr<BlueNoiseBuffer> aligned_buffer = MakeUnique<BlueNoiseBuffer>();
-    Memory::MemCpy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
-    Memory::MemCpy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
-    Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
-    
-    GPUBufferRef blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer)));
+    constexpr SizeType blue_noise_buffer_size = sizeof(BlueNoiseBuffer);
 
-    blue_noise_buffer->Copy(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer), aligned_buffer.Get());
+    constexpr SizeType sobol_256spp_256d_offset = offsetof(BlueNoiseBuffer, sobol_256spp_256d);
+    constexpr SizeType sobol_256spp_256d_size = sizeof(BlueNoise::sobol_256spp_256d);
+    constexpr SizeType scrambling_tile_offset = offsetof(BlueNoiseBuffer, scrambling_tile);
+    constexpr SizeType scrambling_tile_size = sizeof(BlueNoise::scrambling_tile);
+    constexpr SizeType ranking_tile_offset = offsetof(BlueNoiseBuffer, ranking_tile);
+    constexpr SizeType ranking_tile_size = sizeof(BlueNoise::ranking_tile);
+
+    static_assert(blue_noise_buffer_size == (sobol_256spp_256d_offset + sobol_256spp_256d_size)
+        + ((scrambling_tile_offset - (sobol_256spp_256d_offset + sobol_256spp_256d_size)) + scrambling_tile_size)
+        + ((ranking_tile_offset - (scrambling_tile_offset + scrambling_tile_size)) + ranking_tile_size));
+    
+    GPUBufferRef blue_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
+    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create());
+    blue_noise_buffer->Copy(sobol_256spp_256d_offset, sobol_256spp_256d_size, &BlueNoise::sobol_256spp_256d[0]);
+    blue_noise_buffer->Copy(scrambling_tile_offset, scrambling_tile_size, &BlueNoise::scrambling_tile[0]);
+    blue_noise_buffer->Copy(ranking_tile_offset, ranking_tile_size, &BlueNoise::ranking_tile[0]);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
@@ -1461,8 +1468,8 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
 
     Threads::AssertOnThread(g_render_thread);
     
-    GPUBufferRef sphere_samples_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096));
+    GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
+    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create());
 
     Vec4f *sphere_samples = new Vec4f[4096];
 
@@ -1478,7 +1485,7 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
         sphere_samples[i] = Vec4f(sample, 0.0f);
     }
 
-    sphere_samples_buffer->Copy(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096, sphere_samples);
+    sphere_samples_buffer->Copy(sizeof(Vec4f) * 4096, sphere_samples);
 
     delete[] sphere_samples;
 
@@ -1488,7 +1495,7 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
     }
 }
 
-void DeferredRenderer::CollectDrawCalls(Frame *frame)
+void DeferredRenderer::CollectDrawCalls(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -1503,7 +1510,7 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderSkybox(Frame *frame)
+void DeferredRenderer::RenderSkybox(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -1521,7 +1528,7 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
+void DeferredRenderer::RenderOpaqueObjects(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -1539,7 +1546,7 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
+void DeferredRenderer::RenderTranslucentObjects(FrameBase *frame)
 {
     HYP_SCOPE;
 

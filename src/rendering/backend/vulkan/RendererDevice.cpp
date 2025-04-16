@@ -25,9 +25,7 @@ Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface
       m_physical(physical),
       m_surface(surface),
       m_allocator(VK_NULL_HANDLE),
-      m_features(MakeUnique<Features>()),
-      m_descriptor_set_manager(MakeUnique<DescriptorSetManager<Platform::VULKAN>>()),
-      m_async_compute(MakeUnique<AsyncCompute<Platform::VULKAN>>())
+      m_features(MakeUnique<Features>())
 {
     m_features->SetPhysicalDevice(m_physical);
     
@@ -433,47 +431,45 @@ RendererResult Device<Platform::VULKAN>::Create(const std::set<uint32> &required
     m_features->SetDeviceFeatures(this);
 
     DebugLog(LogType::Info, "Raytracing supported? : %d\n", m_features->IsRaytracingSupported());
-
-    HYPERION_BUBBLE_ERRORS(m_descriptor_set_manager->Create(this));
     
     {  // Create device queues
-        m_queue_graphics = DeviceQueue<Platform::VULKAN> {
-            .type   = DeviceQueueType::GRAPHICS,
+        m_queue_graphics = VulkanDeviceQueue {
+            .type   = VulkanDeviceQueueType::GRAPHICS,
             .queue  = GetQueue(m_queue_family_indices.graphics_family.Get())
         };
 
-        m_queue_transfer = DeviceQueue<Platform::VULKAN> {
-            .type   = DeviceQueueType::TRANSFER,
+        m_queue_transfer = VulkanDeviceQueue {
+            .type   = VulkanDeviceQueueType::TRANSFER,
             .queue  = GetQueue(m_queue_family_indices.transfer_family.Get())
         };
 
-        m_queue_present = DeviceQueue<Platform::VULKAN> {
-            .type   = DeviceQueueType::PRESENT,
+        m_queue_present = VulkanDeviceQueue {
+            .type   = VulkanDeviceQueueType::PRESENT,
             .queue  = GetQueue(m_queue_family_indices.present_family.Get())
         };
 
-        m_queue_compute = DeviceQueue<Platform::VULKAN> {
-            .type   = DeviceQueueType::COMPUTE,
+        m_queue_compute = VulkanDeviceQueue {
+            .type   = VulkanDeviceQueueType::COMPUTE,
             .queue  = GetQueue(m_queue_family_indices.compute_family.Get())
         };
 
-        DeviceQueue<Platform::VULKAN> *queues_with_command_buffers[] = { &m_queue_graphics, &m_queue_transfer, &m_queue_compute };
+        VulkanDeviceQueue *queues_with_command_buffers[] = { &m_queue_graphics, &m_queue_transfer, &m_queue_compute };
 
         for (auto &it : queues_with_command_buffers) {
             for (uint32 command_buffer_index = 0; command_buffer_index < it->command_pools.Size(); command_buffer_index++) {
                 uint32 family_index = 0;
 
                 switch (it->type) {
-                case DeviceQueueType::GRAPHICS:
+                case VulkanDeviceQueueType::GRAPHICS:
                     family_index = m_queue_family_indices.graphics_family.Get();
                     break;
-                case DeviceQueueType::TRANSFER:
+                case VulkanDeviceQueueType::TRANSFER:
                     family_index = m_queue_family_indices.transfer_family.Get();
                     break;
-                case DeviceQueueType::COMPUTE:
+                case VulkanDeviceQueueType::COMPUTE:
                     family_index = m_queue_family_indices.compute_family.Get();
                     break;
-                case DeviceQueueType::PRESENT:
+                case VulkanDeviceQueueType::PRESENT:
                     family_index = m_queue_family_indices.present_family.Get();
                     break;
                 default:
@@ -492,8 +488,6 @@ RendererResult Device<Platform::VULKAN>::Create(const std::set<uint32> &required
         }
     }
 
-    HYPERION_BUBBLE_ERRORS(m_async_compute->Create(this));
-
     HYPERION_RETURN_OK;
 }
 
@@ -509,13 +503,9 @@ VkQueue Device<Platform::VULKAN>::GetQueue(uint32 queue_family_index, uint32 que
 
 void Device<Platform::VULKAN>::Destroy()
 {
-    m_async_compute.Reset();
-    
-    m_descriptor_set_manager->Destroy(this);
+    VulkanDeviceQueue *queues[] = { &m_queue_graphics, &m_queue_transfer, &m_queue_compute, &m_queue_present };
 
-    DeviceQueue<Platform::VULKAN> *queues[] = { &m_queue_graphics, &m_queue_transfer, &m_queue_compute, &m_queue_present };
-
-    for (DeviceQueue<Platform::VULKAN> *queue : queues) {
+    for (VulkanDeviceQueue *queue : queues) {
         for (VkCommandPool command_pool : queue->command_pools) {
             vkDestroyCommandPool(m_device, command_pool, nullptr);
         }

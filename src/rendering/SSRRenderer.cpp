@@ -66,20 +66,11 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
     virtual ~RENDER_COMMAND(CreateSSRUniformBuffer)() override = default;
 
     virtual RendererResult operator()() override
-    {
-        DebugLog(LogType::Debug, "Sizeof(SSRUniforms) = %u\n", sizeof(SSRUniforms));
-        
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms)
-        ));
+    {   
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create());
         
         DebugLog(LogType::Debug, "Size of buffer = %u\n",uniform_buffer->Size());
-        uniform_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms),
-            &uniforms
-        );
+        uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
         HYPERION_RETURN_OK;
     }
@@ -157,10 +148,11 @@ void SSRRenderer::Create()
         Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_uvs_texture->SetIsRWTexture(true);
     InitObject(m_uvs_texture);
 
     m_uvs_texture->SetPersistentRenderResourceEnabled(true);
@@ -171,10 +163,11 @@ void SSRRenderer::Create()
         Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_sampled_result_texture->SetIsRWTexture(true);
     InitObject(m_sampled_result_texture);
 
     m_sampled_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -254,7 +247,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.screen_edge_fade_start = m_config.screen_edge_fade.x;
     uniforms.screen_edge_fade_end = m_config.screen_edge_fade.y;
 
-    m_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
     
     PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniform_buffer);
 }
@@ -269,7 +262,7 @@ void SSRRenderer::CreateComputePipelines()
     AssertThrow(write_uvs_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef write_uvs_shader_descriptor_table = MakeRenderObject<DescriptorTable>(write_uvs_shader_descriptor_table_decl);
+    DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(write_uvs_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
@@ -279,14 +272,14 @@ void SSRRenderer::CreateComputePipelines()
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
-    DeferCreate(write_uvs_shader_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(write_uvs_shader_descriptor_table);
 
-    m_write_uvs = MakeRenderObject<ComputePipeline>(
+    m_write_uvs = g_rendering_api->MakeComputePipeline(
         g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties),
         write_uvs_shader_descriptor_table
     );
 
-    DeferCreate(m_write_uvs, g_engine->GetGPUDevice());
+    DeferCreate(m_write_uvs);
 
     // Sample pass
 
@@ -294,7 +287,7 @@ void SSRRenderer::CreateComputePipelines()
     AssertThrow(sample_gbuffer_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef sample_gbuffer_shader_descriptor_table = MakeRenderObject<DescriptorTable>(sample_gbuffer_shader_descriptor_table_decl);
+    DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(sample_gbuffer_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = sample_gbuffer_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
@@ -305,14 +298,14 @@ void SSRRenderer::CreateComputePipelines()
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
-    DeferCreate(sample_gbuffer_shader_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(sample_gbuffer_shader_descriptor_table);
 
-    m_sample_gbuffer = MakeRenderObject<ComputePipeline>(
+    m_sample_gbuffer = g_rendering_api->MakeComputePipeline(
         sample_gbuffer_shader,
         sample_gbuffer_shader_descriptor_table
     );
 
-    DeferCreate(m_sample_gbuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_sample_gbuffer);
 
     PUSH_RENDER_COMMAND(
         CreateSSRDescriptors,
@@ -320,7 +313,7 @@ void SSRRenderer::CreateComputePipelines()
     );
 }
 
-void SSRRenderer::Render(Frame *frame)
+void SSRRenderer::Render(FrameBase *frame)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 

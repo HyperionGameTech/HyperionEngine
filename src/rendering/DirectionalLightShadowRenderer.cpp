@@ -9,6 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderTexture.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -31,8 +32,6 @@ namespace hyperion {
 
 // #define HYP_SHADOW_RENDER_COLLECTION_ASYNC
 
-using renderer::RenderPassStage;
-using renderer::RenderPassMode;
 using renderer::LoadOperation;
 using renderer::StoreOperation;
 
@@ -110,8 +109,8 @@ struct RENDER_COMMAND(CreateShadowMapImage) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(g_engine->GetGPUDevice()));
-        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(g_engine->GetGPUDevice(), shadow_map_image));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create());
+        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(shadow_map_image));
 
         HYPERION_RETURN_OK;
     }
@@ -134,8 +133,8 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
     {
         RendererResult result;
 
-        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(g_engine->GetGPUDevice()), result);
-        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(g_engine->GetGPUDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(), result);
+        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(), result);
 
         return result;
     }
@@ -234,19 +233,13 @@ ShadowPass::~ShadowPass()
 
 void ShadowPass::CreateFramebuffer()
 {
-    /* Add the filters' renderpass */
-    m_framebuffer = MakeRenderObject<Framebuffer>(
-        GetExtent(),
-        RenderPassStage::SHADER,
-        RenderPassMode::RENDER_PASS_INLINE
-    );
+    m_framebuffer = g_rendering_api->MakeFramebuffer(GetExtent());
 
     // depth, depth^2 texture (for variance shadow map)
     AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
         0,
         GetFormat(),
         ImageType::TEXTURE_TYPE_2D,
-        RenderPassStage::SHADER,
         LoadOperation::CLEAR,
         StoreOperation::STORE
     );
@@ -256,14 +249,13 @@ void ShadowPass::CreateFramebuffer()
     // standard depth texture
     m_framebuffer->AddAttachment(
         1,
-        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
         ImageType::TEXTURE_TYPE_2D,
-        RenderPassStage::SHADER,
         LoadOperation::CLEAR,
         StoreOperation::STORE
     );
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
 void ShadowPass::CreateDescriptors()
@@ -294,10 +286,10 @@ void ShadowPass::CreateShadowMap()
             Vec3u { GetExtent().x, GetExtent().y, 1 },
             FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
         });
-
-        texture->SetIsRWTexture(true);
 
         InitObject(texture);
 
@@ -312,7 +304,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
     DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("CombineShadowMapsDescriptorSet"), frame_index);
@@ -322,7 +314,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
         descriptor_set->SetElement(NAME("InTexture"), m_shadow_map_dynamics->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(descriptor_table);
 
     m_combine_shadow_maps_pass = MakeUnique<FullScreenPass>(shader, descriptor_table, GetFormat(), GetExtent());
     m_combine_shadow_maps_pass->Create();
@@ -335,7 +327,7 @@ void ShadowPass::CreateComputePipelines()
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
@@ -347,14 +339,14 @@ void ShadowPass::CreateComputePipelines()
         descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(descriptor_table);
 
-    m_blur_shadow_map_pipeline = MakeRenderObject<ComputePipeline>(
+    m_blur_shadow_map_pipeline = g_rendering_api->MakeComputePipeline(
         blur_shadow_map_shader,
         descriptor_table
     );
 
-    DeferCreate(m_blur_shadow_map_pipeline, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(m_blur_shadow_map_pipeline);
 }
 
 void ShadowPass::Create()
@@ -377,7 +369,7 @@ void ShadowPass::Create()
     m_render_collector_dynamics->SetOverrideAttributes(override_attributes);
 }
 
-void ShadowPass::Render(Frame *frame)
+void ShadowPass::Render(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -452,8 +444,8 @@ void ShadowPass::Render(Frame *frame)
     g_engine->GetRenderState()->UnsetActiveScene();
 
     { // Combine static and dynamic shadow maps
-        const AttachmentRef &attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
-        AssertThrow(attachment.IsValid());
+        AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
+        AssertThrow(attachment != nullptr);
 
         m_combine_shadow_maps_pass->Render(frame);
 
@@ -663,7 +655,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     );
 }
 
-void DirectionalLightShadowRenderer::OnRender(Frame *frame)
+void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)
 {
     HYP_SCOPE;
     

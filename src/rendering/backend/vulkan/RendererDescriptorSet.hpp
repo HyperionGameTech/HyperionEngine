@@ -10,6 +10,7 @@
 #include <core/threading/Mutex.hpp>
 #include <core/Defines.hpp>
 
+#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
@@ -20,34 +21,6 @@
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-class GPUBuffer;
-
-template <PlatformType PLATFORM>
-class ImageView;
-
-template <PlatformType PLATFORM>
-class Sampler;
-
-template <PlatformType PLATFORM>
-class TopLevelAccelerationStructure;
-
-template <PlatformType PLATFORM>
-class GraphicsPipeline;
-
-template <PlatformType PLATFORM>
-class ComputePipeline;
-
-template <PlatformType PLATFORM>
-class RaytracingPipeline;
-
-template <PlatformType PLATFORM>
-class CommandBuffer;
 
 struct VulkanDescriptorSetLayoutWrapper;
 
@@ -64,86 +37,52 @@ struct VulkanDescriptorElementInfo
     };
 };
 
-class IVulkanDescriptorElementContainer
-{
-public:
-    virtual ~IVulkanDescriptorElementContainer() = default;
-
-    virtual VulkanDescriptorElementInfo GetDescriptorElementInfo(uint32 index) const = 0;
-};
-
-template <>
-struct DescriptorSetElementTypeInfo<Platform::VULKAN, GPUBuffer<Platform::VULKAN>>
-{
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-        | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER))
-        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
-};
-
-template <>
-struct DescriptorSetElementTypeInfo<Platform::VULKAN, ImageView<Platform::VULKAN>>
-{
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-        | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
-};
-
-template <>
-struct DescriptorSetElementTypeInfo<Platform::VULKAN, Sampler<Platform::VULKAN>>
-{
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
-};
-
-template <>
-struct DescriptorSetElementTypeInfo<Platform::VULKAN, TopLevelAccelerationStructure<Platform::VULKAN>>
-{
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
-};
-
 struct DescriptorSetElementCachedValue
 {
     VulkanDescriptorElementInfo info;
 };
 
-template <>
-struct DescriptorSetPlatformImpl<Platform::VULKAN>
-{
-    DescriptorSet<Platform::VULKAN>                         *self = nullptr;
-    VkDescriptorSet                                         handle = VK_NULL_HANDLE;
-    HashMap<Name, Array<DescriptorSetElementCachedValue>>   cached_elements;
-    RC<VulkanDescriptorSetLayoutWrapper>                    vk_layout_wrapper;
-
-    VkDescriptorSetLayout GetVkDescriptorSetLayout() const;
-};
-
-template <>
-class DescriptorSetManager<Platform::VULKAN>
+class VulkanDescriptorSet final : public DescriptorSetBase
 {
 public:
-    static constexpr uint32 max_descriptor_sets = 4096;
+    HYP_API VulkanDescriptorSet(const DescriptorSetLayout &layout);
+    HYP_API ~VulkanDescriptorSet();
 
-    DescriptorSetManager();
-    DescriptorSetManager(const DescriptorSetManager &other)                 = delete;
-    DescriptorSetManager &operator=(const DescriptorSetManager &other)      = delete;
-    DescriptorSetManager(DescriptorSetManager &&other) noexcept             = delete;
-    DescriptorSetManager &operator=(DescriptorSetManager &&other) noexcept  = delete;
-    ~DescriptorSetManager();
+    HYP_FORCE_INLINE VkDescriptorSet GetVulkanHandle() const
+        { return m_handle; }
 
-    RendererResult Create(Device<Platform::VULKAN> *device);
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    HYP_FORCE_INLINE VulkanDescriptorSetLayoutWrapper *GetVulkanLayoutWrapper() const
+        { return m_vk_layout_wrapper.Get(); }
 
-    RendererResult CreateDescriptorSet(Device<Platform::VULKAN> *device, const RC<VulkanDescriptorSetLayoutWrapper> &layout, VkDescriptorSet &out_vk_descriptor_set);
-    RendererResult DestroyDescriptorSet(Device<Platform::VULKAN> *device, VkDescriptorSet vk_descriptor_set);
+    HYP_API virtual bool IsCreated() const override;
 
-    RC<VulkanDescriptorSetLayoutWrapper> GetOrCreateVkDescriptorSetLayout(Device<Platform::VULKAN> *device, const DescriptorSetLayout<Platform::VULKAN> &layout);
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
 
-private:
-    HashMap<HashCode, Weak<VulkanDescriptorSetLayoutWrapper>>   m_vk_descriptor_set_layouts;
+    HYP_API virtual void Update() override;
 
-    VkDescriptorPool                                            m_vk_descriptor_pool;
+    HYP_API virtual DescriptorSetRef Clone() const override;
+
+protected:
+    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
+
+    VkDescriptorSet                                         m_handle;
+    HashMap<Name, Array<DescriptorSetElementCachedValue>>   m_cached_elements;
+    RC<VulkanDescriptorSetLayoutWrapper>                    m_vk_layout_wrapper;
 };
 
-} // namespace platform
+class VulkanDescriptorTable : public DescriptorTableBase
+{
+public:
+    HYP_API VulkanDescriptorTable(const DescriptorTableDeclaration &decl);
+    HYP_API virtual ~VulkanDescriptorTable() override = default;
+};
+
 } // namespace renderer
 } // namespace hyperion
 

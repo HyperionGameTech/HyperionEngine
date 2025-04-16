@@ -4,6 +4,8 @@
 #define HYPERION_BACKEND_RENDERER_DEVICE_HPP
 
 #include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RenderObject.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {
@@ -11,7 +13,7 @@ namespace renderer {
 namespace platform {
 
 template <PlatformType PLATFORM>
-class Device
+class Device : public RenderObject<Device<PLATFORM>>
 {
 public:
     static constexpr PlatformType platform = PLATFORM;

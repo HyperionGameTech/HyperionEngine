@@ -15,8 +15,6 @@
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderConfig.hpp>
-#include <rendering/backend/RendererFrameHandler.hpp>
-#include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -74,8 +72,8 @@ struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer) : renderer::Rend
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms)));
-        uniform_buffer->Memset(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms), 0x0);
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create());
+        uniform_buffer->Memset(sizeof(RTRadianceUniforms), 0x0);
 
         HYPERION_RETURN_OK;
     }
@@ -105,7 +103,7 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Frame *frame = g_engine->GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetCurrentFrame();
+        FrameBase *frame = g_rendering_api->GetCurrentFrame();
 
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
@@ -168,7 +166,7 @@ struct RENDER_COMMAND(LightmapRender) : renderer::RenderCommand
 void LightmapperConfig::PostLoadCallback()
 {
     if (trace_mode == LightmapTraceMode::GPU_PATH_TRACING) {
-        if (!renderer::RenderConfig::IsRaytracingSupported()) {
+        if (!g_rendering_api->GetRenderConfig().IsRaytracingSupported()) {
             trace_mode = LightmapTraceMode::CPU_PATH_TRACING;
 
             HYP_LOG(Lightmap, Warning, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
@@ -461,12 +459,12 @@ public:
 
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
-    virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void ReadHitsBuffer(FrameBase *frame, Span<LightmapHit> out_hits) override;
+    virtual void Render(FrameBase *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     void CreateUniformBuffer();
-    void UpdateUniforms(Frame *frame, uint32 ray_offset);
+    void UpdateUniforms(FrameBase *frame, uint32 ray_offset);
 
     Handle<Scene>                                       m_scene;
     LightmapShadingType                                 m_shading_type;
@@ -483,15 +481,14 @@ LightmapGPUPathTracer::LightmapGPUPathTracer(const Handle<Scene> &scene, Lightma
     : m_scene(scene),
       m_shading_type(shading_type),
       m_uniform_buffers({
-          MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER),
-          MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER)
+          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
+          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms))
       }),
       m_rays_buffers({
-          MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER),
-          MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER)
+          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)),
+          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512))
       }),
-      m_hits_buffer_gpu(MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER)),
-      m_raytracing_pipeline(MakeRenderObject<RaytracingPipeline>())
+      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(LightmapHit) * (512 * 512)))
 {
     
 }
@@ -507,7 +504,7 @@ LightmapGPUPathTracer::~LightmapGPUPathTracer()
 void LightmapGPUPathTracer::CreateUniformBuffer()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_uniform_buffers[frame_index] = MakeRenderObject<GPUBuffer>(UniformBuffer());
+        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms));
 
         PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, m_uniform_buffers[frame_index]);
     }
@@ -522,18 +519,10 @@ void LightmapGPUPathTracer::Create()
 
     CreateUniformBuffer();
 
-    DeferCreate(
-        m_hits_buffer_gpu,
-        g_engine->GetGPUDevice(),
-        sizeof(LightmapHit) * (512 * 512)
-    );
+    DeferCreate(m_hits_buffer_gpu);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        DeferCreate(
-            m_rays_buffers[frame_index],
-            g_engine->GetGPUDevice(),
-            sizeof(Vec4f) * 2 * (512 * 512)
-        );
+        DeferCreate(m_rays_buffers[frame_index]);
     }
 
     ShaderProperties shader_properties;
@@ -554,7 +543,7 @@ void LightmapGPUPathTracer::Create()
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTopLevelAccelerationStructures()[frame_index];
@@ -574,23 +563,17 @@ void LightmapGPUPathTracer::Create()
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }
 
-    DeferCreate(
-        descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(descriptor_table);
 
-    m_raytracing_pipeline = MakeRenderObject<RaytracingPipeline>(
+    m_raytracing_pipeline = g_rendering_api->MakeRaytracingPipeline(
         shader,
         descriptor_table
     );
 
-    DeferCreate(
-        m_raytracing_pipeline,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_raytracing_pipeline);
 }
 
-void LightmapGPUPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
+void LightmapGPUPathTracer::UpdateUniforms(FrameBase *frame, uint32 ray_offset)
 {
     RTRadianceUniforms uniforms { };
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -616,24 +599,24 @@ void LightmapGPUPathTracer::UpdateUniforms(Frame *frame, uint32 ray_offset)
 
     uniforms.num_bound_lights = num_bound_lights;
 
-    m_uniform_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+    m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }
 
 void LightmapGPUPathTracer::UpdateRays(Span<const LightmapRay> rays)
 {
 }
 
-void LightmapGPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
+void LightmapGPUPathTracer::ReadHitsBuffer(FrameBase *frame, Span<LightmapHit> out_hits)
 {
     // @TODO Some kind of function like WaitForFrameToComplete to ensure that the hits buffer is not being written to in the current frame.
 
     const GPUBufferRef &hits_buffer = m_hits_buffer_gpu;
 
-    GPUBufferRef staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
-    HYPERION_ASSERT_RESULT(staging_buffer->Create(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit)));
-    staging_buffer->Memset(g_engine->GetGPUDevice(), out_hits.Size() * sizeof(LightmapHit), 0);
+    GPUBufferRef staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, out_hits.Size() * sizeof(LightmapHit));
+    HYPERION_ASSERT_RESULT(staging_buffer->Create());
+    staging_buffer->Memset(out_hits.Size() * sizeof(LightmapHit), 0);
 
-    renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+    renderer::SingleTimeCommands commands;
 
     commands.Push([&](RHICommandList &cmd)
     {
@@ -654,16 +637,12 @@ void LightmapGPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_h
 
     HYPERION_ASSERT_RESULT(commands.Execute());
 
-    staging_buffer->Read(
-        g_engine->GetGPUDevice(),
-        sizeof(LightmapHit) * out_hits.Size(),
-        out_hits.Data()
-    );
+    staging_buffer->Read(sizeof(LightmapHit) * out_hits.Size(), out_hits.Data());
 
-    HYPERION_ASSERT_RESULT(staging_buffer->Destroy(g_engine->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(staging_buffer->Destroy());
 }
 
-void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapGPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -689,8 +668,8 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
         
         bool rays_buffer_resized = false;
 
-        HYPERION_ASSERT_RESULT(m_rays_buffers[frame->GetFrameIndex()]->EnsureCapacity(g_engine->GetGPUDevice(), ray_data.ByteSize(), &rays_buffer_resized));
-        m_rays_buffers[frame->GetFrameIndex()]->Copy(g_engine->GetGPUDevice(), ray_data.ByteSize(), ray_data.Data());
+        HYPERION_ASSERT_RESULT(m_rays_buffers[frame->GetFrameIndex()]->EnsureCapacity(ray_data.ByteSize(), &rays_buffer_resized));
+        m_rays_buffers[frame->GetFrameIndex()]->Copy(ray_data.ByteSize(), ray_data.Data());
         
         if (rays_buffer_resized) {
             m_raytracing_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame->GetFrameIndex())
@@ -699,8 +678,8 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
 
         bool hits_buffer_resized = false;
 
-        /*HYPERION_ASSERT_RESULT(m_hits_buffers[frame->GetFrameIndex()]->EnsureCapacity(g_engine->GetGPUDevice(), rays.Size() * sizeof(LightmapHit), &hits_buffer_resized));
-        m_hits_buffers[frame->GetFrameIndex()]->Memset(g_engine->GetGPUDevice(), rays.Size() * sizeof(LightmapHit), 0);
+        /*HYPERION_ASSERT_RESULT(m_hits_buffers[frame->GetFrameIndex()]->EnsureCapacity(rays.Size() * sizeof(LightmapHit), &hits_buffer_resized));
+        m_hits_buffers[frame->GetFrameIndex()]->Memset(rays.Size() * sizeof(LightmapHit), 0);
 
         if (hits_buffer_resized) {
             m_raytracing_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame->GetFrameIndex())
@@ -708,7 +687,7 @@ void LightmapGPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const Li
         }*/
 
         if (rays_buffer_resized || hits_buffer_resized) {
-            m_raytracing_pipeline->GetDescriptorTable()->Update(g_engine->GetGPUDevice(), frame->GetFrameIndex());
+            m_raytracing_pipeline->GetDescriptorTable()->Update(frame->GetFrameIndex());
         }
     }
 
@@ -764,8 +743,8 @@ public:
 
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
-    virtual void ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void ReadHitsBuffer(FrameBase *frame, Span<LightmapHit> out_hits) override;
+    virtual void Render(FrameBase *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     void TraceSingleRayOnCPU(LightmapJob *job, const LightmapRay &ray, LightmapRayHitPayload &out_payload);
@@ -803,7 +782,7 @@ void LightmapCPUPathTracer::UpdateRays(Span<const LightmapRay> rays)
 {
 }
 
-void LightmapCPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_hits)
+void LightmapCPUPathTracer::ReadHitsBuffer(FrameBase *frame, Span<LightmapHit> out_hits)
 {
     Threads::AssertOnThread(g_render_thread);
     
@@ -815,7 +794,7 @@ void LightmapCPUPathTracer::ReadHitsBuffer(Frame *frame, Span<LightmapHit> out_h
     Memory::MemCpy(out_hits.Data(), m_hits_buffer.Data(), m_hits_buffer.ByteSize());
 }
 
-void LightmapCPUPathTracer::Render(Frame *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     Threads::AssertOnThread(g_render_thread);
 

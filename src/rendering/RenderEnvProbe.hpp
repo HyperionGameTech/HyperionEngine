@@ -162,7 +162,7 @@ public:
     void EnqueueBind();
     void EnqueueUnbind();
 
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
 protected:
     virtual void Initialize_Internal() override;

@@ -342,7 +342,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     }
 }
 
-void Game::OnFrameBegin(Frame *frame)
+void Game::OnFrameBegin(FrameBase *frame)
 {
     HYP_SCOPE;
 
@@ -361,7 +361,7 @@ void Game::OnFrameBegin(Frame *frame)
     }
 }
 
-void Game::OnFrameEnd(Frame *frame)
+void Game::OnFrameEnd(FrameBase *frame)
 {
     HYP_SCOPE;
 

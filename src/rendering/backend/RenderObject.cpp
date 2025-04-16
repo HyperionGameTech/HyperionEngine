@@ -25,26 +25,16 @@ renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView re
 {
 }
 
-renderer::RenderObjectContainerBase::~RenderObjectContainerBase()
-{
-}
-
 #pragma endregion RenderObjectContainerBase
 
 #pragma region RenderObjectDeleter
-
-template <>
-renderer::platform::Device<Platform::CURRENT> *RenderObjectDeleter<Platform::CURRENT>::GetDevice()
-{
-    return g_engine->GetGPUDevice();
-}
 
 template <>
 void RenderObjectDeleter<Platform::CURRENT>::Initialize()
 {
     // Command buffer should be deleted first so that no
     // buffers that will be deleted are used in the command buffers
-    (void)GetQueue<CommandBuffer>();
+    (void)GetQueue<CommandBufferBase>();
 }
 
 template <>

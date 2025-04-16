@@ -3,33 +3,61 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_PIPELINE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_PIPELINE_HPP
 
+#include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
+#include <rendering/backend/RenderObject.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
 namespace renderer {
-    
-class DescriptorPool;
 
-namespace platform {
+extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper &layout);
 
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-class Shader;
-
-template <>
-struct PipelinePlatformImpl<Platform::VULKAN>
+template <class PipelineType>
+static inline Array<VkDescriptorSetLayout> GetPipelineVulkanDescriptorSetLayouts(const PipelineType &pipeline)
 {
-    Pipeline<Platform::VULKAN>  *self = nullptr;
+    AssertThrowMsg(pipeline.GetDescriptorTable().IsValid(), "Invalid DescriptorTable provided to Pipeline");
 
-    VkPipeline                  handle = VK_NULL_HANDLE;
-    VkPipelineLayout            layout = VK_NULL_HANDLE;
+    Array<VkDescriptorSetLayout> used_layouts;
+    used_layouts.Reserve(pipeline.GetDescriptorTable()->GetSets()[0].Size());
 
-    Array<VkDescriptorSetLayout> GetDescriptorSetLayouts() const;
+    for (const VulkanDescriptorSetRef &descriptor_set : pipeline.GetDescriptorTable()->GetSets()[0]) {
+        AssertThrow(descriptor_set != nullptr);
+        AssertThrow(descriptor_set->GetVulkanLayoutWrapper() != nullptr);
+
+        used_layouts.PushBack(GetVkDescriptorSetLayout(*descriptor_set->GetVulkanLayoutWrapper()));
+    }
+
+    return used_layouts;
+}
+
+class VulkanPipelineBase
+{
+public:
+    HYP_API VulkanPipelineBase();
+    HYP_API virtual ~VulkanPipelineBase();
+
+    HYP_FORCE_INLINE VkPipeline GetVulkanHandle() const
+        { return m_handle; }
+
+    HYP_FORCE_INLINE VkPipelineLayout GetVulkanPipelineLayout() const
+        { return m_layout; }
+
+    HYP_API Array<VkDescriptorSetLayout> GetDescriptorSetLayouts() const;
+    
+    HYP_API RendererResult Destroy();
+
+    HYP_API bool IsCreated() const;
+    
+    HYP_API void SetPushConstants(const void *data, SizeType size);
+
+protected:
+    VkPipeline                  m_handle;
+    VkPipelineLayout            m_layout;
+
+    PushConstantData            m_push_constants;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

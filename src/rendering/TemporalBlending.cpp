@@ -113,7 +113,7 @@ void TemporalBlending::Create()
     }
 
     if (m_input_framebuffer.IsValid()) {
-        DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
+        DeferCreate(m_input_framebuffer);
     }
     
     CreateImageOutputs();
@@ -191,10 +191,11 @@ void TemporalBlending::CreateImageOutputs()
         Vec3u(m_extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_result_texture->SetIsRWTexture(true);
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -205,10 +206,11 @@ void TemporalBlending::CreateImageOutputs()
         Vec3u(m_extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_history_texture->SetIsRWTexture(true);
     InitObject(m_history_texture);
 
     m_history_texture->SetPersistentRenderResourceEnabled(true);
@@ -221,7 +223,7 @@ void TemporalBlending::CreateDescriptorSets()
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    m_descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    m_descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
@@ -229,10 +231,6 @@ void TemporalBlending::CreateDescriptorSets()
     };
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        if (m_input_framebuffer.IsValid()) {
-            AssertThrowMsg(m_input_framebuffer->GetAttachmentMap().Size() != 0, "No attachment refs on input framebuffer!");
-        }
-
         const ImageViewRef &input_image_view = m_input_framebuffer.IsValid()
             ? m_input_framebuffer->GetAttachment(0)->GetImageView()
             : m_input_image_view;
@@ -260,7 +258,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("OutImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(m_descriptor_table);
 }
 
 void TemporalBlending::CreateComputePipelines()
@@ -270,15 +268,15 @@ void TemporalBlending::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
-    m_perform_blending = MakeRenderObject<ComputePipeline>(
+    m_perform_blending = g_rendering_api->MakeComputePipeline(
         shader,
         m_descriptor_table
     );
 
-    DeferCreate(m_perform_blending, g_engine->GetGPUDevice());
+    DeferCreate(m_perform_blending);
 }
 
-void TemporalBlending::Render(Frame *frame)
+void TemporalBlending::Render(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

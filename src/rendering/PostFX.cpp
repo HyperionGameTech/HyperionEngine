@@ -51,21 +51,19 @@ void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(g_render_thread);
 
-    if (m_framebuffer->GetAttachmentMap().Size() != 0) {
-        if (m_effect_index == ~0u) {
-            DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
+    if (m_effect_index == ~0u) {
+        DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
 
-            return;
-        }
+        return;
+    }
 
-        const Name descriptor_name = m_stage == POST_PROCESSING_STAGE_PRE_SHADING
-            ? NAME("PostFXPreStack")
-            : NAME("PostFXPostStack");
+    const Name descriptor_name = m_stage == POST_PROCESSING_STAGE_PRE_SHADING
+        ? NAME("PostFXPreStack")
+        : NAME("PostFXPostStack");
 
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachment(0)->GetImageView());
-        }
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+            ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachment(0)->GetImageView());
     }
 }
 
@@ -93,7 +91,7 @@ void PostProcessingEffect::Init()
     m_pass.Create();
 }
 
-void PostProcessingEffect::RenderEffect(Frame *frame, uint32 slot)
+void PostProcessingEffect::RenderEffect(FrameBase *frame, uint32 slot)
 {
     struct alignas(128)
     {
@@ -236,14 +234,9 @@ void PostProcessing::CreateUniformBuffer()
 
     const PostProcessingUniforms post_processing_uniforms = GetUniforms();
 
-    m_uniform_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
-    HYPERION_ASSERT_RESULT(m_uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(post_processing_uniforms)));
-
-    m_uniform_buffer->Copy(
-        g_engine->GetGPUDevice(),
-        sizeof(PostProcessingUniforms),
-        &post_processing_uniforms
-    );
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(post_processing_uniforms));
+    HYPERION_ASSERT_RESULT(m_uniform_buffer->Create());
+    m_uniform_buffer->Copy(sizeof(PostProcessingUniforms), &post_processing_uniforms);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
@@ -251,7 +244,7 @@ void PostProcessing::CreateUniformBuffer()
     }
 }
 
-void PostProcessing::RenderPre(Frame *frame) const
+void PostProcessing::RenderPre(FrameBase *frame) const
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -266,7 +259,7 @@ void PostProcessing::RenderPre(Frame *frame) const
     }
 }
 
-void PostProcessing::RenderPost(Frame *frame) const
+void PostProcessing::RenderPost(FrameBase *frame) const
 {
     Threads::AssertOnThread(g_render_thread);
 

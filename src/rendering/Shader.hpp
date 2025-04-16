@@ -16,26 +16,8 @@
 
 namespace hyperion {
 
-using renderer::ShaderObject;
-using renderer::ShaderModule;
-using renderer::ShaderModuleType;
-
-class Engine;
-
 struct SubShader
 {
-    ShaderModuleType    type;
-    ShaderObject        spirv;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(type);
-        hc.Add(spirv);
-
-        return hc;
-    }
 };
 
 class HYP_API ShaderManager

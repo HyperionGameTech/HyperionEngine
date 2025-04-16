@@ -188,8 +188,8 @@ void DebugDrawer::Initialize()
     AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_instance_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-        DeferCreate(m_instance_buffers[frame_index], g_engine->GetGPUDevice(), m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
+        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
+        DeferCreate(m_instance_buffers[frame_index]);
     }
 
     m_shader = g_shader_manager->GetOrCreate(
@@ -204,7 +204,7 @@ void DebugDrawer::Initialize()
 
     renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
     AssertThrow(descriptor_table != nullptr);
 
     const uint32 debug_drawer_descriptor_set_index = descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
@@ -217,7 +217,7 @@ void DebugDrawer::Initialize()
         debug_drawer_descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), m_instance_buffers[frame_index]);
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_group = CreateObject<RenderGroup>(
         m_shader,
@@ -254,7 +254,7 @@ void DebugDrawer::Update(GameCounter::TickUnit delta)
     }
 }
 
-void DebugDrawer::Render(Frame *frame)
+void DebugDrawer::Render(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -297,7 +297,6 @@ void DebugDrawer::Render(Frame *frame)
 
     if (m_draw_commands.Size() * sizeof(ImmediateDrawShaderData) > instance_buffer->Size()) {
         HYPERION_ASSERT_RESULT(instance_buffer->EnsureCapacity(
-            g_engine->GetGPUDevice(),
             m_draw_commands.Size() * sizeof(ImmediateDrawShaderData),
             &was_instance_buffer_rebuilt
         ));
@@ -330,11 +329,7 @@ void DebugDrawer::Render(Frame *frame)
         };
     }
 
-    instance_buffer->Copy(
-        g_engine->GetGPUDevice(),
-        shader_data.ByteSize(),
-        shader_data.Data()
-    );
+    instance_buffer->Copy(shader_data.ByteSize(), shader_data.Data());
 
     frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
 
@@ -348,10 +343,12 @@ void DebugDrawer::Render(Frame *frame)
 
         descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), instance_buffer);
 
-        descriptor_set->Update(g_engine->GetGPUDevice());
+        descriptor_set->Update();
     }
 
-    if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
+    static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+
+    if (unique_per_material) {
         frame->GetCommandList().Add<BindDescriptorTable>(
             m_render_group->GetPipeline()->GetDescriptorTable(),
             m_render_group->GetPipeline(),

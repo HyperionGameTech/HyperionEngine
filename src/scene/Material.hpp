@@ -650,7 +650,10 @@ public:
     {
         HashCode hc;
 
-        hc.Add(m_shader.GetHashCode());
+        if (m_shader.IsValid()) {
+            hc.Add(m_shader->GetCompiledShader()->GetHashCode());
+        }
+        
         hc.Add(m_parameters.GetHashCode());
         hc.Add(m_textures.GetHashCode());
         hc.Add(m_render_attributes.GetHashCode());

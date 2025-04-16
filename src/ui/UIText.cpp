@@ -7,7 +7,6 @@
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderConfig.hpp>
-#include <rendering/backend/RendererFrameHandler.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 

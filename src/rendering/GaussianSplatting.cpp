@@ -16,7 +16,6 @@
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <scene/Mesh.hpp>
@@ -42,7 +41,6 @@
 namespace hyperion {
 
 using renderer::IndirectDrawCommand;
-using renderer::Pipeline;
 using renderer::GPUBufferType;
 using renderer::CommandBufferType;
 
@@ -90,27 +88,14 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
 
         const SizeType num_points = model->points.Size();
 
-        HYPERION_BUBBLE_ERRORS(splat_buffer->Create(
-           g_engine->GetGPUDevice(),
-           num_points * sizeof(GaussianSplattingInstanceShaderData)
-        ));
+        HYPERION_BUBBLE_ERRORS(splat_buffer->Create());
 
-        splat_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            splat_buffer->Size(),
-            model->points.Data()
-        );
+        splat_buffer->Copy(splat_buffer->Size(), model->points.Data());
 
-        const SizeType indices_buffer_size = MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex);
-        const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(float32), sizeof(Vec4f));
-
-        HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create(
-           g_engine->GetGPUDevice(),
-           indices_buffer_size
-        ));
+        HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create());
 
         // Set default indices
-        GaussianSplatIndex *indices_buffer_data = new GaussianSplatIndex[indices_buffer_size / sizeof(GaussianSplatIndex)];
+        GaussianSplatIndex *indices_buffer_data = new GaussianSplatIndex[splat_indices_buffer->Size() / sizeof(GaussianSplatIndex)];
 
         for (SizeType index = 0; index < num_points; index++) {
             if (index >= UINT32_MAX) {
@@ -123,18 +108,14 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
             };
         }
 
-        for (SizeType index = num_points; index < indices_buffer_size / sizeof(GaussianSplatIndex); index++) {
+        for (SizeType index = num_points; index < splat_indices_buffer->Size() / sizeof(GaussianSplatIndex); index++) {
             indices_buffer_data[index] = GaussianSplatIndex {
                 uint32(-1),
                 -1000.0f
             };
         }
 
-        splat_indices_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            splat_indices_buffer->Size(),
-            indices_buffer_data
-        );
+        splat_indices_buffer->Copy(splat_indices_buffer->Size(), indices_buffer_data);
 
         // Discard the data we used for initially setting up the buffers
         delete[] indices_buffer_data;
@@ -144,21 +125,10 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::Render
             model->transform.GetMatrix()
         };
 
-        HYPERION_BUBBLE_ERRORS(scene_buffer->Create(
-           g_engine->GetGPUDevice(),
-           sizeof(GaussianSplattingSceneShaderData)
-        ));
+        HYPERION_BUBBLE_ERRORS(scene_buffer->Create());
+        scene_buffer->Copy(sizeof(GaussianSplattingSceneShaderData), &gaussian_splatting_scene_shader_data);
 
-        scene_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(GaussianSplattingSceneShaderData),
-            &gaussian_splatting_scene_shader_data
-        );
-
-        HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
+        HYPERION_BUBBLE_ERRORS(indirect_buffer->Create());
 
         HYPERION_RETURN_OK;
     }
@@ -181,48 +151,13 @@ struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers) : renderer::Render
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(staging_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
+        HYPERION_BUBBLE_ERRORS(staging_buffer->Create());
 
         IndirectDrawCommand empty_draw_command { };
         quad_mesh->GetRenderResource().PopulateIndirectDrawCommand(empty_draw_command);
 
         // copy zeros to buffer
-        staging_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand),
-            &empty_draw_command
-        );
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateGaussianSplattingCommandBuffers) : renderer::RenderCommand
-{
-    FixedArray<CommandBufferRef, max_frames_in_flight> command_buffers;
-
-    RENDER_COMMAND(CreateGaussianSplattingCommandBuffers)(
-        FixedArray<CommandBufferRef, max_frames_in_flight> command_buffers
-    ) : command_buffers(command_buffers)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateGaussianSplattingCommandBuffers)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-#ifdef HYP_VULKAN
-            command_buffers[frame_index]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[0];
-#endif
-
-            HYPERION_BUBBLE_ERRORS(command_buffers[frame_index]->Create(
-                g_engine->GetGPUInstance()->GetDevice()
-            ));
-        }
+        staging_buffer->Copy(sizeof(IndirectDrawCommand), &empty_draw_command);
 
         HYPERION_RETURN_OK;
     }
@@ -277,7 +212,7 @@ void GaussianSplattingInstance::Init()
     SetReady(true);
 }
 
-void GaussianSplattingInstance::Record(Frame *frame)
+void GaussianSplattingInstance::Record(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -348,7 +283,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         );
 
         // Copy the cpu sorted indices over
-        m_splat_indices_buffer->Copy(g_engine->GetGPUDevice(), MathUtil::Min(m_splat_indices_buffer->Size(), m_cpu_sorted_indices.Size() * sizeof(m_cpu_sorted_indices[0])), m_cpu_sorted_indices.Data());
+        m_splat_indices_buffer->Copy(MathUtil::Min(m_splat_indices_buffer->Size(), m_cpu_sorted_indices.Size() * sizeof(m_cpu_sorted_indices[0])), m_cpu_sorted_indices.Data());
     }
 #else
     { // Sort splats
@@ -489,10 +424,12 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
 void GaussianSplattingInstance::CreateBuffers()
 {
-    m_splat_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_splat_indices_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_scene_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-    m_indirect_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
+    const SizeType num_points = m_model->points.Size();
+
+    m_splat_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, num_points * sizeof(GaussianSplattingInstanceShaderData));
+    m_splat_indices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex));
+    m_scene_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(GaussianSplattingSceneShaderData));
+    m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(
         CreateGaussianSplattingInstanceBuffers,
@@ -511,7 +448,7 @@ void GaussianSplattingInstance::CreateShader()
 
 void GaussianSplattingInstance::CreateRenderGroup()
 {
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(
         m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable()
     );
 
@@ -524,10 +461,7 @@ void GaussianSplattingInstance::CreateRenderGroup()
         descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
-    DeferCreate(
-        descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(descriptor_table);
 
     m_render_group = CreateObject<RenderGroup>(
         m_shader,
@@ -560,9 +494,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         base_properties
     );
 
-    DescriptorTableRef update_splats_descriptor_table = MakeRenderObject<DescriptorTable>(
-        update_splats_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable()
-    );
+    DescriptorTableRef update_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(update_splats_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = update_splats_descriptor_table->GetDescriptorSet(NAME("UpdateSplatsDescriptorSet"), frame_index);
@@ -574,20 +506,14 @@ void GaussianSplattingInstance::CreateComputePipelines()
         descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
-    DeferCreate(
-        update_splats_descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(update_splats_descriptor_table);
 
-    m_update_splats = MakeRenderObject<ComputePipeline>(
+    m_update_splats = g_rendering_api->MakeComputePipeline(
         update_splats_shader,
         update_splats_descriptor_table
     );
 
-    DeferCreate(
-        m_update_splats,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_update_splats);
 
     // UpdateDistances
 
@@ -596,7 +522,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         base_properties
     );
 
-    DescriptorTableRef update_splat_distances_descriptor_table = MakeRenderObject<DescriptorTable>(
+    DescriptorTableRef update_splat_distances_descriptor_table = g_rendering_api->MakeDescriptorTable(
         update_splat_distances_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable()
     );
 
@@ -609,20 +535,14 @@ void GaussianSplattingInstance::CreateComputePipelines()
         descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
     }
 
-    DeferCreate(
-        update_splat_distances_descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(update_splat_distances_descriptor_table);
 
-    m_update_splat_distances = MakeRenderObject<ComputePipeline>(
+    m_update_splat_distances = g_rendering_api->MakeComputePipeline(
         update_splat_distances_shader,
         update_splat_distances_descriptor_table
     );
 
-    DeferCreate(
-        m_update_splat_distances,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_update_splat_distances);
 
     // SortSplats
 
@@ -634,7 +554,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
     m_sort_stage_descriptor_tables.Resize(SortStage::SORT_STAGE_MAX);
 
     for (uint32 sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++) {
-        DescriptorTableRef sort_splats_descriptor_table = MakeRenderObject<DescriptorTable>(
+        DescriptorTableRef sort_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(
             sort_splats_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable()
         );
 
@@ -647,23 +567,17 @@ void GaussianSplattingInstance::CreateComputePipelines()
             descriptor_set->SetElement(NAME("GaussianSplattingSceneShaderData"), m_scene_buffer);
         }
 
-        DeferCreate(
-            sort_splats_descriptor_table,
-            g_engine->GetGPUDevice()
-        );
+        DeferCreate(sort_splats_descriptor_table);
 
         m_sort_stage_descriptor_tables[sort_stage_index] = std::move(sort_splats_descriptor_table);
     }
 
-    m_sort_splats = MakeRenderObject<ComputePipeline>(
+    m_sort_splats = g_rendering_api->MakeComputePipeline(
         sort_splats_shader,
         m_sort_stage_descriptor_tables[0]
     );
 
-    DeferCreate(
-        m_sort_splats,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_sort_splats);
 }
 
 GaussianSplatting::GaussianSplatting()
@@ -736,7 +650,7 @@ void GaussianSplatting::SetGaussianSplattingInstance(Handle<GaussianSplattingIns
 
 void GaussianSplatting::CreateBuffers()
 {
-    m_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
+    m_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers,
         m_staging_buffer,
@@ -744,7 +658,7 @@ void GaussianSplatting::CreateBuffers()
     );
 }
 
-void GaussianSplatting::UpdateSplats(Frame *frame)
+void GaussianSplatting::UpdateSplats(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -779,7 +693,7 @@ void GaussianSplatting::UpdateSplats(Frame *frame)
     m_gaussian_splatting_instance->Record(frame);
 }
 
-void GaussianSplatting::Render(Frame *frame)
+void GaussianSplatting::Render(FrameBase *frame)
 {
     AssertReady();
     Threads::AssertOnThread(g_render_thread);

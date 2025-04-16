@@ -1,6 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererSampler.hpp>
+#include <rendering/backend/vulkan/RendererSampler.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -8,58 +10,41 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
-namespace platform {
 
-template <>
-Sampler<Platform::VULKAN>::Sampler(FilterMode min_filter_mode, FilterMode mag_filter_mode, WrapMode wrap_mode)
-    : m_platform_impl { this, VK_NULL_HANDLE },
-      m_min_filter_mode(min_filter_mode),
-      m_mag_filter_mode(mag_filter_mode),
-      m_wrap_mode(wrap_mode)
+static inline VulkanRenderingAPI *GetRenderingAPI()
 {
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
 }
 
-template <>
-Sampler<Platform::VULKAN>::Sampler(Sampler<Platform::VULKAN> &&other) noexcept
-    : m_platform_impl { this, other.m_platform_impl.handle },
-      m_min_filter_mode(other.m_min_filter_mode),
-      m_mag_filter_mode(other.m_mag_filter_mode),
-      m_wrap_mode(other.m_wrap_mode)
+VulkanSampler::VulkanSampler(FilterMode min_filter_mode, FilterMode mag_filter_mode, WrapMode wrap_mode)
+    : m_handle(VK_NULL_HANDLE)
 {
-    other.m_platform_impl.handle = VK_NULL_HANDLE;
+    m_min_filter_mode = min_filter_mode;
+    m_mag_filter_mode = mag_filter_mode;
+    m_wrap_mode = wrap_mode;
 }
 
-template <>
-Sampler<Platform::VULKAN> &Sampler<Platform::VULKAN>::operator=(Sampler<Platform::VULKAN> &&other) noexcept
+VulkanSampler::~VulkanSampler()
 {
-    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "sampler should have been destroyed");
-
-    m_platform_impl.handle = other.m_platform_impl.handle;
-    m_min_filter_mode = other.m_min_filter_mode;
-    m_mag_filter_mode = other.m_mag_filter_mode;
-    m_wrap_mode = other.m_wrap_mode;
-
-    other.m_platform_impl.handle = VK_NULL_HANDLE;
-
-    return *this;
+    AssertThrowMsg(m_handle == VK_NULL_HANDLE, "sampler should have been destroyed");
 }
 
-template <>
-Sampler<Platform::VULKAN>::~Sampler()
+bool VulkanSampler::IsCreated() const
 {
-    AssertThrowMsg(m_platform_impl.handle == VK_NULL_HANDLE, "sampler should have been destroyed");
+    return m_handle != VK_NULL_HANDLE;
 }
 
-template <>
-RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanSampler::Create()
 {
-    AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
+    AssertThrow(m_handle == VK_NULL_HANDLE);
 
     VkSamplerCreateInfo sampler_info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     sampler_info.magFilter = helpers::ToVkFilter(m_mag_filter_mode);
     sampler_info.minFilter = helpers::ToVkFilter(m_min_filter_mode);
-
     sampler_info.addressModeU = helpers::ToVkSamplerAddressMode(m_wrap_mode);
     sampler_info.addressModeV = helpers::ToVkSamplerAddressMode(m_wrap_mode);
     sampler_info.addressModeW = helpers::ToVkSamplerAddressMode(m_wrap_mode);
@@ -99,7 +84,7 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
     VkSamplerReductionModeCreateInfoEXT reduction_info { VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT };
 
     if (m_min_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP) {
-        if (!device->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats) {
+        if (!GetRenderingAPI()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats) {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
 
@@ -107,24 +92,22 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
         sampler_info.pNext = &reduction_info;
     }
 
-    if (vkCreateSampler(device->GetDevice(), &sampler_info, nullptr, &m_platform_impl.handle) != VK_SUCCESS) {
+    if (vkCreateSampler(GetRenderingAPI()->GetDevice()->GetDevice(), &sampler_info, nullptr, &m_handle) != VK_SUCCESS) {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
 
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Sampler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanSampler::Destroy()
 {
-    if (m_platform_impl.handle != VK_NULL_HANDLE) {
-        vkDestroySampler(device->GetDevice(), m_platform_impl.handle, nullptr);
-        m_platform_impl.handle = VK_NULL_HANDLE;
+    if (m_handle != VK_NULL_HANDLE) {
+        vkDestroySampler(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+        m_handle = VK_NULL_HANDLE;
     }
 
     HYPERION_RETURN_OK;
 }
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion

@@ -1,11 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererAttachment.hpp>
+#include <rendering/backend/vulkan/RendererAttachment.hpp>
+#include <rendering/backend/vulkan/RendererImage.hpp>
+#include <rendering/backend/vulkan/RendererImageView.hpp>
+
 #include <rendering/backend/RendererHelpers.hpp>
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
 #pragma region Helpers
 
@@ -76,41 +78,32 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
 
 #pragma endregion Helpers
 
-#pragma region Attachment
+#pragma region VulkanAttachment
 
-template <>
-Attachment<Platform::VULKAN>::Attachment(
-    const ImageRef<Platform::VULKAN> &image,
+VulkanAttachment::VulkanAttachment(
+    const VulkanImageRef &image,
     RenderPassStage stage,
     LoadOperation load_operation,
     StoreOperation store_operation,
     BlendFunction blend_function
-) : m_platform_impl { this },
-    m_image(image),
-    m_image_view(MakeRenderObject<ImageView<Platform::VULKAN>>()),
-    m_stage(stage),
-    m_load_operation(load_operation),
-    m_store_operation(store_operation),
-    m_blend_function(blend_function),
-    m_clear_color(Vec4f::Zero())
+) : AttachmentBase(image, load_operation, store_operation, blend_function),
+    m_stage(stage)
 {
+    m_image_view = MakeRenderObject<VulkanImageView>();
 }
 
-template <>
-Attachment<Platform::VULKAN>::~Attachment()
+VulkanAttachment::~VulkanAttachment()
 {
     SafeRelease(std::move(m_image));
     SafeRelease(std::move(m_image_view));
 }
 
-template <>
-bool Attachment<Platform::VULKAN>::IsCreated() const
+bool VulkanAttachment::IsCreated() const
 {
     return m_image_view != nullptr && m_image_view->IsCreated();
 }
 
-template <>
-RendererResult Attachment<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanAttachment::Create()
 {
     AssertThrow(m_image != nullptr);
 
@@ -118,11 +111,10 @@ RendererResult Attachment<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }
 
-    return m_image_view->Create(device, m_image);
+    return m_image_view->Create(m_image);
 }
 
-template <>
-RendererResult Attachment<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanAttachment::Destroy()
 {
     SafeRelease(std::move(m_image));
     SafeRelease(std::move(m_image_view));
@@ -130,38 +122,33 @@ RendererResult Attachment<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *d
     HYPERION_RETURN_OK;
 }
 
-#pragma endregion Attachment
-
-#pragma region AttachmentPlatformImpl
-
-VkAttachmentDescription AttachmentPlatformImpl<Platform::VULKAN>::GetAttachmentDescription() const
+VkAttachmentDescription VulkanAttachment::GetVulkanAttachmentDescription() const
 {
     return VkAttachmentDescription {
-        .format         = helpers::ToVkFormat(self->GetFormat()),
+        .format         = helpers::ToVkFormat(GetFormat()),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = ToVkLoadOp(self->GetLoadOperation()),
-        .storeOp        = ToVkStoreOp(self->GetStoreOperation()),
+        .loadOp         = ToVkLoadOp(GetLoadOperation()),
+        .storeOp        = ToVkStoreOp(GetStoreOperation()),
         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = GetInitialLayout(self->GetLoadOperation()),
-        .finalLayout    = GetFinalLayout(self->GetRenderPassStage(), self->IsDepthAttachment())
+        .initialLayout  = GetInitialLayout(GetLoadOperation()),
+        .finalLayout    = GetFinalLayout(GetRenderPassStage(), IsDepthAttachment())
     };
 }
 
-VkAttachmentReference AttachmentPlatformImpl<Platform::VULKAN>::GetHandle() const
+VkAttachmentReference VulkanAttachment::GetVulkanHandle() const
 {
-    if (!self->HasBinding()) {
-        DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", self->GetBinding());
+    if (!HasBinding()) {
+        DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", GetBinding());
     }
 
     return VkAttachmentReference {
-        .attachment = self->GetBinding(),
-        .layout     = GetIntermediateLayout(self->IsDepthAttachment())
+        .attachment = GetBinding(),
+        .layout     = GetIntermediateLayout(IsDepthAttachment())
     };
 }
 
-#pragma endregion AttachmentPlatformImpl
+#pragma endregion VulkanAttachment
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion

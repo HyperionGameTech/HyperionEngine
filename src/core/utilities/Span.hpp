@@ -36,8 +36,8 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
     {
     }
 
-    constexpr Span(const Span &other)   = default;
-    Span &operator=(const Span &other)  = default;
+    constexpr Span(const Span &other) = default;
+    Span &operator=(const Span &other) = default;
 
     constexpr Span(Span &&other) noexcept
         : first(other.first),
@@ -48,6 +48,51 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
     }
 
     Span &operator=(Span &&other) noexcept
+    {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
+        first = other.first;
+        last = other.last;
+
+        other.first = nullptr;
+        other.last = nullptr;
+
+        return *this;
+    }
+
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<T, OtherT> && std::is_convertible_v< std::add_pointer_t<OtherT>, std::add_pointer_t<T> > > >
+    constexpr Span(const Span<OtherT> &other)
+        : first(other.first),
+          last(other.last)
+    {
+    }
+
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<T, OtherT> && std::is_convertible_v< std::add_pointer_t<OtherT>, std::add_pointer_t<T> > > >
+    Span &operator=(const Span<OtherT> &other)
+    {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
+        first = other.first;
+        last = other.last;
+
+        return *this;
+    }
+    
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<T, OtherT> && std::is_convertible_v< std::add_pointer_t<OtherT>, std::add_pointer_t<T> > > >
+    constexpr Span(Span<OtherT> &&other)
+        : first(other.first),
+          last(other.last)
+    {
+        other.first = nullptr;
+        other.last = nullptr;
+    }
+
+    template <class OtherT, typename = std::enable_if_t< !std::is_same_v<T, OtherT> && std::is_convertible_v< std::add_pointer_t<OtherT>, std::add_pointer_t<T> > > >
+    Span &operator=(Span<OtherT> &&other)
     {
         if (std::addressof(other) == this) {
             return *this;

@@ -209,7 +209,7 @@ public:
 
     virtual void Initialize() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
-    virtual void Render(Frame *frame) = 0;
+    virtual void Render(FrameBase *frame) = 0;
 };
 
 class HYP_API DebugDrawer final : public IDebugDrawer
@@ -223,7 +223,7 @@ public:
 
     virtual void Initialize() override;
     virtual void Update(GameCounter::TickUnit delta) override;
-    virtual void Render(Frame *frame) override;
+    virtual void Render(FrameBase *frame) override;
 
     UniquePtr<DebugDrawCommandList> CreateCommandList();
     void CommitCommands(DebugDrawCommandList &command_list);

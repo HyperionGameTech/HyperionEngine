@@ -4,41 +4,19 @@
 #define HYPERION_BACKEND_RENDERER_SAMPLER_HPP
 
 #include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererResult.hpp>
-#include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/RendererStructs.hpp>
 #include <core/Defines.hpp>
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-struct SamplerPlatformImpl;
-
-template <PlatformType PLATFORM>
-class Sampler
+class SamplerBase : public RenderObject<SamplerBase>
 {
 public:
-    static constexpr PlatformType platform = PLATFORM;
-    
-    HYP_API Sampler(
-        FilterMode min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    );
+    virtual ~SamplerBase() override = default;
 
-    Sampler(const Sampler &other)               = delete;
-    Sampler &operator=(const Sampler &other)    = delete;
-    HYP_API Sampler(Sampler &&other) noexcept;
-    HYP_API Sampler &operator=(Sampler &&other) noexcept;
-    HYP_API ~Sampler();
-    
-    HYP_FORCE_INLINE SamplerPlatformImpl<PLATFORM> &GetPlatformImpl()
-        { return m_platform_impl; }
-    
-    HYP_FORCE_INLINE const SamplerPlatformImpl<PLATFORM> &GetPlatformImpl() const
-        { return m_platform_impl; }
-    
     HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
         { return m_min_filter_mode; }
     
@@ -48,31 +26,16 @@ public:
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return m_wrap_mode; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API virtual bool IsCreated() const = 0;
 
-private:
-    SamplerPlatformImpl<PLATFORM>   m_platform_impl;
-    FilterMode                      m_min_filter_mode;
-    FilterMode                      m_mag_filter_mode;
-    WrapMode                        m_wrap_mode;
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
+
+protected:
+    FilterMode  m_min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
+    FilterMode  m_mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
+    WrapMode    m_wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
 };
-
-} // namespace platform
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererSampler.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-
-namespace hyperion {
-namespace renderer {
-
-using Sampler = platform::Sampler<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

@@ -5,7 +5,6 @@
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -14,6 +13,8 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
+
+#include <core/algorithm/Map.hpp>
 
 // For CompiledShader
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
@@ -26,59 +27,46 @@ namespace hyperion {
 
 struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 {
-    GraphicsPipelineRef                     pipeline;
-    RenderPassRef                           render_pass;
+    ShaderRef                               shader;
+    DescriptorTableRef                      descriptor_table;
     Array<FramebufferRef>                   framebuffers;
     RenderableAttributeSet                  attributes;
     Proc<void(const GraphicsPipelineRef &)> callback;
 
     RENDER_COMMAND(CreateGraphicsPipeline)(
-        const GraphicsPipelineRef &pipeline,
-        const RenderPassRef &render_pass,
+        const ShaderRef &shader,
+        const DescriptorTableRef &descriptor_table,
         const Array<FramebufferRef> &framebuffers,
         const RenderableAttributeSet &attributes,
         Proc<void(const GraphicsPipelineRef &)> &&callback
-    ) : pipeline(pipeline),
-        render_pass(render_pass),
+    ) : shader(shader),
+        descriptor_table(descriptor_table),
         framebuffers(framebuffers),
         attributes(attributes),
         callback(std::move(callback))
     {
-        AssertThrow(pipeline.IsValid());
     }
 
     virtual ~RENDER_COMMAND(CreateGraphicsPipeline)() override = default;
 
     virtual RendererResult operator()() override
     {
+        GraphicsPipelineRef pipeline;
+
         HYP_DEFER({
             if (callback.IsValid()) {
                 callback(pipeline);
             }
         });
 
-        AssertThrow(pipeline->GetDescriptorTable().IsValid());
+        pipeline = g_rendering_api->MakeGraphicsPipeline(
+            shader,
+            descriptor_table,
+            framebuffers,
+            attributes
+        );
 
-        for (auto &it : pipeline->GetDescriptorTable()->GetSets()) {
-            for (const auto &set : it) {
-                AssertThrow(set.IsValid());
-                AssertThrowMsg(set->GetPlatformImpl().GetVkDescriptorSetLayout() != VK_NULL_HANDLE,
-                    "Invalid descriptor set for %s", set.GetName().LookupString());
-            }
-        }
-
-        pipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertex_attributes);
-        pipeline->SetTopology(attributes.GetMeshAttributes().topology);
-        pipeline->SetCullMode(attributes.GetMaterialAttributes().cull_faces);
-        pipeline->SetFillMode(attributes.GetMaterialAttributes().fill_mode);
-        pipeline->SetBlendFunction(attributes.GetMaterialAttributes().blend_function);
-        pipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencil_function);
-        pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_TEST));
-        pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_WRITE));
-        pipeline->SetRenderPass(render_pass);
-        pipeline->SetFramebuffers(framebuffers);
-
-        HYPERION_BUBBLE_ERRORS(pipeline->Create(g_engine->GetGPUDevice()));
+        HYPERION_BUBBLE_ERRORS(pipeline->Create());
 
         HYPERION_RETURN_OK;
     }
@@ -119,44 +107,31 @@ void GraphicsPipelineCache::Destroy()
     m_cached_pipelines.Clear();
 }
 
-GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
+Task<GraphicsPipelineRef> GraphicsPipelineCache::GetOrCreate(
     const ShaderRef &shader,
     const DescriptorTableRef &descriptor_table,
-    const RenderPassRef &render_pass,
     const Array<FramebufferRef> &framebuffers,
-    const RenderableAttributeSet &attributes,
-    Proc<void(const GraphicsPipelineRef &)> &&on_ready_callback
+    const RenderableAttributeSet &attributes
 )
 {
     HYP_SCOPE;
 
+    Task<GraphicsPipelineRef> task;
+
     GraphicsPipelineRef graphics_pipeline = FindGraphicsPipeline(
         shader,
         descriptor_table,
-        render_pass,
         framebuffers,
         attributes
     );
 
     if (graphics_pipeline.IsValid()) {
-        if (on_ready_callback.IsValid()) {
-            on_ready_callback(graphics_pipeline);
-        }
+        task.Fulfill(graphics_pipeline);
 
-        return graphics_pipeline;
+        return task;
     }
 
-    if (descriptor_table.IsValid()) {
-        graphics_pipeline = MakeRenderObject<GraphicsPipeline>(ShaderRef::unset, descriptor_table);
-    } else {
-        graphics_pipeline = MakeRenderObject<GraphicsPipeline>();
-    }
-
-    if (shader.IsValid()) {
-        graphics_pipeline->SetShader(shader);
-    }
-
-    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes, on_ready_callback = std::move(on_ready_callback)](const GraphicsPipelineRef &graphics_pipeline)
+    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes, task_executor = task.Initialize()](const GraphicsPipelineRef &graphics_pipeline)
     {
         {
             Mutex::Guard guard(m_mutex);
@@ -164,27 +139,24 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
             m_cached_pipelines[attributes].PushBack(graphics_pipeline);
         }
 
-        if (on_ready_callback.IsValid()) {
-            on_ready_callback(graphics_pipeline);
-        }
+        task_executor->Fulfill(graphics_pipeline);
     };
 
     PUSH_RENDER_COMMAND(
         CreateGraphicsPipeline,
-        graphics_pipeline,
-        render_pass,
+        shader,
+        descriptor_table,
         framebuffers,
         attributes,
         std::move(new_callback)
     );
 
-    return graphics_pipeline;
+    return task;
 }
 
 GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
     const ShaderRef &shader,
     const DescriptorTableRef &descriptor_table,
-    const RenderPassRef &render_pass,
     const Array<FramebufferRef> &framebuffers,
     const RenderableAttributeSet &attributes
 )
@@ -205,10 +177,12 @@ GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
     const HashCode descriptor_table_hash_code = descriptor_table->GetDeclaration().GetHashCode();
 
     for (const GraphicsPipelineRef &pipeline : it->second) {
-        if (pipeline->GetShader()->GetCompiledShader()->GetHashCode() == shader_hash_code
-            && pipeline->GetDescriptorTable()->GetDeclaration().GetHashCode() == descriptor_table_hash_code
-            && pipeline->GetRenderPass() == render_pass
-            && pipeline->GetFramebuffers() == framebuffers)
+        if (pipeline->MatchesSignature(
+            shader,
+            descriptor_table,
+            Map(framebuffers, [](const FramebufferRef &framebuffer) { return static_cast<const FramebufferBase *>(framebuffer.Get()); }),
+            attributes
+        ))
         {
             return pipeline;
         }

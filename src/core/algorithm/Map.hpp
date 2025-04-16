@@ -11,12 +11,12 @@
 
 namespace hyperion {
 
-namespace utilities {
+namespace containers {
 
 template <class T, class AllocatorType>
 class Array;
 
-} // namespace utilities
+} // namespace containers
 
 namespace algorithm {
 

@@ -27,8 +27,8 @@ namespace hyperion {
 
 class Engine;
 
-using renderer::ShaderModule;
 using renderer::ShaderModuleType;
+using renderer::IsRaytracingShaderModule;
 using renderer::DescriptorTableDeclaration;
 using renderer::DescriptorSetDeclaration;
 using renderer::DescriptorDeclaration;
@@ -1222,7 +1222,7 @@ public:
         {
             return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
-                return ShaderModule::IsRaytracingType(item.first);
+                return IsRaytracingShaderModule(item.first);
             });
         }
 

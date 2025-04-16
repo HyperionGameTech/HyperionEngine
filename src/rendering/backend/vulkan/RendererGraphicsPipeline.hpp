@@ -5,13 +5,16 @@
 
 #include <vulkan/vulkan.h>
 
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
+
+#include <rendering/backend/vulkan/RendererPipeline.hpp>
+#include <rendering/backend/vulkan/RendererBuffer.hpp>
+#include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
+#include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
+
 #include <rendering/backend/RendererPipeline.hpp>
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererSwapchain.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererShader.hpp>
-#include <rendering/backend/RendererDescriptorSet.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
@@ -24,22 +27,49 @@
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-class Framebuffer;
+class VulkanFramebuffer;
+using VulkanFramebufferRef = RenderObjectHandle_Strong<VulkanFramebuffer>;
+using VulkanFramebufferWeakRef = RenderObjectHandle_Weak<VulkanFramebuffer>;
 
-template <PlatformType PLATFORM>
-class CommandBuffer;
+class VulkanRenderPass;
+using VulkanRenderPassRef = RenderObjectHandle_Strong<VulkanRenderPass>;
+using VulkanRenderPassWeakRef = RenderObjectHandle_Weak<VulkanRenderPass>;
 
-template <PlatformType PLATFORM>
-class RenderPass;
-
-template <>
-struct GraphicsPipelinePlatformImpl<Platform::VULKAN>
+class VulkanGraphicsPipeline final : public GraphicsPipelineBase, public VulkanPipelineBase
 {
-    GraphicsPipeline<Platform::VULKAN>  *self = nullptr;
-    Viewport                            viewport;
+public:
+    HYP_API VulkanGraphicsPipeline();
+    HYP_API VulkanGraphicsPipeline(const VulkanShaderRef &shader, const VulkanDescriptorTableRef &descriptor_table);
+    HYP_API ~VulkanGraphicsPipeline();
+
+    HYP_FORCE_INLINE const VulkanRenderPassRef &GetRenderPass() const
+        { return m_render_pass; }
+
+    HYP_API void SetRenderPass(const VulkanRenderPassRef &render_pass);
+
+    HYP_FORCE_INLINE const Array<VulkanFramebufferRef> &GetFramebuffers() const
+        { return m_framebuffers; }
+
+    HYP_API void SetFramebuffers(const Array<VulkanFramebufferRef> &framebuffers);
+
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
+    
+    HYP_API virtual void Bind(CommandBufferBase *cmd) override;
+    HYP_API virtual void Bind(CommandBufferBase *cmd, Vec2i viewport_offset, Vec2i viewport_extent) override;
+
+    HYP_API virtual bool MatchesSignature(
+        const ShaderBase *shader,
+        const DescriptorTableBase *descriptor_table,
+        const Array<const FramebufferBase *> &framebuffers,
+        const RenderableAttributeSet &attributes
+    ) const override;
+
+    HYP_API virtual void SetPushConstants(const void *data, SizeType size) override;
+
+private:
+    RendererResult Rebuild();
 
     void BuildVertexAttributes(
         const VertexAttributeSet &attribute_set,
@@ -47,10 +77,13 @@ struct GraphicsPipelinePlatformImpl<Platform::VULKAN>
         Array<VkVertexInputBindingDescription> &out_vk_vertex_binding_descriptions
     );
 
-    void UpdateViewport(CommandBuffer<Platform::VULKAN> *command_buffer, const Viewport &viewport);
+    void UpdateViewport(VulkanCommandBuffer *command_buffer, const Viewport &viewport);
+
+    VulkanRenderPassRef         m_render_pass;
+    Array<VulkanFramebufferRef> m_framebuffers;
+    Viewport                    m_viewport;
 };
 
-} // namsepace platform
 } // namespace renderer
 } // namespace hyperion
 

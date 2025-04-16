@@ -173,30 +173,27 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     InitObject(mesh_component.material);
     AssertThrow(mesh_component.material->IsReady());
 
-    AccelerationGeometryRef geometry;
+    BLASRef blas;
     
     {
         TResourceHandle<MeshRenderResource> mesh_resource_handle(mesh_component.mesh->GetRenderResource());
 
-        geometry = mesh_resource_handle->BuildAccelerationGeometry(mesh_component.material);
+        blas = mesh_resource_handle->BuildBLAS(mesh_component.material);
 
-        if (!geometry) {
-            HYP_LOG(Rendering, Error, "Failed to build acceleration geometry for mesh #{} ({})", mesh_component.mesh.GetID().Value(), mesh_component.mesh->GetName());
+        if (!blas) {
+            HYP_LOG(Rendering, Error, "Failed to build BLAS for mesh #{} ({})", mesh_component.mesh.GetID().Value(), mesh_component.mesh->GetName());
 
             return;
         }
     }
 
+    blas->SetTransform(transform_component.transform.GetMatrix());
+    DeferCreate(blas);
+
     MeshRaytracingData *mesh_raytracing_data = new MeshRaytracingData;
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        BLASRef blas = MakeRenderObject<BLAS>(transform_component.transform.GetMatrix());
-
-        blas->AddGeometry(geometry);
-
-        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
-
-        mesh_raytracing_data->bottom_level_acceleration_structures[frame_index] = std::move(blas);
+        mesh_raytracing_data->bottom_level_acceleration_structures[frame_index] = blas;
     }
 
     mesh_component.raytracing_data = mesh_raytracing_data;

@@ -95,10 +95,10 @@ private:
 };
 
 template <class T>
-class DeletionEntry<renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT>> : public DeletionEntryBase
+class DeletionEntry<renderer::RenderObjectHandle_Strong<T>> : public DeletionEntryBase
 {
 public:
-    DeletionEntry(renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT> &&handle)
+    DeletionEntry(renderer::RenderObjectHandle_Strong<T> &&handle)
         : m_handle(std::move(handle))
     {
     }
@@ -126,7 +126,7 @@ private:
         m_handle.Reset();
     }
 
-    renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT> m_handle;
+    renderer::RenderObjectHandle_Strong<T>  m_handle;
 };
 
 class SafeDeleter

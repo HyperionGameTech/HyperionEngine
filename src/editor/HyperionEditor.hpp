@@ -26,7 +26,7 @@ public:
     virtual void Logic(GameCounter::TickUnit delta) override;
     virtual void OnInputEvent(const SystemEvent &event) override;
 
-    virtual void OnFrameEnd(Frame *frame) override;
+    virtual void OnFrameEnd(FrameBase *frame) override;
 
 protected:
     HyperionEditorImpl  *m_impl;

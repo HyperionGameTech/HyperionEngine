@@ -71,7 +71,7 @@ public:
     /*! \brief Update data for the component. Called from GAME thread. */
     void ComponentUpdate(GameCounter::TickUnit delta);
     /*! \brief Perform rendering. Called from RENDER thread. */
-    void ComponentRender(Frame *frame);
+    void ComponentRender(FrameBase *frame);
 
     /*! \brief Called on the RENDER thread when the component is removed. */
     void ComponentRemoved() { OnRemoved(); }
@@ -84,7 +84,7 @@ protected:
     virtual void Init() = 0;
     virtual void InitGame() = 0;
     virtual void OnUpdate(GameCounter::TickUnit delta) = 0;
-    virtual void OnRender(Frame *frame) = 0;
+    virtual void OnRender(FrameBase *frame) = 0;
     virtual void OnRemoved() { }
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
 

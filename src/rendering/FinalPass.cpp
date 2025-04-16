@@ -8,7 +8,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderTexture.hpp>
 
-#include <rendering/backend/RendererFrameHandler.hpp>
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
@@ -138,8 +138,9 @@ void CompositePass::Create()
 
 #pragma region FinalPass
 
-FinalPass::FinalPass()
+FinalPass::FinalPass(SwapchainBase *swapchain)
     : FullScreenPass(InternalFormat::RGBA8),
+      m_swapchain(swapchain),
       m_dirty_frame_indices(0)
 {
 }
@@ -163,8 +164,10 @@ void FinalPass::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
-    m_image_format = g_engine->GetGPUInstance()->GetSwapchain()->image_format;
+    AssertThrow(m_swapchain != nullptr);
+
+    m_extent = m_swapchain->GetExtent();
+    m_image_format = m_swapchain->GetImageFormat();
 
     m_composite_pass = MakeUnique<CompositePass>(m_extent);
     m_composite_pass->Create();
@@ -181,24 +184,17 @@ void FinalPass::Create()
 
     uint32 iteration = 0;
 
-    for (const ImageRef &image_ref : g_engine->GetGPUInstance()->GetSwapchain()->GetImages()) {
-        FramebufferRef fbo = MakeRenderObject<Framebuffer>(
-            m_extent,
-            renderer::RenderPassStage::PRESENT,
-            renderer::RenderPassMode::RENDER_PASS_INLINE
-        );
+    for (const ImageRef &image_ref : m_swapchain->GetImages()) {
+        FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(m_extent, renderer::RenderPassStage::PRESENT);
         
-        AttachmentRef color_attachment = MakeRenderObject<Attachment>(
+        AttachmentRef color_attachment = framebuffer->AddAttachment(
+            0,
             image_ref,
-            renderer::RenderPassStage::PRESENT,
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE
         );
 
-        color_attachment->SetBinding(0);
-        HYPERION_ASSERT_RESULT(color_attachment->Create(g_engine->GetGPUDevice()));
-
-        fbo->AddAttachment(color_attachment);
+        HYPERION_ASSERT_RESULT(color_attachment->Create());
 
         if (iteration == 0) {
             m_render_group = CreateObject<RenderGroup>(
@@ -215,30 +211,32 @@ void FinalPass::Create()
             );
         }
 
-        m_render_group->AddFramebuffer(std::move(fbo));
+        m_render_group->AddFramebuffer(std::move(framebuffer));
 
         ++iteration;
-    }
+    };
 
     InitObject(m_render_group);
 
     // Create final image to hold last frame's color texture
-
-    m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
-        Vec3u { m_extent.x, m_extent.y, 1 },
+    m_last_frame_image = g_rendering_api->MakeImage(TextureDesc {
+        renderer::ImageType::TEXTURE_TYPE_2D,
         m_composite_pass->GetFormat(),
-        ImageType::TEXTURE_TYPE_2D,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST
-    ));
+        Vec3u { m_extent.x, m_extent.y, 1 },
+        renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+        renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+        renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::SAMPLED
+    });
 
-    HYPERION_ASSERT_RESULT(m_last_frame_image->Create(g_engine->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(m_last_frame_image->Create());
 
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
@@ -251,7 +249,7 @@ void FinalPass::Create()
         }
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -274,7 +272,7 @@ void FinalPass::Resize_Internal(Vec2u)
     Threads::AssertOnThread(g_render_thread);
 
     // Always keep FinalPass the same size as the swapchain
-    const Vec2u new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    const Vec2u new_size = m_swapchain->GetExtent();
 
     FullScreenPass::Resize_Internal(new_size);
 
@@ -285,7 +283,7 @@ void FinalPass::Resize_Internal(Vec2u)
     }
 }
 
-void FinalPass::Render(Frame *frame)
+void FinalPass::Render(FrameBase *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -293,7 +291,8 @@ void FinalPass::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const GraphicsPipelineRef &pipeline = m_render_group->GetPipeline();
-    const uint32 acquired_image_index = g_engine->GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetAcquiredImageIndex();
+
+    const uint32 acquired_image_index = m_swapchain->GetAcquiredImageIndex();
 
     m_composite_pass->Render(frame);
 
@@ -330,7 +329,7 @@ void FinalPass::Render(Frame *frame)
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index)) {
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
-                ->Update(g_engine->GetGPUDevice(), frame_index);
+                ->Update(frame_index);
 
             m_dirty_frame_indices &= ~(1u << frame_index);
         }

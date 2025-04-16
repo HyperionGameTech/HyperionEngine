@@ -62,7 +62,8 @@ public:
     
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
 
-    AccelerationGeometryRef BuildAccelerationGeometry(const Handle<Material> &material) const;
+    // Build raytracing acceleration structure
+    BLASRef BuildBLAS(const Handle<Material> &material) const;
     
 protected:
     virtual void Initialize_Internal() override;

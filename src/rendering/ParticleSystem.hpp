@@ -64,7 +64,6 @@ public:
         { return BoundingSphere(m_params.origin, m_params.radius); }
 
     void Init();
-    void Record(CommandBuffer *command_buffer);
 
 private:
     void CreateNoiseMap();
@@ -102,9 +101,9 @@ public:
     void Init();
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles(Frame *frame);
+    void UpdateParticles(FrameBase *frame);
 
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
 private:
     void CreateBuffers();

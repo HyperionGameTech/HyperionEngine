@@ -29,7 +29,7 @@ public:
     void Create();
     void Destroy();
     
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
 private:
     Vec2u                       m_extent;

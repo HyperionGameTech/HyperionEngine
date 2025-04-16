@@ -4,7 +4,7 @@
 #define HYPERION_BACKEND_RENDERER_GRAPHICS_PIPELINE_HPP
 
 #include <rendering/backend/Platform.hpp>
-#include <rendering/backend/RendererPipeline.hpp>
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
 #include <core/math/Vertex.hpp>
@@ -12,29 +12,15 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
+
+class RenderableAttributeSet;
+
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-struct GraphicsPipelinePlatformImpl;
-
-template <PlatformType PLATFORM>
-class GraphicsPipeline : public Pipeline<PLATFORM>
+class GraphicsPipelineBase : public RenderObject<GraphicsPipelineBase>
 {
 public:
-    static constexpr PlatformType platform = PLATFORM;
-    
-    HYP_API GraphicsPipeline();
-    HYP_API GraphicsPipeline(const ShaderRef<PLATFORM> &shader, const DescriptorTableRef<PLATFORM> &descriptor_table);
-    GraphicsPipeline(const GraphicsPipeline &other)             = delete;
-    GraphicsPipeline &operator=(const GraphicsPipeline &other)  = delete;
-    HYP_API ~GraphicsPipeline();
-
-    HYP_FORCE_INLINE GraphicsPipelinePlatformImpl<PLATFORM> &GetPlatformImpl()
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const GraphicsPipelinePlatformImpl<PLATFORM> &GetPlatformImpl() const
-        { return m_platform_impl; }
+    HYP_API ~GraphicsPipelineBase() override = default;
 
     HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
         { return m_vertex_attributes; }
@@ -83,27 +69,43 @@ public:
 
     HYP_FORCE_INLINE void SetDepthWrite(bool depth_write)
         { m_depth_write = depth_write; }
-
-    HYP_FORCE_INLINE const RenderPassRef<PLATFORM> &GetRenderPass() const
-        { return m_render_pass; }
-
-    HYP_API void SetRenderPass(const RenderPassRef<PLATFORM> &render_pass);
-
-    HYP_FORCE_INLINE const Array<FramebufferRef<PLATFORM>> &GetFramebuffers() const
-        { return m_framebuffers; }
-
-    HYP_API void SetFramebuffers(const Array<FramebufferRef<PLATFORM>> &framebuffers);
-
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
     
-    HYP_API void Bind(CommandBuffer<PLATFORM> *cmd);
-    HYP_API void Bind(CommandBuffer<PLATFORM> *cmd, Vec2i viewport_offset, Vec2i viewport_extent);
+    HYP_FORCE_INLINE const DescriptorTableRef &GetDescriptorTable() const
+        { return m_descriptor_table; }
+
+    HYP_FORCE_INLINE void SetDescriptorTable(const DescriptorTableRef &descriptor_table)
+        { m_descriptor_table = descriptor_table; }
+    
+    HYP_FORCE_INLINE const ShaderRef &GetShader() const
+        { return m_shader; }
+
+    HYP_FORCE_INLINE void SetShader(const ShaderRef &shader)
+        { m_shader = shader; }
+
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
+
+    HYP_API virtual void Bind(CommandBufferBase *command_buffer) = 0;
+    HYP_API virtual void Bind(CommandBufferBase *command_buffer, Vec2i viewport_offset, Vec2i viewport_extent) = 0;
+
+    HYP_API virtual bool MatchesSignature(
+        const ShaderBase *shader,
+        const DescriptorTableBase *descriptor_table,
+        const Array<const FramebufferBase *> &framebuffers,
+        const RenderableAttributeSet &attributes
+    ) const = 0;
+
+    // Deprecated - will be removed to decouple from vulkan
+    HYP_DEPRECATED HYP_API virtual void SetPushConstants(const void *data, SizeType size) = 0;
 
 protected:
-    RendererResult Rebuild(Device<PLATFORM> *device);
-    
-    GraphicsPipelinePlatformImpl<PLATFORM>  m_platform_impl;
+    GraphicsPipelineBase() = default;
+
+    GraphicsPipelineBase(const ShaderRef &shader, const DescriptorTableRef &descriptor_table)
+        : m_shader(shader),
+          m_descriptor_table(descriptor_table)
+    {
+    }
 
     VertexAttributeSet                      m_vertex_attributes;
 
@@ -117,24 +119,9 @@ protected:
     bool                                    m_depth_test = true;
     bool                                    m_depth_write = true;
 
-    RenderPassRef<PLATFORM>                 m_render_pass;
-    Array<FramebufferRef<PLATFORM>>         m_framebuffers;
+    ShaderRef                               m_shader;
+    DescriptorTableRef                      m_descriptor_table;
 };
-
-} // namespace platform
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererGraphicsPipeline.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-namespace hyperion {
-namespace renderer {
-
-using GraphicsPipeline = platform::GraphicsPipeline<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

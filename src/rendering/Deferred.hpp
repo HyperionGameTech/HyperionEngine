@@ -56,7 +56,7 @@ public:
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Render(Frame *frame) override;
+    virtual void Render(FrameBase *frame) override;
 
 protected:
     void CreateShader();
@@ -103,8 +103,8 @@ public:
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Render(Frame *frame) override;
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:
@@ -143,8 +143,8 @@ public:
     virtual ~ReflectionsPass() override;
     
     virtual void Create() override;
-    virtual void Render(Frame *frame) override;
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 private:
@@ -177,7 +177,7 @@ private:
 class DeferredRenderer
 {
 public:
-    DeferredRenderer();
+    DeferredRenderer(SwapchainBase *swapchain);
     DeferredRenderer(const DeferredRenderer &other)             = delete;
     DeferredRenderer &operator=(const DeferredRenderer &other)  = delete;
     ~DeferredRenderer();
@@ -200,7 +200,7 @@ public:
     HYP_FORCE_INLINE DepthPyramidRenderer *GetDepthPyramidRenderer() const
         { return m_depth_pyramid_renderer.Get(); }
 
-    HYP_FORCE_INLINE const AttachmentRef &GetCombinedResult() const
+    HYP_FORCE_INLINE AttachmentBase *GetCombinedResultAttachment() const
         { return m_combine_pass->GetAttachment(0); }
 
     HYP_FORCE_INLINE const Handle<Texture> &GetMipChain() const
@@ -209,7 +209,7 @@ public:
     void Create();
     void Destroy();
     
-    void Render(Frame *frame, RenderEnvironment *environment);
+    void Render(FrameBase *frame, RenderEnvironment *environment);
 
     void Resize(Vec2u new_size);
 
@@ -223,13 +223,13 @@ private:
     void CreateCombinePass();
     void CreateDescriptorSets();
 
-    void CollectDrawCalls(Frame *frame);
+    void CollectDrawCalls(FrameBase *frame);
 
-    void RenderSkybox(Frame *frame);
-    void RenderOpaqueObjects(Frame *frame);
-    void RenderTranslucentObjects(Frame *frame);
+    void RenderSkybox(FrameBase *frame);
+    void RenderOpaqueObjects(FrameBase *frame);
+    void RenderTranslucentObjects(FrameBase *frame);
 
-    void GenerateMipChain(Frame *frame, const ImageRef &image);
+    void GenerateMipChain(FrameBase *frame, const ImageRef &image);
 
     UniquePtr<GBuffer>                                  m_gbuffer;
 

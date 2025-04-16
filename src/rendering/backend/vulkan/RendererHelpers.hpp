@@ -12,7 +12,6 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
-#include <rendering/backend/RendererFence.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -20,6 +19,9 @@
 
 namespace hyperion {
 namespace renderer {
+
+enum class DescriptorSetElementType : uint32;
+
 namespace helpers {
 
 VkIndexType ToVkIndexType(DatumType);
@@ -29,6 +31,7 @@ VkFilter ToVkFilter(FilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
 VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
+VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
 
 } // namespace helpers
 

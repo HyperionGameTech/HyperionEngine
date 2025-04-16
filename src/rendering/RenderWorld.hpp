@@ -53,9 +53,9 @@ public:
     const EngineRenderStats &GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats &render_stats);
 
-    void PreRender(renderer::Frame *frame);
-    void PostRender(renderer::Frame *frame);
-    void Render(renderer::Frame *frame);
+    void PreRender(renderer::FrameBase *frame);
+    void PostRender(renderer::FrameBase *frame);
+    void Render(renderer::FrameBase *frame);
 
 protected:
     virtual void Initialize_Internal() override;

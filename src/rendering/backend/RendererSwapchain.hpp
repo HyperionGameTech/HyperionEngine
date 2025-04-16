@@ -13,74 +13,43 @@
 
 namespace hyperion {
 namespace renderer {
-namespace platform {
 
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-struct SwapchainPlatformImpl;
-
-template <PlatformType PLATFORM>
-class Swapchain
+class SwapchainBase : public RenderObject<SwapchainBase>
 {
 public:
-    friend struct SwapchainPlatformImpl<PLATFORM>;
+    virtual ~SwapchainBase() override = default;
 
-    static constexpr PlatformType platform = PLATFORM;
-    
-    HYP_API Swapchain();
-    Swapchain(const Swapchain &other)               = delete;
-    Swapchain &operator=(const Swapchain &other)    = delete;
-    Swapchain(Swapchain &&other) noexcept           = delete;
-    Swapchain &operator=(Swapchain &other) noexcept = delete;
-    HYP_API ~Swapchain();
-    
-    HYP_FORCE_INLINE SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl()
-        { return m_platform_impl; }
+    virtual bool IsCreated() const = 0;
 
-    HYP_FORCE_INLINE const SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl() const
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const FrameHandlerRef<PLATFORM> &GetFrameHandler() const
-        { return m_frame_handler; }
-
-    HYP_FORCE_INLINE SizeType NumImages() const
-        { return m_images.Size(); }
-
-    HYP_FORCE_INLINE const Array<ImageRef<PLATFORM>> &GetImages() const
+    HYP_FORCE_INLINE const Array<ImageRef> &GetImages() const
         { return m_images; }
 
-    HYP_API bool IsCreated() const;
+    HYP_FORCE_INLINE Vec2u GetExtent() const
+        { return m_extent; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_FORCE_INLINE InternalFormat GetImageFormat() const
+        { return m_image_format; }
 
-    Vec2u                           extent;
-    InternalFormat                  image_format;
+    HYP_FORCE_INLINE uint32 GetAcquiredImageIndex() const
+        { return m_acquired_image_index; }
 
-private:
-    Array<ImageRef<PLATFORM>>       m_images;
+    HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
+        { return m_current_frame_index; }
 
-    FrameHandlerRef<PLATFORM>       m_frame_handler;
+protected:
+    SwapchainBase()
+        : m_extent(Vec2i::Zero()),
+          m_acquired_image_index(0),
+          m_current_frame_index(0)
+    {
+    }
 
-    SwapchainPlatformImpl<PLATFORM> m_platform_impl;
+    Array<ImageRef> m_images;
+    Vec2u           m_extent;
+    InternalFormat  m_image_format = InternalFormat::NONE;
+    uint32          m_acquired_image_index;
+    uint32          m_current_frame_index;
 };
-
-} // namespace platform
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererSwapchain.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-namespace hyperion {
-namespace renderer {
-
-using Swapchain = platform::Swapchain<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

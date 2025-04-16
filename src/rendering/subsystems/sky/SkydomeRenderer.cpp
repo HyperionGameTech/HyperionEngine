@@ -116,7 +116,7 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void SkydomeRenderer::OnRender(Frame *frame)
+void SkydomeRenderer::OnRender(FrameBase *frame)
 {
     AssertThrow(m_env_probe.IsValid());
 

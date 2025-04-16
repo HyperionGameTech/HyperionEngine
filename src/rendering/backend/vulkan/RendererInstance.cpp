@@ -2,9 +2,9 @@
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
-#include <rendering/backend/RendererSwapchain.hpp>
+#include <rendering/backend/vulkan/RendererSemaphore.hpp>
+#include <rendering/backend/vulkan/RendererSwapchain.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/utilities/Span.hpp>
@@ -217,7 +217,7 @@ RendererResult Instance<Platform::VULKAN>::SetupDebug()
 Instance<Platform::VULKAN>::Instance()
     : m_surface(VK_NULL_HANDLE),
       m_instance(VK_NULL_HANDLE),
-      m_swapchain(MakeRenderObject<Swapchain<Platform::VULKAN>>())
+      m_swapchain(MakeRenderObject<VulkanSwapchain>())
 {
 }
 
@@ -393,8 +393,8 @@ RendererResult Instance<Platform::VULKAN>::CreateSwapchain()
         return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
     }
 
-    m_swapchain->GetPlatformImpl().surface = m_surface;
-    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
+    m_swapchain->m_surface = m_surface;
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create());
 
     HYPERION_RETURN_OK;
 }
@@ -403,7 +403,7 @@ RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
 {
     if (m_swapchain.IsValid()) {
         // Cannot use SafeRelease here; will get NATIVE_WINDOW_IN_USE_KHR error
-        m_swapchain->Destroy(m_device);
+        m_swapchain->Destroy();
         m_swapchain.Reset();
     }
 
@@ -411,9 +411,9 @@ RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
         return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
     }
 
-    m_swapchain = MakeRenderObject<Swapchain<Platform::VULKAN>>();
-    m_swapchain->GetPlatformImpl().surface = m_surface;
-    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
+    m_swapchain = MakeRenderObject<VulkanSwapchain>();
+    m_swapchain->m_surface = m_surface;
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create());
 
     HYPERION_RETURN_OK;
 }

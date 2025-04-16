@@ -17,89 +17,32 @@
 namespace hyperion {
 namespace renderer {
 
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Fence;
-
-template <PlatformType PLATFORM>
-class Swapchain;
-
-template <PlatformType PLATFORM>
-class CommandBuffer;
-
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-struct DeviceQueue;
-
-template <PlatformType PLATFORM>
-class Frame
+class FrameBase : public RenderObject<FrameBase>
 {
 public:
-    static constexpr PlatformType platform = PLATFORM;
-    
-    static FrameRef<PLATFORM> TemporaryFrame(uint32 frame_index = 0)
-    {
-        FrameRef<PLATFORM> frame = MakeRenderObject<Frame<PLATFORM>>();
-        frame->m_frame_index = frame_index;
-        return frame;
-    }
+    virtual ~FrameBase() override = default;
 
-    explicit Frame();
-    Frame(uint32 frame_index);
-    Frame(const Frame &other)                   = delete;
-    Frame &operator=(const Frame &other)        = delete;
-    Frame(Frame &&other) noexcept               = delete;
-    Frame &operator=(Frame &&other) noexcept    = delete;
-    ~Frame();
-
-    RendererResult Create(Device<PLATFORM> *device);
-    RendererResult Destroy(Device<PLATFORM> *device);
-
-    HYP_FORCE_INLINE const FenceRef<PLATFORM> &GetFence() const
-        { return m_queue_submit_fence; }
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
 
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
         { return m_frame_index; }
-    
+
     HYP_FORCE_INLINE RHICommandList &GetCommandList()
         { return m_command_list; }
-    
+
     HYP_FORCE_INLINE const RHICommandList &GetCommandList() const
         { return m_command_list; }
 
-    HYP_FORCE_INLINE SemaphoreChain &GetPresentSemaphores()
-        { return m_present_semaphores; }
+protected:
+    FrameBase(uint32 frame_index)
+        : m_frame_index(frame_index)
+    {
+    }
 
-    HYP_FORCE_INLINE const SemaphoreChain &GetPresentSemaphores() const
-        { return m_present_semaphores; }
-
-    RendererResult RecreateFence(Device<PLATFORM> *device);
-
-private:
     uint32              m_frame_index;
-    SemaphoreChain      m_present_semaphores;
-    FenceRef<PLATFORM>  m_queue_submit_fence;
     RHICommandList      m_command_list;
 };
-
-} // namespace platform
-
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererFrame.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-namespace hyperion {
-namespace renderer {
-
-using Frame = platform::Frame<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

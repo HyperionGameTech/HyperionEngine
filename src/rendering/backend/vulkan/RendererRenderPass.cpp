@@ -1,14 +1,22 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererRenderPass.hpp>
-#include <rendering/backend/RendererFramebuffer.hpp>
-#include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/RendererRenderPass.hpp>
+#include <rendering/backend/vulkan/RendererFramebuffer.hpp>
+#include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 
 namespace hyperion {
-namespace renderer {
-namespace platform {
 
-RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode)
+extern IRenderingAPI *g_rendering_api;
+
+namespace renderer {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
+VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
@@ -16,7 +24,7 @@ RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode m
 {
 }
 
-RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode, uint32 num_multiview_layers)
+VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode, uint32 num_multiview_layers)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
@@ -24,12 +32,12 @@ RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode m
 {
 }
 
-RenderPass<Platform::VULKAN>::~RenderPass()
+VulkanRenderPass::~VulkanRenderPass()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE, "handle should have been destroyed");
 }
 
-void RenderPass<Platform::VULKAN>::CreateDependencies()
+void VulkanRenderPass::CreateDependencies()
 {
     switch (m_stage) {
     case RenderPassStage::PRESENT:
@@ -73,14 +81,14 @@ void RenderPass<Platform::VULKAN>::CreateDependencies()
     }
 }
 
-void RenderPass<Platform::VULKAN>::AddAttachment(AttachmentRef<Platform::VULKAN> attachment)
+void VulkanRenderPass::AddAttachment(VulkanAttachmentRef attachment)
 {
     m_render_pass_attachments.PushBack(std::move(attachment));
 }
 
-bool RenderPass<Platform::VULKAN>::RemoveAttachment(const AttachmentRef<Platform::VULKAN> &attachment)
+bool VulkanRenderPass::RemoveAttachment(const VulkanAttachment *attachment)
 {
-    const auto it = m_render_pass_attachments.Find(attachment);
+    const auto it = m_render_pass_attachments.FindAs(attachment);
 
     if (it == m_render_pass_attachments.End()) {
         return false;
@@ -93,15 +101,15 @@ bool RenderPass<Platform::VULKAN>::RemoveAttachment(const AttachmentRef<Platform
     return true;
 }
 
-RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanRenderPass::Create()
 {
     CreateDependencies();
 
     Array<VkAttachmentDescription> attachment_descriptions;
     attachment_descriptions.Reserve(m_render_pass_attachments.Size());
 
-    VkAttachmentReference depth_attachment_usage { };
-    Array<VkAttachmentReference> color_attachment_usages;
+    VkAttachmentReference depth_attachment_reference { };
+    Array<VkAttachmentReference> color_attachment_references;
 
     VkSubpassDescription subpass_description { };
     subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -109,24 +117,24 @@ RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
 
     uint32 next_binding = 0;
 
-    for (const AttachmentRef<Platform::VULKAN> &attachment : m_render_pass_attachments) {
+    for (const VulkanAttachmentRef &attachment : m_render_pass_attachments) {
         if (!attachment->HasBinding()) { // no binding has manually been set so we make one
             attachment->SetBinding(next_binding);
         }
 
         next_binding = attachment->GetBinding() + 1;
 
-        attachment_descriptions.PushBack(attachment->GetPlatformImpl().GetAttachmentDescription());
+        attachment_descriptions.PushBack(attachment->GetVulkanAttachmentDescription());
 
         if (attachment->IsDepthAttachment()) {
-            depth_attachment_usage = attachment->GetPlatformImpl().GetHandle();
-            subpass_description.pDepthStencilAttachment = &depth_attachment_usage;
+            depth_attachment_reference = attachment->GetVulkanHandle();
+            subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
 
             m_vk_clear_values.PushBack(VkClearValue {
                 .depthStencil = { 1.0f, 0 }
             });
         } else {
-            color_attachment_usages.PushBack(attachment->GetPlatformImpl().GetHandle());
+            color_attachment_references.PushBack(attachment->GetVulkanHandle());
 
             m_vk_clear_values.PushBack(VkClearValue {
                 .color = {
@@ -141,8 +149,8 @@ RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         }
     }
 
-    subpass_description.colorAttachmentCount = uint32(color_attachment_usages.Size());
-    subpass_description.pColorAttachments = color_attachment_usages.Data();
+    subpass_description.colorAttachmentCount = uint32(color_attachment_references.Size());
+    subpass_description.pColorAttachments = color_attachment_references.Data();
 
     // Create the actual renderpass
     VkRenderPassCreateInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
@@ -171,30 +179,30 @@ RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         render_pass_info.pNext = &multiview_info;
     }
 
-    HYPERION_VK_CHECK(vkCreateRenderPass(device->GetDevice(), &render_pass_info, nullptr, &m_handle));
+    HYPERION_VK_CHECK(vkCreateRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), &render_pass_info, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult RenderPass<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanRenderPass::Destroy()
 {
     RendererResult result;
 
-    vkDestroyRenderPass(device->GetDevice(), m_handle, nullptr);
-    m_handle = nullptr;
+    vkDestroyRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+    m_handle = VK_NULL_HANDLE;
 
     SafeRelease(std::move(m_render_pass_attachments));
 
     return result;
 }
 
-void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, Framebuffer<Platform::VULKAN> *framebuffer, uint32 frame_index)
+void VulkanRenderPass::Begin(VulkanCommandBuffer *cmd, VulkanFramebuffer *framebuffer, uint32 frame_index)
 {
-    AssertThrow(framebuffer != nullptr && framebuffer->GetPlatformImpl().handles[frame_index] != nullptr);
+    AssertThrow(framebuffer != nullptr);
 
     VkRenderPassBeginInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     render_pass_info.renderPass = m_handle;
-    render_pass_info.framebuffer = framebuffer->GetPlatformImpl().handles[frame_index];
+    render_pass_info.framebuffer = framebuffer->GetVulkanHandles()[frame_index];
     render_pass_info.renderArea.offset = { 0, 0 };
     render_pass_info.renderArea.extent = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
     render_pass_info.clearValueCount = uint32(m_vk_clear_values.Size());
@@ -211,14 +219,13 @@ void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, F
         break;
     }
 
-    vkCmdBeginRenderPass(cmd->GetPlatformImpl().command_buffer, &render_pass_info, contents);
+    vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &render_pass_info, contents);
 }
 
-void RenderPass<Platform::VULKAN>::End(CommandBuffer<Platform::VULKAN> *cmd)
+void VulkanRenderPass::End(VulkanCommandBuffer *cmd)
 {
-    vkCmdEndRenderPass(cmd->GetPlatformImpl().command_buffer);
+    vkCmdEndRenderPass(cmd->GetVulkanHandle());
 }
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion

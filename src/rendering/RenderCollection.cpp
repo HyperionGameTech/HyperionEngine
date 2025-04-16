@@ -11,6 +11,7 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RenderConfig.hpp>
@@ -26,8 +27,6 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/containers/Array.hpp>
-
-#include <core/utilities/UniqueID.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/TaskSystem.hpp>
@@ -414,7 +413,7 @@ void RenderCollector::PushEntityToRender(ID<Entity> entity, const RenderProxy &p
 }
 
 void RenderCollector::CollectDrawCalls(
-    Frame *frame,
+    FrameBase *frame,
     const Bitset &bucket_bits,
     const CullData *cull_data
 )
@@ -428,7 +427,7 @@ void RenderCollector::CollectDrawCalls(
 
     HYP_MT_CHECK_READ(m_data_race_detector);
 
-    static const bool is_indirect_rendering_enabled = renderer::RenderConfig::IsIndirectRenderingEnabled();
+    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
 
@@ -484,7 +483,7 @@ void RenderCollector::CollectDrawCalls(
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    Frame *frame,
+    FrameBase *frame,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -498,7 +497,7 @@ void RenderCollector::ExecuteDrawCalls(
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    Frame *frame,
+    FrameBase *frame,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
@@ -511,7 +510,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     HYP_MT_CHECK_READ(m_data_race_detector);
 
-    static const bool is_indirect_rendering_enabled = renderer::RenderConfig::IsIndirectRenderingEnabled();
+    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
     
     AssertThrow(m_draw_collection != nullptr);
 

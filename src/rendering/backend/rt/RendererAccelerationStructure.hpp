@@ -1,9 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_BACKEND_RENDERER_ACCELERATION_STRUCTURE_HPP
-#define HYPERION_BACKEND_RENDERER_ACCELERATION_STRUCTURE_HPP
+#ifndef HYPERION_RENDERER_BACKEND_ACCELERATION_STRUCTURE_HPP
+#define HYPERION_RENDERER_BACKEND_ACCELERATION_STRUCTURE_HPP
 
 #include <core/Defines.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -36,13 +39,44 @@ enum AccelerationStructureFlagBits : AccelerationStructureFlags
     ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE    = 0x4
 };
 
+class TLASBase : public RenderObject<TLASBase>
+{
+public:
+    virtual ~TLASBase() override = default;
+
+    HYP_FORCE_INLINE AccelerationStructureType GetType() const
+        { return AccelerationStructureType::TOP_LEVEL; }
+
+    HYP_FORCE_INLINE const GPUBufferRef &GetMeshDescriptionsBuffer() const
+        { return m_mesh_descriptions_buffer; }
+
+    HYP_API virtual void AddBLAS(const BLASRef &blas) = 0;
+    HYP_API virtual void RemoveBLAS(const BLASRef &blas) = 0;
+    
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
+    
+    HYP_API virtual RendererResult UpdateStructure(RTUpdateStateFlags &out_update_state_flags) = 0;
+
+protected:
+    GPUBufferRef    m_mesh_descriptions_buffer;
+};
+
+class BLASBase : public RenderObject<BLASBase>
+{
+public:
+    virtual ~BLASBase() override = default;
+
+    HYP_FORCE_INLINE AccelerationStructureType GetType() const
+        { return AccelerationStructureType::BOTTOM_LEVEL; }
+    
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
+
+    HYP_API virtual void SetTransform(const Matrix4 &transform) = 0;
+};
+
 } // namespace renderer
 } // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/rt/RendererAccelerationStructure.hpp>
-#else
-#error Unsupported rendering backend
-#endif
 
 #endif

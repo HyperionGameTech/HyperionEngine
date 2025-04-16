@@ -47,16 +47,16 @@ public:
 
     virtual void Create() override;
 
-    virtual void Render(Frame *frame) override;
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:
     virtual bool UsesTemporalBlending() const override
-        { return m_config.use_temporal_blending; }
+        { return false; }// m_config.use_temporal_blending; }
 
     virtual bool ShouldRenderHalfRes() const override
-        { return true; }
+        { return false; }
 
     virtual void CreateDescriptors() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;

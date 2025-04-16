@@ -98,6 +98,37 @@ constexpr uint32 descriptor_set_element_type_to_buffer_type[uint32(DescriptorSet
     (1u << uint32(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER))  // ACCELERATION_STRUCTURE
 };
 
+template <class T>
+struct DescriptorSetElementTypeInfo;
+
+template <>
+struct DescriptorSetElementTypeInfo<GPUBufferBase>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
+        | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
+        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER))
+        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+};
+
+template <>
+struct DescriptorSetElementTypeInfo<ImageViewBase>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
+        | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+};
+
+template <>
+struct DescriptorSetElementTypeInfo<SamplerBase>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+};
+
+template <>
+struct DescriptorSetElementTypeInfo<TLASBase>
+{
+    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
+};
+
 struct DescriptorSetLayoutElement
 {
     DescriptorSetElementType    type = DescriptorSetElementType::UNSET;
@@ -339,45 +370,6 @@ public:
 
 extern DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration();
 
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Device;
-    
-template <PlatformType PLATFORM>
-class Instance;
-
-template <PlatformType PLATFORM>
-class DescriptorSet;
-
-template <PlatformType PLATFORM>
-class ImageView;
-
-template <PlatformType PLATFORM>
-class Sampler;
-
-template <PlatformType PLATFORM>
-class TopLevelAccelerationStructure;
-
-template <PlatformType PLATFORM>
-class Frame;
-
-template <PlatformType PLATFORM>
-class CommandBuffer;
-
-template <PlatformType PLATFORM>
-class GraphicsPipeline;
-
-template <PlatformType PLATFORM>
-class ComputePipeline;
-
-template <PlatformType PLATFORM>
-class RaytracingPipeline;
-
-template <PlatformType PLATFORM, class T>
-struct DescriptorSetElementTypeInfo;
-
-template <PlatformType PLATFORM>
 class DescriptorSetLayout
 {
 public:
@@ -425,8 +417,6 @@ public:
     
     ~DescriptorSetLayout() = default;
 
-    DescriptorSetRef<PLATFORM> CreateDescriptorSet() const;
-
     HYP_FORCE_INLINE Name GetName() const
         { return m_decl.name; }
 
@@ -473,12 +463,9 @@ private:
     Array<Name>                                 m_dynamic_elements;
 };
 
-template <PlatformType PLATFORM>
 struct DescriptorSetElement
 {
-    static constexpr PlatformType platform = PLATFORM;
-    
-    using ValueType = Variant<GPUBufferRef<PLATFORM>, ImageViewRef<PLATFORM>, SamplerRef<PLATFORM>, TLASRef<PLATFORM>>;
+    using ValueType = Variant<GPUBufferRef, ImageViewRef, SamplerRef, TLASRef>;
 
     FlatMap<uint32, ValueType>  values;
     Range<uint32>               dirty_range { };
@@ -494,14 +481,14 @@ struct DescriptorSetElement
                 continue;
             }
             
-            if (it.second.template Is<GPUBufferRef<PLATFORM>>()) {
-                SafeRelease(std::move(it.second.template Get<GPUBufferRef<PLATFORM>>()));
-            } else if (it.second.template Is<ImageViewRef<PLATFORM>>()) {
-                SafeRelease(std::move(it.second.template Get<ImageViewRef<PLATFORM>>()));
-            } else if (it.second.template Is<SamplerRef<PLATFORM>>()) {
-                SafeRelease(std::move(it.second.template Get<SamplerRef<PLATFORM>>()));
-            } else if (it.second.template Is<TLASRef<PLATFORM>>()) {
-                SafeRelease(std::move(it.second.template Get<TLASRef<PLATFORM>>()));
+            if (it.second.template Is<GPUBufferRef>()) {
+                SafeRelease(std::move(it.second.template Get<GPUBufferRef>()));
+            } else if (it.second.template Is<ImageViewRef>()) {
+                SafeRelease(std::move(it.second.template Get<ImageViewRef>()));
+            } else if (it.second.template Is<SamplerRef>()) {
+                SafeRelease(std::move(it.second.template Get<SamplerRef>()));
+            } else if (it.second.template Is<TLASRef>()) {
+                SafeRelease(std::move(it.second.template Get<TLASRef>()));
             } else {
                 DebugLog(LogType::Warn, "Unknown descriptor set element type when releasing.\n");
             }
@@ -515,70 +502,60 @@ struct DescriptorSetElement
 template <PlatformType PLATFORM>
 struct DescriptorSetPlatformImpl;
 
-template <PlatformType PLATFORM>
-class DescriptorSet
+class DescriptorSetBase : public RenderObject<DescriptorSetBase>
 {
 public:
-    static constexpr PlatformType platform = PLATFORM;
+    virtual ~DescriptorSetBase() override = default;
 
-    DescriptorSet(const DescriptorSetLayout<PLATFORM> &layout);
-    DescriptorSet(const DescriptorSet &other)                 = delete;
-    DescriptorSet &operator=(const DescriptorSet &other)      = delete;
-    DescriptorSet(DescriptorSet &&other) noexcept             = delete;
-    DescriptorSet &operator=(DescriptorSet &&other) noexcept  = delete;
-    ~DescriptorSet();
-
-    HYP_FORCE_INLINE DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl()
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const DescriptorSetPlatformImpl<PLATFORM> &GetPlatformImpl() const
-        { return m_platform_impl; }
-
-    HYP_FORCE_INLINE const DescriptorSetLayout<PLATFORM> &GetLayout() const
+    HYP_FORCE_INLINE const DescriptorSetLayout &GetLayout() const
         { return m_layout; }
 
-    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement<PLATFORM>> &GetElements() const
+    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement> &GetElements() const
         { return m_elements; }
 
-    HYP_API bool IsCreated() const;
+    HYP_API virtual bool IsCreated() const = 0;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
-    HYP_API void Update(Device<PLATFORM> *device);
+    HYP_API virtual RendererResult Create() = 0;
+    HYP_API virtual RendererResult Destroy() = 0;
+    HYP_API virtual void Update() = 0;
+    HYP_API virtual DescriptorSetRef Clone() const = 0;
 
     bool HasElement(Name name) const;
 
-    void SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef<PLATFORM> &ref);
-    void SetElement(Name name, uint32 index, const GPUBufferRef<PLATFORM> &ref);
-    void SetElement(Name name, const GPUBufferRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef &ref);
+    void SetElement(Name name, uint32 index, const GPUBufferRef &ref);
+    void SetElement(Name name, const GPUBufferRef &ref);
     
-    void SetElement(Name name, uint32 index, const ImageViewRef<PLATFORM> &ref);
-    void SetElement(Name name, const ImageViewRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const ImageViewRef &ref);
+    void SetElement(Name name, const ImageViewRef &ref);
     
-    void SetElement(Name name, uint32 index, const SamplerRef<PLATFORM> &ref);
-    void SetElement(Name name, const SamplerRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const SamplerRef &ref);
+    void SetElement(Name name, const SamplerRef &ref);
     
-    void SetElement(Name name, uint32 index, const TLASRef<PLATFORM> &ref);
-    void SetElement(Name name, const TLASRef<PLATFORM> &ref);
+    void SetElement(Name name, uint32 index, const TLASRef &ref);
+    void SetElement(Name name, const TLASRef &ref);
 
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, uint32 bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const GraphicsPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, uint32 bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const ComputePipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, uint32 bind_index) const;
-    void Bind(const CommandBuffer<PLATFORM> *command_buffer, const RaytracingPipeline<PLATFORM> *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const;
+    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, uint32 bind_index) const = 0;
+    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const = 0;
+    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, uint32 bind_index) const = 0;
+    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const = 0;
+    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, uint32 bind_index) const = 0;
+    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const = 0;
 
-    DescriptorSetRef<PLATFORM> Clone() const;
+protected:
+    DescriptorSetBase(const DescriptorSetLayout &layout)
+        : m_layout(layout)
+    {
+    }
 
-private:
     template <class T>
-    DescriptorSetElement<PLATFORM> &SetElement(Name name, uint32 index, const T &ref)
+    DescriptorSetElement &SetElement(Name name, uint32 index, const T &ref)
     {
         const DescriptorSetLayoutElement *layout_element = m_layout.GetElement(name);
         AssertThrowMsg(layout_element != nullptr, "Invalid element: No item with name %s found", name.LookupString());
 
         // Type check
-        static const uint32 mask = DescriptorSetElementTypeInfo<PLATFORM, typename T::Type>::mask;
+        static const uint32 mask = DescriptorSetElementTypeInfo<typename T::Type>::mask;
         AssertThrowMsg(mask & (1u << uint32(layout_element->type)), "Layout type for %s does not match given type", name.LookupString());
 
         // Range check
@@ -591,7 +568,7 @@ private:
         );
 
         // Buffer type check, to make sure the buffer type is allowed for the given element
-        if constexpr (std::is_same_v<typename T::Type, GPUBuffer<PLATFORM>>) {
+        if constexpr (std::is_same_v<typename T::Type, GPUBufferBase>) {
             if (ref != nullptr) {
                 const GPUBufferType buffer_type = ref->GetBufferType();
 
@@ -621,11 +598,11 @@ private:
         if (it == m_elements.End()) {
             it = m_elements.Insert({
                 name,
-                DescriptorSetElement<PLATFORM> { }
+                DescriptorSetElement { }
             }).first;
         }
 
-        DescriptorSetElement<PLATFORM> &element = it->second;
+        DescriptorSetElement &element = it->second;
 
         auto element_it = element.values.Find(index);
 
@@ -676,11 +653,11 @@ private:
         if (it == m_elements.End()) {
             it = m_elements.Insert({
                 name,
-                DescriptorSetElement<PLATFORM> { }
+                DescriptorSetElement { }
             }).first;
         }
 
-        DescriptorSetElement<PLATFORM> &element = it->second;
+        DescriptorSetElement &element = it->second;
 
         // // Set buffer_size, only used in the case of buffer elements
         // element.buffer_size = layout_element->size;
@@ -699,76 +676,45 @@ private:
         element.dirty_range = { 0, count };
     }
 
-    DescriptorSetPlatformImpl<PLATFORM>             m_platform_impl;
-
-    DescriptorSetLayout<PLATFORM>                   m_layout;
-    HashMap<Name, DescriptorSetElement<PLATFORM>>   m_elements;
+    DescriptorSetLayout                 m_layout;
+    HashMap<Name, DescriptorSetElement> m_elements;
 };
 
-template <PlatformType PLATFORM>
-class DescriptorSetManager
+class DescriptorTableBase : public RenderObject<DescriptorTableBase>
 {
 public:
-};
-
-} // namespace platform
-
-} // namespace renderer
-} // namespace hyperion
-
-#if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
-#else
-#error Unsupported rendering backend
-#endif
-
-namespace hyperion {
-namespace renderer {
-namespace platform {
-
-template <PlatformType PLATFORM>
-class DescriptorTable
-{
-public:
-    static constexpr PlatformType platform = PLATFORM;
-
-    DescriptorTable(const DescriptorTableDeclaration &decl);
-    DescriptorTable(const DescriptorTable &other)                 = default;
-    DescriptorTable &operator=(const DescriptorTable &other)      = default;
-    DescriptorTable(DescriptorTable &&other) noexcept             = default;
-    DescriptorTable &operator=(DescriptorTable &&other) noexcept  = default;
-    ~DescriptorTable()                                            = default;
+    virtual ~DescriptorTableBase() override = default;
 
     HYP_FORCE_INLINE const DescriptorTableDeclaration &GetDeclaration() const
         { return m_decl; }
 
-    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight> &GetSets() const
+    HYP_FORCE_INLINE const FixedArray<Array<DescriptorSetRef>, max_frames_in_flight> &GetSets() const
         { return m_sets; }
 
     /*! \brief Get a descriptor set from the table
         \param name The name of the descriptor set
         \param frame_index The index of the frame for the descriptor set
         \return The descriptor set, or an unset reference if not found */
-    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(Name name, uint32 frame_index) const
+    HYP_FORCE_INLINE const DescriptorSetRef &GetDescriptorSet(Name name, uint32 frame_index) const
     {
-        for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+        for (const DescriptorSetRef &set : m_sets[frame_index]) {
             if (set->GetLayout().GetName() == name) {
                 return set;
             }
         }
 
-        return DescriptorSetRef<PLATFORM>::unset;
+        return DescriptorSetRef::unset;
     }
     
-    HYP_FORCE_INLINE const DescriptorSetRef<PLATFORM> &GetDescriptorSet(uint32 descriptor_set_index, uint32 frame_index) const
+    HYP_FORCE_INLINE const DescriptorSetRef &GetDescriptorSet(uint32 descriptor_set_index, uint32 frame_index) const
     {
-        for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+        for (const DescriptorSetRef &set : m_sets[frame_index]) {
             if (set->GetLayout().GetDeclaration().set_index == descriptor_set_index) {
                 return set;
             }
         }
 
-        return DescriptorSetRef<PLATFORM>::unset;
+        return DescriptorSetRef::unset;
     }
 
     /*! \brief Get the index of a descriptor set in the table
@@ -780,12 +726,12 @@ public:
     /*! \brief Create all descriptor sets in the table
         \param device The device to create the descriptor sets on
         \return The result of the operation */
-    RendererResult Create(Device<PLATFORM> *device)
+    RendererResult Create()
     {
         RendererResult result;
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+            for (const DescriptorSetRef &set : m_sets[frame_index]) {
                 const Name descriptor_set_name = set->GetLayout().GetName();
 
                 // use FindDescriptorSetDeclaration rather than `set->GetLayout().GetDeclaration()`, since we need to know
@@ -798,7 +744,7 @@ public:
                     continue;
                 }
 
-                result = set->Create(device);
+                result = set->Create();
 
                 if (!result) {
                     return result;
@@ -812,7 +758,7 @@ public:
     /*! \brief Safely release all descriptor sets in the table
         \param device The device to destroy the descriptor sets on
         \return The result of the operation */
-    RendererResult Destroy(Device<PLATFORM> *device)
+    RendererResult Destroy()
     {
         for (auto &it : m_sets) {
             SafeRelease(std::move(it));
@@ -827,9 +773,9 @@ public:
         \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
         \return The result of the operation */
-    void Update(Device<PLATFORM> *device, uint32 frame_index)
+    void Update(uint32 frame_index)
     {
-        for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+        for (const DescriptorSetRef &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
 
             DescriptorSetDeclaration *decl = m_decl.FindDescriptorSetDeclaration(descriptor_set_name);
@@ -840,7 +786,7 @@ public:
                 continue;
             }
 
-            set->Update(device);
+            set->Update();
         }
     }
 
@@ -850,9 +796,9 @@ public:
         \param pipeline The pipeline to bind the descriptor sets to
         \param offsets The offsets to bind dynamic descriptor sets with */
     template <class PipelineRef>
-    void Bind(CommandBuffer<PLATFORM> *command_buffer, uint32 frame_index, const PipelineRef &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
+    void Bind(CommandBufferBase *command_buffer, uint32 frame_index, const PipelineRef &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
     {
-        for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
+        for (const DescriptorSetRef &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
 
             const uint32 set_index = GetDescriptorSetIndex(descriptor_set_name);
@@ -875,18 +821,15 @@ public:
         }
     }
 
-private:
-    DescriptorTableDeclaration                                              m_decl;
-    FixedArray<Array<DescriptorSetRef<PLATFORM>>, max_frames_in_flight>    m_sets;
+protected:
+    DescriptorTableBase(const DescriptorTableDeclaration &decl)
+        : m_decl(decl)
+    {
+    }
+
+    DescriptorTableDeclaration                                  m_decl;
+    FixedArray<Array<DescriptorSetRef>, max_frames_in_flight>   m_sets;
 };
-
-} // namespace platform
-
-using DescriptorSet = platform::DescriptorSet<Platform::CURRENT>;
-using DescriptorSetElement = platform::DescriptorSetElement<Platform::CURRENT>;
-using DescriptorSetLayout = platform::DescriptorSetLayout<Platform::CURRENT>;
-using DescriptorSetManager = platform::DescriptorSetManager<Platform::CURRENT>;
-using DescriptorTable = platform::DescriptorTable<Platform::CURRENT>;
 
 } // namespace renderer
 } // namespace hyperion

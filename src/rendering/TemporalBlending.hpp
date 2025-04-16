@@ -79,7 +79,7 @@ public:
     void ResetProgressiveBlending();
 
     void Create();
-    void Render(Frame *frame);
+    void Render(FrameBase *frame);
 
     void Resize(Vec2u new_size);
 

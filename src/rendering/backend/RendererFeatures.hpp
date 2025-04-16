@@ -8,13 +8,6 @@
 namespace hyperion {
 namespace renderer {
 
-enum class ImageSupportType
-{
-    SRV,
-    UAV,
-    DEPTH
-};
-
 } // namespace renderer
 } // namespace hyperion
 

@@ -15,70 +15,60 @@
 namespace hyperion {
 namespace renderer {
 
-namespace platform {
+class VulkanSemaphoreChain;
 
-template <PlatformType PLATFORM>
-class Device;
-
-template <PlatformType PLATFORM>
-class Instance;
-
-template <PlatformType PLATFORM>
-class CommandBuffer;
-
-} // namespace platform
-
-using Device = platform::Device<Platform::VULKAN>;
-using Instance = platform::Instance<Platform::VULKAN>;
-using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
-
-class SemaphoreChain;
-
-class Semaphore
+enum class VulkanSemaphoreType
 {
-    friend class SemaphoreChain;
-    friend class platform::CommandBuffer<Platform::VULKAN>;
-
-public:
-    Semaphore(VkPipelineStageFlags pipeline_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    Semaphore(const Semaphore &other) = delete;
-    Semaphore &operator=(const Semaphore &other) = delete;
-    ~Semaphore();
-
-    VkSemaphore &GetSemaphore() { return m_semaphore; }
-    VkSemaphore GetSemaphore() const { return m_semaphore; }
-    VkPipelineStageFlags GetStageFlags() const { return m_pipeline_stage; }
-
-    RendererResult Create(Device *device);
-    RendererResult Destroy(Device *device);
-
-private:
-    VkSemaphore m_semaphore;
-    VkPipelineStageFlags m_pipeline_stage;
+    WAIT,
+    SIGNAL
 };
 
-struct SemaphoreRef {
-    Semaphore           semaphore;
+class VulkanSemaphore
+{
+    friend class VulkanSemaphoreChain;
+
+public:
+    VulkanSemaphore(VkPipelineStageFlags pipeline_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    ~VulkanSemaphore();
+
+    VkSemaphore GetVulkanHandle() const
+        { return m_semaphore; }
+
+    VkPipelineStageFlags GetVulkanStageFlags() const
+        { return m_pipeline_stage; }
+
+    RendererResult Create();
+    RendererResult Destroy();
+
+private:
+    VkSemaphore             m_semaphore;
+    VkPipelineStageFlags    m_pipeline_stage;
+};
+
+struct VulkanSemaphoreRef
+{
+    VulkanSemaphore     semaphore;
     mutable uint32_t    count;
 
-    SemaphoreRef(VkPipelineStageFlags pipeline_stage)
+    VulkanSemaphoreRef(VkPipelineStageFlags pipeline_stage)
         : semaphore(pipeline_stage),
           count(0)
     {
     }
 
-    bool operator<(const SemaphoreRef &other) const
-        { return uintptr_t(semaphore.GetSemaphore()) < uintptr_t(other.semaphore.GetSemaphore()); }
+    bool operator<(const VulkanSemaphoreRef &other) const
+        { return uintptr_t(semaphore.GetVulkanHandle()) < uintptr_t(other.semaphore.GetVulkanHandle()); }
 };
 
-template <SemaphoreType Type>
-struct SemaphoreRefHolder {
-    friend class SemaphoreChain;
+template <VulkanSemaphoreType Type>
+struct VulkanSemaphoreRefHolder
+{
+    friend class VulkanSemaphoreChain;
 
-    explicit SemaphoreRefHolder(std::nullptr_t) : ref(nullptr) {}
-    SemaphoreRefHolder(SemaphoreRef *ref) : ref(ref) { ++ref->count; }
+    explicit VulkanSemaphoreRefHolder(std::nullptr_t) : ref(nullptr) { }
+    VulkanSemaphoreRefHolder(VulkanSemaphoreRef *ref) : ref(ref) { ++ref->count; }
 
-    SemaphoreRefHolder(const SemaphoreRefHolder &other)
+    VulkanSemaphoreRefHolder(const VulkanSemaphoreRefHolder &other)
         : ref(other.ref)
     {
         if (ref != nullptr) {
@@ -86,16 +76,16 @@ struct SemaphoreRefHolder {
         }
     }
 
-    SemaphoreRefHolder &operator=(const SemaphoreRefHolder &other) = delete;
+    VulkanSemaphoreRefHolder &operator=(const VulkanSemaphoreRefHolder &other) = delete;
 
-    SemaphoreRefHolder(SemaphoreRefHolder &&other) noexcept
+    VulkanSemaphoreRefHolder(VulkanSemaphoreRefHolder &&other) noexcept
         : ref(std::move(other.ref))
     {
         other.ref = nullptr;
     }
 
 
-    SemaphoreRefHolder &operator=(SemaphoreRefHolder &&other) noexcept
+    VulkanSemaphoreRefHolder &operator=(VulkanSemaphoreRefHolder &&other) noexcept
     {
         if (&other == this) {
             return *this;
@@ -107,10 +97,10 @@ struct SemaphoreRefHolder {
         return *this;
     }
 
-    ~SemaphoreRefHolder()
+    ~VulkanSemaphoreRefHolder()
         { Reset(); }
 
-    bool operator==(const SemaphoreRefHolder &other) const
+    bool operator==(const VulkanSemaphoreRefHolder &other) const
         { return ref == other.ref; }
 
     void Reset()
@@ -123,102 +113,98 @@ struct SemaphoreRefHolder {
         }
     }
 
-    Semaphore &Get() { return ref->semaphore; }
-    const Semaphore &Get() const { return ref->semaphore; }
+    VulkanSemaphore &Get() { return ref->semaphore; }
+    const VulkanSemaphore &Get() const { return ref->semaphore; }
 
-    template <SemaphoreType ToType>
-    SemaphoreRefHolder<ToType> ConvertHeldType() const
-        { return SemaphoreRefHolder<ToType>(ref); }
+    template <VulkanSemaphoreType ToType>
+    VulkanSemaphoreRefHolder<ToType> ConvertHeldType() const
+        { return VulkanSemaphoreRefHolder<ToType>(ref); }
 
 private:
-    mutable SemaphoreRef *ref;
+    mutable VulkanSemaphoreRef  *ref;
 
 };
 
-using WaitSemaphore = SemaphoreRefHolder<SemaphoreType::WAIT>;
-using SignalSemaphore = SemaphoreRefHolder<SemaphoreType::SIGNAL>;
+using VulkanWaitSemaphore = VulkanSemaphoreRefHolder<VulkanSemaphoreType::WAIT>;
+using VulkanSignalSemaphore = VulkanSemaphoreRefHolder<VulkanSemaphoreType::SIGNAL>;
 
-class SemaphoreChain
+class VulkanSemaphoreChain
 {
-    friend class platform::CommandBuffer<Platform::VULKAN>;
 public:
-    using SemaphoreView = std::vector<VkSemaphore>;
-    using SemaphoreStageView = std::vector<VkPipelineStageFlags>;
-
-    static void Link(SemaphoreChain &signaler, SemaphoreChain &waitee);
+    using VulkanSemaphoreView = std::vector<VkSemaphore>;
+    using VulkanSemaphoreStageView = std::vector<VkPipelineStageFlags>;
     
-    SemaphoreChain(
+    VulkanSemaphoreChain(
         const std::vector<VkPipelineStageFlags> &wait_stage_flags,
         const std::vector<VkPipelineStageFlags> &signal_stage_flags
     );
-    SemaphoreChain(const SemaphoreChain &other) = delete;
-    SemaphoreChain &operator=(const SemaphoreChain &other) = delete;
-    SemaphoreChain(SemaphoreChain &&other) noexcept = default;
-    SemaphoreChain &operator=(SemaphoreChain &&other) noexcept = default;
-    ~SemaphoreChain();
+    VulkanSemaphoreChain(const VulkanSemaphoreChain &other)                 = delete;
+    VulkanSemaphoreChain &operator=(const VulkanSemaphoreChain &other)      = delete;
+    VulkanSemaphoreChain(VulkanSemaphoreChain &&other) noexcept             = default;
+    VulkanSemaphoreChain &operator=(VulkanSemaphoreChain &&other) noexcept  = default;
+    ~VulkanSemaphoreChain();
 
     auto &GetWaitSemaphores() { return m_wait_semaphores; }
     const auto &GetWaitSemaphores() const { return m_wait_semaphores; }
     auto &GetSignalSemaphores() { return m_signal_semaphores; }
     const auto &GetSignalSemaphores() const { return m_signal_semaphores; }
 
-    bool HasWaitSemaphore(const WaitSemaphore &wait_semaphore) const
+    bool HasWaitSemaphore(const VulkanWaitSemaphore &wait_semaphore) const
     {
-        return std::any_of(m_wait_semaphores.begin(), m_wait_semaphores.end(), [&wait_semaphore](const WaitSemaphore &item) {
+        return std::any_of(m_wait_semaphores.begin(), m_wait_semaphores.end(), [&wait_semaphore](const VulkanWaitSemaphore &item) {
             return wait_semaphore == item;
         });
     }
 
-    bool HasSignalSemaphore(const SignalSemaphore &signal_semaphore) const
+    bool HasSignalSemaphore(const VulkanSignalSemaphore &signal_semaphore) const
     {
-        return std::any_of(m_signal_semaphores.begin(), m_signal_semaphores.end(), [&signal_semaphore](const SignalSemaphore &item) {
+        return std::any_of(m_signal_semaphores.begin(), m_signal_semaphores.end(), [&signal_semaphore](const VulkanSignalSemaphore &item) {
             return signal_semaphore == item;
         });
     }
 
-    SemaphoreChain &WaitsFor(const SignalSemaphore &signal_semaphore);
-    SemaphoreChain &SignalsTo(const WaitSemaphore &wait_semaphore);
+    VulkanSemaphoreChain &WaitsFor(const VulkanSignalSemaphore &signal_semaphore);
+    VulkanSemaphoreChain &SignalsTo(const VulkanWaitSemaphore &wait_semaphore);
     
     /*! \brief Make this wait on all signal semaphores that `signaler` has.
      * @param signaler The chain to wait on
      * @returns this
      */
-    SemaphoreChain &WaitsFor(const SemaphoreChain &signaler);
+    VulkanSemaphoreChain &WaitsFor(const VulkanSemaphoreChain &signaler);
 
     /*! \brief Make `waitee` wait on all signal semaphores that this chain has.
      * @param waitee The chain to have waiting on this chain
      * @returns this
      */
-    SemaphoreChain &SignalsTo(SemaphoreChain &waitee);
+    VulkanSemaphoreChain &SignalsTo(VulkanSemaphoreChain &waitee);
 
-    const SemaphoreView &GetSignalSemaphoresView() const
+    const VulkanSemaphoreView &GetSignalSemaphoresView() const
         { return m_signal_semaphores_view; }
 
-    const SemaphoreStageView &GetSignalSemaphoreStagesView() const
+    const VulkanSemaphoreStageView &GetSignalSemaphoreStagesView() const
         { return m_signal_semaphores_stage_view; }
 
-    const SemaphoreView &GetWaitSemaphoresView() const
+    const VulkanSemaphoreView &GetWaitSemaphoresView() const
         { return m_wait_semaphores_view; }
 
-    const SemaphoreStageView &GetWaitSemaphoreStagesView() const
+    const VulkanSemaphoreStageView &GetWaitSemaphoreStagesView() const
         { return m_wait_semaphores_stage_view; }
 
-    RendererResult Create(Device *device);
-    RendererResult Destroy(Device *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
 private:
-    static std::set<SemaphoreRef *> refs;
+    static std::set<VulkanSemaphoreRef *>   refs;
 
     void UpdateViews();
     
-    std::vector<SignalSemaphore> m_signal_semaphores;
-    std::vector<WaitSemaphore>   m_wait_semaphores;
+    std::vector<VulkanSignalSemaphore>      m_signal_semaphores;
+    std::vector<VulkanWaitSemaphore>        m_wait_semaphores;
 
-    /* Views, for on the fly linear memory access: */
-    SemaphoreView m_signal_semaphores_view;
-    SemaphoreView m_wait_semaphores_view;
-    SemaphoreStageView m_signal_semaphores_stage_view;
-    SemaphoreStageView m_wait_semaphores_stage_view;
+    VulkanSemaphoreView                     m_signal_semaphores_view;
+    VulkanSemaphoreView                     m_wait_semaphores_view;
+    VulkanSemaphoreStageView                m_signal_semaphores_stage_view;
+    VulkanSemaphoreStageView                m_wait_semaphores_stage_view;
 };
 
 } // namespace renderer

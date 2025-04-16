@@ -13,6 +13,8 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/HeapArray.hpp>
 
+#include <core/memory/MemoryPool.hpp>
+
 #include <core/Name.hpp>
 #include <core/IDGenerator.hpp>
 
@@ -38,121 +40,30 @@ class Device;
 
 } // namespace platform
 
-template <class T, PlatformType PLATFORM>
-struct RenderObjectDefinition;
-
-template <class T, PlatformType PLATFORM>
-constexpr bool has_render_object_defined = implementation_exists<RenderObjectDefinition<T, PLATFORM>>;
+template <class T>
+struct RenderObjectHeader;
 
 class HYP_API RenderObjectContainerBase
 {
 protected:
     RenderObjectContainerBase(ANSIStringView render_object_type_name);
-    ~RenderObjectContainerBase();
+    virtual ~RenderObjectContainerBase() = default;
 
 public:
     HYP_FORCE_INLINE ANSIStringView GetRenderObjectTypeName() const
         { return m_render_object_type_name; }
+
+    virtual void ReleaseIndex(uint32 index) = 0;
 
 protected:
     ANSIStringView  m_render_object_type_name;
     SizeType        m_size;
 };
 
-template <class T, PlatformType PLATFORM>
-class RenderObjectContainer final : public RenderObjectContainerBase
+template <class T>
+class RenderObjectContainer final : public MemoryPool<RenderObjectHeader<T>>, public RenderObjectContainerBase
 {
 public:
-    static constexpr SizeType max_size = RenderObjectDefinition<T, PLATFORM>::max_size;
-
-    static_assert(has_render_object_defined<T, PLATFORM>, "T is not a render object for the render platform!");
-
-    struct Instance
-    {
-        ValueStorage<T>     storage;
-        AtomicVar<uint16>   ref_count_strong;
-        AtomicVar<uint16>   ref_count_weak;
-        bool                has_value;
-
-        Instance()
-            : ref_count_strong(0),
-              ref_count_weak(0),
-              has_value(false)
-        {
-        }
-
-        Instance(const Instance &other)             = delete;
-        Instance &operator=(const Instance &other)  = delete;
-        Instance(Instance &&other) noexcept         = delete;
-        Instance &operator=(Instance &&other)       = delete;
-
-        ~Instance()
-        {
-            if (HasValue()) {
-                storage.Destruct();
-            }
-        }
-
-        HYP_FORCE_INLINE uint16 GetRefCountStrong() const
-            { return ref_count_strong.Get(MemoryOrder::ACQUIRE); }
-
-        HYP_FORCE_INLINE uint16 GetRefCountWeak() const
-            { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
-
-        template <class ...Args>
-        T *Construct(Args &&... args)
-        {
-            AssertThrow(!HasValue());
-
-            T *ptr = storage.Construct(std::forward<Args>(args)...);
-
-            has_value = true;
-
-            return ptr;
-        }
-
-        HYP_FORCE_INLINE void IncRefStrong()
-            { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
-
-        HYP_FORCE_INLINE uint32 DecRefStrong()
-        {
-            AssertThrow(GetRefCountStrong() != 0);
-
-            uint16 count;
-
-            if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
-                storage.Destruct();
-                has_value = false;
-            }
-
-            return uint32(count) - 1;
-        }
-
-        HYP_FORCE_INLINE void IncRefWeak()
-            { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
-
-        HYP_FORCE_INLINE uint32 DecRefWeak()
-        {
-            AssertThrow(GetRefCountWeak() != 0);
-
-            const uint16 count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
-
-            return uint32(count) - 1;
-        }
-
-        HYP_FORCE_INLINE T &Get()
-        {
-#ifdef HYP_DEBUG_MODE
-            AssertThrowMsg(HasValue(), "Render object of type %s has no value!", TypeNameHelper<T, true>::value.Data());
-#endif
-
-            return storage.Get();
-        }
-
-        HYP_FORCE_INLINE bool HasValue() const
-            { return has_value; }
-    };
-
     RenderObjectContainer()
         : RenderObjectContainerBase(TypeNameHelper<T, true>::value)
     {
@@ -161,146 +72,133 @@ public:
     RenderObjectContainer(const RenderObjectContainer &other) = delete;
     RenderObjectContainer &operator=(const RenderObjectContainer &other) = delete;
 
-    ~RenderObjectContainer() = default;
+    virtual ~RenderObjectContainer() override = default;
 
-    HYP_FORCE_INLINE uint32 NextIndex()
+    virtual void ReleaseIndex(uint32 index) override
     {
-        using RenderObjectDefinitionType = RenderObjectDefinition<T, PLATFORM>;
+        MemoryPool<RenderObjectHeader<T>>::ReleaseIndex(index);
+    }
+};
 
-        const uint32 index = m_id_generator.NextID() - 1;
+struct RenderObjectHeaderBase
+{
+    RenderObjectContainerBase   *container;
+    uint32                      index;
+    AtomicVar<uint16>           ref_count_strong;
+    AtomicVar<uint16>           ref_count_weak;
+    void                        (*deleter)(RenderObjectHeaderBase *);
 
-        AssertThrowMsg(
-            index < RenderObjectDefinitionType::max_size,
-            "Maximum number of render object %s allocated! Maximum: %llu\n",
-            TypeNameWithoutNamespace<T>().Data(),
-            RenderObjectDefinitionType::max_size
-        );
-
-        return index;
+    ~RenderObjectHeaderBase()
+    {
+        AssertDebug(!HasValue());
+        AssertDebug(ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0);
+        AssertDebug(ref_count_weak.Get(MemoryOrder::ACQUIRE) == 0);
     }
 
-    HYP_FORCE_INLINE void IncRefStrong(uint32 index)
-        { m_data[index].IncRefStrong(); }
+    HYP_FORCE_INLINE bool HasValue() const
+        { return index != ~0u; }
 
-    HYP_FORCE_INLINE void DecRefStrong(uint32 index)
+    HYP_FORCE_INLINE uint16 GetRefCountStrong() const
+        { return ref_count_strong.Get(MemoryOrder::ACQUIRE); }
+
+    HYP_FORCE_INLINE uint16 GetRefCountWeak() const
+        { return ref_count_weak.Get(MemoryOrder::ACQUIRE); }
+
+    HYP_FORCE_INLINE void IncRefStrong()
+        { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
+
+    HYP_FORCE_INLINE uint32 DecRefStrong()
     {
-        if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
-            m_id_generator.FreeID(index + 1);
-        }
-    }
+        AssertDebug(GetRefCountStrong() != 0);
+        AssertDebug(HasValue());
 
-    HYP_FORCE_INLINE void IncRefWeak(uint32 index)
-        { m_data[index].IncRefWeak(); }
+        uint16 count;
 
-    HYP_FORCE_INLINE void DecRefWeak(uint32 index)
-    {
-        if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
-            m_id_generator.FreeID(index + 1);
-        }
-    }
+        if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+            ref_count_weak.Increment(1, MemoryOrder::RELEASE);
 
-    HYP_FORCE_INLINE uint16 GetRefCountStrong(uint32 index)
-        { return m_data[index].GetRefCountStrong(); }
+            deleter(this);
 
-    HYP_FORCE_INLINE uint16 GetRefCountWeak(uint32 index)
-        { return m_data[index].GetRefCountWeak(); }
-
-    HYP_FORCE_INLINE T &Get(uint32 index)
-        { return m_data[index].Get(); }
-    
-    template <class... Args>
-    HYP_FORCE_INLINE void ConstructAtIndex(uint32 index, Args &&... args)
-        { m_data[index].Construct(std::forward<Args>(args)...); }
-
-    HYP_FORCE_INLINE Name GetDebugName(uint32 index) const
-    {
-#ifdef HYP_DEBUG_MODE
-        return m_debug_names[index];
-#else
-        return NAME("DebugNamesNotEnabled");
-#endif
-    }
-
-    HYP_FORCE_INLINE void SetDebugName(uint32 index, Name name)
-    {
-#ifdef HYP_DEBUG_MODE
-        m_debug_names[index] = name;
-#endif
-    }
-
-#ifdef HYP_DEBUG_MODE
-    HYP_FORCE_INLINE uint32 GetCount() const
-    {
-        uint32 count = 0;
-
-        for (SizeType i = 0; i < m_data.Size(); i++) {
-            if (m_data[i].HasValue()) {
-                ++count;
+            if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1) {
+                container->ReleaseIndex(index);
+                index = ~0u;
             }
         }
 
-        return count;
+        return uint32(count) - 1;
     }
-#endif
 
-private:
-    HeapArray<Instance, max_size>   m_data;
-#ifdef HYP_DEBUG_MODE
-    HeapArray<Name, max_size>       m_debug_names;
-#endif
-    IDGenerator                     m_id_generator;
+    HYP_FORCE_INLINE void IncRefWeak()
+        { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
+
+    HYP_FORCE_INLINE uint32 DecRefWeak()
+    {
+        AssertDebug(GetRefCountWeak() != 0);
+        AssertDebug(HasValue());
+
+        uint16 count;
+        
+        if ((count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1) {
+            if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0) {
+                container->ReleaseIndex(index);
+                index = ~0u;
+            }
+        }
+
+        return uint32(count) - 1;
+    }
 };
 
-template <class T, PlatformType PLATFORM>
+template <class T>
+struct RenderObjectHeader final : RenderObjectHeaderBase
+{
+    ValueStorage<T>             storage;
+
+    RenderObjectHeader()
+    {
+        ref_count_strong.Set(0, MemoryOrder::RELAXED);
+        ref_count_weak.Set(0, MemoryOrder::RELAXED);
+        index = ~0u;
+        container = nullptr;
+        deleter = [](RenderObjectHeaderBase *header)
+        {
+            static_cast<RenderObjectHeader<T> *>(header)->storage.Destruct();
+        };
+    }
+
+    RenderObjectHeader(const RenderObjectHeader &other)             = delete;
+    RenderObjectHeader &operator=(const RenderObjectHeader &other)  = delete;
+    RenderObjectHeader(RenderObjectHeader &&other) noexcept         = delete;
+    RenderObjectHeader &operator=(RenderObjectHeader &&other)       = delete;
+    ~RenderObjectHeader()                                           = default;
+
+    template <class ...Args>
+    T *Construct(Args &&... args)
+    {
+        T *ptr = storage.Construct(std::forward<Args>(args)...);
+
+        return ptr;
+    }
+
+    HYP_FORCE_INLINE T &Get()
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(HasValue(), "Render object of type %s has no value!", TypeNameHelper<T, true>::value.Data());
+#endif
+
+        return storage.Get();
+    }
+};
+
+template <class T>
 class RenderObjectHandle_Strong;
 
-template <class T, PlatformType PLATFORM>
+template <class T>
 class RenderObjectHandle_Weak;
 
-template <PlatformType PLATFORM>
-class RenderObjects
-{
-public:
-    template <class T>
-    static RenderObjectContainer<T, PLATFORM> &GetRenderObjectContainer()
-    {
-        static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
-
-        static RenderObjectContainer<T, PLATFORM> container;
-
-        return container;
-    }
-
-    template <class T, class... Args>
-    static RenderObjectHandle_Strong<T, PLATFORM> Make(Args &&... args)
-    {
-        auto &container = GetRenderObjectContainer<T>();
-
-        const uint32 index = container.NextIndex();
-
-        container.ConstructAtIndex(
-            index,
-            std::forward<Args>(args)...
-        );
-
-        return RenderObjectHandle_Strong<T, PLATFORM>::FromIndex(index + 1);
-    }
-};
-
-template <class T, PlatformType PLATFORM>
+template <class T>
 class RenderObjectHandle_Strong
 {
-    static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
-
-    static RenderObjectContainer<T, PLATFORM> *s_container;
-
-    // static RenderObjectContainer<T, PLATFORM> *GetContainer()
-    // {
-    //     static RenderObjectContainer<T, PLATFORM> *container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
-
-    //     return container;
-    // }
-
 public:
     using Type = T;
 
@@ -308,92 +206,108 @@ public:
 
     static const RenderObjectHandle_Strong &Null();
 
-    static RenderObjectHandle_Strong FromIndex(uint32 index)
+    RenderObjectHandle_Strong()
+        : header(nullptr),
+          ptr(nullptr)
     {
-        RenderObjectHandle_Strong handle;
-        handle.index = index;
-        
-        if (index != 0) {
-            handle.s_container->IncRefStrong(index - 1);
+    }
+    
+    RenderObjectHandle_Strong(RenderObjectHeaderBase *header, T *ptr)
+        : header(header),
+          ptr(ptr)
+    {
+        if (header) {
+            header->IncRefStrong();
         }
-
-        return handle;
     }
 
-    RenderObjectHandle_Strong()
-        : index(0)
+    explicit RenderObjectHandle_Strong(RenderObjectHeader<T> *header)
+        : header(header),
+          ptr(header ? &header->storage.Get() : nullptr)
     {
+        if (header) {
+            header->IncRefStrong();
+        }
     }
 
     RenderObjectHandle_Strong(std::nullptr_t)
-        : index(0)
+        : header(nullptr),
+          ptr(nullptr)
     {
     }
 
     RenderObjectHandle_Strong &operator=(std::nullptr_t)
     {
-        if (index != 0) {
-            s_container->DecRefStrong(index - 1);
+        if (header) {
+            header->DecRefStrong();
         }
 
-        index = 0;
+        header = nullptr;
+        ptr = nullptr;
 
         return *this;
     }
 
     RenderObjectHandle_Strong(const RenderObjectHandle_Strong &other)
-        : index(other.index)
+        : header(other.header),
+          ptr(other.ptr)
     {
-        if (index != 0) {
-            s_container->IncRefStrong(index - 1);
+        if (header) {
+            header->IncRefStrong();
         }
     }
 
     RenderObjectHandle_Strong &operator=(const RenderObjectHandle_Strong &other)
     {
-        if (index != 0) {
-            s_container->DecRefStrong(index - 1);
+        if (header) {
+            header->DecRefStrong();
         }
 
-        index = other.index;
+        header = other.header;
+        ptr = other.ptr;
 
-        if (index != 0) {
-            s_container->IncRefStrong(index - 1);
+        if (header) {
+            header->IncRefStrong();
         }
 
         return *this;
     }
 
     RenderObjectHandle_Strong(RenderObjectHandle_Strong &&other) noexcept
-        : index(other.index)
+        : header(other.header),
+          ptr(other.ptr)
     {
-        other.index = 0;
+        other.header = nullptr;
+        other.ptr = nullptr;
     }
 
     RenderObjectHandle_Strong &operator=(RenderObjectHandle_Strong &&other) noexcept
     {
-        if (index != 0) {
-            s_container->DecRefStrong(index - 1);
+        if (header) {
+            header->DecRefStrong();
         }
 
-        index = other.index;
-        other.index = 0;
+        header = other.header;
+        ptr = other.ptr;
+
+        other.header = nullptr;
+        other.ptr = nullptr;
 
         return *this;
     }
 
     ~RenderObjectHandle_Strong()
     {
-        if (index != 0) {
-            s_container->DecRefStrong(index - 1);
+        if (header) {
+            header->DecRefStrong();
         }
     }
 
     HYP_FORCE_INLINE T *operator->() const
-        { return Get(); }
+        { return ptr; }
 
     HYP_FORCE_INLINE T &operator*() const
-        { return *Get(); }
+        { return *ptr; }
 
     HYP_FORCE_INLINE bool operator!() const
         { return !IsValid(); }
@@ -407,37 +321,38 @@ public:
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return IsValid(); }
 
+    HYP_FORCE_INLINE bool operator==(const T *obj) const
+        { return ptr == obj; }
+
+    HYP_FORCE_INLINE bool operator!=(const T *obj) const
+        { return ptr != obj; }
+
     HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Strong &other) const
-        { return index == other.index; }
+        { return header == other.header && ptr == other.ptr; }
 
     HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Strong &other) const
-        { return index != other.index; }
+        { return header != other.header || ptr != other.ptr; }
 
     HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Strong &other) const
-        { return index < other.index; }
+        { return header < other.header; }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return index != 0; }
+        { return header != nullptr && ptr != nullptr; }
 
     HYP_FORCE_INLINE uint16 GetRefCount() const
-        { return index == 0 ? 0 : s_container->GetRefCountStrong(index - 1); }
+        { return header ? header->GetRefCountStrong() : 0; }
 
     HYP_FORCE_INLINE T *Get() const &
-    {
-        if (index == 0) {
-            return nullptr;
-        }
-        
-        return &s_container->Get(index - 1);
-    }
+        { return ptr; }
 
     HYP_FORCE_INLINE void Reset()
     {
-        if (index != 0) {
-            s_container->DecRefStrong(index - 1);
+        if (header) {
+            header->DecRefStrong();
         }
 
-        index = 0;
+        header = nullptr;
+        ptr = nullptr;
     }
 
     HYP_FORCE_INLINE operator T *() const &
@@ -446,239 +361,372 @@ public:
     HYP_FORCE_INLINE operator const T *() const &
         { return const_cast<const T *>(Get()); }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
+    HYP_FORCE_INLINE operator RenderObjectHandle_Strong<Ty>() const
+    {
+        if (header) {
+            return RenderObjectHandle_Strong<Ty>(header, static_cast<Ty *>(ptr));
+        }
+
+        return RenderObjectHandle_Strong<Ty>::unset;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_base_of_v<T, Ty>, int> = 0>
+    HYP_FORCE_INLINE operator RenderObjectHandle_Strong<Ty>() const
+    {
+        if (header) {
+            return RenderObjectHandle_Strong<Ty>(header, static_cast<Ty *>(ptr));
+        }
+
+        return RenderObjectHandle_Strong<Ty>::unset;
+    }
+
     HYP_FORCE_INLINE void SetName(Name name)
     {
-        AssertThrowMsg(index != 0, "Render object is not valid");
-        s_container->SetDebugName(index - 1, name);
     }
 
     HYP_FORCE_INLINE Name GetName() const
     {
-        AssertThrowMsg(index != 0, "Render object is not valid");
-        return s_container->GetDebugName(index - 1);
+        return { };
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(TypeNameWithoutNamespace<T>().GetHashCode());
-        hc.Add(index);
-
-        return hc;
-    }
-
-    uint32 index;
+    RenderObjectHeaderBase  *header;
+    T                       *ptr;
 };
 
-template <class T, PlatformType PLATFORM>
-RenderObjectContainer<T, PLATFORM> *RenderObjectHandle_Strong<T, PLATFORM>::s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+template <class T>
+const RenderObjectHandle_Strong<T> RenderObjectHandle_Strong<T>::unset = RenderObjectHandle_Strong<T>();
 
-template <class T, PlatformType PLATFORM>
-const RenderObjectHandle_Strong<T, PLATFORM> RenderObjectHandle_Strong<T, PLATFORM>::unset = RenderObjectHandle_Strong<T, PLATFORM>();
-
-template <class T, PlatformType PLATFORM>
-const RenderObjectHandle_Strong<T, PLATFORM> &RenderObjectHandle_Strong<T, PLATFORM>::Null()
+template <class T>
+const RenderObjectHandle_Strong<T> &RenderObjectHandle_Strong<T>::Null()
 {
     return unset;
 }
 
-template <class T, PlatformType PLATFORM>
+template <class T>
 class RenderObjectHandle_Weak
 {
-    static_assert(has_render_object_defined<T, PLATFORM>, "Not a valid render object");
-
-    // RenderObjectContainer<T, PLATFORM>  *s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
-
-    static RenderObjectContainer<T, PLATFORM> *s_container;
-
 public:
     using Type = T;
     
     static const RenderObjectHandle_Weak unset;
 
-    static RenderObjectHandle_Weak FromIndex(uint32 index)
-    {
-        RenderObjectHandle_Weak handle;
-        handle.index = index;
-        
-        if (index != 0) {
-            handle.s_container->IncRefWeak(index - 1);
-        }
-
-        return handle;
-    }
+    static const RenderObjectHandle_Weak &Null();
 
     RenderObjectHandle_Weak()
-        : index(0)
+        : header(nullptr),
+          ptr(nullptr)
     {
     }
 
-    RenderObjectHandle_Weak(const RenderObjectHandle_Strong<T, PLATFORM> &other)
-        : index(other.index)
+    explicit RenderObjectHandle_Weak(RenderObjectHeader<T> *header)
+        : header(header),
+          ptr(header ? &header->storage.Get() : nullptr)
     {
-        if (index != 0) {
-            s_container->IncRefWeak(index - 1);
+        if (header) {
+            header->IncRefWeak();
+        }
+    }
+
+    RenderObjectHandle_Weak(RenderObjectHeaderBase *header, T *ptr)
+        : header(header),
+          ptr(ptr)
+    {
+        if (header) {
+            header->IncRefWeak();
+        }
+    }
+
+    RenderObjectHandle_Weak(std::nullptr_t)
+        : header(nullptr),
+          ptr(nullptr)
+    {
+    }
+
+    RenderObjectHandle_Weak &operator=(std::nullptr_t)
+    {
+        if (header) {
+            header->DecRefWeak();
+        }
+
+        header = nullptr;
+        ptr = nullptr;
+
+        return *this;
+    }
+
+    RenderObjectHandle_Weak(const RenderObjectHandle_Strong<T> &other)
+        : header(other.header),
+          ptr(other.ptr)
+    {
+        if (header) {
+            header->IncRefWeak();
         }
     }
 
     RenderObjectHandle_Weak(const RenderObjectHandle_Weak &other)
-        : index(other.index)
+        : header(other.header),
+          ptr(other.ptr)
     {
-        if (index != 0) {
-            s_container->IncRefWeak(index - 1);
+        if (header) {
+            header->IncRefWeak();
         }
     }
 
     RenderObjectHandle_Weak &operator=(const RenderObjectHandle_Weak &other)
     {
-        if (index != 0) {
-            s_container->DecRefWeak(index - 1);
+        if (header) {
+            header->DecRefWeak();
         }
 
-        index = other.index;
+        header = other.header;
+        ptr = other.ptr;
 
-        if (index != 0) {
-            s_container->IncRefWeak(index - 1);
+        if (header) {
+            header->IncRefWeak();
         }
 
         return *this;
     }
 
     RenderObjectHandle_Weak(RenderObjectHandle_Weak &&other) noexcept
-        : index(other.index)
+        : header(other.header),
+          ptr(other.ptr)
     {
-        other.index = 0;
+        other.header = nullptr;
+        other.ptr = nullptr;
     }
 
     RenderObjectHandle_Weak &operator=(RenderObjectHandle_Weak &&other) noexcept
     {
-        if (index != 0) {
-            s_container->DecRefWeak(index - 1);
+        if (header) {
+            header->DecRefWeak();
         }
 
-        index = other.index;
-        other.index = 0;
+        ptr = other.ptr;
+        other.ptr = nullptr;
+
+        header = other.header;
+        other.header = nullptr;
 
         return *this;
     }
 
     ~RenderObjectHandle_Weak()
     {
-        if (index != 0) {
-            s_container->DecRefWeak(index - 1);
+        if (header) {
+            header->DecRefWeak();
         }
     }
 
-    HYP_NODISCARD RenderObjectHandle_Strong<T, PLATFORM> Lock() const
+    HYP_NODISCARD RenderObjectHandle_Strong<T> Lock() const
     {
-        if (index == 0) {
-            return RenderObjectHandle_Strong<T, PLATFORM>::unset;
+        if (!header) {
+            return RenderObjectHandle_Strong<T>::unset;
         }
 
-        return s_container->GetRefCountStrong(index - 1) != 0
-            ? RenderObjectHandle_Strong<T, PLATFORM>::FromIndex(index)
-            : RenderObjectHandle_Strong<T, PLATFORM>::unset;
+        return header->GetRefCountStrong() != 0
+            ? RenderObjectHandle_Strong<T>(header, ptr)
+            : RenderObjectHandle_Strong<T>::unset;
     }
 
     HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Weak &other) const
-        { return index == other.index; }
+        { return header == other.header && ptr != other.ptr; }
 
     HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Weak &other) const
-        { return index != other.index; }
+        { return header != other.header || ptr != other.ptr; }
 
     HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Weak &other) const
-        { return index < other.index; }
+        { return header < other.header; }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return index != 0; }
+        { return header != nullptr && ptr != nullptr; }
 
     HYP_FORCE_INLINE void Reset()
     {
-        if (index != 0) {
-            s_container->DecRefWeak(index - 1);
+        if (header) {
+            header->DecRefWeak();
         }
 
-        index = 0;
+        header = nullptr;
+        ptr = nullptr;
     }
 
-    uint32 index;
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    HYP_FORCE_INLINE operator RenderObjectHandle_Weak<Ty>() const
+    {
+        if (header) {
+            return RenderObjectHandle_Weak<Ty>(header, static_cast<Ty *>(ptr));
+        }
+
+        return RenderObjectHandle_Weak<Ty>::unset;
+    }
+
+    RenderObjectHeaderBase  *header;
+    T                       *ptr;
 };
 
-template <class T, PlatformType PLATFORM>
-RenderObjectContainer<T, PLATFORM> *RenderObjectHandle_Weak<T, PLATFORM>::s_container = &RenderObjects<PLATFORM>::template GetRenderObjectContainer<T>();
+template <class T>
+const RenderObjectHandle_Weak<T> RenderObjectHandle_Weak<T>::unset = RenderObjectHandle_Weak<T>();
 
-template <class T, PlatformType PLATFORM>
-const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>::unset = RenderObjectHandle_Weak<T, PLATFORM>();
+class RenderObjectBase
+{
+protected:
+    friend class RenderObjects;
+
+    RenderObjectHeaderBase  *m_header;
+
+    RenderObjectBase() = default;
+    
+public:
+    virtual ~RenderObjectBase()
+    {
+        AssertDebug(m_header != nullptr);
+        m_header->DecRefWeak();
+    }
+};
+
+template <class T>
+class RenderObject : public RenderObjectBase
+{
+public:
+    using Type = T;
+
+    virtual ~RenderObject() override = default;
+
+    HYP_NODISCARD RenderObjectHandle_Strong<T> HandleFromThis()
+    {
+        return RenderObjectHandle_Strong<T>(m_header, static_cast<T *>(this));
+    }
+
+    HYP_NODISCARD RenderObjectHandle_Weak<T> WeakHandleFromThis()
+    {
+        return RenderObjectHandle_Weak<T>(m_header, static_cast<T *>(this));
+    }
+};
+
+class RenderObjects
+{
+public:
+    template <class T>
+    static RenderObjectContainer<T> &GetRenderObjectContainer()
+    {
+        static RenderObjectContainer<T> container;
+
+        return container;
+    }
+
+    template <class T, class... Args>
+    static RenderObjectHandle_Strong<T> Make(Args &&... args)
+    {
+        RenderObjectContainer<T> &container = GetRenderObjectContainer<T>();
+
+        RenderObjectHeader<T> *header;
+        uint32 index = container.AcquireIndex(&header);
+
+        header->index = index;
+        header->container = &container;
+
+        header->IncRefWeak();
+
+        static_cast<RenderObjectBase *>(static_cast<T *>(header->storage.GetPointer()))->m_header = header;
+
+        header->Construct(std::forward<Args>(args)...);
+        
+        return RenderObjectHandle_Strong<T>(header);
+    }
+};
+
 
 } // namespace renderer
 
 #define DEF_RENDER_PLATFORM_OBJECT_(_platform, T, _max_size) \
     namespace renderer { \
-    namespace platform { \
-    template <PlatformType PLATFORM> \
-    class T; \
-    } \
     using T##_##_platform = platform::T<renderer::Platform::_platform>; \
-    template <> \
-    struct RenderObjectDefinition< T##_##_platform, renderer::Platform::_platform > \
-    { \
-        static constexpr SizeType max_size = (_max_size); \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = NAME(HYP_STR(T)); \
-            return name; \
-        } \
-    }; \
     } \
     using T##_##_platform = renderer::T##_##_platform; \
-    using T##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::T##_##_platform, renderer::Platform::_platform >; \
-    using T##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::T##_##_platform, renderer::Platform::_platform >; \
+    using T##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::T##_##_platform >; \
+    using T##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::T##_##_platform >; \
+
+
+#define DEF_RENDER_PLATFORM_OBJECT2_(_platform, T, _max_size) \
+    namespace renderer { \
+    class _platform##T; \
+    } \
+    using _platform ## T = renderer:: _platform ## T; \
+    using _platform ## T ## Ref = renderer::RenderObjectHandle_Strong< renderer:: _platform ## T >;
 
 #define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, name, T, _max_size) \
+    namespace renderer { \
+    using name##_##_platform = platform::T<renderer::Platform::_platform>; \
+    } \
+    using name##_##_platform = renderer::name##_##_platform; \
+    using name##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::name##_##_platform >; \
+    using name##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::name##_##_platform >; \
+
+#define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType PLATFORM> \
     class T; \
     } \
-    using name##_##_platform = platform::T<renderer::Platform::_platform>; \
-    template <> \
-    struct RenderObjectDefinition< name##_##_platform, renderer::Platform::_platform > \
-    { \
-        static constexpr SizeType max_size = (_max_size); \
-        \
-        static Name GetNameForType() \
-        { \
-            static const Name name = NAME(HYP_STR(T)); \
-            return name; \
-        } \
-    }; \
     } \
-    using name##_##_platform = renderer::name##_##_platform; \
-    using name##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::name##_##_platform, renderer::Platform::_platform >; \
-    using name##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::name##_##_platform, renderer::Platform::_platform >; \
-
-#define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType _platform> \
-    using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform> >; \
     template <PlatformType _platform> \
-    using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform> >; \
     } \
     } \
 
+#define DEF_RENDER_PLATFORM_OBJECT_WITH_BASE_CLASS(T, _max_size) \
+    namespace renderer { \
+    class T##Base; \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    } \
+    DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType _platform> \
+    using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform> >; \
+    template <PlatformType _platform> \
+    using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform> >; \
+    } \
+    } \
+    using renderer::T##Base;
+
+#define DEF_RENDER_PLATFORM_OBJECT_WITH_BASE_CLASS2(T, _max_size) \
+    namespace renderer { \
+    class T##Base; \
+    } \
+    DEF_RENDER_PLATFORM_OBJECT2_(Vulkan, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT2_(WGPU, T, _max_size) \
+    using renderer::T##Base; \
+    using T##Ref = renderer::RenderObjectHandle_Strong< T##Base >; \
+    using T##WeakRef = renderer::RenderObjectHandle_Weak< T##Base >; \
+
 #define DEF_RENDER_PLATFORM_OBJECT_NAMED(name, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    } \
     DEF_RENDER_PLATFORM_OBJECT_NAMED_(VULKAN, name, T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_NAMED_(WEBGPU, name, T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType _platform> \
-    using name##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    using name##Ref = renderer::RenderObjectHandle_Strong< T<_platform> >; \
     template <PlatformType _platform> \
-    using name##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    using name##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform> >; \
     } \
     } \
 
@@ -736,16 +784,14 @@ static inline void DeferCreate(RefType ref, Args &&... args)
 #include <rendering/backend/inl/RenderObjectDefinitions.inl>
 
 #undef DEF_RENDER_OBJECT
+#undef DEF_RENDER_OBJECT_WITH_BASE_CLASS
+#undef DEF_RENDER_OBJECT_NAMED
 #undef DEF_RENDER_PLATFORM_OBJECT
 #undef DEF_CURRENT_PLATFORM_RENDER_OBJECT
 
 template <class T, class ... Args>
-static inline renderer::RenderObjectHandle_Strong<T, T::platform> MakeRenderObject(Args &&... args)
-    { return renderer::RenderObjects<T::platform>::template Make<T>(std::forward<Args>(args)...); }
-
-// template <class T, class ... Args>
-// static inline renderer::RenderObjectHandle_Strong<T, renderer::Platform::CURRENT> MakeRenderObject(Args &&... args)
-//     { return renderer::RenderObjects<renderer::Platform::CURRENT>::template Make<T>(std::forward<Args>(args)...); }
+static inline renderer::RenderObjectHandle_Strong<T> MakeRenderObject(Args &&... args)
+    { return renderer::RenderObjects::Make<T>(std::forward<Args>(args)...); }
 
 struct DeletionQueueBase
 {
@@ -775,8 +821,8 @@ struct RenderObjectDeleter
 
         static constexpr uint32 initial_cycles_remaining = max_frames_in_flight + 1;
 
-        Array<Pair<renderer::RenderObjectHandle_Strong<T, PLATFORM>, uint8>>    items;
-        Queue<renderer::RenderObjectHandle_Strong<T, PLATFORM>>                 to_delete;
+        Array<Pair<renderer::RenderObjectHandle_Strong<T>, uint8>>  items;
+        Queue<renderer::RenderObjectHandle_Strong<T>>               to_delete;
 
         DeletionQueue()
         {
@@ -818,7 +864,7 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy());
             }
         }
 
@@ -853,13 +899,13 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy());
             }
 
             return num_deleted_objects;
         }
 
-        void Push(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)
+        void Push(renderer::RenderObjectHandle_Strong<T> &&handle)
         {
             std::lock_guard guard(Base::mtx);
 
@@ -906,8 +952,6 @@ struct RenderObjectDeleter
     static void Initialize();
     static void Iterate();
     static void RemoveAllNow(bool force = false);
-
-    static HYP_API renderer::platform::Device<PLATFORM> *GetDevice();
 };
 
 template <renderer::PlatformType PLATFORM>
@@ -916,49 +960,37 @@ FixedArray<DeletionQueueBase *, RenderObjectDeleter<PLATFORM>::max_queues + 1> R
 template <renderer::PlatformType PLATFORM>
 AtomicVar<uint16> RenderObjectDeleter<PLATFORM>::queue_index = { 0 };
 
-template <renderer::PlatformType PLATFORM>
-static inline void RemoveAllEnqueuedRenderObjectsNow(bool force = false)
-{
-    RenderObjectDeleter<PLATFORM>::RemoveAllNow(force);
-}
-
-template <class T, renderer::PlatformType PLATFORM>
-static inline void RemoveAllEnqueuedRenderObjectsNow(bool force = false)
-{
-    RenderObjectDeleter<PLATFORM>::template GetQueue<T>().RemoveAllNow(force);
-}
-
-template <class T, renderer::PlatformType PLATFORM>
-static inline void SafeRelease(renderer::RenderObjectHandle_Strong<T, PLATFORM> &&handle)
+template <class T>
+static inline void SafeRelease(renderer::RenderObjectHandle_Strong<T> &&handle)
 {
     if (!handle.IsValid()) {
         return;
     }
 
-    RenderObjectDeleter<PLATFORM>::template GetQueue<T>().Push(std::move(handle));
+    RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(handle));
 }
 
-template <class T, class AllocatorType, renderer::PlatformType PLATFORM>
-static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T, PLATFORM>, AllocatorType> &&handles)
+template <class T, class AllocatorType>
+static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T>, AllocatorType> &&handles)
 {
     for (auto &it : handles) {
         if (!it.IsValid()) {
             continue;
         }
 
-        RenderObjectDeleter<PLATFORM>::template GetQueue<T>().Push(std::move(it));
+        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(it));
     }
 }
 
-template <class T, SizeType Sz, renderer::PlatformType PLATFORM>
-static inline void SafeRelease(FixedArray<renderer::RenderObjectHandle_Strong<T, PLATFORM>, Sz> &&handles)
+template <class T, SizeType Sz>
+static inline void SafeRelease(FixedArray<renderer::RenderObjectHandle_Strong<T>, Sz> &&handles)
 {
     for (auto &it : handles) {
         if (!it.IsValid()) {
             continue;
         }
 
-        RenderObjectDeleter<PLATFORM>::template GetQueue<T>().Push(std::move(it));
+        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(it));
     }
 }
 

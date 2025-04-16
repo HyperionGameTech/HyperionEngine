@@ -8,10 +8,9 @@
 #include <core/containers/HashMap.hpp>
 
 #include <core/threading/Mutex.hpp>
+#include <core/threading/Task.hpp>
 
 #include <core/utilities/Span.hpp>
-
-#include <core/functional/Proc.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -34,20 +33,17 @@ public:
     void Initialize();
     void Destroy();
 
-    GraphicsPipelineRef GetOrCreate(
+    Task<GraphicsPipelineRef> GetOrCreate(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
-        const RenderPassRef &render_pass,
         const Array<FramebufferRef> &framebuffers,
-        const RenderableAttributeSet &attributes,
-        Proc<void(const GraphicsPipelineRef &)> &&on_ready_callback = { }
+        const RenderableAttributeSet &attributes
     );
 
 private:
     GraphicsPipelineRef FindGraphicsPipeline(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
-        const RenderPassRef &render_pass,
         const Array<FramebufferRef> &framebuffers,
         const RenderableAttributeSet &attributes
     );

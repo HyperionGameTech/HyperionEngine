@@ -104,7 +104,7 @@ void PointLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_env_probe->Update(delta);
 }
 
-void PointLightShadowRenderer::OnRender(Frame *frame)
+void PointLightShadowRenderer::OnRender(FrameBase *frame)
 {
     HYP_SCOPE;
 

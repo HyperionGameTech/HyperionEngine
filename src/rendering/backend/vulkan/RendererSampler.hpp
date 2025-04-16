@@ -1,33 +1,38 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef RENDERER_SAMPLER_HPP
-#define RENDERER_SAMPLER_HPP
+#ifndef HYPERION_RENDERER_BACKEND_RENDERER_VULKAN_SAMPLER_HPP
+#define HYPERION_RENDERER_BACKEND_RENDERER_VULKAN_SAMPLER_HPP
 
-#include <rendering/backend/RendererResult.hpp>
-#include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/RendererSampler.hpp>
 
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
 namespace renderer {
 
-namespace platform {
-
-template <PlatformType PLATFORM>
-class Device;
-    
-template <PlatformType PLATFORM>
-class ImageView;
-
-template <>
-struct SamplerPlatformImpl<Platform::VULKAN>
+class VulkanSampler final : public SamplerBase
 {
-    Sampler<Platform::VULKAN>   *self = nullptr;
+public:
+    HYP_API VulkanSampler(
+        FilterMode min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
+        FilterMode mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+    );
 
-    VkSampler                   handle = VK_NULL_HANDLE;
+    HYP_API virtual ~VulkanSampler() override;
+    
+    HYP_FORCE_INLINE VkSampler GetVulkanHandle() const
+        { return m_handle; }
+
+    HYP_API virtual bool IsCreated() const override;
+
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
+
+private:
+    VkSampler   m_handle;
 };
 
-} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

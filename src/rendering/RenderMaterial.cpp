@@ -65,7 +65,7 @@ void MaterialRenderResource::Initialize_Internal()
     
     UpdateBufferData();
 
-    if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (!g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         CreateDescriptorSets();
     }
 }
@@ -78,7 +78,7 @@ void MaterialRenderResource::Destroy_Internal()
 
     m_texture_render_resources.Clear();
     
-    if (!g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (!g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         DestroyDescriptorSets();
     }
 }
@@ -89,7 +89,7 @@ void MaterialRenderResource::Update_Internal()
 
     AssertThrow(m_material != nullptr);
     
-    const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     auto SetMaterialTexture = [](const Handle<Material> &material, uint32 texture_index, const Handle<Texture> &texture)
     {
@@ -174,7 +174,7 @@ void MaterialRenderResource::UpdateBufferData()
 
     AssertThrow(m_buffer_index != ~0u);
 
-    const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     m_buffer_data.texture_usage = 0;
     Memory::MemSet(m_buffer_data.texture_index, 0, sizeof(m_buffer_data.texture_index));
@@ -312,7 +312,7 @@ MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 
 void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 {
-    if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         return;
     }
 
@@ -321,13 +321,13 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 
     const renderer::DescriptorSetLayout layout(*declaration);
 
-    const DescriptorSetRef invalid_descriptor_set = layout.CreateDescriptorSet();
+    const DescriptorSetRef invalid_descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
     
     for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
         invalid_descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 
-    DeferCreate(invalid_descriptor_set, g_engine->GetGPUDevice());
+    DeferCreate(invalid_descriptor_set);
 
     m_material_descriptor_sets.Set(WeakHandle<Material> {}, { invalid_descriptor_set, invalid_descriptor_set });
 }
@@ -359,7 +359,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>(layout);
+        descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
 
         for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
             descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
@@ -369,7 +369,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     // if on render thread, initialize and add immediately
     if (Threads::IsOnThread(g_render_thread)) {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
+            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create());
         }
 
         m_material_descriptor_sets.Insert(material, descriptor_sets);
@@ -401,7 +401,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        descriptor_sets[frame_index] = layout.CreateDescriptorSet();
+        descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
 
         for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
             if (texture_index < textures.Size()) {
@@ -421,7 +421,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     // if on render thread, initialize and add immediately
     if (Threads::IsOnThread(g_render_thread)) {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create(g_engine->GetGPUDevice()));
+            HYPERION_ASSERT_RESULT(descriptor_sets[frame_index]->Create());
         }
 
         m_material_descriptor_sets.Insert(material, descriptor_sets);
@@ -537,7 +537,7 @@ void MaterialDescriptorSetManager::Initialize()
     CreateInvalidMaterialDescriptorSet();
 }
 
-void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(Frame *frame)
+void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -567,7 +567,7 @@ void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(Frame *frame)
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             AssertThrow(it->second[frame_index].IsValid());
 
-            HYPERION_ASSERT_RESULT(it->second[frame_index]->Create(g_engine->GetGPUDevice()));
+            HYPERION_ASSERT_RESULT(it->second[frame_index]->Create());
         }
 
         m_material_descriptor_sets.Insert(it->first, std::move(it->second));
@@ -578,7 +578,7 @@ void MaterialDescriptorSetManager::UpdatePendingDescriptorSets(Frame *frame)
     m_pending_addition_flag.Set(false, MemoryOrder::RELEASE);
 }
 
-void MaterialDescriptorSetManager::Update(Frame *frame)
+void MaterialDescriptorSetManager::Update(FrameBase *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -597,7 +597,7 @@ void MaterialDescriptorSetManager::Update(Frame *frame)
             }
 
             AssertThrow(it->second[frame_index].IsValid());
-            it->second[frame_index]->Update(g_engine->GetGPUDevice());
+            it->second[frame_index]->Update();
         }
 
         m_descriptor_sets_to_update[frame_index].Clear();
@@ -610,8 +610,8 @@ void MaterialDescriptorSetManager::Update(Frame *frame)
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, RenderConfig::ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
 
 } // namespace renderer
 

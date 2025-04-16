@@ -19,13 +19,6 @@
 
 namespace hyperion {
 
-using renderer::Shader;
-using renderer::ShaderObject;
-using renderer::ShaderModule;
-using renderer::StorageBuffer;
-using renderer::UniformBuffer;
-using renderer::GPUBufferType;
-
 class Engine;
 class Entity;
 

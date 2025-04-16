@@ -114,10 +114,11 @@ void TemporalAA::CreateImages()
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
     
-    m_result_texture->SetIsRWTexture(true);
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -128,10 +129,11 @@ void TemporalAA::CreateImages()
         Vec3u { m_extent.x, m_extent.y, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_history_texture->SetIsRWTexture(true);
     InitObject(m_history_texture);
 
     m_history_texture->SetPersistentRenderResourceEnabled(true);
@@ -149,7 +151,7 @@ void TemporalAA::CreateComputePipelines()
 
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
-    DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     const FixedArray<Handle<Texture> *, 2> textures = {
         &m_result_texture,
@@ -161,7 +163,7 @@ void TemporalAA::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResult()->GetImageView());
+        descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResultAttachment()->GetImageView());
         descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
         descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
@@ -176,23 +178,17 @@ void TemporalAA::CreateComputePipelines()
         descriptor_set->SetElement(NAME("OutColorImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(
-        descriptor_table,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(descriptor_table);
 
-    m_compute_taa = MakeRenderObject<ComputePipeline>(
+    m_compute_taa = g_rendering_api->MakeComputePipeline(
         shader,
         descriptor_table
     );
 
-    DeferCreate(
-        m_compute_taa,
-        g_engine->GetGPUDevice()
-    );
+    DeferCreate(m_compute_taa);
 }
 
-void TemporalAA::Render(Frame *frame)
+void TemporalAA::Render(FrameBase *frame)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 

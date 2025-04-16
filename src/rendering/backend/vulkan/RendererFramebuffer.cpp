@@ -1,7 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/RendererFramebuffer.hpp>
-#include <rendering/backend/RendererRenderPass.hpp>
+#include <rendering/backend/vulkan/RendererFramebuffer.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -9,59 +10,58 @@
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
-namespace platform {
 
-#pragma region AttachmentMap
-
-template <>
-RendererResult AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+static inline VulkanRenderingAPI *GetRenderingAPI()
 {
-    for (KeyValuePair<uint32, AttachmentDef<Platform::VULKAN>> &it : attachments) {
-        AttachmentDef<Platform::VULKAN> &def = it.second;
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
+#pragma region VulkanAttachmentMap
+
+RendererResult VulkanAttachmentMap::Create()
+{
+    for (KeyValuePair<uint32, VulkanAttachmentDef> &it : attachments) {
+        VulkanAttachmentDef &def = it.second;
 
         AssertThrow(def.image.IsValid());
 
         if (!def.image->IsCreated()) {
-            HYPERION_BUBBLE_ERRORS(def.image->Create(device));
+            HYPERION_BUBBLE_ERRORS(def.image->Create());
         }
 
         AssertThrow(def.attachment.IsValid());
 
         if (!def.attachment->IsCreated()) {
-            HYPERION_BUBBLE_ERRORS(def.attachment->Create(device));
+            HYPERION_BUBBLE_ERRORS(def.attachment->Create());
         }
     }
 
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
+RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 {
-    for (KeyValuePair<uint32, AttachmentDef<Platform::VULKAN>> &it : attachments) {
-        AttachmentDef<Platform::VULKAN> &def = it.second;
+    for (KeyValuePair<uint32, VulkanAttachmentDef> &it : attachments) {
+        VulkanAttachmentDef &def = it.second;
 
         AssertThrow(def.image.IsValid());
 
-        ImageRef<Platform::VULKAN> new_image = MakeRenderObject<Image<Platform::VULKAN>>(
-            TextureDesc {
-                def.image->GetType(),
-                def.image->GetTextureFormat(),
-                Vec3u { new_size.x, new_size.y, 1 }
-            }
-        );
+        TextureDesc texture_desc = def.image->GetTextureDesc();
+        texture_desc.extent = Vec3u { new_size.x, new_size.y, 1 };
 
-        new_image->SetIsAttachmentTexture(true);
+        VulkanImageRef new_image = MakeRenderObject<VulkanImage>(texture_desc);
+        DeferCreate(new_image, ResourceState::SHADER_RESOURCE);
 
-        DeferCreate(new_image, device, ResourceState::SHADER_RESOURCE);
-
-        AttachmentRef<Platform::VULKAN> new_attachment = MakeRenderObject<Attachment<Platform::VULKAN>>(
+        VulkanAttachmentRef new_attachment = MakeRenderObject<VulkanAttachment>(
             new_image,
             def.attachment->GetRenderPassStage()
         );
 
-        DeferCreate(new_attachment, device);
+        DeferCreate(new_attachment);
 
         if (def.image.IsValid()) {
             SafeRelease(std::move(def.image));
@@ -71,7 +71,7 @@ RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> 
             SafeRelease(std::move(def.attachment));
         }
 
-        def = AttachmentDef<Platform::VULKAN> {
+        def = VulkanAttachmentDef {
             std::move(new_image),
             std::move(new_attachment)
         };
@@ -80,53 +80,48 @@ RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> 
     HYPERION_RETURN_OK;
 }
 
-#pragma endregion AttachmentMap
+#pragma endregion VulkanAttachmentMap
 
-#pragma region Framebuffer
+#pragma region VulkanFramebuffer
 
-template <>
-Framebuffer<Platform::VULKAN>::Framebuffer(
+VulkanFramebuffer::VulkanFramebuffer(
     Vec2u extent,
     RenderPassStage stage,
-    RenderPassMode render_pass_mode,
     uint32 num_multiview_layers
-) : m_platform_impl { this, VK_NULL_HANDLE },
-    m_extent(extent),
-    m_render_pass(MakeRenderObject<RenderPass<Platform::VULKAN>>(stage, render_pass_mode, num_multiview_layers))
+) : FramebufferBase(extent),
+    m_handles { VK_NULL_HANDLE },
+    m_render_pass(MakeRenderObject<VulkanRenderPass>(stage, RenderPassMode::RENDER_PASS_INLINE, num_multiview_layers))
 {
 }
 
-template <>
-Framebuffer<Platform::VULKAN>::~Framebuffer()
+VulkanFramebuffer::~VulkanFramebuffer()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        AssertThrowMsg(m_platform_impl.handles[frame_index] == VK_NULL_HANDLE, "Expected framebuffer to have been destroyed");
+        AssertThrowMsg(m_handles[frame_index] == VK_NULL_HANDLE, "Expected framebuffer to have been destroyed");
     }
 }
 
-template <>
-bool Framebuffer<Platform::VULKAN>::IsCreated() const
+bool VulkanFramebuffer::IsCreated() const
 {
-    return m_platform_impl.handles[0] != VK_NULL_HANDLE;
+    return m_handles[0] != VK_NULL_HANDLE;
 }
 
-template <>
-RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult VulkanFramebuffer::Create()
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    HYPERION_BUBBLE_ERRORS(m_attachment_map.Create(device));
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Create());
     
     for (const auto &it : m_attachment_map.attachments) {
-        const AttachmentDef<Platform::VULKAN> &def = it.second;
+        const VulkanAttachmentDef &def = it.second;
 
         AssertThrow(def.attachment.IsValid());
         m_render_pass->AddAttachment(def.attachment);
     }
 
-    HYPERION_BUBBLE_ERRORS(m_render_pass->Create(device));
+    HYPERION_BUBBLE_ERRORS(m_render_pass->Create());
 
     Array<VkImageView> attachment_image_views;
     attachment_image_views.Reserve(m_attachment_map.attachments.Size());
@@ -138,11 +133,11 @@ RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *d
         AssertThrow(it.second.attachment->GetImageView() != nullptr);
         AssertThrow(it.second.attachment->GetImageView()->IsCreated());
 
-        attachment_image_views.PushBack(it.second.attachment->GetImageView()->GetPlatformImpl().handle);
+        attachment_image_views.PushBack(static_cast<VulkanImageView *>(it.second.attachment->GetImageView().Get())->GetVulkanHandle());
     }
 
     VkFramebufferCreateInfo framebuffer_create_info { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    framebuffer_create_info.renderPass = m_render_pass->GetHandle();
+    framebuffer_create_info.renderPass = m_render_pass->GetVulkanHandle();
     framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
     framebuffer_create_info.pAttachments = attachment_image_views.Data();
     framebuffer_create_info.width = m_extent.x;
@@ -151,27 +146,26 @@ RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *d
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            device->GetDevice(),
+            GetRenderingAPI()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
-            &m_platform_impl.handles[frame_index]
+            &m_handles[frame_index]
         ));
     }
 
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult VulkanFramebuffer::Destroy()
 {
     if (!IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        if (m_platform_impl.handles[frame_index] != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(device->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
-            m_platform_impl.handles[frame_index] = VK_NULL_HANDLE;
+        if (m_handles[frame_index] != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
+            m_handles[frame_index] = VK_NULL_HANDLE;
         }
     }
 
@@ -182,8 +176,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *
     HYPERION_RETURN_OK;
 }
 
-template <>
-RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
+RendererResult VulkanFramebuffer::Resize(Vec2u new_size)
 {
     if (m_extent == new_size) {
         HYPERION_RETURN_OK;
@@ -195,12 +188,12 @@ RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *d
         HYPERION_RETURN_OK;
     }
 
-    HYPERION_BUBBLE_ERRORS(m_attachment_map.Resize(device, new_size));
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Resize(new_size));
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        if (m_platform_impl.handles[frame_index] != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(device->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
-            m_platform_impl.handles[frame_index] = VK_NULL_HANDLE;
+        if (m_handles[frame_index] != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
+            m_handles[frame_index] = VK_NULL_HANDLE;
         }
     }
 
@@ -214,11 +207,11 @@ RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *d
         AssertThrow(it.second.attachment->GetImageView() != nullptr);
         AssertThrow(it.second.attachment->GetImageView()->IsCreated());
 
-        attachment_image_views.PushBack(it.second.attachment->GetImageView()->GetPlatformImpl().handle);
+        attachment_image_views.PushBack(static_cast<VulkanImageView *>(it.second.attachment->GetImageView().Get())->GetVulkanHandle());
     }
 
     VkFramebufferCreateInfo framebuffer_create_info { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    framebuffer_create_info.renderPass = m_render_pass->GetHandle();
+    framebuffer_create_info.renderPass = m_render_pass->GetVulkanHandle();
     framebuffer_create_info.attachmentCount = uint32(attachment_image_views.Size());
     framebuffer_create_info.pAttachments = attachment_image_views.Data();
     framebuffer_create_info.width = new_size.x;
@@ -227,18 +220,60 @@ RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *d
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            device->GetDevice(),
+            GetRenderingAPI()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
-            &m_platform_impl.handles[frame_index]
+            &m_handles[frame_index]
         ));
     }
 
     HYPERION_RETURN_OK;
 }
 
-template <>
-bool Framebuffer<Platform::VULKAN>::RemoveAttachment(uint32 binding)
+AttachmentRef VulkanFramebuffer::AddAttachment(const AttachmentRef &attachment)
+{
+    return m_attachment_map.AddAttachment(VulkanAttachmentRef(attachment));
+}
+
+AttachmentRef VulkanFramebuffer::AddAttachment(
+    uint32 binding,
+    const ImageRef &image,
+    LoadOperation load_op,
+    StoreOperation store_op
+)
+{
+    VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(
+        VulkanImageRef(image),
+        m_render_pass->GetStage(),
+        load_op,
+        store_op
+    );
+
+    attachment->SetBinding(binding);
+
+    return AddAttachment(attachment);
+}
+
+AttachmentRef VulkanFramebuffer::AddAttachment(
+    uint32 binding,
+    InternalFormat format,
+    ImageType type,
+    LoadOperation load_op,
+    StoreOperation store_op
+)
+{
+    return m_attachment_map.AddAttachment(
+        binding,
+        m_extent,
+        format,
+        type,
+        m_render_pass->GetStage(),
+        load_op,
+        store_op
+    );
+}
+
+bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
 {
     const auto it = m_attachment_map.attachments.Find(binding);
 
@@ -253,20 +288,22 @@ bool Framebuffer<Platform::VULKAN>::RemoveAttachment(uint32 binding)
     return true;
 }
 
-template <>
-void Framebuffer<Platform::VULKAN>::BeginCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
+AttachmentBase *VulkanFramebuffer::GetAttachment(uint32 binding) const
 {
-    m_render_pass->Begin(command_buffer, this, frame_index);
+    return m_attachment_map.GetAttachment(binding).Get();
 }
 
-template <>
-void Framebuffer<Platform::VULKAN>::EndCapture(CommandBuffer<Platform::VULKAN> *command_buffer, uint32 frame_index)
+void VulkanFramebuffer::BeginCapture(CommandBufferBase *command_buffer, uint32 frame_index)
 {
-    m_render_pass->End(command_buffer);
+    m_render_pass->Begin(static_cast<VulkanCommandBuffer *>(command_buffer), this, frame_index);
 }
 
-#pragma endregion Framebuffer
+void VulkanFramebuffer::EndCapture(CommandBufferBase *command_buffer, uint32 frame_index)
+{
+    m_render_pass->End(static_cast<VulkanCommandBuffer *>(command_buffer));
+}
 
-} // namespace platform
+#pragma endregion VulkanFramebuffer
+
 } // namespace renderer
 } // namespace hyperion

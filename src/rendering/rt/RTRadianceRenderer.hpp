@@ -53,14 +53,14 @@ public:
     HYP_API void Create();
     HYP_API void Destroy();
 
-    HYP_API void Render(Frame *frame);
+    HYP_API void Render(FrameBase *frame);
 
 private:
     void CreateImages();
     void CreateUniformBuffer();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
-    void UpdateUniforms(Frame *frame);
+    void UpdateUniforms(FrameBase *frame);
 
     RTRadianceRendererOptions                           m_options;
 
