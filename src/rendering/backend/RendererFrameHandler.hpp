@@ -39,7 +39,7 @@ class FrameHandler
 public:
     static constexpr PlatformType platform = PLATFORM;
     
-    using NextImageFunction = std::add_pointer_t<RendererResult(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, uint32 *image_index, bool &out_needs_recreate)>;
+    using NextImageFunction = std::add_pointer_t<RendererResult(Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, uint32 *image_index, bool &out_needs_recreate)>;
 
     FrameHandler(uint32 num_frames, NextImageFunction next_image);
     FrameHandler(const FrameHandler &other)                 = delete;
@@ -62,14 +62,14 @@ public:
 
     /* Used to acquire a new image from the provided next_image function.
      * Really only useful for our main swapchain surface */
-    HYP_API RendererResult PrepareFrame(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, bool &out_needs_recreate);
+    HYP_API RendererResult PrepareFrame(Swapchain<PLATFORM> *swapchain, bool &out_needs_recreate);
     /* Submit the frame for presentation */
     HYP_API RendererResult PresentFrame(DeviceQueue<PLATFORM> *queue, Swapchain<PLATFORM> *swapchain) const;
     /* Advance the current frame index; call at the end of a render loop. */
     HYP_API void NextFrame();
     /* Create our Frame objects (count is same as num_frames) */
-    HYP_API RendererResult Create(Device<PLATFORM> *device, DeviceQueue<PLATFORM> *queue);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create(DeviceQueue<PLATFORM> *queue);
+    HYP_API RendererResult Destroy();
 
 private:
     FixedArray<FrameRef<PLATFORM>, max_frames_in_flight>            m_frames;

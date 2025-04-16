@@ -69,7 +69,7 @@ public:
     void PushDrawCall(const DrawCall &draw_call, DrawCommandData &out);
     void ResetDrawState();
 
-    void UpdateBufferData(Frame *frame, bool *out_was_resized);
+    void UpdateBufferData(IFrame *frame, bool *out_was_resized);
 
 private:
     Array<ObjectInstance>                           m_object_instances;
@@ -107,10 +107,10 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState();
 
-    void ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data);
+    void ExecuteCullShaderInBatches(IFrame *frame, const CullData &cull_data);
 
 private:
-    void RebuildDescriptors(Frame *frame);
+    void RebuildDescriptors(IFrame *frame);
 
     DrawCallCollection                                  *m_draw_call_collection;
     IndirectDrawState                                   m_indirect_draw_state;

@@ -3,14 +3,25 @@
 #include <rendering/backend/RendererPipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/containers/FlatSet.hpp>
+
 #include <core/memory/Memory.hpp>
 
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region PipelinePlatformImpl
 
@@ -24,7 +35,7 @@ Array<VkDescriptorSetLayout> PipelinePlatformImpl<Platform::VULKAN>::GetDescript
     for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : self->m_descriptor_table->GetSets()[0]) {
         AssertThrow(descriptor_set != nullptr);
 
-        used_layouts.PushBack(descriptor_set->GetPlatformImpl().GetVkDescriptorSetLayout());
+        used_layouts.PushBack(GetVkDescriptorSetLayout(*descriptor_set->GetPlatformImpl().vk_layout_wrapper));
     }
 
     return used_layouts;
@@ -56,17 +67,17 @@ Pipeline<Platform::VULKAN>::~Pipeline()
 }
 
 template <>
-RendererResult Pipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Pipeline<Platform::VULKAN>::Destroy()
 {
     SafeRelease(std::move(m_descriptor_table));
 
     if (m_platform_impl.handle != VK_NULL_HANDLE) {
-        vkDestroyPipeline(device->GetDevice(), m_platform_impl.handle, nullptr);
+        vkDestroyPipeline(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.handle, nullptr);
         m_platform_impl.handle = VK_NULL_HANDLE;
     }
 
     if (m_platform_impl.layout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(device->GetDevice(), m_platform_impl.layout, nullptr);
+        vkDestroyPipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.layout, nullptr);
         m_platform_impl.layout = VK_NULL_HANDLE;
     }
 

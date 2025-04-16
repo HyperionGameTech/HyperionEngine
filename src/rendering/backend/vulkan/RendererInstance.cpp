@@ -394,7 +394,7 @@ RendererResult Instance<Platform::VULKAN>::CreateSwapchain()
     }
 
     m_swapchain->GetPlatformImpl().surface = m_surface;
-    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create());
 
     HYPERION_RETURN_OK;
 }
@@ -403,7 +403,7 @@ RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
 {
     if (m_swapchain.IsValid()) {
         // Cannot use SafeRelease here; will get NATIVE_WINDOW_IN_USE_KHR error
-        m_swapchain->Destroy(m_device);
+        m_swapchain->Destroy();
         m_swapchain.Reset();
     }
 
@@ -413,7 +413,7 @@ RendererResult Instance<Platform::VULKAN>::RecreateSwapchain()
 
     m_swapchain = MakeRenderObject<Swapchain<Platform::VULKAN>>();
     m_swapchain->GetPlatformImpl().surface = m_surface;
-    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device));
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create());
 
     HYPERION_RETURN_OK;
 }

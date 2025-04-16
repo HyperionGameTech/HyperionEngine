@@ -6,16 +6,26 @@
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region AttachmentMap
 
 template <>
-RendererResult AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult AttachmentMap<Platform::VULKAN>::Create()
 {
     for (KeyValuePair<uint32, AttachmentDef<Platform::VULKAN>> &it : attachments) {
         AttachmentDef<Platform::VULKAN> &def = it.second;
@@ -23,13 +33,13 @@ RendererResult AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
         AssertThrow(def.image.IsValid());
 
         if (!def.image->IsCreated()) {
-            HYPERION_BUBBLE_ERRORS(def.image->Create(device));
+            HYPERION_BUBBLE_ERRORS(def.image->Create());
         }
 
         AssertThrow(def.attachment.IsValid());
 
         if (!def.attachment->IsCreated()) {
-            HYPERION_BUBBLE_ERRORS(def.attachment->Create(device));
+            HYPERION_BUBBLE_ERRORS(def.attachment->Create());
         }
     }
 
@@ -37,31 +47,25 @@ RendererResult AttachmentMap<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
 }
 
 template <>
-RendererResult AttachmentMap<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
+RendererResult AttachmentMap<Platform::VULKAN>::Resize(Vec2u new_size)
 {
     for (KeyValuePair<uint32, AttachmentDef<Platform::VULKAN>> &it : attachments) {
         AttachmentDef<Platform::VULKAN> &def = it.second;
 
         AssertThrow(def.image.IsValid());
 
-        ImageRef<Platform::VULKAN> new_image = MakeRenderObject<Image<Platform::VULKAN>>(
-            TextureDesc {
-                def.image->GetType(),
-                def.image->GetTextureFormat(),
-                Vec3u { new_size.x, new_size.y, 1 }
-            }
-        );
+        TextureDesc texture_desc = def.image->GetTextureDesc();
+        texture_desc.extent = Vec3u { new_size.x, new_size.y, 1 };
 
-        new_image->SetIsAttachmentTexture(true);
-
-        DeferCreate(new_image, device, ResourceState::SHADER_RESOURCE);
+        ImageRef<Platform::VULKAN> new_image = MakeRenderObject<Image<Platform::VULKAN>>(texture_desc);
+        DeferCreate(new_image, ResourceState::SHADER_RESOURCE);
 
         AttachmentRef<Platform::VULKAN> new_attachment = MakeRenderObject<Attachment<Platform::VULKAN>>(
             new_image,
             def.attachment->GetRenderPassStage()
         );
 
-        DeferCreate(new_attachment, device);
+        DeferCreate(new_attachment);
 
         if (def.image.IsValid()) {
             SafeRelease(std::move(def.image));
@@ -111,13 +115,13 @@ bool Framebuffer<Platform::VULKAN>::IsCreated() const
 }
 
 template <>
-RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Framebuffer<Platform::VULKAN>::Create()
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    HYPERION_BUBBLE_ERRORS(m_attachment_map.Create(device));
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Create());
     
     for (const auto &it : m_attachment_map.attachments) {
         const AttachmentDef<Platform::VULKAN> &def = it.second;
@@ -126,7 +130,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *d
         m_render_pass->AddAttachment(def.attachment);
     }
 
-    HYPERION_BUBBLE_ERRORS(m_render_pass->Create(device));
+    HYPERION_BUBBLE_ERRORS(m_render_pass->Create());
 
     Array<VkImageView> attachment_image_views;
     attachment_image_views.Reserve(m_attachment_map.attachments.Size());
@@ -151,7 +155,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *d
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            device->GetDevice(),
+            GetRenderingAPI()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
             &m_platform_impl.handles[frame_index]
@@ -162,7 +166,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *d
 }
 
 template <>
-RendererResult Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Framebuffer<Platform::VULKAN>::Destroy()
 {
     if (!IsCreated()) {
         HYPERION_RETURN_OK;
@@ -170,7 +174,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (m_platform_impl.handles[frame_index] != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(device->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
+            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
             m_platform_impl.handles[frame_index] = VK_NULL_HANDLE;
         }
     }
@@ -183,7 +187,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *
 }
 
 template <>
-RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *device, Vec2u new_size)
+RendererResult Framebuffer<Platform::VULKAN>::Resize(Vec2u new_size)
 {
     if (m_extent == new_size) {
         HYPERION_RETURN_OK;
@@ -195,11 +199,11 @@ RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *d
         HYPERION_RETURN_OK;
     }
 
-    HYPERION_BUBBLE_ERRORS(m_attachment_map.Resize(device, new_size));
+    HYPERION_BUBBLE_ERRORS(m_attachment_map.Resize(new_size));
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (m_platform_impl.handles[frame_index] != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(device->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
+            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.handles[frame_index], nullptr);
             m_platform_impl.handles[frame_index] = VK_NULL_HANDLE;
         }
     }
@@ -227,7 +231,7 @@ RendererResult Framebuffer<Platform::VULKAN>::Resize(Device<Platform::VULKAN> *d
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            device->GetDevice(),
+            GetRenderingAPI()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
             &m_platform_impl.handles[frame_index]

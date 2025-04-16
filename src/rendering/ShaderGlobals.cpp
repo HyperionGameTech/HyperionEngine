@@ -41,8 +41,8 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : renderer::Rend
     virtual RendererResult operator()() override
     {
         // @TODO: Make GPU only buffer
-        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(g_engine->GetGPUDevice(), sizeof(SHGridBuffer)));
-        sh_grid_buffer->Memset(g_engine->GetGPUDevice(), sizeof(SHGridBuffer), 0);
+        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(sizeof(SHGridBuffer)));
+        sh_grid_buffer->Memset(sizeof(SHGridBuffer), 0);
 
         HYPERION_RETURN_OK;
     }
@@ -62,8 +62,8 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : renderer::Rend
     virtual RendererResult operator()() override
     {
         for (auto &item : grid_textures) {
-            HYPERION_BUBBLE_ERRORS(item.image->Create(g_engine->GetGPUDevice()));
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create(g_engine->GetGPUDevice(), item.image));
+            HYPERION_BUBBLE_ERRORS(item.image->Create());
+            HYPERION_BUBBLE_ERRORS(item.image_view->Create(item.image));
         }
 
         HYPERION_RETURN_OK;
@@ -81,13 +81,16 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
         const Vec3u image_dimensions { dimension_cube, dimension_cube, dimension_cube };
 
         for (auto &item : textures) {
-            item.image = MakeRenderObject<Image>(renderer::StorageImage(
-                image_dimensions,
-                InternalFormat::RGBA16F,
+            item.image = MakeRenderObject<Image>(TextureDesc {
                 ImageType::TEXTURE_TYPE_3D,
+                InternalFormat::RGBA16F,
+                image_dimensions,
                 FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR
-            ));
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1,
+                ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
+            });
 
             item.image_view = MakeRenderObject<ImageView>();
         }
@@ -125,8 +128,6 @@ ShaderGlobals::ShaderGlobals()
 
 void ShaderGlobals::Create()
 {
-    auto *device = g_engine->GetGPUDevice();
-
     textures.Create();
 
     spherical_harmonics_grid.Create();
@@ -134,8 +135,6 @@ void ShaderGlobals::Create()
 
 void ShaderGlobals::Destroy()
 {
-    auto *device = g_engine->GetGPUDevice();
-    
     spherical_harmonics_grid.Destroy();
 }
 

@@ -98,8 +98,8 @@ public:
     virtual void CreateDescriptors() override;
 
     virtual void Create() override;
-    virtual void Render(Frame *frame) override;
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(IFrame *frame) override;
+    virtual void RenderToFramebuffer(IFrame *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 private:
@@ -153,7 +153,7 @@ private:
     virtual void Init() override;     // init on render thread
     virtual void InitGame() override; // init on game thread
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(Frame *frame) override;
+    virtual void OnRender(IFrame *frame) override;
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
     void CreateShader();

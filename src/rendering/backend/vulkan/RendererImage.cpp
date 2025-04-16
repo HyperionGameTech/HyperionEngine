@@ -8,6 +8,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <util/img/ImageUtil.hpp>
 
 #include <core/containers/Array.hpp>
@@ -24,8 +26,16 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+    
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
@@ -34,7 +44,6 @@ extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModu
 #pragma region ImagePlatformImpl
 
 RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
-    Device<Platform::VULKAN> *device,
     const TextureData *in_texture_data,
     VkImageType image_type,
     VkImageCreateFlags image_create_flags,
@@ -97,10 +106,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
     HYPERION_RETURN_OK;
 }
 
-RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
-    VkImageLayout initial_layout
-)
+RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(VkImageLayout initial_layout)
 {
     if (!is_handle_owned) {
         AssertThrowMsg(handle != VK_NULL_HANDLE, "If is_handle_owned is set to false, the image handle must not be VK_NULL_HANDLE.");
@@ -112,12 +118,11 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     const InternalFormat format = self->GetTextureFormat();
     const ImageType type = self->GetType();
 
-    const bool is_attachment_texture = self->IsAttachmentTexture();
-    const bool is_rw_texture = self->IsRWTexture();
-
-    const bool is_depth_stencil = self->IsDepthStencil();
-    const bool is_blended = self->IsBlended();
-    const bool is_srgb = self->IsSRGB();
+    const bool is_attachment_texture = self->GetTextureDesc().image_format_capabilities[ImageFormatCapabilities::ATTACHMENT];
+    const bool is_rw_texture = self->GetTextureDesc().image_format_capabilities[ImageFormatCapabilities::STORAGE];
+    const bool is_depth_stencil = self->GetTextureDesc().IsDepthStencil();
+    const bool is_blended = self->GetTextureDesc().IsBlended();
+    const bool is_srgb = self->GetTextureDesc().IsSRGB();
 
     const bool is_cubemap = self->IsTextureCube();
 
@@ -137,20 +142,18 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     VkImageFormatProperties vk_image_format_properties { };
 
     tiling = VK_IMAGE_TILING_OPTIMAL;
+    usage_flags = VK_IMAGE_USAGE_SAMPLED_BIT;
 
     if (is_attachment_texture) {
         usage_flags |= (is_depth_stencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            | VK_IMAGE_USAGE_SAMPLED_BIT
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
     }
 
     if (is_rw_texture) {
         usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
-            | VK_IMAGE_USAGE_STORAGE_BIT
-            | VK_IMAGE_USAGE_SAMPLED_BIT;
+            | VK_IMAGE_USAGE_STORAGE_BIT;
     } else {
-        usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-            | VK_IMAGE_USAGE_SAMPLED_BIT;
+        usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
 
     if (has_mipmaps) {
@@ -185,7 +188,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
         vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    auto format_support_result = device->GetFeatures().GetImageFormatProperties(
+    RendererResult format_support_result = GetRenderingAPI()->GetDevice()->GetFeatures().GetImageFormatProperties(
         vk_format,
         vk_image_type,
         tiling,
@@ -195,10 +198,11 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     );
 
     if (!format_support_result) {
+        HYP_BREAKPOINT;
         HYPERION_BUBBLE_ERRORS(format_support_result);
     }
 
-    const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
+    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
     const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -223,7 +227,7 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
 
     HYPERION_VK_CHECK_MSG(
         vmaCreateImage(
-            device->GetAllocator(),
+            GetRenderingAPI()->GetDevice()->GetAllocator(),
             &image_info,
             &alloc_info,
             &handle,
@@ -236,12 +240,12 @@ RendererResult ImagePlatformImpl<Platform::VULKAN>::Create(
     HYPERION_RETURN_OK;
 }
 
-RendererResult ImagePlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult ImagePlatformImpl<Platform::VULKAN>::Destroy()
 {
     if (allocation != VK_NULL_HANDLE) {
         AssertThrowMsg(is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
 
-        vmaDestroyImage(device->GetAllocator(), handle, allocation);
+        vmaDestroyImage(GetRenderingAPI()->GetDevice()->GetAllocator(), handle, allocation);
         allocation = VK_NULL_HANDLE;
     }
 
@@ -420,9 +424,6 @@ template <>
 Image<Platform::VULKAN>::Image(const TextureDesc &texture_desc)
     : m_platform_impl { this },
       m_texture_desc(texture_desc),
-      m_is_blended(false),
-      m_is_rw_texture(false),
-      m_is_attachment_texture(false),
       m_bpp(NumComponents(GetBaseFormat(texture_desc.format)))
 {
     m_size = GetByteSize();
@@ -431,9 +432,6 @@ Image<Platform::VULKAN>::Image(const TextureDesc &texture_desc)
 template <>
 Image<Platform::VULKAN>::Image(Image &&other) noexcept
     : m_texture_desc(other.m_texture_desc),
-      m_is_blended(other.m_is_blended),
-      m_is_rw_texture(other.m_is_rw_texture),
-      m_is_attachment_texture(other.m_is_attachment_texture),
       m_size(other.m_size),
       m_bpp(other.m_bpp)
 {
@@ -441,9 +439,6 @@ Image<Platform::VULKAN>::Image(Image &&other) noexcept
     m_platform_impl.self = this;
     other.m_platform_impl = { &other };
 
-    other.m_is_blended = false;
-    other.m_is_rw_texture = false;
-    other.m_is_attachment_texture = false;
     other.m_size = 0;
     other.m_bpp = 0;
 }
@@ -456,15 +451,9 @@ Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexc
     other.m_platform_impl = { &other };
 
     m_texture_desc = std::move(other.m_texture_desc);
-    m_is_blended = other.m_is_blended;
-    m_is_rw_texture = other.m_is_rw_texture;
-    m_is_attachment_texture = other.m_is_attachment_texture;
     m_size = other.m_size;
     m_bpp = other.m_bpp;
 
-    other.m_is_blended = false;
-    other.m_is_rw_texture = false;
-    other.m_is_attachment_texture = false;
     other.m_size = 0;
     other.m_bpp = 0;
 
@@ -501,7 +490,7 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
                 we'll still need to transfer into a layout primed for reading from shaders. */
 
             const ImageSubResource src {
-                .flags = IsDepthStencil()
+                .flags = m_texture_desc.IsDepthStencil()
                     ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                     : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .base_array_layer = face,
@@ -578,7 +567,7 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
                 m_platform_impl.handle,
                 GetVkImageLayout(ResourceState::COPY_DST),
                 1, &blit,
-                IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
+                m_texture_desc.IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
             );
         }
     }
@@ -587,12 +576,12 @@ RendererResult Image<Platform::VULKAN>::GenerateMipmaps(CommandBuffer<Platform::
 }
 
 template <>
-RendererResult Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Image<Platform::VULKAN>::Destroy()
 {
     RendererResult result;
 
     if (IsCreated()) {
-        HYPERION_PASS_ERRORS(m_platform_impl.Destroy(device), result);
+        HYPERION_PASS_ERRORS(m_platform_impl.Destroy(), result);
         m_platform_impl.handle = VK_NULL_HANDLE;
     }
 
@@ -600,23 +589,23 @@ RendererResult Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
 }
 
 template <>
-RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Image<Platform::VULKAN>::Create()
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    return m_platform_impl.Create(device, VK_IMAGE_LAYOUT_UNDEFINED);
+    return m_platform_impl.Create(VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 template <>
-RendererResult Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, ResourceState initial_state)
+RendererResult Image<Platform::VULKAN>::Create(ResourceState initial_state)
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
-    return m_platform_impl.Create(device, GetVkImageLayout(initial_state));
+    return m_platform_impl.Create(GetVkImageLayout(initial_state));
 }
 
 template <>
@@ -640,7 +629,7 @@ void Image<Platform::VULKAN>::InsertBarrier(
 {
     ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_NONE;
 
-    if (IsDepthStencil()) {
+    if (m_texture_desc.IsDepthStencil()) {
         flags |= IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL;
     } else {
         flags |= IMAGE_SUB_RESOURCE_FLAGS_COLOR;
@@ -685,7 +674,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
 
     for (uint32 face = 0; face < num_faces; face++) {
         const ImageSubResource src {
-            .flags = src_image->IsDepthStencil()
+            .flags = src_image->GetTextureDesc().IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer   = face,
@@ -693,7 +682,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         const ImageSubResource dst {
-            .flags = IsDepthStencil()
+            .flags = m_texture_desc.IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer = face,
@@ -758,7 +747,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
 
     for (uint32 face = 0; face < num_faces; face++) {
         const ImageSubResource src {
-            .flags = src_image->IsDepthStencil()
+            .flags = src_image->GetTextureDesc().IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer   = face,
@@ -766,7 +755,7 @@ RendererResult Image<Platform::VULKAN>::Blit(
         };
 
         const ImageSubResource dst {
-            .flags = IsDepthStencil()
+            .flags = m_texture_desc.IsDepthStencil()
                 ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                 : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer = face,
@@ -849,7 +838,7 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
     const GPUBuffer<Platform::VULKAN> *src_buffer
 ) const
 {
-    const auto flags = IsDepthStencil()
+    const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
         : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
 
@@ -891,7 +880,7 @@ void Image<Platform::VULKAN>::CopyToBuffer(
     GPUBuffer<Platform::VULKAN> *dst_buffer
 ) const
 {
-    const auto flags = IsDepthStencil()
+    const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
         : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
 

@@ -78,38 +78,19 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
         SimplexNoiseGenerator noise_generator(seed);
         auto noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
 
-        HYPERION_BUBBLE_ERRORS(particle_buffer->Create(
-            g_engine->GetGPUDevice(),
-            params.max_particles * sizeof(ParticleShaderData)
-        ));
-
-        HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
-
-        HYPERION_BUBBLE_ERRORS(noise_buffer->Create(
-            g_engine->GetGPUDevice(),
-            noise_map.GetByteSize() * sizeof(float)
-        ));
+        HYPERION_BUBBLE_ERRORS(particle_buffer->Create(params.max_particles * sizeof(ParticleShaderData)));
+        HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(sizeof(IndirectDrawCommand)));
+        HYPERION_BUBBLE_ERRORS(noise_buffer->Create(noise_map.GetByteSize() * sizeof(float)));
 
         // copy zeroes into particle buffer
         // if we don't do this, garbage values could be in the particle buffer,
         // meaning we'd get some crazy high lifetimes
-        particle_buffer->Memset(
-            g_engine->GetGPUDevice(),
-            particle_buffer->Size(),
-            0x0
-        );
+        particle_buffer->Memset(particle_buffer->Size(), 0);
 
         // copy bytes into noise buffer
         Array<float> unpacked_floats = noise_map.GetUnpackedFloats();
 
-        noise_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            unpacked_floats.ByteSize(),
-            unpacked_floats.Data()
-        );
+        noise_buffer->Copy(unpacked_floats.ByteSize(), unpacked_floats.Data());
 
         // don't need it anymore
         noise_map = Bitmap<1>();
@@ -161,50 +142,13 @@ struct RENDER_COMMAND(CreateParticleSystemBuffers) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(staging_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
+        HYPERION_BUBBLE_ERRORS(staging_buffer->Create(sizeof(IndirectDrawCommand)));
 
         IndirectDrawCommand empty_draw_command { };
         quad_mesh->GetRenderResource().PopulateIndirectDrawCommand(empty_draw_command);
 
         // copy zeros to buffer
-        staging_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(IndirectDrawCommand),
-            &empty_draw_command
-        );
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderCommand
-{
-    FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> command_buffers;
-
-    RENDER_COMMAND(CreateParticleSystemCommandBuffers)(
-        FixedArray<FixedArray<CommandBufferRef, num_async_rendering_command_buffers>, max_frames_in_flight> command_buffers
-    ) : command_buffers(std::move(command_buffers))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateParticleSystemCommandBuffers)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (uint32 i = 0; i < uint32(command_buffers[frame_index].Size()); i++) {
-                AssertThrow(command_buffers[frame_index][i].IsValid());
-
-#ifdef HYP_VULKAN
-                command_buffers[frame_index][i]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[i];
-#endif
-
-                HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(g_engine->GetGPUInstance()->GetDevice()));
-            }
-        }
+        staging_buffer->Copy(sizeof(IndirectDrawCommand), &empty_draw_command);
 
         HYPERION_RETURN_OK;
     }
@@ -296,7 +240,7 @@ void ParticleSpawner::CreateRenderGroup()
             : g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_group = CreateObject<RenderGroup>(
         m_shader,
@@ -339,14 +283,14 @@ void ParticleSpawner::CreateComputePipelines()
         descriptor_set->SetElement(NAME("NoiseBuffer"), m_noise_buffer);
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_update_particles = MakeRenderObject<ComputePipeline>(
         update_particles_shader,
         descriptor_table
     );
 
-    DeferCreate(m_update_particles, g_engine->GetGPUDevice());
+    DeferCreate(m_update_particles);
 }
 
 #pragma endregion ParticleSpawner
@@ -404,7 +348,7 @@ void ParticleSystem::CreateBuffers()
     );
 }
 
-void ParticleSystem::UpdateParticles(Frame *frame)
+void ParticleSystem::UpdateParticles(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -519,7 +463,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     }
 }
 
-void ParticleSystem::Render(Frame *frame)
+void ParticleSystem::Render(IFrame *frame)
 {
     HYP_SCOPE;
 

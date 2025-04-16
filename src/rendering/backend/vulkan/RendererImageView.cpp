@@ -5,16 +5,25 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region ImageViewPlatformImpl
 
 RendererResult ImageViewPlatformImpl<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
     VkImage image,
     VkFormat format,
     VkImageAspectFlags aspect_flags,
@@ -47,17 +56,17 @@ RendererResult ImageViewPlatformImpl<Platform::VULKAN>::Create(
     // AssertThrowMsg(face_layer < m_num_faces, "face layer out of bounds");
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateImageView(device->GetDevice(), &view_info, nullptr, &handle),
+        vkCreateImageView(GetRenderingAPI()->GetDevice()->GetDevice(), &view_info, nullptr, &handle),
         "Failed to create image view"
     );
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult ImageViewPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult ImageViewPlatformImpl<Platform::VULKAN>::Destroy()
 {
     if (handle != VK_NULL_HANDLE) {
-        vkDestroyImageView(device->GetDevice(), handle, nullptr);
+        vkDestroyImageView(GetRenderingAPI()->GetDevice()->GetDevice(), handle, nullptr);
         handle = VK_NULL_HANDLE;
     }
 
@@ -114,7 +123,6 @@ bool ImageView<Platform::VULKAN>::IsCreated() const
 
 template <>
 RendererResult ImageView<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
     const Image<Platform::VULKAN> *image,
     uint32 mipmap_layer,
     uint32 num_mipmaps,
@@ -126,7 +134,6 @@ RendererResult ImageView<Platform::VULKAN>::Create(
     AssertThrow(image->GetPlatformImpl().handle != VK_NULL_HANDLE);
 
     return m_platform_impl.Create(
-        device,
         image->GetPlatformImpl().handle,
         helpers::ToVkFormat(image->GetTextureFormat()),
         helpers::ToVkImageAspect(image->GetTextureFormat()),
@@ -139,16 +146,12 @@ RendererResult ImageView<Platform::VULKAN>::Create(
 }
 
 template <>
-RendererResult ImageView<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
-    const Image<Platform::VULKAN> *image
-)
+RendererResult ImageView<Platform::VULKAN>::Create(const Image<Platform::VULKAN> *image)
 {
     AssertThrow(image != nullptr);
     AssertThrow(image->GetPlatformImpl().handle != VK_NULL_HANDLE);
 
     return m_platform_impl.Create(
-        device,
         image->GetPlatformImpl().handle,
         helpers::ToVkFormat(image->GetTextureFormat()),
         helpers::ToVkImageAspect(image->GetTextureFormat()),
@@ -161,9 +164,9 @@ RendererResult ImageView<Platform::VULKAN>::Create(
 }
 
 template <>
-RendererResult ImageView<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult ImageView<Platform::VULKAN>::Destroy()
 {
-    return m_platform_impl.Destroy(device);
+    return m_platform_impl.Destroy();
 }
 
 #pragma endregion ImageView

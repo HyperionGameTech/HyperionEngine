@@ -77,7 +77,7 @@ public:
         { return m_sort_splats; }
 
     void Init();
-    void Record(Frame *frame);
+    void Record(IFrame *frame);
 
 private:
     void CreateBuffers();
@@ -121,9 +121,9 @@ public:
 
     void Init();
 
-    void UpdateSplats(Frame *frame);
+    void UpdateSplats(IFrame *frame);
 
-    void Render(Frame *frame);
+    void Render(IFrame *frame);
 
 private:
     void CreateBuffers();

@@ -50,7 +50,7 @@ void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
 }
 
-void ReflectionProbeRenderer::OnRender(Frame *frame)
+void ReflectionProbeRenderer::OnRender(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 

@@ -6,17 +6,26 @@
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererFrameHandler.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 static const bool use_srgb = true;
 static const VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult HandleNextFrame(
-    Device<Platform::VULKAN> *device,
     Swapchain<Platform::VULKAN> *swapchain,
     Frame<Platform::VULKAN> *frame,
     uint32 *index,
@@ -24,7 +33,7 @@ static RendererResult HandleNextFrame(
 )
 {
     VkResult vk_result = vkAcquireNextImageKHR(
-        device->GetDevice(),
+        GetRenderingAPI()->GetDevice()->GetDevice(),
         swapchain->GetPlatformImpl().handle,
         UINT64_MAX,
         frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetSemaphore(),
@@ -45,22 +54,22 @@ static RendererResult HandleNextFrame(
 
 #pragma region SwapchainPlatformImpl
 
-RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create()
 {
     if (surface == VK_NULL_HANDLE) {
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
-    RetrieveSupportDetails(device);
-    ChooseSurfaceFormat(device);
+    RetrieveSupportDetails();
+    ChooseSurfaceFormat();
     ChoosePresentMode();
 
-    self->extent = {
+    self->m_extent = {
         support_details.capabilities.currentExtent.width,
         support_details.capabilities.currentExtent.height
     };
 
-    if (self->extent.x * self->extent.y == 0) {
+    if (self->m_extent.x * self->m_extent.y == 0) {
         return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
     }
 
@@ -75,12 +84,12 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
     create_info.minImageCount       = image_count;
     create_info.imageFormat         = surface_format.format;
     create_info.imageColorSpace     = surface_format.colorSpace;
-    create_info.imageExtent         = { self->extent.x, self->extent.y };
+    create_info.imageExtent         = { self->m_extent.x, self->m_extent.y };
     create_info.imageArrayLayers    = 1; /* This is always 1 unless we make a stereoscopic/VR application */
     create_info.imageUsage          = image_usage_flags;
 
     /* Graphics computations and presentation are done on separate hardware */
-    const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
+    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
 
     const uint32 concurrent_families[] = {
         qf_indices.graphics_family.Get(),
@@ -108,36 +117,36 @@ RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Create(Device<Platform::
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateSwapchainKHR(device->GetDevice(), &create_info, nullptr, &handle),
+        vkCreateSwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &handle),
         "Failed to create Vulkan swapchain!"
     );
 
-    RetrieveImageHandles(device);
+    RetrieveImageHandles();
 
     self->m_frame_handler = MakeRenderObject<FrameHandler<Platform::VULKAN>>(self->m_images.Size(), HandleNextFrame);
-    HYPERION_BUBBLE_ERRORS(self->m_frame_handler->Create(device, &device->GetGraphicsQueue()));
+    HYPERION_BUBBLE_ERRORS(self->m_frame_handler->Create(&GetRenderingAPI()->GetDevice()->GetGraphicsQueue()));
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult SwapchainPlatformImpl<Platform::VULKAN>::Destroy()
 {
-    self->m_frame_handler->Destroy(device);
+    self->m_frame_handler->Destroy();
     self->m_frame_handler.Reset();
 
-    vkDestroySwapchainKHR(device->GetDevice(), handle, nullptr);
+    vkDestroySwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), handle, nullptr);
     handle = VK_NULL_HANDLE;
 
     HYPERION_RETURN_OK;
 }
 
-void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platform::VULKAN> *device)
+void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat()
 {
     surface_format = { };
 
     if (use_srgb) {
         /* look for srgb format */
-        self->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
+        self->m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             support_details,
             { { InternalFormat::RGBA8_SRGB, InternalFormat::BGRA8_SRGB } },
             [this](auto &&format)
@@ -152,13 +161,13 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platfor
             }
         );
 
-        if (self->image_format != InternalFormat::NONE) {
+        if (self->m_image_format != InternalFormat::NONE) {
             return;
         }
     }
 
     /* look for non-srgb format */
-    self->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
+    self->m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         support_details,
         { { InternalFormat::R11G11B10F, InternalFormat::RGBA16F, InternalFormat::RGBA8 } },
         [this](auto &&format)
@@ -169,7 +178,7 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platfor
         }
     );
 
-    AssertThrowMsg(self->image_format != InternalFormat::NONE, "Failed to find a surface format!");
+    AssertThrowMsg(self->m_image_format != InternalFormat::NONE, "Failed to find a surface format!");
 }
 
 void SwapchainPlatformImpl<Platform::VULKAN>::ChoosePresentMode()
@@ -177,22 +186,22 @@ void SwapchainPlatformImpl<Platform::VULKAN>::ChoosePresentMode()
     present_mode = HYP_ENABLE_VSYNC ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 }
 
-void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveSupportDetails(Device<Platform::VULKAN> *device)
+void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveSupportDetails()
 {
-    support_details = device->GetFeatures().QuerySwapchainSupport(device->GetRenderSurface());
+    support_details = GetRenderingAPI()->GetDevice()->GetFeatures().QuerySwapchainSupport(GetRenderingAPI()->GetDevice()->GetRenderSurface());
 }
 
-void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> *device)
+void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles()
 {
     Array<VkImage> vk_images;
     uint32 image_count = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
-    vkGetSwapchainImagesKHR(device->GetDevice(), handle, &image_count, nullptr);
+    vkGetSwapchainImagesKHR(GetRenderingAPI()->GetDevice()->GetDevice(), handle, &image_count, nullptr);
 
     vk_images.Resize(image_count);
 
-    vkGetSwapchainImagesKHR(device->GetDevice(), handle, &image_count, vk_images.Data());
+    vkGetSwapchainImagesKHR(GetRenderingAPI()->GetDevice()->GetDevice(), handle, &image_count, vk_images.Data());
 
     self->m_images.Resize(image_count);
 
@@ -200,15 +209,15 @@ void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles(Device<Platfo
         self->m_images[i] = MakeRenderObject<Image<Platform::VULKAN>>(
             TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
-                self->image_format,
-                Vec3u { self->extent.x, self->extent.y, 1 }
+                self->m_image_format,
+                Vec3u { self->m_extent.x, self->m_extent.y, 1 }
             }
         );
 
         self->m_images[i]->GetPlatformImpl().handle = vk_images[i];
         self->m_images[i]->GetPlatformImpl().is_handle_owned = false;
 
-        HYPERION_ASSERT_RESULT(self->m_images[i]->Create(device));
+        HYPERION_ASSERT_RESULT(self->m_images[i]->Create());
     }
 }
 
@@ -219,7 +228,7 @@ void SwapchainPlatformImpl<Platform::VULKAN>::RetrieveImageHandles(Device<Platfo
 template <>
 Swapchain<Platform::VULKAN>::Swapchain()
     : m_platform_impl { this },
-      image_format(InternalFormat::NONE)
+      m_image_format(InternalFormat::NONE)
 {
 }
 
@@ -236,17 +245,17 @@ bool Swapchain<Platform::VULKAN>::IsCreated() const
 }
 
 template <>
-RendererResult Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Swapchain<Platform::VULKAN>::Create()
 {
-    return m_platform_impl.Create(device);
+    return m_platform_impl.Create();
 }
 
 template <>
-RendererResult Swapchain<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Swapchain<Platform::VULKAN>::Destroy()
 {
     SafeRelease(std::move(m_images));
     
-    return m_platform_impl.Destroy(device);
+    return m_platform_impl.Destroy();
 }
 
 #pragma endregion Swapchain

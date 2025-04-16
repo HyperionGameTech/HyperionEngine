@@ -7,13 +7,22 @@
 #include <rendering/backend/RendererQueue.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/math/MathUtil.hpp>
 #include <Constants.hpp>
 
 namespace hyperion {
-namespace renderer {
 
+extern IRenderingAPI *g_rendering_api;
+
+namespace renderer {
 namespace platform {
+    
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 template <>
 FrameHandler<Platform::VULKAN>::FrameHandler(uint32 num_frames, NextImageFunction next_image)
@@ -24,10 +33,7 @@ FrameHandler<Platform::VULKAN>::FrameHandler(uint32 num_frames, NextImageFunctio
 }
 
 template <>
-RendererResult FrameHandler<Platform::VULKAN>::Create(
-    Device<Platform::VULKAN> *device,
-    DeviceQueue<Platform::VULKAN> *queue
-)
+RendererResult FrameHandler<Platform::VULKAN>::Create(DeviceQueue<Platform::VULKAN> *queue)
 {
     for (uint32 i = 0; i < m_frames.Size(); i++) {
         VkCommandPool pool = queue->command_pools[0];
@@ -35,12 +41,12 @@ RendererResult FrameHandler<Platform::VULKAN>::Create(
         
         CommandBufferRef<Platform::VULKAN> command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
         command_buffer->GetPlatformImpl().command_pool = pool;
-        HYPERION_BUBBLE_ERRORS(command_buffer->Create(device));
+        HYPERION_BUBBLE_ERRORS(command_buffer->Create());
         m_command_buffers[i] = std::move(command_buffer);
 
         FrameRef<Platform::VULKAN> frame = MakeRenderObject<Frame<Platform::VULKAN>>(i);
 
-        HYPERION_BUBBLE_ERRORS(frame->Create(device));
+        HYPERION_BUBBLE_ERRORS(frame->Create());
         m_frames[i] = std::move(frame);
     }
 
@@ -48,11 +54,7 @@ RendererResult FrameHandler<Platform::VULKAN>::Create(
 }
 
 template <>
-RendererResult FrameHandler<Platform::VULKAN>::PrepareFrame(
-    Device<Platform::VULKAN> *device,
-    Swapchain<Platform::VULKAN> *swapchain,
-    bool &out_needs_recreate
-)
+RendererResult FrameHandler<Platform::VULKAN>::PrepareFrame(Swapchain<Platform::VULKAN> *swapchain, bool &out_needs_recreate)
 {
     static const auto HandleFrameResult = [](VkResult result, bool &out_needs_recreate) -> RendererResult
     {
@@ -69,13 +71,13 @@ RendererResult FrameHandler<Platform::VULKAN>::PrepareFrame(
 
     const FrameRef<Platform::VULKAN> &frame = GetCurrentFrame();
 
-    HYPERION_BUBBLE_ERRORS(frame->GetFence()->WaitForGPU(device, true));
+    HYPERION_BUBBLE_ERRORS(frame->GetFence()->WaitForGPU(true));
 
     HYPERION_BUBBLE_ERRORS(HandleFrameResult(frame->GetFence()->GetPlatformImpl().last_frame_result, out_needs_recreate));
 
-    HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset(device));
+    HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset());
 
-    HYPERION_BUBBLE_ERRORS(m_next_image(device, swapchain, frame, &m_acquired_image_index, out_needs_recreate));
+    HYPERION_BUBBLE_ERRORS(m_next_image(swapchain, frame, &m_acquired_image_index, out_needs_recreate));
 
     HYPERION_RETURN_OK;
 }
@@ -110,7 +112,7 @@ RendererResult FrameHandler<Platform::VULKAN>::PresentFrame(
 }
 
 template <>
-RendererResult FrameHandler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult FrameHandler<Platform::VULKAN>::Destroy()
 {
     SafeRelease(std::move(m_frames));
     SafeRelease(std::move(m_command_buffers));

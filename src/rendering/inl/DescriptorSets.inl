@@ -31,5 +31,5 @@ HYP_DESCRIPTOR_SRV(Scene, VoxelGridTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, LightFieldColorTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, LightFieldDepthTexture, 1);
 
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, renderer::RenderConfig::IsBindlessSupported());
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bound_textures, !renderer::RenderConfig::IsBindlessSupported());
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, g_rendering_api->GetRenderConfig().IsBindlessSupported());
+HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bound_textures, !g_rendering_api->GetRenderConfig().IsBindlessSupported());

@@ -218,10 +218,10 @@ public:
     void Init();
     void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(Frame *frame);
-    void RenderDDGIProbes(Frame *frame);
+    void RenderRTRadiance(IFrame *frame);
+    void RenderDDGIProbes(IFrame *frame);
 
-    void RenderSubsystems(Frame *frame);
+    void RenderSubsystems(IFrame *frame);
 
 private:
     HYP_FORCE_INLINE void AddUpdateMarker(RenderEnvironmentUpdates value, ThreadType thread_type)
@@ -256,7 +256,7 @@ private:
     void AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem> &render_subsystem);
     void RemoveRenderSubsystem(TypeID type_id, const HypClass *hyp_class, Name name);
 
-    void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
+    void ApplyTLASUpdates(IFrame *frame, RTUpdateStateFlags flags);
 
     void InitializeRT();
     bool CreateTopLevelAccelerationStructures();

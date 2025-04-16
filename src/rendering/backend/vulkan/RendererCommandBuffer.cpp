@@ -7,12 +7,21 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <Types.hpp>
 
-
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 template <>
 CommandBuffer<Platform::VULKAN>::CommandBuffer(CommandBufferType type)
@@ -34,7 +43,7 @@ bool CommandBuffer<Platform::VULKAN>::IsCreated() const
 }
 
 template <>
-RendererResult CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult CommandBuffer<Platform::VULKAN>::Create()
 {
     AssertThrow(m_platform_impl.command_pool != VK_NULL_HANDLE);
 
@@ -57,7 +66,7 @@ RendererResult CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
     alloc_info.commandBufferCount = 1;
 
     HYPERION_VK_CHECK_MSG(
-        vkAllocateCommandBuffers(device->GetDevice(), &alloc_info, &m_platform_impl.command_buffer),
+        vkAllocateCommandBuffers(GetRenderingAPI()->GetDevice()->GetDevice(), &alloc_info, &m_platform_impl.command_buffer),
         "Failed to allocate command buffer"
     );
 
@@ -65,12 +74,12 @@ RendererResult CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> 
 }
 
 template <>
-RendererResult CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult CommandBuffer<Platform::VULKAN>::Destroy()
 {
     if (m_platform_impl.command_buffer != VK_NULL_HANDLE) {
         AssertThrow(m_platform_impl.command_pool != VK_NULL_HANDLE);
 
-        vkFreeCommandBuffers(device->GetDevice(), m_platform_impl.command_pool, 1, &m_platform_impl.command_buffer);
+        vkFreeCommandBuffers(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.command_pool, 1, &m_platform_impl.command_buffer);
         
         m_platform_impl.command_buffer = VK_NULL_HANDLE;
         m_platform_impl.command_pool = VK_NULL_HANDLE;
@@ -80,7 +89,7 @@ RendererResult CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN>
 }
 
 template <>
-RendererResult CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass)
+RendererResult CommandBuffer<Platform::VULKAN>::Begin(const RenderPass<Platform::VULKAN> *render_pass)
 {
     VkCommandBufferInheritanceInfo inheritance_info { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
     inheritance_info.subpass = 0;
@@ -112,7 +121,7 @@ RendererResult CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *
 }
 
 template <>
-RendererResult CommandBuffer<Platform::VULKAN>::End(Device<Platform::VULKAN> *device)
+RendererResult CommandBuffer<Platform::VULKAN>::End()
 {
     HYPERION_VK_CHECK_MSG(
         vkEndCommandBuffer(m_platform_impl.command_buffer),
@@ -123,7 +132,7 @@ RendererResult CommandBuffer<Platform::VULKAN>::End(Device<Platform::VULKAN> *de
 }
 
 template <>
-RendererResult CommandBuffer<Platform::VULKAN>::Reset(Device<Platform::VULKAN> *device)
+RendererResult CommandBuffer<Platform::VULKAN>::Reset()
 {
     HYPERION_VK_CHECK_MSG(
         vkResetCommandBuffer(m_platform_impl.command_buffer, 0),

@@ -138,8 +138,9 @@ void CompositePass::Create()
 
 #pragma region FinalPass
 
-FinalPass::FinalPass()
+FinalPass::FinalPass(ISwapchain *swapchain)
     : FullScreenPass(InternalFormat::RGBA8),
+      m_swapchain(swapchain),
       m_dirty_frame_indices(0)
 {
 }
@@ -163,8 +164,10 @@ void FinalPass::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
-    m_image_format = g_engine->GetGPUInstance()->GetSwapchain()->image_format;
+    AssertThrow(m_swapchain != nullptr);
+
+    m_extent = m_swapchain->GetExtent();
+    m_image_format = m_swapchain->GetImageFormat();
 
     m_composite_pass = MakeUnique<CompositePass>(m_extent);
     m_composite_pass->Create();
@@ -181,7 +184,13 @@ void FinalPass::Create()
 
     uint32 iteration = 0;
 
-    for (const ImageRef &image_ref : g_engine->GetGPUInstance()->GetSwapchain()->GetImages()) {
+#ifdef HYP_VULKAN
+    Swapchain_VULKAN *swapchain = static_cast<Swapchain_VULKAN *>(m_swapchain);
+#else
+    #error Unsupported renderer
+#endif
+
+    for (const ImageRef &image_ref : swapchain->GetImages()) {
         FramebufferRef fbo = MakeRenderObject<Framebuffer>(
             m_extent,
             renderer::RenderPassStage::PRESENT,
@@ -196,7 +205,7 @@ void FinalPass::Create()
         );
 
         color_attachment->SetBinding(0);
-        HYPERION_ASSERT_RESULT(color_attachment->Create(g_engine->GetGPUDevice()));
+        HYPERION_ASSERT_RESULT(color_attachment->Create());
 
         fbo->AddAttachment(color_attachment);
 
@@ -218,21 +227,23 @@ void FinalPass::Create()
         m_render_group->AddFramebuffer(std::move(fbo));
 
         ++iteration;
-    }
+    };
 
     InitObject(m_render_group);
 
     // Create final image to hold last frame's color texture
-
-    m_last_frame_image = MakeRenderObject<Image>(renderer::SampledImage(
-        Vec3u { m_extent.x, m_extent.y, 1 },
+    m_last_frame_image = MakeRenderObject<Image>(TextureDesc {
+        renderer::ImageType::TEXTURE_TYPE_2D,
         m_composite_pass->GetFormat(),
-        ImageType::TEXTURE_TYPE_2D,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST
-    ));
+        Vec3u { m_extent.x, m_extent.y, 1 },
+        renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+        renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+        renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::SAMPLED
+    });
 
-    HYPERION_ASSERT_RESULT(m_last_frame_image->Create(g_engine->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(m_last_frame_image->Create());
 
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
@@ -251,7 +262,7 @@ void FinalPass::Create()
         }
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -274,7 +285,7 @@ void FinalPass::Resize_Internal(Vec2u)
     Threads::AssertOnThread(g_render_thread);
 
     // Always keep FinalPass the same size as the swapchain
-    const Vec2u new_size = g_engine->GetGPUInstance()->GetSwapchain()->extent;
+    const Vec2u new_size = m_swapchain->GetExtent();
 
     FullScreenPass::Resize_Internal(new_size);
 
@@ -285,7 +296,7 @@ void FinalPass::Resize_Internal(Vec2u)
     }
 }
 
-void FinalPass::Render(Frame *frame)
+void FinalPass::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -293,7 +304,8 @@ void FinalPass::Render(Frame *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const GraphicsPipelineRef &pipeline = m_render_group->GetPipeline();
-    const uint32 acquired_image_index = g_engine->GetGPUInstance()->GetSwapchain()->GetFrameHandler()->GetAcquiredImageIndex();
+
+    const uint32 acquired_image_index = m_swapchain->GetAcquiredImageIndex();
 
     m_composite_pass->Render(frame);
 
@@ -330,7 +342,7 @@ void FinalPass::Render(Frame *frame)
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index)) {
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()
-                ->Update(g_engine->GetGPUDevice(), frame_index);
+                ->Update(frame_index);
 
             m_dirty_frame_indices &= ~(1u << frame_index);
         }

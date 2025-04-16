@@ -4,6 +4,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Deferred.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <system/App.hpp>
@@ -20,8 +21,8 @@ namespace hyperion {
 #pragma region GBuffer
 
 const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resources = {
-    GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_COLOR) },    // color
-    GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_NORMALS) },  // normal
+    GBufferResource { GBufferFormat(DefaultImageFormatType::COLOR) },    // color
+    GBufferResource { GBufferFormat(DefaultImageFormatType::NORMALS) },  // normal
     GBufferResource { GBufferFormat(InternalFormat::RGBA8) },           // material
     GBufferResource {                                                   // lightmap
         GBufferFormat(Array<InternalFormat> {
@@ -35,8 +36,8 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resourc
             InternalFormat::R16
         })
     },
-    GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_NORMALS) },  // world-space normals (untextured)
-    GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_DEPTH) }     // depth
+    GBufferResource { GBufferFormat(DefaultImageFormatType::NORMALS) },  // world-space normals (untextured)
+    GBufferResource { GBufferFormat(DefaultImageFormatType::DEPTH) }     // depth
 };
 
 static void AddOwnedAttachment(uint32 binding, InternalFormat format, const FramebufferRef &framebuffer)
@@ -47,8 +48,17 @@ static void AddOwnedAttachment(uint32 binding, InternalFormat format, const Fram
     const Vec2u &extent = framebuffer->GetExtent();
     AssertThrow(extent.Volume() != 0);
 
-    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(extent, format));
-    HYPERION_ASSERT_RESULT(attachment_image->Create(g_engine->GetGPUInstance()->GetDevice()));
+    TextureDesc texture_desc;
+    texture_desc.type = ImageType::TEXTURE_TYPE_2D;
+    texture_desc.format = format;
+    texture_desc.extent = Vec3u { extent, 1 };
+    texture_desc.filter_mode_min = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.filter_mode_mag = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
+
+    ImageRef attachment_image = MakeRenderObject<Image>(texture_desc);
+    DeferCreate(attachment_image);
 
     AttachmentRef attachment = MakeRenderObject<Attachment>(
         attachment_image,
@@ -63,7 +73,7 @@ static void AddOwnedAttachment(uint32 binding, InternalFormat format, const Fram
     //     attachment->SetAllowBlending(true);
     // }
 
-    HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
+    HYPERION_ASSERT_RESULT(attachment->Create());
 
     framebuffer->AddAttachment(std::move(attachment));
 }
@@ -88,7 +98,7 @@ static void AddSharedAttachment(uint32 binding, const FramebufferRef &framebuffe
 
     attachment->SetBinding(binding);
     attachment->SetAllowBlending(false);
-    HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
+    HYPERION_ASSERT_RESULT(attachment->Create());
 
     framebuffer->AddAttachment(attachment);
 }
@@ -102,11 +112,11 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
 
     if (const InternalFormat *format = GBuffer::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
         color_format = *format;
-    } else if (const TextureFormatDefault *default_format = GBuffer::gbuffer_resources[resource].format.TryGet<TextureFormatDefault>()) {
-        color_format = g_engine->GetDefaultFormat(*default_format);   
+    } else if (const DefaultImageFormatType *default_format = GBuffer::gbuffer_resources[resource].format.TryGet<DefaultImageFormatType>()) {
+        color_format = g_rendering_api->GetDefaultFormat(*default_format);   
     } else if (const Array<InternalFormat> *default_formats = GBuffer::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>()) {
         for (const InternalFormat format : *default_formats) {
-            if (g_engine->GetGPUDevice()->GetFeatures().IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
+            if (g_rendering_api->IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
                 color_format = format;
 
                 break;
@@ -131,8 +141,9 @@ Vec2u GBuffer::RescaleResolution(Vec2u resolution)
     return resolution;
 }
 
-GBuffer::GBuffer()
-    : m_resolution(0, 0)
+GBuffer::GBuffer(ISwapchain *swapchain)
+    : m_swapchain(swapchain),
+      m_resolution(0, 0)
 {
     for (SizeType i = 0; i < m_buckets.Size(); i++) {
         m_buckets[i].SetBucket(Bucket(i));
@@ -144,7 +155,9 @@ void GBuffer::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    m_resolution = RescaleResolution(g_engine->GetGPUInstance()->GetSwapchain()->extent);
+    AssertThrow(m_swapchain != nullptr);
+
+    m_resolution = RescaleResolution(m_swapchain->GetExtent());
 
     for (auto &bucket : m_buckets) {
         bucket.CreateFramebuffer(m_resolution);
@@ -245,7 +258,7 @@ void GBuffer::GBufferBucket::CreateFramebuffer(Vec2u resolution)
         }
     }
 
-    DeferCreate(framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(framebuffer);
 }
 
 void GBuffer::GBufferBucket::Destroy()
@@ -268,7 +281,7 @@ void GBuffer::GBufferBucket::Resize(Vec2u resolution)
         framebuffer_extent *= 2;
     }
 
-    HYPERION_ASSERT_RESULT(framebuffer->Resize(g_engine->GetGPUDevice(), framebuffer_extent));
+    HYPERION_ASSERT_RESULT(framebuffer->Resize(framebuffer_extent));
 }
 
 #pragma endregion GBufferBucket

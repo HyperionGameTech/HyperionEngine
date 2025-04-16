@@ -153,6 +153,8 @@ void Material::EnqueueRenderUpdates()
 {
     AssertReady();
 
+    static const bool is_bindless_supported = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+
     if (!m_mutation_state.IsDirty()) {
         HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with ID #{} (name: {}) that is not dirty", GetID().Value(), GetName());
 
@@ -161,9 +163,7 @@ void Material::EnqueueRenderUpdates()
 
     static const uint32 num_bound_textures = MathUtil::Min(
         max_textures,
-        renderer::RenderConfig::IsBindlessSupported()
-            ? max_bindless_resources
-            : max_bound_textures
+        is_bindless_supported ? max_bindless_resources : max_bound_textures
     );
 
     Array<ID<Texture>> bound_texture_ids;
@@ -320,7 +320,7 @@ void Material::SetTextures(const TextureSet &textures)
             InitObject(m_textures.ValueAt(i));
         }
 
-        if (!renderer::RenderConfig::IsBindlessSupported()) {
+        if (!g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
             FlatMap<MaterialTextureKey, Handle<Texture>> textures;
 
             for (SizeType i = 0; i < m_textures.Size(); i++) {

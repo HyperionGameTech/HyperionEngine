@@ -38,7 +38,6 @@ struct ImagePlatformImpl<Platform::VULKAN>
     bool                                        is_handle_owned = true;
 
     RendererResult ConvertTo32BPP(
-        Device<Platform::VULKAN> *device,
         const TextureData *in_texture_data,
         VkImageType image_type,
         VkImageCreateFlags image_create_flags,
@@ -47,14 +46,9 @@ struct ImagePlatformImpl<Platform::VULKAN>
         UniquePtr<TextureData> &out_texture_data
     );
 
-    RendererResult Create(
-        Device<Platform::VULKAN> *device,
-        VkImageLayout initial_layout
-    );
+    RendererResult Create(VkImageLayout initial_layout);
 
-    RendererResult Destroy(
-        Device<Platform::VULKAN> *device
-    );
+    RendererResult Destroy();
 
     ResourceState GetResourceState() const
         { return resource_state; }

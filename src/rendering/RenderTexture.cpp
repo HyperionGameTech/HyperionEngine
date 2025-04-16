@@ -71,9 +71,7 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
             HYP_LOG(Rendering, Debug, "Creating texture: {} (ID: {})", texture->GetName(), texture->GetID().Value());
 
             if (!image->IsCreated()) {
-                image->SetIsRWTexture(texture->IsRWTexture());
-
-                HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice()));
+                HYPERION_BUBBLE_ERRORS(image->Create());
 
                 if (streamed_texture_data_handle && streamed_texture_data_handle->GetBufferSize() != 0) {
                     const TextureData &texture_data = streamed_texture_data_handle->GetTextureData();
@@ -88,14 +86,14 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
                         streamed_texture_data_handle->GetDataHashCode().Value());
                     
                     GPUBufferRef staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
-                    HYPERION_BUBBLE_ERRORS(staging_buffer->Create(g_engine->GetGPUDevice(), texture_data.buffer.Size()));
-                    staging_buffer->Copy(g_engine->GetGPUDevice(), texture_data.buffer.Size(), texture_data.buffer.Data());
+                    HYPERION_BUBBLE_ERRORS(staging_buffer->Create(texture_data.buffer.Size()));
+                    staging_buffer->Copy(texture_data.buffer.Size(), texture_data.buffer.Data());
 
                     HYP_DEFER({ SafeRelease(std::move(staging_buffer)); });
 
                     // @FIXME add back ConvertTo32BPP
 
-                    renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+                    renderer::SingleTimeCommands commands;
 
                     commands.Push([&](RHICommandList &cmd)
                     {
@@ -120,7 +118,7 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
                         return result;
                     }
                 } else if (initial_state != renderer::ResourceState::UNDEFINED) {
-                    renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+                    renderer::SingleTimeCommands commands;
 
                     commands.Push([&](RHICommandList &cmd)
                     {
@@ -138,10 +136,10 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
             }
 
             if (!image_view->IsCreated()) {
-                HYPERION_BUBBLE_ERRORS(image_view->Create(g_engine->GetGPUInstance()->GetDevice(), image.Get()));
+                HYPERION_BUBBLE_ERRORS(image_view->Create(image.Get()));
             }
             
-            if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
                 g_engine->GetRenderData()->textures.AddResource(texture.GetID(), image_view);
             }
         }
@@ -173,7 +171,7 @@ struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
             HYPERION_RETURN_OK;
         }
 
-        if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+        if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
             g_engine->GetRenderData()->textures.RemoveResource(texture.GetID());
         }
 
@@ -200,7 +198,6 @@ struct RENDER_COMMAND(CreateMipImageView) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         return mip_image_view->Create(
-            g_engine->GetGPUDevice(),
             src_image.Get(),
             mip_level, 1,
             0, src_image->NumFaces()
@@ -239,7 +236,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         // draw a quad for each level
-        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+        renderer::SingleTimeCommands commands;
 
         commands.Push([this](RHICommandList &cmd)
         {
@@ -389,7 +386,7 @@ public:
             const DescriptorSetRef &generate_mipmaps_descriptor_set = descriptor_table->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);
             AssertThrow(generate_mipmaps_descriptor_set != nullptr);
             generate_mipmaps_descriptor_set->SetElement(NAME("InputTexture"), mip_level == 0 ? m_image_view : m_mip_image_views[mip_level - 1]);
-            DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+            DeferCreate(descriptor_table);
 
             m_mip_image_views[mip_level] = std::move(mip_image_view);
 
@@ -500,10 +497,10 @@ void TextureRenderResource::Readback(ByteBuffer &out_byte_buffer)
         Threads::AssertOnThread(g_render_thread);
 
         GPUBufferRef gpu_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
-        HYPERION_ASSERT_RESULT(gpu_buffer->Create(g_engine->GetGPUDevice(), m_image->GetByteSize()));
-        gpu_buffer->Map(g_engine->GetGPUDevice());
+        HYPERION_ASSERT_RESULT(gpu_buffer->Create(m_image->GetByteSize()));
+        gpu_buffer->Map();
 
-        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+        renderer::SingleTimeCommands commands;
 
         commands.Push([this, &gpu_buffer](RHICommandList &cmd)
         {
@@ -522,9 +519,9 @@ void TextureRenderResource::Readback(ByteBuffer &out_byte_buffer)
         AssertThrowMsg(!result.HasError(), "Failed to readback texture: %s", result.GetError().GetMessage().Data());
 
         out_byte_buffer.SetSize(gpu_buffer->Size());
-        gpu_buffer->Read(g_engine->GetGPUDevice(), out_byte_buffer.Size(), out_byte_buffer.Data());
+        gpu_buffer->Read(out_byte_buffer.Size(), out_byte_buffer.Data());
 
-        gpu_buffer->Destroy(g_engine->GetGPUDevice());
+        gpu_buffer->Destroy();
     }, /* force_owner_thread */ true);
 }
 

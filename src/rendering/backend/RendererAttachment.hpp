@@ -83,7 +83,7 @@ public:
         { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
-        { return m_image ? m_image->IsDepthStencil() : false; }
+        { return m_image && m_image->GetTextureDesc().IsDepthStencil(); }
 
     HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
         { return m_load_operation; }
@@ -120,8 +120,8 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
 private:
     AttachmentPlatformImpl<PLATFORM>    m_platform_impl;

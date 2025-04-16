@@ -5,6 +5,8 @@
 #include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/debug/Debug.hpp>
 #include <core/math/MathUtil.hpp>
 #include <core/math/Transform.hpp>
@@ -14,8 +16,16 @@
 #include <cstring>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region Helpers
 
@@ -221,7 +231,7 @@ void GraphicsPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *c
 }
 
 template <>
-RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *device)
+RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild()
 {
     Array<VkVertexInputAttributeDescription> vk_vertex_attributes;
     Array<VkVertexInputBindingDescription> vk_vertex_binding_descriptions;
@@ -372,7 +382,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
 
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
     
     if (!m_descriptor_table.IsValid()) {
         return HYP_MAKE_ERROR(RendererError, "No descriptor table set for pipeline");
@@ -405,7 +415,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
         {
             .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset     = 0,
-            .size       = uint32(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size       = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
@@ -413,7 +423,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.layout),
+        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.layout),
         "Failed to create graphics pipeline layout"
     );
 
@@ -478,7 +488,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
     };
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.handle),
+        vkCreateGraphicsPipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &Pipeline<Platform::VULKAN>::m_platform_impl.handle),
         "Failed to create graphics pipeline"
     );
 
@@ -486,7 +496,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULK
 }
 
 template <>
-RendererResult GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult GraphicsPipeline<Platform::VULKAN>::Create()
 {
     if (!m_shader.IsValid()) {
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
@@ -496,7 +506,7 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKA
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no framebuffers");
     }
 
-    RendererResult rebuild_result = Rebuild(device);
+    RendererResult rebuild_result = Rebuild();
 
     if (!rebuild_result) {
         return rebuild_result;
@@ -506,11 +516,11 @@ RendererResult GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKA
 }
 
 template <>
-RendererResult GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult GraphicsPipeline<Platform::VULKAN>::Destroy()
 {
     SafeRelease(std::move(m_framebuffers));
 
-    return Pipeline<Platform::VULKAN>::Destroy(device);
+    return Pipeline<Platform::VULKAN>::Destroy();
 }
 
 template <>

@@ -1,5 +1,5 @@
 DEF_RENDER_PLATFORM_OBJECT(Device,                                          16);
-DEF_RENDER_PLATFORM_OBJECT(Swapchain,                                       16);
+DEF_RENDER_PLATFORM_OBJECT_WITH_INTERFACE(Swapchain,                        16);
 DEF_RENDER_PLATFORM_OBJECT(FrameHandler,                                    16);
 DEF_RENDER_PLATFORM_OBJECT(Image,                                           16384);
 DEF_RENDER_PLATFORM_OBJECT(ImageView,                                       65536);
@@ -14,7 +14,7 @@ DEF_RENDER_PLATFORM_OBJECT(RenderPass,                                      1638
 DEF_RENDER_PLATFORM_OBJECT(Shader,                                          16384);
 DEF_RENDER_PLATFORM_OBJECT(AccelerationGeometry,                            8192);
 DEF_RENDER_PLATFORM_OBJECT(Fence,                                           4096);
-DEF_RENDER_PLATFORM_OBJECT(Frame,                                           4096);
+DEF_RENDER_PLATFORM_OBJECT_WITH_INTERFACE(Frame,                            4096);
 DEF_RENDER_PLATFORM_OBJECT(Attachment,                                      4096);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorSet,                                   16384);
 DEF_RENDER_PLATFORM_OBJECT(DescriptorTable,                                 4096);

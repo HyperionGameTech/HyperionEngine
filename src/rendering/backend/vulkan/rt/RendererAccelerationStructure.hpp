@@ -74,9 +74,9 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
+    HYP_API RendererResult Create();
     /* Remove from the parent acceleration structure */
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Destroy();
 
 private:
     GPUBufferRef<PLATFORM>                      m_packed_vertices_buffer;
@@ -135,7 +135,7 @@ public:
     HYP_FORCE_INLINE void SetTransform(const Matrix4 &transform)
         { m_transform = transform; SetTransformUpdateFlag(); }
 
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Destroy();
 
 protected:
     static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
@@ -147,7 +147,6 @@ protected:
         { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     RendererResult CreateAccelerationStructure(
-        Instance<PLATFORM> *instance,
         AccelerationStructureType type,
         const std::vector<VkAccelerationStructureGeometryKHR> &geometries,
         const std::vector<uint32> &primitive_counts,
@@ -179,13 +178,13 @@ public:
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
         { return AccelerationStructureType::BOTTOM_LEVEL; }
     
-    HYP_API RendererResult Create(Device<PLATFORM> *device, Instance<PLATFORM> *instance);
+    HYP_API RendererResult Create();
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    HYP_API RendererResult UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    HYP_API RendererResult UpdateStructure(RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    RendererResult Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    RendererResult Rebuild(RTUpdateStateFlags &out_update_state_flags);
 };
 
 template <PlatformType PLATFORM>
@@ -208,29 +207,25 @@ public:
     HYP_API void AddBLAS(const BLASRef<PLATFORM> &blas);
     HYP_API void RemoveBLAS(const BLASRef<PLATFORM> &blas);
     
-    HYP_API RendererResult Create(
-        Device<PLATFORM> *device,
-        Instance<PLATFORM> *instance
-    );
-
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    HYP_API RendererResult UpdateStructure(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    HYP_API RendererResult UpdateStructure(RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    RendererResult Rebuild(Instance<PLATFORM> *instance, RTUpdateStateFlags &out_update_state_flags);
+    RendererResult Rebuild(RTUpdateStateFlags &out_update_state_flags);
 
-    std::vector<VkAccelerationStructureGeometryKHR> GetGeometries(Instance<PLATFORM> *instance) const;
+    std::vector<VkAccelerationStructureGeometryKHR> GetGeometries() const;
     std::vector<uint32> GetPrimitiveCounts() const;
 
-    RendererResult CreateOrRebuildInstancesBuffer(Instance<PLATFORM> *instance);
-    RendererResult UpdateInstancesBuffer(Instance<PLATFORM> *instance, uint32 first, uint32 last);
+    RendererResult CreateOrRebuildInstancesBuffer();
+    RendererResult UpdateInstancesBuffer(uint32 first, uint32 last);
     
-    RendererResult CreateMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
-    RendererResult UpdateMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
-    RendererResult UpdateMeshDescriptionsBuffer(Instance<PLATFORM> *instance, uint32 first, uint32 last);
-    RendererResult RebuildMeshDescriptionsBuffer(Instance<PLATFORM> *instance);
+    RendererResult CreateMeshDescriptionsBuffer();
+    RendererResult UpdateMeshDescriptionsBuffer();
+    RendererResult UpdateMeshDescriptionsBuffer(uint32 first, uint32 last);
+    RendererResult RebuildMeshDescriptionsBuffer();
 
     Array<BLASRef<PLATFORM>>    m_blas;
     GPUBufferRef<PLATFORM>      m_mesh_descriptions_buffer;

@@ -48,8 +48,8 @@ public:
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return m_wrap_mode; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
 private:
     SamplerPlatformImpl<PLATFORM>   m_platform_impl;

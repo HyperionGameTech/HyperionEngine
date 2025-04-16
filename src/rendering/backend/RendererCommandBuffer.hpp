@@ -63,11 +63,11 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
-    HYP_API RendererResult Begin(Device<PLATFORM> *device, const RenderPass<PLATFORM> *render_pass = nullptr);
-    HYP_API RendererResult End(Device<PLATFORM> *device);
-    HYP_API RendererResult Reset(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
+    HYP_API RendererResult Begin(const RenderPass<PLATFORM> *render_pass = nullptr);
+    HYP_API RendererResult End();
+    HYP_API RendererResult Reset();
     HYP_API RendererResult SubmitPrimary(
         DeviceQueue<PLATFORM> *queue,
         Fence<PLATFORM> *fence,
@@ -94,13 +94,13 @@ public:
     HYP_API void DebugMarkerEnd() const;
 
     template <class LambdaFunction>
-    RendererResult Record(Device<PLATFORM> *device, const RenderPass<PLATFORM> *render_pass, LambdaFunction &&fn)
+    RendererResult Record(const RenderPass<PLATFORM> *render_pass, LambdaFunction &&fn)
     {
-        HYPERION_BUBBLE_ERRORS(Begin(device, render_pass));
+        HYPERION_BUBBLE_ERRORS(Begin(render_pass));
 
         RendererResult result = fn(this);
 
-        HYPERION_PASS_ERRORS(End(device), result);
+        HYPERION_PASS_ERRORS(End(), result);
 
         return result;
     }

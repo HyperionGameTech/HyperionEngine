@@ -5,6 +5,7 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -18,16 +19,11 @@
 
 namespace hyperion {
 
-using renderer::SampledImage2D;
-using renderer::SampledImage3D;
-using renderer::SampledImageCube;
-using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
 using renderer::GPUBufferType;
 
-class Engine;
 class HYP_API PlaceholderData
 {
 public:
@@ -66,7 +62,7 @@ public:
     void Destroy();
 
     /*! \brief Get or create a buffer of at least the given size */
-    GPUBufferRef GetOrCreateBuffer(Device *device, GPUBufferType buffer_type, SizeType required_size, bool exact_size = false)
+    GPUBufferRef GetOrCreateBuffer(GPUBufferType buffer_type, SizeType required_size, bool exact_size = false)
     {
         // Threads::AssertOnThread(g_render_thread);
 
@@ -102,10 +98,10 @@ public:
         }
 
         GPUBufferRef buffer = MakeRenderObject<GPUBuffer>(buffer_type);
-        HYPERION_ASSERT_RESULT(buffer->Create(device, required_size));
+        HYPERION_ASSERT_RESULT(buffer->Create(required_size));
 
         if (buffer->IsCPUAccessible()) {
-            buffer->Memset(device, required_size, 0); // fill with zeros
+            buffer->Memset(required_size, 0); // fill with zeros
         }
 
         const auto insert_result = buffer_container.Insert(required_size, buffer);

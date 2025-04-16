@@ -64,8 +64,8 @@ public:
     HYP_API virtual void Update(GameCounter::TickUnit delta) final;
     HYP_API virtual void Teardown();
 
-    HYP_API virtual void OnFrameBegin(Frame *frame);
-    HYP_API virtual void OnFrameEnd(Frame *frame);
+    HYP_API virtual void OnFrameBegin(IFrame *frame);
+    HYP_API virtual void OnFrameEnd(IFrame *frame);
 
     HYP_API virtual void HandleEvent(SystemEvent &&event) final;
     HYP_API virtual void PushEvent(SystemEvent &&event) final;

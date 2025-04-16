@@ -4,21 +4,50 @@
 #define HYPERION_BACKEND_RENDERER_STRUCTS_HPP
 
 #include <core/containers/String.hpp>
+
+#include <core/utilities/EnumFlags.hpp>
+
 #include <core/memory/ByteBuffer.hpp>
-#include <core/Defines.hpp>
-#include <util/EnumOptions.hpp>
+
 #include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
+
+#include <core/Defines.hpp>
+
 #include <Types.hpp>
 #include <HashCode.hpp>
 
+namespace hyperion {
+
+enum class ImageFormatCapabilities : uint32
+{
+    NONE        = 0x0,
+    SAMPLED     = 0x1,
+    STORAGE     = 0x2,
+    ATTACHMENT  = 0x4,
+    BLENDED     = 0x8
+};
+
+HYP_MAKE_ENUM_FLAGS(ImageFormatCapabilities);
+
+} // namespace hyperion
+
 namespace hyperion::renderer {
 
-using ImageFlags = uint32;
-
-enum ImageFlagBits : ImageFlags
+enum class ImageSupportType
 {
-    IMAGE_FLAGS_NONE            = 0x0
+    SRV,
+    UAV,
+    DEPTH
+};
+
+enum class DefaultImageFormatType
+{
+    NONE,
+    COLOR,
+    DEPTH,
+    NORMALS,
+    STORAGE
 };
 
 enum class ImageType : uint32
@@ -275,25 +304,28 @@ HYP_STRUCT()
 struct TextureDesc
 {
     HYP_FIELD(Serialize, Property="Type")
-    ImageType       type = ImageType::TEXTURE_TYPE_2D;
+    ImageType                           type = ImageType::TEXTURE_TYPE_2D;
 
     HYP_FIELD(Serialize, Property="Format")
-    InternalFormat  format = InternalFormat::RGBA8;
+    InternalFormat                      format = InternalFormat::RGBA8;
 
     HYP_FIELD(Serialize, Property="Extent")
-    Vec3u           extent = Vec3u::One();
+    Vec3u                               extent = Vec3u::One();
 
     HYP_FIELD(Serialize, Property="MinFilterMode")
-    FilterMode      filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
+    FilterMode                          filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
 
     HYP_FIELD(Serialize, Property="MagFilterMode")
-    FilterMode      filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
+    FilterMode                          filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
 
     HYP_FIELD(Serialize, Property="WrapMode")
-    WrapMode        wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    WrapMode                            wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
 
     HYP_FIELD(Serialize, Property="NumLayers")
-    uint32          num_layers = 1;
+    uint32                              num_layers = 1;
+
+    HYP_FIELD(Serialize, Property="ImageFormatCapabilities")
+    EnumFlags<ImageFormatCapabilities>  image_format_capabilities = ImageFormatCapabilities::SAMPLED;
 
     HYP_FORCE_INLINE bool operator==(const TextureDesc &other) const
     {
@@ -303,7 +335,8 @@ struct TextureDesc
             && filter_mode_min == other.filter_mode_min
             && filter_mode_mag == other.filter_mode_mag
             && wrap_mode == other.wrap_mode
-            && num_layers == other.num_layers;
+            && num_layers == other.num_layers
+            && image_format_capabilities == other.image_format_capabilities;
     }
 
     HYP_FORCE_INLINE bool operator!=(const TextureDesc &other) const
@@ -314,7 +347,8 @@ struct TextureDesc
             || filter_mode_min != other.filter_mode_min
             || filter_mode_mag != other.filter_mode_mag
             || wrap_mode != other.wrap_mode
-            || num_layers != other.num_layers;
+            || num_layers != other.num_layers
+            || image_format_capabilities != other.image_format_capabilities;
     }
 
     HYP_FORCE_INLINE bool HasMipmaps() const
@@ -330,6 +364,15 @@ struct TextureDesc
             ? uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y, extent.z))) + 1
             : 1;
     }
+
+    HYP_FORCE_INLINE bool IsDepthStencil() const
+        { return IsDepthFormat(format); }
+
+    HYP_FORCE_INLINE bool IsSRGB() const
+        { return IsSRGBFormat(format); }
+
+    HYP_FORCE_INLINE bool IsBlended() const
+        { return image_format_capabilities[ImageFormatCapabilities::BLENDED]; }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
         { return type == ImageType::TEXTURE_TYPE_CUBEMAP; }

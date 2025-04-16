@@ -20,6 +20,9 @@
 
 namespace hyperion {
 namespace renderer {
+
+enum class DescriptorSetElementType : uint32;
+
 namespace helpers {
 
 VkIndexType ToVkIndexType(DatumType);
@@ -29,6 +32,7 @@ VkFilter ToVkFilter(FilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
 VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
+VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
 
 } // namespace helpers
 

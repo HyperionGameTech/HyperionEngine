@@ -143,10 +143,10 @@ public:
     void Initialize();
 
     /*! \brief Process any pending additions or removals. Usable from the render thread. */
-    void UpdatePendingDescriptorSets(Frame *frame);
+    void UpdatePendingDescriptorSets(IFrame *frame);
 
     /*! \brief Update the descriptor sets for the given frame. Usable from the render thread. */
-    void Update(Frame *frame);
+    void Update(IFrame *frame);
 
 private:
     void CreateInvalidMaterialDescriptorSet();

@@ -7,9 +7,19 @@
 #include <rendering/backend/RendererQueue.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 template <>
 Frame<Platform::VULKAN>::Frame()
@@ -35,22 +45,22 @@ Frame<Platform::VULKAN>::~Frame()
 }
 
 template <>
-RendererResult Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Frame<Platform::VULKAN>::Create()
 {
-    HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create(device));
+    HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create());
 
     m_queue_submit_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
-    HYPERION_BUBBLE_ERRORS(m_queue_submit_fence->Create(device));
+    HYPERION_BUBBLE_ERRORS(m_queue_submit_fence->Create());
 
     HYPERION_RETURN_OK;
 }
 
 template <>
-RendererResult Frame<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Frame<Platform::VULKAN>::Destroy()
 {
     RendererResult result;
 
-    HYPERION_PASS_ERRORS(m_present_semaphores.Destroy(device), result);
+    HYPERION_PASS_ERRORS(m_present_semaphores.Destroy(), result);
 
     SafeRelease(std::move(m_queue_submit_fence));
 
@@ -58,14 +68,14 @@ RendererResult Frame<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
 }
 
 template <>
-RendererResult Frame<Platform::VULKAN>::RecreateFence(Device<Platform::VULKAN> *device)
+RendererResult Frame<Platform::VULKAN>::RecreateFence()
 {
     if (m_queue_submit_fence.IsValid()) {
         SafeRelease(std::move(m_queue_submit_fence));
     }
 
     m_queue_submit_fence = MakeRenderObject<Fence<Platform::VULKAN>>();
-    return m_queue_submit_fence->Create(device);
+    return m_queue_submit_fence->Create();
 }
 
 } // namespace platform

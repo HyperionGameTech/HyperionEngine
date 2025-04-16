@@ -127,21 +127,21 @@ GPUBufferHolderBase *WorldRenderResource::GetGPUBufferHolder() const
     return nullptr;
 }
 
-void WorldRenderResource::PreRender(renderer::Frame *frame)
+void WorldRenderResource::PreRender(renderer::IFrame *frame)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
 }
 
-void WorldRenderResource::PostRender(renderer::Frame *frame)
+void WorldRenderResource::PostRender(renderer::IFrame *frame)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
 }
 
-void WorldRenderResource::Render(renderer::Frame *frame)
+void WorldRenderResource::Render(renderer::IFrame *frame)
 {
     HYP_SCOPE;
 

@@ -59,14 +59,6 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 
         AssertThrow(pipeline->GetDescriptorTable().IsValid());
 
-        for (auto &it : pipeline->GetDescriptorTable()->GetSets()) {
-            for (const auto &set : it) {
-                AssertThrow(set.IsValid());
-                AssertThrowMsg(set->GetPlatformImpl().GetVkDescriptorSetLayout() != VK_NULL_HANDLE,
-                    "Invalid descriptor set for %s", set.GetName().LookupString());
-            }
-        }
-
         pipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertex_attributes);
         pipeline->SetTopology(attributes.GetMeshAttributes().topology);
         pipeline->SetCullMode(attributes.GetMaterialAttributes().cull_faces);
@@ -78,7 +70,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
         pipeline->SetRenderPass(render_pass);
         pipeline->SetFramebuffers(framebuffers);
 
-        HYPERION_BUBBLE_ERRORS(pipeline->Create(g_engine->GetGPUDevice()));
+        HYPERION_BUBBLE_ERRORS(pipeline->Create());
 
         HYPERION_RETURN_OK;
     }

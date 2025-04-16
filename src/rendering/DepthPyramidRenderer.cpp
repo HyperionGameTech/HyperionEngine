@@ -114,7 +114,7 @@ void DepthPyramidRenderer::Create()
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         );
 
-        HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(g_engine->GetGPUDevice()));
+        HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create());
     
         const ImageRef &depth_image = m_depth_attachment->GetImage();
         AssertThrow(depth_image.IsValid());
@@ -129,14 +129,16 @@ void DepthPyramidRenderer::Create()
                 1
             },
             FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
-            FilterMode::TEXTURE_FILTER_NEAREST
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
         });
 
-        m_depth_pyramid->SetIsRWTexture(true);
-        m_depth_pyramid->Create(g_engine->GetGPUDevice());
+        m_depth_pyramid->Create();
 
         m_depth_pyramid_view = MakeRenderObject<ImageView>();
-        m_depth_pyramid_view->Create(g_engine->GetGPUDevice(), m_depth_pyramid);
+        m_depth_pyramid_view->Create(m_depth_pyramid);
 
         const Vec3u &image_extent = m_depth_attachment->GetImage()->GetExtent();
         const Vec3u &depth_pyramid_extent = m_depth_pyramid->GetExtent();
@@ -165,12 +167,11 @@ void DepthPyramidRenderer::Create()
             uniforms.mip_level = mip_level;
     
             GPUBufferRef &mip_uniform_buffer = m_mip_uniform_buffers.PushBack(MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER));
-            HYPERION_ASSERT_RESULT(mip_uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(DepthPyramidUniforms)));
-            mip_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(DepthPyramidUniforms), &uniforms);
+            HYPERION_ASSERT_RESULT(mip_uniform_buffer->Create(sizeof(DepthPyramidUniforms)));
+            mip_uniform_buffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
             ImageViewRef &mip_image_view = m_mip_image_views.PushBack(MakeRenderObject<ImageView>());
             HYPERION_ASSERT_RESULT(mip_image_view->Create(
-                g_engine->GetGPUDevice(),
                 m_depth_pyramid,
                 mip_level, 1,
                 0, m_depth_pyramid->NumFaces()
@@ -222,19 +223,19 @@ void DepthPyramidRenderer::Create()
 
                 SetDescriptorSetElements();
 
-                HYPERION_ASSERT_RESULT(descriptor_table->Create(g_engine->GetGPUDevice()));
+                HYPERION_ASSERT_RESULT(descriptor_table->Create());
             } else {
                 SetDescriptorSetElements();
 
                 for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                    descriptor_table->Update(g_engine->GetGPUDevice(), frame_index);
+                    descriptor_table->Update(frame_index);
                 }
             }
         }
 
         // use the first mip descriptor table to create the compute pipeline, since the descriptor set layout is the same for all mip levels
         m_generate_depth_pyramid = MakeRenderObject<ComputePipeline>(shader, m_mip_descriptor_tables.Front());
-        DeferCreate(m_generate_depth_pyramid, g_engine->GetGPUDevice());
+        DeferCreate(m_generate_depth_pyramid);
 
         PUSH_RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet, m_depth_pyramid_view);
     };
@@ -269,7 +270,7 @@ Vec2u DepthPyramidRenderer::GetExtent() const
     return { extent.x, extent.y };
 }
 
-void DepthPyramidRenderer::Render(Frame *frame)
+void DepthPyramidRenderer::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

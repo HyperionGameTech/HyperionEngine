@@ -4,9 +4,19 @@
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode)
     : m_stage(stage),
@@ -93,7 +103,7 @@ bool RenderPass<Platform::VULKAN>::RemoveAttachment(const AttachmentRef<Platform
     return true;
 }
 
-RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult RenderPass<Platform::VULKAN>::Create()
 {
     CreateDependencies();
 
@@ -171,17 +181,17 @@ RendererResult RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *de
         render_pass_info.pNext = &multiview_info;
     }
 
-    HYPERION_VK_CHECK(vkCreateRenderPass(device->GetDevice(), &render_pass_info, nullptr, &m_handle));
+    HYPERION_VK_CHECK(vkCreateRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), &render_pass_info, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult RenderPass<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult RenderPass<Platform::VULKAN>::Destroy()
 {
     RendererResult result;
 
-    vkDestroyRenderPass(device->GetDevice(), m_handle, nullptr);
-    m_handle = nullptr;
+    vkDestroyRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+    m_handle = VK_NULL_HANDLE;
 
     SafeRelease(std::move(m_render_pass_attachments));
 

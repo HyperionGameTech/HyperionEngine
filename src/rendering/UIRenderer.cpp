@@ -335,7 +335,7 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
     return collection_result;
 }
 
-void UIRenderCollector::CollectDrawCalls(Frame *frame)
+void UIRenderCollector::CollectDrawCalls(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -370,7 +370,7 @@ void UIRenderCollector::CollectDrawCalls(Frame *frame)
     );
 }
 
-void UIRenderCollector::ExecuteDrawCalls(Frame *frame, const TResourceHandle<CameraRenderResource> &camera_resource_handle, const FramebufferRef &framebuffer) const
+void UIRenderCollector::ExecuteDrawCalls(IFrame *frame, const TResourceHandle<CameraRenderResource> &camera_resource_handle, const FramebufferRef &framebuffer) const
 {
     HYP_SCOPE;
 
@@ -514,7 +514,7 @@ void UIRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
     // do nothing
 }
 
-void UIRenderSubsystem::OnRender(Frame *frame)
+void UIRenderSubsystem::OnRender(IFrame *frame)
 {
     HYP_SCOPE;
 

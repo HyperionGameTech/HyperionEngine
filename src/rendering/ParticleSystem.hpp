@@ -102,9 +102,9 @@ public:
     void Init();
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles(Frame *frame);
+    void UpdateParticles(IFrame *frame);
 
-    void Render(Frame *frame);
+    void Render(IFrame *frame);
 
 private:
     void CreateBuffers();

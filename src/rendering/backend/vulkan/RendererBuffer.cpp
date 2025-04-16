@@ -7,23 +7,35 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/math/MathUtil.hpp>
 
+#include <Engine.hpp>
+
 #include <cstring>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
 
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
 #pragma region Helpers
 
-static uint32 FindMemoryType(Device<Platform::VULKAN> *device, uint32 vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
+static uint32 FindMemoryType(uint32 vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
-    vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
+    vkGetPhysicalDeviceMemoryProperties(GetRenderingAPI()->GetDevice()->GetPhysicalDevice(), &mem_properties);
 
     for (uint32 i = 0; i < mem_properties.memoryTypeCount; i++) {
         if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & vk_memory_property_flags) == vk_memory_property_flags) {
@@ -284,57 +296,22 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
 
 #pragma endregion Helpers
 
-// GPUMemory<Platform::VULKAN>::GPUMemory()
-//     : m_id(0),
-//       sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
-//       size(0),
-//       map(nullptr),
-//       resource_state(ResourceState::UNDEFINED),
-//       allocation(VK_NULL_HANDLE),
-//       m_is_created(false)
-// {
-//     static uint32 allocations = 0;
-
-//     m_id = allocations++;
-// }
-
-// GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
-//     : m_id(other.m_id),
-//       sharing_mode(other.sharing_mode),
-//       size(other.size),
-//       map(other.map),
-//       resource_state(other.resource_state),
-//       allocation(other.allocation),
-//       m_is_created(other.m_is_created)
-// {
-//     other.m_id = 0;
-//     other.size = 0;
-//     other.map = nullptr;
-//     other.resource_state = ResourceState::UNDEFINED;
-//     other.allocation = VK_NULL_HANDLE;
-//     other.m_is_created = false;
-// }
-
-// GPUMemory<Platform::VULKAN>::~GPUMemory()
-// {
-// }
-
 #pragma region GPUBufferPlatformImpl
 
-void GPUBufferPlatformImpl<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device) const
+void GPUBufferPlatformImpl<Platform::VULKAN>::Map() const
 {
-    vmaMapMemory(device->GetAllocator(), vma_allocation, &mapping);
+    vmaMapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), vma_allocation, &mapping);
 }
 
-void GPUBufferPlatformImpl<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device) const
+void GPUBufferPlatformImpl<Platform::VULKAN>::Unmap() const
 {
-    vmaUnmapMemory(device->GetAllocator(), vma_allocation);
+    vmaUnmapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), vma_allocation);
     mapping = nullptr;
 }
 
-VkBufferCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
+VkBufferCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetBufferCreateInfo() const
 {
-    const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
+    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
     const uint32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -346,7 +323,7 @@ VkBufferCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetBufferCreateInfo(
     return vk_buffer_info;
 }
 
-VmaAllocationCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const
+VmaAllocationCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetAllocationCreateInfo() const
 {
     /* @TODO: Property debug names */
     char debug_name_buffer[1024] = { 0 };
@@ -361,13 +338,12 @@ VmaAllocationCreateInfo GPUBufferPlatformImpl<Platform::VULKAN>::GetAllocationCr
 }
 
 RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
-    Device<Platform::VULKAN> *device,
     const VkBufferCreateInfo &buffer_create_info,
     const VmaAllocationCreateInfo &allocation_create_info,
     SizeType size
 ) const
 {
-    const Features &features = device->GetFeatures();
+    const Features &features = GetRenderingAPI()->GetDevice()->GetFeatures();
 
     RendererResult result;
 
@@ -375,7 +351,7 @@ RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            device->GetAllocator(),
+            GetRenderingAPI()->GetDevice()->GetAllocator(),
             &buffer_create_info,
             &allocation_create_info,
             &memory_type_index
@@ -404,60 +380,60 @@ RendererResult GPUBufferPlatformImpl<Platform::VULKAN>::CheckCanAllocate(
 #pragma region GPUBuffer
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Memset(Device<Platform::VULKAN> *device, SizeType count, ubyte value)
+void GPUBuffer<Platform::VULKAN>::Memset(SizeType count, ubyte value)
 {    
     if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
+        m_platform_impl.Map();
     }
 
     Memory::MemSet(m_platform_impl.mapping, value, count);
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr)
+void GPUBuffer<Platform::VULKAN>::Copy(SizeType count, const void *ptr)
 {
     if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
+        m_platform_impl.Map();
     }
 
     Memory::MemCpy(m_platform_impl.mapping, ptr, count);
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr)
+void GPUBuffer<Platform::VULKAN>::Copy(SizeType offset, SizeType count, const void *ptr)
 {
     if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
+        m_platform_impl.Map();
     }
 
     Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_platform_impl.mapping) + offset), ptr, count);
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Map(Device<Platform::VULKAN> *device)
+void GPUBuffer<Platform::VULKAN>::Map()
 {
     if (m_platform_impl.mapping != nullptr) {
         return;
     }
 
-    m_platform_impl.Map(device);
+    m_platform_impl.Map();
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Unmap(Device<Platform::VULKAN> *device)
+void GPUBuffer<Platform::VULKAN>::Unmap()
 {
     if (m_platform_impl.mapping == nullptr) {
         return;
     }
 
-    m_platform_impl.Unmap(device);
+    m_platform_impl.Unmap();
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const
+void GPUBuffer<Platform::VULKAN>::Read(SizeType count, void *out_ptr) const
 {
     if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
+        m_platform_impl.Map();
 
         HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
     }
@@ -466,10 +442,10 @@ void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeTyp
 }
 
 template <>
-void GPUBuffer<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, void *out_ptr) const
+void GPUBuffer<Platform::VULKAN>::Read(SizeType offset, SizeType count, void *out_ptr) const
 {
     if (m_platform_impl.mapping == nullptr) {
-        m_platform_impl.Map(device);
+        m_platform_impl.Map();
 
         HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
     }
@@ -524,19 +500,19 @@ bool GPUBuffer<Platform::VULKAN>::IsCPUAccessible() const
 }
 
 template <>
-RendererResult GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device<Platform::VULKAN> *device, SizeType size) const
+RendererResult GPUBuffer<Platform::VULKAN>::CheckCanAllocate(SizeType size) const
 {
-    const VkBufferCreateInfo create_info = m_platform_impl.GetBufferCreateInfo(device);
-    const VmaAllocationCreateInfo alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
+    const VkBufferCreateInfo create_info = m_platform_impl.GetBufferCreateInfo();
+    const VmaAllocationCreateInfo alloc_info = m_platform_impl.GetAllocationCreateInfo();
 
-    return m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size);
+    return m_platform_impl.CheckCanAllocate(create_info, alloc_info, m_platform_impl.size);
 }
 
 template <>
-uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const
+uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress() const
 {
     AssertThrowMsg(
-        device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        GetRenderingAPI()->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!"
     );
 
@@ -545,8 +521,8 @@ uint64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device<Platform::VULK
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_platform_impl.handle;
 
-	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
-        device->GetDevice(),
+	return GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
+        GetRenderingAPI()->GetDevice()->GetDevice(),
         &info
     );
 }
@@ -655,17 +631,17 @@ void GPUBuffer<Platform::VULKAN>::CopyFrom(
 }
 
 template <>
-RendererResult GPUBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult GPUBuffer<Platform::VULKAN>::Destroy()
 {
     if (!IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
     if (m_platform_impl.mapping != nullptr) {
-        m_platform_impl.Unmap(device);
+        m_platform_impl.Unmap();
     }
 
-    vmaDestroyBuffer(device->GetAllocator(), m_platform_impl.handle, m_platform_impl.vma_allocation);
+    vmaDestroyBuffer(GetRenderingAPI()->GetDevice()->GetAllocator(), m_platform_impl.handle, m_platform_impl.vma_allocation);
     
     m_platform_impl = { this };
     m_resource_state = ResourceState::UNDEFINED;
@@ -674,7 +650,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *de
 }
 
 template <>
-RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, SizeType size, SizeType alignment)
+RendererResult GPUBuffer<Platform::VULKAN>::Create(SizeType size, SizeType alignment)
 {
     if (IsCreated()) {
         HYP_LOG(RenderingBackend, Warning, "Create() called on a buffer that has not been destroyed!\n"
@@ -685,7 +661,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
         AssertThrowMsg(false, "Create() called on a buffer that has not been destroyed!");
 #endif
 
-        HYPERION_BUBBLE_ERRORS(Destroy(device));
+        HYPERION_BUBBLE_ERRORS(Destroy());
     }
 
     m_platform_impl.vk_buffer_usage_flags = GetVkUsageFlags(m_type);
@@ -702,15 +678,15 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
         return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
     }
 
-    const auto create_info = m_platform_impl.GetBufferCreateInfo(device);
-    const auto alloc_info = m_platform_impl.GetAllocationCreateInfo(device);
+    const auto create_info = m_platform_impl.GetBufferCreateInfo();
+    const auto alloc_info = m_platform_impl.GetAllocationCreateInfo();
 
-    HYPERION_BUBBLE_ERRORS(m_platform_impl.CheckCanAllocate(device, create_info, alloc_info, m_platform_impl.size));
+    HYPERION_BUBBLE_ERRORS(m_platform_impl.CheckCanAllocate(create_info, alloc_info, m_platform_impl.size));
 
     if (alignment != 0) {
         HYPERION_VK_CHECK_MSG(
             vmaCreateBufferWithAlignment(
-                device->GetAllocator(),
+                GetRenderingAPI()->GetDevice()->GetAllocator(),
                 &create_info,
                 &alloc_info,
                 alignment,
@@ -723,7 +699,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
     } else {
         HYPERION_VK_CHECK_MSG(
             vmaCreateBuffer(
-                device->GetAllocator(),
+                GetRenderingAPI()->GetDevice()->GetAllocator(),
                 &create_info,
                 &alloc_info,
                 &m_platform_impl.handle,
@@ -736,7 +712,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
 
     if (IsCPUAccessible()) {
         // Memset all to zero
-        Memset(device, size, 0);
+        Memset(size, 0);
     }
 
     HYPERION_RETURN_OK;
@@ -744,7 +720,6 @@ RendererResult GPUBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *dev
 
 template <>
 RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
-    Device<Platform::VULKAN> *device,
     SizeType minimum_size,
     SizeType alignment,
     bool *out_size_changed
@@ -765,7 +740,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     }
 
     if (m_platform_impl.handle != VK_NULL_HANDLE) {
-        HYPERION_PASS_ERRORS(Destroy(device), result);
+        HYPERION_PASS_ERRORS(Destroy(), result);
 
         if (!result) {
             if (out_size_changed != nullptr) {
@@ -776,7 +751,7 @@ RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
         }
     }
 
-    HYPERION_PASS_ERRORS(Create(device, minimum_size, alignment), result);
+    HYPERION_PASS_ERRORS(Create(minimum_size, alignment), result);
 
     if (out_size_changed != nullptr) {
         *out_size_changed = bool(result);
@@ -787,12 +762,11 @@ RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
 
 template <>
 RendererResult GPUBuffer<Platform::VULKAN>::EnsureCapacity(
-    Device<Platform::VULKAN> *device,
     SizeType minimum_size,
     bool *out_size_changed
 )
 {
-    return EnsureCapacity(device, minimum_size, 0, out_size_changed);
+    return EnsureCapacity(minimum_size, 0, out_size_changed);
 }
 
 #pragma endregion GPUBuffer

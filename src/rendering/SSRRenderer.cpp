@@ -69,17 +69,10 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
     {
         DebugLog(LogType::Debug, "Sizeof(SSRUniforms) = %u\n", sizeof(SSRUniforms));
         
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms)
-        ));
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(sizeof(uniforms)));
         
         DebugLog(LogType::Debug, "Size of buffer = %u\n",uniform_buffer->Size());
-        uniform_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms),
-            &uniforms
-        );
+        uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
         HYPERION_RETURN_OK;
     }
@@ -157,10 +150,11 @@ void SSRRenderer::Create()
         Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_uvs_texture->SetIsRWTexture(true);
     InitObject(m_uvs_texture);
 
     m_uvs_texture->SetPersistentRenderResourceEnabled(true);
@@ -171,10 +165,11 @@ void SSRRenderer::Create()
         Vec3u(m_config.extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_sampled_result_texture->SetIsRWTexture(true);
     InitObject(m_sampled_result_texture);
 
     m_sampled_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -279,14 +274,14 @@ void SSRRenderer::CreateComputePipelines()
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
-    DeferCreate(write_uvs_shader_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(write_uvs_shader_descriptor_table);
 
     m_write_uvs = MakeRenderObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties),
         write_uvs_shader_descriptor_table
     );
 
-    DeferCreate(m_write_uvs, g_engine->GetGPUDevice());
+    DeferCreate(m_write_uvs);
 
     // Sample pass
 
@@ -305,14 +300,14 @@ void SSRRenderer::CreateComputePipelines()
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
 
-    DeferCreate(sample_gbuffer_shader_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(sample_gbuffer_shader_descriptor_table);
 
     m_sample_gbuffer = MakeRenderObject<ComputePipeline>(
         sample_gbuffer_shader,
         sample_gbuffer_shader_descriptor_table
     );
 
-    DeferCreate(m_sample_gbuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_sample_gbuffer);
 
     PUSH_RENDER_COMMAND(
         CreateSSRDescriptors,
@@ -320,7 +315,7 @@ void SSRRenderer::CreateComputePipelines()
     );
 }
 
-void SSRRenderer::Render(Frame *frame)
+void SSRRenderer::Render(IFrame *frame)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 

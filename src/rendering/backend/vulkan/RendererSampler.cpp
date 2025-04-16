@@ -5,11 +5,21 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 template <>
 Sampler<Platform::VULKAN>::Sampler(FilterMode min_filter_mode, FilterMode mag_filter_mode, WrapMode wrap_mode)
@@ -52,7 +62,7 @@ Sampler<Platform::VULKAN>::~Sampler()
 }
 
 template <>
-RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Sampler<Platform::VULKAN>::Create()
 {
     AssertThrow(m_platform_impl.handle == VK_NULL_HANDLE);
 
@@ -99,7 +109,7 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
     VkSamplerReductionModeCreateInfoEXT reduction_info { VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT };
 
     if (m_min_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP) {
-        if (!device->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats) {
+        if (!GetRenderingAPI()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats) {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
 
@@ -107,7 +117,7 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
         sampler_info.pNext = &reduction_info;
     }
 
-    if (vkCreateSampler(device->GetDevice(), &sampler_info, nullptr, &m_platform_impl.handle) != VK_SUCCESS) {
+    if (vkCreateSampler(GetRenderingAPI()->GetDevice()->GetDevice(), &sampler_info, nullptr, &m_platform_impl.handle) != VK_SUCCESS) {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
 
@@ -115,10 +125,10 @@ RendererResult Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *devic
 }
 
 template <>
-RendererResult Sampler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Sampler<Platform::VULKAN>::Destroy()
 {
     if (m_platform_impl.handle != VK_NULL_HANDLE) {
-        vkDestroySampler(device->GetDevice(), m_platform_impl.handle, nullptr);
+        vkDestroySampler(GetRenderingAPI()->GetDevice()->GetDevice(), m_platform_impl.handle, nullptr);
         m_platform_impl.handle = VK_NULL_HANDLE;
     }
 

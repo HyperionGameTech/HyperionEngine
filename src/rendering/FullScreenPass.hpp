@@ -108,11 +108,11 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    virtual void Render(Frame *frame);
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer);
+    virtual void Render(IFrame *frame);
+    virtual void RenderToFramebuffer(IFrame *frame, const FramebufferRef &framebuffer);
 
-    void Begin(Frame *frame);
-    void End(Frame *frame);
+    void Begin(IFrame *frame);
+    void End(IFrame *frame);
 
 protected:
     virtual bool UsesTemporalBlending() const
@@ -129,10 +129,10 @@ protected:
     
     void CreateQuad();
 
-    void RenderPreviousTextureToScreen(Frame *frame);
-    void CopyResultToPreviousTexture(Frame *frame);
+    void RenderPreviousTextureToScreen(IFrame *frame);
+    void CopyResultToPreviousTexture(IFrame *frame);
 
-    void MergeHalfResTextures(Frame *frame);
+    void MergeHalfResTextures(IFrame *frame);
 
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;

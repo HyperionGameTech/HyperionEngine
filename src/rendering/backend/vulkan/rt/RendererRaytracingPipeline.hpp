@@ -26,8 +26,8 @@ public:
     RaytracingPipeline &operator=(const RaytracingPipeline &other)  = delete;
     HYP_API ~RaytracingPipeline();
 
-    HYP_API RendererResult Create(Device<Platform::VULKAN> *device);
-    HYP_API RendererResult Destroy(Device<Platform::VULKAN> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
     HYP_API void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
     
@@ -53,10 +53,9 @@ private:
 
     using ShaderBindingTableMap = std::unordered_map<ShaderModuleType, ShaderBindingTableEntry>;
 
-    RendererResult CreateShaderBindingTables(Device<Platform::VULKAN> *device, Shader<Platform::VULKAN> *shader);
+    RendererResult CreateShaderBindingTables(Shader<Platform::VULKAN> *shader);
 
     RendererResult CreateShaderBindingTableEntry(
-        Device<Platform::VULKAN> *device,
         uint32 num_shaders,
         ShaderBindingTableEntry &out
     );

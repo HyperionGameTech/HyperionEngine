@@ -1051,11 +1051,11 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
     properties.Set(ShaderProperty("DX12", false));
 #endif
 
-    if (renderer::RenderConfig::IsBindlessSupported()) {
+    if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         properties.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 
-    if (!renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
+    if (!g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial()) {
         properties.Set(ShaderProperty("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA", false));
     }
 
@@ -1362,7 +1362,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supports_rt_shaders = renderer::RenderConfig::IsRaytracingSupported();
+    const bool supports_rt_shaders = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
 
     HashMap<Bundle *, bool> results;
     Mutex results_mutex;

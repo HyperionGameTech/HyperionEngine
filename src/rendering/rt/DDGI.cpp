@@ -110,8 +110,8 @@ struct RENDER_COMMAND(CreateDDGIUniformBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(DDGIUniforms)));
-        uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(DDGIUniforms), &uniforms);
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(sizeof(DDGIUniforms)));
+        uniform_buffer->Copy(sizeof(DDGIUniforms), &uniforms);
 
         HYPERION_RETURN_OK;
     }
@@ -132,8 +132,8 @@ struct RENDER_COMMAND(CreateDDGIRadianceBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData)));
-        radiance_buffer->Memset(g_engine->GetGPUDevice(), grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData), 0x0);
+        HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData)));
+        radiance_buffer->Memset(grid_info.GetImageDimensions().x * grid_info.GetImageDimensions().y * sizeof(ProbeRayData), 0x0);
 
         HYPERION_RETURN_OK;
     }
@@ -226,7 +226,7 @@ void DDGI::CreatePipelines()
         descriptor_set->SetElement(NAME("ProbeRayData"), m_radiance_buffer);
     }
 
-    DeferCreate(raytracing_pipeline_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(raytracing_pipeline_descriptor_table);
 
     // Create raytracing pipeline
 
@@ -235,7 +235,7 @@ void DDGI::CreatePipelines()
         raytracing_pipeline_descriptor_table
     );
 
-    DeferCreate(m_pipeline, g_engine->GetGPUDevice());
+    DeferCreate(m_pipeline);
 
     ShaderRef update_irradiance_shader = g_shader_manager->GetOrCreate(NAME("RTProbeUpdateIrradiance"));
     ShaderRef update_depth_shader = g_shader_manager->GetOrCreate(NAME("RTProbeUpdateDepth"));
@@ -267,20 +267,20 @@ void DDGI::CreatePipelines()
             descriptor_set->SetElement(NAME("OutputDepthImage"), m_depth_image_view);
         }
 
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
         it.second = MakeRenderObject<ComputePipeline>(
             it.first,
             descriptor_table
         );
 
-        DeferCreate(it.second, g_engine->GetGPUDevice());
+        DeferCreate(it.second);
     }
 }
 
 void DDGI::CreateUniformBuffer()
 {
-    m_uniform_buffer = MakeRenderObject<GPUBuffer>(UniformBuffer());
+    m_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
 
     const Vec2u grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Vec3u num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
@@ -330,7 +330,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_radiance_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
+    m_radiance_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
     PUSH_RENDER_COMMAND(
         CreateDDGIRadianceBuffer,
@@ -345,19 +345,24 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_irradiance_image = MakeRenderObject<Image>(StorageImage(
-            extent,
+        m_irradiance_image = MakeRenderObject<Image>(TextureDesc {
+            renderer::ImageType::TEXTURE_TYPE_2D,
             ddgi_irradiance_format,
-            ImageType::TEXTURE_TYPE_2D
-        ));
+            extent,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
+        });
 
-        DeferCreate(m_irradiance_image, g_engine->GetGPUDevice());
+        DeferCreate(m_irradiance_image);
     }
 
     { // irradiance image view
         m_irradiance_image_view = MakeRenderObject<ImageView>();
 
-        DeferCreate(m_irradiance_image_view, g_engine->GetGPUDevice(), m_irradiance_image);
+        DeferCreate(m_irradiance_image_view, m_irradiance_image);
     }
 
     { // depth image
@@ -367,19 +372,24 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_depth_image = MakeRenderObject<Image>(StorageImage(
-            extent,
+        m_depth_image = MakeRenderObject<Image>(TextureDesc {
+            renderer::ImageType::TEXTURE_TYPE_2D,
             ddgi_depth_format,
-            ImageType::TEXTURE_TYPE_2D
-        ));
+            extent,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
+        });
 
-        DeferCreate(m_depth_image, g_engine->GetGPUDevice());
+        DeferCreate(m_depth_image);
     }
 
     { // depth image view
         m_depth_image_view = MakeRenderObject<ImageView>();
 
-        DeferCreate(m_depth_image_view, g_engine->GetGPUDevice(), m_depth_image);
+        DeferCreate(m_depth_image_view, m_depth_image);
     }
 }
 
@@ -403,13 +413,13 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
             descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
         }
 
-        descriptor_set->Update(g_engine->GetGPUDevice());
+        descriptor_set->Update();
 
         m_updates[frame_index] &= ~PROBE_SYSTEM_UPDATES_TLAS;
     }
 }
 
-void DDGI::UpdateUniforms(Frame *frame)
+void DDGI::UpdateUniforms(IFrame *frame)
 {
     const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(m_uniforms.light_indices));
     uint32 num_bound_lights = 0;
@@ -430,12 +440,12 @@ void DDGI::UpdateUniforms(Frame *frame)
 
     m_uniforms.params[3] = num_bound_lights;
 
-    m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(DDGIUniforms), &m_uniforms);
+    m_uniform_buffer->Copy(sizeof(DDGIUniforms), &m_uniforms);
 
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::RenderProbes(Frame *frame)
+void DDGI::RenderProbes(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -495,7 +505,7 @@ void DDGI::RenderProbes(Frame *frame)
     );
 }
 
-void DDGI::ComputeIrradiance(Frame *frame)
+void DDGI::ComputeIrradiance(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 

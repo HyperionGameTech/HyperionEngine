@@ -3,6 +3,8 @@
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -16,8 +18,16 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 template <>
 ComputePipeline<Platform::VULKAN>::ComputePipeline()
@@ -89,7 +99,7 @@ void ComputePipeline<Platform::VULKAN>::DispatchIndirect(
 }
 
 template <>
-RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult ComputePipeline<Platform::VULKAN>::Create()
 {
     AssertThrowMsg(m_descriptor_table.IsValid(), "To use this function, you must use a DescriptorTable");
 
@@ -98,7 +108,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
         {
             .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset     = 0,
-            .size       = uint32(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size       = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
     
@@ -106,7 +116,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
     const Array<VkDescriptorSetLayout> used_layouts = m_platform_impl.GetDescriptorSetLayouts();
-    const uint32 max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
 #if 0
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
@@ -132,7 +142,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &m_platform_impl.layout),
+        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_platform_impl.layout),
         "Failed to create compute pipeline layout"
     );
 
@@ -158,7 +168,7 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
     pipeline_info.basePipelineIndex = -1;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateComputePipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_platform_impl.handle),
+        vkCreateComputePipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_platform_impl.handle),
         "Failed to create compute pipeline"
     );
 
@@ -166,9 +176,9 @@ RendererResult ComputePipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN
 }
 
 template <>
-RendererResult ComputePipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult ComputePipeline<Platform::VULKAN>::Destroy()
 {
-    return Pipeline<Platform::VULKAN>::Destroy(device);
+    return Pipeline<Platform::VULKAN>::Destroy();
 }
 
 } // namespace platform

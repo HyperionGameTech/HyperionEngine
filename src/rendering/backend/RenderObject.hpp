@@ -614,10 +614,6 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
 
 #define DEF_RENDER_PLATFORM_OBJECT_(_platform, T, _max_size) \
     namespace renderer { \
-    namespace platform { \
-    template <PlatformType PLATFORM> \
-    class T; \
-    } \
     using T##_##_platform = platform::T<renderer::Platform::_platform>; \
     template <> \
     struct RenderObjectDefinition< T##_##_platform, renderer::Platform::_platform > \
@@ -637,10 +633,6 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
 
 #define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, name, T, _max_size) \
     namespace renderer { \
-    namespace platform { \
-    template <PlatformType PLATFORM> \
-    class T; \
-    } \
     using name##_##_platform = platform::T<renderer::Platform::_platform>; \
     template <> \
     struct RenderObjectDefinition< name##_##_platform, renderer::Platform::_platform > \
@@ -659,6 +651,12 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     using name##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::name##_##_platform, renderer::Platform::_platform >; \
 
 #define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    } \
     DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
     namespace renderer { \
@@ -670,7 +668,33 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     } \
     } \
 
+#define DEF_RENDER_PLATFORM_OBJECT_WITH_INTERFACE(T, _max_size) \
+    namespace renderer { \
+    class I##T; \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    } \
+    DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType _platform> \
+    using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    template <PlatformType _platform> \
+    using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    } \
+    } \
+    using renderer::I##T;
+
 #define DEF_RENDER_PLATFORM_OBJECT_NAMED(name, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    } \
     DEF_RENDER_PLATFORM_OBJECT_NAMED_(VULKAN, name, T, _max_size) \
     DEF_RENDER_PLATFORM_OBJECT_NAMED_(WEBGPU, name, T, _max_size) \
     namespace renderer { \
@@ -818,7 +842,7 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy());
             }
         }
 
@@ -853,7 +877,7 @@ struct RenderObjectDeleter
                     continue;
                 }
                 
-                HYPERION_ASSERT_RESULT(object->Destroy(GetDevice()));
+                HYPERION_ASSERT_RESULT(object->Destroy());
             }
 
             return num_deleted_objects;
@@ -906,8 +930,6 @@ struct RenderObjectDeleter
     static void Initialize();
     static void Iterate();
     static void RemoveAllNow(bool force = false);
-
-    static HYP_API renderer::platform::Device<PLATFORM> *GetDevice();
 };
 
 template <renderer::PlatformType PLATFORM>

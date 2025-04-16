@@ -164,7 +164,7 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(Frame *frame) override;
+    virtual void OnRender(IFrame *frame) override;
 
     HYP_FORCE_INLINE Vec3f SizeOfProbe() const
         { return m_aabb.GetExtent() / Vec3f(m_options.density); }
@@ -179,27 +179,27 @@ private:
     void CreateLightFieldData();
 
     void RenderEnvProbe(
-        Frame *frame,
+        IFrame *frame,
         uint32 probe_index
     );
 
     void ComputeEnvProbeIrradiance_SphericalHarmonics(
-        Frame *frame,
+        IFrame *frame,
         const Handle<EnvProbe> &probe
     );
 
     void ComputeEnvProbeIrradiance_LightField(
-        Frame *frame,
+        IFrame *frame,
         const Handle<EnvProbe> &probe
     );
 
     void OffsetVoxelGrid(
-        Frame *frame,
+        IFrame *frame,
         Vec3i offset
     );
 
     void VoxelizeProbe(
-        Frame *frame,
+        IFrame *frame,
         uint32 probe_index
     );
 

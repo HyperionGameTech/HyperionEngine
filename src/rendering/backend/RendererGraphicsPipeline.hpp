@@ -94,14 +94,14 @@ public:
 
     HYP_API void SetFramebuffers(const Array<FramebufferRef<PLATFORM>> &framebuffers);
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
     
     HYP_API void Bind(CommandBuffer<PLATFORM> *cmd);
     HYP_API void Bind(CommandBuffer<PLATFORM> *cmd, Vec2i viewport_offset, Vec2i viewport_extent);
 
 protected:
-    RendererResult Rebuild(Device<PLATFORM> *device);
+    RendererResult Rebuild();
     
     GraphicsPipelinePlatformImpl<PLATFORM>  m_platform_impl;
 

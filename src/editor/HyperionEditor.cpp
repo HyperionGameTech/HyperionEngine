@@ -286,7 +286,7 @@ void HyperionEditor::Init()
 
         GetScene()->GetRoot()->AddChild(node);
 
-#if 0
+#if 1
         Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
@@ -515,7 +515,7 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
     }
 }
 
-void HyperionEditor::OnFrameEnd(Frame *frame)
+void HyperionEditor::OnFrameEnd(IFrame *frame)
 {
     Game::OnFrameEnd(frame);
 }

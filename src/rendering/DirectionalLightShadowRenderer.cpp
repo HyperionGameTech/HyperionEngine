@@ -9,6 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderTexture.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -110,8 +111,8 @@ struct RENDER_COMMAND(CreateShadowMapImage) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(g_engine->GetGPUDevice()));
-        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(g_engine->GetGPUDevice(), shadow_map_image));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create());
+        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(shadow_map_image));
 
         HYPERION_RETURN_OK;
     }
@@ -134,8 +135,8 @@ struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
     {
         RendererResult result;
 
-        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(g_engine->GetGPUDevice()), result);
-        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(g_engine->GetGPUDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(), result);
+        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(), result);
 
         return result;
     }
@@ -256,14 +257,14 @@ void ShadowPass::CreateFramebuffer()
     // standard depth texture
     m_framebuffer->AddAttachment(
         1,
-        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
         ImageType::TEXTURE_TYPE_2D,
         RenderPassStage::SHADER,
         LoadOperation::CLEAR,
         StoreOperation::STORE
     );
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
 void ShadowPass::CreateDescriptors()
@@ -294,10 +295,10 @@ void ShadowPass::CreateShadowMap()
             Vec3u { GetExtent().x, GetExtent().y, 1 },
             FilterMode::TEXTURE_FILTER_NEAREST,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            1,
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
         });
-
-        texture->SetIsRWTexture(true);
 
         InitObject(texture);
 
@@ -322,7 +323,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
         descriptor_set->SetElement(NAME("InTexture"), m_shadow_map_dynamics->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(descriptor_table);
 
     m_combine_shadow_maps_pass = MakeUnique<FullScreenPass>(shader, descriptor_table, GetFormat(), GetExtent());
     m_combine_shadow_maps_pass->Create();
@@ -347,14 +348,14 @@ void ShadowPass::CreateComputePipelines()
         descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(descriptor_table);
 
     m_blur_shadow_map_pipeline = MakeRenderObject<ComputePipeline>(
         blur_shadow_map_shader,
         descriptor_table
     );
 
-    DeferCreate(m_blur_shadow_map_pipeline, g_engine->GetGPUInstance()->GetDevice());
+    DeferCreate(m_blur_shadow_map_pipeline);
 }
 
 void ShadowPass::Create()
@@ -377,7 +378,7 @@ void ShadowPass::Create()
     m_render_collector_dynamics->SetOverrideAttributes(override_attributes);
 }
 
-void ShadowPass::Render(Frame *frame)
+void ShadowPass::Render(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -663,7 +664,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     );
 }
 
-void DirectionalLightShadowRenderer::OnRender(Frame *frame)
+void DirectionalLightShadowRenderer::OnRender(IFrame *frame)
 {
     HYP_SCOPE;
     

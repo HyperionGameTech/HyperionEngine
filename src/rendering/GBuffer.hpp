@@ -12,9 +12,9 @@
 #include <core/functional/Delegate.hpp>
 
 #include <rendering/RenderBucket.hpp>
-#include <rendering/DefaultFormats.hpp>
 
 #include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/RendererStructs.hpp>
 
 #include <Types.hpp>
 
@@ -23,8 +23,9 @@ namespace hyperion {
 class Engine;
 
 using renderer::Image;
+using renderer::DefaultImageFormatType;
 
-using GBufferFormat = Variant<TextureFormatDefault, InternalFormat, Array<InternalFormat>>;
+using GBufferFormat = Variant<DefaultImageFormatType, InternalFormat, Array<InternalFormat>>;
 
 enum GBufferResourceName : uint32
 {
@@ -83,7 +84,7 @@ public:
         void Destroy();
     };
 
-    GBuffer();
+    GBuffer(ISwapchain *swapchain);
     GBuffer(const GBuffer &other)                   = delete;
     GBuffer &operator=(const GBuffer &other)        = delete;
     GBuffer(GBuffer &&other) noexcept               = delete;
@@ -112,6 +113,8 @@ public:
 private:
     // If the window is high DPI like retina on mac, we need to scale it down
     static Vec2u RescaleResolution(Vec2u resolution);
+
+    ISwapchain                                      *m_swapchain;
 
     FixedArray<GBufferBucket, Bucket::BUCKET_MAX>   m_buckets;
 

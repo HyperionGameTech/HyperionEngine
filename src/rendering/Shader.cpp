@@ -118,7 +118,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
 #endif
 
 
-        DeferCreate(shader, g_engine->GetGPUDevice());
+        DeferCreate(shader);
 
         // Update the entry
         entry->shader = shader;

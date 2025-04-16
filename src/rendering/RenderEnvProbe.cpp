@@ -8,6 +8,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
+#include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <scene/Texture.hpp>
@@ -198,14 +199,14 @@ void EnvProbeRenderResource::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         1,
-        g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
         ImageType::TEXTURE_TYPE_CUBEMAP,
         renderer::RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE
     );
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
 void EnvProbeRenderResource::CreateTexture()
@@ -394,7 +395,7 @@ void EnvProbeRenderResource::BindToIndex(const EnvProbeIndex &probe_index)
     }, /* force_owner_thread */ true);
 }
 
-void EnvProbeRenderResource::Render(Frame *frame)
+void EnvProbeRenderResource::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

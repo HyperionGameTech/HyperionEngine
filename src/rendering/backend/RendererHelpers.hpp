@@ -40,7 +40,7 @@ template <PlatformType PLATFORM>
 class SingleTimeCommands
 {
 public:
-    HYP_API SingleTimeCommands(Device<PLATFORM> *device);
+    HYP_API SingleTimeCommands();
     SingleTimeCommands(const SingleTimeCommands &other)                 = delete;
     SingleTimeCommands &operator=(const SingleTimeCommands &other)      = delete;
     SingleTimeCommands(SingleTimeCommands &&other) noexcept             = delete;

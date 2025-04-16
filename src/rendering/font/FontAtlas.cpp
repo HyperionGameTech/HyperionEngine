@@ -49,7 +49,7 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+        renderer::SingleTimeCommands commands;
 
         const ImageRef &image = glyph_texture->GetRenderResource().GetImage();
         AssertThrow(image.IsValid());
@@ -345,13 +345,13 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
             RendererResult result;
 
             buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
-            HYPERION_ASSERT_RESULT(buffer->Create(g_engine->GetGPUDevice(), buffer_size));
+            HYPERION_ASSERT_RESULT(buffer->Create(buffer_size));
 
             if (!result) {
                 return result;
             }
 
-            renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+            renderer::SingleTimeCommands commands;
 
             AssertThrow(atlas);
             AssertThrow(atlas->IsReady());
@@ -371,7 +371,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer &buffer) const
 
             HYPERION_PASS_ERRORS(commands.Execute(), result);
 
-            buffer->Read(g_engine->GetGPUDevice(), buffer_size, out_buffer.Data());
+            buffer->Read(buffer_size, out_buffer.Data());
 
             HYPERION_RETURN_OK;
         }

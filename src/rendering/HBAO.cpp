@@ -100,16 +100,8 @@ struct RENDER_COMMAND(CreateHBAOUniformBuffer) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms)
-        ));
-
-        uniform_buffer->Copy(
-            g_engine->GetGPUDevice(),
-            sizeof(uniforms),
-            &uniforms
-        );
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(sizeof(uniforms)));
+        uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
         HYPERION_RETURN_OK;
     }
@@ -161,7 +153,7 @@ void HBAO::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
         descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffer);
     }
     
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_descriptor_table = descriptor_table;
 
@@ -205,7 +197,7 @@ void HBAO::Resize_Internal(Vec2u new_size)
     PUSH_RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet, GetFinalImageView());
 }
 
-void HBAO::Render(Frame *frame)
+void HBAO::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

@@ -194,7 +194,7 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
         blas->AddGeometry(geometry);
 
-        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        DeferCreate(blas);
 
         mesh_raytracing_data->bottom_level_acceleration_structures[frame_index] = std::move(blas);
     }

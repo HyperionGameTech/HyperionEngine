@@ -542,9 +542,9 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
-    HYP_API void Update(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
+    HYP_API void Update();
 
     bool HasElement(Name name) const;
 
@@ -705,12 +705,6 @@ private:
     HashMap<Name, DescriptorSetElement<PLATFORM>>   m_elements;
 };
 
-template <PlatformType PLATFORM>
-class DescriptorSetManager
-{
-public:
-};
-
 } // namespace platform
 
 } // namespace renderer
@@ -780,7 +774,7 @@ public:
     /*! \brief Create all descriptor sets in the table
         \param device The device to create the descriptor sets on
         \return The result of the operation */
-    RendererResult Create(Device<PLATFORM> *device)
+    RendererResult Create()
     {
         RendererResult result;
 
@@ -798,7 +792,7 @@ public:
                     continue;
                 }
 
-                result = set->Create(device);
+                result = set->Create();
 
                 if (!result) {
                     return result;
@@ -812,7 +806,7 @@ public:
     /*! \brief Safely release all descriptor sets in the table
         \param device The device to destroy the descriptor sets on
         \return The result of the operation */
-    RendererResult Destroy(Device<PLATFORM> *device)
+    RendererResult Destroy()
     {
         for (auto &it : m_sets) {
             SafeRelease(std::move(it));
@@ -827,7 +821,7 @@ public:
         \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
         \return The result of the operation */
-    void Update(Device<PLATFORM> *device, uint32 frame_index)
+    void Update(uint32 frame_index)
     {
         for (const DescriptorSetRef<PLATFORM> &set : m_sets[frame_index]) {
             const Name descriptor_set_name = set->GetLayout().GetName();
@@ -840,7 +834,7 @@ public:
                 continue;
             }
 
-            set->Update(device);
+            set->Update();
         }
     }
 
@@ -885,7 +879,6 @@ private:
 using DescriptorSet = platform::DescriptorSet<Platform::CURRENT>;
 using DescriptorSetElement = platform::DescriptorSetElement<Platform::CURRENT>;
 using DescriptorSetLayout = platform::DescriptorSetLayout<Platform::CURRENT>;
-using DescriptorSetManager = platform::DescriptorSetManager<Platform::CURRENT>;
 using DescriptorTable = platform::DescriptorTable<Platform::CURRENT>;
 
 } // namespace renderer

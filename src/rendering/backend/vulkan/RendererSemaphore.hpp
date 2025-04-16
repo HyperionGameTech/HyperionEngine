@@ -49,8 +49,8 @@ public:
     VkSemaphore GetSemaphore() const { return m_semaphore; }
     VkPipelineStageFlags GetStageFlags() const { return m_pipeline_stage; }
 
-    RendererResult Create(Device *device);
-    RendererResult Destroy(Device *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
 private:
     VkSemaphore m_semaphore;
@@ -203,8 +203,8 @@ public:
     const SemaphoreStageView &GetWaitSemaphoreStagesView() const
         { return m_wait_semaphores_stage_view; }
 
-    RendererResult Create(Device *device);
-    RendererResult Destroy(Device *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
 private:
     static std::set<SemaphoreRef *> refs;

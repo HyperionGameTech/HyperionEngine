@@ -3,6 +3,8 @@
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
 #include <core/debug/Debug.hpp>
@@ -12,8 +14,16 @@
 #include <algorithm>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
 namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
 
 #pragma region ShaderPlatformImpl
 
@@ -94,7 +104,7 @@ bool Shader<Platform::VULKAN>::IsCreated() const
 }
 
 template <>
-RendererResult Shader<Platform::VULKAN>::AttachSubShader(Device<Platform::VULKAN> *device, ShaderModuleType type, const ShaderObject &shader_object)
+RendererResult Shader<Platform::VULKAN>::AttachSubShader(ShaderModuleType type, const ShaderObject &shader_object)
 {
     const ByteBuffer &spirv = shader_object.bytes;
 
@@ -104,7 +114,7 @@ RendererResult Shader<Platform::VULKAN>::AttachSubShader(Device<Platform::VULKAN
 
     VkShaderModule shader_module;
 
-    HYPERION_VK_CHECK(vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &shader_module));
+    HYPERION_VK_CHECK(vkCreateShaderModule(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &shader_module));
 
     m_shader_modules.PushBack(ShaderModule<Platform::VULKAN>(type, m_entry_point_name, spirv, shader_module));
 
@@ -132,7 +142,6 @@ RendererResult Shader<Platform::VULKAN>::AttachSubShaders()
         }
 
         HYPERION_BUBBLE_ERRORS(AttachSubShader(
-            g_engine->GetGPUInstance()->GetDevice(),
             ShaderModuleType(index),
             { byte_buffer }
         ));
@@ -188,7 +197,7 @@ RendererResult Shader<Platform::VULKAN>::CreateShaderGroups()
 }
 
 template <>
-RendererResult Shader<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
+RendererResult Shader<Platform::VULKAN>::Create()
 {
     if (IsCreated()) {
         HYPERION_RETURN_OK;
@@ -212,14 +221,14 @@ RendererResult Shader<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device
 }
 
 template <>
-RendererResult Shader<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
+RendererResult Shader<Platform::VULKAN>::Destroy()
 {
     if (!IsCreated()) {
         HYPERION_RETURN_OK;
     }
 
     for (const ShaderModule<Platform::VULKAN> &shader_module : m_shader_modules) {
-        vkDestroyShaderModule(device->GetDevice(), shader_module.shader_module, nullptr);
+        vkDestroyShaderModule(GetRenderingAPI()->GetDevice()->GetDevice(), shader_module.shader_module, nullptr);
     }
 
     m_shader_modules.Clear();

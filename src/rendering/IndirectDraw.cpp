@@ -29,7 +29,7 @@ namespace hyperion {
 
 template <class BufferType>
 static bool ResizeBuffer(
-    Frame *frame,
+    IFrame *frame,
     const GPUBufferRef &buffer,
     SizeType new_buffer_size
 )
@@ -40,17 +40,13 @@ static bool ResizeBuffer(
 
     bool size_changed = false;
 
-    HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(
-        g_engine->GetGPUDevice(),
-        new_buffer_size,
-        &size_changed
-    ));
+    HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(new_buffer_size, &size_changed));
 
     return size_changed;
 }
 
 static bool ResizeIndirectDrawCommandsBuffer(
-    Frame *frame,
+    IFrame *frame,
     uint32 num_draw_commands,
     const GPUBufferRef &indirect_buffer,
     const GPUBufferRef &staging_buffer
@@ -69,22 +65,12 @@ static bool ResizeIndirectDrawCommandsBuffer(
 
     // upload zeros to the buffer using a staging buffer.
     if (staging_buffer->IsCreated()) {
-        HYPERION_ASSERT_RESULT(staging_buffer->EnsureCapacity(
-            g_engine->GetGPUDevice(),
-            indirect_buffer->Size()
-        ));
+        HYPERION_ASSERT_RESULT(staging_buffer->EnsureCapacity(indirect_buffer->Size()));
     } else {
-        HYPERION_ASSERT_RESULT(staging_buffer->Create(
-            g_engine->GetGPUDevice(),
-            indirect_buffer->Size()
-        ));
+        HYPERION_ASSERT_RESULT(staging_buffer->Create(indirect_buffer->Size()));
     }
 
-    staging_buffer->Memset(
-        g_engine->GetGPUDevice(),
-        staging_buffer->Size(),
-        0 // fill buffer with zeros
-    );
+    staging_buffer->Memset(staging_buffer->Size(), 0);
     
     frame->GetCommandList().Add<InsertBarrier>(
         staging_buffer,
@@ -111,7 +97,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
 }
 
 static bool ResizeInstancesBuffer(
-    Frame *frame,
+    IFrame *frame,
     uint32 num_object_instances,
     const GPUBufferRef &instance_buffer,
     const GPUBufferRef &staging_buffer
@@ -126,18 +112,14 @@ static bool ResizeInstancesBuffer(
     );
 
     if (was_created_or_resized) {
-        instance_buffer->Memset(
-            g_engine->GetGPUDevice(),
-            instance_buffer->Size(),
-            0
-        );
+        instance_buffer->Memset(instance_buffer->Size(), 0);
     }
 
     return was_created_or_resized;
 }
 
 static bool ResizeIfNeeded(
-    Frame *frame,
+    IFrame *frame,
     const FixedArray<GPUBufferRef, max_frames_in_flight> &indirect_buffers,
     const FixedArray<GPUBufferRef, max_frames_in_flight> &instance_buffers,
     const FixedArray<GPUBufferRef, max_frames_in_flight> &staging_buffers,
@@ -197,7 +179,7 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        renderer::SingleTimeCommands commands { g_engine->GetGPUDevice() };
+        renderer::SingleTimeCommands commands;
 
         commands.Push([this](RHICommandList &cmd)
         {
@@ -297,7 +279,7 @@ void IndirectDrawState::ResetDrawState()
     m_dirty_bits |= 0x3;
 }
 
-void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
+void IndirectDrawState::UpdateBufferData(IFrame *frame, bool *out_was_resized)
 {
     // assume render thread
 
@@ -325,7 +307,6 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
         AssertThrow(m_staging_buffers[frame_index]->Size() >= sizeof(IndirectDrawCommand) * m_draw_commands.Size());
         
         m_staging_buffers[frame_index]->Copy(
-            g_engine->GetGPUDevice(),
             m_draw_commands.Size() * sizeof(IndirectDrawCommand),
             m_draw_commands.Data()
         );
@@ -356,7 +337,6 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 
     // update data for object instances (cpu - gpu)
     m_instance_buffers[frame_index]->Copy(
-        g_engine->GetGPUDevice(),
         m_object_instances.Size() * sizeof(ObjectInstance),
         m_object_instances.Data()
     );
@@ -416,7 +396,7 @@ void IndirectRenderer::Create()
         descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), entity_instance_batches->GetBuffer(frame_index));
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_object_visibility = MakeRenderObject<ComputePipeline>(
         object_visibility_shader,
@@ -424,7 +404,7 @@ void IndirectRenderer::Create()
     );
     
     // use DeferCreate because our Shader might not be ready yet
-    DeferCreate(m_object_visibility, g_engine->GetGPUDevice());
+    DeferCreate(m_object_visibility);
 }
 
 void IndirectRenderer::Destroy()
@@ -447,7 +427,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
     }
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data)
+void IndirectRenderer::ExecuteCullShaderInBatches(IFrame *frame, const CullData &cull_data)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -487,7 +467,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     //     m_descriptor_sets[frame_index]->GetDescriptor(6)
     //         ->SetElementSRV(0, m_cached_cull_data.depth_pyramid_image_view);
 
-    //     m_descriptor_sets[frame_index]->ApplyUpdates(g_engine->GetGPUDevice());
+    //     m_descriptor_sets[frame_index]->ApplyUpdates();
 
     //     m_cached_cull_data_updated_bits &= ~(1u << frame_index);
     // }
@@ -540,7 +520,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     );
 }
 
-void IndirectRenderer::RebuildDescriptors(Frame *frame)
+void IndirectRenderer::RebuildDescriptors(IFrame *frame)
 {
     HYP_SCOPE;
     
@@ -554,7 +534,7 @@ void IndirectRenderer::RebuildDescriptors(Frame *frame)
     descriptor_set->SetElement(NAME("ObjectInstancesBuffer"), m_indirect_draw_state.GetInstanceBuffer(frame_index));
     descriptor_set->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirect_draw_state.GetIndirectBuffer(frame_index));
 
-    descriptor_set->Update(g_engine->GetGPUDevice());
+    descriptor_set->Update();
 }
 
 #pragma endregion IndirectRenderer

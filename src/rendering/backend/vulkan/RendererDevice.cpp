@@ -25,9 +25,7 @@ Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface
       m_physical(physical),
       m_surface(surface),
       m_allocator(VK_NULL_HANDLE),
-      m_features(MakeUnique<Features>()),
-      m_descriptor_set_manager(MakeUnique<DescriptorSetManager<Platform::VULKAN>>()),
-      m_async_compute(MakeUnique<AsyncCompute<Platform::VULKAN>>())
+      m_features(MakeUnique<Features>())
 {
     m_features->SetPhysicalDevice(m_physical);
     
@@ -433,8 +431,6 @@ RendererResult Device<Platform::VULKAN>::Create(const std::set<uint32> &required
     m_features->SetDeviceFeatures(this);
 
     DebugLog(LogType::Info, "Raytracing supported? : %d\n", m_features->IsRaytracingSupported());
-
-    HYPERION_BUBBLE_ERRORS(m_descriptor_set_manager->Create(this));
     
     {  // Create device queues
         m_queue_graphics = DeviceQueue<Platform::VULKAN> {
@@ -492,8 +488,6 @@ RendererResult Device<Platform::VULKAN>::Create(const std::set<uint32> &required
         }
     }
 
-    HYPERION_BUBBLE_ERRORS(m_async_compute->Create(this));
-
     HYPERION_RETURN_OK;
 }
 
@@ -509,10 +503,6 @@ VkQueue Device<Platform::VULKAN>::GetQueue(uint32 queue_family_index, uint32 que
 
 void Device<Platform::VULKAN>::Destroy()
 {
-    m_async_compute.Reset();
-    
-    m_descriptor_set_manager->Destroy(this);
-
     DeviceQueue<Platform::VULKAN> *queues[] = { &m_queue_graphics, &m_queue_transfer, &m_queue_compute, &m_queue_present };
 
     for (DeviceQueue<Platform::VULKAN> *queue : queues) {

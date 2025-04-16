@@ -19,7 +19,6 @@ struct ImageViewPlatformImpl<Platform::VULKAN>
     VkImageView                 handle = VK_NULL_HANDLE;
 
     RendererResult Create(
-        Device<Platform::VULKAN> *device,
         VkImage image,
         VkFormat format,
         VkImageAspectFlags aspect_flags,
@@ -30,7 +29,7 @@ struct ImageViewPlatformImpl<Platform::VULKAN>
         uint32 num_faces
     );
 
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    RendererResult Destroy();
 };
 
 } // namespace platform

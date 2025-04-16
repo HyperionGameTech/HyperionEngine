@@ -113,7 +113,7 @@ void TemporalBlending::Create()
     }
 
     if (m_input_framebuffer.IsValid()) {
-        DeferCreate(m_input_framebuffer, g_engine->GetGPUDevice());
+        DeferCreate(m_input_framebuffer);
     }
     
     CreateImageOutputs();
@@ -191,10 +191,11 @@ void TemporalBlending::CreateImageOutputs()
         Vec3u(m_extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_result_texture->SetIsRWTexture(true);
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -205,10 +206,11 @@ void TemporalBlending::CreateImageOutputs()
         Vec3u(m_extent, 1),
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
     });
 
-    m_history_texture->SetIsRWTexture(true);
     InitObject(m_history_texture);
 
     m_history_texture->SetPersistentRenderResourceEnabled(true);
@@ -260,7 +262,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("OutImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(m_descriptor_table);
 }
 
 void TemporalBlending::CreateComputePipelines()
@@ -275,10 +277,10 @@ void TemporalBlending::CreateComputePipelines()
         m_descriptor_table
     );
 
-    DeferCreate(m_perform_blending, g_engine->GetGPUDevice());
+    DeferCreate(m_perform_blending);
 }
 
-void TemporalBlending::Render(Frame *frame)
+void TemporalBlending::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

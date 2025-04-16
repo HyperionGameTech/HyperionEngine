@@ -128,7 +128,7 @@ void RenderEnvironment::Init()
             : RT_RADIANCE_RENDERER_OPTION_NONE
     );
 
-    if (g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+    if (g_rendering_api->GetRenderConfig().IsRaytracingSupported()
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {
         CreateTopLevelAccelerationStructures();
@@ -189,12 +189,13 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
     }
 }
 
-void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
+void RenderEnvironment::ApplyTLASUpdates(IFrame *frame, RTUpdateStateFlags flags)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
 
-    AssertThrow(g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported());
+    static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
+    AssertThrow(is_raytracing_supported);
     
     if (m_has_rt_radiance) {
         m_rt_radiance->ApplyTLASUpdates(flags);
@@ -205,7 +206,7 @@ void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
     }
 }
 
-void RenderEnvironment::RenderRTRadiance(Frame *frame)
+void RenderEnvironment::RenderRTRadiance(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -215,12 +216,12 @@ void RenderEnvironment::RenderRTRadiance(Frame *frame)
     }
 }
 
-void RenderEnvironment::RenderDDGIProbes(Frame *frame)
+void RenderEnvironment::RenderDDGIProbes(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
 
-    AssertThrow(g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported());
+    AssertThrow(g_rendering_api->GetRenderConfig().IsRaytracingSupported());
     
     if (m_has_ddgi_probes) {
         const DirectionalLightShadowRenderer *shadow_map_renderer = GetRenderSubsystem<DirectionalLightShadowRenderer>();
@@ -236,7 +237,7 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     }
 }
 
-void RenderEnvironment::RenderSubsystems(Frame *frame)
+void RenderEnvironment::RenderSubsystems(IFrame *frame)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -278,10 +279,7 @@ void RenderEnvironment::RenderSubsystems(Frame *frame)
     if (m_rt_initialized && m_top_level_acceleration_structures[frame->GetFrameIndex()].IsValid()) {
         RTUpdateStateFlags update_state_flags;
 
-        m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(
-            g_engine->GetGPUInstance(),
-            update_state_flags
-        );
+        m_top_level_acceleration_structures[frame->GetFrameIndex()]->UpdateStructure(update_state_flags);
 
         ApplyTLASUpdates(frame, update_state_flags);
         RemoveUpdateMarker(RENDER_ENVIRONMENT_UPDATES_TLAS, ThreadType::THREAD_TYPE_RENDER);
@@ -544,12 +542,12 @@ bool RenderEnvironment::CreateTopLevelAccelerationStructures()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         BLASRef blas = MakeRenderObject<BLAS>(Matrix4::identity);
         blas->AddGeometry(geometry);
-        DeferCreate(blas, g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        DeferCreate(blas);
 
         m_top_level_acceleration_structures[frame_index] = MakeRenderObject<TLAS>();
         m_top_level_acceleration_structures[frame_index]->AddBLAS(blas);
 
-        DeferCreate(m_top_level_acceleration_structures[frame_index], g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
+        DeferCreate(m_top_level_acceleration_structures[frame_index]);
     }
 
     return true;

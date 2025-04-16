@@ -4,12 +4,27 @@
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+
 #include <rendering/rhi/RHICommandList.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
+
+namespace platform {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
+} // namespace platform
+
 namespace helpers {
 
 VkIndexType ToVkIndexType(DatumType datum_type)
@@ -144,16 +159,31 @@ VkImageViewType ToVkImageViewType(ImageType type, bool is_array)
     }
 }
 
-} // namespace renderer
+VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
+{
+    switch (type) {
+    case DescriptorSetElementType::UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    case DescriptorSetElementType::STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+    case DescriptorSetElementType::IMAGE:                  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case DescriptorSetElementType::SAMPLER:                return VK_DESCRIPTOR_TYPE_SAMPLER;
+    case DescriptorSetElementType::IMAGE_STORAGE:          return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    case DescriptorSetElementType::TLAS:                   return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    default:
+        AssertThrowMsg(false, "Unsupported descriptor type for Vulkan");
+    }
+}
+
+} // namespace helpers
 
 namespace platform {
 
 #pragma region SingleTimeCommands
 
 template <>
-SingleTimeCommands<Platform::VULKAN>::SingleTimeCommands(Device<Platform::VULKAN> *device)
-    : m_platform_impl { this },
-      m_device(device)
+SingleTimeCommands<Platform::VULKAN>::SingleTimeCommands()
+    : m_platform_impl { this }
 {
 }
 
@@ -178,28 +208,28 @@ RendererResult SingleTimeCommands<Platform::VULKAN>::Execute()
     FenceRef<Platform::VULKAN> fence = MakeRenderObject<Fence<Platform::VULKAN>>();
 
     CommandBufferRef<Platform::VULKAN> command_buffer = MakeRenderObject<CommandBuffer<Platform::VULKAN>>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-    command_buffer->GetPlatformImpl().command_pool = m_device->GetGraphicsQueue().command_pools[0];
-    HYPERION_BUBBLE_ERRORS(command_buffer->Create(m_device));
+    command_buffer->GetPlatformImpl().command_pool = GetRenderingAPI()->GetDevice()->GetGraphicsQueue().command_pools[0];
+    HYPERION_BUBBLE_ERRORS(command_buffer->Create());
 
-    HYPERION_BUBBLE_ERRORS(command_buffer->Begin(m_device));
+    HYPERION_BUBBLE_ERRORS(command_buffer->Begin());
 
     // Execute the command list
     command_list.Execute(command_buffer);
 
-    HYPERION_PASS_ERRORS(command_buffer->End(m_device), result);
+    HYPERION_PASS_ERRORS(command_buffer->End(), result);
 
-    HYPERION_PASS_ERRORS(fence->Create(m_device), result);
-    HYPERION_PASS_ERRORS(fence->Reset(m_device), result);
+    HYPERION_PASS_ERRORS(fence->Create(), result);
+    HYPERION_PASS_ERRORS(fence->Reset(), result);
 
     // Submit to the queue
-    DeviceQueue<Platform::VULKAN> &queue_graphics = m_device->GetGraphicsQueue();
+    DeviceQueue<Platform::VULKAN> &queue_graphics = GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
 
     HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&queue_graphics, fence, nullptr), result);
     
-    HYPERION_PASS_ERRORS(fence->WaitForGPU(m_device), result);
-    HYPERION_PASS_ERRORS(fence->Destroy(m_device), result);
+    HYPERION_PASS_ERRORS(fence->WaitForGPU(), result);
+    HYPERION_PASS_ERRORS(fence->Destroy(), result);
 
-    HYPERION_PASS_ERRORS(command_buffer->Destroy(m_device), result);
+    HYPERION_PASS_ERRORS(command_buffer->Destroy(), result);
 
     return result;
 }

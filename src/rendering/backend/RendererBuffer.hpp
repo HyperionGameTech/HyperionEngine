@@ -132,40 +132,37 @@ public:
         SizeType count
     );
 
-    HYP_API RendererResult CheckCanAllocate(Device<PLATFORM> *device, SizeType size) const;
+    HYP_API RendererResult CheckCanAllocate(SizeType size) const;
 
-    HYP_API uint64 GetBufferDeviceAddress(Device<PLATFORM> *device) const;
+    HYP_API uint64 GetBufferDeviceAddress() const;
 
     HYP_API RendererResult Create(
-        Device<PLATFORM> *device,
         SizeType buffer_size,
         SizeType buffer_alignment = 0
     );
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Destroy();
 
     HYP_API RendererResult EnsureCapacity(
-        Device<PLATFORM> *device,
         SizeType minimum_size,
         bool *out_size_changed = nullptr
     );
 
     HYP_API RendererResult EnsureCapacity(
-        Device<PLATFORM> *device,
         SizeType minimum_size,
         SizeType alignment,
         bool *out_size_changed = nullptr
     );
 
-    HYP_API void Memset(Device<PLATFORM> *device, SizeType count, ubyte value);
+    HYP_API void Memset(SizeType count, ubyte value);
 
-    HYP_API void Copy(Device<PLATFORM> *device, SizeType count, const void *ptr);
-    HYP_API void Copy(Device<PLATFORM> *device, SizeType offset, SizeType count, const void *ptr);
+    HYP_API void Copy(SizeType count, const void *ptr);
+    HYP_API void Copy(SizeType offset, SizeType count, const void *ptr);
 
-    HYP_API void Map(Device<PLATFORM> *device);
-    HYP_API void Unmap(Device<PLATFORM> *device);
+    HYP_API void Map();
+    HYP_API void Unmap();
 
-    HYP_API void Read(Device<PLATFORM> *device, SizeType count, void *out_ptr) const;
-    HYP_API void Read(Device<PLATFORM> *device, SizeType offset, SizeType count, void *out_ptr) const;
+    HYP_API void Read(SizeType count, void *out_ptr) const;
+    HYP_API void Read(SizeType offset, SizeType count, void *out_ptr) const;
     
 private:
     GPUBufferPlatformImpl<PLATFORM> m_platform_impl;
@@ -308,62 +305,6 @@ using ShaderBindingTableBuffer = platform::ShaderBindingTableBuffer<Platform::CU
 
 // Forward declared
 using Device = platform::Device<Platform::CURRENT>;
-
-class StagingBufferPool
-{
-    struct StagingBufferRecord
-    {
-        SizeType                        size;
-        std::unique_ptr<StagingBuffer>  buffer;
-        std::time_t                     last_used;
-    };
-
-public:
-    class Context
-    {
-        friend class StagingBufferPool;
-
-        StagingBufferPool           *m_pool;
-        Device                      *m_device;
-        Array<StagingBufferRecord>  m_staging_buffers;
-        HashSet<StagingBuffer *>    m_used;
-
-        Context(StagingBufferPool *pool, Device *device)
-            : m_pool(pool),
-              m_device(device)
-        {
-        }
-
-        StagingBuffer *CreateStagingBuffer(SizeType size);
-
-    public:
-        /*! \brief Acquire a staging buffer from the pool of at least \ref{required_size} bytes,
-         * creating one if it does not exist yet. */
-        StagingBuffer *Acquire(SizeType required_size);
-    };
-
-    using UseFunction = Proc<RendererResult(Context &)>;
-
-    static constexpr time_t hold_time = 1000;
-    static constexpr uint32 gc_threshold = 5; /* run every 5 Use() calls */
-
-    /*! \brief Use the staging buffer pool. GC will not run until after the given function
-     * is called, and the staging buffers created will not be able to be reused.
-     * This will allow the staging buffer(s) acquired by this to be used in sequence
-     * in a single time command buffer */
-    HYP_DEPRECATED RendererResult Use(Device *device, UseFunction &&fn);
-
-    HYP_DEPRECATED RendererResult GC(Device *device);
-
-    /*! \brief Destroy all remaining staging buffers in the pool */
-    HYP_DEPRECATED RendererResult Destroy(Device *device);
-
-private:
-    StagingBuffer *FindStagingBuffer(SizeType size);
-
-    Array<StagingBufferRecord>  m_staging_buffers;
-    uint32                      use_calls = 0;
-};
 
 } // namespace renderer
 } // namespace hyperion

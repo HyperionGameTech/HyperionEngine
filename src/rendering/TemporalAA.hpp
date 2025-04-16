@@ -32,7 +32,7 @@ public:
     void Resize(Vec2u resolution);
 
     void Create();
-    void Render(Frame *frame);
+    void Render(IFrame *frame);
 
 private:
     void CreateImages();

@@ -33,13 +33,13 @@ struct SwapchainPlatformImpl<Platform::VULKAN>
     VkPresentModeKHR            present_mode;
     SwapchainSupportDetails     support_details;
 
-    RendererResult Create(Device<Platform::VULKAN> *device);
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
-    void ChooseSurfaceFormat(Device<Platform::VULKAN> *device);
+    void ChooseSurfaceFormat();
     void ChoosePresentMode();
-    void RetrieveSupportDetails(Device<Platform::VULKAN> *device);
-    void RetrieveImageHandles(Device<Platform::VULKAN> *device);
+    void RetrieveSupportDetails();
+    void RetrieveImageHandles();
 };
 
 } // namespace platform

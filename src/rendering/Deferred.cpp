@@ -106,14 +106,12 @@ static ShaderProperties GetDeferredShaderProperties()
 
     properties.Set(
         "RT_REFLECTIONS_ENABLED",
-        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
-            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
     );
 
     properties.Set(
         "RT_GI_ENABLED",
-        g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
-            && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
     );
     
     properties.Set(
@@ -228,7 +226,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         );
 
-        DeferCreate(m_ltc_sampler, g_engine->GetGPUDevice());
+        DeferCreate(m_ltc_sampler);
 
         ByteBuffer ltc_matrix_data(sizeof(s_ltc_matrix), s_ltc_matrix);
 
@@ -286,7 +284,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             descriptor_set->SetElement(NAME("LTCBRDFTexture"), m_ltc_brdf_texture->GetRenderResource().GetImageView());
         }
 
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -334,7 +332,7 @@ void DeferredPass::AddToGlobalDescriptorSet()
     }
 }
 
-void DeferredPass::Render(Frame *frame)
+void DeferredPass::Render(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -349,7 +347,7 @@ void DeferredPass::Render(Frame *frame)
         return;
     }
 
-    static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
@@ -545,7 +543,7 @@ void EnvGridPass::CreatePipeline()
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -589,7 +587,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     AddToGlobalDescriptorSet();
 }
 
-void EnvGridPass::Render(Frame *frame)
+void EnvGridPass::Render(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -744,7 +742,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_at
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = MakeRenderObject<DescriptorTable>(descriptor_table_decl);
-        DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(descriptor_table);
 
         Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
             shader,
@@ -787,7 +785,7 @@ void ReflectionsPass::CreateSSRRenderer()
         descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetRenderResource().GetImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_ssr_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -822,7 +820,7 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     AddToGlobalDescriptorSet();
 }
 
-void ReflectionsPass::Render(Frame *frame)
+void ReflectionsPass::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -953,8 +951,8 @@ void ReflectionsPass::Render(Frame *frame)
 
 #pragma region Deferred renderer
 
-DeferredRenderer::DeferredRenderer()
-    : m_gbuffer(MakeUnique<GBuffer>()),
+DeferredRenderer::DeferredRenderer(ISwapchain *swapchain)
+    : m_gbuffer(MakeUnique<GBuffer>(swapchain)),
       m_is_initialized(false)
 {
 }
@@ -1153,11 +1151,12 @@ void DeferredRenderer::Resize(Vec2u new_size)
     m_reflections_pass->Resize(new_size);
 }
 
-void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::Render(IFrame *frame, RenderEnvironment *environment)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
+
+    static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -1171,11 +1170,11 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool do_particles = true;
     const bool do_gaussian_splatting = false;//environment && environment->IsReady();
 
-    const bool use_rt_radiance = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+    const bool use_rt_radiance = is_raytracing_supported
         && (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
             || g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
 
-    const bool use_ddgi = g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()
+    const bool use_ddgi = is_raytracing_supported
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool();
     
     const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
@@ -1374,7 +1373,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     // m_dof_blur->Render(frame);
 }
 
-void DeferredRenderer::GenerateMipChain(Frame *frame, const ImageRef &src_image)
+void DeferredRenderer::GenerateMipChain(IFrame *frame, const ImageRef &src_image)
 {
     HYP_SCOPE;
 
@@ -1445,9 +1444,8 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
     Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
     
     GPUBufferRef blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer)));
-
-    blue_noise_buffer->Copy(g_engine->GetGPUDevice(), sizeof(BlueNoiseBuffer), aligned_buffer.Get());
+    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create(sizeof(BlueNoiseBuffer)));
+    blue_noise_buffer->Copy(sizeof(BlueNoiseBuffer), aligned_buffer.Get());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
@@ -1462,7 +1460,7 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
     Threads::AssertOnThread(g_render_thread);
     
     GPUBufferRef sphere_samples_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096));
+    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create(sizeof(Vec4f) * 4096));
 
     Vec4f *sphere_samples = new Vec4f[4096];
 
@@ -1478,7 +1476,7 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
         sphere_samples[i] = Vec4f(sample, 0.0f);
     }
 
-    sphere_samples_buffer->Copy(g_engine->GetGPUDevice(), sizeof(Vec4f) * 4096, sphere_samples);
+    sphere_samples_buffer->Copy(sizeof(Vec4f) * 4096, sphere_samples);
 
     delete[] sphere_samples;
 
@@ -1488,7 +1486,7 @@ void DeferredRenderer::CreateSphereSamplesBuffer()
     }
 }
 
-void DeferredRenderer::CollectDrawCalls(Frame *frame)
+void DeferredRenderer::CollectDrawCalls(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -1503,7 +1501,7 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderSkybox(Frame *frame)
+void DeferredRenderer::RenderSkybox(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -1521,7 +1519,7 @@ void DeferredRenderer::RenderSkybox(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
+void DeferredRenderer::RenderOpaqueObjects(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -1539,7 +1537,7 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
+void DeferredRenderer::RenderTranslucentObjects(IFrame *frame)
 {
     HYP_SCOPE;
 

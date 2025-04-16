@@ -23,6 +23,17 @@
 
 namespace hyperion::renderer {
 
+class IAsyncCompute
+{
+public:
+    virtual ~IAsyncCompute() = default;
+
+    virtual bool IsSupported() const = 0;
+
+    virtual RHICommandList &GetCommandList(uint32 frame_index) = 0;
+    virtual const RHICommandList &GetCommandList(uint32 frame_index) const = 0;
+};
+
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -35,7 +46,7 @@ template <PlatformType PLATFORM>
 class DescriptorTable;
 
 template <PlatformType PLATFORM>
-class AsyncCompute
+class AsyncCompute final : public IAsyncCompute
 {
 public:
     HYP_API AsyncCompute();
@@ -45,20 +56,20 @@ public:
     AsyncCompute &operator=(AsyncCompute &&) noexcept   = delete;
     HYP_API ~AsyncCompute();
 
-    HYP_FORCE_INLINE bool IsSupported() const
+    virtual bool IsSupported() const override
         { return m_is_supported; }
 
-    HYP_FORCE_INLINE RHICommandList &GetCommandList(uint32 frame_index)
+    virtual RHICommandList &GetCommandList(uint32 frame_index) override
         { return m_command_lists[frame_index]; }
 
-    HYP_FORCE_INLINE const RHICommandList &GetCommandList(uint32 frame_index) const
+    virtual const RHICommandList &GetCommandList(uint32 frame_index) const override
         { return m_command_lists[frame_index]; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Submit(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Submit(Frame<PLATFORM> *frame);
 
-    HYP_API RendererResult PrepareForFrame(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
-    HYP_API RendererResult WaitForFence(Device<PLATFORM> *device, Frame<PLATFORM> *frame);
+    HYP_API RendererResult PrepareForFrame(Frame<PLATFORM> *frame);
+    HYP_API RendererResult WaitForFence(Frame<PLATFORM> *frame);
 
 private:
     FixedArray<RHICommandList, max_frames_in_flight>                m_command_lists;

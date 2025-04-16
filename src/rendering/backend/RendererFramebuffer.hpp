@@ -40,8 +40,8 @@ struct AttachmentMap
         Reset();
     }
 
-    RendererResult Create(Device<PLATFORM> *device);
-    RendererResult Resize(Device<PLATFORM> *device, Vec2u new_size);
+    RendererResult Create();
+    RendererResult Resize(Vec2u new_size);
 
     void Reset()
     {
@@ -97,21 +97,14 @@ struct AttachmentMap
         StoreOperation store_op
     )
     {
-        ImageRef<PLATFORM> image = MakeRenderObject<Image<PLATFORM>>(
-            TextureDesc
-            {
-                type,
-                format,
-                Vec3u { extent.x, extent.y, 1 }
-            }
-        );
+        TextureDesc texture_desc;
+        texture_desc.type = type;
+        texture_desc.format = format;
+        texture_desc.extent = Vec3u { extent.x, extent.y, 1 };
+        texture_desc.image_format_capabilities = ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::ATTACHMENT;
 
-        image->SetIsAttachmentTexture(true);
-
-        AttachmentRef<PLATFORM> attachment = MakeRenderObject<Attachment<PLATFORM>>(
-            image,
-            stage
-        );
+        ImageRef<PLATFORM> image = MakeRenderObject<Image<PLATFORM>>(texture_desc);
+        AttachmentRef<PLATFORM> attachment = MakeRenderObject<Attachment<PLATFORM>>(image, stage);
 
         attachments.Set(
             binding,
@@ -201,10 +194,10 @@ public:
 
     HYP_API bool IsCreated() const;
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
-    HYP_API RendererResult Resize(Device<PLATFORM> *device, Vec2u new_size);
+    HYP_API RendererResult Resize(Vec2u new_size);
 
     HYP_API void BeginCapture(CommandBuffer<PLATFORM> *command_buffer, uint32 frame_index);
     HYP_API void EndCapture(CommandBuffer<PLATFORM> *command_buffer, uint32 frame_index);

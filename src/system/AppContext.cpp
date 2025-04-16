@@ -310,7 +310,7 @@ void AppContext::SetMainWindow(const RC<ApplicationWindow> &window)
 void AppContext::UpdateConfigurationOverrides()
 {
     // if ray tracing is not supported, we need to update the configuration
-    if (!g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
+    if (!g_rendering_api->GetRenderConfig().IsRaytracingSupported()) {
         m_configuration.Set("rendering.rt.enabled", false);
         m_configuration.Set("rendering.rt.reflections.enabled", false);
         m_configuration.Set("rendering.rt.gi.enabled", false);

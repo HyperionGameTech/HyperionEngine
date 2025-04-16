@@ -3,10 +3,19 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
-#include <functional>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 
 namespace hyperion {
+
+extern IRenderingAPI *g_rendering_api;
+
 namespace renderer {
+
+static inline VulkanRenderingAPI *GetRenderingAPI()
+{
+    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+}
+
 Semaphore::Semaphore(VkPipelineStageFlags pipeline_stage)
     : m_semaphore(nullptr),
       m_pipeline_stage(pipeline_stage)
@@ -18,21 +27,21 @@ Semaphore::~Semaphore()
     AssertThrowMsg(m_semaphore == nullptr, "semaphore should have been destroyed");
 }
 
-RendererResult Semaphore::Create(Device *device)
+RendererResult Semaphore::Create()
 {
     VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateSemaphore(device->GetDevice(), &semaphore_info, nullptr, &m_semaphore),
+        vkCreateSemaphore(GetRenderingAPI()->GetDevice()->GetDevice(), &semaphore_info, nullptr, &m_semaphore),
         "Failed to create semaphore"
     );
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult Semaphore::Destroy(Device *device)
+RendererResult Semaphore::Destroy()
 {
-    vkDestroySemaphore(device->GetDevice(), m_semaphore, nullptr);
+    vkDestroySemaphore(GetRenderingAPI()->GetDevice()->GetDevice(), m_semaphore, nullptr);
     m_semaphore = nullptr;
 
     HYPERION_RETURN_OK;
@@ -91,12 +100,12 @@ SemaphoreChain::~SemaphoreChain()
     );
 }
 
-RendererResult SemaphoreChain::Create(Device *device)
+RendererResult SemaphoreChain::Create()
 {
     for (size_t i = 0; i < m_signal_semaphores.size(); i++) {
         auto &ref = m_signal_semaphores[i];
         
-        HYPERION_BUBBLE_ERRORS(ref.Get().Create(device));
+        HYPERION_BUBBLE_ERRORS(ref.Get().Create());
 
         m_signal_semaphores_view[i] = ref.Get().GetSemaphore();
     }
@@ -104,7 +113,7 @@ RendererResult SemaphoreChain::Create(Device *device)
     for (size_t i = 0; i < m_wait_semaphores.size(); i++) {
         auto &ref = m_wait_semaphores[i];
 
-        HYPERION_BUBBLE_ERRORS(ref.Get().Create(device));
+        HYPERION_BUBBLE_ERRORS(ref.Get().Create());
 
         m_wait_semaphores_view[i] = ref.Get().GetSemaphore();
     }
@@ -112,11 +121,11 @@ RendererResult SemaphoreChain::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-RendererResult SemaphoreChain::Destroy(Device *device)
+RendererResult SemaphoreChain::Destroy()
 {
     RendererResult result;
 
-    const auto dec_ref = [this, &result, device](auto &semaphore) {
+    const auto dec_ref = [this, &result](auto &semaphore) {
         auto *ref = semaphore.ref;
 
         if (ref == nullptr) {
@@ -124,7 +133,7 @@ RendererResult SemaphoreChain::Destroy(Device *device)
         }
 
         if (!--ref->count) {
-            HYPERION_PASS_ERRORS(ref->semaphore.Destroy(device), result);
+            HYPERION_PASS_ERRORS(ref->semaphore.Destroy(), result);
 
             auto it = refs.find(ref);
             AssertThrow(it != refs.end());

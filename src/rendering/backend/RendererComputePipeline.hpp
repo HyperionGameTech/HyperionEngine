@@ -29,8 +29,8 @@ public:
     ComputePipeline &operator=(const ComputePipeline &other)    = delete;
     ~ComputePipeline();
 
-    RendererResult Create(Device<PLATFORM> *device);
-    RendererResult Destroy(Device<PLATFORM> *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
     void Bind(CommandBuffer<PLATFORM> *command_buffer) const;
 

@@ -161,11 +161,11 @@ void RenderGroup::Init()
     }));
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!renderer::RenderConfig::IsParallelRenderingEnabled()) {
+    if (!g_rendering_api->GetRenderConfig().IsParallelRenderingEnabled()) {
         m_flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!renderer::RenderConfig::IsIndirectRenderingEnabled()) {
+    if (!g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled()) {
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
 
@@ -194,7 +194,7 @@ void RenderGroup::CreateGraphicsPipeline()
     for (const FramebufferRef &framebuffer : m_fbos) {
         AssertThrow(framebuffer.IsValid());
         
-        DeferCreate(framebuffer, g_engine->GetGPUDevice());
+        DeferCreate(framebuffer);
     }
 
     AssertThrow(m_shader.IsValid());
@@ -228,7 +228,7 @@ void RenderGroup::CreateGraphicsPipeline()
             }
         }
 
-        DeferCreate(m_descriptor_table, g_engine->GetGPUDevice());
+        DeferCreate(m_descriptor_table);
     }
 
     AssertThrow(m_descriptor_table.IsValid());
@@ -311,7 +311,7 @@ void RenderGroup::CollectDrawCalls()
 
     AssertReady();
 
-    const bool unique_per_material = renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial();
+    static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
 
     if (m_flags & RenderGroupFlags::INDIRECT_RENDERING) {
         m_indirect_renderer->GetDrawState().ResetDrawState();
@@ -368,11 +368,11 @@ void RenderGroup::CollectDrawCalls()
     }
 }
 
-void RenderGroup::PerformOcclusionCulling(Frame *frame, const CullData *cull_data)
+void RenderGroup::PerformOcclusionCulling(IFrame *frame, const CullData *cull_data)
 {
     HYP_SCOPE;
     
-    static const bool is_indirect_rendering_enabled = renderer::RenderConfig::IsIndirectRenderingEnabled();
+    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
     if (!is_indirect_rendering_enabled) {
         return;
@@ -422,7 +422,7 @@ static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batc
 
 template <bool IsIndirect>
 static void RenderAll(
-    Frame *frame,
+    IFrame *frame,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     const DrawCallCollection &draw_state
@@ -430,7 +430,7 @@ static void RenderAll(
 {
     HYP_SCOPE;
 
-    static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     if (draw_state.GetDrawCalls().Empty()) {
         return;
@@ -500,7 +500,7 @@ static void RenderAll(
         }
 
         if (entity_descriptor_set.IsValid()) {
-            if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
+            if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial()) {
                 frame->GetCommandList().Add<BindDescriptorSet>(
                     entity_descriptor_set,
                     pipeline,
@@ -565,7 +565,7 @@ static void RenderAll(
 
 template <bool IsIndirect>
 static void RenderAll_Parallel(
-    Frame *frame,
+    IFrame *frame,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Span<const DrawCall>> &divided_draw_calls,
@@ -574,7 +574,7 @@ static void RenderAll_Parallel(
 {
     HYP_SCOPE;
 
-    static const bool use_bindless_textures = g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures();
+    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     if (draw_state.GetDrawCalls().Empty()) {
         return;
@@ -670,7 +670,9 @@ static void RenderAll_Parallel(
                 AssertDebug(entity_instance_batch != nullptr);
 
                 if (entity_descriptor_set.IsValid()) {
-                    if (renderer::RenderConfig::ShouldCollectUniqueDrawCallPerMaterial()) {
+                    static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+
+                    if (unique_per_material) {
                         command_list.Add<BindDescriptorSet>(
                             entity_descriptor_set,
                             pipeline,
@@ -747,7 +749,7 @@ static void RenderAll_Parallel(
     }
 }
 
-void RenderGroup::PerformRendering(Frame *frame)
+void RenderGroup::PerformRendering(IFrame *frame)
 {
     HYP_SCOPE;
 
@@ -776,7 +778,7 @@ void RenderGroup::PerformRendering(Frame *frame)
     }
 }
 
-void RenderGroup::PerformRenderingIndirect(Frame *frame)
+void RenderGroup::PerformRenderingIndirect(IFrame *frame)
 {
     HYP_SCOPE;
 

@@ -41,31 +41,6 @@ struct MergeHalfResTexturesUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
-{
-    FixedArray<CommandBufferRef, max_frames_in_flight>  command_buffers;
-
-    RENDER_COMMAND(CreateCommandBuffers)(const FixedArray<CommandBufferRef, max_frames_in_flight> &command_buffers)
-        : command_buffers(command_buffers)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateCommandBuffers)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 i = 0; i < max_frames_in_flight; i++) {
-#ifdef HYP_VULKAN
-            command_buffers[i]->GetPlatformImpl().command_pool = g_engine->GetGPUDevice()->GetGraphicsQueue().command_pools[0];
-#endif
-
-            HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(g_engine->GetGPUDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer) : renderer::RenderCommand
 {
     FullScreenPass  &full_screen_pass;
@@ -302,19 +277,19 @@ void FullScreenPass::CreateFramebuffer()
         DebugLog(LogType::Debug, "Reshaped extent: %d, %d to %d, %d", m_extent.x, m_extent.y, framebuffer_extent.x, framebuffer_extent.y);
     }
 
-    m_framebuffer = MakeRenderObject<Framebuffer>(
-        framebuffer_extent,
-        renderer::RenderPassStage::SHADER
-    );
+    m_framebuffer = MakeRenderObject<Framebuffer>(framebuffer_extent, renderer::RenderPassStage::SHADER);
 
-    ImageRef attachment_image = MakeRenderObject<Image>(renderer::FramebufferImage2D(
-        framebuffer_extent,
-        m_image_format
-    ));
+    TextureDesc texture_desc;
+    texture_desc.type = ImageType::TEXTURE_TYPE_2D;
+    texture_desc.format = m_image_format;
+    texture_desc.extent = Vec3u { framebuffer_extent, 1 };
+    texture_desc.filter_mode_min = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.filter_mode_mag = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
+    texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
 
-    attachment_image->SetIsAttachmentTexture(true);
-
-    DeferCreate(attachment_image, g_engine->GetGPUDevice());
+    ImageRef attachment_image = MakeRenderObject<Image>(texture_desc);
+    DeferCreate(attachment_image);
 
     AttachmentRef attachment = MakeRenderObject<Attachment>(
         attachment_image,
@@ -329,11 +304,11 @@ void FullScreenPass::CreateFramebuffer()
         attachment->SetAllowBlending(true);
     }
 
-    DeferCreate(attachment, g_engine->GetGPUDevice());
+    DeferCreate(attachment);
     
     m_framebuffer->AddAttachment(attachment);
 
-    DeferCreate(m_framebuffer, g_engine->GetGPUDevice());
+    DeferCreate(m_framebuffer);
 }
 
 void FullScreenPass::CreatePipeline()
@@ -449,7 +424,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
         descriptor_set->SetElement(NAME("InTexture"), GetPreviousFrameColorImageView());
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_render_texture_to_screen_pass = MakeUnique<FullScreenPass>(
         render_texture_to_screen_shader,
@@ -476,9 +451,8 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         uniforms.dimensions = m_extent;
 
         merge_half_res_textures_uniform_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-        HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(uniforms)));
-
-        merge_half_res_textures_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+        HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create(sizeof(uniforms)));
+        merge_half_res_textures_uniform_buffer->Copy(sizeof(uniforms), &uniforms);
     }
 
     ShaderRef merge_half_res_textures_shader = g_shader_manager->GetOrCreate(NAME("MergeHalfResTextures"));
@@ -495,7 +469,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         descriptor_set->SetElement(NAME("UniformBuffer"), merge_half_res_textures_uniform_buffer);
     }
 
-    DeferCreate(descriptor_table, g_engine->GetGPUDevice());
+    DeferCreate(descriptor_table);
 
     m_merge_half_res_textures_pass = MakeUnique<FullScreenPass>(
         merge_half_res_textures_shader,
@@ -511,7 +485,7 @@ void FullScreenPass::CreateDescriptors()
 {
 }
 
-void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
+void FullScreenPass::RenderPreviousTextureToScreen(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -557,7 +531,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame *frame)
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 }
 
-void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
+void FullScreenPass::CopyResultToPreviousTexture(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -578,7 +552,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame *frame)
     frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
-void FullScreenPass::MergeHalfResTextures(Frame *frame)
+void FullScreenPass::MergeHalfResTextures(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -590,7 +564,7 @@ void FullScreenPass::MergeHalfResTextures(Frame *frame)
     m_merge_half_res_textures_pass->Render(frame);
 }
 
-void FullScreenPass::Render(Frame *frame)
+void FullScreenPass::Render(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -616,7 +590,7 @@ void FullScreenPass::Render(Frame *frame)
     }
 }
 
-void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer)
+void FullScreenPass::RenderToFramebuffer(IFrame *frame, const FramebufferRef &framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -670,7 +644,7 @@ void FullScreenPass::RenderToFramebuffer(Frame *frame, const FramebufferRef &fra
     m_is_first_frame = false;
 }
 
-void FullScreenPass::Begin(Frame *frame)
+void FullScreenPass::Begin(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -693,7 +667,7 @@ void FullScreenPass::Begin(Frame *frame)
     }
 }
 
-void FullScreenPass::End(Frame *frame)
+void FullScreenPass::End(IFrame *frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

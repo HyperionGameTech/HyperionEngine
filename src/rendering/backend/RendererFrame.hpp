@@ -17,6 +17,16 @@
 namespace hyperion {
 namespace renderer {
 
+class IFrame
+{
+public:
+    virtual ~IFrame() = default;
+
+    virtual uint32 GetFrameIndex() const = 0;
+    virtual RHICommandList &GetCommandList() = 0;
+    virtual const RHICommandList &GetCommandList() const = 0;
+};
+
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -35,7 +45,7 @@ template <PlatformType PLATFORM>
 struct DeviceQueue;
 
 template <PlatformType PLATFORM>
-class Frame
+class Frame final : public IFrame
 {
 public:
     static constexpr PlatformType platform = PLATFORM;
@@ -53,22 +63,22 @@ public:
     Frame &operator=(const Frame &other)        = delete;
     Frame(Frame &&other) noexcept               = delete;
     Frame &operator=(Frame &&other) noexcept    = delete;
-    ~Frame();
+    virtual ~Frame() override;
 
-    RendererResult Create(Device<PLATFORM> *device);
-    RendererResult Destroy(Device<PLATFORM> *device);
+    RendererResult Create();
+    RendererResult Destroy();
+
+    virtual uint32 GetFrameIndex() const override
+        { return m_frame_index; }
+    
+    virtual RHICommandList &GetCommandList() override
+        { return m_command_list; }
+    
+    virtual const RHICommandList &GetCommandList() const override
+        { return m_command_list; }
 
     HYP_FORCE_INLINE const FenceRef<PLATFORM> &GetFence() const
         { return m_queue_submit_fence; }
-
-    HYP_FORCE_INLINE uint32 GetFrameIndex() const
-        { return m_frame_index; }
-    
-    HYP_FORCE_INLINE RHICommandList &GetCommandList()
-        { return m_command_list; }
-    
-    HYP_FORCE_INLINE const RHICommandList &GetCommandList() const
-        { return m_command_list; }
 
     HYP_FORCE_INLINE SemaphoreChain &GetPresentSemaphores()
         { return m_present_semaphores; }
@@ -76,7 +86,7 @@ public:
     HYP_FORCE_INLINE const SemaphoreChain &GetPresentSemaphores() const
         { return m_present_semaphores; }
 
-    RendererResult RecreateFence(Device<PLATFORM> *device);
+    RendererResult RecreateFence();
 
 private:
     uint32              m_frame_index;

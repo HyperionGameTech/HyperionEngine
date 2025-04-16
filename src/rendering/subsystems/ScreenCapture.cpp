@@ -41,7 +41,7 @@ void ScreenCaptureRenderSubsystem::Init()
     m_texture->SetPersistentRenderResourceEnabled(true);
 
     m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
-    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetRenderResource().GetImage()->GetByteSize()));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(m_texture->GetRenderResource().GetImage()->GetByteSize()));
 }
 
 void ScreenCaptureRenderSubsystem::InitGame()
@@ -60,7 +60,7 @@ void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void ScreenCaptureRenderSubsystem::OnRender(Frame *frame)
+void ScreenCaptureRenderSubsystem::OnRender(IFrame *frame)
 {
     FinalPass *final_pass = g_engine->GetFinalPass();
     AssertThrow(final_pass != nullptr);

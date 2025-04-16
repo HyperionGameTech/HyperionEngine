@@ -35,7 +35,7 @@ public:
     Pipeline &operator=(const Pipeline &other)  = delete;
     HYP_API ~Pipeline();
     
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    HYP_API RendererResult Destroy();
 
     HYP_API bool IsCreated() const;
 

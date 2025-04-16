@@ -64,8 +64,8 @@ public:
 
     VkRenderPass GetHandle() const { return m_handle; }
 
-    RendererResult Create(Device<Platform::VULKAN> *device);
-    RendererResult Destroy(Device<Platform::VULKAN> *device);
+    RendererResult Create();
+    RendererResult Destroy();
 
     void Begin(CommandBuffer<Platform::VULKAN> *cmd, Framebuffer<Platform::VULKAN> *framebuffer, uint32 frame_index);
     void End(CommandBuffer<Platform::VULKAN> *cmd);

@@ -79,13 +79,5 @@ DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration()
     return initializer.decl;
 }
 
-static struct GlobalDescriptorSetsDeclarations
-{
-    GlobalDescriptorSetsDeclarations()
-    {
-#include <rendering/inl/DescriptorSets.inl>
-    }
-} s_global_descriptor_sets_declarations;
-
 } // namespace renderer
 } // namespace hyperion

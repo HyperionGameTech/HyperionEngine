@@ -34,12 +34,6 @@ renderer::RenderObjectContainerBase::~RenderObjectContainerBase()
 #pragma region RenderObjectDeleter
 
 template <>
-renderer::platform::Device<Platform::CURRENT> *RenderObjectDeleter<Platform::CURRENT>::GetDevice()
-{
-    return g_engine->GetGPUDevice();
-}
-
-template <>
 void RenderObjectDeleter<Platform::CURRENT>::Initialize()
 {
     // Command buffer should be deleted first so that no

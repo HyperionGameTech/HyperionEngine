@@ -136,14 +136,14 @@ public:
     HYP_API void Init();
     HYP_API void Destroy();
 
-    HYP_API void RenderProbes(Frame *frame);
-    HYP_API void ComputeIrradiance(Frame *frame);
+    HYP_API void RenderProbes(IFrame *frame);
+    HYP_API void ComputeIrradiance(IFrame *frame);
 
 private:
     void CreatePipelines();
     void CreateUniformBuffer();
     void CreateStorageBuffers();
-    void UpdateUniforms(Frame *frame);
+    void UpdateUniforms(IFrame *frame);
 
     DDGIInfo                                    m_grid_info;
     Array<Probe>                                m_probes;

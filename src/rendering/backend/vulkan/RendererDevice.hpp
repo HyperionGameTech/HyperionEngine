@@ -55,12 +55,6 @@ public:
     void SetRenderSurface(const VkSurfaceKHR &surface);
     void SetRequiredExtensions(const ExtensionMap &extensions);
 
-    DescriptorSetManager<Platform::VULKAN> *GetDescriptorSetManager() const
-        { return m_descriptor_set_manager.Get(); }
-
-    AsyncCompute<Platform::VULKAN> *GetAsyncCompute() const
-        { return m_async_compute.Get(); }
-
     VkDevice GetDevice();
     VkSurfaceKHR GetRenderSurface();
     VkPhysicalDevice GetPhysicalDevice();
@@ -97,25 +91,22 @@ public:
     Array<VkExtensionProperties> GetSupportedExtensions();
 
 private:
-    VkDevice                                            m_device;
-    VkPhysicalDevice                                    m_physical;
-    VkSurfaceKHR                                        m_surface;
-    VmaAllocator                                        m_allocator;
+    VkDevice                                                m_device;
+    VkPhysicalDevice                                        m_physical;
+    VkSurfaceKHR                                            m_surface;
+    VmaAllocator                                            m_allocator;
 
-    UniquePtr<Features>                                 m_features;
-    QueueFamilyIndices                                  m_queue_family_indices;
+    UniquePtr<Features>                                     m_features;
+    QueueFamilyIndices                                      m_queue_family_indices;
 
-    DeviceQueue<Platform::VULKAN>                       m_queue_graphics;
-    DeviceQueue<Platform::VULKAN>                       m_queue_transfer;
-    DeviceQueue<Platform::VULKAN>                       m_queue_present;
-    DeviceQueue<Platform::VULKAN>                       m_queue_compute;
+    DeviceQueue<Platform::VULKAN>                           m_queue_graphics;
+    DeviceQueue<Platform::VULKAN>                           m_queue_transfer;
+    DeviceQueue<Platform::VULKAN>                           m_queue_present;
+    DeviceQueue<Platform::VULKAN>                           m_queue_compute;
 
-    ExtensionMap                                        m_required_extensions;
+    ExtensionMap                                            m_required_extensions;
 
-    UniquePtr<DescriptorPool>                           m_descriptor_pool;
-    UniquePtr<DescriptorSetManager<Platform::VULKAN>>   m_descriptor_set_manager;
-
-    UniquePtr<AsyncCompute<Platform::VULKAN>>           m_async_compute;
+    UniquePtr<DescriptorPool>                               m_descriptor_pool;
 };
 
 } // namespace platform

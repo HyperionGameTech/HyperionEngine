@@ -13,6 +13,22 @@
 
 namespace hyperion {
 namespace renderer {
+
+class ISwapchain
+{
+public:
+    virtual ~ISwapchain() = default;
+
+    virtual bool IsCreated() const = 0;
+
+    virtual Vec2u GetExtent() const = 0;
+    virtual InternalFormat GetImageFormat() const = 0;
+
+    virtual uint32 NumAcquiredImages() const = 0;
+
+    virtual uint32 GetAcquiredImageIndex() const = 0;
+};
+
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -22,7 +38,7 @@ template <PlatformType PLATFORM>
 struct SwapchainPlatformImpl;
 
 template <PlatformType PLATFORM>
-class Swapchain
+class Swapchain final : public ISwapchain
 {
 public:
     friend struct SwapchainPlatformImpl<PLATFORM>;
@@ -35,6 +51,8 @@ public:
     Swapchain(Swapchain &&other) noexcept           = delete;
     Swapchain &operator=(Swapchain &other) noexcept = delete;
     HYP_API ~Swapchain();
+
+    HYP_API virtual bool IsCreated() const override;
     
     HYP_FORCE_INLINE SwapchainPlatformImpl<PLATFORM> &GetPlatformImpl()
         { return m_platform_impl; }
@@ -45,21 +63,28 @@ public:
     HYP_FORCE_INLINE const FrameHandlerRef<PLATFORM> &GetFrameHandler() const
         { return m_frame_handler; }
 
-    HYP_FORCE_INLINE SizeType NumImages() const
-        { return m_images.Size(); }
-
     HYP_FORCE_INLINE const Array<ImageRef<PLATFORM>> &GetImages() const
         { return m_images; }
 
-    HYP_API bool IsCreated() const;
+    virtual Vec2u GetExtent() const override
+        { return m_extent; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
+    virtual InternalFormat GetImageFormat() const override
+        { return m_image_format; }
 
-    Vec2u                           extent;
-    InternalFormat                  image_format;
+    virtual uint32 NumAcquiredImages() const override
+        { return uint32(m_images.Size()); }
+
+    virtual uint32 GetAcquiredImageIndex() const override
+        { return m_frame_handler->GetAcquiredImageIndex(); }
+
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
 
 private:
+    Vec2u                           m_extent;
+    InternalFormat                  m_image_format;
+
     Array<ImageRef<PLATFORM>>       m_images;
 
     FrameHandlerRef<PLATFORM>       m_frame_handler;

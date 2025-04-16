@@ -115,11 +115,6 @@ public:
 
     HYP_FORCE_INLINE WrapMode GetWrapMode() const
         { return m_texture_desc.wrap_mode; }
-
-    HYP_FORCE_INLINE bool IsRWTexture() const
-        { return m_is_rw_texture; }
-
-    void SetIsRWTexture(bool is_rw_texture);
     
     void Init();
 
@@ -150,8 +145,6 @@ protected:
     ResourceHandle          m_persistent_render_resource_handle;
 
     TextureDesc             m_texture_desc;
-
-    bool                    m_is_rw_texture;
 
     // MUST BE BEFORE m_streamed_texture_data, needs to get constructed first to use as out parameter to construct StreamedTextureData.
     mutable ResourceHandle  m_streamed_texture_data_resource_handle;

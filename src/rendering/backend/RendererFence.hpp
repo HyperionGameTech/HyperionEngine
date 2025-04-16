@@ -35,10 +35,10 @@ public:
     HYP_FORCE_INLINE const FencePlatformImpl<PLATFORM> &GetPlatformImpl() const
         { return m_platform_impl; }
 
-    HYP_API RendererResult Create(Device<PLATFORM> *device);
-    HYP_API RendererResult Destroy(Device<PLATFORM> *device);
-    HYP_API RendererResult WaitForGPU(Device<PLATFORM> *device, bool timeout_loop = false);
-    HYP_API RendererResult Reset(Device<PLATFORM> *device);
+    HYP_API RendererResult Create();
+    HYP_API RendererResult Destroy();
+    HYP_API RendererResult WaitForGPU(bool timeout_loop = false);
+    HYP_API RendererResult Reset();
 
 private:
     FencePlatformImpl<PLATFORM> m_platform_impl;

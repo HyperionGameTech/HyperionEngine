@@ -50,7 +50,7 @@ private:
     virtual void InitGame() override;
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(Frame *frame) override;
+    virtual void OnRender(IFrame *frame) override;
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override
         { }

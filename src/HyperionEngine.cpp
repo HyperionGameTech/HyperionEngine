@@ -19,6 +19,10 @@
 
 #include <rendering/SafeDeleter.hpp>
 
+#ifdef HYP_VULKAN
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#endif
+
 #include <Game.hpp>
 
 namespace hyperion {
@@ -55,6 +59,12 @@ HYP_API void InitializeEngine(const FilePath &base_path)
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;
 
+#ifdef HYP_VULKAN
+    g_rendering_api = new renderer::VulkanRenderingAPI();
+#else
+    #error Unsupported rendering backend
+#endif
+
     ComponentInterfaceRegistry::GetInstance().Initialize();
 }
 
@@ -82,6 +92,9 @@ HYP_API void DestroyEngine()
     g_material_system = nullptr;
 
     g_engine.Reset();
+
+    delete g_rendering_api;
+    g_rendering_api = nullptr;
 }
 
 } // namespace hyperion

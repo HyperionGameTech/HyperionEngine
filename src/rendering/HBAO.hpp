@@ -47,8 +47,8 @@ public:
 
     virtual void Create() override;
 
-    virtual void Render(Frame *frame) override;
-    virtual void RenderToFramebuffer(Frame *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(IFrame *frame) override;
+    virtual void RenderToFramebuffer(IFrame *frame, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:
