@@ -99,8 +99,6 @@ namespace Hyperion
 
             if (IsValid)
             {
-                Logger.Log(LogType.Debug, $"Finalizing HypObject of type {HypClass.Name} at address 0x{(long)NativeAddress:X}");
-
                 if (HypClass.IsReferenceCounted)
                 {
 #if DEBUG

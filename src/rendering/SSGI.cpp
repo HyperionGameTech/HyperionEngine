@@ -1,0 +1,359 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <rendering/SSGI.hpp>
+#include <rendering/RenderScene.hpp>
+#include <rendering/RenderCamera.hpp>
+#include <rendering/RenderTexture.hpp>
+#include <rendering/RenderLight.hpp>
+#include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderState.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/GBuffer.hpp>
+
+#include <rendering/rhi/RHICommandList.hpp>
+
+#include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererComputePipeline.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
+
+#include <core/threading/Threads.hpp>
+
+#include <scene/Texture.hpp>
+
+#include <Engine.hpp>
+
+namespace hyperion {
+
+using renderer::GPUBufferType;
+
+static constexpr bool use_temporal_blending = true;
+
+static constexpr InternalFormat ssgi_format = InternalFormat::RGBA8;
+
+struct SSGIUniforms
+{
+    Vec4u   dimensions;
+    float   ray_step;
+    float   num_iterations;
+    float   max_ray_distance;
+    float   distance_bias;
+    float   offset;
+    float   eye_fade_start;
+    float   eye_fade_end;
+    float   screen_edge_fade_start;
+    float   screen_edge_fade_end;
+
+    uint32  num_bound_lights;
+    alignas(16) uint32 light_indices[16];
+};
+
+#pragma region Render commands
+
+struct RENDER_COMMAND(CreateSSGIUniformBuffers) : renderer::RenderCommand
+{
+    SSGIUniforms                                    uniforms;
+    FixedArray<GPUBufferRef, max_frames_in_flight>  uniform_buffers;
+
+    RENDER_COMMAND(CreateSSGIUniformBuffers)(
+        const SSGIUniforms &uniforms,
+        const FixedArray<GPUBufferRef, max_frames_in_flight> &uniform_buffers
+    ) : uniforms(uniforms),
+        uniform_buffers(uniform_buffers)
+    {
+        AssertThrow(uniforms.dimensions.x * uniforms.dimensions.y != 0);
+    }
+
+    virtual ~RENDER_COMMAND(CreateSSGIUniformBuffers)() override = default;
+
+    virtual RendererResult operator()() override
+    {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            AssertThrow(uniform_buffers[frame_index] != nullptr);
+            
+            HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create());
+            
+            uniform_buffers[frame_index]->Copy(sizeof(uniforms), &uniforms);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateSSGIDescriptors) : renderer::RenderCommand
+{
+    ImageViewRef    image_view;
+
+    RENDER_COMMAND(CreateSSGIDescriptors)(const ImageViewRef &image_view)
+        : image_view(image_view)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(CreateSSGIDescriptors)() override = default;
+
+    virtual RendererResult operator()() override
+    {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSGIResultTexture"), image_view);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(RemoveSSGIDescriptors) : renderer::RenderCommand
+{
+    RENDER_COMMAND(RemoveSSGIDescriptors)()
+    {
+    }
+
+    virtual ~RENDER_COMMAND(RemoveSSGIDescriptors)() override = default;
+
+    virtual RendererResult operator()() override
+    {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("SSGIResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion Render commands
+
+#pragma region SSGIConfig
+
+Vec2u SSGIConfig::GetGBufferResolution()
+{
+    return g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution();
+}
+
+#pragma endregion SSGIConfig
+
+#pragma region SSGI
+
+SSGI::SSGI(SSGIConfig &&config)
+    : m_config(std::move(config)),
+      m_is_rendered(false)
+{
+}
+
+SSGI::~SSGI()
+{
+}
+
+void SSGI::Create()
+{
+    m_result_texture = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
+        ssgi_format,
+        Vec3u(m_config.extent, 1),
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        1,
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
+    });
+
+    InitObject(m_result_texture);
+
+    m_result_texture->SetPersistentRenderResourceEnabled(true);
+
+    CreateUniformBuffers();
+
+    if (use_temporal_blending) {
+        m_temporal_blending = MakeUnique<TemporalBlending>(
+            m_config.extent,
+            ssgi_format,
+            TemporalBlendTechnique::TECHNIQUE_1,
+            TemporalBlendFeedback::HIGH,
+            m_result_texture->GetRenderResource().GetImageView()
+        );
+
+        m_temporal_blending->Create();
+    }
+
+    CreateComputePipelines();
+}
+
+void SSGI::Destroy()
+{
+    m_is_rendered = false;
+
+    if (m_temporal_blending) {
+        m_temporal_blending.Reset();
+    }
+    
+    SafeRelease(std::move(m_uniform_buffers));
+
+    PUSH_RENDER_COMMAND(RemoveSSGIDescriptors);
+}
+
+const Handle<Texture> &SSGI::GetFinalResultTexture() const
+{
+    return m_temporal_blending
+        ? m_temporal_blending->GetResultTexture()
+        : m_result_texture;
+}
+
+ShaderProperties SSGI::GetShaderProperties() const
+{
+    ShaderProperties shader_properties;
+
+    switch (ssgi_format) {
+    case InternalFormat::RGBA8:
+        shader_properties.Set("OUTPUT_RGBA8");
+        break;
+    case InternalFormat::RGBA16F:
+        shader_properties.Set("OUTPUT_RGBA16F");
+        break;
+    case InternalFormat::RGBA32F:
+        shader_properties.Set("OUTPUT_RGBA32F");
+        break;
+    }
+
+    return shader_properties;
+}
+
+void SSGI::CreateUniformBuffers()
+{
+    SSGIUniforms uniforms;
+    GetUniformBufferData(uniforms);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+    }
+    
+    PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniform_buffers);
+}
+
+void SSGI::CreateComputePipelines()
+{
+    const ShaderProperties shader_properties = GetShaderProperties();
+
+    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("SSGI"), shader_properties);
+    AssertThrow(shader.IsValid());
+
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("SSGIDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("OutImage"), m_result_texture->GetRenderResource().GetImageView());
+        descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffers[frame_index]);
+    }
+
+    DeferCreate(descriptor_table);
+
+    m_compute_pipeline = g_rendering_api->MakeComputePipeline(
+        shader,
+        descriptor_table
+    );
+
+    DeferCreate(m_compute_pipeline);
+
+    PUSH_RENDER_COMMAND(
+        CreateSSGIDescriptors,
+        GetFinalResultTexture()->GetRenderResource().GetImageView()
+    );
+}
+
+void SSGI::Render(FrameBase *frame)
+{
+    HYP_NAMED_SCOPE("Screen Space Global Illumination");
+
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+
+    // Used for sky
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+
+    const uint32 frame_index = frame->GetFrameIndex();
+
+    // Update uniform buffer data
+    SSGIUniforms uniforms;
+    GetUniformBufferData(uniforms);
+    m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+
+    const uint32 total_pixels_in_image = m_config.extent.Volume();
+    const uint32 num_dispatch_calls = (total_pixels_in_image + 255) / 256;
+
+    // put sample image in writeable state
+    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    frame->GetCommandList().Add<BindComputePipeline>(m_compute_pipeline);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        m_compute_pipeline->GetDescriptorTable(),
+        m_compute_pipeline,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
+                }
+            }
+        },
+        frame_index
+    );
+
+    frame->GetCommandList().Add<DispatchCompute>(
+        m_compute_pipeline,
+        Vec3u { num_dispatch_calls, 1, 1 }
+    );
+
+    // transition sample image back into read state
+    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+
+    if (use_temporal_blending && m_temporal_blending != nullptr) {
+        m_temporal_blending->Render(frame);
+    }
+
+    m_is_rendered = true;
+}
+
+void SSGI::GetUniformBufferData(SSGIUniforms &out_uniforms) const
+{
+    out_uniforms = SSGIUniforms();
+    out_uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
+    out_uniforms.ray_step = 3.0f;
+    out_uniforms.num_iterations = 8;
+    out_uniforms.max_ray_distance = 1000.0f;
+    out_uniforms.distance_bias = 0.1f;
+    out_uniforms.offset = 0.001f;
+    out_uniforms.eye_fade_start = 0.98f;
+    out_uniforms.eye_fade_end = 0.99f;
+    out_uniforms.screen_edge_fade_start = 0.98f;
+    out_uniforms.screen_edge_fade_end = 0.99f;
+    
+    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(out_uniforms.light_indices));
+    uint32 num_bound_lights = 0;
+
+    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
+        if (num_bound_lights >= max_bound_lights) {
+            break;
+        }
+
+        for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+            if (num_bound_lights >= max_bound_lights) {
+                break;
+            }
+
+            out_uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+        }
+    }
+
+    out_uniforms.num_bound_lights = num_bound_lights;
+}
+
+#pragma endregion SSGI
+
+} // namespace hyperion

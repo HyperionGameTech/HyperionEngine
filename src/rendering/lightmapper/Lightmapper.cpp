@@ -1508,10 +1508,12 @@ void Lightmapper::PerformLightmapping()
             continue;
         }
 
-        if (!mesh_component.raytracing_data) {
-            HYP_LOG(Lightmap, Info, "Skipping entity #{} because it has no raytracing data set", entity_id.Value());
-
-            continue;
+        if (m_config.trace_mode == LightmapTraceMode::GPU_PATH_TRACING) {
+            if (!mesh_component.raytracing_data) {
+                HYP_LOG(Lightmap, Info, "Skipping entity #{} because it has no raytracing data set", entity_id.Value());
+    
+                continue;
+            }
         }
 
         Handle<Entity> entity { entity_id };

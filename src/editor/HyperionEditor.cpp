@@ -257,7 +257,7 @@ void HyperionEditor::Init()
     // batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     //batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-    // batch->Add("house", "models/house.obj");
+    batch->Add("house", "models/house.obj");
 
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
@@ -271,6 +271,14 @@ void HyperionEditor::Init()
 
     batch->OnComplete.Bind([this](AssetMap &results)
     {
+#if 0
+        if (NodeProxy house = results["house"].ExtractAs<Node>(); house.IsValid()) {
+            house.Translate(Vec3f(0.0f, 0.0f, -1.0f));
+            house.SetName("house");
+            m_scene->GetRoot()->AddChild(house);
+        }
+#endif
+
 #if 1
         NodeProxy node = results["test_model"].ExtractAs<Node>();
 
@@ -299,7 +307,7 @@ void HyperionEditor::Init()
         // Add env grid component
         m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
             EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-            Vec3u { 12, 4, 12 },
+            Vec3u { 16, 4, 16 },
             EnvGridMobility::STATIONARY //EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 
@@ -332,7 +340,7 @@ void HyperionEditor::Init()
             NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
             reflection_probe_node.SetEntity(reflection_probe_entity);
             reflection_probe_node.SetName("ReflectionProbeTest");
-            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 15.0f, 0.0f));
+            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 6.0f, 0.0f));
         }
 
 #endif
@@ -348,9 +356,9 @@ void HyperionEditor::Init()
             if (zombie_entity.IsValid()) {
                 if (auto *mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie_entity)) {
                     mesh_component->material = mesh_component->material->Clone();
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.05f);
-                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
+                    mesh_component->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
                     InitObject(mesh_component->material);
                 }
 

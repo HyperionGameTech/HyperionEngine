@@ -5,6 +5,7 @@ HYP_DESCRIPTOR_SRV(Global, DeferredResult, 1);
 HYP_DESCRIPTOR_SRV(Global, PostFXPreStack, 4);
 HYP_DESCRIPTOR_SRV(Global, PostFXPostStack, 4);
 HYP_DESCRIPTOR_SRV(Global, SSRResultTexture, 1);
+HYP_DESCRIPTOR_SRV(Global, SSGIResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, SSAOResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, TAAResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture, 1);

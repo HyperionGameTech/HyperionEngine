@@ -8,7 +8,6 @@
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
-#include <rendering/SSRRenderer.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
@@ -25,6 +24,8 @@ class RenderEnvironment;
 class GBuffer;
 class Texture;
 class DepthPyramidRenderer;
+class SSRRenderer;
+class SSGI;
 
 using DeferredFlagBits = uint32;
 
@@ -61,7 +62,6 @@ public:
 protected:
     void CreateShader();
 
-    virtual void CreatePipeline() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
 
     virtual void Resize_Internal(Vec2u new_size) override;
@@ -165,13 +165,13 @@ private:
 
     virtual void Resize_Internal(Vec2u new_size) override;
 
-    FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>                                  m_render_groups;
+    FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>  m_render_groups;
 
-    UniquePtr<SSRRenderer>                                                                          m_ssr_renderer;
+    UniquePtr<SSRRenderer>                                          m_ssr_renderer;
 
-    UniquePtr<FullScreenPass>                                                                       m_render_ssr_to_screen_pass;
+    UniquePtr<FullScreenPass>                                       m_render_ssr_to_screen_pass;
 
-    bool                                                                                            m_is_first_frame;
+    bool                                                            m_is_first_frame;
 };
 
 class DeferredRenderer
@@ -244,6 +244,7 @@ private:
     PostProcessing                                      m_post_processing;
     UniquePtr<HBAO>                                     m_hbao;
     UniquePtr<TemporalAA>                               m_temporal_aa;
+    UniquePtr<SSGI>                                     m_ssgi;
 
     FramebufferRef                                      m_opaque_fbo;
     FramebufferRef                                      m_translucent_fbo;

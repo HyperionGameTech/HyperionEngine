@@ -29,7 +29,7 @@ using renderer::GPUBufferType;
 
 static constexpr bool use_temporal_blending = true;
 
-static constexpr InternalFormat ssr_format = InternalFormat::RGBA8;
+static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
 
 struct SSRUniforms
 {
@@ -177,7 +177,7 @@ void SSRRenderer::Create()
     if (use_temporal_blending) {
         m_temporal_blending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            InternalFormat::RGBA8,
+            InternalFormat::RGBA16F,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             m_sampled_result_texture->GetRenderResource().GetImageView()
@@ -239,7 +239,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
     uniforms.ray_step = m_config.ray_step;
     uniforms.num_iterations = m_config.num_iterations;
-    uniforms.max_ray_distance = 150.0f;
+    uniforms.max_ray_distance = 1000.0f;
     uniforms.distance_bias = 0.1f;
     uniforms.offset = 0.001f;
     uniforms.eye_fade_start = m_config.eye_fade.x;

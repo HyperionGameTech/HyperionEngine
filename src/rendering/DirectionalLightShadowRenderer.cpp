@@ -629,8 +629,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     needs_statics_rerender |= statics_collection_result.NeedsUpdate();
 
     if (needs_statics_rerender) {
-        HYP_LOG(Shadows, Debug, "statics collection result: {}, {}, {}", statics_collection_result.num_added_entities, statics_collection_result.num_removed_entities, statics_collection_result.num_changed_entities);
-        
         m_cached_view_matrix = m_camera->GetViewMatrix();
 
         // Force static objects to re-render for a few frames

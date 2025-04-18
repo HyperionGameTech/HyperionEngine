@@ -16,6 +16,8 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/SSRRenderer.hpp>
+#include <rendering/SSGI.hpp>
 #include <rendering/PlaceholderData.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
@@ -145,6 +147,7 @@ DeferredPass::DeferredPass(DeferredPassMode mode)
     : FullScreenPass(InternalFormat::RGBA16F),
       m_mode(mode)
 {
+    SetBlendFunction(BlendFunction::Additive());
 }
 
 DeferredPass::~DeferredPass()
@@ -194,21 +197,6 @@ void DeferredPass::CreateShader()
     default:
         HYP_FAIL("Invalid deferred pass mode");
     }
-}
-
-void DeferredPass::CreatePipeline()
-{
-    CreatePipeline(RenderableAttributeSet(
-        MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
-        MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
-            .blend_function = m_mode == DeferredPassMode::DIRECT_LIGHTING
-                ? BlendFunction::Additive()
-                : BlendFunction::None()
-        }
-    ));
 }
 
 void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
@@ -1016,6 +1004,9 @@ void DeferredRenderer::Create()
     m_reflections_pass = MakeUnique<ReflectionsPass>();
     m_reflections_pass->Create();
 
+    m_ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig());
+    m_ssgi->Create();
+
     m_post_processing.Create();
 
     m_indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING);
@@ -1107,6 +1098,9 @@ void DeferredRenderer::Destroy()
 
     // m_dof_blur->Destroy();
 
+    m_ssgi->Destroy();
+    m_ssgi.Reset();
+
     m_post_processing.Destroy();
 
     m_combine_pass.Reset();
@@ -1178,6 +1172,8 @@ void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
     
     const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
     const bool use_hbil = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool();
+
+    const bool use_ssgi = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssgi.enabled").ToBool();
 
     const bool use_env_grid_irradiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool();
     const bool use_env_grid_radiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool();
@@ -1261,10 +1257,27 @@ void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
         m_hbao->Render(frame);
     }
 
-    // render indirect and direct lighting into the same framebuffer
-    const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
+    if (use_ssgi) {
+        bool is_sky_set = false;
+
+        // Bind sky env probe for SSGI.
+        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
+            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+
+            is_sky_set = true;
+        }
+
+        m_ssgi->Render(frame);
+
+        if (is_sky_set) {
+            g_engine->GetRenderState()->UnsetActiveEnvProbe();
+        }
+    }
 
     m_post_processing.RenderPre(frame);
+
+    // render indirect and direct lighting into the same framebuffer
+    const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
 
     { // deferred lighting on opaque objects
         frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);

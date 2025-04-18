@@ -102,6 +102,8 @@ void CompositePass::CreateShader()
 
     if (config["rendering.debug.ssr"]) {
         final_output_props.Set("DEBUG_SSR");
+    } else if (config["rendering.debug.ssgi"]) {
+        final_output_props.Set("DEBUG_SSGI");
     } else if (config["rendering.debug.hbao"]) {
         final_output_props.Set("DEBUG_HBAO");
     } else if (config["rendering.debug.hbil"]) {
