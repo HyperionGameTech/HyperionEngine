@@ -90,9 +90,6 @@ public:
 
             RC<UIObject> element = factory->CreateUIObject(parent, getter_result, { });
             AssertThrow(element != nullptr);
-
-            HYP_LOG(Editor, Debug, "Element for attribute \"{}\": {}\tsize: {}", it.first, GetClass(element.GetTypeID())->GetName(), element->GetActualSize());
-            
             panel->AddChildUIObject(element);
 
             column->AddChildUIObject(panel);

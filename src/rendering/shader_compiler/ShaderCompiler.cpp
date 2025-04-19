@@ -2136,15 +2136,15 @@ bool ShaderCompiler::CompileBundle(
                     }
                 }
 
-                HYP_LOG(
-                    ShaderCompiler,
-                    Info,
-                    "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]\n\tProperties hash: {}",
-                    output_filepath,
-                    variable_properties_string,
-                    static_properties_string,
-                    properties.GetHashCode().Value()
-                );
+                // HYP_LOG(
+                //     ShaderCompiler,
+                //     Info,
+                //     "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]\n\tProperties hash: {}",
+                //     output_filepath,
+                //     variable_properties_string,
+                //     static_properties_string,
+                //     properties.GetHashCode().Value()
+                // );
             }
             
             ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, compiled_shader.descriptor_usages, processed_sources[index], item.file.path, properties, error_messages);

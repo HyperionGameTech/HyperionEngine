@@ -5,7 +5,6 @@
 
 #include <core/Name.hpp>
 #include <core/utilities/Optional.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 #include <core/containers/ArrayMap.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/Defines.hpp>
@@ -22,7 +21,8 @@
 namespace hyperion {
 namespace renderer {
 
-struct VulkanDescriptorSetLayoutWrapper;
+class VulkanDescriptorSetLayoutWrapper;
+using VulkanDescriptorSetLayoutWrapperRef = RenderObjectHandle_Strong<VulkanDescriptorSetLayoutWrapper>;
 
 struct VulkanDescriptorElementInfo
 {
@@ -73,7 +73,7 @@ protected:
 
     VkDescriptorSet                                         m_handle;
     HashMap<Name, Array<DescriptorSetElementCachedValue>>   m_cached_elements;
-    RC<VulkanDescriptorSetLayoutWrapper>                    m_vk_layout_wrapper;
+    VulkanDescriptorSetLayoutWrapperRef                     m_vk_layout_wrapper;
 };
 
 class VulkanDescriptorTable : public DescriptorTableBase

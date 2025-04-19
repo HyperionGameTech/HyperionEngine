@@ -39,6 +39,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
     };
 
     RC<ShaderMapEntry> entry;
+    bool should_add_entry_to_cache = false;
 
     { // pulling value from cache if it exists
         Mutex::Guard guard(m_mutex);
@@ -48,14 +49,38 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
         if (it != m_map.End()) {
             entry = it->second;
             AssertThrow(entry != nullptr);
+        } else {
+            should_add_entry_to_cache = true;
         }
     }
 
     if (entry != nullptr) {
+        constexpr int max_spins = 1024;
+        int num_spins = 0;
+
         // loading from another thread -- wait until state is no longer LOADING
         while (entry->state.Get(MemoryOrder::SEQUENTIAL) == ShaderMapEntry::State::LOADING) {
             // sanity check - should never happen
             AssertThrow(entry->loading_thread_id != Threads::CurrentThreadID());
+
+            if (num_spins == max_spins) {
+                HYP_LOG(Shader, Warning,
+                    "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
+                    definition.GetName(),
+                    entry->loading_thread_id.GetName(),
+                    Threads::CurrentThreadID().GetName()
+                );
+
+                entry = MakeRefCountedPtr<ShaderMapEntry>();
+                entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
+                entry->loading_thread_id = Threads::CurrentThreadID();
+
+                should_add_entry_to_cache = false;
+
+                break;
+            }
+
+            num_spins++;
         }
 
         if (ShaderRef shader = entry->shader.Lock()) {
@@ -75,12 +100,14 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
         // @TODO: remove bad value from cache?
     }
 
-    {// lock here, to add new entry to cache
+    if (should_add_entry_to_cache) { // lock here, to add new entry to cache
+        if (!entry) {
+            entry = MakeRefCountedPtr<ShaderMapEntry>();
+            entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
+            entry->loading_thread_id = Threads::CurrentThreadID();
+        }
+
         Mutex::Guard guard(m_mutex);
-        
-        entry = MakeRefCountedPtr<ShaderMapEntry>();
-        entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-        entry->loading_thread_id = Threads::CurrentThreadID();
 
         m_map.Set(definition, entry);
     }

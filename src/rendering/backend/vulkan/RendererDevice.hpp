@@ -35,7 +35,7 @@ template <PlatformType PLATFORM>
 class DescriptorSetManager;
 
 template <>
-class Device<Platform::VULKAN> final : public RenderObject<Device<Platform::VULKAN>>
+class Device<Platform::VULKAN> final
 {
     static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
 

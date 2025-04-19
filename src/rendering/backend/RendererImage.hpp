@@ -122,6 +122,15 @@ public:
     HYP_API virtual RendererResult Blit(
         CommandBufferBase *command_buffer,
         const ImageBase *src,
+        uint32 src_mip,
+        uint32 dst_mip,
+        uint32 src_face,
+        uint32 dst_face
+    ) = 0;
+
+    HYP_API virtual RendererResult Blit(
+        CommandBufferBase *command_buffer,
+        const ImageBase *src,
         Rect<uint32> src_rect,
         Rect<uint32> dst_rect
     ) = 0;
@@ -132,7 +141,9 @@ public:
         Rect<uint32> src_rect,
         Rect<uint32> dst_rect,
         uint32 src_mip,
-        uint32 dst_mip
+        uint32 dst_mip,
+        uint32 src_face,
+        uint32 dst_face
     ) = 0;
 
     HYP_API virtual RendererResult GenerateMipmaps(CommandBufferBase *command_buffer) = 0;

@@ -145,11 +145,32 @@ static inline ContextType *GetGlobalContext()
     return nullptr;
 }
 
+template <class ContextType>
+static inline void PushGlobalContext(ContextType &&context)
+{
+    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+
+    holder.Push(std::forward<ContextType>(context));
+}
+
+template <class ContextType>
+static inline ContextType PopGlobalContext()
+{
+    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+
+    ContextType current = std::move(holder.Current());
+    holder.Pop();
+
+    return current;
+}
+
 } // namespace utilities
 
 using utilities::GlobalContextScope;
 using utilities::IsGlobalContextActive;
 using utilities::GetGlobalContext;
+using utilities::PushGlobalContext;
+using utilities::PopGlobalContext;
 
 } // namespace hyperion
 

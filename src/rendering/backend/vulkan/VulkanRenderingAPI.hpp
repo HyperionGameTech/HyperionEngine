@@ -10,6 +10,8 @@
 
 #include <core/containers/HashMap.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 namespace hyperion {
 namespace renderer {
     
@@ -23,7 +25,10 @@ class Device;
 
 } // namespace platform
 
-struct VulkanDescriptorSetLayoutWrapper;
+class VulkanDescriptorSetLayoutWrapper;
+using VulkanDescriptorSetLayoutWrapperRef = RenderObjectHandle_Strong<VulkanDescriptorSetLayoutWrapper>;
+using VulkanDescriptorSetLayoutWrapperWeakRef = RenderObjectHandle_Weak<VulkanDescriptorSetLayoutWrapper>;
+
 class VulkanDescriptorSetManager;
 
 extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper &layout);
@@ -108,9 +113,9 @@ public:
     virtual Delegate<void, SwapchainBase *> &GetOnSwapchainRecreatedDelegate() override
         { return OnSwapchainRecreated; }
 
-    RendererResult CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper> &layout, VkDescriptorSet &out_vk_descriptor_set);
-    RendererResult DestroyDescriptorSet(VkDescriptorSet vk_descriptor_set);
-    RC<VulkanDescriptorSetLayoutWrapper> GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout &layout);
+    HYP_API RendererResult CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set);
+    HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vk_descriptor_set);
+    HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout &layout, VulkanDescriptorSetLayoutWrapperRef &out_ref);
 
 private:
     Delegate<void, SwapchainBase *>                             OnSwapchainRecreated;

@@ -568,76 +568,53 @@ void VulkanImage::InsertSubResourceBarrier(
 
 RendererResult VulkanImage::Blit(
     CommandBufferBase *command_buffer,
-    const ImageBase *src_image,
-    Rect<uint32> src_rect,
-    Rect<uint32> dst_rect,
-    uint32 src_mip,
-    uint32 dst_mip
+    const ImageBase *src
 )
 {
-    const uint32 num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
+    return Blit(
+        command_buffer,
+        src,
+        Rect<uint32> {
+            .x0 = 0,
+            .y0 = 0,
+            .x1 = src->GetExtent().x,
+            .y1 = src->GetExtent().y
+        },
+        Rect<uint32> {
+            .x0 = 0,
+            .y0 = 0,
+            .x1 = m_texture_desc.extent.x,
+            .y1 = m_texture_desc.extent.y
+        }
+    );
+}
 
-    for (uint32 face = 0; face < num_faces; face++) {
-        const ImageSubResource src {
-            .flags = src_image->GetTextureDesc().IsDepthStencil()
-                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-            .base_array_layer   = face,
-            .base_mip_level     = src_mip
-        };
-
-        const ImageSubResource dst {
-            .flags = m_texture_desc.IsDepthStencil()
-                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-            .base_array_layer = face,
-            .base_mip_level   = dst_mip
-        };
-
-        const VkImageAspectFlags aspect_flag_bits = 
-            (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-        
-        /* Blit src -> dst */
-        const VkImageBlit blit {
-            .srcSubresource = {
-                .aspectMask     = aspect_flag_bits,
-                .mipLevel       = src_mip,
-                .baseArrayLayer = src.base_array_layer,
-                .layerCount     = src.num_layers
-            },
-            .srcOffsets = {
-                { int32(src_rect.x0), int32(src_rect.y0), 0 },
-                { int32(src_rect.x1), int32(src_rect.y1), 1 }
-            },
-            .dstSubresource = {
-                .aspectMask     = aspect_flag_bits,
-                .mipLevel       = dst_mip,
-                .baseArrayLayer = dst.base_array_layer,
-                .layerCount     = dst.num_layers
-            },
-            .dstOffsets = {
-                { int32(dst_rect.x0), int32(dst_rect.y0), 0 },
-                { int32(dst_rect.x1), int32(dst_rect.y1), 1 }
-            }
-        };
-
-        vkCmdBlitImage(
-            static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
-            static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
-            GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
-            m_handle,
-            GetVkImageLayout(GetResourceState()),
-            1, &blit,
-            helpers::ToVkFilter(GetMinFilterMode())
-        );
-    }
-
-    HYPERION_RETURN_OK;
+RendererResult VulkanImage::Blit(
+    CommandBufferBase *command_buffer,
+    const ImageBase *src_image,
+    uint32 src_mip,
+    uint32 dst_mip,
+    uint32 src_face,
+    uint32 dst_face
+)
+{
+    return Blit(
+        command_buffer,
+        src_image,
+        Rect<uint32> {
+            .x0 = 0,
+            .y0 = 0,
+            .x1 = src_image->GetExtent().x,
+            .y1 = src_image->GetExtent().y
+        },
+        Rect<uint32> {
+            .x0 = 0,
+            .y0 = 0,
+            .x1 = m_texture_desc.extent.x,
+            .y1 = m_texture_desc.extent.y
+        },
+        src_mip, dst_mip, src_face, dst_face
+    );
 }
 
 RendererResult VulkanImage::Blit(
@@ -714,25 +691,76 @@ RendererResult VulkanImage::Blit(
 
 RendererResult VulkanImage::Blit(
     CommandBufferBase *command_buffer,
-    const ImageBase *src
+    const ImageBase *src_image,
+    Rect<uint32> src_rect,
+    Rect<uint32> dst_rect,
+    uint32 src_mip,
+    uint32 dst_mip,
+    uint32 src_face,
+    uint32 dst_face
 )
 {
-    return Blit(
-        command_buffer,
-        src,
-        Rect<uint32> {
-            .x0 = 0,
-            .y0 = 0,
-            .x1 = src->GetExtent().x,
-            .y1 = src->GetExtent().y
+    const uint32 num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
+
+    const ImageSubResource src {
+        .flags = src_image->GetTextureDesc().IsDepthStencil()
+            ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
+            : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+        .base_array_layer   = src_face,
+        .base_mip_level     = src_mip
+    };
+
+    const ImageSubResource dst {
+        .flags = m_texture_desc.IsDepthStencil()
+            ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
+            : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+        .base_array_layer = dst_face,
+        .base_mip_level   = dst_mip
+    };
+
+    const VkImageAspectFlags aspect_flag_bits = 
+        (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+        | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+        | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
+        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+    
+    /* Blit src -> dst */
+    const VkImageBlit blit {
+        .srcSubresource = {
+            .aspectMask     = aspect_flag_bits,
+            .mipLevel       = src_mip,
+            .baseArrayLayer = src.base_array_layer,
+            .layerCount     = 1
         },
-        Rect<uint32> {
-            .x0 = 0,
-            .y0 = 0,
-            .x1 = m_texture_desc.extent.x,
-            .y1 = m_texture_desc.extent.y
+        .srcOffsets = {
+            { int32(src_rect.x0), int32(src_rect.y0), 0 },
+            { int32(src_rect.x1), int32(src_rect.y1), 1 }
+        },
+        .dstSubresource = {
+            .aspectMask     = aspect_flag_bits,
+            .mipLevel       = dst_mip,
+            .baseArrayLayer = dst.base_array_layer,
+            .layerCount     = 1
+        },
+        .dstOffsets = {
+            { int32(dst_rect.x0), int32(dst_rect.y0), 0 },
+            { int32(dst_rect.x1), int32(dst_rect.y1), 1 }
         }
+    };
+
+    vkCmdBlitImage(
+        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
+        static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
+        GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
+        m_handle,
+        GetVkImageLayout(GetResourceState()),
+        1, &blit,
+        helpers::ToVkFilter(GetMinFilterMode())
     );
+
+    HYPERION_RETURN_OK;
 }
 
 void VulkanImage::CopyFromBuffer(CommandBufferBase *command_buffer, const GPUBufferBase *src_buffer) const

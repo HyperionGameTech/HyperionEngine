@@ -101,7 +101,9 @@ struct VulkanAttachmentMap
         texture_desc.image_format_capabilities = ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::ATTACHMENT;
 
         VulkanImageRef image = MakeRenderObject<VulkanImage>(texture_desc);
+
         VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(image, stage);
+        attachment->SetBinding(binding);
 
         attachments.Set(
             binding,

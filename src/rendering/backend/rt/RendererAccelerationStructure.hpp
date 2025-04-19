@@ -12,7 +12,7 @@
 namespace hyperion {
 namespace renderer {
 
-enum class AccelerationStructureType
+enum class AccelerationStructureType : uint8
 {
     BOTTOM_LEVEL,
     TOP_LEVEL

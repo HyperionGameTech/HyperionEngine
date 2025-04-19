@@ -105,6 +105,13 @@ struct EnvProbeIndex
     }
 };
 
+enum class EnvProbeConvolveMode : uint8
+{
+    NONE = 0,
+    IRRADIANCE_MAP,
+    PREFILTERED_ENV_MAP
+};
+
 class EnvProbeRenderResource final : public RenderResourceBase
 {
 public:
@@ -163,21 +170,25 @@ public:
     void EnqueueUnbind();
 
     void Render(FrameBase *frame);
-
+    
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
-
+    
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
-
+    
 private:
     void CreateShader();
     void CreateFramebuffer();
     void CreateTexture();
-
+    
     void BindToIndex(const EnvProbeIndex &probe_index);
     void UpdateBufferData();
+    
+    bool ShouldComputePrefilteredEnvMap() const;
+    bool ShouldComputeIrradianceMap() const;
+    void Convolve(FrameBase *frame, EnvProbeConvolveMode convolve_mode);
 
     EnvProbe                                *m_env_probe;
 
@@ -192,6 +203,12 @@ private:
     Handle<Texture>                         m_texture;
     FramebufferRef                          m_framebuffer;
     ShaderRef                               m_shader;
+
+    ImageRef                                m_irradiance_image;
+    ImageViewRef                            m_irradiance_image_view;
+
+    ImageRef                                m_prefiltered_image;
+    ImageViewRef                            m_prefiltered_image_view;
 
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
     TResourceHandle<SceneRenderResource>    m_scene_resource_handle;

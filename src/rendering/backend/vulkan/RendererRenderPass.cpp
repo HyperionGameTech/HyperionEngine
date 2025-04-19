@@ -5,6 +5,8 @@
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 namespace hyperion {
 
 extern IRenderingAPI *g_rendering_api;
@@ -116,11 +118,18 @@ RendererResult VulkanRenderPass::Create()
     subpass_description.pDepthStencilAttachment = nullptr;
 
     uint32 next_binding = 0;
+    HashSet<uint32> used_bindings;
 
     for (const VulkanAttachmentRef &attachment : m_render_pass_attachments) {
         if (!attachment->HasBinding()) { // no binding has manually been set so we make one
             attachment->SetBinding(next_binding);
         }
+
+        if (used_bindings.Contains(attachment->GetBinding())) {
+            return HYP_MAKE_ERROR(RendererError, "Render pass attachment binding cannot be reused");
+        }
+
+        used_bindings.Insert(attachment->GetBinding());
 
         next_binding = attachment->GetBinding() + 1;
 

@@ -68,8 +68,6 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
     virtual RendererResult operator()() override
     {
         if (Handle<Texture> texture = texture_weak.Lock()) {
-            HYP_LOG(Rendering, Debug, "Creating texture: {} (ID: {})", texture->GetName(), texture->GetID().Value());
-
             if (!image->IsCreated()) {
                 HYPERION_BUBBLE_ERRORS(image->Create());
 

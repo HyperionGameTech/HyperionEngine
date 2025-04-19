@@ -60,6 +60,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
             new_image,
             def.attachment->GetRenderPassStage()
         );
+        new_attachment->SetBinding(def.attachment->GetBinding());
 
         DeferCreate(new_attachment);
 

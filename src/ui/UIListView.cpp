@@ -40,6 +40,8 @@ UIListViewItem::UIListViewItem()
 void UIListViewItem::Init()
 {
     UIObject::Init();
+
+    m_initial_background_color = GetBackgroundColor();
 }
 
 void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
@@ -132,11 +134,15 @@ void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_
 {
     UIObject::SetFocusState_Internal(focus_state);
 
-    // if (focus_state & UIObjectFocusState::HOVER) {
-    //     m_inner_element->SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
-    // } else {
-    //     m_inner_element->SetBackgroundColor(Color(0x101012FFu));
-    // }
+    if (focus_state & UIObjectFocusState::HOVER) {
+        if (GetFocusState() == UIObjectFocusState::NONE) {
+            m_initial_background_color = GetBackgroundColor();
+        }
+
+        SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 0.5f });
+    } else if (focus_state == UIObjectFocusState::NONE) {
+        SetBackgroundColor(m_initial_background_color);
+    }
 }
 
 #pragma endregion UIListViewItem

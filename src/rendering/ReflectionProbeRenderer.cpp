@@ -62,6 +62,10 @@ void ReflectionProbeRenderer::OnRender(FrameBase *frame)
         );
     }
 
+    //if (!m_env_probe_resource_handle->GetEnvProbe()->NeedsRender()) {
+    //    return;
+    //}
+
     m_env_probe_resource_handle->Render(frame);
 }
 

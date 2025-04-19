@@ -94,8 +94,6 @@ void VulkanComputePipeline::DispatchIndirect(
 
 RendererResult VulkanComputePipeline::Create()
 {
-    AssertThrowMsg(m_descriptor_table.IsValid(), "To use this function, you must use a DescriptorTable");
-
     /* Push constants */
     const VkPushConstantRange push_constant_ranges[] = {
         {

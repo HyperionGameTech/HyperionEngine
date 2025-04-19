@@ -688,6 +688,10 @@ void EnvGrid::CreateVoxelGridData()
     ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), {{ "MODE_OFFSET" }});
     ShaderRef clear_voxels_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_ClearProbeVoxels"));
 
+    AttachmentBase *color_attachment = m_framebuffer->GetAttachment(0);
+    AttachmentBase *normals_attachment = m_framebuffer->GetAttachment(1);
+    AttachmentBase *depth_attachment = m_framebuffer->GetAttachment(2);
+
     const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
@@ -697,13 +701,16 @@ void EnvGrid::CreateVoxelGridData()
         DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("VoxelizeProbeDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("InColorImage"), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(NAME("InNormalsImage"), m_framebuffer->GetAttachment(1)->GetImageView());
-        descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
+        descriptor_set->SetElement(NAME("InColorImage"), color_attachment ? color_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("InNormalsImage"), normals_attachment ? normals_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("InDepthImage"), depth_attachment ? depth_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+        
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+        
         descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes->GetBuffer(frame_index));
+        
         descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetRenderResource().GetImageView());
 
         AssertThrow(m_voxel_grid_texture->GetRenderResource().GetImageView() != nullptr);
@@ -988,7 +995,6 @@ void EnvGrid::CreateShader()
     HYP_SCOPE;
 
     ShaderProperties shader_properties(static_mesh_vertex_attributes, {
-        "MODE_AMBIENT",
         "WRITE_NORMALS",
         "WRITE_MOMENTS"
     });

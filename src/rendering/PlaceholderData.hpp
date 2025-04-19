@@ -108,7 +108,7 @@ public:
     }
 
 private:
-    HYP_API GPUBufferRef CreateGPUBuffer(GPUBufferType buffer_type, SizeType size);
+    GPUBufferRef CreateGPUBuffer(GPUBufferType buffer_type, SizeType size);
 
     FlatMap<GPUBufferType, FlatMap<SizeType, GPUBufferRef>> m_buffers;
 };

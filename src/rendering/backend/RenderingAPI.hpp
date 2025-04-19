@@ -35,8 +35,8 @@ class SwapchainBase;
 class AsyncComputeBase;
 struct TextureDesc;
 
-struct DescriptorSetLayout;
-struct DescriptorTableDeclaration;
+class DescriptorSetLayout;
+class DescriptorTableDeclaration;
 
 enum class GPUBufferType : uint8;
 enum class RenderPassStage : uint8;

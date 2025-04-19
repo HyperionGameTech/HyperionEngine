@@ -58,6 +58,7 @@ private:
     RC<UIObject>    m_expanded_element;
     bool            m_is_selected_item;
     bool            m_is_expanded;
+    Color           m_initial_background_color;
 };
 
 #pragma endregion UIListViewItem

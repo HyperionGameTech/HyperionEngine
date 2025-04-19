@@ -416,16 +416,37 @@ public:
     {
     }
 
+    Blit(const ImageRef &src_image, const ImageRef &dst_image, uint32 src_mip, uint32 dst_mip, uint32 src_face, uint32 dst_face)
+        : m_src_image(src_image),
+          m_dst_image(dst_image),
+          m_mip_face_info(MipFaceInfo { src_mip, dst_mip, src_face, dst_face })
+    {
+    }
+
     virtual void Execute(const CommandBufferRef &cmd) override
     {
-        m_dst_image->Blit(cmd, m_src_image);
+        if (m_mip_face_info) {
+            MipFaceInfo info = *m_mip_face_info;
+
+            m_dst_image->Blit(cmd, m_src_image, info.src_mip, info.dst_mip, info.src_face, info.dst_face);
+        } else {
+            m_dst_image->Blit(cmd, m_src_image);
+        }
     }
 
 private:
-    ImageRef        m_src_image;
-    ImageRef        m_dst_image;
-    Rect<uint32>    m_src_rect;
-    Rect<uint32>    m_dst_rect;
+    struct MipFaceInfo
+    {
+        uint32  src_mip;
+        uint32  dst_mip;
+        uint32  src_face;
+        uint32  dst_face;
+    };
+
+    ImageRef                m_src_image;
+    ImageRef                m_dst_image;
+
+    Optional<MipFaceInfo>   m_mip_face_info;
 };
 
 class BlitRect final : public RHICommandBase

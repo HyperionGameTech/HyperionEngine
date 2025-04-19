@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
+#include <core/utilities/GlobalContext.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/DataRaceDetector.hpp>
@@ -80,6 +81,7 @@ public:
     }
 };
 
+HYP_DISABLE_OPTIMIZATION;
 struct RenderObjectHeaderBase
 {
     RenderObjectContainerBase   *container;
@@ -107,7 +109,7 @@ struct RenderObjectHeaderBase
     HYP_FORCE_INLINE void IncRefStrong()
         { ref_count_strong.Increment(1, MemoryOrder::RELAXED); }
 
-    HYP_FORCE_INLINE uint32 DecRefStrong()
+    uint32 DecRefStrong()
     {
         AssertDebug(GetRefCountStrong() != 0);
         AssertDebug(HasValue());
@@ -131,7 +133,7 @@ struct RenderObjectHeaderBase
     HYP_FORCE_INLINE void IncRefWeak()
         { ref_count_weak.Increment(1, MemoryOrder::RELAXED); }
 
-    HYP_FORCE_INLINE uint32 DecRefWeak()
+    uint32 DecRefWeak()
     {
         AssertDebug(GetRefCountWeak() != 0);
         AssertDebug(HasValue());
@@ -148,6 +150,7 @@ struct RenderObjectHeaderBase
         return uint32(count) - 1;
     }
 };
+HYP_ENABLE_OPTIMIZATION;
 
 template <class T>
 struct RenderObjectHeader final : RenderObjectHeaderBase
@@ -188,6 +191,11 @@ struct RenderObjectHeader final : RenderObjectHeaderBase
 
         return storage.Get();
     }
+};
+
+struct ConstructRenderObjectContext
+{
+    RenderObjectHeaderBase  *header;
 };
 
 template <class T>
@@ -259,6 +267,10 @@ public:
 
     RenderObjectHandle_Strong &operator=(const RenderObjectHandle_Strong &other)
     {
+        if (this == &other || header == other.header) {
+            return *this;
+        }
+
         if (header) {
             header->DecRefStrong();
         }
@@ -283,6 +295,10 @@ public:
 
     RenderObjectHandle_Strong &operator=(RenderObjectHandle_Strong &&other) noexcept
     {
+        if (this == &other || header == other.header) {
+            return *this;
+        }
+
         if (header) {
             header->DecRefStrong();
         }
@@ -475,6 +491,10 @@ public:
 
     RenderObjectHandle_Weak &operator=(const RenderObjectHandle_Weak &other)
     {
+        if (this == &other || header == other.header) {
+            return *this;
+        }
+
         if (header) {
             header->DecRefWeak();
         }
@@ -499,6 +519,10 @@ public:
 
     RenderObjectHandle_Weak &operator=(RenderObjectHandle_Weak &&other) noexcept
     {
+        if (this == &other || header == other.header) {
+            return *this;
+        }
+
         if (header) {
             header->DecRefWeak();
         }
@@ -574,16 +598,22 @@ class RenderObjectBase
 protected:
     friend class RenderObjects;
 
-    RenderObjectHeaderBase  *m_header;
+    RenderObjectBase()
+        : m_header(PopGlobalContext<ConstructRenderObjectContext>().header)
+    {
+    }
 
-    RenderObjectBase() = default;
-    
-public:
     virtual ~RenderObjectBase()
     {
         AssertDebug(m_header != nullptr);
         m_header->DecRefWeak();
     }
+
+    HYP_FORCE_INLINE RenderObjectHeaderBase *GetHeader_Internal() const
+        { return m_header; }
+    
+private:
+    RenderObjectHeaderBase  *m_header;
 };
 
 template <class T>
@@ -596,12 +626,12 @@ public:
 
     HYP_NODISCARD RenderObjectHandle_Strong<T> HandleFromThis()
     {
-        return RenderObjectHandle_Strong<T>(m_header, static_cast<T *>(this));
+        return RenderObjectHandle_Strong<T>(GetHeader_Internal(), static_cast<T *>(this));
     }
 
     HYP_NODISCARD RenderObjectHandle_Weak<T> WeakHandleFromThis()
     {
-        return RenderObjectHandle_Weak<T>(m_header, static_cast<T *>(this));
+        return RenderObjectHandle_Weak<T>(GetHeader_Internal(), static_cast<T *>(this));
     }
 };
 
@@ -629,9 +659,13 @@ public:
 
         header->IncRefWeak();
 
-        static_cast<RenderObjectBase *>(static_cast<T *>(header->storage.GetPointer()))->m_header = header;
+        // This is a bit of a hack, but we need to pass the header to the constructor of RenderObjectBase
+        // so HandleFromThis() and WeakHandleFromThis() are usable within the constructor of T and its base classes.
+        PushGlobalContext<ConstructRenderObjectContext>(ConstructRenderObjectContext { header });
 
         header->Construct(std::forward<Args>(args)...);
+
+        AssertDebug(static_cast<T &>(header->storage.Get()).RenderObjectBase::m_header == header);
         
         return RenderObjectHandle_Strong<T>(header);
     }

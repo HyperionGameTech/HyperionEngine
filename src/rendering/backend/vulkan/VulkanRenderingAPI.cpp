@@ -5,6 +5,7 @@
 #include <rendering/backend/vulkan/RendererFrame.hpp>
 #include <rendering/backend/vulkan/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/vulkan/RendererComputePipeline.hpp>
+#include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
 #include <rendering/backend/vulkan/rt/RendererRaytracingPipeline.hpp>
 #include <rendering/backend/vulkan/rt/RendererAccelerationStructure.hpp>
 #include <rendering/backend/vulkan/RendererShader.hpp>
@@ -76,13 +77,36 @@ private:
 
 #pragma region Vulkan struct wrappers
 
-struct VulkanDescriptorSetLayoutWrapper
+class VulkanDescriptorSetLayoutWrapper : public RenderObject<VulkanDescriptorSetLayoutWrapper>
 {
-    VkDescriptorSetLayout   vk_layout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout               m_handle;
+    platform::Device<Platform::VULKAN>  *m_device;
+    RendererResult                      (*m_delete_fn)(platform::Device<Platform::VULKAN> *device, VulkanDescriptorSetLayoutWrapper *);
+
+public:
+    VulkanDescriptorSetLayoutWrapper(platform::Device<Platform::VULKAN> *device, RendererResult(*delete_fn)(platform::Device<Platform::VULKAN> *device, VulkanDescriptorSetLayoutWrapper *))
+        : RenderObject<VulkanDescriptorSetLayoutWrapper>(),
+          m_handle(VK_NULL_HANDLE),
+          m_device(device),
+          m_delete_fn(delete_fn)
+    {
+        AssertThrow(m_delete_fn != nullptr);
+    }
+
+    virtual ~VulkanDescriptorSetLayoutWrapper() override
+    {
+        if (m_handle != VK_NULL_HANDLE) {
+            AssertThrow(m_delete_fn != nullptr);
+            HYPERION_ASSERT_RESULT(m_delete_fn(m_device, this));
+        }
+    }
+
+    HYP_FORCE_INLINE VkDescriptorSetLayout GetVulkanHandle() const
+        { return m_handle; }
 
     RendererResult Create(platform::Device<Platform::VULKAN> *device, const DescriptorSetLayout &layout)
     {
-        AssertThrow(vk_layout == VK_NULL_HANDLE);
+        AssertThrow(m_handle == VK_NULL_HANDLE);
 
         static constexpr VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
@@ -134,7 +158,7 @@ struct VulkanDescriptorSetLayoutWrapper
             device->GetDevice(),
             &layout_info,
             nullptr,
-            &vk_layout
+            &m_handle
         ));
 
         return RendererResult { };
@@ -142,15 +166,15 @@ struct VulkanDescriptorSetLayoutWrapper
 
     RendererResult Destroy(platform::Device<Platform::VULKAN> *device)
     {
-        AssertThrow(vk_layout != VK_NULL_HANDLE);
+        AssertThrow(m_handle != VK_NULL_HANDLE);
 
         vkDestroyDescriptorSetLayout(
             device->GetDevice(),
-            vk_layout,
+            m_handle,
             nullptr
         );
 
-        vk_layout = VK_NULL_HANDLE;
+        m_handle = VK_NULL_HANDLE;
 
         return RendererResult { };
     }
@@ -171,13 +195,14 @@ public:
     RendererResult Create(platform::Device<Platform::VULKAN> *device);
     RendererResult Destroy(platform::Device<Platform::VULKAN> *device);
 
-    RendererResult CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const RC<VulkanDescriptorSetLayoutWrapper> &layout, VkDescriptorSet &out_vk_descriptor_set);
+    RendererResult CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set);
     RendererResult DestroyDescriptorSet(platform::Device<Platform::VULKAN> *device, VkDescriptorSet vk_descriptor_set);
 
-    RC<VulkanDescriptorSetLayoutWrapper> GetOrCreateVkDescriptorSetLayout(platform::Device<Platform::VULKAN> *device, const DescriptorSetLayout &layout);
+    VulkanDescriptorSetLayoutWrapperRef GetOrCreateVkDescriptorSetLayout(platform::Device<Platform::VULKAN> *device, const DescriptorSetLayout &layout);
 
 private:
-    HashMap<HashCode, Weak<VulkanDescriptorSetLayoutWrapper>>   m_vk_descriptor_set_layouts;
+    Mutex                                                       m_mutex;
+    HashMap<HashCode, VulkanDescriptorSetLayoutWrapperWeakRef>  m_vk_descriptor_set_layouts;
 
     VkDescriptorPool                                            m_vk_descriptor_pool;
 };
@@ -249,17 +274,19 @@ RendererResult VulkanDescriptorSetManager::Destroy(platform::Device<Platform::VU
     return result;
 }
 
-RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const RC<VulkanDescriptorSetLayoutWrapper> &layout, VkDescriptorSet &out_vk_descriptor_set)
+RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set)
 {
     AssertThrow(m_vk_descriptor_pool != VK_NULL_HANDLE);
 
     AssertThrow(layout != nullptr);
-    AssertThrow(layout->vk_layout != VK_NULL_HANDLE);
+    AssertThrow(layout->GetVulkanHandle() != VK_NULL_HANDLE);
+
+    VkDescriptorSetLayout layouts[] = { layout->GetVulkanHandle() };
 
     VkDescriptorSetAllocateInfo alloc_info { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
     alloc_info.descriptorPool = m_vk_descriptor_pool;
-    alloc_info.descriptorSetCount = 1;
-    alloc_info.pSetLayouts = &layout->vk_layout;
+    alloc_info.descriptorSetCount = ArraySize(layouts);
+    alloc_info.pSetLayouts = &layouts[0];
 
     const VkResult vk_result = vkAllocateDescriptorSets(
         device->GetDevice(),
@@ -290,11 +317,13 @@ RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(platform::Device
     return RendererResult { };
 }
 
-RC<VulkanDescriptorSetLayoutWrapper> VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(platform::Device<Platform::VULKAN> *device, const DescriptorSetLayout &layout)
+VulkanDescriptorSetLayoutWrapperRef VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(platform::Device<Platform::VULKAN> *device, const DescriptorSetLayout &layout)
 {
     const HashCode hash_code = layout.GetHashCode();
 
-    RC<VulkanDescriptorSetLayoutWrapper> vk_descriptor_set_layout;
+    VulkanDescriptorSetLayoutWrapperRef vk_descriptor_set_layout;
+
+    Mutex::Guard guard(m_mutex);
 
     auto it = m_vk_descriptor_set_layouts.Find(hash_code);
 
@@ -306,8 +335,11 @@ RC<VulkanDescriptorSetLayoutWrapper> VulkanDescriptorSetManager::GetOrCreateVkDe
         return vk_descriptor_set_layout;
     }
 
-    vk_descriptor_set_layout = MakeRefCountedPtr<VulkanDescriptorSetLayoutWrapper>();
-    
+    vk_descriptor_set_layout = MakeRenderObject<VulkanDescriptorSetLayoutWrapper>(device, [](platform::Device<Platform::VULKAN> *device, VulkanDescriptorSetLayoutWrapper *wrapper)
+    {
+        return wrapper->Destroy(device);
+    });
+
     HYPERION_ASSERT_RESULT(vk_descriptor_set_layout->Create(device, layout));
 
     m_vk_descriptor_set_layouts.Set(hash_code, vk_descriptor_set_layout);
@@ -710,7 +742,7 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
     HYP_NOT_IMPLEMENTED();
 }
 
-RendererResult VulkanRenderingAPI::CreateDescriptorSet(const RC<VulkanDescriptorSetLayoutWrapper> &layout, VkDescriptorSet &out_vk_descriptor_set)
+RendererResult VulkanRenderingAPI::CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set)
 {
     return m_descriptor_set_manager->CreateDescriptorSet(m_instance->GetDevice(), layout, out_vk_descriptor_set);
 }
@@ -720,16 +752,22 @@ RendererResult VulkanRenderingAPI::DestroyDescriptorSet(VkDescriptorSet vk_descr
     return m_descriptor_set_manager->DestroyDescriptorSet(m_instance->GetDevice(), vk_descriptor_set);
 }
 
-RC<VulkanDescriptorSetLayoutWrapper> VulkanRenderingAPI::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout &layout)
+RendererResult VulkanRenderingAPI::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout &layout, VulkanDescriptorSetLayoutWrapperRef &out_ref)
 {
-    return m_descriptor_set_manager->GetOrCreateVkDescriptorSetLayout(m_instance->GetDevice(), layout);
+    out_ref = m_descriptor_set_manager->GetOrCreateVkDescriptorSetLayout(m_instance->GetDevice(), layout);
+    
+    if (out_ref.IsValid()) {
+        return RendererResult { };
+    }
+
+    return HYP_MAKE_ERROR(RendererError, "Failed to get or create Vulkan descriptor set layout");
 }
 
 #pragma endregion VulkanRenderingAPI
 
 HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper &layout)
 {
-    return layout.vk_layout;
+    return layout.GetVulkanHandle();
 }
 
 } // namespace renderer

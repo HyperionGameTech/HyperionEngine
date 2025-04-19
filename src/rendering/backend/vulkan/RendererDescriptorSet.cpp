@@ -37,7 +37,7 @@ static inline VulkanRenderingAPI *GetRenderingAPI()
     return static_cast<VulkanRenderingAPI *>(g_rendering_api);
 }
 
-#pragma region DescriptorSet
+#pragma region VulkanDescriptorSet
 
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout &layout)
     : DescriptorSetBase(layout),
@@ -264,7 +264,7 @@ RendererResult VulkanDescriptorSet::Create()
 {
     AssertThrow(m_handle == VK_NULL_HANDLE);
 
-    m_vk_layout_wrapper = GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout);
+    HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
 
     RendererResult result;
 
@@ -292,6 +292,7 @@ RendererResult VulkanDescriptorSet::Create()
     return result;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanDescriptorSet::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE) {
@@ -304,6 +305,7 @@ RendererResult VulkanDescriptorSet::Destroy()
 
     return RendererResult { };
 }
+HYP_ENABLE_OPTIMIZATION;
 
 bool VulkanDescriptorSet::IsCreated() const
 {

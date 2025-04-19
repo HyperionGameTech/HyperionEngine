@@ -36,7 +36,7 @@ static VkTransformMatrixKHR ToVkTransform(const Matrix4 &matrix)
     return transform;
 }
 
-VkAccelerationStructureTypeKHR VulkanAccelerationStructureBaseToVkAccelerationStructureType(AccelerationStructureType type)
+static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType type)
 {
     switch (type) {
     case AccelerationStructureType::BOTTOM_LEVEL:
@@ -48,7 +48,7 @@ VkAccelerationStructureTypeKHR VulkanAccelerationStructureBaseToVkAccelerationSt
     }
 }
 
-#pragma region AccelerationGeometry
+#pragma region VulkanAccelerationGeometry
 
 VulkanAccelerationGeometry::VulkanAccelerationGeometry(
     const VulkanGPUBufferRef &packed_vertices_buffer,
@@ -137,7 +137,7 @@ RendererResult VulkanAccelerationGeometry::Destroy()
     return result;
 }
 
-#pragma endregion AccelerationGeometry
+#pragma endregion VulkanAccelerationGeometry
 
 #pragma region AccelerationStructure
 

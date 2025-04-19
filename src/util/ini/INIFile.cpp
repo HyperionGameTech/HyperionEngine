@@ -121,7 +121,6 @@ void INIFile::Parse()
                     --parentheses_depth;
 
                     if (parentheses_depth == 0 && sub_element_name.Any()) {
-                        DebugLog(LogType::Debug, "Add subelement %s", sub_element_name.Data());
                         element.sub_elements.PushBack(std::move(sub_element_name));
                         sub_element_name.Clear();
                     }

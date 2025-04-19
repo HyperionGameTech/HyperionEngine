@@ -116,8 +116,6 @@ public:
     HYP_API RendererResult Destroy();
 
 protected:
-    static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
-    
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
         { SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE); }
 

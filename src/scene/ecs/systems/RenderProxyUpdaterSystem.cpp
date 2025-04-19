@@ -80,8 +80,6 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     AssertThrow(mesh_component.proxy == nullptr);
 
-    HYP_LOG(ECS, Debug, "Adding render proxy for entity {} for Scene {}", entity.GetID().Value(), GetScene()->GetName());
-
     if (mesh_component.mesh.IsValid() && mesh_component.material.IsValid()) {
         mesh_component.proxy = new RenderProxy {
             entity,
@@ -110,9 +108,6 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 
     MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
-
-    HYP_LOG(ECS, Debug, "Removing render proxy for entity {} for Scene {}\tMesh name: {}", entity.Value(), GetScene()->GetName(),
-        mesh_component.mesh.IsValid() ? mesh_component.mesh->GetName() : Name());
 
     if (mesh_component.proxy) {
         delete mesh_component.proxy;

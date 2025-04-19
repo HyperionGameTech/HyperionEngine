@@ -294,7 +294,7 @@ void HyperionEditor::Init()
 
         GetScene()->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
         Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
         m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent { });
@@ -307,7 +307,7 @@ void HyperionEditor::Init()
         // Add env grid component
         m_scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
             EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
-            Vec3u { 16, 4, 16 },
+            Vec3u { 8, 4, 8 },
             EnvGridMobility::STATIONARY //EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 
