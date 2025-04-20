@@ -799,8 +799,6 @@ void EnvGrid::CreateSphericalHarmonicsData()
 {
     HYP_SCOPE;
 
-    AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
-
     m_sh_tiles_buffers.Resize(sh_num_levels);
 
     for (uint32 i = 0; i < sh_num_levels; i++) {
@@ -1135,7 +1133,8 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, con
 
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
-    const uint32 probe_index = probe->m_grid_slot;
+    const uint32 grid_slot = probe->m_grid_slot;
+    AssertThrow(grid_slot != ~0u);
 
     AttachmentBase *color_attachment = m_framebuffer->GetAttachment(0);
     AttachmentBase *normals_attachment = m_framebuffer->GetAttachment(1);
@@ -1160,17 +1159,20 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, con
 
     struct alignas(128)
     {
+        uint32  env_probe_index;
         Vec4u   probe_grid_position;
         Vec4u   cubemap_dimensions;
         Vec4u   level_dimensions;
         Vec4f   world_position;
     } push_constants;
 
+    push_constants.env_probe_index = probe->GetRenderResource().GetBufferIndex();
+
     push_constants.probe_grid_position = {
-        probe_index % m_options.density.x,
-        (probe_index % (m_options.density.x * m_options.density.y)) / m_options.density.x,
-        probe_index / (m_options.density.x * m_options.density.y),
-        probe_index
+        grid_slot % m_options.density.x,
+        (grid_slot % (m_options.density.x * m_options.density.y)) / m_options.density.x,
+        grid_slot / (m_options.density.x * m_options.density.y),
+        grid_slot
     };
 
     push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
@@ -1202,7 +1204,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, con
     );
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE
     );
@@ -1320,7 +1322,7 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, con
     );
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE
     );
@@ -1349,9 +1351,32 @@ void EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase *frame, con
     async_compute_command_list.Add<DispatchCompute>(m_finalize_sh, Vec3u { 1, 1, 1 });
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE
+    );
+
+    HYP_LOG(EnvGrid, Debug, "Computing SH for probe {} on frame {}",
+        probe->GetID().ToIndex(),
+        frame->GetFrameIndex()
+    );
+
+    DelegateHandler *delegate_handle = new DelegateHandler();
+    *delegate_handle = g_rendering_api->GetOnFrameEndDelegate().Bind(
+        [resource_handle = TResourceHandle<EnvProbeRenderResource>(probe->GetRenderResource()), delegate_handle](FrameBase *frame)
+        {
+            HYP_NAMED_SCOPE("EnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics - Buffer readback");
+
+            // Copy the GPU buffer data back to the CPU-side buffer after SH has been computed.
+            g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex());
+
+            const EnvProbeShaderData &data = *static_cast<const EnvProbeShaderData *>(resource_handle->GetBufferAddress());
+            for (int i = 0; i < 9; i++) {
+                HYP_LOG(EnvGrid, Debug, "SH Coefficients for Probe {} on Frame {}: [{}]: {}", resource_handle->GetEnvProbe()->GetID().ToIndex(), frame->GetFrameIndex(), i, data.sh[i]);
+            }
+
+            delete delegate_handle;
+        }
     );
 }
 

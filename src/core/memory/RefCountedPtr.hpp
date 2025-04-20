@@ -10,7 +10,6 @@
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
-#include <core/memory/NotNullPtr.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 
@@ -499,8 +498,8 @@ protected:
         m_ptr = nullptr;
     }
 
-    void                            *m_ptr;
-    NotNullPtr<RefCountDataType>    m_ref;
+    void                *m_ptr;
+    RefCountDataType    *m_ref;
 };
 
 template <class CountType>
@@ -663,8 +662,8 @@ protected:
         m_ptr = nullptr;
     }
 
-    void                            *m_ptr;
-    NotNullPtr<RefCountDataType>    m_ref;
+    void                *m_ptr;
+    RefCountDataType    *m_ref;
 };
 
 /*! \brief A simple ref counted pointer class.

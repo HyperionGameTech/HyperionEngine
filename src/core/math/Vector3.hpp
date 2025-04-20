@@ -177,8 +177,11 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
     HYP_FORCE_INLINE constexpr Type Volume() const
         { return x * y * z; }
     
-    Type Max() const;
-    Type Min() const;
+    HYP_FORCE_INLINE constexpr Type Max() const
+        { return x > y ? (x > z ? x : z) : (y > z ? y : z); }
+
+    HYP_FORCE_INLINE constexpr Type Min() const
+        { return x < y ? (x < z ? x : z) : (y < z ? y : z); }
 
     template <class Ty>
     constexpr explicit operator Vec3<Ty>() const
@@ -356,8 +359,11 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
     HYP_FORCE_INLINE constexpr Type Volume() const
         { return x * y * z; }
     
-    Type Max() const;
-    Type Min() const;
+    HYP_FORCE_INLINE constexpr Type Max() const
+        { return x > y ? (x > z ? x : z) : (y > z ? y : z); }
+
+    HYP_FORCE_INLINE constexpr Type Min() const
+        { return x < y ? (x < z ? x : z) : (y < z ? y : z); }
 
     Type DistanceSquared(const Vec3 &other) const;
     Type Distance(const Vec3 &other) const;

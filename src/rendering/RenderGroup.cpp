@@ -225,14 +225,12 @@ void RenderGroup::CreateGraphicsPipeline()
 
     AssertThrow(m_descriptor_table.IsValid());
 
-    Task<GraphicsPipelineRef> task = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
+    m_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
         m_shader,
         m_descriptor_table,
         m_fbos,
         m_renderable_attributes
     );
-
-    m_pipeline = std::move(task).Await();
 }
 
 void RenderGroup::ClearProxies()

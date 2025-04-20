@@ -7,6 +7,8 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 
+#include <core/functional/Proc.hpp>
+
 #include <core/math/Vector2.hpp>
 
 #include <core/Defines.hpp>
@@ -36,6 +38,12 @@ public:
     HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
         { return m_current_frame_index; }
 
+    HYP_FORCE_INLINE const Proc<void(FrameBase *)> &GetFrameEndCallback() const
+        { return m_frame_end_callback; }
+
+    HYP_FORCE_INLINE void SetFrameEndCallback(Proc<void(FrameBase *)> &&callback)
+        { m_frame_end_callback = std::move(callback); }
+
 protected:
     SwapchainBase()
         : m_extent(Vec2i::Zero()),
@@ -44,11 +52,13 @@ protected:
     {
     }
 
-    Array<ImageRef> m_images;
-    Vec2u           m_extent;
-    InternalFormat  m_image_format = InternalFormat::NONE;
-    uint32          m_acquired_image_index;
-    uint32          m_current_frame_index;
+    Array<ImageRef>         m_images;
+    Vec2u                   m_extent;
+    InternalFormat          m_image_format = InternalFormat::NONE;
+    uint32                  m_acquired_image_index;
+    uint32                  m_current_frame_index;
+    Proc<void(FrameBase *)> m_frame_end_callback;
+
 };
 
 } // namespace renderer

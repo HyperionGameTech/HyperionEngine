@@ -14,8 +14,11 @@
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/AsyncCompute.hpp>
 
 #include <scene/Texture.hpp>
+
+#include <core/math/MathUtil.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -331,7 +334,7 @@ void EnvProbeRenderResource::Initialize_Internal()
                 ImageType::TEXTURE_TYPE_2D,
                 InternalFormat::RGBA16F,
                 Vec3u { 1024, 1024, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
+                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 1,
@@ -342,7 +345,7 @@ void EnvProbeRenderResource::Initialize_Internal()
 
         if (!m_prefiltered_image_view) {
             m_prefiltered_image_view = g_rendering_api->MakeImageView();
-            HYPERION_ASSERT_RESULT(m_prefiltered_image_view->Create(m_prefiltered_image, 0, 1, 0, 1));
+            HYPERION_ASSERT_RESULT(m_prefiltered_image_view->Create(m_prefiltered_image, 0, m_prefiltered_image->GetTextureDesc().NumMipmaps(), 0, 1));
         }
     }
 
@@ -444,11 +447,12 @@ void EnvProbeRenderResource::UpdateBufferData()
 
     const BoundingBox aabb = BoundingBox(m_buffer_data.aabb_min.GetXYZ(), m_buffer_data.aabb_max.GetXYZ());
     const Vec3f world_position = m_buffer_data.world_position.GetXYZ();
+
     const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(aabb, world_position);
 
-    Memory::MemCpy(&m_buffer_data.face_view_matrices, view_matrices.Data(), sizeof(Matrix4) * 6);
-
-    *static_cast<EnvProbeShaderData *>(m_buffer_address) = m_buffer_data;
+    // copy buffer UP to `sh` (leave it as is)
+    Memory::MemCpy(m_buffer_address, &m_buffer_data, offsetof(EnvProbeShaderData, sh));
+    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_buffer_address) + offsetof(EnvProbeShaderData, face_view_matrices)), view_matrices.Data(), sizeof(EnvProbeShaderData::face_view_matrices));
 
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
@@ -497,7 +501,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
     }
 
     if (!m_env_probe->NeedsRender()) {
-    //    return;
+        return;
     }
 
     if (!m_scene_resource_handle || !m_camera_resource_handle) {
@@ -600,6 +604,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
 void EnvProbeRenderResource::Convolve(FrameBase *frame, EnvProbeConvolveMode convolve_mode)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
 
     HYP_LOG(EnvProbe, Debug, "Convolving EnvProbe #{} (type: {})", m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
@@ -703,7 +708,7 @@ void EnvProbeRenderResource::Convolve(FrameBase *frame, EnvProbeConvolveMode con
         descriptor_set->SetElement(NAME("OutImage"), convolved_image_view);
     }
 
-    DeferCreate(descriptor_table);
+    HYPERION_ASSERT_RESULT(descriptor_table->Create());
 
     ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
@@ -752,6 +757,321 @@ void EnvProbeRenderResource::Convolve(FrameBase *frame, EnvProbeConvolveMode con
     SafeRelease(std::move(uniform_buffer));
     SafeRelease(std::move(convolve_probe_compute_pipeline));
     SafeRelease(std::move(descriptor_table));
+}
+
+void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    static constexpr Vec2u sh_num_samples = { 16, 16 };
+    static constexpr Vec2u sh_num_tiles = { 16, 16 };
+    static constexpr uint32 sh_num_levels = MathUtil::Max(1u, uint32(MathUtil::FastLog2(sh_num_samples.Max()) + 1));
+    static constexpr bool sh_parallel_reduce = false;
+
+    Array<GPUBufferRef> sh_tiles_buffers;
+    sh_tiles_buffers.Resize(sh_num_levels);
+
+    Array<DescriptorTableRef> sh_tiles_descriptor_tables;
+    sh_tiles_descriptor_tables.Resize(sh_num_levels);
+
+    for (uint32 i = 0; i < sh_num_levels; i++) {
+        const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
+
+        sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, size);
+        HYPERION_ASSERT_RESULT(sh_tiles_buffers[i]->Create());
+    }
+
+    HashMap<Name, Pair<ShaderRef, ComputePipelineRef>> pipelines = {
+        { NAME("Clear"), { g_shader_manager->GetOrCreate(NAME("ComputeSH"), {{ "MODE_CLEAR" }}), ComputePipelineRef() } },
+        { NAME("BuildCoeffs"), { g_shader_manager->GetOrCreate(NAME("ComputeSH"), {{ "MODE_BUILD_COEFFICIENTS" }}), ComputePipelineRef() } },
+        { NAME("Reduce"), {  g_shader_manager->GetOrCreate(NAME("ComputeSH"), {{ "MODE_REDUCE" }}), ComputePipelineRef() } },
+        { NAME("Finalize"), {  g_shader_manager->GetOrCreate(NAME("ComputeSH"), {{ "MODE_FINALIZE" }}), ComputePipelineRef() } }
+    };
+
+    ShaderRef first_shader;
+
+    for (auto &it : pipelines) {
+        AssertThrow(it.second.first.IsValid());
+
+        if (!first_shader) {
+            first_shader = it.second.first;
+        }
+    }
+
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = first_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+
+    Array<DescriptorTableRef> compute_sh_descriptor_tables;
+    compute_sh_descriptor_tables.Resize(sh_num_levels);
+    
+    for (uint32 i = 0; i < sh_num_levels; i++) {
+        compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            const DescriptorSetRef &compute_sh_descriptor_set = compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
+            AssertThrow(compute_sh_descriptor_set != nullptr);
+
+            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), sh_tiles_buffers[i]);
+
+            if (i != sh_num_levels - 1) {
+                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), sh_tiles_buffers[i + 1]);
+            } else {
+                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), sh_tiles_buffers[i]);
+            }
+        }
+
+        DeferCreate(compute_sh_descriptor_tables[i]);
+    }
+    
+    for (auto &it : pipelines) {
+        ComputePipelineRef &pipeline = it.second.second;
+
+        pipeline = g_rendering_api->MakeComputePipeline(
+            it.second.first,
+            compute_sh_descriptor_tables[0]
+        );
+
+        HYPERION_ASSERT_RESULT(pipeline->Create());
+    }
+
+    const uint32 grid_slot = m_env_probe->m_grid_slot;
+    AssertThrow(grid_slot != ~0u);
+
+    AttachmentBase *color_attachment = m_framebuffer->GetAttachment(0);
+    AttachmentBase *normals_attachment = m_framebuffer->GetAttachment(1);
+    AttachmentBase *depth_attachment = m_framebuffer->GetAttachment(2);
+
+    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+
+    // Bind a directional light
+    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+
+    {
+        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+
+        if (directional_lights.Any()) {
+            light_render_resource_handle = &directional_lights[0];
+        }
+    }
+
+    const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
+
+    struct alignas(128)
+    {
+        uint32  env_probe_index;
+        Vec4u   probe_grid_position;
+        Vec4u   cubemap_dimensions;
+        Vec4u   level_dimensions;
+        Vec4f   world_position;
+    } push_constants;
+
+    push_constants.env_probe_index = m_buffer_index;
+    push_constants.probe_grid_position = { 0, 0, 0, 0 };
+    push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
+    push_constants.world_position = GetBufferData().world_position;
+
+    for (const DescriptorTableRef &descriptor_set_ref : compute_sh_descriptor_tables) {
+        descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
+            ->SetElement(NAME("InColorCubemap"), color_attachment->GetImageView());
+
+        descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
+            ->SetElement(NAME("InNormalsCubemap"), normals_attachment->GetImageView());
+        
+        descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
+            ->SetElement(NAME("InDepthCubemap"), depth_attachment->GetImageView());
+
+        descriptor_set_ref->Update(frame->GetFrameIndex());
+    }
+
+    pipelines[NAME("Clear")].second->SetPushConstants(&push_constants, sizeof(push_constants));
+    pipelines[NAME("BuildCoeffs")].second->SetPushConstants(&push_constants, sizeof(push_constants));
+
+    RHICommandList &async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
+
+    async_compute_command_list.Add<InsertBarrier>(
+        sh_tiles_buffers[0],
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<InsertBarrier>(
+        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<BindDescriptorTable>(
+        compute_sh_descriptor_tables[0],
+        pipelines[NAME("Clear")].second,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
+                }
+            }
+        },
+        frame->GetFrameIndex()
+    );
+
+    async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Clear")].second);
+    async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Clear")].second, Vec3u { 1, 1, 1 });
+
+    async_compute_command_list.Add<InsertBarrier>(
+        sh_tiles_buffers[0],
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<BindDescriptorTable>(
+        compute_sh_descriptor_tables[0],
+        pipelines[NAME("BuildCoeffs")].second,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
+                }
+            }
+        },
+        frame->GetFrameIndex()
+    );
+
+    async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("BuildCoeffs")].second);
+    async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("BuildCoeffs")].second, Vec3u { 1, 1, 1 });
+
+    // Parallel reduce
+    if (sh_parallel_reduce) {
+        for (uint32 i = 1; i < sh_num_levels; i++) {
+            async_compute_command_list.Add<InsertBarrier>(
+                sh_tiles_buffers[i - 1],
+                renderer::ResourceState::UNORDERED_ACCESS,
+                renderer::ShaderModuleType::COMPUTE
+            );
+            
+            const Vec2u prev_dimensions {
+                MathUtil::Max(1u, sh_num_samples.x >> (i - 1)),
+                MathUtil::Max(1u, sh_num_samples.y >> (i - 1))
+            };
+
+            const Vec2u next_dimensions {
+                MathUtil::Max(1u, sh_num_samples.x >> i),
+                MathUtil::Max(1u, sh_num_samples.y >> i)
+            };
+
+            AssertThrow(prev_dimensions.x >= 2);
+            AssertThrow(prev_dimensions.x > next_dimensions.x);
+            AssertThrow(prev_dimensions.y > next_dimensions.y);
+
+            push_constants.level_dimensions = {
+                prev_dimensions.x,
+                prev_dimensions.y,
+                next_dimensions.x,
+                next_dimensions.y
+            };
+
+            pipelines[NAME("Reduce")].second->SetPushConstants(&push_constants, sizeof(push_constants));
+
+            async_compute_command_list.Add<BindDescriptorTable>(
+                compute_sh_descriptor_tables[i - 1],
+                pipelines[NAME("Reduce")].second,
+                ArrayMap<Name, ArrayMap<Name, uint32>> {
+                    {
+                        NAME("Scene"),
+                        {
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
+                        }
+                    }
+                },
+                frame->GetFrameIndex()
+            );
+
+            async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Reduce")].second);
+            async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Reduce")].second, Vec3u { 1, (next_dimensions.x + 3) / 4, (next_dimensions.y + 3) / 4 });
+        }
+    }
+
+    const uint32 finalize_sh_buffer_index = sh_parallel_reduce ? sh_num_levels - 1 : 0;
+
+    // Finalize - build into final buffer
+    async_compute_command_list.Add<InsertBarrier>(
+        sh_tiles_buffers[finalize_sh_buffer_index],
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<InsertBarrier>(
+        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<InsertBarrier>(
+        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    pipelines[NAME("Finalize")].second->SetPushConstants(&push_constants, sizeof(push_constants));
+
+    async_compute_command_list.Add<BindDescriptorTable>(
+        compute_sh_descriptor_tables[finalize_sh_buffer_index],
+        pipelines[NAME("Finalize")].second,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            {
+                NAME("Scene"),
+                {
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
+                }
+            }
+        },
+        frame->GetFrameIndex()
+    );
+
+    async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);
+    async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Finalize")].second, Vec3u { 1, 1, 1 });
+
+    async_compute_command_list.Add<InsertBarrier>(
+        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    async_compute_command_list.Add<InsertBarrier>(
+        g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer,
+        renderer::ResourceState::UNORDERED_ACCESS,
+        renderer::ShaderModuleType::COMPUTE
+    );
+
+    DelegateHandler *delegate_handle = new DelegateHandler();
+    *delegate_handle = g_rendering_api->GetOnFrameEndDelegate().Bind(
+        [resource_handle = TResourceHandle<EnvProbeRenderResource>(*this), delegate_handle](FrameBase *frame)
+        {
+            HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
+
+            // Copy the GPU buffer data back to the CPU-side buffer after SH has been computed.
+            g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex());
+
+            delete delegate_handle;
+        }
+    );
 }
 
 #pragma endregion EnvProbeRenderResource

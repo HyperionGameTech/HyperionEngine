@@ -148,7 +148,7 @@ public:
         debug_names.Clear();
         next_batch = nullptr;
 
-        OnComplete.RemoveAll(/* thread_safe */ false);
+        OnComplete.RemoveAllDetached();
     }
 };
 

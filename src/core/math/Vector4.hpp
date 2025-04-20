@@ -225,8 +225,11 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     HYP_FORCE_INLINE constexpr Type Volume() const
         { return x * y * z * w; }
 
-    Type Max() const;
-    Type Min() const;
+    HYP_FORCE_INLINE constexpr Type Max() const
+        { return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w)); }
+
+    HYP_FORCE_INLINE constexpr Type Min() const
+        { return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w)); }
 
     static Vec4 Abs(const Vec4 &);
     static Vec4 Min(const Vec4 &a, const Vec4 &b);
@@ -466,8 +469,11 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     HYP_FORCE_INLINE constexpr Type Volume() const
         { return x * y * z * w; }
 
-    Type Max() const;
-    Type Min() const;
+    HYP_FORCE_INLINE constexpr Type Max() const
+        { return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w)); }
+
+    HYP_FORCE_INLINE constexpr Type Min() const
+        { return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w)); }
 
     Vec4 operator*(const Matrix4 &mat) const;
     Vec4 &operator*=(const Matrix4 &mat);

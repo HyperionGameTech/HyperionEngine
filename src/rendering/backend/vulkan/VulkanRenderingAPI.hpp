@@ -113,26 +113,29 @@ public:
     virtual Delegate<void, SwapchainBase *> &GetOnSwapchainRecreatedDelegate() override
         { return OnSwapchainRecreated; }
 
+    HYP_API virtual Delegate<void, FrameBase *> &GetOnFrameEndDelegate() override;
+
     HYP_API RendererResult CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set);
     HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vk_descriptor_set);
     HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout &layout, VulkanDescriptorSetLayoutWrapperRef &out_ref);
 
 private:
-    Delegate<void, SwapchainBase *>                             OnSwapchainRecreated;
+    Delegate<void, SwapchainBase *>                                 OnSwapchainRecreated;
+    FixedArray<Delegate<void, FrameBase *>, max_frames_in_flight>   m_on_frame_end_delegates;
 
-    platform::Instance<Platform::VULKAN>                        *m_instance;
+    platform::Instance<Platform::VULKAN>                            *m_instance;
 
-    IRenderConfig                                               *m_render_config;
+    IRenderConfig                                                   *m_render_config;
 
-    CrashHandler                                                m_crash_handler;
+    CrashHandler                                                    m_crash_handler;
 
-    VulkanDescriptorSetManager                                  *m_descriptor_set_manager;
+    VulkanDescriptorSetManager                                      *m_descriptor_set_manager;
 
-    AsyncComputeBase                                            *m_async_compute;
+    AsyncComputeBase                                                *m_async_compute;
 
-    HashMap<DefaultImageFormatType, InternalFormat>             m_default_formats;
+    HashMap<DefaultImageFormatType, InternalFormat>                 m_default_formats;
 
-    bool                                                        m_should_recreate_swapchain;
+    bool                                                            m_should_recreate_swapchain;
 };
 
 } // namespace renderer

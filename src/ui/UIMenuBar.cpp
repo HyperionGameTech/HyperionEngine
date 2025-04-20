@@ -340,7 +340,7 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
     const Name name = menu_item->GetName();
 
     // Mouse hover: set selected menu item index if this menu bar has focus
-    menu_item->OnMouseHover.RemoveAll();
+    menu_item->OnMouseHover.RemoveAllDetached();
     menu_item->OnMouseHover.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
     {
         if (m_container->HasFocus(true)) {
@@ -353,7 +353,7 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
     }).Detach();
 
     // Mouse click: toggle selected menu item index
-    menu_item->OnClick.RemoveAll();
+    menu_item->OnClick.RemoveAllDetached();
     menu_item->OnClick.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
     {
         if (data.mouse_buttons == MouseButtonState::LEFT) {

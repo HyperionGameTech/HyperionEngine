@@ -274,6 +274,11 @@ RendererResult VulkanDescriptorSetManager::Destroy(platform::Device<Platform::VU
     return result;
 }
 
+Delegate<void, FrameBase *> &VulkanRenderingAPI::GetOnFrameEndDelegate()
+{
+    return m_on_frame_end_delegates[m_instance->GetSwapchain()->GetCurrentFrameIndex()];
+}
+
 RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set)
 {
     AssertThrow(m_vk_descriptor_pool != VK_NULL_HANDLE);
@@ -380,6 +385,12 @@ RendererResult VulkanRenderingAPI::Initialize(AppContext &app_context)
 {
     m_instance = new platform::Instance<Platform::VULKAN>();
     HYPERION_BUBBLE_ERRORS(m_instance->Initialize(app_context, g_use_debug_layers));
+
+    m_instance->GetSwapchain()->SetFrameEndCallback([this](FrameBase *frame)
+    {
+        m_on_frame_end_delegates[frame->GetFrameIndex()](frame);
+        m_on_frame_end_delegates[frame->GetFrameIndex()].RemoveAllDetached();
+    });
 
     m_crash_handler.Initialize();
 

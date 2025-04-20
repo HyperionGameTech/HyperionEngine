@@ -160,8 +160,11 @@ struct alignas(alignof(T) * 2) HYP_API Vec2
     HYP_FORCE_INLINE constexpr Type Volume() const
         { return x * y; }
 
-    Type Max() const;
-    Type Min() const;
+    HYP_FORCE_INLINE constexpr Type Max() const
+        { return x > y ? x : y; }
+
+    HYP_FORCE_INLINE constexpr Type Min() const
+        { return x < y ? x : y; }
 
     static Vec2 Zero()
         { return Vec2(0, 0); }
@@ -324,15 +327,26 @@ public:
         return false;
     }
 
-    constexpr float LengthSquared() const { return x * x + y * y; }
-    float Length() const { return std::sqrt(LengthSquared()); }
+    HYP_FORCE_INLINE constexpr float LengthSquared() const
+        { return x * x + y * y; }
 
-    constexpr float Avg() const { return (x + y) / 2.0f; }
-    constexpr float Sum() const { return x + y; }
-    constexpr float Volume() const { return x * y; }
+    HYP_FORCE_INLINE float Length() const
+        { return std::sqrt(LengthSquared()); }
 
-    float Max() const;
-    float Min() const;
+    HYP_FORCE_INLINE constexpr float Avg() const
+        { return (x + y) / 2.0f; }
+
+    HYP_FORCE_INLINE constexpr float Sum() const
+        { return x + y; }
+
+    HYP_FORCE_INLINE constexpr float Volume() const
+        { return x * y; }
+
+    HYP_FORCE_INLINE constexpr float Max() const
+        { return x > y ? x : y; }
+        
+    HYP_FORCE_INLINE constexpr float Min() const
+        { return x < y ? x : y; }
 
     float Distance(const Vec2 &other) const;
     float DistanceSquared(const Vec2 &other) const;

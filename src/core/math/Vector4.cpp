@@ -31,40 +31,6 @@ HYP_BEGIN_STRUCT(Vec4u, {})
     HypField(NAME(HYP_STR(w)), &Type::w, offsetof(Type, w))
 HYP_END_STRUCT
 
-template<>
-int math::detail::Vec4<int>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
-}
-
-template<>
-int math::detail::Vec4<int>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
-}
-
-template<>
-uint32 math::detail::Vec4<uint32>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
-}
-
-template<>
-uint32 math::detail::Vec4<uint32>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
-}
-
-float math::detail::Vec4<float>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, MathUtil::Max(z, w)));
-}
-
-float math::detail::Vec4<float>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, MathUtil::Min(z, w)));
-}
-
 float math::detail::Vec4<float>::DistanceSquared(const Vec4 &other) const
 {
     float dx = x - other.x;

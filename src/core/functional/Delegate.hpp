@@ -23,9 +23,6 @@
 
 #include <Types.hpp>
 
-// Leave enabled unless you want to crash the engine
-#define HYP_DELEGATE_THREAD_SAFE
-
 namespace hyperion {
 
 namespace dotnet {
@@ -43,90 +40,35 @@ class DelegateHandler;
 
 namespace detail {
 
-struct DelegateHandlerData
+// Flag to set while deleting an entry - prevents read scopes from entering
+// the critical section while the entry is potentially being deleted.
+
+// In methods where multiple threads could attempt to acquire write access,
+// such as adding new entries, we use a mutex to ensure exclusive access.
+static constexpr uint64 g_write_flag = 0x1;
+
+// A mask that is written when marking an entry for removal.
+// An entry is marked for removal rather than being removed directly to limit the amount of exclusive locking required.
+
+// When calling Broadcast(), delegate will also set this mask on a handler while executing the function that is assigned to the handler,
+// preventing an entry from being deleted while it is executing (but still allowing other threads to MARK an entry for removal at a later time)
+static constexpr uint64 g_read_mask = uint64(-1) & ~g_write_flag;
+
+struct DelegateHandlerEntryBase
 {
-    uint32  id;
-    void    *delegate;
-    void    (*remove_fn)(void *, uint32);
-    void    (*detach_fn)(void *, DelegateHandler &&delegate_handler);
+    uint32              index;
+    AtomicVar<uint64>   mask;
+    ThreadID            calling_thread_id;
 
-    DelegateHandlerData(uint32 id, void *delegate, void(*remove_fn)(void *, uint32), void(*detach_fn)(void *, DelegateHandler &&delegate_handler))
-        : id(id),
-          delegate(delegate),
-          remove_fn(remove_fn),
-          detach_fn(detach_fn)
+    HYP_FORCE_INLINE void MarkForRemoval()
     {
+        index = ~0u;
     }
 
-    DelegateHandlerData(const DelegateHandlerData &other)               = delete;
-    DelegateHandlerData &operator=(const DelegateHandlerData &other)    = delete;
-
-    DelegateHandlerData(DelegateHandlerData &&other) noexcept
-        : id(other.id),
-          delegate(other.delegate),
-          remove_fn(other.remove_fn),
-          detach_fn(other.detach_fn)
+    HYP_FORCE_INLINE bool IsMarkedForRemoval() const
     {
-        other.id = 0;
-        other.delegate = nullptr;
-        other.remove_fn = nullptr;
-        other.detach_fn = nullptr;
+        return index == ~0u;
     }
-
-    DelegateHandlerData &operator=(DelegateHandlerData &&other) noexcept
-    {
-        if (this == &other) {
-            return *this;
-        }
-
-        if (IsValid()) {
-            AssertThrow(remove_fn != nullptr);
-
-            remove_fn(delegate, id);
-        }
-
-        id = other.id;
-        delegate = other.delegate;
-        remove_fn = other.remove_fn;
-        detach_fn = other.detach_fn;
-
-        other.id = 0;
-        other.delegate = nullptr;
-        other.remove_fn = nullptr;
-        other.detach_fn = nullptr;
-
-        return *this;
-    }
-
-    HYP_API ~DelegateHandlerData();
-
-    HYP_FORCE_INLINE uint32 GetID() const
-        { return id; }
-
-    HYP_FORCE_INLINE void *GetDelegate() const
-        { return delegate; }
-
-    HYP_API void Reset();
-    HYP_API void Detach(DelegateHandler &&delegate_handler);
-
-    HYP_FORCE_INLINE bool IsValid() const
-        { return id != 0 && delegate != nullptr; }
-
-    HYP_FORCE_INLINE bool operator==(const DelegateHandlerData &other) const
-        { return id == other.id && delegate == other.delegate; }
-
-    HYP_FORCE_INLINE bool operator!=(const DelegateHandlerData &other) const
-        { return id != other.id || delegate != other.delegate; }
-
-    HYP_FORCE_INLINE bool operator<(const DelegateHandlerData &other) const
-        { return id < other.id; }
-};
-
-template <class ProcType>
-struct DelegateHandlerProc
-{
-    RC<ProcType>    proc;
-    ThreadID        calling_thread_id;
 
     IThread *GetCallingThread() const
     {
@@ -141,27 +83,50 @@ struct DelegateHandlerProc
     }
 };
 
+template <class ProcType>
+struct DelegateHandlerEntry : DelegateHandlerEntryBase
+{
+    ProcType    proc;
+};
+
 } // namespace detail
 
-/*! \brief Holds a reference to a DelegateHandlerData object.
-    When all references to the underlying object are gone, the handler will be removed from the Delegate.
- */
-class DelegateHandler
+struct DelegateHandler
 {
-public:
-    template <class ReturnType, class... Args>
-    friend class Delegate;
+    detail::DelegateHandlerEntryBase    *entry;
+    void                                *delegate;
+    void                                (*remove_fn)(void *, detail::DelegateHandlerEntryBase *);
+    void                                (*detach_fn)(void *, DelegateHandler &&delegate_handler);
 
-    friend class DelegateHandlerSet;
+    DelegateHandler()
+        : entry(nullptr),
+          delegate(nullptr),
+          remove_fn(nullptr),
+          detach_fn(nullptr)
+    {
+    }
 
-    DelegateHandler()                                               = default;
+    DelegateHandler(detail::DelegateHandlerEntryBase *entry, void *delegate, void(*remove_fn)(void *, detail::DelegateHandlerEntryBase *), void(*detach_fn)(void *, DelegateHandler &&delegate_handler))
+        : entry(entry),
+          delegate(delegate),
+          remove_fn(remove_fn),
+          detach_fn(detach_fn)
+    {
+    }
 
-    DelegateHandler(const DelegateHandler &other)                   = default;
-    DelegateHandler &operator=(const DelegateHandler &other)        = default;
+    DelegateHandler(const DelegateHandler &other)               = delete;
+    DelegateHandler &operator=(const DelegateHandler &other)    = delete;
 
     DelegateHandler(DelegateHandler &&other) noexcept
-        : m_data(std::move(other.m_data))
+        : entry(other.entry),
+          delegate(other.delegate),
+          remove_fn(other.remove_fn),
+          detach_fn(other.detach_fn)
     {
+        other.entry = nullptr;
+        other.delegate = nullptr;
+        other.remove_fn = nullptr;
+        other.detach_fn = nullptr;
     }
 
     DelegateHandler &operator=(DelegateHandler &&other) noexcept
@@ -170,62 +135,73 @@ public:
             return *this;
         }
 
-        m_data = std::move(other.m_data);
+        Reset();
+
+        entry = other.entry;
+        delegate = other.delegate;
+        remove_fn = other.remove_fn;
+        detach_fn = other.detach_fn;
+
+        other.entry = nullptr;
+        other.delegate = nullptr;
+        other.remove_fn = nullptr;
+        other.detach_fn = nullptr;
 
         return *this;
     }
 
-    ~DelegateHandler()                                              = default;
+    ~DelegateHandler()
+    {
+        Reset();
+    }
+
+    HYP_FORCE_INLINE void *GetDelegate() const
+        { return delegate; }
+
+    void Reset()
+    {
+        if (IsValid()) {
+            AssertThrow(remove_fn != nullptr);
+
+            remove_fn(delegate, entry);
+        }
+        
+        entry = nullptr;
+        delegate = nullptr;
+        remove_fn = nullptr;
+        detach_fn = nullptr;
+    }
+    
+    void Detach()
+    {
+        if (IsValid()) {
+            AssertThrow(detach_fn != nullptr);
+    
+            detach_fn(delegate, std::move(*this));
+        }
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+        { return entry != nullptr && delegate != nullptr; }
 
     HYP_FORCE_INLINE bool operator==(const DelegateHandler &other) const
-        { return m_data == other.m_data; }
+        { return entry == other.entry && delegate == other.delegate; }
 
     HYP_FORCE_INLINE bool operator!=(const DelegateHandler &other) const
-        { return m_data != other.m_data; }
+        { return entry != other.entry || delegate != other.delegate; }
 
     HYP_FORCE_INLINE bool operator<(const DelegateHandler &other) const
     {
-        if (!IsValid()) {
-            return false;
-        }
+        if (entry != nullptr) {
+            if (other.entry != nullptr) {
+                return entry->index < other.entry->index;
+            }
 
-        if (!other.IsValid()) {
             return true;
         }
 
-        return *m_data < *other.m_data;
+        return false;
     }
-
-    /*! \brief Check if the DelegateHandler is valid.
-     *
-     * \return True if the DelegateHandler is valid, false otherwise.
-     */
-    HYP_FORCE_INLINE bool IsValid() const
-        { return m_data != nullptr && m_data->IsValid(); }
-
-    /*! \brief Reset the DelegateHandler to an invalid state. */
-    HYP_FORCE_INLINE void Reset()
-    {
-        m_data.Reset();
-    }
-
-    /*! \brief Detach the DelegateHandler from the Delegate.
-        This will allow the Delegate handler function to remain attached to the delegate upon destruction of this object.
-        \note This requires proper management to prevent memory leaks and access of invalid objects, as the lifecycle of the handler will now last as long as the Delegate itself. */
-    HYP_FORCE_INLINE void Detach()
-    {
-        if (IsValid()) {
-            m_data->Detach(std::move(*this));
-        }
-    }
-
-private:
-    DelegateHandler(RC<functional::detail::DelegateHandlerData> data)
-        : m_data(std::move(data))
-    {
-    }
-
-    RC<functional::detail::DelegateHandlerData> m_data;
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
@@ -235,21 +211,9 @@ public:
     using Iterator = typename FlatMap<Name, DelegateHandler>::Iterator;
     using ConstIterator = typename FlatMap<Name, DelegateHandler>::ConstIterator;
 
-    HYP_FORCE_INLINE DelegateHandlerSet &Add(const DelegateHandler &delegate_handler)
-    {
-        m_delegate_handlers.Insert({ Name::Unique("DelegateHandler_"), delegate_handler });
-        return *this;
-    }
-
     HYP_FORCE_INLINE DelegateHandlerSet &Add(DelegateHandler &&delegate_handler)
     {
         m_delegate_handlers.Insert({ Name::Unique("DelegateHandler_"), std::move(delegate_handler) });
-        return *this;
-    }
-
-    HYP_FORCE_INLINE DelegateHandlerSet &Add(Name name, const DelegateHandler &delegate_handler)
-    {
-        m_delegate_handlers.Insert({ name, delegate_handler });
         return *this;
     }
 
@@ -291,7 +255,7 @@ public:
         Array<DelegateHandler> delegate_handlers;
 
         for (auto it =  m_delegate_handlers.Begin(); it != m_delegate_handlers.End();) {
-            if (it->second.m_data != nullptr && it->second.m_data->delegate == delegate) {
+            if (it->second.delegate == delegate) {
                 delegate_handlers.PushBack(std::move(it->second));
 
                 it = m_delegate_handlers.Erase(it);
@@ -330,9 +294,11 @@ public:
 
     virtual bool AnyBound() const = 0;
 
-    virtual bool Remove(uint32 id) = 0;
-    virtual bool Remove(const DelegateHandler &handler) = 0;
-    virtual int RemoveAll(bool thread_safe = true) = 0;
+    virtual bool Remove(DelegateHandler &&handler) = 0;
+    virtual int RemoveAllDetached() = 0;
+
+protected:
+    virtual bool Remove(detail::DelegateHandlerEntryBase *entry) = 0;
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
@@ -347,10 +313,8 @@ public:
     using ProcType = Proc<ReturnType(Args...)>;
 
     Delegate()
-        : m_id_counter(0)
-#ifdef HYP_DELEGATE_THREAD_SAFE
-        , m_num_procs(0)
-#endif
+        : m_id_counter(0),
+          m_num_procs(0)
     {
     }
 
@@ -359,9 +323,7 @@ public:
 
     Delegate(Delegate &&other) noexcept
         : m_procs(std::move(other.m_procs)),
-#ifdef HYP_DELEGATE_THREAD_SAFE
           m_num_procs(other.m_num_procs.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
-#endif
           m_detached_handlers(std::move(other.m_detached_handlers)),
           m_id_counter(other.m_id_counter)
     {
@@ -373,6 +335,10 @@ public:
     virtual ~Delegate() override
     {
         m_detached_handlers.Clear();
+
+        for (auto it = m_procs.Begin(); it != m_procs.End(); ++it) {
+            delete *it;
+        }
     }
 
     HYP_FORCE_INLINE bool operator!() const
@@ -383,11 +349,7 @@ public:
 
     virtual bool AnyBound() const override
     {
-#ifdef HYP_DELEGATE_THREAD_SAFE
         return m_num_procs.Get(MemoryOrder::ACQUIRE) != 0;
-#else
-        return m_procs.Any();
-#endif
     }
 
     /*! \brief Bind a Proc<> to the Delegate. The bound function will always be called on the thread that Bind() is called from if \ref{require_current_thread} is set to true.
@@ -415,114 +377,82 @@ public:
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadID::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
 
-#ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_mutex);
-#endif
+        
+        detail::DelegateHandlerEntry<ProcType> *entry = m_procs.PushBack(new detail::DelegateHandlerEntry<ProcType>());
+        entry->index = m_id_counter++;
+        entry->calling_thread_id = calling_thread_id;
+        entry->proc = std::move(proc);
 
-        const uint32 id = m_id_counter++;
-
-        m_procs.Insert({ id, detail::DelegateHandlerProc<ProcType> { MakeRefCountedPtr<ProcType>(std::move(proc)), calling_thread_id } });
-
-#ifdef HYP_DELEGATE_THREAD_SAFE
         m_num_procs.Increment(1, MemoryOrder::RELEASE);
-#endif
 
-        return CreateDelegateHandler(id);
+        return CreateDelegateHandler(entry);
     }
 
-    /*! \brief Remove all bound handlers from the Delegate.
-     *  \param thread_safe If true, locks mutex before performing any critical operations to the delegate.
+    /*! \brief Remove all detached handlers from the Delegate.
+     *  \note Only detached handlers are removed, as removing bound handlers would cause them to hold dangling pointers.
      *  \return The number of handlers removed. */
-    virtual int RemoveAll(bool thread_safe = true) override
+    virtual int RemoveAllDetached() override
     {
-        const auto ResetImpl = [this]() -> int
-        {
-            SizeType num_removed = m_procs.Size();
-            m_procs.Clear();
-            m_id_counter = 0;
-
-            return int(num_removed);
-        };
-
-#ifdef HYP_DELEGATE_THREAD_SAFE
-        if (thread_safe) {
-            m_mutex.Lock();
+        if (!AnyBound()) {
+            return 0;
         }
-#endif
 
-        const int num_removed = ResetImpl();
-        
-#ifdef HYP_DELEGATE_THREAD_SAFE
+        Mutex::Guard guard(m_mutex);
+
+        Mutex::Guard guard2(m_detached_handlers_mutex);
+        m_detached_handlers.Clear();
+
+        int num_removed = 0;
+
+        for (auto it = m_procs.Begin(); it != m_procs.End();) {
+            detail::DelegateHandlerEntry<ProcType> *current = *it;
+
+            // set write mask, loop until we have exclusive access.
+            uint64 state = current->mask.BitOr(detail::g_write_flag, MemoryOrder::ACQUIRE);
+            while (state & detail::g_read_mask) {
+                state = current->mask.Get(MemoryOrder::ACQUIRE);
+                Threads::Sleep(0);
+            }
+
+            if (current->IsMarkedForRemoval()) {
+                delete current;
+
+                it = m_procs.Erase(it);
+
+                ++num_removed;
+                
+                continue;
+            }
+
+            ++it;
+        }
+
         m_num_procs.Decrement(uint32(num_removed), MemoryOrder::RELEASE);
-
-        if (thread_safe) {
-            m_mutex.Unlock();
-        }
-#endif
 
         return num_removed;
     }
 
-    /*! \brief Remove a DelegateHandler from the Delegate
-     *  \param handler The DelegateHandler to remove
-     *  \return True if the DelegateHandler was removed, false otherwise. */
-    virtual bool Remove(const DelegateHandler &handler) override
+    virtual bool Remove(DelegateHandler &&handle) override
     {
-        if (!handler.IsValid()) {
+        if (!handle.IsValid()) {
             return false;
         }
 
-        const bool remove_result = Remove(handler.m_data->id);
+        AssertDebug(handle.delegate == this);
+
+        const bool remove_result = Remove(handle.entry);
 
         if (remove_result) {
-            // now that the handler is removed from the Delegate, invalidate all references to it from the DelegateHandler
-            handler.m_data->Reset();
+            handle.delegate = nullptr;
+            handle.entry = nullptr;
+            handle.remove_fn = nullptr;
+            handle.detach_fn = nullptr;
 
             return true;
         }
 
         return false;
-    }
-
-    /*! \brief Attempt to remove a handler from the Delegate.
-     *
-     * \param id The ID of the handler to remove.
-     * \return True if the handler was removed, false otherwise. */
-    virtual bool Remove(uint32 id) override
-    {
-//         { // remove from detached handlers
-// #ifdef HYP_DELEGATE_THREAD_SAFE
-//             Mutex::Guard guard(m_detached_handlers_mutex);
-// #endif
-
-//             for (auto it = m_detached_handlers.Begin(); it != m_detached_handlers.End();) {
-//                 if (it->m_data->id == id) {
-//                     it = m_detached_handlers.Erase(it);
-//                 } else {
-//                     ++it;
-//                 }
-//             }
-//         }
-
-        { // remove bound proc
-#ifdef HYP_DELEGATE_THREAD_SAFE
-            Mutex::Guard guard(m_mutex);
-#endif
-
-            const auto it = m_procs.Find(id);
-
-            if (it == m_procs.End()) {
-                return false;
-            }
-
-            m_procs.Erase(it);
-            
-#ifdef HYP_DELEGATE_THREAD_SAFE
-            m_num_procs.Decrement(1, MemoryOrder::RELEASE);
-#endif
-        }
-
-        return true;
     }
 
     /*! \brief Broadcast a message to all bound handlers.
@@ -542,55 +472,86 @@ public:
             }
         }
 
-        // @TODO refactor to not use reference counted pointers
-        //  - use same array, but just set the procs as invalid when removed
-        //  - then, when broadcasting, just skip the invalid procs
-        //  - after broadcasting, remove the invalid procs from the array
-        Array<detail::DelegateHandlerProc<ProcType>> procs_array;
-
-        {
-#ifdef HYP_DELEGATE_THREAD_SAFE
-            Mutex::Guard guard(m_mutex);
-#endif
-
-            procs_array.Reserve(m_procs.Size());
-
-            for (auto &it : m_procs) {
-                procs_array.PushBack(it.second);
-            }
-        }
+        // Mutex to prevent adding new elements to the list or broadcasting from another thread.
+        Mutex::Guard guard(m_mutex);
 
         const ThreadID current_thread_id = Threads::CurrentThreadID();
 
         ValueStorage<ReturnType> result_storage;
+        bool result_constructed = false;
 
-        const auto begin = procs_array.Begin();
-        const auto end = procs_array.End();
+        for (auto it = m_procs.Begin(); it != m_procs.End();) {
+            detail::DelegateHandlerEntry<ProcType> *current = *it;
 
-        for (auto it = begin; it != end;) {
-            auto current = it;
+            // set write mask, loop until we have exclusive access.
+            uint64 state = current->mask.BitOr(detail::g_write_flag, MemoryOrder::ACQUIRE);
+            while (state & detail::g_read_mask) {
+                state = current->mask.Get(MemoryOrder::ACQUIRE);
+                Threads::Sleep(0);
+            }
+            
+            if (current->IsMarkedForRemoval()) {
+                delete current;
+
+                it = m_procs.Erase(it);
+
+                m_num_procs.Decrement(1, MemoryOrder::RELEASE);
+                
+                continue;
+            }
+
+            // While we still have write access, mark the mask for reading, so we can prevent writes while calling
+            current->mask.Increment(2, MemoryOrder::RELEASE);
+
+            // Release write access
+            current->mask.BitAnd(~detail::g_write_flag, MemoryOrder::RELEASE);
 
             if constexpr (!std::is_void_v<ReturnType>) {
-                ++it;
-
                 AssertDebugMsg(!current->calling_thread_id.IsValid() || current->calling_thread_id == current_thread_id, "Cannot call a handler on a different thread if the delegate returns a value");
                 
-                if (it == end) {
-                    result_storage.Construct((*current->proc)(args...));
-                } else {
-                    (*current->proc)(args...);
+                if (result_constructed) {
+                    result_storage.Destruct();
                 }
+
+                result_storage.Construct(current->proc(args...));
+
+                // Check if object has been marked for removal by our call, and if so, release the proc's memory immediately.
+                // The entry will be deleted and erased on next call to Broadcast() or RemoveAllDetached()
+                if (current->IsMarkedForRemoval()) {
+                    current->proc.Reset();
+                }
+
+                // Release read access
+                current->mask.Decrement(2, MemoryOrder::RELEASE);
+
+                result_constructed = true;
+
+                ++it;
             } else {
                 if (current->calling_thread_id.IsValid() && current->calling_thread_id != current_thread_id) {
-                    current->GetCallingThread()->GetScheduler().Enqueue([&proc = *current->proc, args_tuple = Tuple<ArgTypes...>(args...)]()
+                    current->GetCallingThread()->GetScheduler().Enqueue([current, args_tuple = Tuple<ArgTypes...>(args...)]()
                     {
-                        Apply([&proc]<class... OtherArgs>(OtherArgs &&... args)
+                        Apply([&proc = current->proc]<class... OtherArgs>(OtherArgs &&... args)
                         {
-                            return proc(std::forward<OtherArgs>(args)...);
+                            proc(std::forward<OtherArgs>(args)...);
                         }, std::move(args_tuple));
+
+                        if (current->IsMarkedForRemoval()) {
+                            current->proc.Reset();
+                        }
+
+                        // Done reading
+                        current->mask.Decrement(2, MemoryOrder::RELEASE);
                     }, TaskEnqueueFlags::FIRE_AND_FORGET);
                 } else {
-                    (*current->proc)(args...);
+                    current->proc(args...);
+
+                    if (current->IsMarkedForRemoval()) {
+                        current->proc.Reset();
+                    }
+
+                    // Done reading
+                    current->mask.Decrement(2, MemoryOrder::RELEASE);
                 }
 
                 ++it;
@@ -598,7 +559,15 @@ public:
         }
 
         if constexpr (!std::is_void_v<ReturnType>) {
-            return std::move(result_storage.Get());
+            if (!result_constructed) {
+                // If no handlers were called (due to elements being removed), return a default constructed object
+                return detail::ProcDefaultReturn<ReturnType>::Get();
+            }
+
+            ReturnType result = std::move(result_storage).Get();
+            result_storage.Destruct();
+
+            return result;
         }
     }
 
@@ -612,14 +581,31 @@ public:
         { return const_cast<Delegate *>(this)->Broadcast(std::forward<ArgTypes>(args)...); }
 
 protected:
-    HYP_FORCE_INLINE uint32 NextID()
-        { return m_id_counter++; }
+    virtual bool Remove(detail::DelegateHandlerEntryBase *entry) override
+    {
+        if (!entry) {
+            return false;
+        }
 
-    static void RemoveDelegateHandlerCallback(void *delegate, uint32 id)
+        uint64 state;
+        while (((state = entry->mask.Increment(2, MemoryOrder::ACQUIRE)) & detail::g_write_flag)) {
+            entry->mask.Decrement(2, MemoryOrder::RELAXED);
+            // wait for write flag to be released
+            Threads::Sleep(0);
+        }
+
+        entry->MarkForRemoval();
+
+        entry->mask.Decrement(2, MemoryOrder::RELEASE);
+
+        return true;
+    }
+
+    static void RemoveDelegateHandlerCallback(void *delegate, detail::DelegateHandlerEntryBase *entry)
     {
         Delegate *delegate_casted = static_cast<Delegate *>(delegate);
 
-        delegate_casted->Remove(id);
+        delegate_casted->Remove(entry);
     }
 
     static void DetachDelegateHandlerCallback(void *delegate, DelegateHandler &&handler)
@@ -632,34 +618,30 @@ protected:
     /*! \brief Add a delegate handler to hang around after its DelegateHandler is destructed */
     void DetachDelegateHandler(DelegateHandler &&handler)
     {
-#ifdef HYP_DELEGATE_THREAD_SAFE
         Mutex::Guard guard(m_detached_handlers_mutex);
-#endif
 
         m_detached_handlers.PushBack(std::move(handler));
     }
 
-    DelegateHandler CreateDelegateHandler(uint32 id)
+    DelegateHandler CreateDelegateHandler(detail::DelegateHandlerEntry<ProcType> *entry)
     {
-        return DelegateHandler(MakeRefCountedPtr<functional::detail::DelegateHandlerData>(
-            id,
-            this,
+        return DelegateHandler {
+            entry,
+            static_cast<void *>(this),
             RemoveDelegateHandlerCallback,
             DetachDelegateHandlerCallback
-        ));
+        };
     }
 
-    FlatMap<uint32, detail::DelegateHandlerProc<ProcType>>  m_procs;
+    Array<detail::DelegateHandlerEntry<ProcType> *>     m_procs;
 
-#ifdef HYP_DELEGATE_THREAD_SAFE
-    AtomicVar<uint32>                                       m_num_procs;
-    Mutex                                                   m_mutex;
-#endif
+    AtomicVar<uint32>                                   m_num_procs;
+    Mutex                                               m_mutex;
 
-    uint32                                                  m_id_counter;
+    uint32                                              m_id_counter;
 
-    Array<DelegateHandler>                                  m_detached_handlers;
-    Mutex                                                   m_detached_handlers_mutex;
+    Array<DelegateHandler>                              m_detached_handlers;
+    Mutex                                               m_detached_handlers_mutex;
 };
 
 } // namespace functional

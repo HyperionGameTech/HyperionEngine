@@ -241,23 +241,21 @@ void EnvGridUpdaterSystem::UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridCom
 
     env_grid_component.env_grid->GetCamera()->Update(delta);
 
-    RenderCollector::CollectionResult collection_result = GetScene()->CollectStaticEntities(
+    GetScene()->CollectStaticEntities(
         env_grid_component.env_grid->GetRenderCollector(),
         env_grid_component.env_grid->GetCamera(),
         true // skip frustum culling, until Camera supports multiple frustums.
     );
 
-    if (collection_result.NeedsUpdate()) {
-        for (uint32 index = 0; index < env_grid_component.env_grid->GetEnvProbeCollection().num_probes; index++) {
-            // Don't worry about using the indirect index
-            const Handle<EnvProbe> &probe = env_grid_component.env_grid->GetEnvProbeCollection().GetEnvProbeDirect(index);
-            AssertThrow(probe.IsValid());
+    for (uint32 index = 0; index < env_grid_component.env_grid->GetEnvProbeCollection().num_probes; index++) {
+        // Don't worry about using the indirect index
+        const Handle<EnvProbe> &probe = env_grid_component.env_grid->GetEnvProbeCollection().GetEnvProbeDirect(index);
+        AssertThrow(probe.IsValid());
 
-            probe->SetNeedsUpdate(true);
-            probe->SetNeedsRender(true);
+        probe->SetNeedsRender(true);
+        probe->SetNeedsUpdate(true);
 
-            probe->Update(delta);
-        }
+        probe->Update(delta);
     }
 }
 

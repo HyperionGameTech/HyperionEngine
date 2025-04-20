@@ -191,23 +191,23 @@ UIObject::~UIObject()
     m_horizontal_scrollbar.Reset();
     m_spawn_parent.Reset();
 
-    OnInit.RemoveAll(false);
-    OnAttached.RemoveAll(false);
-    OnRemoved.RemoveAll(false);
-    OnChildAttached.RemoveAll(false);
-    OnChildRemoved.RemoveAll(false);
-    OnMouseDown.RemoveAll(false);
-    OnMouseUp.RemoveAll(false);
-    OnMouseDrag.RemoveAll(false);
-    OnMouseHover.RemoveAll(false);
-    OnMouseLeave.RemoveAll(false);
-    OnMouseMove.RemoveAll(false);
-    OnGainFocus.RemoveAll(false);
-    OnLoseFocus.RemoveAll(false);
-    OnScroll.RemoveAll(false);
-    OnClick.RemoveAll(false);
-    OnKeyDown.RemoveAll(false);
-    OnKeyUp.RemoveAll(false);
+    OnInit.RemoveAllDetached();
+    OnAttached.RemoveAllDetached();
+    OnRemoved.RemoveAllDetached();
+    OnChildAttached.RemoveAllDetached();
+    OnChildRemoved.RemoveAllDetached();
+    OnMouseDown.RemoveAllDetached();
+    OnMouseUp.RemoveAllDetached();
+    OnMouseDrag.RemoveAllDetached();
+    OnMouseHover.RemoveAllDetached();
+    OnMouseLeave.RemoveAllDetached();
+    OnMouseMove.RemoveAllDetached();
+    OnGainFocus.RemoveAllDetached();
+    OnLoseFocus.RemoveAllDetached();
+    OnScroll.RemoveAllDetached();
+    OnClick.RemoveAllDetached();
+    OnKeyDown.RemoveAllDetached();
+    OnKeyUp.RemoveAllDetached();
 
     // Unset the UIObject pointer on the UIComponent
     if (Handle<Entity> entity = GetEntity()) {

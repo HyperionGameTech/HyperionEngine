@@ -84,11 +84,14 @@ struct alignas(Alignment) ValueStorage
     HYP_FORCE_INLINE void Destruct()
         { Memory::Destruct<T>(static_cast<void *>(data_buffer)); }
     
-    HYP_FORCE_INLINE T &Get()
+    HYP_FORCE_INLINE T &Get() &
         { return *reinterpret_cast<T *>(&data_buffer); }
 
-    HYP_FORCE_INLINE const T &Get() const
+    HYP_FORCE_INLINE const T &Get() const &
         { return *reinterpret_cast<const T *>(&data_buffer); }
+
+    HYP_FORCE_INLINE T Get() &&
+        { return std::move(*reinterpret_cast<T *>(&data_buffer)); }
     
     HYP_FORCE_INLINE void *GetPointer()
         { return &data_buffer[0]; }

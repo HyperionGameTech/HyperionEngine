@@ -127,9 +127,9 @@ void SkydomeRenderer::OnRender(FrameBase *frame)
         return;
     }
 
-    // if (!m_env_probe->NeedsRender()) {
-    //     return;
-    // }
+    if (!m_env_probe->NeedsRender()) {
+        return;
+    }
 
     m_env_probe->GetRenderResource().Render(frame);
 

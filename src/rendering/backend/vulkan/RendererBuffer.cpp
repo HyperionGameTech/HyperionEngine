@@ -340,6 +340,8 @@ void VulkanGPUBuffer::Map() const
         return;
     }
 
+    AssertThrowMsg(IsCPUAccessible(), "Attempt to map a buffer that is not CPU accessible!");
+
     vmaMapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), m_vma_allocation, &m_mapping);
 }
 

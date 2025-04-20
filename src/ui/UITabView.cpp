@@ -144,7 +144,7 @@ void UITabView::AddChildUIObject(const RC<UIObject> &ui_object)
 
     tab->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
 
-    tab->OnClick.RemoveAll();
+    tab->OnClick.RemoveAllDetached();
     tab->OnClick.Bind([this, name = tab->GetName()](const MouseEvent &data) -> UIEventHandlerResult
     {
         if (data.mouse_buttons == MouseButtonState::LEFT) {

@@ -265,29 +265,28 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    HashCode octant_hash_code = HashCode(0);
-    
-    if (OnlyCollectStaticEntities()) {
-        Octree const *octree = &m_parent_scene->GetOctree();
-        octree->GetFittingOctant(m_aabb, octree);
-
-        octant_hash_code = octree->GetOctantID().GetHashCode()
-            .Add(octree->GetEntryListHash<EntityTag::STATIC>())
-            .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
-    } else if (IsSkyProbe()) {
-        octant_hash_code = m_parent_scene->GetOctree().GetOctantID().GetHashCode()
-            .Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::LIGHT>());
-    }
-
-    if (m_octant_hash_code == octant_hash_code && octant_hash_code != HashCode(0)) {
-        return;
-    }
-
     // Ambient probes do not use their own render list,
     // instead they are attached to a grid which shares one
     if (!IsControlledByEnvGrid()) {
-        AssertThrow(m_camera.IsValid());
+        HashCode octant_hash_code = HashCode(0);
 
+        if (OnlyCollectStaticEntities()) {
+            Octree const *octree = &m_parent_scene->GetOctree();
+            octree->GetFittingOctant(m_aabb, octree);
+    
+            octant_hash_code = octree->GetOctantID().GetHashCode()
+                .Add(octree->GetEntryListHash<EntityTag::STATIC>())
+                .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+        } else if (IsSkyProbe()) {
+            octant_hash_code = m_parent_scene->GetOctree().GetOctantID().GetHashCode()
+                .Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::LIGHT>());
+        }
+
+        if (m_octant_hash_code == octant_hash_code && octant_hash_code != HashCode(0)) {
+            return;
+        }
+
+        AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
 
         RenderCollector::CollectionResult collection_result;
@@ -312,6 +311,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         if (collection_result.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {
             SetNeedsRender(true);
         }
+
+        m_octant_hash_code = octant_hash_code;
     }
 
     EnvProbeShaderData buffer_data { };
@@ -327,8 +328,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                       | EnvProbeFlags::DIRTY;
 
     m_render_resource->SetBufferData(buffer_data);
-
-    m_octant_hash_code = octant_hash_code;
 }
 
 namespace renderer {

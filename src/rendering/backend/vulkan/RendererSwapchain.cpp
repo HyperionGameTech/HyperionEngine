@@ -93,6 +93,10 @@ RendererResult VulkanSwapchain::PrepareFrame(bool &out_needs_recreate)
 
     HYPERION_BUBBLE_ERRORS(HandleFrameResult(frame->GetFence()->GetLastFrameResult(), out_needs_recreate));
 
+    if (m_frame_end_callback.IsValid()) {
+        m_frame_end_callback(frame.Get());
+    }
+
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset());
 
     HYPERION_BUBBLE_ERRORS(HandleNextFrame(this, frame, &m_acquired_image_index, out_needs_recreate));

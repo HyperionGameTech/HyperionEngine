@@ -36,13 +36,10 @@ struct EnvProbeShaderData
 
     Vec2u   dimensions;
     uint64  visibility_bits;
-
     Vec4i   position_in_grid;
-    Vec4i   position_offset;
-    Vec4u   _pad5;
-};
 
-static_assert(sizeof(EnvProbeShaderData) == 512);
+    Vec4f   sh[9];
+};
 
 static constexpr uint32 max_env_probes = (32ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
 
@@ -189,6 +186,8 @@ private:
     bool ShouldComputePrefilteredEnvMap() const;
     bool ShouldComputeIrradianceMap() const;
     void Convolve(FrameBase *frame, EnvProbeConvolveMode convolve_mode);
+
+    void ComputeSH(FrameBase *frame);
 
     EnvProbe                                *m_env_probe;
 

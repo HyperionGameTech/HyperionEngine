@@ -102,40 +102,6 @@ Vec3<float> &math::detail::Vec3<float>::operator*=(const Quaternion &quat)
     return operator=(operator*(quat));
 }
 
-template<>
-int math::detail::Vec3<int>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, z));
-}
-
-template<>
-int math::detail::Vec3<int>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, z));
-}
-
-template<>
-uint32 math::detail::Vec3<uint32>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, z));
-}
-
-template<>
-uint32 math::detail::Vec3<uint32>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, z));
-}
-
-float math::detail::Vec3<float>::Max() const
-{
-    return MathUtil::Max(x, MathUtil::Max(y, z));
-}
-
-float math::detail::Vec3<float>::Min() const
-{
-    return MathUtil::Min(x, MathUtil::Min(y, z));
-}
-
 float math::detail::Vec3<float>::DistanceSquared(const Vec3f &other) const
 {
     float dx = x - other.x;

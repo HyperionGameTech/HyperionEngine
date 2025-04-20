@@ -229,6 +229,12 @@ public:
     virtual void UpdateBufferSize(uint32 frame_index) = 0;
     virtual void UpdateBufferData(uint32 frame_index) = 0;
 
+    /*! \brief Copy an element from the GPU back to the CPU side buffer.
+     * \param frame_index The index of the frame to copy the element from.
+     * \param index The index of the element to copy.
+     */
+    virtual void ReadbackElement(uint32 frame_index, uint32 index) = 0;
+
     virtual uint32 AcquireIndex(void **out_element_ptr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
 
@@ -407,6 +413,13 @@ public:
     virtual void MarkDirty(uint32 index) override
     {
         m_pool.MarkDirty(index);
+    }
+
+    virtual void ReadbackElement(uint32 frame_index, uint32 index) override
+    {
+        AssertThrowMsg(index < m_pool.NumAllocatedElements(), "Index out of bounds! Index = %u, Size = %u", index, m_pool.NumAllocatedElements());
+
+        m_buffers[frame_index]->Read(sizeof(StructType) * index, sizeof(StructType), &m_pool.GetElement(index));
     }
 
     HYP_FORCE_INLINE uint32 AcquireIndex(StructType **out_element_ptr)

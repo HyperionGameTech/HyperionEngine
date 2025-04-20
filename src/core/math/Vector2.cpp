@@ -26,16 +26,6 @@ HYP_END_STRUCT
 namespace math {
 namespace detail {
 
-float Vec2<float>::Min() const
-{
-    return MathUtil::Min(x, y);
-}
-
-float Vec2<float>::Max() const
-{
-    return MathUtil::Max(x, y);
-}
-
 float Vec2<float>::Distance(const Vec2<float> &other) const
 {
     return MathUtil::Sqrt(DistanceSquared(other));
@@ -95,30 +85,6 @@ Vec2<float> Vec2<float>::Min(const Vec2<float> &a, const Vec2<float> &b)
 Vec2<float> Vec2<float>::Max(const Vec2<float> &a, const Vec2<float> &b)
 {
     return Vec2<float>(MathUtil::Max(a.x, b.x), MathUtil::Max(a.y, b.y));
-}
-
-template<>
-int math::detail::Vec2<int>::Max() const
-{
-    return MathUtil::Max(x, y);
-}
-
-template<>
-int math::detail::Vec2<int>::Min() const
-{
-    return MathUtil::Min(x, y);
-}
-
-template<>
-uint32 math::detail::Vec2<uint32>::Max() const
-{
-    return MathUtil::Max(x, y);
-}
-
-template<>
-uint32 math::detail::Vec2<uint32>::Min() const
-{
-    return MathUtil::Min(x, y);
 }
 
 } // namespace detail

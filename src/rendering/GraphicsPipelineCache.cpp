@@ -23,57 +23,6 @@
 
 namespace hyperion {
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
-{
-    ShaderRef                               shader;
-    DescriptorTableRef                      descriptor_table;
-    Array<FramebufferRef>                   framebuffers;
-    RenderableAttributeSet                  attributes;
-    Proc<void(const GraphicsPipelineRef &)> callback;
-
-    RENDER_COMMAND(CreateGraphicsPipeline)(
-        const ShaderRef &shader,
-        const DescriptorTableRef &descriptor_table,
-        const Array<FramebufferRef> &framebuffers,
-        const RenderableAttributeSet &attributes,
-        Proc<void(const GraphicsPipelineRef &)> &&callback
-    ) : shader(shader),
-        descriptor_table(descriptor_table),
-        framebuffers(framebuffers),
-        attributes(attributes),
-        callback(std::move(callback))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateGraphicsPipeline)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        GraphicsPipelineRef pipeline;
-
-        HYP_DEFER({
-            if (callback.IsValid()) {
-                callback(pipeline);
-            }
-        });
-
-        pipeline = g_rendering_api->MakeGraphicsPipeline(
-            shader,
-            descriptor_table,
-            framebuffers,
-            attributes
-        );
-
-        HYPERION_BUBBLE_ERRORS(pipeline->Create());
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region GraphicsPipelineCache
 
 GraphicsPipelineCache::GraphicsPipelineCache() = default;
@@ -107,7 +56,7 @@ void GraphicsPipelineCache::Destroy()
     m_cached_pipelines.Clear();
 }
 
-Task<GraphicsPipelineRef> GraphicsPipelineCache::GetOrCreate(
+GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
     const ShaderRef &shader,
     const DescriptorTableRef &descriptor_table,
     const Array<FramebufferRef> &framebuffers,
@@ -115,8 +64,6 @@ Task<GraphicsPipelineRef> GraphicsPipelineCache::GetOrCreate(
 )
 {
     HYP_SCOPE;
-
-    Task<GraphicsPipelineRef> task;
 
     GraphicsPipelineRef graphics_pipeline = FindGraphicsPipeline(
         shader,
@@ -126,32 +73,57 @@ Task<GraphicsPipelineRef> GraphicsPipelineCache::GetOrCreate(
     );
 
     if (graphics_pipeline.IsValid()) {
-        task.Fulfill(graphics_pipeline);
-
-        return task;
+        return graphics_pipeline;
     }
 
-    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes, task_executor = task.Initialize()](const GraphicsPipelineRef &graphics_pipeline)
+    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes](const GraphicsPipelineRef &graphics_pipeline)
     {
-        {
-            Mutex::Guard guard(m_mutex);
+        Mutex::Guard guard(m_mutex);
 
-            m_cached_pipelines[attributes].PushBack(graphics_pipeline);
-        }
-
-        task_executor->Fulfill(graphics_pipeline);
+        m_cached_pipelines[attributes].PushBack(graphics_pipeline);
     };
 
-    PUSH_RENDER_COMMAND(
-        CreateGraphicsPipeline,
+    graphics_pipeline = g_rendering_api->MakeGraphicsPipeline(
         shader,
         descriptor_table,
         framebuffers,
-        attributes,
-        std::move(new_callback)
+        attributes
     );
 
-    return task;
+    struct RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache) : renderer::RenderCommand
+    {
+        GraphicsPipelineRef                     graphics_pipeline;
+        Proc<void(const GraphicsPipelineRef &)> callback;
+
+        RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)(
+            const GraphicsPipelineRef &graphics_pipeline,
+            Proc<void(const GraphicsPipelineRef &)> &&callback
+        ) : graphics_pipeline(graphics_pipeline),
+            callback(std::move(callback))
+        {
+            AssertThrow(graphics_pipeline.IsValid());
+        }
+
+        virtual ~RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)() override
+        {
+            SafeRelease(std::move(graphics_pipeline));
+        }
+
+        virtual RendererResult operator()() override
+        {
+            HYPERION_BUBBLE_ERRORS(graphics_pipeline->Create());
+
+            if (callback.IsValid()) {
+                callback(graphics_pipeline);
+            }
+
+            return RendererResult { };
+        }
+    };
+
+    PUSH_RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache, graphics_pipeline, std::move(new_callback));
+
+    return graphics_pipeline;
 }
 
 GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(

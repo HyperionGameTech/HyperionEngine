@@ -33,7 +33,7 @@ public:
     void Initialize();
     void Destroy();
 
-    Task<GraphicsPipelineRef> GetOrCreate(
+    GraphicsPipelineRef GetOrCreate(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
         const Array<FramebufferRef> &framebuffers,

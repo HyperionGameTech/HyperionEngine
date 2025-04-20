@@ -193,7 +193,7 @@ class Proc<ReturnType(Args...)> : detail::ProcBase
 {
     static constexpr uint32 inline_storage_size_bytes = 256;
 
-    using InlineStorage = ValueStorage<ubyte[inline_storage_size_bytes], alignof(std::max_align_t)>;
+    using InlineStorage = ValueStorageArray<ubyte, inline_storage_size_bytes, alignof(std::max_align_t)>;
     using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
