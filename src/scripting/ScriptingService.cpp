@@ -23,6 +23,10 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
+        if (!dotnet::DotNetSystem::GetInstance().IsInitialized()) {
+            return;
+        }
+        
         RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("HyperionScripting.dll");
         AssertThrowMsg(managed_assembly != nullptr, "Failed to load HyperionScripting assembly");
 
@@ -38,6 +42,10 @@ public:
 
     void InvokeUpdate()
     {
+        if (!m_object) {
+            return;
+        }
+        
         AssertThrowMsg(m_object != nullptr && m_object->IsValid(), "Cannot call InvokeUpdate(), ScriptTracker is not properly initialized");
 
         m_object->InvokeMethodByName<void>("Update");
@@ -89,6 +97,12 @@ public:
 protected:
     virtual void operator()() override
     {
+        if (!m_script_tracker->GetObject()) {
+            m_is_running.Set(false, MemoryOrder::RELAXED);
+            
+            return;
+        }
+
         m_is_running.Set(true, MemoryOrder::RELAXED);
 
         {

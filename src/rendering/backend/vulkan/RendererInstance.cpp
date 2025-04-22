@@ -22,6 +22,16 @@
 #include <optional>
 #include <cstring>
 
+#ifdef HYP_IOS
+#if MVK_IOS && MVK_OS_SIMULATOR
+#define MTLPixelFormatR8Unorm_sRGB MTLPixelFormatInvalid
+#define MTLPixelFormatRG8Unorm_sRGB MTLPixelFormatInvalid
+#define MTLPixelFormatB5G6R5Unorm MTLPixelFormatInvalid
+#define MTLPixelFormatA1BGR5Unorm MTLPixelFormatInvalid
+#define MTLPixelFormatABGR4Unorm MTLPixelFormatInvalid
+#endif
+#endif
+
 namespace hyperion {
 namespace renderer {
 namespace platform {
@@ -134,7 +144,7 @@ ExtensionMap Instance<Platform::VULKAN>::GetExtensionMap()
         { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false },
         { VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, false },
 #endif
-        { VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, true },
+        { VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, false },
         { VK_KHR_SPIRV_1_4_EXTENSION_NAME, false },
         { VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME, false },
         { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true },
@@ -267,10 +277,12 @@ RendererResult Instance<Platform::VULKAN>::Initialize(const AppContext &app_cont
     create_info.ppEnabledLayerNames = validation_layers.Data();
     create_info.flags = 0;
 
-#if VK_HEADER_VERSION >= 216
+#if 0
+#if defined(HYP_APPLE) && HYP_APPLE
     // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
     // translation layers such as moltenvk.
     create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 #endif
 
     // Setup Vulkan extensions
@@ -282,9 +294,11 @@ RendererResult Instance<Platform::VULKAN>::Initialize(const AppContext &app_cont
     
     extension_names.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-#if VK_HEADER_VERSION >= 216
+#if 0
+#if defined(HYP_APPLE) && HYP_APPLE && VK_HEADER_VERSION >= 216
     // add our enumeration extension to our instance extensions
     extension_names.PushBack(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 #endif
 
     DebugLog(LogType::Debug, "Got %llu extensions:\n", extension_names.Size());

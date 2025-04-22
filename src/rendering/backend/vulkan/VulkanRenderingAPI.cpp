@@ -69,6 +69,11 @@ public:
         return true;
     }
 
+    virtual bool IsDynamicDescriptorIndexingSupported() const override
+    {
+        return false;//m_rendering_api->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+    }
+
 private:
     VulkanRenderingAPI  *m_rendering_api;
 };

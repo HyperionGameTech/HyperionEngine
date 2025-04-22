@@ -14,6 +14,7 @@ cmake-build-release/**/*
 
 build/**/*
 build_old/**/*
+build.ios/**/*
 out/build/**/*
 ApexEngineV2/Debug/**/*
 ApexEngineV2/Release/**/*

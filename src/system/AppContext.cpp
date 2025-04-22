@@ -14,8 +14,10 @@
 
 #include <Engine.hpp>
 
+#ifdef HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#endif
 
 namespace hyperion {
 
@@ -64,13 +66,13 @@ void ApplicationWindow::HandleResize(Vec2i new_size)
 
 SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
     : ApplicationWindow(std::move(title), size),
-      window(nullptr)
+      m_window_handle(nullptr)
 {
 }
 
 SDLApplicationWindow::~SDLApplicationWindow()
 {
-    SDL_DestroyWindow(this->window);
+    SDL_DestroyWindow(static_cast<SDL_Window *>(m_window_handle));
 }
 
 void SDLApplicationWindow::Initialize(WindowOptions window_options)
@@ -97,7 +99,7 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     }
 
-    this->window = SDL_CreateWindow(
+    m_window_handle = SDL_CreateWindow(
         m_title.Data(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
@@ -106,14 +108,14 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
         sdl_flags
     );
 
-    AssertThrowMsg(this->window != nullptr, "Failed to initialize window: %s", SDL_GetError());
+    AssertThrowMsg(m_window_handle != nullptr, "Failed to initialize window: %s", SDL_GetError());
 }
 
 #ifdef HYP_VULKAN
 VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
 {
     VkSurfaceKHR surface;
-    SDL_bool result = SDL_Vulkan_CreateSurface(window, instance->GetInstance(), &surface);
+    SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window *>(m_window_handle), instance->GetInstance(), &surface);
 
     AssertThrowMsg(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
 
@@ -123,7 +125,7 @@ VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
 
 void SDLApplicationWindow::SetMousePosition(Vec2i position)
 {
-    SDL_WarpMouseInWindow(window, position.x, position.y);
+    SDL_WarpMouseInWindow(static_cast<SDL_Window *>(m_window_handle), position.x, position.y);
 }
 
 Vec2i SDLApplicationWindow::GetMousePosition() const
@@ -137,7 +139,7 @@ Vec2i SDLApplicationWindow::GetMousePosition() const
 Vec2i SDLApplicationWindow::GetDimensions() const
 {
     int width, height;
-    SDL_GetWindowSize(window, &width, &height);
+    SDL_GetWindowSize(static_cast<SDL_Window *>(m_window_handle), &width, &height);
 
     return Vec2i { width, height };
 }
@@ -153,14 +155,14 @@ void SDLApplicationWindow::SetIsMouseLocked(bool locked)
 
 bool SDLApplicationWindow::HasMouseFocus() const
 {
-    const auto *focus_window = SDL_GetMouseFocus();
+    const SDL_Window *focus_window = SDL_GetMouseFocus();
 
-    return focus_window == window;
+    return focus_window == static_cast<SDL_Window *>(m_window_handle);
 }
 
 bool SDLApplicationWindow::IsHighDPI() const
 {
-    const int display_index = SDL_GetWindowDisplayIndex(window);
+    const int display_index = SDL_GetWindowDisplayIndex(static_cast<SDL_Window *>(m_window_handle));
 
     if (display_index < 0) {
         return false;
@@ -179,12 +181,23 @@ bool SDLApplicationWindow::IsHighDPI() const
 
 #pragma region SDLAppContext
 
+#if defined(HYP_SDL) && defined(HYP_IOS)
+static struct IOSSDLInitializer {
+    IOSSDLInitializer()
+    {
+        SDL_SetMainReady();
+    }
+} g_ios_sdl_initializer = { };
+#endif
+
 SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments &arguments)
     : AppContext(std::move(name), arguments)
 {
     const int sdl_init_result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-    AssertThrowMsg(sdl_init_result == 0, "Failed to initialize SDL: %s", SDL_GetError());
+    if (sdl_init_result < 0) {
+        HYP_FAIL("Failed to initialize SDL: %s (%d)", SDL_GetError(), sdl_init_result);
+    }
 }
 
 SDLAppContext::~SDLAppContext()
@@ -222,7 +235,7 @@ int SDLAppContext::PollEvent(SystemEvent &event)
 bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 {
     uint32 num_extensions = 0;
-    SDL_Window *window = static_cast<SDLApplicationWindow *>(m_main_window.Get())->GetInternalWindow();
+    SDL_Window *window = static_cast<SDL_Window *>(static_cast<SDLApplicationWindow *>(m_main_window.Get())->GetInternalWindowHandle());
 
     if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, nullptr)) {
         return false;

@@ -243,7 +243,6 @@ static TBuiltInResource DefaultResources()
     };
 }
 
-
 static bool PreprocessShaderSource(
     ShaderModuleType type,
     ShaderLanguage language,
@@ -659,6 +658,21 @@ static ByteBuffer CompileToSPIRV(
 
 #else
 
+static bool PreprocessShaderSource(
+    ShaderModuleType type,
+    ShaderLanguage language,
+    String preamble,
+    String source,
+    String filename,
+    String &out_preprocessed_source,
+    Array<String> &out_error_messages
+)
+{
+    out_preprocessed_source = source;
+
+    return true;
+}
+
 static ByteBuffer CompileToSPIRV(
     ShaderModuleType type,
     ShaderLanguage language,
@@ -1050,6 +1064,20 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
 #elif defined(HYP_DX12) && HYP_DX12
     properties.Set(ShaderProperty("DX12", false));
 #endif
+
+#if defined(HYP_WINDOWS)
+    properties.Set(ShaderProperty("HYP_WINDOWS", false));
+#elif defined(HYP_LINUX)
+    properties.Set(ShaderProperty("HYP_LINUX", false));
+#elif defined(HYP_MACOS)
+    properties.Set(ShaderProperty("HYP_MACOS", false));
+#elif defined(HYP_IOS)
+    properties.Set(ShaderProperty("HYP_IOS", false));
+#endif
+
+    if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
+        properties.Set(ShaderProperty("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING", false));
+    }
 
     if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         properties.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));

@@ -1,4 +1,12 @@
-HYP_DESCRIPTOR_SRV(Global, GBufferTextures, num_gbuffer_textures);
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferTextures, num_gbuffer_textures, g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferAlbedoTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferNormalsTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferMaterialTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferLightmapTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferVelocityTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferMaskTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferWSNormalsTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, GBufferTranslucentTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
 HYP_DESCRIPTOR_SRV(Global, GBufferDepthTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, GBufferMipChain, 1);
 HYP_DESCRIPTOR_SRV(Global, DeferredResult, 1);
