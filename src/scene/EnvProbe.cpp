@@ -330,11 +330,4 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     m_render_resource->SetBufferData(buffer_data);
 }
 
-namespace renderer {
-
-HYP_DESCRIPTOR_SSBO(Scene, EnvProbesBuffer, 1, sizeof(EnvProbeShaderData) * max_env_probes, false);
-HYP_DESCRIPTOR_SSBO(Scene, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true);
-
-} // namespace renderer
-
 } // namespace hyperion

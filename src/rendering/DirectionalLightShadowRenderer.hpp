@@ -12,6 +12,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderResource.hpp>
 #include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -30,6 +31,9 @@ namespace hyperion {
 using RerenderShadowsSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
 
 class CameraRenderResource;
+class ShadowMapRenderResource;
+class SceneRenderResource;
+class WorldRenderResource;
 
 struct ShadowMapCameraData
 {
@@ -43,6 +47,7 @@ class ShadowPass final : public FullScreenPass
 public:
     ShadowPass(
         const Handle<Scene> &parent_scene,
+        const TResourceHandle<WorldRenderResource> &world_resource_handle,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const ShaderRef &shader,
         ShadowMode shadow_mode,
@@ -91,11 +96,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetShadowMap() const
-        { return m_shadow_map_all; }
-
     virtual void CreateFramebuffer() override;
-    virtual void CreateDescriptors() override;
 
     virtual void Create() override;
     virtual void Render(FrameBase *frame) override;
@@ -108,6 +109,7 @@ private:
     void CreateComputePipelines();
 
     Handle<Scene>                           m_parent_scene;
+    TResourceHandle<WorldRenderResource>    m_world_resource_handle;
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
     Handle<Light>                           m_light;
@@ -120,7 +122,8 @@ private:
     
     Handle<Texture>                         m_shadow_map_statics;
     Handle<Texture>                         m_shadow_map_dynamics;
-    Handle<Texture>                         m_shadow_map_all;
+    
+    ImageViewRef                            m_shadow_map_combined_image_view;
 
     UniquePtr<FullScreenPass>               m_combine_shadow_maps_pass;
     ComputePipelineRef                      m_blur_shadow_map_pipeline;
@@ -149,6 +152,9 @@ public:
     HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; }
 
+    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource> &GetShadowMapResourceHandle() const
+        { return m_shadow_map_resource_handle; }
+
 private:
     virtual void Init() override;     // init on render thread
     virtual void InitGame() override; // init on game thread
@@ -158,22 +164,24 @@ private:
 
     void CreateShader();
 
-    Handle<Scene>               m_parent_scene;
-    UniquePtr<ShadowPass>       m_shadow_pass;
-    Vec2u                       m_resolution;
-    ShadowMode                  m_shadow_mode;
+    Handle<Scene>                               m_parent_scene;
+    UniquePtr<ShadowPass>                       m_shadow_pass;
+    Vec2u                                       m_resolution;
+    ShadowMode                                  m_shadow_mode;
 
-    RerenderShadowsSemaphore    m_rerender_semaphore;
+    RerenderShadowsSemaphore                    m_rerender_semaphore;
     
-    ShaderRef                   m_shader;
-    Handle<Camera>              m_camera;
-    BoundingBox                 m_aabb;
+    ShaderRef                                   m_shader;
+    Handle<Camera>                              m_camera;
+    BoundingBox                                 m_aabb;
 
-    RenderCollector             m_render_collector_statics;
-    RenderCollector             m_render_collector_dynamics;
+    RenderCollector                             m_render_collector_statics;
+    RenderCollector                             m_render_collector_dynamics;
 
-    HashCode                    m_cached_octant_hash_code_statics;
-    Matrix4                     m_cached_view_matrix;
+    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
+
+    HashCode                                    m_cached_octant_hash_code_statics;
+    Matrix4                                     m_cached_view_matrix;
 };
 
 } // namespace hyperion

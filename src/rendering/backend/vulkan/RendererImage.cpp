@@ -40,6 +40,7 @@ extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
 extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModuleType);
 
+HYP_DISABLE_OPTIMIZATION;
 
 #if 0
 RendererResult ImagePlatformImpl<Platform::VULKAN>::ConvertTo32BPP(
@@ -296,7 +297,7 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
     }
 
     VkFormat vk_format = helpers::ToVkFormat(format);
-    VkImageType vk_image_type = helpers::ToVkType(type);
+    VkImageType vk_image_type = helpers::ToVkImageType(type);
     VkImageCreateFlags vk_image_create_flags = 0;
     VkFormatFeatureFlags vk_format_features = 0;
     VkImageFormatProperties vk_image_format_properties { };
@@ -404,14 +405,14 @@ void VulkanImage::SetResourceState(ResourceState new_state)
 {
     m_resource_state = new_state;
 
-    m_sub_resources.Clear();
+    m_sub_resource_states.Clear();
 }
 
 ResourceState VulkanImage::GetSubResourceState(const ImageSubResource &sub_resource) const
 {
-    const auto it = m_sub_resources.Find(sub_resource);
+    const auto it = m_sub_resource_states.Find(sub_resource.GetSubResourceKey());
 
-    if (it == m_sub_resources.End()) {
+    if (it == m_sub_resource_states.End()) {
         return m_resource_state;
     }
 
@@ -420,7 +421,7 @@ ResourceState VulkanImage::GetSubResourceState(const ImageSubResource &sub_resou
 
 void VulkanImage::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
 {    
-    m_sub_resources[sub_resource] = new_state;
+    m_sub_resource_states.Set(sub_resource.GetSubResourceKey(), new_state);
 }
 
 void VulkanImage::InsertBarrier(
@@ -457,8 +458,8 @@ void VulkanImage::InsertBarrier(
 )
 {
     /* Clear any sub-resources that are in a separate state */
-    if (!m_sub_resources.Empty()) {
-        m_sub_resources.Clear();
+    if (m_sub_resource_states.Any()) {
+        m_sub_resource_states.Clear();
     }
 
     if (m_handle == VK_NULL_HANDLE) {
@@ -523,13 +524,25 @@ void VulkanImage::InsertSubResourceBarrier(
         return;
     }
 
-    ResourceState prev_resource_state = m_resource_state;
+    const ResourceState prev_resource_state = GetSubResourceState(sub_resource);
 
-    auto it = m_sub_resources.Find(sub_resource);
+#ifdef HYP_DEBUG_MODE
+    for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
+        for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
+            const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
 
-    if (it != m_sub_resources.End()) {
-        prev_resource_state = it->second;
+            auto it = m_sub_resource_states.Find(sub_resource_key);
+
+            if (it != m_sub_resource_states.End()) {
+                AssertThrowMsg(
+                    it->second == prev_resource_state,
+                    "Sub resource state mismatch for image: mip %d, layer %d",
+                    i, j
+                );
+            }
+        }
     }
+#endif
 
     const VkImageAspectFlags aspect_flag_bits = 
         (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
@@ -563,7 +576,25 @@ void VulkanImage::InsertSubResourceBarrier(
         1, &barrier
     );
 
-    m_sub_resources.Insert({ sub_resource, new_state });
+    if (new_state == m_resource_state) {
+        for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
+            for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
+                const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
+
+                m_sub_resource_states.Erase(sub_resource_key);
+            }
+        }
+
+        return;
+    }
+
+    for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
+        for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
+            const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
+
+            m_sub_resource_states.Set(sub_resource_key, new_state);
+        }
+    }
 }
 
 RendererResult VulkanImage::Blit(
@@ -628,20 +659,19 @@ RendererResult VulkanImage::Blit(
 
     for (uint32 face = 0; face < num_faces; face++) {
         const ImageSubResource src {
-            .flags = src_image->GetTextureDesc().IsDepthStencil()
-                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+            .flags              = src_image->GetTextureDesc().IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
             .base_array_layer   = face,
             .base_mip_level     = 0
         };
 
         const ImageSubResource dst {
-            .flags = m_texture_desc.IsDepthStencil()
-                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-            .base_array_layer = face,
-            .base_mip_level   = 0
+            .flags              = m_texture_desc.IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+            .base_array_layer   = face,
+            .base_mip_level     = 0
         };
+
+        const ResourceState src_resource_state = static_cast<const VulkanImage *>(src_image)->GetSubResourceState(src);
+        const ResourceState dst_resource_state = GetSubResourceState(dst);
 
         const VkImageAspectFlags aspect_flag_bits = 
             (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
@@ -678,9 +708,9 @@ RendererResult VulkanImage::Blit(
         vkCmdBlitImage(
             static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
             static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
-            GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
+            GetVkImageLayout(src_resource_state),
             m_handle,
-            GetVkImageLayout(GetResourceState()),
+            GetVkImageLayout(dst_resource_state),
             1, &blit,
             helpers::ToVkFilter(GetMinFilterMode())
         );
@@ -703,20 +733,19 @@ RendererResult VulkanImage::Blit(
     const uint32 num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
 
     const ImageSubResource src {
-        .flags = src_image->GetTextureDesc().IsDepthStencil()
-            ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-            : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+        .flags              = src_image->GetTextureDesc().IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
         .base_array_layer   = src_face,
         .base_mip_level     = src_mip
     };
 
     const ImageSubResource dst {
-        .flags = m_texture_desc.IsDepthStencil()
-            ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-            : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-        .base_array_layer = dst_face,
-        .base_mip_level   = dst_mip
+        .flags              = m_texture_desc.IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+        .base_array_layer   = dst_face,
+        .base_mip_level     = dst_mip
     };
+
+    const ResourceState src_resource_state = static_cast<const VulkanImage *>(src_image)->GetSubResourceState(src);
+    const ResourceState dst_resource_state = GetSubResourceState(dst);
 
     const VkImageAspectFlags aspect_flag_bits = 
         (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
@@ -753,9 +782,9 @@ RendererResult VulkanImage::Blit(
     vkCmdBlitImage(
         static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         static_cast<const VulkanImage *>(src_image)->GetVulkanHandle(),
-        GetVkImageLayout(static_cast<const VulkanImage *>(src_image)->GetResourceState()),
+        GetVkImageLayout(src_resource_state),
         m_handle,
-        GetVkImageLayout(GetResourceState()),
+        GetVkImageLayout(dst_resource_state),
         1, &blit,
         helpers::ToVkFilter(GetMinFilterMode())
     );
@@ -839,7 +868,31 @@ void VulkanImage::CopyToBuffer(CommandBufferBase *command_buffer, GPUBufferBase 
     }
 }
 
+ImageViewRef VulkanImage::MakeLayerImageView(uint32 layer_index) const
+{
+    if (m_handle == VK_NULL_HANDLE) {
+        HYP_LOG(
+            RenderingBackend,
+            Warning,
+            "Attempt to create image view on uninitialized image"
+        );
+
+        return ImageViewRef();
+    }
+
+    return GetRenderingAPI()->MakeImageView(
+        HandleFromThis(),
+        0,
+        NumMipmaps(),
+        layer_index,
+        1
+    );
+}
+
 #pragma endregion VulkanImage
+
+
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace renderer
 } // namespace hyperion

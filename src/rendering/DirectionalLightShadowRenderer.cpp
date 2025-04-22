@@ -7,7 +7,9 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -21,6 +23,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <scene/Texture.hpp>
+#include <scene/World.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -42,155 +45,11 @@ static const InternalFormat shadow_map_formats[uint32(ShadowMode::MAX)] = {
     InternalFormat::RG32F   // VSM
 };
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(SetShadowMapInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    uint32          shadow_map_index;
-    ImageViewRef    shadow_map_image_view;
-
-    RENDER_COMMAND(SetShadowMapInGlobalDescriptorSet)(
-        uint32 shadow_map_index,
-        ImageViewRef shadow_map_image_view
-    ) : shadow_map_index(shadow_map_index),
-        shadow_map_image_view(std::move(shadow_map_image_view))
-    {
-        AssertThrow(this->shadow_map_image_view != nullptr);
-    }
-
-    virtual ~RENDER_COMMAND(SetShadowMapInGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                ->SetElement(NAME("ShadowMapTextures"), shadow_map_index, shadow_map_image_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(UnsetShadowMapInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    uint32  shadow_map_index;
-
-    RENDER_COMMAND(UnsetShadowMapInGlobalDescriptorSet)(
-        uint32 shadow_map_index
-    ) : shadow_map_index(shadow_map_index)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UnsetShadowMapInGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                ->SetElement(NAME("ShadowMapTextures"), shadow_map_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateShadowMapImage) : renderer::RenderCommand
-{
-    ImageRef        shadow_map_image;
-    ImageViewRef    shadow_map_image_view;
-
-    RENDER_COMMAND(CreateShadowMapImage)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view)
-        : shadow_map_image(shadow_map_image),
-          shadow_map_image_view(shadow_map_image_view)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateShadowMapImage)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create());
-        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(shadow_map_image));
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
-{
-    ImageRef        shadow_map_image;
-    ImageViewRef    shadow_map_image_view;
-
-    RENDER_COMMAND(DestroyShadowPassData)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view)
-        : shadow_map_image(shadow_map_image),
-          shadow_map_image_view(shadow_map_image_view)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(DestroyShadowPassData)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        RendererResult result;
-
-        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(), result);
-        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(), result);
-
-        return result;
-    }
-};
-
-struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
-{
-    uint32                  shadow_map_index;
-    Vec2u                   resolution;
-    Matrix4                 view_matrix;
-    Matrix4                 projection_matrix;
-    BoundingBox             aabb;
-    EnumFlags<ShadowFlags>  flags;
-
-    RENDER_COMMAND(UpdateShadowMapRenderData)(
-        uint32 shadow_map_index,
-        const Vec2u &resolution,
-        const Matrix4 &view_matrix,
-        const Matrix4 &projection_matrix,
-        const BoundingBox &aabb,
-        EnumFlags<ShadowFlags> flags
-    ) : shadow_map_index(shadow_map_index),
-        resolution(resolution),
-        view_matrix(view_matrix),
-        projection_matrix(projection_matrix),
-        aabb(aabb),
-        flags(flags)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UpdateShadowMapRenderData)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        g_engine->GetRenderData()->shadow_map_data->Set(
-            shadow_map_index,
-            ShadowShaderData {
-                .projection = projection_matrix,
-                .view       = view_matrix,
-                .aabb_max   = Vec4f(aabb.max, 1.0f),
-                .aabb_min   = Vec4f(aabb.min, 1.0f),
-                .dimensions = resolution,
-                .flags      = uint32(flags)
-            }
-        );
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region ShadowPass
 
 ShadowPass::ShadowPass(
     const Handle<Scene> &parent_scene,
+    const TResourceHandle<WorldRenderResource> &world_resource_handle,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const ShaderRef &shader,
     ShadowMode shadow_mode,
@@ -200,6 +59,7 @@ ShadowPass::ShadowPass(
     RerenderShadowsSemaphore *rerender_semaphore
 ) : FullScreenPass(shadow_map_formats[uint32(shadow_mode)], extent),
     m_parent_scene(parent_scene),
+    m_world_resource_handle(world_resource_handle),
     m_camera_resource_handle(camera_resource_handle),
     m_shadow_mode(shadow_mode),
     m_shadow_map_index(~0u),
@@ -217,18 +77,11 @@ ShadowPass::ShadowPass(
 ShadowPass::~ShadowPass()
 {
     m_parent_scene.Reset();
-    m_shadow_map_all.Reset();
     m_shadow_map_statics.Reset();
     m_shadow_map_dynamics.Reset();
 
     SafeRelease(std::move(m_blur_shadow_map_pipeline));
-
-    if (m_shadow_map_index != ~0u) {
-        PUSH_RENDER_COMMAND(
-            UnsetShadowMapInGlobalDescriptorSet,
-            m_shadow_map_index
-        );
-    }
+    SafeRelease(std::move(m_shadow_map_combined_image_view));
 }
 
 void ShadowPass::CreateFramebuffer()
@@ -258,21 +111,14 @@ void ShadowPass::CreateFramebuffer()
     DeferCreate(m_framebuffer);
 }
 
-void ShadowPass::CreateDescriptors()
-{
-    AssertThrow(m_shadow_map_index != ~0u);
-
-    PUSH_RENDER_COMMAND(
-        SetShadowMapInGlobalDescriptorSet,
-        m_shadow_map_index,
-        m_shadow_map_all->GetRenderResource().GetImageView()
-    );
-}
-
 void ShadowPass::CreateShadowMap()
 {
-    FixedArray<Handle<Texture> *, 3> shadow_map_textures {
-        &m_shadow_map_all,
+    AssertThrow(m_world_resource_handle);
+
+    m_shadow_map_combined_image_view = m_world_resource_handle->GetShadowMapsTextureArrayImage()->MakeLayerImageView(m_shadow_map_index);
+    DeferCreate(m_shadow_map_combined_image_view);
+
+    FixedArray<Handle<Texture> *, 2> shadow_map_textures {
         &m_shadow_map_statics,
         &m_shadow_map_dynamics
     };
@@ -336,7 +182,7 @@ void ShadowPass::CreateComputePipelines()
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InputTexture"), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_all->GetRenderResource().GetImageView());
+        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_combined_image_view);
     }
 
     DeferCreate(descriptor_table);
@@ -353,7 +199,6 @@ void ShadowPass::Create()
 {
     CreateShadowMap();
     CreateFramebuffer();
-    CreateDescriptors();
     CreateCombineShadowMapsPass();
     CreateComputePipelines();
 
@@ -451,14 +296,41 @@ void ShadowPass::Render(FrameBase *frame)
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
-        frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_all->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_shadow_map_combined_image_view->GetImage(),
+            renderer::ResourceState::COPY_DST,
+            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+        );
 
         // copy the image
-        frame->GetCommandList().Add<Blit>(attachment->GetImage(), m_shadow_map_all->GetRenderResource().GetImage());
+        frame->GetCommandList().Add<Blit>(
+            attachment->GetImage(),
+            m_shadow_map_combined_image_view->GetImage(),
+            Rect<uint32> {
+                .x0 = 0,
+                .y0 = 0,
+                .x1 = attachment->GetImage()->GetExtent().x,
+                .y1 = attachment->GetImage()->GetExtent().y
+            },
+            Rect<uint32> {
+                .x0 = 0,
+                .y0 = 0,
+                .x1 = MathUtil::Min(attachment->GetImage()->GetExtent().x, m_shadow_map_combined_image_view->GetImage()->GetExtent().x),
+                .y1 = MathUtil::Min(attachment->GetImage()->GetExtent().y, m_shadow_map_combined_image_view->GetImage()->GetExtent().y)
+            },
+            0, /* src_mip */
+            0, /* dst_mip */
+            0, /* src_face */
+            m_shadow_map_index /* dst_face */
+        );
 
         // put the images back into a state for reading
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::SHADER_RESOURCE);
-        frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_all->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_shadow_map_combined_image_view->GetImage(),
+            renderer::ResourceState::SHADER_RESOURCE,
+            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+        );
     }
 
     if (m_shadow_mode == ShadowMode::VSM) {
@@ -483,7 +355,11 @@ void ShadowPass::Render(FrameBase *frame)
         );
 
         // put our shadow map in a state for writing
-        frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_all->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_shadow_map_combined_image_view->GetImage(),
+            renderer::ResourceState::UNORDERED_ACCESS,
+            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+        );
 
         frame->GetCommandList().Add<DispatchCompute>(
             m_blur_shadow_map_pipeline,
@@ -495,7 +371,11 @@ void ShadowPass::Render(FrameBase *frame)
         );
 
         // put shadow map back into readable state
-        frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_all->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(
+            m_shadow_map_combined_image_view->GetImage(),
+            renderer::ResourceState::SHADER_RESOURCE,
+            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+        );
     }
 }
 
@@ -521,6 +401,16 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
     m_shadow_pass.Reset();
+
+    if (m_shadow_map_resource_handle) {
+        ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_resource_handle.Get();
+
+        m_parent_scene->GetWorld()->GetRenderResource().RemoveShadowMapRenderResource(shadow_map_render_resource);
+
+        m_shadow_map_resource_handle.Reset();
+
+        FreeResource(shadow_map_render_resource);
+    }
 }
 
 // called from render thread
@@ -528,8 +418,14 @@ void DirectionalLightShadowRenderer::Init()
 {
     AssertThrow(IsValidComponent());
 
+    ShadowMapRenderResource *shadow_map_render_resource = AllocateResource<ShadowMapRenderResource>(m_shadow_mode, m_resolution);
+    m_shadow_map_resource_handle = TResourceHandle<ShadowMapRenderResource>(*shadow_map_render_resource);
+    
+    m_parent_scene->GetWorld()->GetRenderResource().AddShadowMapRenderResource(m_shadow_map_resource_handle);
+
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
+        TResourceHandle<WorldRenderResource>(m_parent_scene->GetWorld()->GetRenderResource()),
         TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()),
         m_shader,
         m_shadow_mode,
@@ -538,7 +434,7 @@ void DirectionalLightShadowRenderer::Init()
         &m_render_collector_dynamics,
         &m_rerender_semaphore
     );
-    m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
+    m_shadow_pass->SetShadowMapIndex(m_shadow_map_resource_handle->GetBufferIndex());
     m_shadow_pass->Create();
 
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
@@ -642,15 +538,14 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     dynamics_collection_task.Await();
 #endif
 
-    PUSH_RENDER_COMMAND(
-        UpdateShadowMapRenderData,
-        GetComponentIndex(),
-        m_resolution,
-        m_camera->GetViewMatrix(),
-        m_camera->GetProjectionMatrix(),
-        m_aabb,
-        flags
-    );
+    m_shadow_map_resource_handle->SetBufferData(ShadowMapShaderData {
+        .projection = m_camera->GetProjectionMatrix(),
+        .view       = m_camera->GetViewMatrix(),
+        .aabb_max   = Vec4f(m_aabb.max, 1.0f),
+        .aabb_min   = Vec4f(m_aabb.min, 1.0f),
+        .dimensions = m_resolution,
+        .flags      = uint32(flags)
+    });
 }
 
 void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)

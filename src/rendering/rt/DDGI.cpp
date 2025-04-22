@@ -360,9 +360,9 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // irradiance image view
-        m_irradiance_image_view = g_rendering_api->MakeImageView();
+        m_irradiance_image_view = g_rendering_api->MakeImageView(m_irradiance_image);
 
-        DeferCreate(m_irradiance_image_view, m_irradiance_image);
+        DeferCreate(m_irradiance_image_view);
     }
 
     { // depth image
@@ -387,9 +387,9 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // depth image view
-        m_depth_image_view = g_rendering_api->MakeImageView();
+        m_depth_image_view = g_rendering_api->MakeImageView(m_depth_image);
 
-        DeferCreate(m_depth_image_view, m_depth_image);
+        DeferCreate(m_depth_image_view);
     }
 }
 

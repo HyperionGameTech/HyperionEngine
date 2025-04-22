@@ -112,18 +112,6 @@ struct alignas(256) EntityShaderData
 
 static_assert(sizeof(EntityShaderData) == 256);
 
-struct alignas(256) ShadowShaderData
-{
-    Matrix4 projection;
-    Matrix4 view;
-    Vec4f   aabb_max;
-    Vec4f   aabb_min;
-    Vec2u   dimensions;
-    uint32  flags;
-};
-
-static_assert(sizeof(ShadowShaderData) == 256);
-
 struct alignas(16) ImmediateDrawShaderData
 {
     Matrix4 transform;
@@ -191,9 +179,6 @@ struct alignas(16) RTRadianceUniforms
 /* max number of entities, based on size in mb */
 static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(EntityShaderData);
 static const SizeType max_entities_bytes = max_entities * sizeof(EntityShaderData);
-/* max number of shadow maps, based on size in kb */
-static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowShaderData);
-static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);
 
 class GPUBufferHolderBase
 {

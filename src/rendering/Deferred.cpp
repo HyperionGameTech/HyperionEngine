@@ -957,6 +957,17 @@ void DeferredRenderer::Create()
     { // initialize GBuffer
         m_gbuffer->Create();
 
+        static FixedArray<Name, GBUFFER_RESOURCE_MAX> gbuffer_texture_names {
+            NAME("GBufferAlbedoTexture"),
+            NAME("GBufferNormalsTexture"),
+            NAME("GBufferMaterialTexture"),
+            NAME("GBufferLightmapTexture"),
+            NAME("GBufferVelocityTexture"),
+            NAME("GBufferMaskTexture"),
+            NAME("GBufferWSNormalsTexture"),
+            NAME("GBufferTranslucentTexture")
+        };
+
         auto InitializeGBufferFramebuffers = [this]()
         {
             HYP_SCOPE;
@@ -965,22 +976,34 @@ void DeferredRenderer::Create()
             m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
             m_translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
+            // depth attachment goes into separate slot
+            AttachmentBase *depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+            AssertThrow(depth_attachment != nullptr);
+
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 uint32 element_index = 0;
 
-                // not including depth texture here (hence the - 1)
-                for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+                if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
+
+                    // not including depth texture here (hence the - 1)
+                    for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+                        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                            ->SetElement(NAME("GBufferTextures"), element_index++, m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+                    }
+
+                    // add translucent bucket's albedo
                     g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                        ->SetElement(NAME("GBufferTextures"), element_index++, m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+                        ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
+                } else {
+                    for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
+                        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                            ->SetElement(gbuffer_texture_names[attachment_index], m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+                    }
+
+                    // add translucent bucket's albedo
+                    g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+                        ->SetElement(NAME("GBufferTranslucentTexture"), m_translucent_fbo->GetAttachment(0)->GetImageView());
                 }
-
-                // add translucent bucket's albedo
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
-
-                // depth attachment goes into separate slot
-                AttachmentBase *depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-                AssertThrow(depth_attachment != nullptr);
 
                 g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
                     ->SetElement(NAME("GBufferDepthTexture"), depth_attachment->GetImageView());

@@ -16,7 +16,7 @@ PlaceholderData::PlaceholderData()
         1,
         ImageFormatCapabilities::SAMPLED
       })),
-      m_image_view_2d_1x1_r8(g_rendering_api->MakeImageView()),
+      m_image_view_2d_1x1_r8(g_rendering_api->MakeImageView(m_image_2d_1x1_r8)),
       m_image_2d_1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
         renderer::ImageType::TEXTURE_TYPE_2D,
         renderer::InternalFormat::R8,
@@ -27,7 +27,7 @@ PlaceholderData::PlaceholderData()
         1,
         ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
       })),
-      m_image_view_2d_1x1_r8_storage(g_rendering_api->MakeImageView()),
+      m_image_view_2d_1x1_r8_storage(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_storage)),
       m_image_3d_1x1x1_r8(g_rendering_api->MakeImage(TextureDesc {
         renderer::ImageType::TEXTURE_TYPE_3D,
         renderer::InternalFormat::R8,
@@ -38,7 +38,7 @@ PlaceholderData::PlaceholderData()
         1,
         ImageFormatCapabilities::SAMPLED
       })),
-      m_image_view_3d_1x1x1_r8(g_rendering_api->MakeImageView()),
+      m_image_view_3d_1x1x1_r8(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8)),
       m_image_3d_1x1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
         renderer::ImageType::TEXTURE_TYPE_3D,
         renderer::InternalFormat::R8,
@@ -49,7 +49,7 @@ PlaceholderData::PlaceholderData()
         1,
         ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
       })),
-      m_image_view_3d_1x1x1_r8_storage(g_rendering_api->MakeImageView()),
+      m_image_view_3d_1x1x1_r8_storage(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8_storage)),
       m_image_cube_1x1_r8(g_rendering_api->MakeImage(TextureDesc {
         renderer::ImageType::TEXTURE_TYPE_CUBEMAP,
         renderer::InternalFormat::R8,
@@ -60,7 +60,18 @@ PlaceholderData::PlaceholderData()
         1,
         ImageFormatCapabilities::SAMPLED
       })),
-      m_image_view_cube_1x1_r8(g_rendering_api->MakeImageView()),
+      m_image_view_cube_1x1_r8(g_rendering_api->MakeImageView(m_image_cube_1x1_r8)),
+      m_image_2d_1x1_r8_array(g_rendering_api->MakeImage(TextureDesc {
+          renderer::ImageType::TEXTURE_TYPE_2D_ARRAY,
+          renderer::InternalFormat::R8,
+          Vec3u::One(),
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          1,
+          ImageFormatCapabilities::SAMPLED
+      })),
+      m_image_view_2d_1x1_r8_array(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_array)),
       m_sampler_linear(g_rendering_api->MakeSampler(
           renderer::FilterMode::TEXTURE_FILTER_LINEAR,
           renderer::FilterMode::TEXTURE_FILTER_LINEAR,
@@ -90,31 +101,37 @@ void PlaceholderData::Create()
     DeferCreate(m_image_2d_1x1_r8);
 
     m_image_view_2d_1x1_r8.SetName(NAME("Placeholder_2D_1x1_R8_View"));
-    DeferCreate(m_image_view_2d_1x1_r8, m_image_2d_1x1_r8);
+    DeferCreate(m_image_view_2d_1x1_r8);
 
     m_image_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage"));
     DeferCreate(m_image_2d_1x1_r8_storage);
 
     m_image_view_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
-    DeferCreate(m_image_view_2d_1x1_r8_storage, m_image_2d_1x1_r8_storage);
+    DeferCreate(m_image_view_2d_1x1_r8_storage);
 
     m_image_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8"));
     DeferCreate(m_image_3d_1x1x1_r8);
 
     m_image_view_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8_View"));
-    DeferCreate(m_image_view_3d_1x1x1_r8, m_image_3d_1x1x1_r8);
+    DeferCreate(m_image_view_3d_1x1x1_r8);
 
     m_image_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
     DeferCreate(m_image_3d_1x1x1_r8_storage);
 
     m_image_view_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
-    DeferCreate(m_image_view_3d_1x1x1_r8_storage, m_image_3d_1x1x1_r8_storage);
+    DeferCreate(m_image_view_3d_1x1x1_r8_storage);
 
     m_image_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8"));
     DeferCreate(m_image_cube_1x1_r8);
 
     m_image_view_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8_View"));
-    DeferCreate(m_image_view_cube_1x1_r8, m_image_cube_1x1_r8);
+    DeferCreate(m_image_view_cube_1x1_r8);
+
+    m_image_2d_1x1_r8_array.SetName(NAME("Placeholder_2D_1x1_R8_Array"));
+    DeferCreate(m_image_2d_1x1_r8_array);
+
+    m_image_view_2d_1x1_r8_array.SetName(NAME("Placeholder_2D_1x1_R8_Array_View"));
+    DeferCreate(m_image_view_2d_1x1_r8_array);
 
     m_sampler_linear.SetName(NAME("Placeholder_Sampler_Linear"));
     DeferCreate(m_sampler_linear);
@@ -138,6 +155,8 @@ void PlaceholderData::Destroy()
     SafeRelease(std::move(m_image_view_3d_1x1x1_r8_storage));
     SafeRelease(std::move(m_image_cube_1x1_r8));
     SafeRelease(std::move(m_image_view_cube_1x1_r8));
+    SafeRelease(std::move(m_image_2d_1x1_r8_array));
+    SafeRelease(std::move(m_image_view_2d_1x1_r8_array));
     SafeRelease(std::move(m_sampler_linear));
     SafeRelease(std::move(m_sampler_linear_mipmap));
     SafeRelease(std::move(m_sampler_nearest));

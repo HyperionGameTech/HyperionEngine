@@ -134,7 +134,7 @@ struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
             }
 
             if (!image_view->IsCreated()) {
-                HYPERION_BUBBLE_ERRORS(image_view->Create(image.Get()));
+                HYPERION_BUBBLE_ERRORS(image_view->Create());
             }
             
             if (g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
@@ -174,32 +174,6 @@ struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
         }
 
         HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateMipImageView) : renderer::RenderCommand
-{
-    ImageRef        src_image;
-    ImageViewRef    mip_image_view;
-    uint32          mip_level;
-
-    RENDER_COMMAND(CreateMipImageView)(
-        ImageRef src_image,
-        ImageViewRef mip_image_view,
-        uint32 mip_level
-    ) : src_image(std::move(src_image)),
-        mip_image_view(std::move(mip_image_view)),
-        mip_level(mip_level)
-    {
-    }
-
-    virtual RendererResult operator()() override
-    {
-        return mip_image_view->Create(
-            src_image.Get(),
-            mip_level, 1,
-            0, src_image->NumFaces()
-        );
     }
 };
 
@@ -380,8 +354,8 @@ public:
             const uint32 mip_width = MathUtil::Max(1u, extent.x >> mip_level);
             const uint32 mip_height = MathUtil::Max(1u, extent.y >> mip_level);
 
-            ImageViewRef mip_image_view = g_rendering_api->MakeImageView();
-            PUSH_RENDER_COMMAND(CreateMipImageView, m_image, mip_image_view, mip_level);
+            ImageViewRef mip_image_view = g_rendering_api->MakeImageView(m_image, mip_level, 1, 0, m_image->NumFaces());
+            DeferCreate(mip_image_view);
 
             const DescriptorSetRef &generate_mipmaps_descriptor_set = descriptor_table->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);
             AssertThrow(generate_mipmaps_descriptor_set != nullptr);
@@ -439,7 +413,7 @@ private:
 TextureRenderResource::TextureRenderResource(Texture *texture)
     : m_texture(texture),
       m_image(g_rendering_api->MakeImage(texture->GetTextureDesc())),
-      m_image_view(g_rendering_api->MakeImageView())
+      m_image_view(g_rendering_api->MakeImageView(m_image))
 {
 }
 

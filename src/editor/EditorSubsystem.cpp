@@ -1625,7 +1625,7 @@ void EditorSubsystem::NewProject()
     if (Result result = m_current_project->Save()) {
 
     } else {
-        HYP_FAIL("Failed to save project : %s", result.GetError().GetMessage().Data());
+        HYP_LOG(Editor, Error, "Failed to save project : {}", result.GetError().GetMessage());
     }
 }
 

@@ -31,6 +31,8 @@ public:
 
     // use parallel rendering for draw calls
     virtual bool IsParallelRenderingEnabled() const = 0;
+
+    virtual bool IsDynamicDescriptorIndexingSupported() const = 0;
 };
 
 } // namespace renderer

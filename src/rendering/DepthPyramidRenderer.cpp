@@ -139,8 +139,8 @@ void DepthPyramidRenderer::Create()
 
         m_depth_pyramid->Create();
 
-        m_depth_pyramid_view = g_rendering_api->MakeImageView();
-        m_depth_pyramid_view->Create(m_depth_pyramid);
+        m_depth_pyramid_view = g_rendering_api->MakeImageView(m_depth_pyramid);
+        m_depth_pyramid_view->Create();
 
         const Vec3u &image_extent = m_depth_attachment->GetImage()->GetExtent();
         const Vec3u &depth_pyramid_extent = m_depth_pyramid->GetExtent();
@@ -172,12 +172,8 @@ void DepthPyramidRenderer::Create()
             HYPERION_ASSERT_RESULT(mip_uniform_buffer->Create());
             mip_uniform_buffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
-            ImageViewRef &mip_image_view = m_mip_image_views.PushBack(g_rendering_api->MakeImageView());
-            HYPERION_ASSERT_RESULT(mip_image_view->Create(
-                m_depth_pyramid,
-                mip_level, 1,
-                0, m_depth_pyramid->NumFaces()
-            ));
+            ImageViewRef &mip_image_view = m_mip_image_views.PushBack(g_rendering_api->MakeImageView(m_depth_pyramid, mip_level, 1, 0, m_depth_pyramid->NumFaces()));
+            HYPERION_ASSERT_RESULT(mip_image_view->Create());
         }
 
         ShaderRef shader = g_shader_manager->GetOrCreate(NAME("GenerateDepthPyramid"), { });

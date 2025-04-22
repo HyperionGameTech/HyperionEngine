@@ -755,14 +755,13 @@ void EnvGrid::CreateVoxelGridData()
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
 
         for (uint32 mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
-            m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView();
-
-            DeferCreate(
-                m_voxel_grid_mips[mip_level],
+            m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView(
                 m_voxel_grid_texture->GetRenderResource().GetImage(),
                 mip_level, 1,
                 0, m_voxel_grid_texture->GetRenderResource().GetImage()->NumFaces()
             );
+
+            DeferCreate(m_voxel_grid_mips[mip_level]);
 
             // create descriptor sets for mip generation.
             DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(generate_voxel_grid_mipmaps_descriptor_table_decl);

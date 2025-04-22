@@ -16,8 +16,7 @@ RenderCommands::Buffer RenderCommands::buffers[2] = { };
 AtomicVar<uint32> RenderCommands::buffer_index = 0;
 RenderCommands::RenderCommandSemaphore RenderCommands::semaphore = { };
 
-// // Note: double buffering is currently disabled as it is causing some issues with textures not being
-// // initalized when they are first added to a material's descriptor set.
+// // Note: double buffering is currently disabled as some render commands are dependent on being executed sequentially.
 // #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
 #pragma region RenderScheduler
@@ -56,18 +55,14 @@ RendererResult RenderCommands::Flush()
     Array<RenderCommand *> commands;
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
-    const uint32 buffer_index = RenderCommands::buffer_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE) % 2;
+    const uint32 buffer_index = CurrentBufferIndex();
     Buffer &buffer = buffers[buffer_index];
 
-    // Lock in order to accept commands, so when
-    // one of our render commands pushes to the queue,
-    // it will not cause a deadlock.
-    // Also it will be more performant this way as less time will be spent
-    // in the locked section.
     std::unique_lock lock(buffer.mtx);
 
     buffer.scheduler.AcceptAll(commands);
-    buffer.scheduler.m_num_enqueued.Decrement(commands.Size(), MemoryOrder::RELEASE);
+
+    RenderCommands::buffer_index.Increment(1, MemoryOrder::RELEASE);
 
     lock.unlock();
 
@@ -84,6 +79,8 @@ RendererResult RenderCommands::Flush()
     }
 
     if (num_commands) {
+        buffer.scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
+
         // Buffer is swapped now, safe to rewind without locking mutex.
         Rewind(buffer_index);
     }
@@ -134,16 +131,17 @@ void RenderCommands::Wait()
 
     const uint32 current_value = semaphore.GetValue();
 
+#ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+    // wait for the counter to increment by 2
+    semaphore.WaitForValue(current_value + 2);
+#else
     // wait for the counter to increment by 1
     semaphore.WaitForValue(current_value + 1);
+#endif
 }
 
 void RenderCommands::Rewind(uint32 buffer_index)
 {
-#ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
-    AssertDebugMsg(buffer_index != CurrentBufferIndex(), "cannot rewind the current buffer");
-#endif
-
     // all items in the cache must have had destructor called on them already.
     Buffer &buffer = buffers[buffer_index];
 

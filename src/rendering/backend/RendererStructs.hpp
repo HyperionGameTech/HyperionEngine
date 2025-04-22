@@ -54,7 +54,8 @@ enum class ImageType : uint32
 {
     TEXTURE_TYPE_2D = 0,
     TEXTURE_TYPE_3D = 1,
-    TEXTURE_TYPE_CUBEMAP = 2
+    TEXTURE_TYPE_CUBEMAP = 2,
+    TEXTURE_TYPE_2D_ARRAY = 3
 };
 
 enum class BaseFormat : uint32
@@ -400,12 +401,16 @@ struct TextureDesc
         { return type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
     HYP_FORCE_INLINE bool IsPanorama() const
-        { return type == ImageType::TEXTURE_TYPE_2D
+    {
+        return type == ImageType::TEXTURE_TYPE_2D
             && extent.x == extent.y * 2
-            && extent.z == 1; }
+            && extent.z == 1;
+    }
 
-    HYP_FORCE_INLINE bool IsTextureArray() const
-        { return !IsTextureCube() && num_layers > 1; }
+    HYP_FORCE_INLINE bool IsTexture2DArray() const
+    {
+        return type == ImageType::TEXTURE_TYPE_2D_ARRAY;
+    }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
         { return type == ImageType::TEXTURE_TYPE_3D; }
@@ -417,7 +422,7 @@ struct TextureDesc
     {
         return IsTextureCube()
             ? 6
-            : IsTextureArray()
+            : IsTexture2DArray()
                 ? num_layers
                 : 1;
     }
@@ -765,6 +770,11 @@ struct ImageSubResource
             && num_layers == other.num_layers
             && base_mip_level == other.base_mip_level
             && num_levels == other.num_levels;
+    }
+
+    uint64 GetSubResourceKey() const
+    {
+        return (uint64(base_array_layer) << 32) | (uint64(base_mip_level));
     }
 
     HashCode GetHashCode() const

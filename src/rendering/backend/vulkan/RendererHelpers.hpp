@@ -26,11 +26,11 @@ namespace helpers {
 
 VkIndexType ToVkIndexType(DatumType);
 VkFormat ToVkFormat(InternalFormat);
-VkImageType ToVkType(ImageType);
 VkFilter ToVkFilter(FilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
-VkImageViewType ToVkImageViewType(ImageType type, bool is_array);
+VkImageType ToVkImageType(ImageType);
+VkImageViewType ToVkImageViewType(ImageType type);
 VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
 
 } // namespace helpers

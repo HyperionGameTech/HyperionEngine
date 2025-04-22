@@ -69,6 +69,11 @@ public:
         return true;
     }
 
+    virtual bool IsDynamicDescriptorIndexingSupported() const override
+    {
+        return false;//m_rendering_api->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
+    }
+
 private:
     VulkanRenderingAPI  *m_rendering_api;
 };
@@ -125,6 +130,10 @@ public:
             if (element.IsBindless()) {
                 descriptor_count = max_bindless_resources;
             }
+            
+            //if (descriptor_count > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
+            //    return HYP_MAKE_ERROR(RendererError, "Device does not support descriptor indexing, cannot create descriptor set with element {} that uses an array of elements", 0, name);
+            //}
 
             VkDescriptorSetLayoutBinding binding { };
             binding.descriptorCount = descriptor_count;
@@ -601,9 +610,14 @@ ImageRef VulkanRenderingAPI::MakeImage(const TextureDesc &texture_desc)
     return MakeRenderObject<VulkanImage>(texture_desc);
 }
 
-ImageViewRef VulkanRenderingAPI::MakeImageView()
+ImageViewRef VulkanRenderingAPI::MakeImageView(const ImageRef &image)
 {
-    return MakeRenderObject<VulkanImageView>();
+    return MakeRenderObject<VulkanImageView>(VulkanImageRef(image));
+}
+
+ImageViewRef VulkanRenderingAPI::MakeImageView(const ImageRef &image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces)
+{
+    return MakeRenderObject<VulkanImageView>(VulkanImageRef(image), mip_index, num_mips, face_index, num_faces);
 }
 
 SamplerRef VulkanRenderingAPI::MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode)
@@ -700,7 +714,7 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
     const uint32 num_faces = texture_desc.NumFaces();
 
     VkFormat vk_format = helpers::ToVkFormat(format);
-    VkImageType vk_image_type = helpers::ToVkType(type);
+    VkImageType vk_image_type = helpers::ToVkImageType(type);
     VkImageCreateFlags vk_image_create_flags = 0;
     VkFormatFeatureFlags vk_format_features = 0;
     VkImageFormatProperties vk_image_format_properties { };

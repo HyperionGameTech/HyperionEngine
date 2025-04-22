@@ -416,9 +416,19 @@ public:
     {
     }
 
-    Blit(const ImageRef &src_image, const ImageRef &dst_image, uint32 src_mip, uint32 dst_mip, uint32 src_face, uint32 dst_face)
+    Blit(const ImageRef &src_image, const ImageRef &dst_image, const Rect<uint32> &src_rect, const Rect<uint32> &dst_rect)
         : m_src_image(src_image),
           m_dst_image(dst_image),
+          m_src_rect(src_rect),
+          m_dst_rect(dst_rect)
+    {
+    }
+
+    Blit(const ImageRef &src_image, const ImageRef &dst_image, const Rect<uint32> &src_rect, const Rect<uint32> &dst_rect, uint32 src_mip, uint32 dst_mip, uint32 src_face, uint32 dst_face)
+        : m_src_image(src_image),
+          m_dst_image(dst_image),
+          m_src_rect(src_rect),
+          m_dst_rect(dst_rect),
           m_mip_face_info(MipFaceInfo { src_mip, dst_mip, src_face, dst_face })
     {
     }
@@ -428,9 +438,17 @@ public:
         if (m_mip_face_info) {
             MipFaceInfo info = *m_mip_face_info;
 
-            m_dst_image->Blit(cmd, m_src_image, info.src_mip, info.dst_mip, info.src_face, info.dst_face);
+            if (m_src_rect && m_dst_rect) {
+                m_dst_image->Blit(cmd, m_src_image, *m_src_rect, *m_dst_rect, info.src_mip, info.dst_mip, info.src_face, info.dst_face);
+            } else {
+                m_dst_image->Blit(cmd, m_src_image, info.src_mip, info.dst_mip, info.src_face, info.dst_face);
+            }
         } else {
-            m_dst_image->Blit(cmd, m_src_image);
+            if (m_src_rect && m_dst_rect) {
+                m_dst_image->Blit(cmd, m_src_image, *m_src_rect, *m_dst_rect);
+            } else {
+                m_dst_image->Blit(cmd, m_src_image);
+            }
         }
     }
 
@@ -445,6 +463,9 @@ private:
 
     ImageRef                m_src_image;
     ImageRef                m_dst_image;
+
+    Optional<Rect<uint32>>  m_src_rect;
+    Optional<Rect<uint32>>  m_dst_rect;
 
     Optional<MipFaceInfo>   m_mip_face_info;
 };

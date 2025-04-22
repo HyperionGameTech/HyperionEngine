@@ -23,11 +23,14 @@ set(COMMON_LIBRARIES
 )
 
 find_package(Threads REQUIRED)
-find_package(CURL)
 
-if(APPLE)
-    set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
-    set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
+if(NOT IOS)
+    if(APPLE)
+        set(CURL_LIBRARY /opt/homebrew/opt/curl/lib/libcurl.dylib)
+        set(CURL_INCLUDE_DIR /opt/homebrew/opt/curl/include)
+    endif()
+    
+    find_package(CURL)
 endif()
 
 if(CURL_FOUND)

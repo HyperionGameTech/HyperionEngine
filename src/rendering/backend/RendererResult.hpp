@@ -22,8 +22,15 @@ public:
     }
 
     template <auto MessageString>
-    RendererError(const StaticMessage &current_function, ValueWrapper<MessageString>, int error_code = 0)
+    RendererError(const StaticMessage &current_function, ValueWrapper<MessageString>)
         : Error(current_function, ValueWrapper<MessageString>()),
+          m_error_code(0)
+    {
+    }
+    
+    template <auto MessageString, class... Args>
+    RendererError(const StaticMessage &current_function, ValueWrapper<MessageString>, int error_code, Args &&... args)
+        : Error(current_function, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
           m_error_code(error_code)
     {
     }

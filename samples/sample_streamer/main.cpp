@@ -1,4 +1,4 @@
-﻿#include <editor/HyperionEditor.hpp>
+#include <editor/HyperionEditor.hpp>
 
 #include <system/App.hpp>
 
@@ -16,6 +16,9 @@
 #include <core/utilities/Format.hpp>
 
 #include <HyperionEngine.hpp>
+
+// temp
+#include <SDL2/SDL.h>
 
 using namespace hyperion;
 

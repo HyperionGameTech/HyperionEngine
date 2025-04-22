@@ -89,7 +89,7 @@ VulkanAttachment::VulkanAttachment(
 ) : AttachmentBase(image, load_operation, store_operation, blend_function),
     m_stage(stage)
 {
-    m_image_view = MakeRenderObject<VulkanImageView>();
+    m_image_view = MakeRenderObject<VulkanImageView>(m_image);
 }
 
 VulkanAttachment::~VulkanAttachment()
@@ -111,7 +111,7 @@ RendererResult VulkanAttachment::Create()
         return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }
 
-    return m_image_view->Create(m_image);
+    return m_image_view->Create();
 }
 
 RendererResult VulkanAttachment::Destroy()

@@ -21,3 +21,6 @@
 [submodule "submodules/oidn"]
 	path = submodules/oidn
 	url = https://github.com/OpenImageDenoise/oidn
+[submodule "submodules/ios-cmake"]
+	path = submodules/ios-cmake
+	url = https://github.com/leetal/ios-cmake

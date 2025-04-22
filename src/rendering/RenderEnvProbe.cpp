@@ -344,8 +344,8 @@ void EnvProbeRenderResource::Initialize_Internal()
         }
 
         if (!m_prefiltered_image_view) {
-            m_prefiltered_image_view = g_rendering_api->MakeImageView();
-            HYPERION_ASSERT_RESULT(m_prefiltered_image_view->Create(m_prefiltered_image, 0, m_prefiltered_image->GetTextureDesc().NumMipmaps(), 0, 1));
+            m_prefiltered_image_view = g_rendering_api->MakeImageView(m_prefiltered_image);
+            HYPERION_ASSERT_RESULT(m_prefiltered_image_view->Create());
         }
     }
 
@@ -365,8 +365,8 @@ void EnvProbeRenderResource::Initialize_Internal()
         }
 
         if (!m_irradiance_image_view) {
-            m_irradiance_image_view = g_rendering_api->MakeImageView();
-            HYPERION_ASSERT_RESULT(m_irradiance_image_view->Create(m_irradiance_image, 0, 1, 0, 1));
+            m_irradiance_image_view = g_rendering_api->MakeImageView(m_irradiance_image, 0, 1, 0, 1);
+            HYPERION_ASSERT_RESULT(m_irradiance_image_view->Create());
         }
     }
 }
@@ -1075,5 +1075,12 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
 }
 
 #pragma endregion EnvProbeRenderResource
+
+namespace renderer {
+
+HYP_DESCRIPTOR_SSBO(Scene, EnvProbesBuffer, 1, sizeof(EnvProbeShaderData) * max_env_probes, false);
+HYP_DESCRIPTOR_SSBO(Scene, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion

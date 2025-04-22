@@ -41,7 +41,7 @@ RC<AppContext> App::InitAppContext(Game *game, const CommandLineArguments &argum
 #ifdef HYP_SDL
     app_context = MakeRefCountedPtr<SDLAppContext>("Hyperion", arguments);
 #else
-    #error "No AppContext implementation for this platform!"
+    HYP_FAIL("AppContext not implemented for this platform");
 #endif
 
     app_context->SetGame(game);

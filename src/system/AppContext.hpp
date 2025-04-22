@@ -3,8 +3,10 @@
 #ifndef HYPERION_APP_CONTEXT_HPP
 #define HYPERION_APP_CONTEXT_HPP
 
+#ifdef HYP_SDL
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL.h>
+#endif
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
@@ -137,18 +139,15 @@ public:
     
     void Initialize(WindowOptions);
 
-    SDL_Window *GetInternalWindow()
-        { return window; }
-
-    const SDL_Window *GetInternalWindow() const
-        { return window; }
+    void *GetInternalWindowHandle() const
+        { return m_window_handle; }
 
 #ifdef HYP_VULKAN
     virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) override;
 #endif
     
 private:
-    SDL_Window  *window = nullptr;
+    void    *m_window_handle = nullptr;
 };
 
 HYP_CLASS()

@@ -25,7 +25,6 @@
 #include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/RigidBodyComponent.hpp>
-#include <scene/ecs/components/BLASComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 
@@ -85,7 +84,7 @@ namespace editor {
 #pragma region HyperionEditor
 
 HyperionEditor::HyperionEditor()
-    : Game(ManagedGameInfo { "GameName.dll", "TestGame1" })
+    : Game()
 {
 }
 
@@ -262,13 +261,6 @@ void HyperionEditor::Init()
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
 
-    GetScene()->GetEntityManager()->AddComponent<ScriptComponent>(root_entity, ScriptComponent {
-        {
-            .assembly_path  = "GameName.dll",
-            .class_name     = "FizzBuzzTest"
-        }
-    });
-
     batch->OnComplete.Bind([this](AssetMap &results)
     {
 #if 0
@@ -315,14 +307,6 @@ void HyperionEditor::Init()
         env_grid_node.SetEntity(env_grid_entity);
         env_grid_node.SetName("EnvGrid2");
 #endif
-        
-        for (auto &node : node.GetChildren()) {
-            if (auto child_entity = node.GetEntity()) {
-                // Add BLASComponent
-
-                m_scene->GetEntityManager()->AddComponent<BLASComponent>(child_entity, BLASComponent { });
-            }
-        }
 
         if (true) {
             // testing reflection capture
