@@ -101,7 +101,8 @@ public:
 
     virtual ImageRef MakeImage(const TextureDesc &texture_desc) = 0;
 
-    virtual ImageViewRef MakeImageView() = 0;
+    virtual ImageViewRef MakeImageView(const ImageRef &image) = 0;
+    virtual ImageViewRef MakeImageView(const ImageRef &image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces) = 0;
 
     virtual SamplerRef MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode) = 0;
 

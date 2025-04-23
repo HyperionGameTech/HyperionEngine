@@ -3,7 +3,9 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/Buffers.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -80,6 +82,41 @@ Task<bool> WorldRenderResource::RemoveScene(const WeakHandle<Scene> &scene_weak)
     return task;
 }
 
+void WorldRenderResource::AddShadowMapRenderResource(const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle)
+{
+    HYP_SCOPE;
+
+    if (!shadow_map_resource_handle) {
+        return;
+    }
+
+    Execute([this, shadow_map_resource_handle]()
+    {
+        m_shadow_map_resource_handles.PushBack(std::move(shadow_map_resource_handle));
+    }, /* force_owner_thread */ true);
+}
+
+void WorldRenderResource::RemoveShadowMapRenderResource(const ShadowMapRenderResource *shadow_map_render_resource)
+{
+    HYP_SCOPE;
+
+    if (!shadow_map_render_resource) {
+        return;
+    }
+
+    Execute([this, shadow_map_render_resource]()
+    {
+        auto it = m_shadow_map_resource_handles.FindIf([shadow_map_render_resource](const TResourceHandle<ShadowMapRenderResource> &item)
+        {
+            return item.Get() == shadow_map_render_resource;
+        });
+
+        if (it != m_shadow_map_resource_handles.End()) {
+            m_shadow_map_resource_handles.Erase(it);
+        }
+    }, /* force_owner_thread */ true);
+}
+
 const EngineRenderStats &WorldRenderResource::GetRenderStats() const
 {
     HYP_SCOPE;
@@ -108,6 +145,8 @@ void WorldRenderResource::SetRenderStats(const EngineRenderStats &render_stats)
 void WorldRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
+    
+    CreateShadowMapsTextureArray();
 }
 
 void WorldRenderResource::Destroy_Internal()
@@ -115,6 +154,9 @@ void WorldRenderResource::Destroy_Internal()
     HYP_SCOPE;
 
     m_bound_scenes.Clear();
+
+    SafeRelease(std::move(m_shadow_maps_texture_array_image));
+    SafeRelease(std::move(m_shadow_maps_texture_array_image_view));
 }
 
 void WorldRenderResource::Update_Internal()
@@ -148,6 +190,32 @@ void WorldRenderResource::Render(renderer::FrameBase *frame)
     Threads::AssertOnThread(g_render_thread);
 
     m_environment->RenderSubsystems(frame);
+}
+
+void WorldRenderResource::CreateShadowMapsTextureArray()
+{
+    HYP_SCOPE;
+
+    m_shadow_maps_texture_array_image = g_rendering_api->MakeImage(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D_ARRAY,
+        InternalFormat::RG32F,
+        Vec3u { 2048, 2048, 1 },
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        uint32(max_shadow_maps),
+        ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
+    });
+
+    HYPERION_ASSERT_RESULT(m_shadow_maps_texture_array_image->Create());
+
+    m_shadow_maps_texture_array_image_view = g_rendering_api->MakeImageView(m_shadow_maps_texture_array_image);
+    HYPERION_ASSERT_RESULT(m_shadow_maps_texture_array_image_view->Create());
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+            ->SetElement(NAME("ShadowMapsTextureArray"), m_shadow_maps_texture_array_image_view);
+    }
 }
 
 #pragma endregion WorldRenderResource

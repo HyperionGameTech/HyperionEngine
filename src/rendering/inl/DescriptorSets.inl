@@ -10,8 +10,8 @@ HYP_DESCRIPTOR_SRV_COND(Global, GBufferTranslucentTexture, 1, !g_rendering_api->
 HYP_DESCRIPTOR_SRV(Global, GBufferDepthTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, GBufferMipChain, 1);
 HYP_DESCRIPTOR_SRV(Global, DeferredResult, 1);
-HYP_DESCRIPTOR_SRV(Global, PostFXPreStack, 4);
-HYP_DESCRIPTOR_SRV(Global, PostFXPostStack, 4);
+HYP_DESCRIPTOR_SRV_COND(Global, PostFXPreStack, 4, g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
+HYP_DESCRIPTOR_SRV_COND(Global, PostFXPostStack, 4, g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
 HYP_DESCRIPTOR_SRV(Global, SSRResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, SSGIResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, SSAOResultTexture, 1);
@@ -31,8 +31,6 @@ HYP_DESCRIPTOR_SRV(Global, UITexture, 1);
 HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
 
 HYP_DESCRIPTOR_SSBO(Scene, ObjectsBuffer, 1, sizeof(EntityShaderData) * max_entities, false);
-HYP_DESCRIPTOR_SSBO(Scene, ShadowMapsBuffer, 1, sizeof(ShadowShaderData) * max_shadow_maps, false);
-HYP_DESCRIPTOR_SRV(Scene, ShadowMapTextures, max_shadow_maps);
 HYP_DESCRIPTOR_SRV(Scene, PointLightShadowMapTextures, max_bound_point_shadow_maps);
 HYP_DESCRIPTOR_SRV(Scene, EnvProbeTextures, max_bound_reflection_probes);
 HYP_DESCRIPTOR_SSBO(Scene, SHGridBuffer, 1, sizeof(SHGridBuffer), false);

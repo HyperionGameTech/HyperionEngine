@@ -7,6 +7,7 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderShadowMap.hpp>
 #include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -63,7 +64,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : renderer::Rend
     {
         for (auto &item : grid_textures) {
             HYPERION_BUBBLE_ERRORS(item.image->Create());
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create(item.image));
+            HYPERION_BUBBLE_ERRORS(item.image_view->Create());
         }
 
         HYPERION_RETURN_OK;
@@ -92,7 +93,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
                 ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
             });
 
-            item.image_view = g_rendering_api->MakeImageView();
+            item.image_view = g_rendering_api->MakeImageView(item.image);
         }
     }
 }
@@ -121,7 +122,7 @@ ShaderGlobals::ShaderGlobals()
     objects = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EntityShaderData, GPUBufferType::STORAGE_BUFFER>(max_entities);
     materials = g_engine->GetGPUBufferHolderMap()->GetOrCreate<MaterialShaderData, GPUBufferType::STORAGE_BUFFER>(max_materials);
     skeletons = g_engine->GetGPUBufferHolderMap()->GetOrCreate<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER>(max_skeletons);
-    shadow_map_data = g_engine->GetGPUBufferHolderMap()->GetOrCreate<ShadowShaderData, GPUBufferType::STORAGE_BUFFER>(max_shadow_maps);
+    shadow_map_data = g_engine->GetGPUBufferHolderMap()->GetOrCreate<ShadowMapShaderData, GPUBufferType::STORAGE_BUFFER>(max_shadow_maps);
     env_probes = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER>(max_env_probes);
     env_grids = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER>(max_env_grids);
 }

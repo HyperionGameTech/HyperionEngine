@@ -100,6 +100,10 @@ public:
         GPUBufferBase *dst_buffer
     ) const override;
 
+    /*! \brief Creates a view of the image for the specified array layer
+     */
+    HYP_API virtual ImageViewRef MakeLayerImageView(uint32 layer_index) const override;
+
     HYP_FORCE_INLINE uint8 GetBPP() const
         { return m_bpp; }
     
@@ -110,7 +114,7 @@ private:
     VkImageTiling                               m_tiling = VK_IMAGE_TILING_OPTIMAL;
     VkImageUsageFlags                           m_usage_flags = 0;
 
-    HashMap<ImageSubResource, ResourceState>    m_sub_resources;
+    HashMap<uint64, ResourceState>              m_sub_resource_states;
 
     // true if we created the VkImage, false otherwise (e.g retrieved from swapchain)
     bool                                        m_is_handle_owned = true;

@@ -318,14 +318,17 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DeferredResult"), GetPlaceholderData()->GetImageView2D1x1R8());
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
+        if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
+        }
+        
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostProcessingUniforms"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(PostProcessingUniforms), true /* exact size */));
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SSAOResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
@@ -365,9 +368,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), m_render_data->shadow_map_data->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("SHGridBuffer"), GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
-        for (uint32 shadow_map_index = 0; shadow_map_index < max_shadow_maps; shadow_map_index++) {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapTextures"), shadow_map_index, GetPlaceholderData()->GetImageView2D1x1R8());
-        }
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), GetPlaceholderData()->GetImageView2D1x1R8Array());
 
         for (uint32 shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
             m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("PointLightShadowMapTextures"), shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());

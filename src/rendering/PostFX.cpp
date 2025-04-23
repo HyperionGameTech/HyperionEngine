@@ -6,11 +6,15 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 PostFXPass::PostFXPass(InternalFormat image_format)
     : FullScreenPass(nullptr, image_format)
@@ -52,8 +56,14 @@ void PostFXPass::CreateDescriptors()
     Threads::AssertOnThread(g_render_thread);
 
     if (m_effect_index == ~0u) {
-        DebugLog(LogType::Warn, "Effect index not set, skipping descriptor creation\n");
+        HYP_LOG(Rendering, Warning, "Effect index not set, skipping descriptor creation");
 
+        return;
+    }
+    
+    if (!g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
+        HYP_LOG(Rendering, Warning, "Creating post processing pass on a device that does not support dynamic descriptor indexing");
+        
         return;
     }
 

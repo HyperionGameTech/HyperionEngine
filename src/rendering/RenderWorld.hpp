@@ -31,6 +31,7 @@ class Scene;
 class RenderEnvironment;
 class CameraRenderResource;
 class SceneRenderResource;
+class ShadowMapRenderResource;
 
 class WorldRenderResource final : public RenderResourceBase
 {
@@ -47,8 +48,17 @@ public:
     HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
         { return m_environment; }
 
+    HYP_FORCE_INLINE const ImageRef &GetShadowMapsTextureArrayImage() const
+        { return m_shadow_maps_texture_array_image; }
+
+    HYP_FORCE_INLINE const ImageViewRef &GetShadowMapsTextureArrayImageView() const
+        { return m_shadow_maps_texture_array_image_view; }
+
     void AddScene(const Handle<Scene> &scene);
     Task<bool> RemoveScene(const WeakHandle<Scene> &scene_weak);
+
+    void AddShadowMapRenderResource(const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle);
+    void RemoveShadowMapRenderResource(const ShadowMapRenderResource *shadow_map_render_resource);
 
     const EngineRenderStats &GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats &render_stats);
@@ -65,9 +75,16 @@ protected:
     virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
 
 private:
+    void CreateShadowMapsTextureArray();
+
     World                                                       *m_world;
     Array<TResourceHandle<SceneRenderResource>>                 m_bound_scenes;
     Handle<RenderEnvironment>                                   m_environment;
+
+    ImageRef                                                    m_shadow_maps_texture_array_image;
+    ImageViewRef                                                m_shadow_maps_texture_array_image_view;
+    Array<TResourceHandle<ShadowMapRenderResource>>             m_shadow_map_resource_handles;
+
     FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX>  m_render_stats;
 };
 

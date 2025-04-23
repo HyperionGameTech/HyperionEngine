@@ -5,6 +5,8 @@
 
 #include <rendering/RenderResource.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
+
 #include <core/math/Vector4.hpp>
 
 #include <core/Handle.hpp>
@@ -70,6 +72,9 @@ private:
     TResourceHandle<CameraRenderResource>   m_camera_render_resource_handle;
 
     SceneShaderData                         m_buffer_data;
+
+    ImageRef                                m_shadows_texture_array_image;
+    ImageViewRef                            m_shadows_texture_array_image_view;
 };
 
 template <>

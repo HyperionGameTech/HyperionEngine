@@ -624,14 +624,14 @@ public:
 
     virtual ~RenderObject() override = default;
 
-    HYP_NODISCARD RenderObjectHandle_Strong<T> HandleFromThis()
+    HYP_NODISCARD RenderObjectHandle_Strong<T> HandleFromThis() const
     {
-        return RenderObjectHandle_Strong<T>(GetHeader_Internal(), static_cast<T *>(this));
+        return RenderObjectHandle_Strong<T>(GetHeader_Internal(), static_cast<T *>(const_cast<RenderObject<T> *>(this)));
     }
 
-    HYP_NODISCARD RenderObjectHandle_Weak<T> WeakHandleFromThis()
+    HYP_NODISCARD RenderObjectHandle_Weak<T> WeakHandleFromThis() const
     {
-        return RenderObjectHandle_Weak<T>(GetHeader_Internal(), static_cast<T *>(this));
+        return RenderObjectHandle_Weak<T>(GetHeader_Internal(), static_cast<T *>(const_cast<RenderObject<T> *>(this)));
     }
 };
 

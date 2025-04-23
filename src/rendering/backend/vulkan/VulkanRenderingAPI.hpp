@@ -84,7 +84,8 @@ public:
 
     virtual ImageRef MakeImage(const TextureDesc &texture_desc) override;
 
-    virtual ImageViewRef MakeImageView() override;
+    virtual ImageViewRef MakeImageView(const ImageRef &image) override;
+    virtual ImageViewRef MakeImageView(const ImageRef &image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces) override;
 
     virtual SamplerRef MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode) override;
 

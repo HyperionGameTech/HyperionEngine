@@ -40,8 +40,8 @@ public:
     HYP_FORCE_INLINE bool IsPanorama() const
         { return m_texture_desc.IsPanorama(); }
 
-    HYP_FORCE_INLINE bool IsTextureArray() const
-        { return m_texture_desc.IsTextureArray(); }
+    HYP_FORCE_INLINE bool IsTexture2DArray() const
+        { return m_texture_desc.IsTexture2DArray(); }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
         { return m_texture_desc.IsTexture3D(); }
@@ -157,6 +157,8 @@ public:
         CommandBufferBase *command_buffer,
         GPUBufferBase *dst_buffer
     ) const = 0;
+
+    HYP_API virtual ImageViewRef MakeLayerImageView(uint32 layer_index) const = 0;
 
 protected:
     ImageBase()
