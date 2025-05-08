@@ -158,7 +158,7 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase *command_buffer)
                 .base_mip_level = uint32(i)
             };
             
-            InsertSubResourceBarrier(
+            InsertBarrier(
                 command_buffer,
                 src,
                 ResourceState::COPY_SRC,
@@ -410,7 +410,7 @@ void VulkanImage::SetResourceState(ResourceState new_state)
 
 ResourceState VulkanImage::GetSubResourceState(const ImageSubResource &sub_resource) const
 {
-    const auto it = m_sub_resource_states.Find(sub_resource.GetSubResourceKey());
+    auto it = m_sub_resource_states.Find(sub_resource.GetSubResourceKey());
 
     if (it == m_sub_resource_states.End()) {
         return m_resource_state;
@@ -441,9 +441,9 @@ void VulkanImage::InsertBarrier(
     InsertBarrier(
         command_buffer,
         ImageSubResource {
-            .flags = flags,
-            .num_layers = VK_REMAINING_ARRAY_LAYERS,
-            .num_levels = VK_REMAINING_MIP_LEVELS
+            .flags      = flags,
+            .num_layers = ~0u,
+            .num_levels = ~0u
         },
         new_state,
         shader_module_type
@@ -457,11 +457,6 @@ void VulkanImage::InsertBarrier(
     ShaderModuleType shader_module_type
 )
 {
-    /* Clear any sub-resources that are in a separate state */
-    if (m_sub_resource_states.Any()) {
-        m_sub_resource_states.Clear();
-    }
-
     if (m_handle == VK_NULL_HANDLE) {
         HYP_LOG(
             RenderingBackend,
@@ -472,64 +467,12 @@ void VulkanImage::InsertBarrier(
         return;
     }
 
-    const VkImageAspectFlags aspect_flag_bits = 
-        (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageSubresourceRange range { };
-    range.aspectMask = aspect_flag_bits;
-    range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount = sub_resource.num_layers;
-    range.baseMipLevel = sub_resource.base_mip_level;
-    range.levelCount = sub_resource.num_levels;
-
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout = GetVkImageLayout(m_resource_state);
-    barrier.newLayout = GetVkImageLayout(new_state);
-    barrier.srcAccessMask = GetVkAccessMask(m_resource_state);
-    barrier.dstAccessMask = GetVkAccessMask(new_state);
-    barrier.image = m_handle;
-    barrier.subresourceRange = range;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
-        GetVkShaderStageMask(m_resource_state, true, shader_module_type),
-        GetVkShaderStageMask(new_state, false, shader_module_type),
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    m_resource_state = new_state;
-}
-
-void VulkanImage::InsertSubResourceBarrier(
-    CommandBufferBase *command_buffer,
-    const ImageSubResource &sub_resource,
-    ResourceState new_state,
-    ShaderModuleType shader_module_type
-)
-{
-    if (m_handle == VK_NULL_HANDLE) {
-        HYP_LOG(
-            RenderingBackend,
-            Debug,
-            "Attempt to insert a resource barrier but image was not defined"
-        );
-
-        return;
-    }
-
     const ResourceState prev_resource_state = GetSubResourceState(sub_resource);
 
 #ifdef HYP_DEBUG_MODE
-    for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
-        for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
-            const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
+    for (int mip_level = int(sub_resource.base_mip_level); mip_level < int(sub_resource.base_mip_level) + int(MathUtil::Min(sub_resource.num_levels, NumMipmaps())); mip_level++) {
+        for (int array_layer = int(sub_resource.base_array_layer); array_layer < int(sub_resource.base_array_layer) + int(MathUtil::Min(sub_resource.num_layers, NumLayers())); array_layer++) {
+            const uint64 sub_resource_key = GetImageSubResourceKey(array_layer, mip_level);
 
             auto it = m_sub_resource_states.Find(sub_resource_key);
 
@@ -537,7 +480,8 @@ void VulkanImage::InsertSubResourceBarrier(
                 AssertThrowMsg(
                     it->second == prev_resource_state,
                     "Sub resource state mismatch for image: mip %d, layer %d",
-                    i, j
+                    mip_level,
+                    array_layer
                 );
             }
         }
@@ -556,15 +500,15 @@ void VulkanImage::InsertSubResourceBarrier(
     range.baseMipLevel = sub_resource.base_mip_level;
     range.levelCount = sub_resource.num_levels;
 
-    VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
     barrier.oldLayout = GetVkImageLayout(prev_resource_state);
     barrier.newLayout = GetVkImageLayout(new_state);
     barrier.srcAccessMask = GetVkAccessMask(prev_resource_state);
     barrier.dstAccessMask = GetVkAccessMask(new_state);
     barrier.image = m_handle;
+    barrier.subresourceRange = range;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange = range;
 
     vkCmdPipelineBarrier(
         static_cast<VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
@@ -577,20 +521,26 @@ void VulkanImage::InsertSubResourceBarrier(
     );
 
     if (new_state == m_resource_state) {
-        for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
-            for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
-                const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
+        for (int mip_level = int(sub_resource.base_mip_level); mip_level < int(sub_resource.base_mip_level) + int(MathUtil::Min(sub_resource.num_levels, NumMipmaps())); mip_level++) {
+            for (int array_layer = int(sub_resource.base_array_layer); array_layer < int(sub_resource.base_array_layer) + int(MathUtil::Min(sub_resource.num_layers, NumLayers())); array_layer++) {
+                const uint64 sub_resource_key = GetImageSubResourceKey(array_layer, mip_level);
 
                 m_sub_resource_states.Erase(sub_resource_key);
             }
         }
 
         return;
+    } else if (sub_resource.base_mip_level == 0 && sub_resource.num_levels >= NumMipmaps()
+        && sub_resource.base_array_layer == 0 && sub_resource.num_layers >= NumLayers()) {
+        // If all subresources will be set, just set the whole resource state
+        SetResourceState(new_state);
+
+        return;
     }
 
-    for (int i = int(sub_resource.base_mip_level); i < int(sub_resource.num_levels); i++) {
-        for (int j = int(sub_resource.base_array_layer); j < int(sub_resource.num_layers); j++) {
-            const uint64 sub_resource_key = (uint64(j) << 32) | (uint64(i));
+    for (int mip_level = int(sub_resource.base_mip_level); mip_level < int(sub_resource.base_mip_level) + int(MathUtil::Min(sub_resource.num_levels, NumMipmaps())); mip_level++) {
+        for (int array_layer = int(sub_resource.base_array_layer); array_layer < int(sub_resource.base_array_layer) + int(MathUtil::Min(sub_resource.num_layers, NumLayers())); array_layer++) {
+            const uint64 sub_resource_key = GetImageSubResourceKey(array_layer, mip_level);
 
             m_sub_resource_states.Set(sub_resource_key, new_state);
         }

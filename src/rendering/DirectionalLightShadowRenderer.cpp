@@ -38,7 +38,7 @@ namespace hyperion {
 using renderer::LoadOperation;
 using renderer::StoreOperation;
 
-static const InternalFormat shadow_map_formats[uint32(ShadowMode::MAX)] = {
+static const InternalFormat shadow_map_formats[uint32(ShadowMapFilterMode::MAX)] = {
     InternalFormat::R32F,   // STANDARD
     InternalFormat::R32F,   // PCF
     InternalFormat::R32F,   // CONTACT_HARDENED
@@ -51,18 +51,16 @@ ShadowPass::ShadowPass(
     const Handle<Scene> &parent_scene,
     const TResourceHandle<WorldRenderResource> &world_resource_handle,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
+    const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle,
     const ShaderRef &shader,
-    ShadowMode shadow_mode,
-    Vec2u extent, 
     RenderCollector *render_collector_statics,
     RenderCollector *render_collector_dynamics,
     RerenderShadowsSemaphore *rerender_semaphore
-) : FullScreenPass(shadow_map_formats[uint32(shadow_mode)], extent),
+) : FullScreenPass(shadow_map_formats[uint32(shadow_map_resource_handle->GetFilterMode())], shadow_map_resource_handle->GetExtent()),
     m_parent_scene(parent_scene),
     m_world_resource_handle(world_resource_handle),
     m_camera_resource_handle(camera_resource_handle),
-    m_shadow_mode(shadow_mode),
-    m_shadow_map_index(~0u),
+    m_shadow_map_resource_handle(shadow_map_resource_handle),
     m_render_collector_statics(render_collector_statics),
     m_render_collector_dynamics(render_collector_dynamics),
     m_rerender_semaphore(rerender_semaphore)
@@ -115,7 +113,13 @@ void ShadowPass::CreateShadowMap()
 {
     AssertThrow(m_world_resource_handle);
 
-    m_shadow_map_combined_image_view = m_world_resource_handle->GetShadowMapsTextureArrayImage()->MakeLayerImageView(m_shadow_map_index);
+    const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
+    AssertThrow(atlas_element.atlas_index != ~0u);
+
+    m_shadow_map_combined_image_view = m_world_resource_handle->GetShadowMapManager()->GetImage()->MakeLayerImageView(
+        atlas_element.atlas_index
+    );
+
     DeferCreate(m_shadow_map_combined_image_view);
 
     FixedArray<Handle<Texture> *, 2> shadow_map_textures {
@@ -206,7 +210,7 @@ void ShadowPass::Create()
         MeshAttributes { },
         MaterialAttributes {
             .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = m_shadow_mode == ShadowMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+            .cull_faces         = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
         }
     );
 
@@ -288,6 +292,8 @@ void ShadowPass::Render(FrameBase *frame)
 
     g_engine->GetRenderState()->UnsetActiveScene();
 
+    const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
+
     { // Combine static and dynamic shadow maps
         AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
@@ -299,7 +305,7 @@ void ShadowPass::Render(FrameBase *frame)
         frame->GetCommandList().Add<InsertBarrier>(
             m_shadow_map_combined_image_view->GetImage(),
             renderer::ResourceState::COPY_DST,
-            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
 
         // copy the image
@@ -309,19 +315,19 @@ void ShadowPass::Render(FrameBase *frame)
             Rect<uint32> {
                 .x0 = 0,
                 .y0 = 0,
-                .x1 = attachment->GetImage()->GetExtent().x,
-                .y1 = attachment->GetImage()->GetExtent().y
+                .x1 = GetExtent().x,
+                .y1 = GetExtent().y
             },
             Rect<uint32> {
-                .x0 = 0,
-                .y0 = 0,
-                .x1 = MathUtil::Min(attachment->GetImage()->GetExtent().x, m_shadow_map_combined_image_view->GetImage()->GetExtent().x),
-                .y1 = MathUtil::Min(attachment->GetImage()->GetExtent().y, m_shadow_map_combined_image_view->GetImage()->GetExtent().y)
+                .x0 = atlas_element.offset_coords.x,
+                .y0 = atlas_element.offset_coords.y,
+                .x1 = atlas_element.offset_coords.x + atlas_element.dimensions.x,
+                .y1 = atlas_element.offset_coords.y + atlas_element.dimensions.y
             },
             0, /* src_mip */
             0, /* dst_mip */
             0, /* src_face */
-            m_shadow_map_index /* dst_face */
+            atlas_element.atlas_index /* dst_face */
         );
 
         // put the images back into a state for reading
@@ -329,17 +335,21 @@ void ShadowPass::Render(FrameBase *frame)
         frame->GetCommandList().Add<InsertBarrier>(
             m_shadow_map_combined_image_view->GetImage(),
             renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
     }
 
-    if (m_shadow_mode == ShadowMode::VSM) {
+    if (m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM) {
         struct alignas(128)
         {
             Vec2u   image_dimensions;
+            Vec2u   dimensions;
+            Vec2u   offset;
         } push_constants;
 
-        push_constants.image_dimensions = Vec2u(m_framebuffer->GetExtent());
+        push_constants.image_dimensions = m_shadow_map_combined_image_view->GetImage()->GetExtent().GetXY();
+        push_constants.dimensions = atlas_element.dimensions;
+        push_constants.offset = atlas_element.offset_coords;
 
         m_blur_shadow_map_pipeline->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -358,14 +368,14 @@ void ShadowPass::Render(FrameBase *frame)
         frame->GetCommandList().Add<InsertBarrier>(
             m_shadow_map_combined_image_view->GetImage(),
             renderer::ResourceState::UNORDERED_ACCESS,
-            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
 
         frame->GetCommandList().Add<DispatchCompute>(
             m_blur_shadow_map_pipeline,
             Vec3u {
-                (m_framebuffer->GetWidth() + 7) / 8,
-                (m_framebuffer->GetHeight() + 7) / 8,
+                (atlas_element.dimensions.x + 7) / 8,
+                (atlas_element.dimensions.y + 7) / 8,
                 1
             }
         );
@@ -374,7 +384,7 @@ void ShadowPass::Render(FrameBase *frame)
         frame->GetCommandList().Add<InsertBarrier>(
             m_shadow_map_combined_image_view->GetImage(),
             renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_array_layer = m_shadow_map_index }
+            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
     }
 }
@@ -383,11 +393,11 @@ void ShadowPass::Render(FrameBase *frame)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMode shadow_mode)
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMapFilterMode filter_mode)
     : RenderSubsystem(name),
       m_parent_scene(parent_scene),
       m_resolution(resolution),
-      m_shadow_mode(shadow_mode)
+      m_filter_mode(filter_mode)
 {
     m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
     m_camera->SetName(NAME("DirectionalLightShadowRendererCamera"));
@@ -405,11 +415,12 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
     if (m_shadow_map_resource_handle) {
         ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_resource_handle.Get();
 
-        m_parent_scene->GetWorld()->GetRenderResource().RemoveShadowMapRenderResource(shadow_map_render_resource);
-
+        // Don't hang on to the resource handle - would prevent the resource from being freed
         m_shadow_map_resource_handle.Reset();
 
-        FreeResource(shadow_map_render_resource);
+        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
+            HYP_LOG(Shadows, Error, "Failed to free shadow map!");
+        }
     }
 }
 
@@ -418,23 +429,21 @@ void DirectionalLightShadowRenderer::Init()
 {
     AssertThrow(IsValidComponent());
 
-    ShadowMapRenderResource *shadow_map_render_resource = AllocateResource<ShadowMapRenderResource>(m_shadow_mode, m_resolution);
+    ShadowMapRenderResource *shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
+
     m_shadow_map_resource_handle = TResourceHandle<ShadowMapRenderResource>(*shadow_map_render_resource);
-    
-    m_parent_scene->GetWorld()->GetRenderResource().AddShadowMapRenderResource(m_shadow_map_resource_handle);
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
         TResourceHandle<WorldRenderResource>(m_parent_scene->GetWorld()->GetRenderResource()),
         TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()),
+        m_shadow_map_resource_handle,
         m_shader,
-        m_shadow_mode,
-        m_resolution,
         &m_render_collector_statics,
         &m_render_collector_dynamics,
         &m_rerender_semaphore
     );
-    m_shadow_pass->SetShadowMapIndex(m_shadow_map_resource_handle->GetBufferIndex());
     m_shadow_pass->Create();
 
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
@@ -458,23 +467,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     Octree &octree = m_parent_scene->GetOctree();
     octree.CalculateVisibility(m_camera);
-
-    // Render data update
-    EnumFlags<ShadowFlags> flags = ShadowFlags::NONE;
-
-    switch (m_shadow_mode) {
-    case ShadowMode::VSM:
-        flags |= ShadowFlags::VSM;
-        break;
-    case ShadowMode::CONTACT_HARDENED:
-        flags |= ShadowFlags::CONTACT_HARDENED;
-        break;
-    case ShadowMode::PCF:
-        flags |= ShadowFlags::PCF;
-        break;
-    default:
-        break;
-    }
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
     Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
@@ -539,12 +531,10 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 #endif
 
     m_shadow_map_resource_handle->SetBufferData(ShadowMapShaderData {
-        .projection = m_camera->GetProjectionMatrix(),
-        .view       = m_camera->GetViewMatrix(),
-        .aabb_max   = Vec4f(m_aabb.max, 1.0f),
-        .aabb_min   = Vec4f(m_aabb.min, 1.0f),
-        .dimensions = m_resolution,
-        .flags      = uint32(flags)
+        .projection         = m_camera->GetProjectionMatrix(),
+        .view               = m_camera->GetViewMatrix(),
+        .aabb_max           = Vec4f(m_aabb.max, 1.0f),
+        .aabb_min           = Vec4f(m_aabb.min, 1.0f)
     });
 }
 
@@ -569,17 +559,17 @@ void DirectionalLightShadowRenderer::CreateShader()
     ShaderProperties properties;
     properties.SetRequiredVertexAttributes(static_mesh_vertex_attributes);
 
-    switch (m_shadow_mode) {
-    case ShadowMode::VSM:
+    switch (m_filter_mode) {
+    case ShadowMapFilterMode::VSM:
         properties.Set("MODE_VSM");
         break;
-    case ShadowMode::CONTACT_HARDENED:
+    case ShadowMapFilterMode::CONTACT_HARDENED:
         properties.Set("MODE_CONTACT_HARDENED");
         break;
-    case ShadowMode::PCF:
+    case ShadowMapFilterMode::PCF:
         properties.Set("MODE_PCF");
         break;
-    case ShadowMode::STANDARD: // fallthrough
+    case ShadowMapFilterMode::STANDARD: // fallthrough
     default:
         properties.Set("MODE_STANDARD");
         break;

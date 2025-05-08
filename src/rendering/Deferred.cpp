@@ -1242,6 +1242,7 @@ void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
     m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
     m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
 
+#if 1
     { // opaque objects
         frame->GetCommandList().Add<BeginFramebuffer>(m_opaque_fbo, frame_index);
 
@@ -1318,6 +1319,7 @@ void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
         const ImageRef &src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
         GenerateMipChain(frame, src_image);
     }
+#endif
 
     { // translucent objects
         frame->GetCommandList().Add<BeginFramebuffer>(m_translucent_fbo, frame_index);

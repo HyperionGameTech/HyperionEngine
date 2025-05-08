@@ -248,6 +248,12 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         // Reserve to prevent iterator invalidation
         proxy_list.Reserve(added_proxies.Size());
 
+        // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
+        // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
+        for (RenderProxy &proxy : added_proxies) {
+            proxy.ClaimRenderResource();
+        }
+
         for (ID<Entity> entity : removed_entities) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
             AssertThrow(proxy != nullptr);
@@ -258,8 +264,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResource();
-
             proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
         }
 

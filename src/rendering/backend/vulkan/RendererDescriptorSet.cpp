@@ -264,7 +264,7 @@ RendererResult VulkanDescriptorSet::Create()
 {
     AssertThrow(m_handle == VK_NULL_HANDLE);
 
-    HYP_LOG(RenderingBackend, Debug, "Creating descriptor set: {}", m_layout.GetName());
+    HYP_LOG(RenderingBackend, Debug, "Creating descriptor set: {}", GetDebugName());
 
     HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
 

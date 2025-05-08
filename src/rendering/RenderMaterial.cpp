@@ -65,6 +65,8 @@ void MaterialRenderResource::Initialize_Internal()
     
     UpdateBufferData();
 
+    HYP_LOG(Material, Debug, "Initializing MaterialRenderResource: {}", (void*)this);
+
     if (!g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         CreateDescriptorSets();
     }
@@ -77,6 +79,8 @@ void MaterialRenderResource::Destroy_Internal()
     AssertThrow(m_material != nullptr);
 
     m_texture_render_resources.Clear();
+
+    HYP_LOG(Material, Debug, "Destroying MaterialRenderResource: {}", (void*)this);
     
     if (!g_rendering_api->GetRenderConfig().IsBindlessSupported()) {
         DestroyDescriptorSets();
@@ -359,11 +363,14 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        descriptor_set->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_", material->GetName(), frame_index));
 
         for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
+
+        descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
     // if on render thread, initialize and add immediately
@@ -401,21 +408,24 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        descriptor_set->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", material->GetName(), frame_index));
 
         for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
             if (texture_index < textures.Size()) {
                 const Handle<Texture> &texture = textures[texture_index];
 
                 if (texture.IsValid() && texture->GetRenderResource().GetImageView() != nullptr) {
-                    descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, texture->GetRenderResource().GetImageView());
+                    descriptor_set->SetElement(NAME("Textures"), texture_index, texture->GetRenderResource().GetImageView());
 
                     continue;
                 }
             }
 
-            descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
+
+        descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
     // if on render thread, initialize and add immediately

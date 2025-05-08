@@ -52,10 +52,14 @@ enum class DefaultImageFormatType
 
 enum class ImageType : uint32
 {
+    TEXTURE_TYPE_INVALID = uint32(-1),
+
     TEXTURE_TYPE_2D = 0,
     TEXTURE_TYPE_3D = 1,
     TEXTURE_TYPE_CUBEMAP = 2,
-    TEXTURE_TYPE_2D_ARRAY = 3
+    TEXTURE_TYPE_2D_ARRAY = 3,
+
+    TEXTURE_TYPE_MAX
 };
 
 enum class BaseFormat : uint32
@@ -754,6 +758,11 @@ enum ImageSubResourceFlags : ImageSubResourceFlagBits
     IMAGE_SUB_RESOURCE_FLAGS_STENCIL = 1 << 2
 };
 
+static inline uint64 GetImageSubResourceKey(uint32 base_array_layer, uint32 base_mip_level)
+{
+    return (uint64(base_array_layer) << 32) | (uint64(base_mip_level));
+}
+
 /* images */
 struct ImageSubResource
 {
@@ -774,7 +783,7 @@ struct ImageSubResource
 
     uint64 GetSubResourceKey() const
     {
-        return (uint64(base_array_layer) << 32) | (uint64(base_mip_level));
+        return GetImageSubResourceKey(base_array_layer, base_mip_level);
     }
 
     HashCode GetHashCode() const

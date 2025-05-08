@@ -25,7 +25,7 @@ HYP_STRUCT(Component, Label="Shadow Map Component", Description="Controls shadow
 struct ShadowMapComponent
 {
     HYP_FIELD(Property="Mode", Serialize=true, Editor=true)
-    ShadowMode              mode = ShadowMode::STANDARD;
+    ShadowMapFilterMode              mode = ShadowMapFilterMode::STANDARD;
 
     HYP_FIELD(Property="Radius", Serialize=true, Editor=true)
     float                   radius = 20.0f;

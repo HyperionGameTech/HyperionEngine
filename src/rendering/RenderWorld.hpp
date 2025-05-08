@@ -32,6 +32,61 @@ class RenderEnvironment;
 class CameraRenderResource;
 class SceneRenderResource;
 class ShadowMapRenderResource;
+struct ShadowMapAtlasElement;
+
+enum class ShadowMapType : uint32;
+enum class ShadowMapFilterMode : uint32;
+
+struct ShadowMapAtlas
+{
+    struct SkylineNode
+    {
+        Vec2i offset;
+        Vec2i dimensions;
+    };
+
+    uint32                                          atlas_index;
+    Vec2u                                           atlas_dimensions;
+    Array<ShadowMapAtlasElement, DynamicAllocator>  elements;
+    Array<SkylineNode>                              free_spaces;
+
+    ShadowMapAtlas(uint32 atlas_index, const Vec2u &atlas_dimensions);
+
+    bool AddElement(const Vec2u &dimensions, ShadowMapAtlasElement &out_element);
+    bool RemoveElement(const ShadowMapAtlasElement &element);
+
+    void Clear();
+
+    bool CalculateFitOffset(uint32 index, const Vec2u &dimensions, Vec2u &out_offset) const;
+    void AddSkylineNode(uint32 before_index, const Vec2u &dimensions, const Vec2u &offset);
+    void MergeSkyline();
+};
+
+class ShadowMapManager
+{
+public:
+    ShadowMapManager();
+    ~ShadowMapManager();
+
+    HYP_FORCE_INLINE const ImageRef &GetImage() const
+        { return m_image; }
+
+    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
+        { return m_image_view; }
+
+    void Initialize();
+    void Destroy();
+
+    ShadowMapRenderResource *AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u &dimensions);
+    bool FreeShadowMap(ShadowMapRenderResource *shadow_map_render_resource);
+
+private:
+    Vec2u                       m_atlas_dimensions;
+    Array<ShadowMapAtlas>       m_atlases;
+
+    ImageRef                    m_image;
+    ImageViewRef                m_image_view;
+};
 
 class WorldRenderResource final : public RenderResourceBase
 {
@@ -48,17 +103,11 @@ public:
     HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
         { return m_environment; }
 
-    HYP_FORCE_INLINE const ImageRef &GetShadowMapsTextureArrayImage() const
-        { return m_shadow_maps_texture_array_image; }
-
-    HYP_FORCE_INLINE const ImageViewRef &GetShadowMapsTextureArrayImageView() const
-        { return m_shadow_maps_texture_array_image_view; }
+    HYP_FORCE_INLINE ShadowMapManager *GetShadowMapManager() const
+        { return m_shadow_map_manager.Get(); }
 
     void AddScene(const Handle<Scene> &scene);
     Task<bool> RemoveScene(const WeakHandle<Scene> &scene_weak);
-
-    void AddShadowMapRenderResource(const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle);
-    void RemoveShadowMapRenderResource(const ShadowMapRenderResource *shadow_map_render_resource);
 
     const EngineRenderStats &GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats &render_stats);
@@ -81,9 +130,7 @@ private:
     Array<TResourceHandle<SceneRenderResource>>                 m_bound_scenes;
     Handle<RenderEnvironment>                                   m_environment;
 
-    ImageRef                                                    m_shadow_maps_texture_array_image;
-    ImageViewRef                                                m_shadow_maps_texture_array_image_view;
-    Array<TResourceHandle<ShadowMapRenderResource>>             m_shadow_map_resource_handles;
+    UniquePtr<ShadowMapManager>                                 m_shadow_map_manager;
 
     FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX>  m_render_stats;
 };
