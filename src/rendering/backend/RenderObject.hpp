@@ -81,7 +81,6 @@ public:
     }
 };
 
-HYP_DISABLE_OPTIMIZATION;
 struct RenderObjectHeaderBase
 {
     RenderObjectContainerBase   *container;
@@ -89,6 +88,10 @@ struct RenderObjectHeaderBase
     AtomicVar<uint16>           ref_count_strong;
     AtomicVar<uint16>           ref_count_weak;
     void                        (*deleter)(RenderObjectHeaderBase *);
+
+#ifdef HYP_DEBUG_MODE
+    Name                        debug_name;
+#endif
 
     ~RenderObjectHeaderBase()
     {
@@ -149,8 +152,23 @@ struct RenderObjectHeaderBase
 
         return uint32(count) - 1;
     }
+
+    HYP_FORCE_INLINE Name GetDebugName() const
+    {
+#ifdef HYP_DEBUG_MODE
+        return debug_name;
+#else
+        return HYP_NAME("<invalid>");
+#endif
+    }
+
+    HYP_FORCE_INLINE void SetDebugName(Name name)
+    {
+#ifdef HYP_DEBUG_MODE
+        debug_name = name;
+#endif
+    }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 template <class T>
 struct RenderObjectHeader final : RenderObjectHeaderBase
@@ -397,15 +415,6 @@ public:
         return RenderObjectHandle_Strong<Ty>::unset;
     }
 
-    HYP_FORCE_INLINE void SetName(Name name)
-    {
-    }
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return { };
-    }
-
     RenderObjectHeaderBase  *header;
     T                       *ptr;
 };
@@ -612,6 +621,13 @@ protected:
     HYP_FORCE_INLINE RenderObjectHeaderBase *GetHeader_Internal() const
         { return m_header; }
     
+public:
+    HYP_FORCE_INLINE Name GetDebugName() const
+        { return m_header->GetDebugName(); }
+
+    HYP_FORCE_INLINE void SetDebugName(Name name)
+        { m_header->SetDebugName(name); }
+
 private:
     RenderObjectHeaderBase  *m_header;
 };

@@ -97,49 +97,49 @@ PlaceholderData::~PlaceholderData()
 
 void PlaceholderData::Create()
 {
-    m_image_2d_1x1_r8.SetName(NAME("Placeholder_2D_1x1_R8"));
+    m_image_2d_1x1_r8->SetDebugName(NAME("Placeholder_2D_1x1_R8"));
     DeferCreate(m_image_2d_1x1_r8);
 
-    m_image_view_2d_1x1_r8.SetName(NAME("Placeholder_2D_1x1_R8_View"));
+    m_image_view_2d_1x1_r8->SetDebugName(NAME("Placeholder_2D_1x1_R8_View"));
     DeferCreate(m_image_view_2d_1x1_r8);
 
-    m_image_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage"));
+    m_image_2d_1x1_r8_storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage"));
     DeferCreate(m_image_2d_1x1_r8_storage);
 
-    m_image_view_2d_1x1_r8_storage.SetName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
+    m_image_view_2d_1x1_r8_storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
     DeferCreate(m_image_view_2d_1x1_r8_storage);
 
-    m_image_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8"));
+    m_image_3d_1x1x1_r8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8"));
     DeferCreate(m_image_3d_1x1x1_r8);
 
-    m_image_view_3d_1x1x1_r8.SetName(NAME("Placeholder_3D_1x1x1_R8_View"));
+    m_image_view_3d_1x1x1_r8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_View"));
     DeferCreate(m_image_view_3d_1x1x1_r8);
 
-    m_image_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
+    m_image_3d_1x1x1_r8_storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
     DeferCreate(m_image_3d_1x1x1_r8_storage);
 
-    m_image_view_3d_1x1x1_r8_storage.SetName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
+    m_image_view_3d_1x1x1_r8_storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
     DeferCreate(m_image_view_3d_1x1x1_r8_storage);
 
-    m_image_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8"));
+    m_image_cube_1x1_r8->SetDebugName(NAME("Placeholder_Cube_1x1_R8"));
     DeferCreate(m_image_cube_1x1_r8);
 
-    m_image_view_cube_1x1_r8.SetName(NAME("Placeholder_Cube_1x1_R8_View"));
+    m_image_view_cube_1x1_r8->SetDebugName(NAME("Placeholder_Cube_1x1_R8_View"));
     DeferCreate(m_image_view_cube_1x1_r8);
 
-    m_image_2d_1x1_r8_array.SetName(NAME("Placeholder_2D_1x1_R8_Array"));
+    m_image_2d_1x1_r8_array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array"));
     DeferCreate(m_image_2d_1x1_r8_array);
 
-    m_image_view_2d_1x1_r8_array.SetName(NAME("Placeholder_2D_1x1_R8_Array_View"));
+    m_image_view_2d_1x1_r8_array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array_View"));
     DeferCreate(m_image_view_2d_1x1_r8_array);
 
-    m_sampler_linear.SetName(NAME("Placeholder_Sampler_Linear"));
+    m_sampler_linear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
     DeferCreate(m_sampler_linear);
 
-    m_sampler_linear_mipmap.SetName(NAME("Placeholder_Sampler_Linear_Mipmap"));
+    m_sampler_linear_mipmap->SetDebugName(NAME("Placeholder_Sampler_Linear_Mipmap"));
     DeferCreate(m_sampler_linear_mipmap);
 
-    m_sampler_nearest.SetName(NAME("Placeholder_Sampler_Nearest"));
+    m_sampler_nearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
     DeferCreate(m_sampler_nearest);
 }
 

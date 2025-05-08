@@ -107,13 +107,6 @@ public:
         ShaderModuleType shader_module_type
     ) = 0;
 
-    HYP_API virtual void InsertSubResourceBarrier(
-        CommandBufferBase *command_buffer,
-        const ImageSubResource &sub_resource,
-        ResourceState new_state,
-        ShaderModuleType shader_module_type
-    ) = 0;
-
     HYP_API virtual RendererResult Blit(
         CommandBufferBase *command_buffer,
         const ImageBase *src

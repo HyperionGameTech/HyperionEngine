@@ -253,6 +253,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             );
         }
 #endif
+        for (RenderProxy &proxy : added_proxies) {
+            proxy.ClaimRenderResource();
+        }
 
         for (ID<Entity> entity_id : removed_proxies) {
             const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
@@ -267,8 +270,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy.ClaimRenderResource();
-
             const Handle<Mesh> &mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
             AssertThrow(mesh->IsReady());

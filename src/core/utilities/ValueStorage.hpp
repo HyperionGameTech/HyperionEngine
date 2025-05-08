@@ -76,7 +76,7 @@ struct alignas(Alignment) ValueStorage
     template <class... Args>
     HYP_FORCE_INLINE T *Construct(Args &&... args)
     {
-        Memory::Construct<T>(data_buffer, std::forward<Args>(args)...);
+        new (&data_buffer[0]) T(std::forward<Args>(args)...);
 
         return &Get();
     }

@@ -18,7 +18,9 @@ struct alignas(256) ShadowMapShaderData
     Matrix4 view;
     Vec4f   aabb_max;
     Vec4f   aabb_min;
-    Vec2u   dimensions;
+    Vec4f   dimensions_scale; // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
+    Vec2f   offset_uv; // offset in the atlas texture array
+    uint32  atlas_index; // index of the atlas in the shadow map texture array
     uint32  flags;
 };
 
@@ -33,15 +35,21 @@ class WorldRenderResource;
 class ShadowMapRenderResource final : public RenderResourceBase
 {
 public:
-    ShadowMapRenderResource(ShadowMode shadow_mode, Vec2u extent);
+    ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element);
     ShadowMapRenderResource(ShadowMapRenderResource &&other) noexcept;
     virtual ~ShadowMapRenderResource() override;
 
-    HYP_FORCE_INLINE ShadowMode GetShadowMode() const
-        { return m_shadow_mode; }
+    HYP_FORCE_INLINE ShadowMapType GetShadowMapType() const
+        { return m_type; }
 
-    HYP_FORCE_INLINE Vec2u GetExtent() const
-        { return m_extent; }
+    HYP_FORCE_INLINE ShadowMapFilterMode GetFilterMode() const
+        { return m_filter_mode; }
+
+    HYP_FORCE_INLINE const Vec2u &GetExtent() const
+        { return m_atlas_element.dimensions; }
+
+    HYP_FORCE_INLINE const ShadowMapAtlasElement &GetAtlasElement() const
+        { return m_atlas_element; }
 
     void SetBufferData(const ShadowMapShaderData &buffer_data);
 
@@ -55,10 +63,10 @@ protected:
 private:
     void UpdateBufferData();
 
-    ShadowMode          m_shadow_mode;
-    Vec2u               m_extent;
-
-    ShadowMapShaderData m_buffer_data;
+    ShadowMapType           m_type;
+    ShadowMapFilterMode     m_filter_mode;
+    ShadowMapAtlasElement   m_atlas_element;
+    ShadowMapShaderData     m_buffer_data;
 };
 
 } // namespace hyperion

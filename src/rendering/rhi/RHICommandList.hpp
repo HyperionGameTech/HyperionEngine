@@ -21,6 +21,12 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
+// #define HYP_RHI_COMMAND_STACK_TRACE
+
+#ifdef HYP_RHI_COMMAND_STACK_TRACE
+#include <core/debug/StackDump.hpp>
+#endif
+
 namespace hyperion {
 
 class RHICommandBase;
@@ -58,6 +64,10 @@ public:
 
 private:
     RHICommandPoolHandle    m_pool_handle;
+
+#ifdef HYP_RHI_COMMAND_STACK_TRACE
+    FixedArray<char, 1024>  m_stack_trace;
+#endif
 };
 
 template <class RHICommandType>
@@ -82,6 +92,11 @@ public:
 
         command_storage->Construct(std::forward<Args>(args)...);
         command_storage->Get().m_pool_handle = { static_cast<RHICommandMemoryPoolBase *>(this), index };
+
+#ifdef HYP_RHI_COMMAND_STACK_TRACE
+        std::strncpy(command_storage->Get().m_stack_trace.Data(), StackDump(5).ToString().Data(), command_storage->Get().m_stack_trace.Size() - 1);
+        command_storage->Get().m_stack_trace[command_storage->Get().m_stack_trace.Size() - 1] = '\0';
+#endif
 
         return &command_storage->Get();
     }
@@ -361,6 +376,7 @@ private:
     uint32                                  m_frame_index;
 };
 
+HYP_DISABLE_OPTIMIZATION;
 class InsertBarrier final : public RHICommandBase
 {
 public:
@@ -392,7 +408,7 @@ public:
             m_buffer->InsertBarrier(cmd, m_state, m_shader_module_type);
         } else if (m_image) {
             if (m_sub_resource) {
-                m_image->InsertSubResourceBarrier(cmd, *m_sub_resource, m_state, m_shader_module_type);
+                m_image->InsertBarrier(cmd, *m_sub_resource, m_state, m_shader_module_type);
             } else {
                 m_image->InsertBarrier(cmd, m_state, m_shader_module_type);
             }
@@ -406,6 +422,7 @@ private:
     Optional<renderer::ImageSubResource>    m_sub_resource;
     renderer::ShaderModuleType              m_shader_module_type;
 };
+HYP_ENABLE_OPTIMIZATION;
 
 class Blit final : public RHICommandBase
 {
