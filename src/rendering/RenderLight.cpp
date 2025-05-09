@@ -2,6 +2,7 @@
 
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
@@ -63,6 +64,7 @@ LightRenderResource::LightRenderResource(LightRenderResource &&other) noexcept
       m_visibility_bits(std::move(other.m_visibility_bits)),
       m_material(std::move(other.m_material)),
       m_material_render_resource_handle(std::move(other.m_material_render_resource_handle)),
+      m_shadow_map_render_resource_handle(std::move(other.m_shadow_map_render_resource_handle)),
       m_buffer_data(std::move(other.m_buffer_data))
 {
     other.m_light = nullptr;
@@ -85,6 +87,8 @@ void LightRenderResource::Destroy_Internal()
 void LightRenderResource::Update_Internal()
 {
     HYP_SCOPE;
+
+    UpdateBufferData();
 }
 
 void LightRenderResource::EnqueueUnbind()
@@ -106,14 +110,20 @@ void LightRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    // override material buffer index
-    m_buffer_data.material_index = m_material_render_resource_handle
-        ? m_material_render_resource_handle->GetBufferIndex()
-        : ~0u;
-
     LightShaderData *buffer_data = static_cast<LightShaderData *>(m_buffer_address);
 
     *buffer_data = m_buffer_data;
+
+    // override material buffer index
+    buffer_data->material_index = m_material_render_resource_handle
+        ? m_material_render_resource_handle->GetBufferIndex()
+        : ~0u;
+
+    if (m_shadow_map_render_resource_handle) {
+        buffer_data->shadow_map_index = m_shadow_map_render_resource_handle->GetBufferIndex();
+    } else {
+        buffer_data->shadow_map_index = ~0u;
+    }
 
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
@@ -132,7 +142,9 @@ void LightRenderResource::SetMaterial(const Handle<Material> &material)
             m_material_render_resource_handle = TResourceHandle<MaterialRenderResource>();
         }
 
-        SetNeedsUpdate();
+        if (IsInitialized()) {
+            SetNeedsUpdate();
+        }
     });
 }
 
@@ -142,14 +154,17 @@ void LightRenderResource::SetBufferData(const LightShaderData &buffer_data)
 
     Execute([this, buffer_data]()
     {
-        const uint32 shadow_map_index = m_buffer_data.shadow_map_index;
-
         m_buffer_data = buffer_data;
 
-        // restore shadow map index
-        m_buffer_data.shadow_map_index = shadow_map_index;
+        if (m_shadow_map_render_resource_handle) {
+            m_buffer_data.shadow_map_index = m_shadow_map_render_resource_handle->GetBufferIndex();
+        } else {
+            m_buffer_data.shadow_map_index = ~0u;
+        }
 
-        SetNeedsUpdate();
+        if (IsInitialized()) {
+            SetNeedsUpdate();
+        }
     });
 }
 
@@ -176,15 +191,23 @@ void LightRenderResource::SetVisibilityBits(const Bitset &visibility_bits)
     }, /* force_render_thread */ true);
 }
 
-void LightRenderResource::SetShadowMapIndex(uint32 shadow_map_index)
+void LightRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource> &&shadow_map_render_resource_handle)
 {
     HYP_SCOPE;
 
-    Execute([this, shadow_map_index]()
+    Execute([this, shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle)]()
     {
-        m_buffer_data.shadow_map_index = shadow_map_index;
+        m_shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle);
 
-        SetNeedsUpdate();
+        if (m_shadow_map_render_resource_handle) {
+            m_buffer_data.shadow_map_index = m_shadow_map_render_resource_handle->GetBufferIndex();
+        } else {
+            m_buffer_data.shadow_map_index = ~0u;
+        }
+
+        if (IsInitialized()) {
+            SetNeedsUpdate();
+        }
     });
 }
 

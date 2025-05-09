@@ -22,7 +22,7 @@ struct alignas(256) ShadowMapShaderData
     Vec4f   aabb_min;
     Vec4f   dimensions_scale; // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
     Vec2f   offset_uv; // offset in the atlas texture array
-    uint32  atlas_index; // index of the atlas in the shadow map texture array
+    uint32  layer_index; // index of the atlas in the shadow map texture array, or cubemap index for point lights
     uint32  flags;
 };
 

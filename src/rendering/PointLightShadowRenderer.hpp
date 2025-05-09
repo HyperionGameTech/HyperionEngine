@@ -23,6 +23,7 @@ class EnvProbe;
 class Scene;
 class SceneRenderResource;
 class ShadowMapRenderResource;
+class LightRenderResource;
 
 HYP_CLASS()
 class HYP_API PointLightShadowRenderer : public RenderSubsystem
@@ -30,7 +31,13 @@ class HYP_API PointLightShadowRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(PointLightShadowRenderer);
 
 public:
-    PointLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, const Handle<Light> &light, const Vec2u &extent);
+    PointLightShadowRenderer(
+        Name name,
+        const Handle<Scene> &parent_scene,
+        const TResourceHandle<LightRenderResource> &light_render_resource_handle,
+        const Vec2u &extent
+    );
+
     PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
     PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
     virtual ~PointLightShadowRenderer() override;
@@ -45,14 +52,14 @@ private:
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
     Handle<Scene>                               m_parent_scene;
-    Handle<Light>                               m_light;
+    TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
     Vec2u                                       m_extent;
     BoundingBox                                 m_aabb;
     Handle<EnvProbe>                            m_env_probe;
 
-    TResourceHandle<SceneRenderResource>        m_scene_resource_handle;
+    TResourceHandle<SceneRenderResource>        m_scene_render_resource_handle;
 
-    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
+    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_render_resource_handle;
 
     bool                                        m_last_visibility_state = false;
 };

@@ -391,16 +391,6 @@ void DeferredPass::Render(FrameBase *frame)
             LightRenderResource &light_render_resource = *it;
             AssertThrow(light_render_resource.GetBufferIndex() != ~0u);
 
-            const LightShaderData &buffer_data = light_render_resource.GetBufferData();
-
-            // We'll use the EnvProbe slot to bind whatever EnvProbe
-            // is used for the light's shadow map (if applicable)
-            uint32 shadow_probe_index = 0;
-
-            if (light_type == LightType::POINT && buffer_data.shadow_map_index != ~0u) {
-                shadow_probe_index = buffer_data.shadow_map_index;
-            }
-
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
@@ -408,8 +398,7 @@ void DeferredPass::Render(FrameBase *frame)
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resource) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(shadow_probe_index) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resource) }
                 },
                 scene_descriptor_set_index
             );

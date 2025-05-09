@@ -126,7 +126,7 @@ public:
     ) const;
 
     /*! \brief Perform a full reset, when this is not needed anymore. Not thread safe, so ensure there will be no overlap of usage of this object when calling this. */
-    void ClearState();
+    void ClearState(bool create_new = true);
 
 protected:
 

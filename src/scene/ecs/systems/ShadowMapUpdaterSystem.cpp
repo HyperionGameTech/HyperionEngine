@@ -133,8 +133,6 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
             aabb.max.z = shadow_map_component.radius;
             aabb.min.z = -shadow_map_component.radius;
 
-            light_component.light->GetRenderResource().SetShadowMapIndex(shadow_renderer->GetShadowMapResourceHandle()->GetBufferIndex());
-
             shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
 
             shadow_renderer->SetAABB(aabb);
@@ -155,6 +153,8 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
     AssertThrow(world != nullptr);
     AssertThrow(world->IsReady());
 
+    AssertThrow(light_component.light->IsReady());
+
     if (shadow_map_component.render_subsystem) {
         world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(shadow_map_component.render_subsystem);
     } else {
@@ -163,6 +163,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
             shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
                 Name::Unique("shadow_map_renderer_directional"),
                 GetScene()->HandleFromThis(),
+                TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
                 shadow_map_component.resolution,
                 shadow_map_component.mode
             );
@@ -172,7 +173,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
             shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
                 Name::Unique("shadow_map_renderer_point"),
                 GetScene()->HandleFromThis(),
-                light_component.light,
+                TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
                 shadow_map_component.resolution
             );
 

@@ -13,6 +13,9 @@
 
 #include <scene/camera/PerspectiveCamera.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -67,6 +70,11 @@ void ReflectionProbeRenderer::OnRender(FrameBase *frame)
     }
 
     m_env_probe_resource_handle->Render(frame);
+
+    HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe #{} (type: {})",
+        m_env_probe_resource_handle->GetEnvProbe()->GetID().Value(),
+        (uint32)m_env_probe_resource_handle->GetEnvProbe()->GetEnvProbeType()
+    );
 }
 
 void ReflectionProbeRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)

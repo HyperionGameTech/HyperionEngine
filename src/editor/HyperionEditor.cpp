@@ -121,7 +121,7 @@ void HyperionEditor::Init()
 
         Handle<Texture> dummy_light_texture;
 
-        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/dummy.jpg")) {
+        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png")) {
             dummy_light_texture = dummy_light_texture_asset->Result();
         }
 
@@ -171,13 +171,11 @@ void HyperionEditor::Init()
     #if 1// point light test
 
     const Vec3f positions[] = {
-        Vec3f(0.0f, 5.5f, 2.0f),
-        Vec3f(30.0f, 5.5f, 0.0f)
+        Vec3f(0.0f, 5.5f, 2.0f)
     };
 
     const Color colors[] = {
-        Color(1.0f, 0.0f, 0.0f),
-        Color(0.0f, 1.0f, 0.0f)
+        Color(1.0f, 0.0f, 0.0f)
     };
 
     // add pointlight (Test)
@@ -207,7 +205,7 @@ void HyperionEditor::Init()
     #endif
 
     // add sun
-    #if 0
+    #if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
@@ -232,7 +230,7 @@ void HyperionEditor::Init()
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
         .mode       = ShadowMapFilterMode::PCF,
         .radius     = 80.0f,
-        .resolution = { 1024, 1024 }
+        .resolution = { 2048, 2048 }
     });
     #endif
 
