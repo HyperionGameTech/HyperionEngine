@@ -79,7 +79,6 @@ ShadowPass::~ShadowPass()
     m_shadow_map_dynamics.Reset();
 
     SafeRelease(std::move(m_blur_shadow_map_pipeline));
-    SafeRelease(std::move(m_shadow_map_combined_image_view));
 }
 
 void ShadowPass::CreateFramebuffer()
@@ -115,12 +114,6 @@ void ShadowPass::CreateShadowMap()
 
     const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
     AssertThrow(atlas_element.atlas_index != ~0u);
-
-    m_shadow_map_combined_image_view = m_world_resource_handle->GetShadowMapManager()->GetImage()->MakeLayerImageView(
-        atlas_element.atlas_index
-    );
-
-    DeferCreate(m_shadow_map_combined_image_view);
 
     FixedArray<Handle<Texture> *, 2> shadow_map_textures {
         &m_shadow_map_statics,
@@ -186,7 +179,7 @@ void ShadowPass::CreateComputePipelines()
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InputTexture"), m_framebuffer->GetAttachment(0)->GetImageView());
-        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_combined_image_view);
+        descriptor_set->SetElement(NAME("OutputTexture"), m_shadow_map_resource_handle->GetImageView());
     }
 
     DeferCreate(descriptor_table);
@@ -294,6 +287,12 @@ void ShadowPass::Render(FrameBase *frame)
 
     const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
 
+    const ImageViewRef &shadow_map_image_view = m_shadow_map_resource_handle->GetImageView();
+    AssertThrow(shadow_map_image_view != nullptr);
+
+    const ImageRef &shadow_map_image = shadow_map_image_view->GetImage();
+    AssertThrow(shadow_map_image != nullptr);
+
     { // Combine static and dynamic shadow maps
         AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
@@ -303,7 +302,7 @@ void ShadowPass::Render(FrameBase *frame)
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
         frame->GetCommandList().Add<InsertBarrier>(
-            m_shadow_map_combined_image_view->GetImage(),
+            shadow_map_image,
             renderer::ResourceState::COPY_DST,
             renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
@@ -311,7 +310,7 @@ void ShadowPass::Render(FrameBase *frame)
         // copy the image
         frame->GetCommandList().Add<Blit>(
             attachment->GetImage(),
-            m_shadow_map_combined_image_view->GetImage(),
+            shadow_map_image,
             Rect<uint32> {
                 .x0 = 0,
                 .y0 = 0,
@@ -333,7 +332,7 @@ void ShadowPass::Render(FrameBase *frame)
         // put the images back into a state for reading
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::SHADER_RESOURCE);
         frame->GetCommandList().Add<InsertBarrier>(
-            m_shadow_map_combined_image_view->GetImage(),
+            shadow_map_image,
             renderer::ResourceState::SHADER_RESOURCE,
             renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
@@ -347,7 +346,7 @@ void ShadowPass::Render(FrameBase *frame)
             Vec2u   offset;
         } push_constants;
 
-        push_constants.image_dimensions = m_shadow_map_combined_image_view->GetImage()->GetExtent().GetXY();
+        push_constants.image_dimensions = shadow_map_image->GetExtent().GetXY();
         push_constants.dimensions = atlas_element.dimensions;
         push_constants.offset = atlas_element.offset_coords;
 
@@ -366,7 +365,7 @@ void ShadowPass::Render(FrameBase *frame)
 
         // put our shadow map in a state for writing
         frame->GetCommandList().Add<InsertBarrier>(
-            m_shadow_map_combined_image_view->GetImage(),
+            shadow_map_image,
             renderer::ResourceState::UNORDERED_ACCESS,
             renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );
@@ -382,7 +381,7 @@ void ShadowPass::Render(FrameBase *frame)
 
         // put shadow map back into readable state
         frame->GetCommandList().Add<InsertBarrier>(
-            m_shadow_map_combined_image_view->GetImage(),
+            shadow_map_image,
             renderer::ResourceState::SHADER_RESOURCE,
             renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index }
         );

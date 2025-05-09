@@ -707,8 +707,6 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
     const bool is_srgb = texture_desc.IsSRGB();
     const bool is_blended = texture_desc.image_format_capabilities[ImageFormatCapabilities::BLENDED];
 
-    const bool is_cubemap = texture_desc.IsTextureCube();
-
     const bool has_mipmaps = texture_desc.HasMipmaps();
     const uint32 num_mipmaps = texture_desc.NumMipmaps();
     const uint32 num_faces = texture_desc.NumFaces();
@@ -758,7 +756,7 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
         vk_format_features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
     }
 
-    if (is_cubemap) {
+    if (texture_desc.IsTextureCube() || texture_desc.IsTextureCubeArray()) {
         vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 

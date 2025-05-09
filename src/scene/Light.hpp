@@ -277,26 +277,6 @@ public:
         m_mutation_state |= DataMutationState::DIRTY;
     }
 
-    /*! \brief Get the shadow map index for the light. This is used when sampling shadow maps for the particular light.
-     *
-     *  \return The shadow map index. */
-    HYP_FORCE_INLINE uint32 GetShadowMapIndex() const
-        { return m_shadow_map_index; }
-
-    /*! \brief Set the shadow map index for the light. This is used when sampling shadow maps for the particular light.
-     *
-     * \param shadow_map_index The shadow map index to set.
-     */
-    HYP_FORCE_INLINE void SetShadowMapIndex(uint32 shadow_map_index)
-    {
-        if (shadow_map_index == m_shadow_map_index) {
-            return;
-        }
-
-        m_shadow_map_index = shadow_map_index;
-        m_mutation_state |= DataMutationState::DIRTY;
-    }
-
     /*! \brief Get the material  for the light. Used for area lights.
      *
      *  \return The material handle associated with the Light. */
@@ -343,7 +323,6 @@ protected:
     float                       m_radius;
     float                       m_falloff;
     Vec2f                       m_spot_angles;
-    uint32                      m_shadow_map_index;
     Handle<Material>            m_material;
 
 private:

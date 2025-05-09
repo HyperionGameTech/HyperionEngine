@@ -111,9 +111,9 @@ void LightRenderResource::UpdateBufferData()
         ? m_material_render_resource_handle->GetBufferIndex()
         : ~0u;
 
-    // GetGPUBufferHolder()->Set(m_buffer_index, m_buffer_data);
+    LightShaderData *buffer_data = static_cast<LightShaderData *>(m_buffer_address);
 
-    *static_cast<LightShaderData *>(m_buffer_address) = m_buffer_data;
+    *buffer_data = m_buffer_data;
 
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
@@ -132,9 +132,7 @@ void LightRenderResource::SetMaterial(const Handle<Material> &material)
             m_material_render_resource_handle = TResourceHandle<MaterialRenderResource>();
         }
 
-        if (IsInitialized()) {
-            SetNeedsUpdate();
-        }
+        SetNeedsUpdate();
     });
 }
 
@@ -144,11 +142,14 @@ void LightRenderResource::SetBufferData(const LightShaderData &buffer_data)
 
     Execute([this, buffer_data]()
     {
+        const uint32 shadow_map_index = m_buffer_data.shadow_map_index;
+
         m_buffer_data = buffer_data;
 
-        if (IsInitialized()) {
-            UpdateBufferData();
-        }
+        // restore shadow map index
+        m_buffer_data.shadow_map_index = shadow_map_index;
+
+        SetNeedsUpdate();
     });
 }
 
@@ -173,6 +174,18 @@ void LightRenderResource::SetVisibilityBits(const Bitset &visibility_bits)
             }
         }
     }, /* force_render_thread */ true);
+}
+
+void LightRenderResource::SetShadowMapIndex(uint32 shadow_map_index)
+{
+    HYP_SCOPE;
+
+    Execute([this, shadow_map_index]()
+    {
+        m_buffer_data.shadow_map_index = shadow_map_index;
+
+        SetNeedsUpdate();
+    });
 }
 
 #pragma endregion LightRenderResource

@@ -286,8 +286,6 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
     const bool is_blended = m_texture_desc.IsBlended();
     const bool is_srgb = m_texture_desc.IsSRGB();
 
-    const bool is_cubemap = m_texture_desc.IsTextureCube();
-
     const bool has_mipmaps = m_texture_desc.HasMipmaps();
     const uint32 num_mipmaps = m_texture_desc.NumMipmaps();
     const uint32 num_faces = m_texture_desc.NumFaces();
@@ -343,7 +341,7 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
         vk_format_features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
     }
 
-    if (is_cubemap) {
+    if (m_texture_desc.IsTextureCube() || m_texture_desc.IsTextureCubeArray()) {
         HYP_LOG(RenderingBackend, Debug, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
 
         vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;

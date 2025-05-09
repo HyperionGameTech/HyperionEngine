@@ -87,6 +87,11 @@ public:
     HYP_FORCE_INLINE const Bitset &GetVisibilityBits() const
         { return m_visibility_bits; }
 
+    HYP_FORCE_INLINE uint32 GetShadowMapIndex() const
+        { return m_buffer_data.shadow_map_index; }
+
+    void SetShadowMapIndex(uint32 shadow_map_index);
+
     void EnqueueUnbind();
 
 protected:

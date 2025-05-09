@@ -46,7 +46,6 @@ Light::Light(
     m_radius(radius),
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
-    m_shadow_map_index(~0u),
     m_mutation_state(DataMutationState::CLEAN),
     m_render_resource(nullptr)
 {
@@ -70,7 +69,6 @@ Light::Light(
     m_radius(radius),
     m_falloff(1.0f),
     m_spot_angles(Vec2f::Zero()),
-    m_shadow_map_index(~0u),
     m_mutation_state(DataMutationState::CLEAN),
     m_render_resource(nullptr)
 {
@@ -126,7 +124,6 @@ void Light::EnqueueRenderUpdates()
         .color_packed       = uint32(m_color),
         .radius             = m_radius,
         .falloff            = m_falloff,
-        .shadow_map_index   = m_shadow_map_index,
         .area_size          = m_area_size,
         .position_intensity = Vec4f(m_position, m_intensity),
         .normal             = Vec4f(m_normal, 0.0f),

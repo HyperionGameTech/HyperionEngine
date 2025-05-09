@@ -397,7 +397,7 @@ void DeferredPass::Render(FrameBase *frame)
             // is used for the light's shadow map (if applicable)
             uint32 shadow_probe_index = 0;
 
-            if (buffer_data.shadow_map_index != ~0u && light_type == LightType::POINT) {
+            if (light_type == LightType::POINT && buffer_data.shadow_map_index != ~0u) {
                 shadow_probe_index = buffer_data.shadow_map_index;
             }
 

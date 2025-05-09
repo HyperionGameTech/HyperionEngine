@@ -6,6 +6,8 @@
 #include <rendering/RenderResource.hpp>
 #include <rendering/Shadows.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
+
 #include <core/math/Matrix4.hpp>
 
 #include <Types.hpp>
@@ -35,7 +37,7 @@ class WorldRenderResource;
 class ShadowMapRenderResource final : public RenderResourceBase
 {
 public:
-    ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element);
+    ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element, const ImageViewRef &image_view);
     ShadowMapRenderResource(ShadowMapRenderResource &&other) noexcept;
     virtual ~ShadowMapRenderResource() override;
 
@@ -50,6 +52,9 @@ public:
 
     HYP_FORCE_INLINE const ShadowMapAtlasElement &GetAtlasElement() const
         { return m_atlas_element; }
+
+    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
+        { return m_image_view; }
 
     void SetBufferData(const ShadowMapShaderData &buffer_data);
 
@@ -66,6 +71,7 @@ private:
     ShadowMapType           m_type;
     ShadowMapFilterMode     m_filter_mode;
     ShadowMapAtlasElement   m_atlas_element;
+    ImageViewRef            m_image_view;
     ShadowMapShaderData     m_buffer_data;
 };
 

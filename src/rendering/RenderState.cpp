@@ -163,13 +163,12 @@ void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRender
     constexpr EnvProbeBindingSlot binding_slots[ENV_PROBE_TYPE_MAX] = {
         ENV_PROBE_BINDING_SLOT_CUBEMAP,         // reflection
         ENV_PROBE_BINDING_SLOT_CUBEMAP,         // sky
-        ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP,  // shadow
+        ENV_PROBE_BINDING_SLOT_INVALID,         // shadow
         ENV_PROBE_BINDING_SLOT_INVALID          // ambient
     };
 
     constexpr uint32 max_counts[ENV_PROBE_BINDING_SLOT_MAX] = {
-        max_bound_reflection_probes,    // ENV_PROBE_BINDING_SLOT_CUBEMAP
-        max_bound_point_shadow_maps     // ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP
+        max_bound_reflection_probes             // ENV_PROBE_BINDING_SLOT_CUBEMAP
     };
 
     const auto it = bound_env_probes[type].Find(resource_handle);

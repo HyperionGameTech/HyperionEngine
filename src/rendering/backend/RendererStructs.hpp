@@ -58,6 +58,7 @@ enum class ImageType : uint32
     TEXTURE_TYPE_3D = 1,
     TEXTURE_TYPE_CUBEMAP = 2,
     TEXTURE_TYPE_2D_ARRAY = 3,
+    TEXTURE_TYPE_CUBEMAP_ARRAY = 4,
 
     TEXTURE_TYPE_MAX
 };
@@ -412,9 +413,10 @@ struct TextureDesc
     }
 
     HYP_FORCE_INLINE bool IsTexture2DArray() const
-    {
-        return type == ImageType::TEXTURE_TYPE_2D_ARRAY;
-    }
+        { return type == ImageType::TEXTURE_TYPE_2D_ARRAY; }
+
+    HYP_FORCE_INLINE bool IsTextureCubeArray() const
+        { return type == ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY; }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
         { return type == ImageType::TEXTURE_TYPE_3D; }
@@ -424,11 +426,13 @@ struct TextureDesc
 
     HYP_FORCE_INLINE uint32 NumFaces() const
     {
-        return IsTextureCube()
-            ? 6
-            : IsTexture2DArray()
-                ? num_layers
-                : 1;
+        const uint32 num_array_layers = num_layers;
+
+        if (IsTextureCube() || IsTextureCubeArray()) {
+            return 6 * num_array_layers;
+        }
+
+        return num_array_layers;
     }
 
     HYP_FORCE_INLINE uint32 GetByteSize() const

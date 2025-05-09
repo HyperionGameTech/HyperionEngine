@@ -369,10 +369,7 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("SHGridBuffer"), GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), GetPlaceholderData()->GetImageView2D1x1R8Array());
-
-        for (uint32 shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("PointLightShadowMapTextures"), shadow_map_index, GetPlaceholderData()->GetImageViewCube1x1R8());
-        }
+        m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), GetPlaceholderData()->GetImageViewCube1x1R8Array());
 
         for (uint32 i = 0; i < max_bound_reflection_probes; i++) {
             m_global_descriptor_table->GetDescriptorSet(NAME("Scene"), frame_index)->SetElement(NAME("EnvProbeTextures"), i, GetPlaceholderData()->GetImageView2D1x1R8());

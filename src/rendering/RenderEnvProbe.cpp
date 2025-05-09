@@ -5,6 +5,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderShadowMap.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
@@ -104,7 +105,6 @@ void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData &buffer_data
         m_buffer_data = buffer_data;
 
         // restore previous texture_index and position_in_grid
-        m_buffer_data.texture_index = texture_index;
         m_buffer_data.position_in_grid = position_in_grid;
 
         SetNeedsUpdate();
@@ -136,6 +136,16 @@ void EnvProbeRenderResource::SetSceneResourceHandle(TResourceHandle<SceneRenderR
     Execute([this, scene_resource_handle = std::move(scene_resource_handle)]()
     {
         m_scene_resource_handle = std::move(scene_resource_handle);
+    });
+}
+
+void EnvProbeRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource> &&shadow_map_resource_handle)
+{
+    HYP_SCOPE;
+
+    Execute([this, shadow_map_resource_handle = std::move(shadow_map_resource_handle)]()
+    {
+        m_shadow_map_resource_handle = std::move(shadow_map_resource_handle);
     });
 }
 
@@ -233,28 +243,16 @@ void EnvProbeRenderResource::CreateFramebuffer()
 
 void EnvProbeRenderResource::CreateTexture()
 {
-    if (!m_env_probe->IsControlledByEnvGrid()) {
-        if (m_env_probe->IsShadowProbe()) {
-            m_texture = CreateObject<Texture>(
-                TextureDesc {
-                    ImageType::TEXTURE_TYPE_CUBEMAP,
-                    shadow_probe_format,
-                    Vec3u { m_env_probe->GetDimensions(), 1 },
-                    FilterMode::TEXTURE_FILTER_NEAREST,
-                    FilterMode::TEXTURE_FILTER_NEAREST
-                }
-            );
-        } else {
-            m_texture = CreateObject<Texture>(
-                TextureDesc {
-                    ImageType::TEXTURE_TYPE_CUBEMAP,
-                    reflection_probe_format,
-                    Vec3u { m_env_probe->GetDimensions(), 1 },
-                    FilterMode::TEXTURE_FILTER_LINEAR,
-                    FilterMode::TEXTURE_FILTER_LINEAR
-                }
-            );
-        }
+    if (!m_env_probe->IsControlledByEnvGrid() && !m_env_probe->IsShadowProbe()) {
+        m_texture = CreateObject<Texture>(
+            TextureDesc {
+                ImageType::TEXTURE_TYPE_CUBEMAP,
+                reflection_probe_format,
+                Vec3u { m_env_probe->GetDimensions(), 1 },
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                FilterMode::TEXTURE_FILTER_LINEAR
+            }
+        );
 
         AssertThrow(InitObject(m_texture));
 
@@ -262,9 +260,16 @@ void EnvProbeRenderResource::CreateTexture()
     }
 }
 
+// @TODO Refactor me
 void EnvProbeRenderResource::UpdateRenderData(bool set_texture)
 {
     Threads::AssertOnThread(g_render_thread);
+
+    if (m_env_probe->IsShadowProbe()) {
+        SetNeedsUpdate();
+
+        return;
+    }
 
     AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
 
@@ -284,13 +289,8 @@ void EnvProbeRenderResource::UpdateRenderData(bool set_texture)
     if (set_texture) {
         AssertThrow(texture_slot != ~0u);
 
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            if (m_env_probe->IsShadowProbe()) {
-                AssertThrow(m_texture.IsValid());
-
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
-                    ->SetElement(NAME("PointLightShadowMapTextures"), texture_slot, m_texture->GetRenderResource().GetImageView());
-            } else if (ShouldComputePrefilteredEnvMap()) {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {    
+            if (ShouldComputePrefilteredEnvMap()) {
                 AssertThrow(m_prefiltered_image.IsValid());
                 AssertThrow(m_prefiltered_image_view.IsValid());
 
@@ -454,6 +454,12 @@ void EnvProbeRenderResource::UpdateBufferData()
     Memory::MemCpy(m_buffer_address, &m_buffer_data, offsetof(EnvProbeShaderData, sh));
     Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(m_buffer_address) + offsetof(EnvProbeShaderData, face_view_matrices)), view_matrices.Data(), sizeof(EnvProbeShaderData::face_view_matrices));
 
+    if (m_env_probe->IsShadowProbe()) {
+        AssertThrow(m_shadow_map_resource_handle);
+
+        static_cast<EnvProbeShaderData *>(m_buffer_address)->texture_index = m_shadow_map_resource_handle->GetAtlasElement().point_light_index;
+    }
+
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
@@ -511,29 +517,29 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe #{} (type: {})", m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
     const uint32 frame_index = frame->GetFrameIndex();
-
-    EnvProbeIndex probe_index;
-
-    if (m_texture_slot == ~0u) {
-        HYP_LOG(EnvProbe, Warning, "EnvProbe #{} (type: {}) has no value set for texture slot!",
-            m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
-
-        return;
-    }
-    
-    // don't care about position in grid if it is not controlled by one.
-    // set it such that the uint32 value of probe_index
-    // would be the texture slot.
-    probe_index = EnvProbeIndex(
-        Vec3u { 0, 0, m_texture_slot },
-        Vec3u { 0, 0, 0 }
-    );
-
-    BindToIndex(probe_index);
     
     TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe()) {
+        EnvProbeIndex probe_index;
+
+        if (m_texture_slot == ~0u) {
+            HYP_LOG(EnvProbe, Warning, "EnvProbe #{} (type: {}) has no value set for texture slot!",
+                m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
+
+            return;
+        }
+        
+        // don't care about position in grid if it is not controlled by one.
+        // set it such that the uint32 value of probe_index
+        // would be the texture slot.
+        probe_index = EnvProbeIndex(
+            Vec3u { 0, 0, m_texture_slot },
+            Vec3u { 0, 0, 0 }
+        );
+
+        BindToIndex(probe_index);
+        
         // @TODO Support selecting a specific light for the EnvProbe in the case of a sky probe.
         // For reflection probes, it would be ideal to bind a number of lights that can be used in forward rendering.
         auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
@@ -583,18 +589,75 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
 
     const ImageRef &framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
 
-    frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
-    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
-    frame->GetCommandList().Add<Blit>(framebuffer_image, m_texture->GetRenderResource().GetImage());
-    frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+    if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe()) {
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<Blit>(framebuffer_image, m_texture->GetRenderResource().GetImage());
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
-    if (ShouldComputePrefilteredEnvMap()) {
-        Convolve(frame, EnvProbeConvolveMode::PREFILTERED_ENV_MAP);
+        if (ShouldComputePrefilteredEnvMap()) {
+            Convolve(frame, EnvProbeConvolveMode::PREFILTERED_ENV_MAP);
+        }
+
+        if (ShouldComputeIrradianceMap()) {
+            Convolve(frame, EnvProbeConvolveMode::IRRADIANCE_MAP);
+        }
     }
+    else if (m_env_probe->IsShadowProbe()) {
+        AssertThrow(m_shadow_map_resource_handle);
+        AssertThrow(m_shadow_map_resource_handle->GetAtlasElement().point_light_index != ~0u);
 
-    if (ShouldComputeIrradianceMap()) {
-        Convolve(frame, EnvProbeConvolveMode::IRRADIANCE_MAP);
+        const ImageViewRef &shadow_map_image_view = m_shadow_map_resource_handle->GetImageView();
+        AssertThrow(shadow_map_image_view.IsValid());
+
+        const ImageRef &shadow_map_image = shadow_map_image_view->GetImage();
+        AssertThrow(shadow_map_image.IsValid());
+
+        const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
+
+        // Copy combined shadow map to the final shadow map
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(
+            shadow_map_image,
+            renderer::ResourceState::COPY_DST,
+            renderer::ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 }
+        );
+
+        // copy the image
+        for (uint32 i = 0; i < 6; i++) {
+            frame->GetCommandList().Add<Blit>(
+                framebuffer_image,
+                shadow_map_image,
+                Rect<uint32> {
+                    .x0 = 0,
+                    .y0 = 0,
+                    .x1 = framebuffer_image->GetExtent().x,
+                    .y1 = framebuffer_image->GetExtent().y
+                },
+                Rect<uint32> {
+                    .x0 = atlas_element.offset_coords.x,
+                    .y0 = atlas_element.offset_coords.y,
+                    .x1 = atlas_element.offset_coords.x + atlas_element.dimensions.x,
+                    .y1 = atlas_element.offset_coords.y + atlas_element.dimensions.y
+                },
+                0, /* src_mip */
+                0, /* dst_mip */
+                i, /* src_face */
+                atlas_element.point_light_index * 6 + i /* dst_face */
+            );
+        }
+
+        // put the images back into a state for reading
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(
+            shadow_map_image,
+            renderer::ResourceState::SHADER_RESOURCE,
+            renderer::ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 }
+        );
+
+        HYP_LOG(EnvProbe, Debug, "Blit Shadow EnvProbe #{} (type: {}) texture index: {}", m_env_probe->GetID().Value(), (uint32)m_env_probe->GetEnvProbeType(),
+            static_cast<EnvProbeShaderData *>(m_buffer_address)->texture_index);
     }
 
     // Temp; refactor

@@ -34,21 +34,6 @@ public:
     HYP_FORCE_INLINE ImageType GetType() const
         { return m_texture_desc.type; }
 
-    HYP_FORCE_INLINE bool IsTextureCube() const
-        { return m_texture_desc.IsTextureCube(); }
-
-    HYP_FORCE_INLINE bool IsPanorama() const
-        { return m_texture_desc.IsPanorama(); }
-
-    HYP_FORCE_INLINE bool IsTexture2DArray() const
-        { return m_texture_desc.IsTexture2DArray(); }
-
-    HYP_FORCE_INLINE bool IsTexture3D() const
-        { return m_texture_desc.IsTexture3D(); }
-
-    HYP_FORCE_INLINE bool IsTexture2D() const
-        { return m_texture_desc.IsTexture2D(); }
-
     HYP_FORCE_INLINE uint32 NumLayers() const
         { return m_texture_desc.num_layers; }
 
