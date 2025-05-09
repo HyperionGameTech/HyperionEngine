@@ -1305,7 +1305,6 @@ struct HypDataHelper<Any>
     }
 };
 
-
 template <int StringType>
 struct HypDataHelperDecl<containers::detail::String<StringType>> {};
 
@@ -2352,6 +2351,125 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
         out = HypData(std::move(byte_buffer));
 
         return { fbom::FBOMResult::FBOM_OK };
+    }
+};
+
+template <class... Types>
+struct HypDataHelperDecl<Variant<Types...>> {};
+
+template <class... Types>
+struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<Types...>;
+
+    template <class T>
+    static fbom::FBOMResult VariantElementSerializeHelper(const Variant<Types...> &variant, fbom::FBOMData &out_data)
+    {
+        return HypDataHelper<T>::Serialize(variant.template Get<T>(), out_data);
+    }
+
+    template <class T>
+    static fbom::FBOMResult VariantElementDeserializeHelper(fbom::FBOMLoadContext &context, const fbom::FBOMData &data, HypData &out)
+    {
+        HypData tmp;
+        if (fbom::FBOMResult err = HypDataHelper<T>::Deserialize(context, data, tmp)) {
+            return err;
+        }
+
+        out = HypData(Variant<Types...>(std::move(tmp).template Get<T>()));
+
+        return fbom::FBOMResult::FBOM_OK;
+    }
+
+    static constexpr std::add_pointer_t<fbom::FBOMResult(const Variant<Types...> &, fbom::FBOMData &)> element_serialize_functions[] = { &VariantElementSerializeHelper<Types>... };
+    static constexpr std::add_pointer_t<fbom::FBOMResult(fbom::FBOMLoadContext &, const fbom::FBOMData &, HypData &)> element_deserialize_functions[] = { &VariantElementDeserializeHelper<Types>... };
+
+    HYP_FORCE_INLINE bool Is(const Any &value) const
+    {
+        return value.Is<Variant<Types...>>();
+    }
+
+    HYP_FORCE_INLINE Variant<Types...> &Get(Any &value) const
+    {
+        return value.Get<Variant<Types...>>();
+    }
+
+    HYP_FORCE_INLINE const Variant<Types...> &Get(const Any &value) const
+    {
+        return value.Get<Variant<Types...>>();
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v<NormalizedType<T>, Variant<Types...> > && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...> > >
+    HYP_FORCE_INLINE constexpr bool Is(const T &value) const
+    {
+        return true;
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v<NormalizedType<T>, Variant<Types...> > && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...> > >
+    HYP_FORCE_INLINE Variant<Types...> Get(const T &value) const
+    {
+        return Variant<Types...>(value);
+    }
+
+    template <class T, typename = std::enable_if_t< !std::is_same_v<NormalizedType<T>, Variant<Types...> > && std::disjunction_v<std::is_same<NormalizedType<T>, Types>...> > >
+    HYP_FORCE_INLINE Variant<Types...> Get(T &&value) const
+    {
+        return Variant<Types...>(std::forward<T>(value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, const Variant<Types...> &value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Variant<Types...>>(value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData &hyp_data, Variant<Types...> &&value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<Variant<Types...>>(std::move(value)));
+    }
+
+    HYP_FORCE_INLINE static fbom::FBOMResult Serialize(const Variant<Types...> &value, fbom::FBOMData &out_data)
+    {
+        HYP_SCOPE;
+
+        const int type_index = value.GetTypeIndex();
+
+        if (type_index == Variant<Types...>::invalid_type_index) {
+            out_data = fbom::FBOMData();
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        return element_serialize_functions[type_index](value, out_data);
+    }
+
+    HYP_FORCE_INLINE static fbom::FBOMResult Deserialize(fbom::FBOMLoadContext &context, const fbom::FBOMData &data, HypData &out)
+    {
+        HYP_SCOPE;
+
+        if (data.IsUnset()) {
+            out = HypData(Variant<Types...>());
+
+            return fbom::FBOMResult::FBOM_OK;
+        }
+
+        int found_type_index = Variant<Types...>::invalid_type_index;
+        int current_type_index = 0;
+
+        for (TypeID type_id : Variant<Types...>::type_ids) {
+            if (data.GetType().GetNativeTypeID() == type_id) {
+                found_type_index = current_type_index;
+
+                break;
+            }
+
+            ++current_type_index;
+        }
+
+        if (found_type_index == Variant<Types...>::invalid_type_index) {
+            return { fbom::FBOMResult::FBOM_ERR, "Cannot deserialize variant - type not found" };
+        }
+
+        return element_deserialize_functions[found_type_index](context, data, out);
     }
 };
 

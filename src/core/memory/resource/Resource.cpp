@@ -65,7 +65,7 @@ int ResourceBase::ClaimWithoutInitialize()
     });
 }
 
-int ResourceBase::Claim()
+int ResourceBase::Claim(int count)
 {
     IThread *owner_thread = GetOwnerThread();
 
@@ -92,14 +92,14 @@ int ResourceBase::Claim()
             HYP_NAMED_SCOPE("Initializing Resource - Post-Initialization Update");
 
             // Perform any updates that were requested before initialization
-            int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
+            int16 current_update_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-            while (current_count != 0) {
-                AssertThrow(current_count > 0);
+            while (current_update_count != 0) {
+                AssertThrow(current_update_count > 0);
 
                 Update();
 
-                current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
+                current_update_count = m_update_counter.Decrement(current_update_count, MemoryOrder::ACQUIRE_RELEASE) - current_update_count;
             }
         }
 
@@ -111,7 +111,7 @@ int ResourceBase::Claim()
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Produce(1, [this, owner_thread, &Impl, &should_release](bool)
+    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &Impl, &should_release](bool)
     {
         should_release = false;
 
@@ -362,7 +362,7 @@ public:
         return true;
     }
 
-    virtual int Claim() override
+    virtual int Claim(int count) override
     {
         return 0;
     }

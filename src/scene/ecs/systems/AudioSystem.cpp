@@ -27,7 +27,7 @@ void AudioSystem::OnEntityAdded(const Handle<Entity> &entity)
 
 void AudioSystem::Process(GameCounter::TickUnit delta)
 {
-    if (!AudioManager::GetInstance()->IsInitialized()) {
+    if (!AudioManager::GetInstance().IsInitialized()) {
         return;
     }
 
@@ -35,8 +35,8 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
         const Handle<Camera> &camera = GetEntityManager().GetScene()->GetPrimaryCamera();
 
         if (camera.IsValid()) {
-            AudioManager::GetInstance()->SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
-            AudioManager::GetInstance()->SetListenerPosition(camera->GetTranslation());
+            AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
+            AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
         }
     }
 

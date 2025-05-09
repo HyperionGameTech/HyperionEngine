@@ -102,6 +102,8 @@ struct MeshRaytracingData
     FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
 };
 
+/*! \brief A proxy for a renderable object in the world. This is used to store the renderable object and its
+ *  associated data, such as the mesh, material, and skeleton. */
 struct RenderProxy
 {
     WeakHandle<Entity>  entity;

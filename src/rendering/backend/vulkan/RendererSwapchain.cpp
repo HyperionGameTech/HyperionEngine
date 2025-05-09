@@ -93,8 +93,10 @@ RendererResult VulkanSwapchain::PrepareFrame(bool &out_needs_recreate)
 
     HYPERION_BUBBLE_ERRORS(HandleFrameResult(frame->GetFence()->GetLastFrameResult(), out_needs_recreate));
 
-    if (m_frame_end_callback.IsValid()) {
-        m_frame_end_callback(frame.Get());
+    if (frame->OnFrameEnd.AnyBound()) {
+        DebugLog(LogType::Debug, "Frame %u: OnFrameEnd", frame->GetFrameIndex());
+        frame->OnFrameEnd(frame.Get());
+        frame->OnFrameEnd.RemoveAllDetached();
     }
 
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset());
@@ -192,6 +194,21 @@ RendererResult VulkanSwapchain::Create()
 
     RetrieveImageHandles();
 
+    for (const ImageRef &image : m_images) {
+        VulkanFramebufferRef framebuffer = MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT);
+        
+        framebuffer->AddAttachment(
+            0,
+            VulkanImageRef(image),
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
+        );
+
+        HYPERION_BUBBLE_ERRORS(framebuffer->Create());
+
+        m_framebuffers.PushBack(std::move(framebuffer));
+    }
+
     VulkanDeviceQueue *queue = &GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
     
     for (uint32 i = 0; i < m_frames.Size(); i++) {
@@ -217,6 +234,7 @@ RendererResult VulkanSwapchain::Destroy()
     }
 
     SafeRelease(std::move(m_images));
+    SafeRelease(std::move(m_framebuffers));
     SafeRelease(std::move(m_frames));
     SafeRelease(std::move(m_command_buffers));
 

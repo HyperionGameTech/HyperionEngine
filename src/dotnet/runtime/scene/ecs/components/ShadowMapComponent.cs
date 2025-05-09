@@ -17,13 +17,17 @@ namespace Hyperion
     {
         [FieldOffset(0)]
         private ShadowMapFilter filter = ShadowMapFilter.PCF;
+
         [FieldOffset(4)]
         private float radius = 20.0f;
+
         [FieldOffset(8)]
         private Vec2u resolution = new Vec2u(512, 512);
+
         [FieldOffset(16)]
-        private RefCountedPtr renderer;
-        [FieldOffset(24)]
+        private RefCountedPtr renderer = RefCountedPtr.Null;
+
+        [FieldOffset(32)]
         private uint updateCounter = 0;
 
         public ShadowMapComponent()

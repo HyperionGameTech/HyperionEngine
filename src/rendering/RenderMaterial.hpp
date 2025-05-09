@@ -88,6 +88,7 @@ private:
     MaterialShaderData                                              m_buffer_data;
     FixedArray<DescriptorSetRef, max_frames_in_flight>              m_descriptor_sets;
 };
+
 class HYP_API MaterialDescriptorSetManager
 {
 public:
@@ -97,6 +98,9 @@ public:
     MaterialDescriptorSetManager(MaterialDescriptorSetManager &&other) noexcept             = delete;
     MaterialDescriptorSetManager &operator=(MaterialDescriptorSetManager &&other) noexcept  = delete;
     ~MaterialDescriptorSetManager();
+
+    HYP_FORCE_INLINE const DescriptorSetRef &GetInvalidMaterialDescriptorSet() const
+        { return m_invalid_material_descriptor_set; }
 
     /*! \brief Get the descriptor set for the given material and frame index. Only
      *   to be used from the render thread. If the descriptor set is not found, nullptr
@@ -150,6 +154,8 @@ public:
 
 private:
     void CreateInvalidMaterialDescriptorSet();
+
+    DescriptorSetRef                                                                        m_invalid_material_descriptor_set;
 
     HashMap<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>>       m_material_descriptor_sets;
 

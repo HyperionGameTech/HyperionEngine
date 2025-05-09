@@ -168,14 +168,18 @@ void HyperionEditor::Init()
 
 #if 1
 
-    #if 1// point light test
+    #if 0// point light test
 
     const Vec3f positions[] = {
-        Vec3f(0.0f, 5.5f, 2.0f)
+        Vec3f(0.0f, 5.5f, 2.0f),
+        Vec3f(30.0f, 5.5f, 0.0f),
+        Vec3f(-30.0f, 5.5f, 0.0f),
     };
 
     const Color colors[] = {
-        Color(1.0f, 0.0f, 0.0f)
+        Color(1.0f, 0.0f, 0.0f),
+        Color(0.0f, 1.0f, 0.0f),
+        Color(0.0f, 0.0f, 1.0f)
     };
 
     // add pointlight (Test)
@@ -189,7 +193,7 @@ void HyperionEditor::Init()
         );
 
         NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
-        point_light_node.SetName("point_light_node");
+        point_light_node.SetName(HYP_FORMAT("point_light_node_{}", i));
 
         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
         point_light_node.SetEntity(point_light_entity);
@@ -210,7 +214,7 @@ void HyperionEditor::Init()
         LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        5.0f,
+        25.0f,
         0.0f
     );
 
@@ -230,7 +234,7 @@ void HyperionEditor::Init()
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent {
         .mode       = ShadowMapFilterMode::PCF,
         .radius     = 80.0f,
-        .resolution = { 2048, 2048 }
+        .resolution = { 1024, 1024 }
     });
     #endif
 
@@ -325,8 +329,8 @@ void HyperionEditor::Init()
             m_scene->GetEntityManager()->AddComponent<TransformComponent>(reflection_probe_entity, TransformComponent { });
 
             m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(reflection_probe_entity, BoundingBoxComponent {
-                m_scene->GetRoot()->GetWorldAABB(),
-                m_scene->GetRoot()->GetWorldAABB()
+                node->GetWorldAABB() * 1.01f,
+                node->GetWorldAABB() * 1.01f
             });
 
             m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
@@ -334,7 +338,7 @@ void HyperionEditor::Init()
             NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
             reflection_probe_node.SetEntity(reflection_probe_entity);
             reflection_probe_node.SetName("ReflectionProbeTest");
-            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 3.0f, 0.0f));
+            reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 4.0f, 0.0f));
         }
 
 #endif
@@ -511,15 +515,11 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
 
         if (sun) {
             sun->UnlockTransform();
-            sun->SetWorldTranslation((sun->GetWorldTranslation() + Vec3f { 0.1f, 0.0f, 0.0f }).Normalize());
+            sun->Rotate(Quaternion::AxisAngles(Vec3f(0.0f, 1.0f, 0.0f), 0.1f));
+            HYP_LOG(Editor, Info, "Sun rotation: {}", sun->GetWorldRotation());
             sun->LockTransform();
         }
     }
-}
-
-void HyperionEditor::OnFrameEnd(FrameBase *frame)
-{
-    Game::OnFrameEnd(frame);
 }
 
 #pragma endregion HyperionEditor

@@ -317,7 +317,7 @@ private:
 public:
     struct DeclareSet
     {
-        DeclareSet(DescriptorTableDeclaration *table, uint32 set_index, Name name)
+        DeclareSet(DescriptorTableDeclaration *table, uint32 set_index, Name name, bool is_template = false)
         {
             AssertThrow(table != nullptr);
 
@@ -328,6 +328,7 @@ public:
             DescriptorSetDeclaration decl { };
             decl.set_index = set_index;
             decl.name = name;
+            decl.is_template = is_template;
             table->m_elements[set_index] = std::move(decl);
         }
     };
@@ -781,8 +782,9 @@ public:
             DescriptorSetDeclaration *decl = m_decl.FindDescriptorSetDeclaration(descriptor_set_name);
             AssertThrow(decl != nullptr);
 
-            if (decl->is_reference) {
-                // reference, updated elsewhere
+            if (decl->is_reference || decl->is_template) {
+                // references are updated elsewhere
+                // template descriptor sets are not updated (no handle to update)
                 continue;
             }
 
@@ -799,6 +801,10 @@ public:
     void Bind(CommandBufferBase *command_buffer, uint32 frame_index, const PipelineRef &pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>> &offsets) const
     {
         for (const DescriptorSetRef &set : m_sets[frame_index]) {
+            if (set->GetLayout().GetDeclaration().is_template) {
+                continue;
+            }
+
             const Name descriptor_set_name = set->GetLayout().GetName();
 
             const uint32 set_index = GetDescriptorSetIndex(descriptor_set_name);
@@ -817,7 +823,7 @@ public:
                 continue;
             }
 
-            set->Bind(command_buffer, pipeline, set_index);
+            set->Bind(command_buffer, pipeline, {}, set_index);
         }
     }
 

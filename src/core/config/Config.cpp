@@ -286,7 +286,18 @@ static bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json:
                 return false;
             }
 
-            out_json[UTF8StringView(property->GetName().LookupString())] = std::move(json_value);
+            String path = property->GetName().LookupString();
+
+            if (const HypClassAttributeValue &path_attribute = property->GetAttribute("configpath"); path_attribute.IsValid()) {
+                path = path_attribute.GetString();
+
+                json::JSONValue temp(std::move(out_json));
+                temp.Set(path, json_value);
+
+                out_json = std::move(temp).AsObject();
+            } else {
+                out_json[path] = std::move(json_value);
+            }
 
             break;
         }
@@ -299,8 +310,18 @@ static bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json:
             if (!HypDataToJSON(field->Get(target), json_value)) {
                 return false;
             }
+            String path = field->GetName().LookupString();
 
-            out_json[UTF8StringView(field->GetName().LookupString())] = std::move(json_value);
+            if (const HypClassAttributeValue &path_attribute = field->GetAttribute("configpath"); path_attribute.IsValid()) {
+                path = path_attribute.GetString();
+
+                json::JSONValue temp(std::move(out_json));
+                temp.Set(path, json_value);
+                
+                out_json = std::move(temp).AsObject();
+            } else {
+                out_json[path] = std::move(json_value);
+            }
 
             break;
         }
@@ -314,7 +335,18 @@ static bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json:
                 return false;
             }
 
-            out_json[UTF8StringView(constant->GetName().LookupString())] = std::move(json_value);
+            String path = constant->GetName().LookupString();
+
+            if (const HypClassAttributeValue &path_attribute = constant->GetAttribute("configpath"); path_attribute.IsValid()) {
+                path = path_attribute.GetString();
+
+                json::JSONValue temp(std::move(out_json));
+                temp.Set(path, json_value);
+
+                out_json = std::move(temp).AsObject();
+            } else {
+                out_json[path] = std::move(json_value);
+            }
 
             break;
         }
@@ -328,28 +360,10 @@ static bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json:
 
 static bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class, HypData &target)
 {
-    for (const Pair<json::JSONString, json::JSONValue> &pair : json_object) {
-        const json::JSONString &name_string = pair.first;
+    Array<const IHypMember *> members_to_resolve;
 
-        auto members_it = FindIf(hyp_class->GetMembers().Begin(), hyp_class->GetMembers().End(), [&name_string](const IHypMember &member)
-        {
-            if (const HypClassAttributeValue &attribute = member.GetAttribute("configignore"); attribute.IsValid() && attribute.GetBool()) {
-                return false;
-            }
-
-            return member.GetName() == name_string;
-        });
-
-        if (members_it == hyp_class->GetMembers().End()) {
-            HYP_LOG(Config, Warning, "No property or field matching JSON property \"{}\" in HypClass \"{}\"", name_string, hyp_class->GetName());
-
-            continue;
-        }
-
-        const IHypMember &member = *members_it;
-
-        HYP_LOG(Config, Debug, "Deserializing JSON property \"{}\" for HypClass \"{}\"", name_string, hyp_class->GetName());
-
+    auto ResolveMember = [hyp_class, &target](const IHypMember &member, const json::JSONValue &value) -> bool
+    {
         switch (member.GetMemberType()) {
         case HypMemberType::TYPE_PROPERTY:
         {
@@ -359,7 +373,7 @@ static bool JSONToObject(const json::JSONObject &json_object, const HypClass *hy
 
             HypData hyp_data;
 
-            if (!JSONToHypData(pair.second, type_id, hyp_data)) {
+            if (!JSONToHypData(value, type_id, hyp_data)) {
                 HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
                     member.GetName(), hyp_class->GetName());
 
@@ -378,7 +392,7 @@ static bool JSONToObject(const json::JSONObject &json_object, const HypClass *hy
 
             HypData hyp_data;
 
-            if (!JSONToHypData(pair.second, type_id, hyp_data)) {
+            if (!JSONToHypData(value, type_id, hyp_data)) {
                 HYP_LOG(Config, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json",
                     member.GetName(), hyp_class->GetName());
 
@@ -391,6 +405,39 @@ static bool JSONToObject(const json::JSONObject &json_object, const HypClass *hy
         }
         default:
             break;
+        }
+
+        return true;
+    };
+
+    json::JSONValue json_object_value(json_object);
+
+    for (const IHypMember &member : hyp_class->GetMembers()) {
+        if (const HypClassAttributeValue &attribute = member.GetAttribute("configignore"); attribute.IsValid() && attribute.GetBool()) {
+            continue;
+        }
+
+        const HypClassAttributeValue &path_attribute = member.GetAttribute("configpath");
+
+        if (path_attribute.IsValid()) {
+            const String path = path_attribute.GetString();
+
+            HYP_LOG(Config, Debug, "Deserializing JSON property \"{}\" for HypClass \"{}\"", path, hyp_class->GetName());
+
+            auto value = json_object_value.Get(path);
+
+            if (!value.value) {
+                HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hyp_class->GetName());
+
+                continue;
+            }
+
+            if (!ResolveMember(member, value.Get())) {
+                HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
+                    path, hyp_class->GetName());
+
+                return false;
+            }
         }
     }
 

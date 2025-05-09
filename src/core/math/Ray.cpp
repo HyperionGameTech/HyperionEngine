@@ -38,11 +38,15 @@ Ray Ray::operator*(const Matrix4 &transform) const
     return result;
 }
 
-bool Ray::TestAABB(const BoundingBox &aabb) const
+Optional<RayHit> Ray::TestAABB(const BoundingBox &aabb) const
 {
     RayTestResults out_results;
 
-    return TestAABB(aabb, ~0, out_results);
+    if (!TestAABB(aabb, ~0, out_results)) {
+        return { };
+    }
+
+    return out_results.Front();
 }
 
 bool Ray::TestAABB(const BoundingBox &aabb, RayTestResults &out_results) const
@@ -100,11 +104,64 @@ bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_da
     return true;
 }
 
-bool Ray::TestTriangle(const Triangle &triangle) const
+
+Optional<RayHit> Ray::TestPlane(const Vec3f &position, const Vec3f &normal) const
 {
     RayTestResults out_results;
 
-    return TestTriangle(triangle, ~0, out_results);
+    if (!TestPlane(position, normal, ~0, out_results)) {
+        return { };
+    }
+
+    return out_results.Front();
+}
+
+bool Ray::TestPlane(const Vec3f &position, const Vec3f &normal, RayTestResults &out_results) const
+{
+    return TestPlane(position, normal, ~0, out_results);
+}
+
+bool Ray::TestPlane(const Vec3f &position, const Vec3f &normal, RayHitID hit_id, RayTestResults &out_results) const
+{
+    return TestPlane(position, normal, hit_id, nullptr, out_results);
+}
+
+bool Ray::TestPlane(const Vec3f &position, const Vec3f &normal, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const
+{
+    const float denom = direction.Dot(normal);
+
+    if (MathUtil::Abs(denom) < MathUtil::epsilon_f) {
+        return false; // Ray is parallel to the plane
+    }
+
+    float t = (position - this->position).Dot(normal) / denom;
+
+    if (t < 0.0f) {
+        return false; // Intersection is behind the ray's origin
+    }
+
+    const Vec3f hitpoint = this->position + (direction * t);
+
+    out_results.AddHit(RayHit{
+        .hitpoint  = hitpoint,
+        .normal    = normal,
+        .distance  = t,
+        .id        = hit_id,
+        .user_data = user_data
+    });
+
+    return true;
+}
+
+Optional<RayHit> Ray::TestTriangle(const Triangle &triangle) const
+{
+    RayTestResults out_results;
+
+    if (!TestTriangle(triangle, ~0, out_results)) {
+        return { };
+    }
+
+    return out_results.Front();
 }
 
 bool Ray::TestTriangle(const Triangle &triangle, RayTestResults &out_results) const

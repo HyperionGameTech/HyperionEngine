@@ -128,6 +128,61 @@ namespace Hyperion
             }
         }
 
+        public float Length()
+        {
+            return MathF.Sqrt(LengthSquared());
+        }
+
+        public float LengthSquared()
+        {
+            return x * x + y * y + z * z;
+        }
+
+        public Vec3f Normalize()
+        {
+            float length = Length();
+
+            if (length == 0)
+            {
+                return new Vec3f(0, 0, 0);
+            }
+
+            return new Vec3f(x / length, y / length, z / length);
+        }
+
+        public Vec3f Cross(Vec3f other)
+        {
+            return new Vec3f(
+                y * other.z - z * other.y,
+                z * other.x - x * other.z,
+                x * other.y - y * other.x
+            );
+        }
+
+        public float Dot(Vec3f other)
+        {
+            return x * other.x + y * other.y + z * other.z;
+        }
+
+        public Vec3f Lerp(Vec3f other, float t)
+        {
+            return new Vec3f(
+                x + (other.x - x) * t,
+                y + (other.y - y) * t,
+                z + (other.z - z) * t
+            );
+        }
+
+        public float Distance(Vec3f other)
+        {
+            return (float)Math.Sqrt(DistanceSquared(other));
+        }
+
+        public float DistanceSquared(Vec3f other)
+        {
+            return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y) + (z - other.z) * (z - other.z);
+        }
+
         public static Vec3f operator+(Vec3f left, Vec3f right)
         {
             return new Vec3f(left.x + right.x, left.y + right.y, left.z + right.z);

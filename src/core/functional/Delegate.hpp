@@ -633,15 +633,15 @@ protected:
         };
     }
 
-    Array<detail::DelegateHandlerEntry<ProcType> *>     m_procs;
+    Array<detail::DelegateHandlerEntry<ProcType> *, DynamicAllocator>   m_procs;
 
-    AtomicVar<uint32>                                   m_num_procs;
-    Mutex                                               m_mutex;
+    AtomicVar<uint32>                                                   m_num_procs;
+    Mutex                                                               m_mutex;
 
-    uint32                                              m_id_counter;
+    uint32                                                              m_id_counter;
 
-    Array<DelegateHandler>                              m_detached_handlers;
-    Mutex                                               m_detached_handlers_mutex;
+    Array<DelegateHandler, DynamicAllocator>                            m_detached_handlers;
+    Mutex                                                               m_detached_handlers_mutex;
 };
 
 } // namespace functional

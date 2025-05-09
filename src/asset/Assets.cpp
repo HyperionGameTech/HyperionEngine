@@ -220,7 +220,7 @@ void AssetManager::RegisterDefaultLoaders()
     );
     Register<MTLMaterialLoader, MaterialGroup>("mtl");
     Register<WAVAudioLoader, AudioSource>("wav");
-    Register<FBOMModelLoader, Node>("fbom");
+    Register<FBOMModelLoader, Node>("hypmodel");
     Register<FBXModelLoader, Node>("fbx");
     // Register<PLYModelLoader, PLYModel>("ply");
     Register<JSONLoader, JSONValue>("json");

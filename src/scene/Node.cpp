@@ -36,6 +36,22 @@ namespace hyperion {
 
 #pragma region NodeTag
 
+String NodeTag::ToString() const
+{
+    if (!data.IsValid()) {
+        return String::empty;
+    }
+
+    String str;
+
+    Visit(data, [&str](const auto &value)
+    {
+        str = HYP_FORMAT("{}", value);
+    });
+
+    return str;
+}
+
 #pragma endregion NodeTag
 
 #pragma region Node
@@ -329,6 +345,10 @@ void Node::SetScene(Scene *scene)
                     editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
                 });
 #endif
+            }
+            
+            if (m_flags & NodeFlags::BUILD_BVH) {
+                EnsureEntityHasBVHComponent();
             }
         }
     }

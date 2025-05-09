@@ -9,6 +9,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/EngineRenderStats.hpp>
 #include <rendering/PlaceholderData.hpp>
 
@@ -48,7 +49,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-
 struct alignas(16) EntityInstanceBatch_UI : EntityInstanceBatch
 {
     Vec4f   texcoords[max_entities_per_instance_batch];
@@ -70,7 +70,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
     Array<Pair<ID<Entity>, int>>        proxy_depths;
 
-    Handle<Camera>                      camera;
+    FramebufferRef                      framebuffer;
+
     Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
@@ -78,12 +79,12 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         Array<RenderProxy *> &&added_proxy_ptrs,
         Array<ID<Entity>> &&removed_entities,
         const Array<Pair<ID<Entity>, int>> &proxy_depths,
-        const Handle<Camera> &camera = Handle<Camera>::empty,
+        const FramebufferRef &framebuffer,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     ) : collection(collection),
         removed_entities(std::move(removed_entities)),
         proxy_depths(proxy_depths),
-        camera(camera),
+        framebuffer(framebuffer),
         override_attributes(override_attributes)
     {
         added_proxies.Reserve(added_proxy_ptrs.Size());
@@ -139,12 +140,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: BuildProxyGroupsInOrder");
 
         collection->ClearProxyGroups();
-        
-        struct
-        {
-            HashCode    attributes_hash_code;
-            uint32      drawable_layer = ~0u;
-        } last_render_proxy_group;
 
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
@@ -168,11 +163,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             });
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-            // skip non-UI items
-            if (bucket != Bucket::BUCKET_UI) {
-                continue;
-            }
             
             attributes.SetDrawableLayer(pair.second);
 
@@ -188,20 +178,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
                 render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>(max_ui_entity_instance_batches));
 
-                FramebufferRef framebuffer;
-
-                if (camera.IsValid()) {
-                    framebuffer = camera->GetRenderResource().GetFramebuffer();
-                }
-
-                if (framebuffer != nullptr) {
-                    render_group->AddFramebuffer(framebuffer);
-                } else {
-                    FramebufferRef bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-                    AssertThrow(bucket_framebuffer != nullptr);
-
-                    render_group->AddFramebuffer(bucket_framebuffer);
-                }
+                render_group->AddFramebuffer(framebuffer);
 
                 HYP_LOG(UI, Debug, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
 
@@ -291,14 +268,14 @@ void UIRenderCollector::ResetOrdering()
     m_proxy_depths.Clear();
 }
 
-void UIRenderCollector::PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy, int computed_depth)
+void UIRenderCollector::PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy, int computed_depth)
 {
-    RenderCollector::PushEntityToRender(entity, proxy);
+    RenderCollector::PushRenderProxy(proxy_list, render_proxy);
 
-    m_proxy_depths.EmplaceBack(entity, computed_depth);
+    m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera, const Optional<RenderableAttributeSet> &override_attributes)
+RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
@@ -328,7 +305,7 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
                 std::move(added_proxies_ptrs),
                 std::move(removed_entities),
                 m_proxy_depths,
-                camera,
+                framebuffer,
                 override_attributes
             );
         }
@@ -352,10 +329,6 @@ void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
         for (auto &it : render_groups_by_attributes) {
             const RenderableAttributeSet &attributes = it.first;
 
-            if (attributes.GetMaterialAttributes().bucket != BUCKET_UI) {
-                continue;
-            }
-
             iterators.PushBack(&it);
         }
     }
@@ -374,7 +347,12 @@ void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
     );
 }
 
-void UIRenderCollector::ExecuteDrawCalls(FrameBase *frame, const TResourceHandle<CameraRenderResource> &camera_resource_handle, const FramebufferRef &framebuffer) const
+void UIRenderCollector::ExecuteDrawCalls(
+    FrameBase *frame, 
+    ViewRenderResource *view,
+    const TResourceHandle<CameraRenderResource> &camera_resource_handle,
+    const FramebufferRef &framebuffer
+) const
 {
     HYP_SCOPE;
 
@@ -416,16 +394,12 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase *frame, const TResourceHandle
         const RenderableAttributeSet &attributes = it.first;
         const Handle<RenderGroup> &render_group = it.second;
 
-        if (attributes.GetMaterialAttributes().bucket != BUCKET_UI) {
-            continue;
-        }
-
         AssertThrow(render_group.IsValid());
 
         // Don't count draw calls for UI
         SuppressEngineRenderStatsScope suppress_render_stats_scope;
 
-        render_group->PerformRendering(frame);
+        render_group->PerformRendering(frame, view);
     }
 
     g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
@@ -490,6 +464,8 @@ void UIRenderSubsystem::Init()
 
         g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
+        SafeRelease(std::move(subsystem->m_framebuffer));
+
         PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, subsystem);
     });
 
@@ -508,6 +484,7 @@ void UIRenderSubsystem::InitGame() { }
 void UIRenderSubsystem::OnRemoved()
 {
     SafeRelease(std::move(m_framebuffer));
+    
     g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
     m_on_gbuffer_resolution_changed_handle.Reset();
@@ -525,7 +502,7 @@ void UIRenderSubsystem::OnRender(FrameBase *frame)
     g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
 
     m_render_collector.CollectDrawCalls(frame);
-    m_render_collector.ExecuteDrawCalls(frame, m_camera_resource_handle, m_framebuffer);
+    m_render_collector.ExecuteDrawCalls(frame, nullptr, m_camera_resource_handle, m_framebuffer);
 
     g_engine->GetRenderState()->UnsetActiveScene();
 }
@@ -537,17 +514,34 @@ void UIRenderSubsystem::CreateFramebuffer()
 
     const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
 
-    m_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_UI).GetFramebuffer();
-    AssertThrow(m_framebuffer.IsValid());
+    m_framebuffer = g_rendering_api->MakeFramebuffer(Vec2u(surface_size) * 2);
+
+    AttachmentRef color_attachment = m_framebuffer->AddAttachment(
+        0,
+        InternalFormat::RGBA16F,
+        ImageType::TEXTURE_TYPE_2D,
+        renderer::LoadOperation::CLEAR,
+        renderer::StoreOperation::STORE
+    );
+
+    m_framebuffer->AddAttachment(
+        1,
+        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
+        ImageType::TEXTURE_TYPE_2D,
+        renderer::LoadOperation::CLEAR,
+        renderer::StoreOperation::STORE
+    );
+
+    DeferCreate(m_framebuffer);
 
     m_camera_resource_handle->SetFramebuffer(m_framebuffer);
 
-    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, framebuffer = m_framebuffer, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
+    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
     {
         ui_stage->SetSurfaceSize(surface_size);
     });
 
-    g_engine->GetFinalPass()->SetUILayerImageView(m_framebuffer->GetAttachment(0)->GetImageView());
+    g_engine->GetFinalPass()->SetUILayerImageView(color_attachment->GetImageView());
 }
 
 #pragma endregion UIRenderSubsystem

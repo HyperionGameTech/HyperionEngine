@@ -351,6 +351,14 @@ public:
         m_needs_hash_code_recalculation = true;
     }
 
+    HYP_FORCE_INLINE static ShaderProperties Merge(const ShaderProperties &a, const ShaderProperties &b)
+    {
+        ShaderProperties result(a);
+        result.Merge(b);
+
+        return result;
+    }
+
     HYP_FORCE_INLINE const FlatSet<ShaderProperty> &GetPropertySet() const
         { return m_props; }
 

@@ -113,12 +113,11 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
             }
             
             if (light_component.light->GetLightType() == LightType::DIRECTIONAL) {
-                light_component.light->SetPosition(transform_component.transform.GetTranslation().Normalized());
+                // Normalize the translation*rotation to set the direction of directional lights
+                light_component.light->SetPosition((transform_component.transform.GetTranslation() * transform_component.transform.GetRotation()).Normalized());
             } else {
                 light_component.light->SetPosition(transform_component.transform.GetTranslation());
             }
-
-            HYP_LOG(Scene, Debug, "Updating light transform for entity #{}", entity_id.Value());
 
             updated_entity_ids.Insert(entity_id);
         }
@@ -154,29 +153,6 @@ void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
                     light_component.light->SetMaterial(Handle<Material>::empty);
                 }*/
             }
-
-            bool is_light_in_frustum = false;
-            
-            is_light_in_frustum = camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
-
-            switch (light_component.light->GetLightType()) {
-            case LightType::DIRECTIONAL:
-                is_light_in_frustum = true;
-                break;
-            case LightType::POINT:
-                is_light_in_frustum = camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
-                break;
-            case LightType::SPOT:
-                // @TODO Implement frustum culling for spot lights
-                break;
-            case LightType::AREA_RECT:
-                is_light_in_frustum = true;
-                break;
-            default:
-                break;
-            }
-
-            light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
         }
 
         if (light_component.light->GetMutationState().IsDirty()) {

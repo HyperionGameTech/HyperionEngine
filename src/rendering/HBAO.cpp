@@ -2,12 +2,13 @@
 
 #include <rendering/HBAO.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderView.hpp>
+#include <rendering/Deferred.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -36,49 +37,6 @@ struct HBAOUniforms
 };
 
 #pragma region Render commands
-
-struct RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet) : renderer::RenderCommand
-{
-    ImageViewRef    image_view;
-
-    RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet)(const ImageViewRef &image_view)
-        : image_view(image_view)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("SSAOResultTexture"), image_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
-{
-    RENDER_COMMAND(RemoveHBAODescriptors)()
-    {
-    }
-
-    virtual ~RENDER_COMMAND(RemoveHBAODescriptors)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        RendererResult result;
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("SSAOResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-        }
-
-        return result;
-    }
-};
 
 struct RENDER_COMMAND(CreateHBAOUniformBuffer) : renderer::RenderCommand
 {
@@ -109,15 +67,14 @@ struct RENDER_COMMAND(CreateHBAOUniformBuffer) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-HBAO::HBAO(HBAOConfig &&config)
-    : FullScreenPass(InternalFormat::RGBA8),
+HBAO::HBAO(HBAOConfig &&config, GBuffer *gbuffer)
+    : FullScreenPass(InternalFormat::RGBA8, gbuffer),
       m_config(std::move(config))
 {
 }
 
 HBAO::~HBAO()
 {
-    PUSH_RENDER_COMMAND(RemoveHBAODescriptors);
 }
 
 void HBAO::Create()
@@ -134,8 +91,6 @@ void HBAO::Create()
     m_shader = g_shader_manager->GetOrCreate(NAME("HBAO"), shader_properties);
 
     FullScreenPass::Create();
-
-    PUSH_RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet, GetFinalImageView());
 }
 
 void HBAO::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
@@ -193,11 +148,9 @@ void HBAO::Resize_Internal(Vec2u new_size)
     SafeRelease(std::move(m_uniform_buffer));
 
     FullScreenPass::Resize_Internal(new_size);
-
-    PUSH_RENDER_COMMAND(AddHBAOResultToGlobalDescriptorSet, GetFinalImageView());
 }
 
-void HBAO::Render(FrameBase *frame)
+void HBAO::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -208,14 +161,14 @@ void HBAO::Render(FrameBase *frame)
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     {
-        Begin(frame);
+        Begin(frame, view);
 
         frame->GetCommandList().Add<BindDescriptorTable>(
             GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
             GetRenderGroup()->GetPipeline(),
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    NAME("Scene"),
+                    NAME("Global"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
@@ -224,9 +177,22 @@ void HBAO::Render(FrameBase *frame)
             },
             frame_index
         );
+
+        const uint32 scene_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+        if (scene_descriptor_set_index != ~0u) {
+            AssertThrow(view != nullptr);
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                view->GetDescriptorSets()[frame->GetFrameIndex()],
+                m_render_group->GetPipeline(),
+                ArrayMap<Name, uint32> { },
+                scene_descriptor_set_index
+            );
+        }
         
         GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-        End(frame);
+        End(frame, view);
     }
 }
 

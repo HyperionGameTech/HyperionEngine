@@ -805,8 +805,8 @@ struct ImageSubResource
 
 struct Viewport
 {
-    Vec2i   position;
     Vec2i   extent;
+    Vec2i   position;
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return position != Vec2i::Zero() || extent != Vec2i::Zero(); }
@@ -833,6 +833,7 @@ using renderer::TextureData;
 using renderer::TextureDesc;
 using renderer::ResourceState;
 using renderer::StencilFunction;
+using renderer::Viewport;
 
 } // namespace hyperion
 

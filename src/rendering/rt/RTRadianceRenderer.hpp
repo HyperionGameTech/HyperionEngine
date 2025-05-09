@@ -12,21 +12,34 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/rt/RendererRaytracingPipeline.hpp>
 
+#include <core/config/Config.hpp>
+
 namespace hyperion {
 
 using renderer::RTUpdateStateFlags;
 
 class Engine;
+class GBuffer;
+class ViewRenderResource;
 
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
-using RTRadianceRendererOptions = uint32;
-
-enum RTRadianceRendererOptionBits : RTRadianceRendererOptions
+HYP_STRUCT(ConfigName="app", ConfigPath="rendering.rt.reflections")
+struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
 {
-    RT_RADIANCE_RENDERER_OPTION_NONE = 0x0,
-    RT_RADIANCE_RENDERER_OPTION_PATHTRACER = 0x1
+    HYP_FIELD()
+    Vec2u   extent = { 1024, 1024 };
+    
+    HYP_FIELD()
+    bool    path_tracing = false;
+
+    virtual ~RTRadianceConfig() override = default;
+
+    bool Validate() const
+    {
+        return extent.x * extent.y != 0;
+    }
 };
 
 class RTRadianceRenderer
@@ -36,14 +49,14 @@ public:
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
  
     HYP_API RTRadianceRenderer(
-        const Vec2u &extent,
-        RTRadianceRendererOptions options = RT_RADIANCE_RENDERER_OPTION_NONE
+        RTRadianceConfig &&config,
+        GBuffer *gbuffer
     );
 
     HYP_API ~RTRadianceRenderer();
 
     HYP_FORCE_INLINE bool IsPathTracer() const
-        { return m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER; }
+        { return m_config.path_tracing; }
     
     HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight> &tlas)
         { m_top_level_acceleration_structures = tlas; }
@@ -53,7 +66,7 @@ public:
     HYP_API void Create();
     HYP_API void Destroy();
 
-    HYP_API void Render(FrameBase *frame);
+    HYP_API void Render(FrameBase *frame, ViewRenderResource *view);
 
 private:
     void CreateImages();
@@ -62,9 +75,9 @@ private:
     void CreateTemporalBlending();
     void UpdateUniforms(FrameBase *frame);
 
-    RTRadianceRendererOptions                           m_options;
+    RTRadianceConfig                                    m_config;
 
-    Vec2u                                               m_extent;
+    GBuffer                                             *m_gbuffer;
 
     FixedArray<TLASRef, max_frames_in_flight>           m_top_level_acceleration_structures;
     

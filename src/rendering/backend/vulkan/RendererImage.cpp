@@ -10,6 +10,8 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <util/img/ImageUtil.hpp>
 
 #include <core/containers/Array.hpp>
@@ -124,7 +126,14 @@ VulkanImage::~VulkanImage()
 }
 
 bool VulkanImage::IsCreated() const
-    { return m_handle != VK_NULL_HANDLE; }
+{
+    return m_handle != VK_NULL_HANDLE;
+}
+
+bool VulkanImage::IsOwned() const
+{
+    return m_is_handle_owned;
+}
 
 RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase *command_buffer)
 {
@@ -228,29 +237,6 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase *command_buffer)
     }
 
     HYPERION_RETURN_OK;
-}
-
-RendererResult VulkanImage::Destroy()
-{
-    RendererResult result;
-
-    if (IsCreated()) {
-        if (m_allocation != VK_NULL_HANDLE) {
-            AssertThrowMsg(m_is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
-
-            vmaDestroyImage(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_allocation);
-            m_allocation = VK_NULL_HANDLE;
-        }
-
-        m_handle = VK_NULL_HANDLE;
-
-        // reset back to default
-        m_is_handle_owned = true;
-
-        HYPERION_RETURN_OK;
-    }
-
-    return result;
 }
 
 RendererResult VulkanImage::Create()
@@ -395,6 +381,77 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
         ),
         "Failed to create gpu image!"
     );
+
+    HYPERION_RETURN_OK;
+}
+
+RendererResult VulkanImage::Destroy()
+{
+    RendererResult result;
+
+    if (IsCreated()) {
+        if (m_allocation != VK_NULL_HANDLE) {
+            AssertThrowMsg(m_is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+
+            vmaDestroyImage(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            m_allocation = VK_NULL_HANDLE;
+        }
+
+        m_handle = VK_NULL_HANDLE;
+
+        // reset back to default
+        m_is_handle_owned = true;
+
+        m_resource_state = ResourceState::UNDEFINED;
+        m_sub_resource_states.Clear();
+
+        HYPERION_RETURN_OK;
+    }
+
+    return result;
+}
+
+RendererResult VulkanImage::Resize(const Vec3u &extent) 
+{
+    if (extent == m_texture_desc.extent) {
+        HYPERION_RETURN_OK;
+    }
+
+    if (extent.Volume() == 0) {
+        return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
+    }
+
+    m_texture_desc.extent = extent;
+
+    const uint32 new_size = m_texture_desc.GetByteSize();
+
+    if (new_size != m_size) {
+        m_size = new_size;
+    }
+
+    const ResourceState previous_resource_state = m_resource_state;
+
+    if (IsCreated()) {
+        if (!m_is_handle_owned) {
+            return HYP_MAKE_ERROR(RendererError, "Cannot resize non-owned image");
+        }
+
+        HYPERION_BUBBLE_ERRORS(Destroy());
+        HYPERION_BUBBLE_ERRORS(Create());
+
+        if (previous_resource_state != ResourceState::UNDEFINED) {
+            SetResourceState(ResourceState::UNDEFINED);
+
+            renderer::SingleTimeCommands commands;
+
+            commands.Push([this, previous_resource_state](RHICommandList &cmd)
+            {
+                cmd.Add<::hyperion::InsertBarrier>(HandleFromThis(), previous_resource_state);
+            });
+
+            HYPERION_BUBBLE_ERRORS(commands.Execute());
+        }
+    }
 
     HYPERION_RETURN_OK;
 }

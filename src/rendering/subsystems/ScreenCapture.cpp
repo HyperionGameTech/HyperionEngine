@@ -1,24 +1,32 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/subsystems/ScreenCapture.hpp>
-#include <rendering/FinalPass.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderView.hpp>
+#include <rendering/Deferred.hpp>
+#include <rendering/FinalPass.hpp>
+#include <rendering/TemporalAA.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <scene/Texture.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
 
-ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const Vec2u &window_size, ScreenCaptureMode screen_capture_mode)
+ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource> &view, ScreenCaptureMode screen_capture_mode)
     : RenderSubsystem(name),
-      m_window_size(window_size),
+      m_view(view),
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,
           InternalFormat::RGBA16F,
-          Vec3u { window_size.x, window_size.y, 1 },
+          Vec3u { Vec2u(view->GetViewport().extent), 1 },
           FilterMode::TEXTURE_FILTER_NEAREST,
           FilterMode::TEXTURE_FILTER_NEAREST,
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
@@ -38,6 +46,8 @@ void ScreenCaptureRenderSubsystem::Init()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertThrow(m_view);
+
     m_texture->SetPersistentRenderResourceEnabled(true);
 
     m_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, m_texture->GetRenderResource().GetImage()->GetByteSize());
@@ -52,7 +62,7 @@ void ScreenCaptureRenderSubsystem::InitGame()
 void ScreenCaptureRenderSubsystem::OnRemoved()
 {
     SafeRelease(std::move(m_buffer));
-    g_safe_deleter->SafeRelease(std::move(m_texture));
+    m_texture.Reset();
 }
 
 void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
@@ -62,14 +72,25 @@ void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
 
 void ScreenCaptureRenderSubsystem::OnRender(FrameBase *frame)
 {
-    FinalPass *final_pass = g_engine->GetFinalPass();
-    AssertThrow(final_pass != nullptr);
-
     AssertThrow(m_texture.IsValid());
     AssertThrow(m_texture->IsReady());
 
-    const ImageRef &image_ref = final_pass->GetLastFrameImage();
+    const ImageRef &image_ref = m_view->GetRendererConfig().taa_enabled
+        ? m_view->GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
+        : m_view->GetCombinePass()->GetAttachment(0)->GetImage();
+
     AssertThrow(image_ref.IsValid());
+
+    // wait for the image to be ready
+    if (image_ref->GetResourceState() == renderer::ResourceState::UNDEFINED) {
+        return;
+    }
+
+    if (m_texture->GetExtent() != image_ref->GetExtent()) {
+        m_texture->Resize(image_ref->GetExtent());
+    }
+
+    const renderer::ResourceState previous_resource_state = image_ref->GetResourceState();
 
     frame->GetCommandList().Add<InsertBarrier>(image_ref, renderer::ResourceState::COPY_SRC);
 
@@ -96,6 +117,8 @@ void ScreenCaptureRenderSubsystem::OnRender(FrameBase *frame)
     default:
         HYP_THROW("Invalid screen capture mode");
     }
+
+    frame->GetCommandList().Add<InsertBarrier>(image_ref, previous_resource_state);
 }
 
 } // namespace hyperion

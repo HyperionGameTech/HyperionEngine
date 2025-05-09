@@ -105,33 +105,15 @@ const TResourceHandle<EnvProbeRenderResource> &RenderState::GetActiveEnvProbe() 
         : empty;
 }
 
-void RenderState::BindLight(const TResourceHandle<LightRenderResource> &light_resource_handle)
+const TResourceHandle<EnvGridRenderResource> &RenderState::GetActiveEnvGrid() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    auto &array = bound_lights[uint32(light_resource_handle->GetLight()->GetLightType())];
+    static const TResourceHandle<EnvGridRenderResource> empty;
 
-    auto it = array.Find(light_resource_handle);
-
-    if (it == array.End()) {
-        array.PushBack(light_resource_handle);
-    }
-}
-
-void RenderState::UnbindLight(const LightRenderResource *light_render_resource)
-{
-    Threads::AssertOnThread(g_render_thread);
-
-    auto &array = bound_lights[uint32(light_render_resource->GetLight()->GetLightType())];
-
-    auto it = array.FindIf([light_render_resource](const TResourceHandle<LightRenderResource> &item)
-    {
-        return item.Get() == light_render_resource;
-    });
-
-    if (it != array.End()) {
-        array.Erase(it);
-    }
+    return env_grid_bindings.Any()
+        ? env_grid_bindings.Top()
+        : empty;
 }
 
 const TResourceHandle<LightRenderResource> &RenderState::GetActiveLight() const

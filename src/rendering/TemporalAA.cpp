@@ -29,54 +29,18 @@
 
 namespace hyperion {
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    Handle<Texture> result_texture;
-
-    RENDER_COMMAND(SetTemporalAAResultInGlobalDescriptorSet)(
-        Handle<Texture> result_texture
-    ) : result_texture(std::move(result_texture))
-    {
-    }
-
-    virtual RendererResult operator()()
-    {
-        const ImageViewRef &result_texture_view = result_texture.IsValid()
-            ? result_texture->GetRenderResource().GetImageView()
-            : g_engine->GetPlaceholderData()->GetImageView2D1x1R8();
-
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("TAAResultTexture"), result_texture_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
-TemporalAA::TemporalAA(const Vec2u &extent)
+TemporalAA::TemporalAA(const Vec2u &extent, const ImageViewRef &input_image_view, GBuffer *gbuffer)
     : m_extent(extent),
+      m_input_image_view(input_image_view),
+      m_gbuffer(gbuffer),
       m_is_initialized(false)
 {
 }
 
 TemporalAA::~TemporalAA()
 {
+    SafeRelease(std::move(m_input_image_view));
     SafeRelease(std::move(m_compute_taa));
-
-    g_safe_deleter->SafeRelease(std::move(m_result_texture));
-    g_safe_deleter->SafeRelease(std::move(m_history_texture));
-
-    if (m_is_initialized) {
-        PUSH_RENDER_COMMAND(
-            SetTemporalAAResultInGlobalDescriptorSet,
-            Handle<Texture>::empty
-        );
-    }
 }
 
 void TemporalAA::Create()
@@ -85,23 +49,17 @@ void TemporalAA::Create()
         return;
     }
 
-    // Handle GBuffer size changed
-    g_engine->GetDeferredRenderer()->GetGBuffer()->OnGBufferResolutionChanged.Bind([this](...)
-    {
-        HYP_SCOPE;
-        Threads::AssertOnThread(g_render_thread);
-
-        if (!m_is_initialized) {
-            return;
-        }
-
-        SafeRelease(std::move(m_compute_taa));
-
-        CreateComputePipelines();
-    }).Detach();
+    AssertThrow(m_gbuffer != nullptr);
 
     CreateImages();
     CreateComputePipelines();
+
+    m_on_gbuffer_resolution_changed = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u new_size)
+    {
+        SafeRelease(std::move(m_compute_taa));
+
+        CreateComputePipelines();
+    });
 
     m_is_initialized = true;
 }
@@ -137,11 +95,6 @@ void TemporalAA::CreateImages()
     InitObject(m_history_texture);
 
     m_history_texture->SetPersistentRenderResourceEnabled(true);
-
-    PUSH_RENDER_COMMAND(
-        SetTemporalAAResultInGlobalDescriptorSet,
-        m_result_texture
-    );
 }
 
 void TemporalAA::CreateComputePipelines()
@@ -163,13 +116,13 @@ void TemporalAA::CreateComputePipelines()
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("InColorTexture"), g_engine->GetDeferredRenderer()->GetCombinedResultAttachment()->GetImageView());
+        descriptor_set->SetElement(NAME("InColorTexture"), m_input_image_view);
         descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
-        descriptor_set->SetElement(NAME("InVelocityTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(NAME("InDepthTexture"), g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+        descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
     
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
@@ -208,7 +161,7 @@ void TemporalAA::Render(FrameBase *frame)
         Vec2f   camera_near_far;
     } push_constants;
 
-    const Vec3u depth_texture_dimensions = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(Bucket::BUCKET_OPAQUE)
+    const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
         .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent();
 
     push_constants.dimensions = m_extent;

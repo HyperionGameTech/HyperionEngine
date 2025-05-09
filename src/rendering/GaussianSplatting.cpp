@@ -245,7 +245,7 @@ void GaussianSplattingInstance::Record(FrameBase *frame)
             m_update_splat_distances,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    NAME("Scene"),
+                    NAME("Global"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
@@ -341,7 +341,7 @@ void GaussianSplattingInstance::Record(FrameBase *frame)
                 m_sort_splats,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     {
-                        NAME("Scene"),
+                        NAME("Global"),
                         {
                             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
@@ -400,7 +400,7 @@ void GaussianSplattingInstance::Record(FrameBase *frame)
             m_update_splats,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    NAME("Scene"),
+                    NAME("Global"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
@@ -716,7 +716,7 @@ void GaussianSplatting::Render(FrameBase *frame)
         pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
-                NAME("Scene"),
+                NAME("Global"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }

@@ -33,8 +33,6 @@ public:
 
 private:
     void UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component);
-
-    void AddRenderSubsystemToEnvironment(EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component, World *world);
 };
 
 } // namespace hyperion

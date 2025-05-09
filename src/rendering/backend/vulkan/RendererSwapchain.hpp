@@ -50,8 +50,8 @@ public:
     HYP_API RendererResult PrepareFrame(bool &out_needs_recreate);
     HYP_API RendererResult PresentFrame(VulkanDeviceQueue *queue) const;
 
-    HYP_API RendererResult Create();
-    HYP_API RendererResult Destroy();
+    HYP_API virtual RendererResult Create() override;
+    HYP_API virtual RendererResult Destroy() override;
 
 private:
     RendererResult ChooseSurfaceFormat();

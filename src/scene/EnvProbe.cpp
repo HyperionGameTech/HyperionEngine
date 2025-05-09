@@ -1,10 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/EnvProbe.hpp>
+#include <scene/View.hpp>
 
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Shadows.hpp>
 
@@ -97,7 +99,7 @@ EnvProbe::EnvProbe(
     m_aabb(aabb),
     m_dimensions(dimensions),
     m_env_probe_type(env_probe_type),
-    m_camera_near(0.001f),
+    m_camera_near(0.05f),
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
     m_needs_render_counter(0),
@@ -149,6 +151,11 @@ void EnvProbe::Init()
         }
     }));
 
+    AssertThrow(m_parent_scene.IsValid());
+
+    m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
+
     if (!IsControlledByEnvGrid()) {
         m_camera = CreateObject<Camera>(
             90.0f,
@@ -160,15 +167,27 @@ void EnvProbe::Init()
         m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
 
         InitObject(m_camera);
-    }
 
-    AssertThrow(m_parent_scene.IsValid());
-
-    m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
-
-    if (m_camera.IsValid()) {
         m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
+
+        m_view = CreateObject<View>(ViewDesc {
+            .viewport   = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
+            .scene      = m_parent_scene,
+            .camera     = m_camera
+        });
+
+        InitObject(m_view);
+
+        m_view->GetRenderResource().GetRenderCollector().SetOverrideAttributes(RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
+                .blend_function     = BlendFunction::AlphaBlending(),
+                .cull_faces         = FaceCullMode::NONE
+            }
+        ));
+
+        m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
     }
 
     EnvProbeShaderData buffer_data { };
@@ -272,40 +291,44 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         if (OnlyCollectStaticEntities()) {
             Octree const *octree = &m_parent_scene->GetOctree();
-            octree->GetFittingOctant(m_aabb, octree);
-    
-            octant_hash_code = octree->GetOctantID().GetHashCode()
-                .Add(octree->GetEntryListHash<EntityTag::STATIC>())
-                .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
-        } else if (IsSkyProbe()) {
+
+            if (!IsSkyProbe()) {
+                octree->GetFittingOctant(m_aabb, octree);
+
+                if (!octree) {
+                    HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe #{} with AABB: {}", GetID().Value(), m_aabb);
+                }
+            }
+
+            if (octree) {
+                octant_hash_code = octree->GetOctantID().GetHashCode()
+                    .Add(octree->GetEntryListHash<EntityTag::STATIC>())
+                    .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+            }
+        } else {
             octant_hash_code = m_parent_scene->GetOctree().GetOctantID().GetHashCode()
-                .Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::LIGHT>());
+                .Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::NONE>());
         }
 
-        if (m_octant_hash_code == octant_hash_code && octant_hash_code != HashCode(0)) {
+        if (m_octant_hash_code == octant_hash_code && octant_hash_code.Value() != 0) {
             return;
         }
 
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
 
+        AssertThrow(m_view.IsValid());
+        m_view->Update(delta);
+
         RenderCollector::CollectionResult collection_result;
 
         if (OnlyCollectStaticEntities()) {
-            collection_result = m_parent_scene->CollectStaticEntities(
-                m_render_resource->GetRenderCollector(),
-                m_camera,
-                true // skip frustum culling
-            );
+            collection_result = m_view->CollectStaticEntities(true);
         } else {
             // // Calculate visibility of entities in the octree
             // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
 
-            collection_result = m_parent_scene->CollectEntities(
-                m_render_resource->GetRenderCollector(),
-                m_camera,
-                true // skip frustum culling (for now, until Camera can have multiple frustums for cubemaps)
-            );
+            collection_result = m_view->CollectEntities(true);
         }
 
         if (collection_result.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {

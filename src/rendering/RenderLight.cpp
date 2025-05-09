@@ -215,8 +215,8 @@ void LightRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMapRe
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO(Scene, CurrentLight, 1, sizeof(LightShaderData), true);
-HYP_DESCRIPTOR_SSBO(Scene, LightsBuffer, 1, sizeof(LightShaderData), false);
+HYP_DESCRIPTOR_SSBO(Global, CurrentLight, 1, sizeof(LightShaderData), true);
+HYP_DESCRIPTOR_SSBO(Global, LightsBuffer, 1, sizeof(LightShaderData), false);
 
 } // namespace renderer
 

@@ -109,10 +109,10 @@ RendererResult VulkanComputePipeline::Create()
     const Array<VkDescriptorSetLayout> used_layouts = GetPipelineVulkanDescriptorSetLayouts(*this);
     const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-#if 0
+#if 1
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
 
-    for (const DescriptorSetRef<Platform::VULKAN> &descriptor_set : m_descriptor_table->GetSets()[0]) {
+    for (const DescriptorSetRef &descriptor_set : m_descriptor_table->GetSets()[0]) {
         HYP_LOG(RenderingBackend, Debug, "\tDescriptor set layout: {} ({})",
             descriptor_set->GetLayout().GetName(), descriptor_set->GetLayout().GetDeclaration().set_index);
 

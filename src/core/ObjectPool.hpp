@@ -52,8 +52,6 @@ public:
     virtual void IncRefWeak(HypObjectHeader *) = 0;
     virtual void DecRefStrong(HypObjectHeader *) = 0;
     virtual void DecRefWeak(HypObjectHeader *) = 0;
-    virtual uint32 GetRefCountStrong(HypObjectHeader *) = 0;
-    virtual uint32 GetRefCountWeak(HypObjectHeader *) = 0;
     virtual void *Release(HypObjectHeader *) = 0;
 
     virtual void *GetObjectPointer(HypObjectHeader *) = 0;
@@ -341,16 +339,6 @@ public:
     {
         // Have to call the derived implementation or it will recursive infinitely
         static_cast<HypObjectMemory *>(ptr)->HypObjectMemory::DecRefWeak();
-    }
-
-    virtual uint32 GetRefCountStrong(HypObjectHeader *ptr) override
-    {
-        return static_cast<HypObjectMemory *>(ptr)->GetRefCountStrong();
-    }
-
-    virtual uint32 GetRefCountWeak(HypObjectHeader *ptr) override
-    {
-        return static_cast<HypObjectMemory *>(ptr)->GetRefCountWeak();
     }
 
     virtual void *Release(HypObjectHeader *ptr) override

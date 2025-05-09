@@ -388,7 +388,7 @@ struct WeakHandle final
             return Handle<T>();
         }
 
-        return ptr->GetRefCountStrong() != 0
+        return ptr->ref_count_strong.Get(MemoryOrder::ACQUIRE) != 0
             ? Handle<T>(ptr)
             : Handle<T>();
     }
@@ -500,7 +500,7 @@ public:
           type_id(TypeID::ForType<T>())
     {
         if (IsValid()) {
-            ptr->IncRefStrong();
+            this->ptr->IncRefStrong();
         }
     }
 

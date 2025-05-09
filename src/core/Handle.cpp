@@ -84,10 +84,8 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
         return *this;
     }
 
-    if (ptr != other.ptr) {
-        if (IsValid()) {
-            ptr->DecRefStrong();
-        }
+    if (IsValid()) {
+        ptr->DecRefStrong();
     }
 
     ptr = other.ptr;

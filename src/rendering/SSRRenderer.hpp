@@ -17,6 +17,8 @@
 namespace hyperion {
 
 class Engine;
+class GBuffer;
+class ViewRenderResource;
 
 HYP_STRUCT(ConfigName="app", ConfigPath="rendering.ssr")
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
@@ -47,8 +49,6 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 
     virtual ~SSRRendererConfig() override = default;
 
-    static HYP_API Vec2u GetGBufferResolution();
-
     bool Validate() const
     {
         return extent.x * extent.y != 0
@@ -58,7 +58,7 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 
     void PostLoadCallback()
     {
-        extent = GetGBufferResolution();
+        extent = Vec2u { 1024, 1024 };
 
         switch (quality) {
         case 0:
@@ -76,7 +76,12 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 class SSRRenderer
 {
 public:
-    SSRRenderer(SSRRendererConfig &&config);
+    SSRRenderer(
+        SSRRendererConfig &&config,
+        GBuffer *gbuffer,
+        const ImageViewRef &mip_chain_image_view,
+        const ImageViewRef &deferred_result_image_view
+    );
     ~SSRRenderer();
 
     HYP_FORCE_INLINE const Handle<Texture> &GetUVsTexture() const
@@ -91,9 +96,8 @@ public:
         { return m_is_rendered; }
 
     void Create();
-    void Destroy();
 
-    void Render(FrameBase *frame);
+    void Render(FrameBase *frame, ViewRenderResource *view);
 
 private:
     ShaderProperties GetShaderProperties() const;
@@ -101,6 +105,13 @@ private:
     void CreateUniformBuffers();
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
+
+    SSRRendererConfig               m_config;
+
+    GBuffer                         *m_gbuffer;
+
+    ImageViewRef                    m_mip_chain_image_view;
+    ImageViewRef                    m_deferred_result_image_view;
 
     Handle<Texture>                 m_uvs_texture;
     Handle<Texture>                 m_sampled_result_texture;
@@ -112,7 +123,7 @@ private:
 
     UniquePtr<TemporalBlending>     m_temporal_blending;
 
-    SSRRendererConfig               m_config;
+    DelegateHandler                 m_on_gbuffer_resolution_changed;
 
     bool                            m_is_rendered;
 };

@@ -102,7 +102,9 @@ namespace Hyperion
                 if (HypClass.IsReferenceCounted)
                 {
 #if DEBUG
-                    Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) > 0, "Strong reference must be > 0 before destruction");
+                    uint refCount = HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress);
+                    Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress + ", refCount: " + refCount);
+                    Assert.Throw(refCount >= 1, "Strong reference must >= 1 before destruction");
 #endif
 
                     HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
@@ -117,7 +119,7 @@ namespace Hyperion
                 if (HypClass.IsReferenceCounted)
                 {
 #if DEBUG
-                    Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) > 0, "Strong reference must be > 0 before destruction");
+                    Assert.Throw(HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress) == 1, "Strong reference must be 1 before destruction");
 #endif
 
                     HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
@@ -206,6 +208,24 @@ namespace Hyperion
             }
 
             return new HypMethod(methodPtr);
+        }
+
+        public uint RefCount
+        {
+            get
+            {
+                if (_hypClassPtr == IntPtr.Zero)
+                {
+                    throw new Exception("HypClass pointer is null");
+                }
+
+                if (_nativeAddress == IntPtr.Zero)
+                {
+                    throw new Exception("Native address is null");
+                }
+
+                return HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress);
+            }
         }
 
         public override string ToString()

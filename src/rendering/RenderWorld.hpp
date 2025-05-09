@@ -33,6 +33,9 @@ class CameraRenderResource;
 class SceneRenderResource;
 class ShadowMapRenderResource;
 struct ShadowMapAtlasElement;
+class FinalPass;
+class ViewRenderResource;
+struct ViewInfo;
 
 enum class ShadowMapType : uint32;
 enum class ShadowMapFilterMode : uint32;
@@ -108,23 +111,24 @@ public:
     HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
 
-    HYP_FORCE_INLINE const Array<TResourceHandle<SceneRenderResource>> &GetBoundScenes() const
-        { return m_bound_scenes; }
-
     HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
         { return m_environment; }
 
     HYP_FORCE_INLINE ShadowMapManager *GetShadowMapManager() const
         { return m_shadow_map_manager.Get(); }
 
-    void AddScene(const Handle<Scene> &scene);
-    Task<bool> RemoveScene(const WeakHandle<Scene> &scene_weak);
+    HYP_FORCE_INLINE const Array<TResourceHandle<ViewRenderResource>> &GetViews() const
+        { return m_view_render_resource_handles; }
+
+    void AddView(TResourceHandle<ViewRenderResource> &&view_render_resource_handle);
+    void RemoveView(ViewRenderResource *view_render_resource);
+
+    Task<void> RemoveViewsForScene(const WeakHandle<Scene> &scene_weak);
 
     const EngineRenderStats &GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats &render_stats);
 
-    void PreRender(renderer::FrameBase *frame);
-    void PostRender(renderer::FrameBase *frame);
+    void PreRender(FrameBase *frame);
     void Render(renderer::FrameBase *frame);
 
 protected:
@@ -138,7 +142,7 @@ private:
     void CreateShadowMapsTextureArray();
 
     World                                                       *m_world;
-    Array<TResourceHandle<SceneRenderResource>>                 m_bound_scenes;
+    Array<TResourceHandle<ViewRenderResource>>                  m_view_render_resource_handles;
     Handle<RenderEnvironment>                                   m_environment;
 
     UniquePtr<ShadowMapManager>                                 m_shadow_map_manager;

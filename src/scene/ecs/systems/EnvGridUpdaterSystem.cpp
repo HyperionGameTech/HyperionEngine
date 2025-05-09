@@ -7,12 +7,17 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+#include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderEnvGrid.hpp>
+#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererShader.hpp>
 
@@ -35,6 +40,43 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvGrid);
 
+#pragma region EnvGridRenderSubsystem
+
+class EnvGridRenderSubsystem : public RenderSubsystem
+{
+public:
+    EnvGridRenderSubsystem(Name name, const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle)
+        : RenderSubsystem(name),
+          m_env_grid_render_resource_handle(env_grid_render_resource_handle)
+    {
+    }
+
+    virtual ~EnvGridRenderSubsystem() override = default;
+
+    virtual void Init() override
+    {
+        // @TODO refactor
+        g_engine->GetRenderState()->BindEnvGrid(TResourceHandle<EnvGridRenderResource>(m_env_grid_render_resource_handle));
+    }
+
+    virtual void OnRemoved() override
+    {
+        g_engine->GetRenderState()->UnbindEnvGrid();
+    }
+
+    virtual void OnRender(FrameBase *frame) override
+    {
+        m_env_grid_render_resource_handle->Render(frame);
+    }
+
+private:
+    TResourceHandle<EnvGridRenderResource>  m_env_grid_render_resource_handle;
+};
+
+#pragma endregion EnvGridRenderSubsystem
+
+#pragma region EnvGridUpdaterSystem
+
 EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
@@ -43,19 +85,23 @@ EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager &entity_manager)
         Threads::AssertOnThread(g_game_thread);
 
         // Trigger removal and addition of render subsystems
-        for (auto [entity_id, env_grid_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
-            if (env_grid_component.env_grid) {
-                env_grid_component.env_grid->RemoveFromEnvironment();
-            }
 
-            if (!new_world) {
-                env_grid_component.env_grid.Reset();
+        for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
+            if (env_grid_component.env_grid_render_subsystem) {
+                env_grid_component.env_grid_render_subsystem->RemoveFromEnvironment();
 
-                continue;
-            }
+                if (new_world && GetScene()->IsForegroundScene()) {
+                    env_grid_component.env_grid_render_subsystem = new_world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
+                        Name::Unique("EnvGridRenderSubsystem"),
+                        env_grid_component.env_grid_render_resource_handle
+                    );
 
-            if (GetScene()->IsForegroundScene()) {
-                AddRenderSubsystemToEnvironment(env_grid_component, bounding_box_component, new_world);
+                    continue;
+                }
+
+                env_grid_component.env_grid_render_subsystem.Reset();
+            } else if (!previous_world) {
+                OnEntityAdded(Handle<Entity> { entity_id });
             }
         }
     }));
@@ -77,7 +123,31 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     }
 
     if (GetScene()->IsForegroundScene()) {
-        AddRenderSubsystemToEnvironment(env_grid_component, bounding_box_component, GetWorld());
+        EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
+
+        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool()
+            || g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString().ToLower() == "voxel")
+        {
+            flags |= EnvGridFlags::USE_VOXEL_GRID;
+        }
+
+        env_grid_component.env_grid = CreateObject<EnvGrid>(
+            GetScene()->HandleFromThis(),
+            bounding_box_component.world_aabb,
+            EnvGridOptions {
+                .type       = env_grid_component.env_grid_type,
+                .density    = env_grid_component.grid_size,
+                .flags      = flags
+            }
+        );
+
+        InitObject(env_grid_component.env_grid);
+        
+        env_grid_component.env_grid_render_resource_handle = TResourceHandle<EnvGridRenderResource>(env_grid_component.env_grid->GetRenderResource());
+        env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
+            Name::Unique("EnvGridRenderSubsystem"),
+            env_grid_component.env_grid_render_resource_handle
+        );
     }
 }
 
@@ -87,9 +157,11 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     EnvGridComponent &env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
-    if (env_grid_component.env_grid) {
-        env_grid_component.env_grid->RemoveFromEnvironment();
-        env_grid_component.env_grid.Reset();
+    env_grid_component.env_grid_render_resource_handle.Reset();
+
+    if (env_grid_component.env_grid_render_subsystem) {
+        env_grid_component.env_grid_render_subsystem->RemoveFromEnvironment();
+        env_grid_component.env_grid_render_subsystem.Reset();
     }
 }
 
@@ -146,7 +218,7 @@ void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
                 continue;
             }
 
-            env_grid_component.env_grid->SetCameraData(bounding_box_component.world_aabb, transform_component.transform.GetTranslation());
+            env_grid_component.env_grid->Translate(bounding_box_component.world_aabb, transform_component.transform.GetTranslation());
 
             updated_entity_ids.Insert(entity_id);
         }
@@ -239,63 +311,9 @@ void EnvGridUpdaterSystem::UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridCom
 {
     HYP_SCOPE;
 
-    env_grid_component.env_grid->GetCamera()->Update(delta);
-
-    GetScene()->CollectStaticEntities(
-        env_grid_component.env_grid->GetRenderCollector(),
-        env_grid_component.env_grid->GetCamera(),
-        true // skip frustum culling, until Camera supports multiple frustums.
-    );
-
-    for (uint32 index = 0; index < env_grid_component.env_grid->GetEnvProbeCollection().num_probes; index++) {
-        // Don't worry about using the indirect index
-        const Handle<EnvProbe> &probe = env_grid_component.env_grid->GetEnvProbeCollection().GetEnvProbeDirect(index);
-        AssertThrow(probe.IsValid());
-
-        probe->SetNeedsRender(true);
-        probe->SetNeedsUpdate(true);
-
-        probe->Update(delta);
-    }
+    env_grid_component.env_grid->Update(delta);
 }
 
-void EnvGridUpdaterSystem::AddRenderSubsystemToEnvironment(EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component, World *world)
-{
-    AssertThrow(world != nullptr);
-    AssertThrow(world->IsReady());
-
-    if (env_grid_component.env_grid) {
-        world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(env_grid_component.env_grid);
-    } else {
-        EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
-
-        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool()
-            || g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString().ToLower() == "voxel")
-        {
-            flags |= EnvGridFlags::USE_VOXEL_GRID;
-        }
-        
-        BoundingBox world_aabb = bounding_box_component.world_aabb;
-
-        if (!world_aabb.IsFinite()) {
-            world_aabb = BoundingBox::Empty();
-        }
-
-        if (!world_aabb.IsValid()) {
-            return;
-        }
-
-        env_grid_component.env_grid = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGrid>(
-            Name::Unique("env_grid_renderer"),
-            GetScene()->HandleFromThis(),
-            EnvGridOptions {
-                env_grid_component.env_grid_type,
-                world_aabb,
-                env_grid_component.grid_size,
-                flags
-            }
-        );
-    }
-}
+#pragma endregion EnvGridUpdaterSystem
 
 } // namespace hyperion

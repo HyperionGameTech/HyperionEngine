@@ -297,11 +297,9 @@ class RefCountedPtrBase
 
 public:
     using RefCountDataType = detail::RefCountData<CountType>;
-
-protected:
+    
     static const RefCountDataType empty_ref_count_data;
 
-public:
     RefCountedPtrBase()
         : m_ref(const_cast<RefCountDataType *>(&empty_ref_count_data)),
           m_ptr(nullptr)

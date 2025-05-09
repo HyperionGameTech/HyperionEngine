@@ -107,6 +107,8 @@ public:
         if (m_attributes["serialize"] || m_attributes["xmlattribute"]) {
             m_serialize_proc = [member](const HypData &target_data) -> fbom::FBOMData
             {
+                fbom::FBOMData out;
+
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>) {
                     HYP_FAIL("Cannot serialize non-copy-assignable field");
                 } else {
@@ -116,14 +118,12 @@ public:
                     AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
                         TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
 
-                    fbom::FBOMData out;
-
                     if (fbom::FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(static_cast<const ThisType *>(target_ref.GetPointer())->*member, out)) {
                         HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                     }
-
-                    return out;
                 }
+
+                return out;
             };
 
             m_deserialize_proc = [member](fbom::FBOMLoadContext &context, HypData &target_data, const fbom::FBOMData &data) -> Result

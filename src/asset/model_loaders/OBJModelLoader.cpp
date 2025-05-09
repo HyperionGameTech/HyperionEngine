@@ -431,6 +431,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         );
 
         NodeProxy node = top->AddChild(NodeProxy(MakeRefCountedPtr<Node>(obj_mesh.name)));
+        node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetEntity(entity);
         node->SetLocalTranslation(mesh_aabb_center);
     }

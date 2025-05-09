@@ -3,6 +3,7 @@
 #ifndef HYPERION_DEFERRED_HPP
 #define HYPERION_DEFERRED_HPP
 
+#include <rendering/Renderer.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
@@ -26,6 +27,7 @@ class Texture;
 class DepthPyramidRenderer;
 class SSRRenderer;
 class SSGI;
+class ShaderProperties;
 
 using DeferredFlagBits = uint32;
 
@@ -46,18 +48,20 @@ enum class DeferredPassMode
     DIRECT_LIGHTING
 };
 
+void GetDeferredShaderProperties(ShaderProperties &out_shader_properties);
+
 class DeferredPass final : public FullScreenPass
 {
     friend class DeferredRenderer;
 
 public:
-    DeferredPass(DeferredPassMode mode);
+    DeferredPass(DeferredPassMode mode, GBuffer *gbuffer);
     DeferredPass(const DeferredPass &other)             = delete;
     DeferredPass &operator=(const DeferredPass &other)  = delete;
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase *frame) override;
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
 
 protected:
     void CreateShader();
@@ -67,8 +71,6 @@ protected:
     virtual void Resize_Internal(Vec2u new_size) override;
 
 private:
-    void AddToGlobalDescriptorSet();
-
     const DeferredPassMode                                  m_mode;
 
     FixedArray<ShaderRef, uint32(LightType::MAX)>           m_direct_light_shaders;
@@ -97,14 +99,14 @@ enum class ApplyEnvGridMode : uint32
 class EnvGridPass final : public FullScreenPass
 {
 public:
-    EnvGridPass(EnvGridPassMode mode);
+    EnvGridPass(EnvGridPassMode mode, GBuffer *gbuffer);
     EnvGridPass(const EnvGridPass &other)               = delete;
     EnvGridPass &operator=(const EnvGridPass &other)    = delete;
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase *frame) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:
@@ -116,8 +118,6 @@ private:
 
     virtual bool ShouldRenderHalfRes() const override
         { return false; }
-
-    void AddToGlobalDescriptorSet();
     
     virtual void Resize_Internal(Vec2u new_size) override;
 
@@ -137,14 +137,25 @@ class ReflectionsPass final : public FullScreenPass
     };
 
 public:
-    ReflectionsPass();
+    ReflectionsPass(GBuffer *gbuffer, const ImageViewRef &mip_chain_image_view, const ImageViewRef &deferred_result_image_view);
     ReflectionsPass(const ReflectionsPass &other)               = delete;
     ReflectionsPass &operator=(const ReflectionsPass &other)    = delete;
     virtual ~ReflectionsPass() override;
+
+    HYP_FORCE_INLINE const ImageViewRef &GetMipChainImageView() const
+        { return m_mip_chain_image_view; }
+
+    HYP_FORCE_INLINE const ImageViewRef &GetDeferredResultImageView() const
+        { return m_deferred_result_image_view; }
+
+    HYP_FORCE_INLINE SSRRenderer *GetSSRRenderer() const
+        { return m_ssr_renderer.Get(); }
+
+    bool ShouldRenderSSR() const;
     
     virtual void Create() override;
-    virtual void Render(FrameBase *frame) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 private:
@@ -157,13 +168,12 @@ private:
     virtual void CreatePipeline() override;
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
 
-    bool ShouldRenderSSR() const;
-
     void CreateSSRRenderer();
 
-    void AddToGlobalDescriptorSet();
-
     virtual void Resize_Internal(Vec2u new_size) override;
+
+    ImageViewRef                                                    m_mip_chain_image_view;
+    ImageViewRef                                                    m_deferred_result_image_view;
 
     FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX>  m_render_groups;
 
@@ -172,95 +182,6 @@ private:
     UniquePtr<FullScreenPass>                                       m_render_ssr_to_screen_pass;
 
     bool                                                            m_is_first_frame;
-};
-
-class DeferredRenderer
-{
-public:
-    DeferredRenderer(SwapchainBase *swapchain);
-    DeferredRenderer(const DeferredRenderer &other)             = delete;
-    DeferredRenderer &operator=(const DeferredRenderer &other)  = delete;
-    ~DeferredRenderer();
-
-    HYP_FORCE_INLINE GBuffer *GetGBuffer() const
-        { return m_gbuffer.Get(); }
-
-    HYP_FORCE_INLINE ReflectionsPass *GetReflectionsPass() const
-        { return m_reflections_pass.Get(); }
-
-    HYP_FORCE_INLINE FullScreenPass *GetCombinePass() const
-        { return m_combine_pass.Get(); }
-
-    HYP_FORCE_INLINE PostProcessing &GetPostProcessing()
-        { return m_post_processing; }
-
-    HYP_FORCE_INLINE const PostProcessing &GetPostProcessing() const
-        { return m_post_processing; }
-
-    HYP_FORCE_INLINE DepthPyramidRenderer *GetDepthPyramidRenderer() const
-        { return m_depth_pyramid_renderer.Get(); }
-
-    HYP_FORCE_INLINE AttachmentBase *GetCombinedResultAttachment() const
-        { return m_combine_pass->GetAttachment(0); }
-
-    HYP_FORCE_INLINE const Handle<Texture> &GetMipChain() const
-        { return m_mip_chain; }
-
-    void Create();
-    void Destroy();
-    
-    void Render(FrameBase *frame, RenderEnvironment *environment);
-
-    void Resize(Vec2u new_size);
-
-private:
-    void ApplyCameraJitter();
-
-    void CreateBlueNoiseBuffer();
-
-    void CreateSphereSamplesBuffer();
-
-    void CreateCombinePass();
-    void CreateDescriptorSets();
-
-    void CollectDrawCalls(FrameBase *frame);
-
-    void RenderSkybox(FrameBase *frame);
-    void RenderOpaqueObjects(FrameBase *frame);
-    void RenderTranslucentObjects(FrameBase *frame);
-
-    void GenerateMipChain(FrameBase *frame, const ImageRef &image);
-
-    UniquePtr<GBuffer>                                  m_gbuffer;
-
-    UniquePtr<DeferredPass>                             m_indirect_pass;
-    UniquePtr<DeferredPass>                             m_direct_pass;
-
-    UniquePtr<EnvGridPass>                              m_env_grid_radiance_pass;
-    UniquePtr<EnvGridPass>                              m_env_grid_irradiance_pass;
-
-    UniquePtr<ReflectionsPass>                          m_reflections_pass;
-
-    PostProcessing                                      m_post_processing;
-    UniquePtr<HBAO>                                     m_hbao;
-    UniquePtr<TemporalAA>                               m_temporal_aa;
-    UniquePtr<SSGI>                                     m_ssgi;
-
-    FramebufferRef                                      m_opaque_fbo;
-    FramebufferRef                                      m_translucent_fbo;
-
-    UniquePtr<FullScreenPass>                           m_combine_pass;
-
-    UniquePtr<DepthPyramidRenderer>                     m_depth_pyramid_renderer;
-
-    UniquePtr<DOFBlur>                                  m_dof_blur;
-
-    FixedArray<Handle<Texture>, max_frames_in_flight>   m_results;
-    Handle<Texture>                                     m_mip_chain;
-    
-    CullData                                            m_cull_data;
-
-    bool                                                m_is_initialized;
 };
 
 } // namespace hyperion

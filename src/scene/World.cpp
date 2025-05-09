@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/World.hpp>
+#include <scene/View.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorSubsystem.hpp>
@@ -25,6 +26,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderView.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -60,6 +62,16 @@ World::~World()
 
         m_scenes.Clear();
 
+        for (const Handle<View> &view : m_views) {
+            if (!view.IsValid()) {
+                continue;
+            }
+
+            m_render_resource->RemoveView(&view->GetRenderResource());
+        }
+
+        m_views.Clear();
+
         for (auto &it : m_subsystems) {
             it.second->Shutdown();
         }
@@ -85,6 +97,16 @@ void World::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
         if (m_render_resource != nullptr) {
+            for (const Handle<View> &view : m_views) {
+                if (!view.IsValid()) {
+                    continue;
+                }
+
+                m_render_resource->RemoveView(&view->GetRenderResource());
+            }
+
+            m_views.Clear();
+            
             m_render_resource->Unclaim();
 
             FreeResource(m_render_resource);
@@ -128,14 +150,11 @@ void World::Init()
         }
     }
 
-    // Add the now initialized scenes to the render resources
-    // Note: call before Claim() so execution can happen inline and doesn't defer to the render thread.
-    m_render_resource->Execute([this]()
-    {
-        for (const Handle<Scene> &scene : m_scenes) {
-            m_render_resource->AddScene(scene);
-        }
-    }, /* force_render_thread */ false);
+    for (const Handle<View> &view : m_views) {
+        InitObject(view);
+
+        m_render_resource->AddView(TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+    }
 
     m_render_resource->Claim();
     
@@ -224,8 +243,8 @@ void World::Update(GameCounter::TickUnit delta)
     }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
-    Array<Task<void>> collect_entities_tasks;
-    collect_entities_tasks.Reserve(m_scenes.Size());
+    Array<Task<void>> update_views_tasks;
+    update_views_tasks.Reserve(m_views.Size());
 #endif
 
     // Ensure Scene::Update() and EntityManager::FlushCommandQueue() or called on all scenes before we kickoff async updates for their entity managers.
@@ -242,7 +261,7 @@ void World::Update(GameCounter::TickUnit delta)
     }
 
     for (uint32 index = 0; index < m_scenes.Size(); index++) {
-        HYP_NAMED_SCOPE("Scene entity collection");
+        HYP_NAMED_SCOPE("Scene render updates");
 
         const Handle<Scene> &scene = m_scenes[index];
         AssertThrow(scene.IsValid());
@@ -251,32 +270,30 @@ void World::Update(GameCounter::TickUnit delta)
         AssertThrow(scene->GetWorld() == this);
 
         scene->EnqueueRenderUpdates();
+    }
 
-        if (!scene->IsForegroundScene() || (scene->GetFlags() & SceneFlags::UI)) {
+    for (uint32 index = 0; index < m_views.Size(); index++) {
+        HYP_NAMED_SCOPE("Per-view entity collection");
+
+        const Handle<View> &view = m_views[index];
+        AssertThrow(view.IsValid());
+
+        if (!view->GetScene()->IsForegroundScene() || (view->GetScene()->GetFlags() & SceneFlags::UI)) {
             continue;
         }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
-        collect_entities_tasks.PushBack(TaskSystem::GetInstance().Enqueue([this, index]
+        update_views_tasks.PushBack(TaskSystem::GetInstance().Enqueue([view = m_views[index].Get(), delta]
         {
-            const Handle<Scene> &scene = m_scenes[index];
-            AssertThrow(scene.IsValid());
-
-            // sanity check
-            AssertThrow(scene->GetWorld() == this);
-
-            scene->CollectEntities(scene->GetRenderCollector(), scene->GetPrimaryCamera());
+            view->Update(delta);
         }));
 #else
-        // sanity check
-        AssertThrow(scene->GetWorld() == this);
-
-        scene->CollectEntities(scene->GetRenderCollector(), scene->GetPrimaryCamera());
+        view->Update();
 #endif
     }
 
 #ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
-    for (Task<void> &task : collect_entities_tasks) {
+    for (Task<void> &task : update_views_tasks) {
         task.Await();
     }
 #endif
@@ -416,8 +433,6 @@ void World::AddScene(const Handle<Scene> &scene)
         for (auto &it : m_subsystems) {
             it.second->OnSceneAttached(scene);
         }
-
-        m_render_resource->AddScene(scene);
     }
 
     m_scenes.PushBack(scene);
@@ -446,8 +461,9 @@ bool World::RemoveScene(const Handle<Scene> &scene)
                 it.second->OnSceneDetached(scene);
             }
 
-            Task<bool> task = m_render_resource->RemoveScene(scene.ToWeak());
-            return task.Await();
+            Task<void> task = m_render_resource->RemoveViewsForScene(scene.ToWeak());
+
+            task.Await();
         }
     }
 
@@ -483,6 +499,42 @@ const Handle<Scene> &World::GetSceneByName(Name name) const
 const Handle<Scene> &World::GetDetachedScene(const ThreadID &thread_id)
 {
     return m_detached_scenes.GetDetachedScene(thread_id);
+}
+
+void World::AddView(const Handle<View> &view)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (view.IsValid()) {
+        m_views.PushBack(view);
+
+        if (IsInitCalled()) {
+            InitObject(view);
+
+            m_render_resource->AddView(TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        }
+    }
+}
+
+void World::RemoveView(const Handle<View> &view)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (!view.IsValid()) {
+        return;
+    }
+
+    typename Array<Handle<View>>::Iterator it = m_views.Find(view);
+
+    if (it != m_views.End()) {
+        m_views.Erase(it);
+    }
+
+    if (IsInitCalled() && view->IsReady()) {
+        m_render_resource->RemoveView(&view->GetRenderResource());
+    }
 }
 
 EngineRenderStats *World::GetRenderStats() const

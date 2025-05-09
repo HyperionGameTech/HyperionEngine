@@ -18,6 +18,7 @@
 namespace hyperion {
 
 class Engine;
+class GBuffer;
 
 struct alignas(16) PostProcessingUniforms
 {
@@ -38,19 +39,22 @@ class HYP_API PostFXPass final : public FullScreenPass
 {
 public:
     PostFXPass(
-        InternalFormat image_format = InternalFormat::RGBA16F
+        InternalFormat image_format,
+        GBuffer *gbuffer
     );
 
     PostFXPass(
         const ShaderRef &shader,
-        InternalFormat image_format = InternalFormat::RGBA16F
+        InternalFormat image_format,
+        GBuffer *gbuffer
     );
 
     PostFXPass(
         const ShaderRef &shader,
         PostProcessingStage stage,
         uint32 effect_index,
-        InternalFormat image_format = InternalFormat::RGBA16F
+        InternalFormat image_format,
+        GBuffer *gbuffer
     );
 
     PostFXPass(const PostFXPass &) = delete;
@@ -77,7 +81,8 @@ public:
     PostProcessingEffect(
         PostProcessingStage stage,
         uint32 effect_index,
-        InternalFormat image_format = InternalFormat::RGBA16F
+        InternalFormat image_format,
+        GBuffer *gbuffer
     );
     PostProcessingEffect(const PostProcessingEffect &other) = delete;
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;
@@ -109,7 +114,7 @@ public:
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;
 
-    virtual void RenderEffect(FrameBase *frame, uint32 slot);
+    virtual void RenderEffect(FrameBase *frame, ViewRenderResource *view, uint32 slot);
 
 protected:
     virtual ShaderRef CreateShader() = 0;
@@ -136,6 +141,9 @@ public:
     PostProcessing(const PostProcessing &) = delete;
     PostProcessing &operator=(const PostProcessing &) = delete;
     ~PostProcessing();
+
+    HYP_FORCE_INLINE const GPUBufferRef &GetUniformBuffer() const
+        { return m_uniform_buffer; }
 
     /*! \brief Add an effect to the stack to be processed BEFORE deferred rendering happens.
     * Note, cannot add new filters after pipeline construction, currently
@@ -172,8 +180,8 @@ public:
     void Create();
     void Destroy();
     void PerformUpdates();
-    void RenderPre(FrameBase *frame) const;
-    void RenderPost(FrameBase *frame) const;
+    void RenderPre(FrameBase *frame, ViewRenderResource *view) const;
+    void RenderPost(FrameBase *frame, ViewRenderResource *view) const;
 
 private:
     PostProcessingUniforms GetUniforms() const;

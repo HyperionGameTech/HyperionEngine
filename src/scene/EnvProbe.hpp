@@ -23,6 +23,7 @@ struct RENDER_COMMAND(CreateCubemapBuffers);
 struct RENDER_COMMAND(DestroyCubemapRenderPass);
 
 class Texture;
+class View;
 
 enum class EnvProbeFlags : uint32
 {
@@ -180,7 +181,7 @@ public:
     
 private:
     bool OnlyCollectStaticEntities() const
-        { return IsReflectionProbe() || IsAmbientProbe(); }
+        { return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe(); }
 
     void Invalidate()
     {
@@ -188,6 +189,7 @@ private:
     }
 
     Handle<Scene>           m_parent_scene;
+    Handle<View>            m_view;
 
     HYP_FIELD(Property="AABB", Serialize=true)
     BoundingBox             m_aabb;

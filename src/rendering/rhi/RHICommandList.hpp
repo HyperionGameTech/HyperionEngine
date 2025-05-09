@@ -6,6 +6,7 @@
 #include <core/memory/MemoryPool.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
+#include <core/utilities/Variant.hpp>
 
 #include <core/containers/TypeMap.hpp>
 
@@ -291,39 +292,46 @@ private:
 class BindDescriptorSet final : public RHICommandBase
 {
 public:
-    BindDescriptorSet(const DescriptorSetRef &descriptor_set, const GraphicsPipelineRef &graphics_pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index)
+    BindDescriptorSet(const DescriptorSetRef &descriptor_set, const GraphicsPipelineRef &pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index)
         : m_descriptor_set(descriptor_set),
-          m_graphics_pipeline(graphics_pipeline),
+          m_pipeline(pipeline),
           m_offsets(offsets),
           m_bind_index(bind_index)
     {
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
 
-    BindDescriptorSet(const DescriptorSetRef &descriptor_set, const ComputePipelineRef &compute_pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index)
+    BindDescriptorSet(const DescriptorSetRef &descriptor_set, const ComputePipelineRef &pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index)
         : m_descriptor_set(descriptor_set),
-          m_compute_pipeline(compute_pipeline),
+          m_pipeline(pipeline),
           m_offsets(offsets),
           m_bind_index(bind_index)
     {
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
+    }
+
+    BindDescriptorSet(const DescriptorSetRef &descriptor_set, const RaytracingPipelineRef &pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index)
+        : m_descriptor_set(descriptor_set),
+          m_pipeline(pipeline),
+          m_offsets(offsets),
+          m_bind_index(bind_index)
+    {
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
 
     virtual void Execute(const CommandBufferRef &cmd) override
     {
-        if (m_graphics_pipeline) {
-            m_descriptor_set->Bind(cmd, m_graphics_pipeline, m_offsets, m_bind_index);
-        } else if (m_compute_pipeline) {
-            m_descriptor_set->Bind(cmd, m_compute_pipeline, m_offsets, m_bind_index);
-        } else {
-            AssertThrowMsg(false, "No pipeline bound to descriptor set");
-        }
+        m_pipeline.Visit([this, &cmd](const auto &pipeline)
+        {
+            m_descriptor_set->Bind(cmd, pipeline, m_offsets, m_bind_index);
+        });
     }
 
 private:
-    DescriptorSetRef        m_descriptor_set;
-    GraphicsPipelineRef     m_graphics_pipeline;
-    ComputePipelineRef      m_compute_pipeline;
-    ArrayMap<Name, uint32>  m_offsets;
-    uint32                  m_bind_index;
+    DescriptorSetRef                                                        m_descriptor_set;
+    Variant<GraphicsPipelineRef, ComputePipelineRef, RaytracingPipelineRef> m_pipeline;
+    ArrayMap<Name, uint32>                                                  m_offsets;
+    uint32                                                                  m_bind_index;
 };
 
 

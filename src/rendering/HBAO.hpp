@@ -40,15 +40,15 @@ struct HBAOConfig : public ConfigBase<HBAOConfig>
 class HBAO final : public FullScreenPass
 {
 public:
-    HBAO(HBAOConfig &&config);
+    HBAO(HBAOConfig &&config, GBuffer *gbuffer);
     HBAO(const HBAO &other)             = delete;
     HBAO &operator=(const HBAO &other)  = delete;
     virtual ~HBAO() override;
 
     virtual void Create() override;
 
-    virtual void Render(FrameBase *frame) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 protected:

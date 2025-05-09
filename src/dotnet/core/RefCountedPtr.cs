@@ -5,6 +5,9 @@ namespace Hyperion
 {
     public static class RefCountedPtrNativeBindings
     {
+        [DllImport("hyperion", EntryPoint = "RefCountedPtr_GetNullCtrlBlock")]
+        internal static extern IntPtr RefCountedPtr_GetNullCtrlBlock();
+
         [DllImport("hyperion", EntryPoint = "RefCountedPtr_IncRef")]
         internal static extern void RefCountedPtr_IncRef(IntPtr ctrlBlock, IntPtr address);
 
@@ -27,10 +30,15 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct RefCountedPtr
     {
-        public static readonly RefCountedPtr Null = new RefCountedPtr(IntPtr.Zero, IntPtr.Zero);
+        internal static readonly IntPtr NullCtrlBlock = RefCountedPtrNativeBindings.RefCountedPtr_GetNullCtrlBlock();
+        public static readonly RefCountedPtr Null = new RefCountedPtr();
 
-        private IntPtr ctrlBlock;
-        private IntPtr ptr;
+        private IntPtr ptr = IntPtr.Zero;
+        private IntPtr ctrlBlock = NullCtrlBlock;
+
+        public RefCountedPtr()
+        {
+        }
 
         public RefCountedPtr(IntPtr ctrlBlock, IntPtr ptr)
         {
@@ -42,7 +50,15 @@ namespace Hyperion
         {
             get
             {
-                return ctrlBlock != IntPtr.Zero;
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public bool IsNull
+        {
+            get
+            {
+                return ptr == IntPtr.Zero;
             }
         }
 
@@ -60,15 +76,13 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct RefCountedPtr<T>
     {
-        public static readonly RefCountedPtr<T> Null = new RefCountedPtr<T>(IntPtr.Zero, IntPtr.Zero);
+        public static readonly RefCountedPtr<T> Null = new RefCountedPtr<T>();
 
-        private IntPtr ctrlBlock;
-        private IntPtr ptr;
+        private IntPtr ptr = IntPtr.Zero;
+        private IntPtr ctrlBlock = RefCountedPtr.NullCtrlBlock;
 
         public RefCountedPtr()
         {
-            this.ctrlBlock = IntPtr.Zero;
-            this.ptr = IntPtr.Zero;
         }
 
         public RefCountedPtr(IntPtr ctrlBlock, IntPtr ptr)
@@ -81,7 +95,15 @@ namespace Hyperion
         {
             get
             {
-                return ctrlBlock != IntPtr.Zero;
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public bool IsNull
+        {
+            get
+            {
+                return ptr == IntPtr.Zero;
             }
         }
 
@@ -118,8 +140,12 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct WeakRefCountedPtr
     {
-        private IntPtr ctrlBlock;
-        private IntPtr ptr;
+        private IntPtr ptr = IntPtr.Zero;
+        private IntPtr ctrlBlock = RefCountedPtr.NullCtrlBlock;
+
+        public WeakRefCountedPtr()
+        {
+        }
 
         public WeakRefCountedPtr(IntPtr ctrlBlock, IntPtr ptr)
         {
@@ -131,7 +157,15 @@ namespace Hyperion
         {
             get
             {
-                return ctrlBlock != IntPtr.Zero;
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public bool IsNull
+        {
+            get
+            {
+                return ptr == IntPtr.Zero;
             }
         }
 
@@ -161,13 +195,11 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct WeakRefCountedPtr<T>
     {
-        private IntPtr ctrlBlock;
-        private IntPtr ptr;
+        private IntPtr ptr = IntPtr.Zero;
+        private IntPtr ctrlBlock = RefCountedPtr.NullCtrlBlock;
 
         public WeakRefCountedPtr()
         {
-            this.ctrlBlock = IntPtr.Zero;
-            this.ptr = IntPtr.Zero;
         }
 
         public WeakRefCountedPtr(IntPtr ctrlBlock, IntPtr ptr)
@@ -180,7 +212,15 @@ namespace Hyperion
         {
             get
             {
-                return ctrlBlock != IntPtr.Zero;
+                return ptr != IntPtr.Zero;
+            }
+        }
+
+        public bool IsNull
+        {
+            get
+            {
+                return ptr == IntPtr.Zero;
             }
         }
 

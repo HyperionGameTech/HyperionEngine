@@ -18,8 +18,6 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/RenderCollection.hpp>
-
 #include <rendering/backend/RenderObject.hpp>
 
 #include <core/math/Color.hpp>
@@ -56,9 +54,29 @@ enum class SceneFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
 
-struct SceneDrawProxy
+class SceneValidationError final : public Error
 {
-    uint32 frame_counter;
+public:
+    SceneValidationError()
+        : Error()
+    {
+    }
+
+    template <auto MessageString, class... Args>
+    SceneValidationError(const StaticMessage &current_function, ValueWrapper<MessageString>, Args &&... args)
+        : Error(current_function, ValueWrapper<MessageString>(), std::forward<Args>(args)...)
+    {
+    }
+
+    virtual ~SceneValidationError() override = default;
+};
+
+using SceneValidationResult = TResult<void, SceneValidationError>;
+
+class HYP_API SceneValidation
+{
+public:
+    static SceneValidationResult ValidateScene(const Scene *scene);
 };
 
 HYP_CLASS()
@@ -120,12 +138,6 @@ public:
     HYP_FORCE_INLINE void SetName(Name name)
         { m_name = name; }
 
-    HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
-        { return m_render_collector; }
-
-    HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
-        { return m_render_collector; }
-
     HYP_METHOD()
     HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity> entity) const;
 
@@ -180,29 +192,18 @@ public:
 
     void Update(GameCounter::TickUnit delta);
 
-    RenderCollector::CollectionResult CollectEntities(
-        RenderCollector &render_collector, 
-        const Handle<Camera> &camera,
-        bool skip_frustum_culling = false
-    ) const;
-
-    RenderCollector::CollectionResult CollectDynamicEntities(
-        RenderCollector &render_collector, 
-        const Handle<Camera> &camera,
-        bool skip_frustum_culling = false
-    ) const;
-
-    RenderCollector::CollectionResult CollectStaticEntities(
-        RenderCollector &render_collector, 
-        const Handle<Camera> &camera,
-        bool skip_frustum_culling = false
-    ) const;
-
     HYP_METHOD()
     bool AddToWorld(World *world);
 
     HYP_METHOD()
     bool RemoveFromWorld();
+
+    /*! \brief Gets a unique name for a node in this scene. The returned name will be in the format "base_name(num)".
+     *  The name will only be unique as long as another node with the same name does not exist in this scene. (no record is kept of the results from this function)
+     *  \note The node name will be unique only to this scene.
+     *  \param base_name The base name to use for the node name. */
+    HYP_METHOD()
+    String GetUniqueNodeName(UTF8StringView base_name) const;
     
     void EnqueueRenderUpdates();
 
@@ -223,8 +224,6 @@ private:
     ThreadID                    m_owner_thread_id;
 
     World                       *m_world;
-
-    RenderCollector             m_render_collector;
 
     FogParams                   m_fog_params;
 

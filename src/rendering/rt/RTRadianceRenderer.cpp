@@ -9,7 +9,9 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderTexture.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderEnvGrid.hpp>
+#include <rendering/RenderView.hpp>
+#include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 
@@ -77,9 +79,9 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet) : renderer::Ren
 
 #pragma endregion Render commands
 
-RTRadianceRenderer::RTRadianceRenderer(const Vec2u &extent, RTRadianceRendererOptions options)
-    : m_extent(extent),
-      m_options(options),
+RTRadianceRenderer::RTRadianceRenderer(RTRadianceConfig &&config, GBuffer *gbuffer)
+    : m_config(std::move(config)),
+      m_gbuffer(gbuffer),
       m_updates { RT_RADIANCE_UPDATES_NONE, RT_RADIANCE_UPDATES_NONE }
 {
 }
@@ -119,8 +121,7 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
     uniforms.min_roughness = 0.4f;
-
-    uniforms.output_image_resolution = Vec2i(m_extent);
+    uniforms.output_image_resolution = Vec2i(m_config.extent);
 
     const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
     uint32 num_bound_lights = 0;
@@ -155,14 +156,14 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
     }
 }
 
-void RTRadianceRenderer::Render(FrameBase *frame)
+void RTRadianceRenderer::Render(FrameBase *frame, ViewRenderResource *view)
 {
     UpdateUniforms(frame);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     frame->GetCommandList().Add<BindRaytracingPipeline>(m_raytracing_pipeline);
     
@@ -171,12 +172,12 @@ void RTRadianceRenderer::Render(FrameBase *frame)
         m_raytracing_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
-                NAME("Scene"),
+                NAME("Global"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                 }
             }
         },
@@ -201,13 +202,13 @@ void RTRadianceRenderer::Render(FrameBase *frame)
     );
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && camera_resource_handle->GetBufferData().view != m_previous_view_matrix) {
+    if (IsPathTracer() && camera_render_resource_handle->GetBufferData().view != m_previous_view_matrix) {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = camera_resource_handle->GetBufferData().view;
+        m_previous_view_matrix = camera_render_resource_handle->GetBufferData().view;
     }
 
-    m_temporal_blending->Render(frame);
+    m_temporal_blending->Render(frame, view);
 }
 
 void RTRadianceRenderer::CreateImages()
@@ -215,7 +216,7 @@ void RTRadianceRenderer::CreateImages()
     m_texture = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         InternalFormat::RGBA16F,
-        Vec3u { m_extent.x, m_extent.y, 1 },
+        Vec3u { m_config.extent, 1 },
         FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -321,7 +322,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending = MakeUnique<TemporalBlending>(
-        m_extent,
+        m_config.extent,
         InternalFormat::RGBA16F,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
@@ -329,7 +330,8 @@ void RTRadianceRenderer::CreateTemporalBlending()
         IsPathTracer()
             ? TemporalBlendFeedback::HIGH
             : TemporalBlendFeedback::HIGH,
-        m_texture->GetRenderResource().GetImageView()
+        m_texture->GetRenderResource().GetImageView(),
+        m_gbuffer
     );
 
     m_temporal_blending->Create();

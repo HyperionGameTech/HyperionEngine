@@ -117,9 +117,9 @@ void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData &buffer_da
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SRV(Scene, ShadowMapsTextureArray, 1);
-HYP_DESCRIPTOR_SRV(Scene, PointLightShadowMapsTextureArray, 1);
-HYP_DESCRIPTOR_SSBO(Scene, ShadowMapsBuffer, 1, sizeof(ShadowMapShaderData) * max_shadow_maps, false);
+HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
+HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
+HYP_DESCRIPTOR_SSBO(Global, ShadowMapsBuffer, 1, sizeof(ShadowMapShaderData) * max_shadow_maps, false);
 
 } // namespace renderer
 

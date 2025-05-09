@@ -32,6 +32,7 @@ class Camera;
 class Entity;
 class RenderGroup;
 class CameraRenderResource;
+class ViewRenderResource;
 
 using renderer::PushConstantData;
 
@@ -92,24 +93,26 @@ public:
     HYP_FORCE_INLINE void SetOverrideAttributes(const Optional<RenderableAttributeSet> &override_attributes)
         { m_override_attributes = override_attributes; }
 
-    /*! \brief Pushes an entity to the RenderCollector.
-     *  \param entity The entity the proxy is used for
-     *  \param proxy A RenderProxy associated with the entity
+    /*! \brief Pushes an RenderProxy to the RenderCollector.
+        \param proxy_list The RenderProxyList to push to.
+     *  \param proxy The RenderProxy to push.
      */
-    void PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy);
+    void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy);
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
-    CollectionResult PushUpdatesToRenderThread(const Handle<Camera> &camera = Handle<Camera>::empty);
+    CollectionResult PushUpdatesToRenderThread(const Handle<Camera> &camera, ViewRenderResource *view_render_resource);
 
     void CollectDrawCalls(
         FrameBase *frame,
+        ViewRenderResource *view,
         const Bitset &bucket_bits,
         const CullData *cull_data
     );
 
     void ExecuteDrawCalls(
         FrameBase *frame,
+        ViewRenderResource *view,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
@@ -118,6 +121,7 @@ public:
 
     void ExecuteDrawCalls(
         FrameBase *frame,
+        ViewRenderResource *view,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,

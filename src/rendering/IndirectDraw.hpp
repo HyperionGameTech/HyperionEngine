@@ -21,6 +21,7 @@ class Mesh;
 class Material;
 class Engine;
 class Entity;
+class ViewRenderResource;
 
 struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
@@ -107,16 +108,16 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState();
 
-    void ExecuteCullShaderInBatches(FrameBase *frame, const CullData &cull_data);
+    void ExecuteCullShaderInBatches(FrameBase *frame, ViewRenderResource *view, const CullData &cull_data);
 
 private:
     void RebuildDescriptors(FrameBase *frame);
 
-    DrawCallCollection                                  *m_draw_call_collection;
-    IndirectDrawState                                   m_indirect_draw_state;
-    ComputePipelineRef                                  m_object_visibility;
-    CullData                                            m_cached_cull_data;
-    uint8                                               m_cached_cull_data_updated_bits;
+    DrawCallCollection  *m_draw_call_collection;
+    IndirectDrawState   m_indirect_draw_state;
+    ComputePipelineRef  m_object_visibility;
+    CullData            m_cached_cull_data;
+    uint8               m_cached_cull_data_updated_bits;
 };
 
 } // namespace hyperion

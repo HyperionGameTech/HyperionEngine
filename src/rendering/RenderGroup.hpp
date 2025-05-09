@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_RENDERER_HPP
-#define HYPERION_RENDERER_HPP
+#ifndef HYPERION_RENDER_GROUP_HPP
+#define HYPERION_RENDER_GROUP_HPP
 
 #include <core/utilities/EnumFlags.hpp>
 #include <core/ID.hpp>
@@ -31,6 +31,7 @@ class Entity;
 class RenderCollector;
 class GPUBufferHolderBase;
 class IndirectRenderer;
+class ViewRenderResource;
 
 enum class RenderGroupFlags : uint32
 {
@@ -113,13 +114,13 @@ public:
     void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(FrameBase *frame);
+    void PerformRendering(FrameBase *frame, ViewRenderResource *view);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(FrameBase *frame);
+    void PerformRenderingIndirect(FrameBase *frame, ViewRenderResource *view);
 
-    void PerformOcclusionCulling(FrameBase *frame, const CullData *cull_data);
+    void PerformOcclusionCulling(FrameBase *frame, ViewRenderResource *view, const CullData *cull_data);
 
     void Init();
 

@@ -70,10 +70,9 @@ public:
     {
     }
 
-    RenderObjectContainer(const RenderObjectContainer &other) = delete;
-    RenderObjectContainer &operator=(const RenderObjectContainer &other) = delete;
-
-    virtual ~RenderObjectContainer() override = default;
+    RenderObjectContainer(const RenderObjectContainer &other)               = delete;
+    RenderObjectContainer &operator=(const RenderObjectContainer &other)    = delete;
+    virtual ~RenderObjectContainer() override                               = default;
 
     virtual void ReleaseIndex(uint32 index) override
     {
@@ -364,10 +363,22 @@ public:
     HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Strong &other) const
         { return header == other.header && ptr == other.ptr; }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Strong<Ty> &other) const
+        { return header == other.header && static_cast<Ty *>(ptr) == other.ptr; }
+
     HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Strong &other) const
         { return header != other.header || ptr != other.ptr; }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Strong<Ty> &other) const
+        { return header != other.header || static_cast<Ty *>(ptr) != other.ptr; }
+
     HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Strong &other) const
+        { return header < other.header; }
+        
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Strong<Ty> &other) const
         { return header < other.header; }
 
     HYP_FORCE_INLINE bool IsValid() const
@@ -405,8 +416,8 @@ public:
         return RenderObjectHandle_Strong<Ty>::unset;
     }
 
-    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_base_of_v<T, Ty>, int> = 0>
-    HYP_FORCE_INLINE operator RenderObjectHandle_Strong<Ty>() const
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE explicit operator RenderObjectHandle_Strong<Ty>() const
     {
         if (header) {
             return RenderObjectHandle_Strong<Ty>(header, static_cast<Ty *>(ptr));
@@ -563,13 +574,31 @@ public:
             : RenderObjectHandle_Strong<T>::unset;
     }
 
+    HYP_FORCE_INLINE bool operator==(const T *obj) const
+        { return ptr == obj; }
+
+    HYP_FORCE_INLINE bool operator!=(const T *obj) const
+        { return ptr != obj; }
+
     HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Weak &other) const
         { return header == other.header && ptr != other.ptr; }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator==(const RenderObjectHandle_Weak<Ty> &other) const
+        { return header == other.header && static_cast<Ty *>(ptr) != other.ptr; }
 
     HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Weak &other) const
         { return header != other.header || ptr != other.ptr; }
 
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator!=(const RenderObjectHandle_Weak<Ty> &other) const
+        { return header != other.header || static_cast<Ty *>(ptr) != other.ptr; }
+
     HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Weak &other) const
+        { return header < other.header; }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE bool operator<(const RenderObjectHandle_Weak<Ty> &other) const
         { return header < other.header; }
 
     HYP_FORCE_INLINE bool IsValid() const
@@ -585,8 +614,18 @@ public:
         ptr = nullptr;
     }
 
-    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
     HYP_FORCE_INLINE operator RenderObjectHandle_Weak<Ty>() const
+    {
+        if (header) {
+            return RenderObjectHandle_Weak<Ty>(header, static_cast<Ty *>(ptr));
+        }
+
+        return RenderObjectHandle_Weak<Ty>::unset;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE explicit operator RenderObjectHandle_Weak<Ty>() const
     {
         if (header) {
             return RenderObjectHandle_Weak<Ty>(header, static_cast<Ty *>(ptr));
@@ -704,7 +743,8 @@ public:
     class _platform##T; \
     } \
     using _platform ## T = renderer:: _platform ## T; \
-    using _platform ## T ## Ref = renderer::RenderObjectHandle_Strong< renderer:: _platform ## T >;
+    using _platform ## T ## Ref = renderer::RenderObjectHandle_Strong< renderer:: _platform ## T >; \
+    using _platform ## T ## WeakRef = renderer::RenderObjectHandle_Weak< renderer:: _platform ## T >;
 
 #define DEF_RENDER_PLATFORM_OBJECT_NAMED_(_platform, name, T, _max_size) \
     namespace renderer { \
@@ -1017,7 +1057,7 @@ static inline void SafeRelease(renderer::RenderObjectHandle_Strong<T> &&handle)
         return;
     }
 
-    RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(handle));
+    RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<typename T::Type>().Push(std::move(handle));
 }
 
 template <class T, class AllocatorType>
@@ -1028,7 +1068,7 @@ static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T>, All
             continue;
         }
 
-        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(it));
+        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<typename T::Type>().Push(std::move(it));
     }
 }
 
@@ -1040,7 +1080,7 @@ static inline void SafeRelease(FixedArray<renderer::RenderObjectHandle_Strong<T>
             continue;
         }
 
-        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<T>().Push(std::move(it));
+        RenderObjectDeleter<renderer::Platform::CURRENT>::template GetQueue<typename T::Type>().Push(std::move(it));
     }
 }
 

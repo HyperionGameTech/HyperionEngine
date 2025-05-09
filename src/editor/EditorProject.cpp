@@ -48,8 +48,8 @@ EditorProject::EditorProject(Name name)
     camera->SetName(Name::Unique("EditorDefaultCamera"));
     camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
     camera->SetFOV(70.0f);
-    camera->SetNear(0.01f);
-    camera->SetFar(30000.0f);
+    camera->SetNear(0.1f);
+    camera->SetFar(3000.0f);
 
     NodeProxy camera_node = m_scene->GetRoot()->AddChild();
     camera_node->SetName(camera->GetName().LookupString());

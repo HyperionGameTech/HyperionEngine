@@ -550,30 +550,39 @@ public:
 
     virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override
     {
-        AssertThrow(memory.Size() == sizeof(T));
+        AssertThrowMsg(memory.Size() == sizeof(T),
+            "Expected memory size to be %llu but got %llu! This could indicate a type safety violation.",
+            sizeof(T), memory.Size());
         
         void *address = const_cast<void *>(reinterpret_cast<const void *>(memory.Data()));
+        T *ptr = static_cast<T *>(address);
 
         if (UseHandles()) {
-            HypObjectBase *hyp_object_ptr = reinterpret_cast<HypObjectBase *>(address);
-
-            out_hyp_data = HypData(AnyHandle(hyp_object_ptr));
+            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
+                out_hyp_data = HypData(AnyHandle(ptr));
+            } else {
+                HYP_UNREACHABLE();
+            }
 
             return true;
         } else if (UseRefCountedPtr()) {
-            EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(address);
-            
-            auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-            AssertThrow(ref_count_data != nullptr);
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+                EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr);
+                
+                auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
+                AssertThrow(ref_count_data != nullptr);
 
-            RC<void> rc;
-            rc.SetRefCountData_Internal(address, ref_count_data, /* inc_ref */ true);
+                RC<void> rc;
+                rc.SetRefCountData_Internal(ptr_casted->weak.GetUnsafe(), ref_count_data, /* inc_ref */ true);
 
-            out_hyp_data = HypData(std::move(rc));
+                out_hyp_data = HypData(std::move(rc));
 
-            return true;
+                return true;
+            } else {
+                HYP_UNREACHABLE();
+            }
         } else {
-            out_hyp_data = HypData(Any(static_cast<T *>(address)));
+            out_hyp_data = HypData(Any(ptr));
 
             return true;
         }

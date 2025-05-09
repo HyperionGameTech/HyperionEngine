@@ -24,6 +24,7 @@
 #include <core/math/Vector4.hpp>
 
 #include <rendering/Buffers.hpp>
+#include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -59,9 +60,10 @@ enum class DebugDrawType : int
 
 struct DebugDrawCommand
 {
-    IDebugDrawShape *shape;
-    Matrix4         transform_matrix;
-    Color           color;
+    IDebugDrawShape         *shape;
+    Matrix4                 transform_matrix;
+    Color                   color;
+    RenderableAttributeSet  attributes;
 };
 
 class IDebugDrawCommandList
@@ -111,6 +113,7 @@ public:
     virtual ~SphereDebugDrawShape() override = default;
 
     void operator()(const Vec3f &position, float radius, const Color &color);
+    void operator()(const Vec3f &position, float radius, const Color &color, const RenderableAttributeSet &attributes);
 };
 
 class HYP_API AmbientProbeDebugDrawShape : public SphereDebugDrawShape
@@ -147,6 +150,7 @@ public:
     virtual ~BoxDebugDrawShape() override = default;
 
     void operator()(const Vec3f &position, const Vec3f &size, const Color &color);
+    void operator()(const Vec3f &position, const Vec3f &size, const Color &color, const RenderableAttributeSet &attributes);
 };
 
 class HYP_API PlaneDebugDrawShape : public MeshDebugDrawShapeBase
@@ -157,6 +161,7 @@ public:
     virtual ~PlaneDebugDrawShape() override = default;
 
     void operator()(const FixedArray<Vec3f, 4> &points, const Color &color);
+    void operator()(const FixedArray<Vec3f, 4> &points, const Color &color, const RenderableAttributeSet &attributes);
 };
 
 class DebugDrawCommandList final : public IDebugDrawCommandList
@@ -231,28 +236,31 @@ public:
 private:
     void UpdateDrawCommands();
 
-    DebugDrawerConfig                               m_config;
+    DebugDrawerConfig                                           m_config;
 
-    DebugDrawCommandList                            m_default_command_list;
-    AtomicVar<bool>                                 m_is_initialized;
+    DebugDrawCommandList                                        m_default_command_list;
+    AtomicVar<bool>                                             m_is_initialized;
 
 public: // Shapes
-    SphereDebugDrawShape                            &Sphere;
-    AmbientProbeDebugDrawShape                      &AmbientProbe;
-    ReflectionProbeDebugDrawShape                   &ReflectionProbe;
-    BoxDebugDrawShape                               &Box;
-    PlaneDebugDrawShape                             &Plane;
+    SphereDebugDrawShape                                        &Sphere;
+    AmbientProbeDebugDrawShape                                  &AmbientProbe;
+    ReflectionProbeDebugDrawShape                               &ReflectionProbe;
+    BoxDebugDrawShape                                           &Box;
+    PlaneDebugDrawShape                                         &Plane;
 
 private:
-    ShaderRef                                       m_shader;
-    Handle<RenderGroup>                             m_render_group;
+    Handle<RenderGroup> GetOrCreateRenderGroup(RenderableAttributeSet attributes, uint32 drawable_layer);
 
-    Array<UniquePtr<DebugDrawCommand>>              m_draw_commands;
-    Array<UniquePtr<DebugDrawCommand>>              m_draw_commands_pending_addition;
-    AtomicVar<uint32>                               m_num_draw_commands_pending_addition;
-    Mutex                                           m_draw_commands_mutex;
+    ShaderRef                                                   m_shader;
+    DescriptorTableRef                                          m_descriptor_table;
+    HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>>    m_render_groups;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight>  m_instance_buffers;
+    Array<UniquePtr<DebugDrawCommand>>                          m_draw_commands;
+    Array<UniquePtr<DebugDrawCommand>>                          m_draw_commands_pending_addition;
+    AtomicVar<uint32>                                           m_num_draw_commands_pending_addition;
+    Mutex                                                       m_draw_commands_mutex;
+
+    FixedArray<GPUBufferRef, max_frames_in_flight>              m_instance_buffers;
 };
 
 } // namespace hyperion

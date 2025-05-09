@@ -296,6 +296,8 @@ MaterialDescriptorSetManager::MaterialDescriptorSetManager()
 
 MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 {
+    SafeRelease(std::move(m_invalid_material_descriptor_set));
+
     for (auto &it : m_material_descriptor_sets) {
         SafeRelease(std::move(it.second));
     }
@@ -325,15 +327,15 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 
     const renderer::DescriptorSetLayout layout(*declaration);
 
-    const DescriptorSetRef invalid_descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+    m_invalid_material_descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
     
     for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++) {
-        invalid_descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        m_invalid_material_descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
     }
 
-    DeferCreate(invalid_descriptor_set);
+    DeferCreate(m_invalid_material_descriptor_set);
 
-    m_material_descriptor_sets.Set(WeakHandle<Material> {}, { invalid_descriptor_set, invalid_descriptor_set });
+    m_material_descriptor_sets.Set(WeakHandle<Material>(), { m_invalid_material_descriptor_set, m_invalid_material_descriptor_set });
 }
 
 const DescriptorSetRef &MaterialDescriptorSetManager::GetDescriptorSet(ID<Material> id, uint32 frame_index) const

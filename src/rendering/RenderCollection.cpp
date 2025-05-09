@@ -10,6 +10,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderView.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -19,6 +20,7 @@
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/View.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -46,6 +48,8 @@ static constexpr bool do_parallel_collection = true;
 
 struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 {
+    TResourceHandle<ViewRenderResource> view_render_resource_handle;
+
     RC<EntityDrawCollection>            collection;
     Array<RenderProxy>                  added_proxies;
     Array<ID<Entity>>                   removed_proxies;
@@ -54,16 +58,20 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     Optional<RenderableAttributeSet>    override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups)(
+        const TResourceHandle<ViewRenderResource> &view_render_resource_handle,
         const RC<EntityDrawCollection> &collection,
         Array<RenderProxy *> &&added_proxy_ptrs,
         Array<ID<Entity>> &&removed_proxies,
         const Handle<Camera> &camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet> &override_attributes = { }
-    ) : collection(collection),
+    ) : view_render_resource_handle(view_render_resource_handle),
+        collection(collection),
         removed_proxies(std::move(removed_proxies)),
         camera(camera),
         override_attributes(override_attributes)
     {
+        AssertThrow(view_render_resource_handle);
+
         added_proxies.Reserve(added_proxy_ptrs.Size());
 
         for (RenderProxy *proxy_ptr : added_proxy_ptrs) {
@@ -150,7 +158,9 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
             // Disable occlusion culling for translucent objects
-            if (attributes.GetMaterialAttributes().bucket == BUCKET_TRANSLUCENT) {
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+
+            if (bucket == BUCKET_TRANSLUCENT || bucket == BUCKET_DEBUG) {
                 render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
             }
 
@@ -170,7 +180,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             if (framebuffer != nullptr) {
                 render_group->AddFramebuffer(framebuffer);
             } else {
-                const FramebufferRef &bucket_framebuffer = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+                AssertThrow(view_render_resource_handle->GetView()->GetFlags() & ViewFlags::GBUFFER);
+
+                GBuffer *gbuffer = view_render_resource_handle->GetGBuffer();
+                AssertThrow(gbuffer != nullptr);
+
+                const FramebufferRef &bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
                 AssertThrow(bucket_framebuffer != nullptr);
 
                 render_group->AddFramebuffer(bucket_framebuffer);
@@ -358,7 +373,7 @@ RenderCollector::RenderCollector()
 
 RenderCollector::~RenderCollector() = default;
 
-RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera)
+RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera, ViewRenderResource *view_render_resource)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -384,6 +399,7 @@ RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(con
         if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
             PUSH_RENDER_COMMAND(
                 RebuildProxyGroups,
+                TResourceHandle<ViewRenderResource>(*view_render_resource),
                 m_draw_collection,
                 std::move(added_proxy_ptrs),
                 std::move(removed_proxies),
@@ -398,23 +414,18 @@ RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(con
     return collection_result;
 }
 
-void RenderCollector::PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy)
+void RenderCollector::PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy)
 {
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    HYP_MT_CHECK_READ(m_data_race_detector);
-
-    AssertThrow(entity.IsValid());
+    AssertThrow(render_proxy.entity.IsValid());
+    AssertThrow(render_proxy.mesh.IsValid());
+    AssertThrow(render_proxy.material.IsValid());
     
-    AssertThrow(proxy.mesh.IsValid());
-    AssertThrow(proxy.material.IsValid());
-
-    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-    proxy_list.Add(entity, RenderProxy(proxy));
+    proxy_list.Add(render_proxy.entity, RenderProxy(render_proxy));
 }
 
 void RenderCollector::CollectDrawCalls(
     FrameBase *frame,
+    ViewRenderResource *view,
     const Bitset &bucket_bits,
     const CullData *cull_data
 )
@@ -478,13 +489,14 @@ void RenderCollector::CollectDrawCalls(
                 continue;
             }
 
-            (*iterators[index]).second->PerformOcclusionCulling(frame, cull_data);
+            (*iterators[index]).second->PerformOcclusionCulling(frame, view, cull_data);
         }
     }
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase *frame,
+    ViewRenderResource *view,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -494,11 +506,12 @@ void RenderCollector::ExecuteDrawCalls(
     const FramebufferRef &framebuffer = camera_resource_handle->GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, camera_resource_handle, framebuffer, bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, view, camera_resource_handle, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase *frame,
+    ViewRenderResource *view,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
@@ -548,9 +561,9 @@ void RenderCollector::ExecuteDrawCalls(
             }
 
             if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
-                render_group->PerformRenderingIndirect(frame);
+                render_group->PerformRenderingIndirect(frame, view);
             } else {
-                render_group->PerformRendering(frame);
+                render_group->PerformRendering(frame, view);
             }
         }
 
@@ -598,9 +611,9 @@ void RenderCollector::ExecuteDrawCalls(
                 }
 
                 if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
-                    render_group->PerformRenderingIndirect(frame);
+                    render_group->PerformRenderingIndirect(frame, view);
                 } else {
-                    render_group->PerformRendering(frame);
+                    render_group->PerformRendering(frame, view);
                 }
             }
         }
@@ -631,6 +644,7 @@ void RenderCollector::ClearState(bool create_new)
 
         PUSH_RENDER_COMMAND(
             RebuildProxyGroups,
+            TResourceHandle<ViewRenderResource>(),
             m_draw_collection,
             Array<RenderProxy *>(),
             std::move(entity_ids),

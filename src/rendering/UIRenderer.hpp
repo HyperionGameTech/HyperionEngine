@@ -25,10 +25,13 @@ namespace hyperion {
 class UIStage;
 class UIObject;
 class CameraRenderResource;
+class View;
 
-class UIRenderCollector : public RenderCollector
+class UIRenderCollector : RenderCollector
 {
 public:
+    using RenderCollector::GetDrawCollection;
+
     UIRenderCollector();
     UIRenderCollector(const UIRenderCollector &other)                 = delete;
     UIRenderCollector &operator=(const UIRenderCollector &other)      = delete;
@@ -38,15 +41,20 @@ public:
 
     void ResetOrdering();
 
-    void PushEntityToRender(ID<Entity> entity, const RenderProxy &proxy, int computed_depth);
+    void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy, int computed_depth);
 
     CollectionResult PushUpdatesToRenderThread(
-        const Handle<Camera> &camera = Handle<Camera>::empty,
+        const FramebufferRef &framebuffer,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
 
     void CollectDrawCalls(FrameBase *frame);
-    void ExecuteDrawCalls(FrameBase *frame, const TResourceHandle<CameraRenderResource> &camera_resource_handle, const FramebufferRef &framebuffer) const;
+    void ExecuteDrawCalls(
+        FrameBase *frame,
+        ViewRenderResource *view,
+        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
+        const FramebufferRef &framebuffer
+    ) const;
 
 private:
     Array<Pair<ID<Entity>, int>>    m_proxy_depths;
@@ -65,6 +73,9 @@ public:
 
     HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
+
+    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
+        { return m_framebuffer; }
 
     HYP_FORCE_INLINE UIRenderCollector &GetRenderCollector()
         { return m_render_collector; }
@@ -91,6 +102,8 @@ private:
     UIRenderCollector                       m_render_collector;
 
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
+
+    Handle<View>                            m_view;
 
     DelegateHandler                         m_on_gbuffer_resolution_changed_handle;
 };

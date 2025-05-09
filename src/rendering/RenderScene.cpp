@@ -84,7 +84,7 @@ GPUBufferHolderBase *SceneRenderResource::GetGPUBufferHolder() const
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO(Scene, ScenesBuffer, 1, sizeof(SceneShaderData), true);
+HYP_DESCRIPTOR_SSBO(Global, ScenesBuffer, 1, sizeof(SceneShaderData), true);
 
 } // namespace renderer
 } // namespace hyperion

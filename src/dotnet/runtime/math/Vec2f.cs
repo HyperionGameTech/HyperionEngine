@@ -94,6 +94,28 @@ namespace Hyperion
             }
         }
 
+        public float Length()
+        {
+            return MathF.Sqrt(x * x + y * y);
+        }
+
+        public float LengthSquared()
+        {
+            return x * x + y * y;
+        }
+
+        public Vec2f Normalize()
+        {
+            float length = Length();
+
+            if (length == 0)
+            {
+                return new Vec2f(0, 0);
+            }
+
+            return new Vec2f(x / length, y / length);
+        }
+
         public static Vec2f operator+(Vec2f left, Vec2f right)
         {
             return new Vec2f(left.x + right.x, left.y + right.y);

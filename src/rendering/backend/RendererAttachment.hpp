@@ -88,6 +88,9 @@ public:
     HYP_FORCE_INLINE void SetAllowBlending(bool allow_blending)
         { m_allow_blending = allow_blending; }
 
+    HYP_FORCE_INLINE const FramebufferWeakRef &GetFramebuffer() const
+        { return m_framebuffer; }
+
     virtual bool IsCreated() const = 0;
 
     HYP_API virtual RendererResult Create() = 0;
@@ -96,10 +99,12 @@ public:
 protected:
     AttachmentBase(
         const ImageRef &image,
+        const FramebufferWeakRef &framebuffer,
         LoadOperation load_operation,
         StoreOperation store_operation,
         BlendFunction blend_function
     ) : m_image(image),
+        m_framebuffer(framebuffer),
         m_load_operation(load_operation),
         m_store_operation(store_operation),
         m_blend_function(blend_function),
@@ -107,19 +112,21 @@ protected:
     {
     }
 
-    ImageRef        m_image;
-    ImageViewRef    m_image_view;
+    ImageRef            m_image;
+    ImageViewRef        m_image_view;
+
+    FramebufferWeakRef  m_framebuffer;
     
-    LoadOperation   m_load_operation;
-    StoreOperation  m_store_operation;
+    LoadOperation       m_load_operation;
+    StoreOperation      m_store_operation;
 
-    BlendFunction   m_blend_function;
+    BlendFunction       m_blend_function;
 
-    Vec4f           m_clear_color;
+    Vec4f               m_clear_color;
 
-    uint32          m_binding = MathUtil::MaxSafeValue<uint32>();
+    uint32              m_binding = MathUtil::MaxSafeValue<uint32>();
 
-    bool            m_allow_blending = true;
+    bool                m_allow_blending = true;
 };
 
 } // namespace renderer

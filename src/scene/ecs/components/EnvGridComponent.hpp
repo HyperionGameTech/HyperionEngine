@@ -7,15 +7,17 @@
 
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
+
+#include <scene/EnvGrid.hpp>
 
 #include <scene/camera/Camera.hpp>
 
 #include <core/math/Extent.hpp>
 #include <core/math/Matrix4.hpp>
 #include <core/math/Vector3.hpp>
-
-#include <rendering/EnvGrid.hpp>
 
 #include <HashCode.hpp>
 
@@ -34,23 +36,32 @@ enum class EnvGridMobility : uint32
 
 HYP_MAKE_ENUM_FLAGS(EnvGridMobility)
 
+class EnvGridRenderResource;
+class EnvGridRenderSubsystem;
+
 HYP_STRUCT(Component, Label="EnvGrid Component", Description="Allows calculatation of indirect lighting in the area surrounding the entity", Editor=true)
 struct EnvGridComponent
 {
     HYP_FIELD(Property="EnvGridType", Serialize=true, Editor=true, Label="EnvGrid Type")
-    EnvGridType                 env_grid_type = ENV_GRID_TYPE_SH;
+    EnvGridType                             env_grid_type = ENV_GRID_TYPE_SH;
 
     HYP_FIELD(Property="GridSize", Serialize=true, Editor=true, Label="Grid Size")
-    Vec3u                       grid_size = { 24, 4, 24 };
+    Vec3u                                   grid_size = { 24, 4, 24 };
 
     HYP_FIELD(Property="Mobility", Serialize=true, Editor=true, Label="Mobility")
-    EnumFlags<EnvGridMobility>  mobility = EnvGridMobility::STATIONARY;
+    EnumFlags<EnvGridMobility>              mobility = EnvGridMobility::STATIONARY;
 
     HYP_FIELD(Property="EnvGrid", Serialize=false, Editor=true, Label="EnvGrid")
-    RC<EnvGrid>                 env_grid;
+    Handle<EnvGrid>                         env_grid;
 
-    HYP_FIELD()
-    HashCode                    octant_hash_code;
+    HYP_FIELD(Transient)
+    TResourceHandle<EnvGridRenderResource>  env_grid_render_resource_handle;
+
+    HYP_FIELD(Transient)
+    RC<EnvGridRenderSubsystem>              env_grid_render_subsystem;
+
+    HYP_FIELD(Transient)
+    HashCode                                octant_hash_code;
 };
 
 } // namespace hyperion

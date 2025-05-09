@@ -8,8 +8,8 @@
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderConfig.hpp>
 
-#include <core/functional/Delegate.hpp>
 #include <core/functional/Proc.hpp>
+#include <core/functional/Delegate.hpp>
 
 #include <core/Handle.hpp>
 
@@ -129,7 +129,6 @@ public:
     virtual QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc &texture_desc) const = 0;
 
     virtual Delegate<void, SwapchainBase *> &GetOnSwapchainRecreatedDelegate() = 0;
-    virtual Delegate<void, FrameBase *> &GetOnFrameEndDelegate() = 0;
 };
 
 } // namespace renderer

@@ -73,9 +73,9 @@ DescriptorTableDeclaration &GetStaticDescriptorTableDeclaration()
         DescriptorTableDeclaration decl;
 
         DescriptorTableDeclaration::DeclareSet global_set { &decl, 0, NAME("Global") };
-        DescriptorTableDeclaration::DeclareSet scene_set { &decl, 1, NAME("Scene") };
+        DescriptorTableDeclaration::DeclareSet scene_set { &decl, 1, NAME("Scene"), /* is_template */ true };
         DescriptorTableDeclaration::DeclareSet object_set { &decl, 2, NAME("Object") };
-        DescriptorTableDeclaration::DeclareSet material_set { &decl, 3, NAME("Material") };
+        DescriptorTableDeclaration::DeclareSet material_set { &decl, 3, NAME("Material"), /* is_template */ true };
     } initializer;
 
     return initializer.decl;
@@ -168,7 +168,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration &decl)
     m_dynamic_elements.Resize(dynamic_elements_with_index.Size());
 
     for (SizeType i = 0; i < dynamic_elements_with_index.Size(); i++) {
-        m_dynamic_elements[i] = std::move(dynamic_elements_with_index[i].first);
+        m_dynamic_elements[i] = dynamic_elements_with_index[i].first;
     }
 }
 

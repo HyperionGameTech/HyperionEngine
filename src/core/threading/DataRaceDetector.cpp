@@ -121,9 +121,6 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
         it->state = state;
 
         index = (it - m_dynamic_states.Begin()) + num_preallocated_states;
-
-        // debugging; temp
-        AssertThrow(index - num_preallocated_states < m_dynamic_states.Size());
     }
 
     if (index == ~0u) {

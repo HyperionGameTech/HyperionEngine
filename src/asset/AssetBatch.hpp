@@ -24,15 +24,12 @@ using AssetMap = FlatMap<String, LoadedAsset>;
 
 struct AssetBatchCallbackData
 {
-    using AssetKeyValuePair = Pair<const String &, LoadedAsset &>;
-    using DataType = Variant<AssetKeyValuePair, std::reference_wrapper<AssetMap>>;
+    using AssetKeyValuePair = Pair<String, LoadedAsset *>;
 
-    DataType data;
+    AssetKeyValuePair data;
 
-    AssetBatchCallbackData() = default;
-
-    AssetBatchCallbackData(const String &asset_key, LoadedAsset &asset)
-        : data { AssetKeyValuePair { asset_key, asset } }
+    AssetBatchCallbackData(const String &asset_key, LoadedAsset *asset)
+        : data { asset_key, asset }
     {
     }
 
@@ -43,10 +40,10 @@ struct AssetBatchCallbackData
     ~AssetBatchCallbackData()                                               = default;
 
     HYP_FORCE_INLINE const String &GetAssetKey()
-        { return data.Get<AssetKeyValuePair>().first; }
+        { return data.first; }
 
-    HYP_FORCE_INLINE const LoadedAsset &GetAsset()
-        { return data.Get<AssetKeyValuePair>().second; }
+    HYP_FORCE_INLINE LoadedAsset *GetAsset()
+        { return data.second; }
 };
 
 struct AssetBatchCallbacks
@@ -78,11 +75,11 @@ struct LoadObjectWrapper
 
         if (asset.IsValid()) {
             if (callbacks) {
-                callbacks->OnItemComplete(AssetBatchCallbackData(key, asset));
+                callbacks->OnItemComplete(AssetBatchCallbackData(key, &asset));
             }
         } else {
             if (callbacks) {
-                callbacks->OnItemFailed(AssetBatchCallbackData(key, asset));
+                callbacks->OnItemFailed(AssetBatchCallbackData(key, &asset));
             }
 
             asset.value.Reset();
@@ -140,11 +137,11 @@ private:
 
         if (asset.IsValid()) {
             if (callbacks) {
-                callbacks->OnItemComplete(AssetBatchCallbackData(key, asset));
+                callbacks->OnItemComplete(AssetBatchCallbackData(key, &asset));
             }
         } else {
             if (callbacks) {
-                callbacks->OnItemFailed(AssetBatchCallbackData(key, asset));
+                callbacks->OnItemFailed(AssetBatchCallbackData(key, &asset));
             }
 
             asset.value.Reset();

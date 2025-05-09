@@ -4,6 +4,7 @@
 #define HYPERION_VARIANT_HPP
 
 #include <core/memory/Memory.hpp>
+#include <core/memory/AnyRef.hpp>
 
 #include <core/utilities/TypeID.hpp>
 
@@ -165,10 +166,10 @@ protected:
 
     friend struct TypeIndexHelper<VariantBase<Types...>>;
 
-    static const inline int invalid_type_index = -1;
+public:
+    static constexpr int invalid_type_index = -1;
     static constexpr TypeID type_ids[sizeof...(Types)] { TypeID::ForType<Types>()... };
 
-public:
     VariantBase()
         : m_current_index(-1)
     {
@@ -587,6 +588,9 @@ struct Variant
         Variant<Types...>
       >
 {
+    static constexpr int invalid_type_index = utilities::detail::VariantBase<Types...>::invalid_type_index;
+    static constexpr TypeID type_ids[sizeof...(Types)] { TypeID::ForType<Types>()... };
+
     // template <class ...Args>
     // Variant(Args &&... args)
     //     : m_holder(std::forward<Args>(args)...)
@@ -671,6 +675,46 @@ struct Variant
     HYP_FORCE_INLINE const T *TryGet() const &
         { return m_holder.template TryGet<T>(); }
 
+    template <class T>
+    HYP_FORCE_INLINE T &TryGet(T &default_value) &
+    {
+        if (Is<T>()) {
+            return Get<T>();
+        }
+
+        return default_value;
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE const T &TryGet(const T &default_value) const &
+    {
+        if (Is<T>()) {
+            return Get<T>();
+        }
+
+        return default_value;
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE T TryGet(T &&default_value) const
+    {
+        if (Is<T>()) {
+            return Get<T>();
+        }
+
+        return std::forward<T>(default_value);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE T TryGet(const T &default_value) &&
+    {
+        if (Is<T>()) {
+            return Get<T>();
+        }
+
+        return default_value;
+    }
+
     template <class T, typename = std::enable_if_t<std::is_copy_constructible_v<T>>>
     HYP_FORCE_INLINE void Set(const T &value)
         { m_holder.template Set<T>(value); }
@@ -689,6 +733,24 @@ struct Variant
      */
     HYP_FORCE_INLINE void Reset()
         { m_holder.Reset(); }
+
+    HYP_FORCE_INLINE AnyRef ToRef()
+    {
+        if (!IsValid()) {
+            return AnyRef();
+        }
+
+        return AnyRef(m_holder.GetPointer(), m_holder.GetTypeID());
+    }
+
+    HYP_FORCE_INLINE ConstAnyRef ToRef() const
+    {
+        if (!IsValid()) {
+            return ConstAnyRef();
+        }
+
+        return ConstAnyRef(m_holder.GetPointer(), m_holder.GetTypeID());
+    }
     
     HYP_FORCE_INLINE HashCode GetHashCode() const
         { return m_holder.GetHashCode(); }

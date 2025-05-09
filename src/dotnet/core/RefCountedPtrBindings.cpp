@@ -11,6 +11,11 @@ using namespace hyperion;
 
 extern "C" {
 
+HYP_EXPORT const void *RefCountedPtr_GetNullCtrlBlock()
+{
+    return &memory::RefCountedPtrBase<AtomicVar<uint32>>::empty_ref_count_data;
+}
+
 HYP_EXPORT void RefCountedPtr_Get(uintptr_t ctrl_block, uintptr_t address, ValueStorage<HypData> *out_hyp_data)
 {
     AssertThrow(out_hyp_data != nullptr);

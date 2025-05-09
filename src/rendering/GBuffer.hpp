@@ -56,7 +56,8 @@ public:
     {
         friend class GBuffer;
 
-        Bucket          bucket { BUCKET_OPAQUE };
+        GBuffer         *gbuffer;
+        Bucket          bucket;
         FramebufferRef  framebuffer;
 
     public:
@@ -67,6 +68,12 @@ public:
         GBufferBucket &operator=(GBufferBucket &&other) noexcept    = delete;
         ~GBufferBucket();
 
+        HYP_FORCE_INLINE GBuffer *GetGBuffer() const
+            { return gbuffer; }
+
+        HYP_FORCE_INLINE void SetGBuffer(GBuffer *gbuffer)
+            { this->gbuffer = gbuffer; }
+
         HYP_FORCE_INLINE Bucket GetBucket() const
             { return bucket; }
             
@@ -76,14 +83,13 @@ public:
         HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
             { return framebuffer; }
 
-        AttachmentBase *GetGBufferAttachment(GBufferResourceName resource_name) const;
+        HYP_FORCE_INLINE void SetFramebuffer(const FramebufferRef &framebuffer)
+            { this->framebuffer = framebuffer; }
 
-        void CreateFramebuffer(Vec2u resolution);
-        void Resize(Vec2u resolution);
-        void Destroy();
+        AttachmentBase *GetGBufferAttachment(GBufferResourceName resource_name) const;
     };
 
-    GBuffer(SwapchainBase *swapchain);
+    GBuffer(Vec2u extent);
     GBuffer(const GBuffer &other)                   = delete;
     GBuffer &operator=(const GBuffer &other)        = delete;
     GBuffer(GBuffer &&other) noexcept               = delete;
@@ -91,33 +97,28 @@ public:
     ~GBuffer()                                      = default;
 
     HYP_FORCE_INLINE GBufferBucket &GetBucket(Bucket bucket)
-        { return m_buckets[int(bucket)]; }
+        { return m_buckets[int(bucket) - 1]; }
 
     HYP_FORCE_INLINE const GBufferBucket &GetBucket(Bucket bucket) const
-        { return m_buckets[int(bucket)]; }
+        { return m_buckets[int(bucket) - 1]; }
 
-    HYP_FORCE_INLINE const FixedArray<GBufferBucket, Bucket::BUCKET_MAX> &GetBuckets() const
-        { return m_buckets; }
-
-    HYP_FORCE_INLINE const Vec2u &GetResolution() const
-        { return m_resolution; }
+    HYP_FORCE_INLINE const Vec2u &GetExtent() const
+        { return m_extent; }
 
     void Create();
     void Destroy();
 
     void Resize(Vec2u resolution);
 
-    Delegate<void, Vec2u>                           OnGBufferResolutionChanged;
+    Delegate<void, Vec2u>                                       OnGBufferResolutionChanged;
 
 private:
-    // If the window is high DPI like retina on mac, we need to scale it down
-    static Vec2u RescaleResolution(Vec2u resolution);
+    FramebufferRef CreateFramebuffer(const FramebufferRef &opaque_framebuffer, Vec2u resolution);
 
-    SwapchainBase                                   *m_swapchain;
+    FixedArray<GBufferBucket, uint32(Bucket::BUCKET_MAX) - 1>   m_buckets;
+    Array<FramebufferRef>                                       m_framebuffers;
 
-    FixedArray<GBufferBucket, Bucket::BUCKET_MAX>   m_buckets;
-
-    Vec2u                                           m_resolution;
+    Vec2u                                                       m_extent;
 };
 
 } // namespace hyperion

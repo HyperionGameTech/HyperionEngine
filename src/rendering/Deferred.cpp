@@ -5,7 +5,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -16,6 +16,7 @@
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/SSGI.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -33,6 +34,8 @@
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/Texture.hpp>
+#include <scene/View.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -40,8 +43,6 @@
 #include <streaming/StreamedTextureData.hpp>
 
 #include <system/AppContext.hpp>
-
-#include <util/BlueNoise.hpp>
 
 #include <util/Float16.hpp>
 #include <core/filesystem/FsUtil.hpp>
@@ -53,9 +54,6 @@
 namespace hyperion {
 
 using renderer::GPUBufferType;
-
-static const Vec2u mip_chain_extent { 512, 512 };
-static const InternalFormat mip_chain_format = InternalFormat::R10G10B10A2;
 
 static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8;
 static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B10F;
@@ -74,34 +72,7 @@ static const float16 s_ltc_brdf[] = {
 
 static_assert(sizeof(s_ltc_brdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(SetDeferredResultInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    ImageViewRef    result_image_view;
-
-    RENDER_COMMAND(SetDeferredResultInGlobalDescriptorSet)(
-        ImageViewRef result_image_view
-    ) : result_image_view(std::move(result_image_view))
-    {
-    }
-
-    virtual ~RENDER_COMMAND(SetDeferredResultInGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DeferredResult"), result_image_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
-static ShaderProperties GetDeferredShaderProperties()
+void GetDeferredShaderProperties(ShaderProperties &out_shader_properties)
 {
     ShaderProperties properties;
 
@@ -130,21 +101,19 @@ static ShaderProperties GetDeferredShaderProperties()
         g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool()
     );
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()) {
-        properties.Set("PATHTRACER");
-    } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool()) {
         properties.Set("DEBUG_REFLECTIONS");
     } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.irradiance").ToBool()) {
         properties.Set("DEBUG_IRRADIANCE");
     }
 
-    return properties;
+    out_shader_properties = std::move(properties);
 }
 
 #pragma region Deferred pass
 
-DeferredPass::DeferredPass(DeferredPassMode mode)
-    : FullScreenPass(InternalFormat::RGBA16F),
+DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer *gbuffer)
+    : FullScreenPass(InternalFormat::RGBA16F, gbuffer),
       m_mode(mode)
 {
     SetBlendFunction(BlendFunction::Additive());
@@ -160,8 +129,6 @@ void DeferredPass::Create()
     CreateShader();
 
     FullScreenPass::Create();
-
-    AddToGlobalDescriptorSet();
 }
 
 void DeferredPass::CreateShader()
@@ -175,17 +142,20 @@ void DeferredPass::CreateShader()
 
     switch (m_mode) {
     case DeferredPassMode::INDIRECT_LIGHTING:
-        m_shader = g_shader_manager->GetOrCreate(
-            NAME("DeferredIndirect"),
-            GetDeferredShaderProperties()
-        );
+    {
+        ShaderProperties shader_properties;
+        GetDeferredShaderProperties(shader_properties);
 
+        m_shader = g_shader_manager->GetOrCreate(NAME("DeferredIndirect"), shader_properties);
         AssertThrow(m_shader.IsValid());
 
         break;
+    }
     case DeferredPassMode::DIRECT_LIGHTING:
         for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
-            ShaderProperties shader_properties = GetDeferredShaderProperties();
+            ShaderProperties shader_properties;
+            GetDeferredShaderProperties(shader_properties);
+
             shader_properties.Merge(light_type_properties[i]);
 
             m_direct_light_shaders[i] = g_shader_manager->GetOrCreate(NAME("DeferredDirect"), shader_properties);
@@ -295,51 +265,29 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 void DeferredPass::Resize_Internal(Vec2u new_size)
 {
     FullScreenPass::Resize_Internal(new_size);
-
-    AddToGlobalDescriptorSet();
 }
 
-void DeferredPass::AddToGlobalDescriptorSet()
-{
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        switch (m_mode) {
-        case DeferredPassMode::INDIRECT_LIGHTING:
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DeferredIndirectResultTexture"), GetAttachment(0)->GetImageView());
-
-            break;
-        case DeferredPassMode::DIRECT_LIGHTING:
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DeferredDirectResultTexture"), GetAttachment(0)->GetImageView());
-
-            break;
-        default:
-            HYP_FAIL("Invalid deferred pass mode");
-        }
-    }
-}
-
-void DeferredPass::Render(FrameBase *frame)
+void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
     if (m_mode == DeferredPassMode::INDIRECT_LIGHTING) {
-        RenderToFramebuffer(frame, nullptr);
+        RenderToFramebuffer(frame, view, nullptr);
 
         return;
     }
 
     // no lights bound, do not render direct shading at all
-    if (g_engine->GetRenderState()->NumBoundLights() == 0) {
+    if (view->NumLights() == 0) {
         return;
     }
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
-    const EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     // render with each light
     for (uint32 light_type_index = 0; light_type_index < uint32(LightType::MAX); light_type_index++) {
@@ -358,13 +306,6 @@ void DeferredPass::Render(FrameBase *frame)
         );
 
         frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
-
-        frame->GetCommandList().Add<BindDescriptorSet>(
-            render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
-            render_group->GetPipeline(),
-            ArrayMap<Name, uint32> { },
-            global_descriptor_set_index
-        );
 
         // Bind textures globally (bindless)
         if (material_descriptor_set_index != ~0u && use_bindless_textures) {
@@ -392,20 +333,31 @@ void DeferredPass::Render(FrameBase *frame)
             AssertThrow(light_render_resource.GetBufferIndex() != ~0u);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame->GetFrameIndex()),
+                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(&light_render_resource) }
                 },
+                global_descriptor_set_index
+            );
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                view->GetDescriptorSets()[frame->GetFrameIndex()],
+                render_group->GetPipeline(),
+                ArrayMap<Name, uint32> { },
                 scene_descriptor_set_index
             );
             
             // Bind material descriptor set (for area lights)
-            if (material_descriptor_set_index != ~0u && !use_bindless_textures && light_render_resource.GetMaterial().IsValid()) {
-                const DescriptorSetRef &material_descriptor_set = light_render_resource.GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()];
+            if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
+                const DescriptorSetRef &material_descriptor_set = light_render_resource.GetMaterial().IsValid()
+                    ? light_render_resource.GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
+                    : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
+        
                 AssertThrow(material_descriptor_set != nullptr);
 
                 frame->GetCommandList().Add<BindDescriptorSet>(
@@ -439,14 +391,15 @@ static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
     }
 }
 
-EnvGridPass::EnvGridPass(EnvGridPassMode mode)
+EnvGridPass::EnvGridPass(EnvGridPassMode mode, GBuffer *gbuffer)
     : FullScreenPass(
         mode == EnvGridPassMode::RADIANCE
             ? env_grid_radiance_format
             : env_grid_irradiance_format,
         mode == EnvGridPassMode::RADIANCE
             ? env_grid_radiance_extent
-            : env_grid_irradiance_extent
+            : env_grid_irradiance_extent,
+        gbuffer
       ),
       m_mode(mode),
       m_is_first_frame(true)
@@ -468,8 +421,6 @@ void EnvGridPass::Create()
     Threads::AssertOnThread(g_render_thread);
 
     FullScreenPass::Create();
-
-    AddToGlobalDescriptorSet();
 }
 
 void EnvGridPass::CreatePipeline()
@@ -538,32 +489,12 @@ void EnvGridPass::CreatePipeline()
     m_render_group = m_render_groups[uint32(ApplyEnvGridMode::SH)];    
 }
 
-void EnvGridPass::AddToGlobalDescriptorSet()
-{
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        switch (m_mode) {
-        case EnvGridPassMode::RADIANCE:
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("EnvGridRadianceResultTexture"), GetFinalImageView());
-
-            break;
-        case EnvGridPassMode::IRRADIANCE:
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("EnvGridIrradianceResultTexture"), GetFinalImageView());
-
-            break;
-        }
-    }
-}
-
 void EnvGridPass::Resize_Internal(Vec2u new_size)
 {
     FullScreenPass::Resize_Internal(new_size);
-
-    AddToGlobalDescriptorSet();
 }
 
-void EnvGridPass::Render(FrameBase *frame)
+void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
@@ -571,22 +502,22 @@ void EnvGridPass::Render(FrameBase *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-    AssertThrow(env_grid != nullptr);
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    AssertThrow(env_grid_render_resource_handle);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     frame->GetCommandList().Add<BeginFramebuffer>(m_framebuffer, frame_index);
 
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
-        RenderPreviousTextureToScreen(frame);
+        RenderPreviousTextureToScreen(frame, view);
     }
 
     const Handle<RenderGroup> &render_group = m_mode == EnvGridPassMode::RADIANCE
         ? m_render_group
-        : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGridType()))];
+        : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid_render_resource_handle->GetEnvGrid()->GetEnvGridType()))];
 
     AssertThrow(render_group.IsValid());
 
@@ -607,18 +538,18 @@ void EnvGridPass::Render(FrameBase *frame)
     frame->GetCommandList().Add<BindDescriptorSet>(
         render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
         render_group->GetPipeline(),
-        ArrayMap<Name, uint32> { },
+        ArrayMap<Name, uint32> {
+            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_grid_render_resource_handle) }
+        },
         global_descriptor_set_index
     );
 
     frame->GetCommandList().Add<BindDescriptorSet>(
-        render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index),
+        view->GetDescriptorSets()[frame_index],
         render_group->GetPipeline(),
-        ArrayMap<Name, uint32> {
-            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetComponentIndex()) }
-        },
+        ArrayMap<Name, uint32> { },
         scene_descriptor_set_index
     );
 
@@ -627,15 +558,15 @@ void EnvGridPass::Render(FrameBase *frame)
     frame->GetCommandList().Add<EndFramebuffer>(m_framebuffer, frame_index);
 
     if (ShouldRenderHalfRes()) {
-        MergeHalfResTextures(frame);
+        MergeHalfResTextures(frame, view);
     }
 
     if (UsesTemporalBlending()) {
         if (!ShouldRenderHalfRes()) {
-            CopyResultToPreviousTexture(frame);
+            CopyResultToPreviousTexture(frame, view);
         }
 
-        m_temporal_blending->Render(frame);
+        m_temporal_blending->Render(frame, view);
     }
 
     m_is_first_frame = false;
@@ -645,8 +576,10 @@ void EnvGridPass::Render(FrameBase *frame)
 
 #pragma region ReflectionsPass
 
-ReflectionsPass::ReflectionsPass()
-    : FullScreenPass(InternalFormat::R10G10B10A2),
+ReflectionsPass::ReflectionsPass(GBuffer *gbuffer, const ImageViewRef &mip_chain_image_view, const ImageViewRef &deferred_result_image_view)
+    : FullScreenPass(InternalFormat::R10G10B10A2, gbuffer),
+      m_mip_chain_image_view(mip_chain_image_view),
+      m_deferred_result_image_view(deferred_result_image_view),
       m_is_first_frame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -657,7 +590,6 @@ ReflectionsPass::ReflectionsPass()
 
 ReflectionsPass::~ReflectionsPass()
 {
-    m_ssr_renderer->Destroy();
     m_ssr_renderer.Reset();
 }
 
@@ -668,8 +600,6 @@ void ReflectionsPass::Create()
     FullScreenPass::Create();
 
     CreateSSRRenderer();
-
-    AddToGlobalDescriptorSet();
 }
 
 void ReflectionsPass::CreatePipeline()
@@ -745,7 +675,7 @@ bool ReflectionsPass::ShouldRenderSSR() const
 
 void ReflectionsPass::CreateSSRRenderer()
 {
-    m_ssr_renderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig());
+    m_ssr_renderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mip_chain_image_view, m_deferred_result_image_view);
     m_ssr_renderer->Create();
     
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
@@ -767,7 +697,8 @@ void ReflectionsPass::CreateSSRRenderer()
         render_texture_to_screen_shader,
         std::move(descriptor_table),
         m_image_format,
-        m_extent
+        m_extent,
+        m_gbuffer
     );
 
     // Use alpha blending to blend SSR into the reflection probes
@@ -779,24 +710,14 @@ void ReflectionsPass::CreateSSRRenderer()
     m_render_ssr_to_screen_pass->Create();
 }
 
-void ReflectionsPass::AddToGlobalDescriptorSet()
-{
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("ReflectionProbeResultTexture"), GetFinalImageView());
-    }
-}
-
 void ReflectionsPass::Resize_Internal(Vec2u new_size)
 {
     HYP_SCOPE;
 
     FullScreenPass::Resize_Internal(new_size);
-
-    AddToGlobalDescriptorSet();
 }
 
-void ReflectionsPass::Render(FrameBase *frame)
+void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -807,7 +728,7 @@ void ReflectionsPass::Render(FrameBase *frame)
     const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     if (ShouldRenderSSR()) { // screen space reflection
-        m_ssr_renderer->Render(frame);
+        m_ssr_renderer->Render(frame, view);
     }
 
     // Sky renders first
@@ -840,7 +761,7 @@ void ReflectionsPass::Render(FrameBase *frame)
 
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
-        RenderPreviousTextureToScreen(frame);
+        RenderPreviousTextureToScreen(frame, view);
     }
     
     uint32 num_rendered_env_probes = 0;
@@ -872,27 +793,28 @@ void ReflectionsPass::Render(FrameBase *frame)
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        frame->GetCommandList().Add<BindDescriptorSet>(
-            render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
-            render_group->GetPipeline(),
-            ArrayMap<Name, uint32> { },
-            global_descriptor_set_index
-        );
-
         for (EnvProbeRenderResource *env_probe_render_resource : env_probe_render_resources) {
             if (num_rendered_env_probes >= max_bound_reflection_probes) {
                 HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
 
                 break;
             }
+
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index),
+                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) }
                 },
+                global_descriptor_set_index
+            );
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                view->GetDescriptorSets()[frame_index],
+                render_group->GetPipeline(),
+                ArrayMap<Name, uint32> { },
                 scene_descriptor_set_index
             );
 
@@ -903,694 +825,26 @@ void ReflectionsPass::Render(FrameBase *frame)
     }
 
     if (ShouldRenderSSR()) {
-        m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, GetFramebuffer());
+        m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, view, GetFramebuffer());
     }
 
     frame->GetCommandList().Add<EndFramebuffer>(GetFramebuffer(), frame_index);
 
     if (ShouldRenderHalfRes()) {
-        MergeHalfResTextures(frame);
+        MergeHalfResTextures(frame, view);
     }
 
     if (UsesTemporalBlending()) {
         if (!ShouldRenderHalfRes()) {
-            CopyResultToPreviousTexture(frame);
+            CopyResultToPreviousTexture(frame, view);
         }
 
-        m_temporal_blending->Render(frame);
+        m_temporal_blending->Render(frame, view);
     }
 
     m_is_first_frame = false;
 }
 
 #pragma endregion ReflectionsPass
-
-#pragma region Deferred renderer
-
-DeferredRenderer::DeferredRenderer(SwapchainBase *swapchain)
-    : m_gbuffer(MakeUnique<GBuffer>(swapchain)),
-      m_is_initialized(false)
-{
-}
-
-DeferredRenderer::~DeferredRenderer() = default;
-
-void DeferredRenderer::Create()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertThrow(!m_is_initialized);
-
-    { // initialize GBuffer
-        m_gbuffer->Create();
-
-        static FixedArray<Name, GBUFFER_RESOURCE_MAX> gbuffer_texture_names {
-            NAME("GBufferAlbedoTexture"),
-            NAME("GBufferNormalsTexture"),
-            NAME("GBufferMaterialTexture"),
-            NAME("GBufferLightmapTexture"),
-            NAME("GBufferVelocityTexture"),
-            NAME("GBufferMaskTexture"),
-            NAME("GBufferWSNormalsTexture"),
-            NAME("GBufferTranslucentTexture")
-        };
-
-        auto InitializeGBufferFramebuffers = [this]()
-        {
-            HYP_SCOPE;
-            Threads::AssertOnThread(g_render_thread);
-
-            m_opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-            m_translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
-
-            // depth attachment goes into separate slot
-            AttachmentBase *depth_attachment = m_opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-            AssertThrow(depth_attachment != nullptr);
-
-            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                uint32 element_index = 0;
-
-                if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
-
-                    // not including depth texture here (hence the - 1)
-                    for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                            ->SetElement(NAME("GBufferTextures"), element_index++, m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
-                    }
-
-                    // add translucent bucket's albedo
-                    g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                        ->SetElement(NAME("GBufferTextures"), element_index++, m_translucent_fbo->GetAttachment(0)->GetImageView());
-                } else {
-                    for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                            ->SetElement(gbuffer_texture_names[attachment_index], m_opaque_fbo->GetAttachment(attachment_index)->GetImageView());
-                    }
-
-                    // add translucent bucket's albedo
-                    g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                        ->SetElement(NAME("GBufferTranslucentTexture"), m_translucent_fbo->GetAttachment(0)->GetImageView());
-                }
-
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->SetElement(NAME("GBufferDepthTexture"), depth_attachment->GetImageView());
-            }
-        };
-
-        InitializeGBufferFramebuffers();
-
-        m_gbuffer->OnGBufferResolutionChanged.Bind([this, InitializeGBufferFramebuffers](...)
-        {
-            InitializeGBufferFramebuffers();
-        }, g_render_thread).Detach();
-    }
-
-    m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE);
-    m_env_grid_radiance_pass->Create();
-
-    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE);
-    m_env_grid_irradiance_pass->Create();
-
-    m_reflections_pass = MakeUnique<ReflectionsPass>();
-    m_reflections_pass->Create();
-
-    m_ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig());
-    m_ssgi->Create();
-
-    m_post_processing.Create();
-
-    m_indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING);
-    m_indirect_pass->Create();
-
-    m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING);
-    m_direct_pass->Create();
-
-    m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>();
-    m_depth_pyramid_renderer->Create();
-
-    m_mip_chain = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        mip_chain_format,
-        Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    });
-
-    InitObject(m_mip_chain);
-
-    m_mip_chain->SetPersistentRenderResourceEnabled(true);
-
-    m_hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig());
-    m_hbao->Create();
-
-    CreateBlueNoiseBuffer();
-    CreateSphereSamplesBuffer();
-
-    // m_dof_blur = MakeUnique<DOFBlur>(m_gbuffer->GetResolution());
-    // m_dof_blur->Create();
-
-    CreateCombinePass();
-    CreateDescriptorSets();
-
-    m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetResolution());
-    m_temporal_aa->Create();
-
-    m_is_initialized = true;
-}
-
-void DeferredRenderer::CreateDescriptorSets()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-    
-    // set global gbuffer data
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("GBufferMipChain"), m_mip_chain->GetRenderResource().GetImageView());
-    }
-}
-
-void DeferredRenderer::CreateCombinePass()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-    
-    ShaderRef shader = g_shader_manager->GetOrCreate(
-        NAME("DeferredCombine"),
-        GetDeferredShaderProperties()
-    );
-
-    AssertThrow(shader.IsValid());
-
-    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::R11G11B10F);
-    m_combine_pass->Create();
-
-    PUSH_RENDER_COMMAND(
-        SetDeferredResultInGlobalDescriptorSet,
-        GetCombinedResultAttachment()->GetImageView()
-    );
-}
-
-void DeferredRenderer::Destroy()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    m_depth_pyramid_renderer.Reset();
-
-    m_hbao.Reset();
-
-    m_temporal_aa.Reset();
-
-    // m_dof_blur->Destroy();
-
-    m_ssgi->Destroy();
-    m_ssgi.Reset();
-
-    m_post_processing.Destroy();
-
-    m_combine_pass.Reset();
-
-    m_env_grid_radiance_pass.Reset();
-    m_env_grid_irradiance_pass.Reset();
-
-    m_reflections_pass.Reset();
-
-    m_mip_chain.Reset();
-
-    m_opaque_fbo.Reset();
-    m_translucent_fbo.Reset();
-
-    m_indirect_pass.Reset();
-    m_direct_pass.Reset();
-
-    m_gbuffer->Destroy();
-}
-
-void DeferredRenderer::Resize(Vec2u new_size)
-{
-    HYP_SCOPE;
-    
-    Threads::AssertOnThread(g_render_thread);
-
-    if (!m_is_initialized) {
-        return;
-    }
-
-    m_gbuffer->Resize(new_size);
-
-    m_direct_pass->Resize(new_size);
-    m_indirect_pass->Resize(new_size);
-
-    m_combine_pass->Resize(new_size);
-
-    m_env_grid_radiance_pass->Resize(new_size);
-    m_env_grid_irradiance_pass->Resize(new_size);
-
-    m_reflections_pass->Resize(new_size);
-}
-
-void DeferredRenderer::Render(FrameBase *frame, RenderEnvironment *environment)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
-
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
-    const bool is_render_environment_ready = environment && environment->IsReady();
-
-    const bool do_particles = true;
-    const bool do_gaussian_splatting = false;//environment && environment->IsReady();
-
-    const bool use_rt_radiance = is_raytracing_supported
-        && (g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
-            || g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
-
-    const bool use_ddgi = is_raytracing_supported
-        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool();
-    
-    const bool use_hbao = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool();
-    const bool use_hbil = g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool();
-
-    const bool use_ssgi = g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssgi.enabled").ToBool();
-
-    const bool use_env_grid_irradiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool();
-    const bool use_env_grid_radiance = env_grid != nullptr && g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool();
-
-    const bool use_reflection_probes = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
-        || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
-
-    const bool use_temporal_aa = g_engine->GetAppContext()->GetConfiguration().Get("rendering.taa.enabled").ToBool() && m_temporal_aa != nullptr;
-
-    if (use_temporal_aa) {
-        ApplyCameraJitter();
-    }
-
-    struct alignas(128)
-    {
-        uint32  flags;
-        uint32  screen_width;
-        uint32  screen_height;
-    } deferred_data;
-
-    Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
-
-    deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
-    deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
-    deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
-    deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
-
-    deferred_data.screen_width = m_gbuffer->GetResolution().x;
-    deferred_data.screen_height = m_gbuffer->GetResolution().y;
-
-    CollectDrawCalls(frame);
-    
-    if (is_render_environment_ready) {
-        if (do_particles) {
-            environment->GetParticleSystem()->UpdateParticles(frame);
-        }
-
-        if (do_gaussian_splatting) {
-            environment->GetGaussianSplatting()->UpdateSplats(frame);
-        }
-    }
-
-    m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-    m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-
-#if 1
-    { // opaque objects
-        frame->GetCommandList().Add<BeginFramebuffer>(m_opaque_fbo, frame_index);
-
-        RenderOpaqueObjects(frame);
-
-        frame->GetCommandList().Add<EndFramebuffer>(m_opaque_fbo, frame_index);
-    }
-    // end opaque objs
-
-    if (use_env_grid_irradiance) { // submit env grid command buffer
-        m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_irradiance_pass->Render(frame);
-    }
-
-    if (use_env_grid_radiance) { // submit env grid command buffer
-        m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_radiance_pass->Render(frame);
-    }
-
-    if (use_reflection_probes) {
-        m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_reflections_pass->Render(frame);
-    }
-
-    if (is_render_environment_ready) {
-        if (use_rt_radiance) {
-            environment->RenderRTRadiance(frame);
-        }
-
-        if (use_ddgi) {
-            environment->RenderDDGIProbes(frame);
-        }
-    }
-
-    if (use_hbao || use_hbil) {
-        m_hbao->Render(frame);
-    }
-
-    if (use_ssgi) {
-        bool is_sky_set = false;
-
-        // Bind sky env probe for SSGI.
-        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
-            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-            is_sky_set = true;
-        }
-
-        m_ssgi->Render(frame);
-
-        if (is_sky_set) {
-            g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        }
-    }
-
-    m_post_processing.RenderPre(frame);
-
-    // render indirect and direct lighting into the same framebuffer
-    const FramebufferRef &deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
-
-    { // deferred lighting on opaque objects
-        frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
-
-        m_indirect_pass->Render(frame);
-
-        if (g_engine->GetRenderState()->NumBoundLights() != 0) {
-            m_direct_pass->Render(frame);
-        }
-
-        frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
-    }
-
-    { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const ImageRef &src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
-        GenerateMipChain(frame, src_image);
-    }
-#endif
-
-    { // translucent objects
-        frame->GetCommandList().Add<BeginFramebuffer>(m_translucent_fbo, frame_index);
-
-        bool is_sky_set = false;
-
-        // Bind sky env probe
-        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()) {
-            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-            is_sky_set = true;
-        }
-
-        // begin translucent with forward rendering
-        RenderTranslucentObjects(frame);
-
-        if (is_render_environment_ready) {
-            if (do_particles) {
-                environment->GetParticleSystem()->Render(frame);
-            }
-
-            if (do_gaussian_splatting) {
-                environment->GetGaussianSplatting()->Render(frame);
-            }
-        }
-
-        if (is_sky_set) {
-            g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        }
-
-        RenderSkybox(frame);
-
-        // render debug draw
-        g_engine->GetDebugDrawer()->Render(frame);
-
-        frame->GetCommandList().Add<EndFramebuffer>(m_translucent_fbo, frame_index);
-    }
-
-    {
-        struct alignas(128)
-        {
-            Vec2u   image_dimensions;
-            uint32  _pad0, _pad1;
-            uint32  deferred_flags;
-        } deferred_combine_constants;
-
-        deferred_combine_constants.image_dimensions = m_combine_pass->GetFramebuffer()->GetExtent();
-        deferred_combine_constants.deferred_flags = deferred_data.flags;
-
-        m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
-        m_combine_pass->Begin(frame);
-
-        frame->GetCommandList().Add<BindDescriptorTable>(
-            m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-            m_combine_pass->GetRenderGroup()->GetPipeline(),
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                {
-                    NAME("Scene"),
-                    {
-                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource ? env_probe_render_resource->GetBufferIndex() : 0) }
-                    }
-                }
-            },
-            frame_index
-        );
-
-        m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-        m_combine_pass->End(frame);
-    }
-
-    { // render depth pyramid
-        m_depth_pyramid_renderer->Render(frame);
-        // update culling info now that depth pyramid has been rendered
-        m_cull_data.depth_pyramid_image_view = m_depth_pyramid_renderer->GetResultImageView();
-        m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
-    }
-
-    m_post_processing.RenderPost(frame);
-
-    if (use_temporal_aa) {
-        m_temporal_aa->Render(frame);
-    }
-
-    // depth of field
-    // m_dof_blur->Render(frame);
-}
-
-void DeferredRenderer::GenerateMipChain(FrameBase *frame, const ImageRef &src_image)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    const uint32 frame_index = frame->GetFrameIndex();
-
-    const ImageRef &mipmapped_result = m_mip_chain->GetRenderResource().GetImage();
-    AssertThrow(mipmapped_result.IsValid());
-
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
-    frame->GetCommandList().Add<InsertBarrier>(mipmapped_result, renderer::ResourceState::COPY_DST);
-
-    // Blit into the mipmap chain img
-    frame->GetCommandList().Add<BlitRect>(
-        src_image,
-        mipmapped_result,
-        Rect<uint32> { 0, 0, src_image->GetExtent().x, src_image->GetExtent().y },
-        Rect<uint32> { 0, 0, mipmapped_result->GetExtent().x, mipmapped_result->GetExtent().y }
-    );
-
-    frame->GetCommandList().Add<GenerateMipmaps>(mipmapped_result);
-
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
-}
-
-// @TODO Move to CameraRenderResource
-void DeferredRenderer::ApplyCameraJitter()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    static const float jitter_scale = 0.25f;
-
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
-    const uint32 camera_buffer_index = camera_resource_handle->GetBufferIndex();
-    AssertThrow(camera_buffer_index != ~0u);
-
-    Vec4f jitter = Vec4f::Zero();
-
-    const uint32 frame_counter = g_engine->GetRenderState()->frame_counter + 1;
-
-    CameraShaderData &buffer_data = g_engine->GetRenderData()->cameras->Get<CameraShaderData>(camera_buffer_index);
-
-    if (buffer_data.projection[3][3] < MathUtil::epsilon_f) {
-        Matrix4::Jitter(frame_counter, buffer_data.dimensions.x, buffer_data.dimensions.y, jitter);
-
-        buffer_data.jitter = jitter * jitter_scale;
-
-        g_engine->GetRenderData()->cameras->MarkDirty(camera_buffer_index);
-    }
-}
-
-void DeferredRenderer::CreateBlueNoiseBuffer()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    static_assert(sizeof(BlueNoiseBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
-    static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
-    static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
-
-    constexpr SizeType blue_noise_buffer_size = sizeof(BlueNoiseBuffer);
-
-    constexpr SizeType sobol_256spp_256d_offset = offsetof(BlueNoiseBuffer, sobol_256spp_256d);
-    constexpr SizeType sobol_256spp_256d_size = sizeof(BlueNoise::sobol_256spp_256d);
-    constexpr SizeType scrambling_tile_offset = offsetof(BlueNoiseBuffer, scrambling_tile);
-    constexpr SizeType scrambling_tile_size = sizeof(BlueNoise::scrambling_tile);
-    constexpr SizeType ranking_tile_offset = offsetof(BlueNoiseBuffer, ranking_tile);
-    constexpr SizeType ranking_tile_size = sizeof(BlueNoise::ranking_tile);
-
-    static_assert(blue_noise_buffer_size == (sobol_256spp_256d_offset + sobol_256spp_256d_size)
-        + ((scrambling_tile_offset - (sobol_256spp_256d_offset + sobol_256spp_256d_size)) + scrambling_tile_size)
-        + ((ranking_tile_offset - (scrambling_tile_offset + scrambling_tile_size)) + ranking_tile_size));
-    
-    GPUBufferRef blue_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
-    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create());
-    blue_noise_buffer->Copy(sobol_256spp_256d_offset, sobol_256spp_256d_size, &BlueNoise::sobol_256spp_256d[0]);
-    blue_noise_buffer->Copy(scrambling_tile_offset, scrambling_tile_size, &BlueNoise::scrambling_tile[0]);
-    blue_noise_buffer->Copy(ranking_tile_offset, ranking_tile_size, &BlueNoise::ranking_tile[0]);
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("BlueNoiseBuffer"), blue_noise_buffer);
-    }
-}
-
-void DeferredRenderer::CreateSphereSamplesBuffer()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-    
-    GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
-    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create());
-
-    Vec4f *sphere_samples = new Vec4f[4096];
-
-    uint32 seed = 0;
-
-    for (uint32 i = 0; i < 4096; i++) {
-        Vec3f sample = MathUtil::RandomInSphere(Vec3f {
-            MathUtil::RandomFloat(seed),
-            MathUtil::RandomFloat(seed),
-            MathUtil::RandomFloat(seed)
-        });
-
-        sphere_samples[i] = Vec4f(sample, 0.0f);
-    }
-
-    sphere_samples_buffer->Copy(sizeof(Vec4f) * 4096, sphere_samples);
-
-    delete[] sphere_samples;
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("SphereSamplesBuffer"), sphere_samples_buffer);
-    }
-}
-
-void DeferredRenderer::CollectDrawCalls(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-
-    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
-        scene_resource_handle->GetScene()->GetRenderCollector().CollectDrawCalls(
-            frame,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
-            &m_cull_data
-        );
-    }
-}
-
-void DeferredRenderer::RenderSkybox(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
-    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
-        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
-            frame,
-            camera_resource_handle,
-            nullptr,
-            Bitset((1 << BUCKET_SKYBOX)),
-            &m_cull_data
-        );
-    }
-}
-
-void DeferredRenderer::RenderOpaqueObjects(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
-    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
-        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
-            frame,
-            camera_resource_handle,
-            nullptr,
-            Bitset((1 << BUCKET_OPAQUE)),
-            &m_cull_data
-        );
-    }
-}
-
-void DeferredRenderer::RenderTranslucentObjects(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    const WorldRenderResource &world_render_resource = g_engine->GetWorld()->GetRenderResource();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
-    for (const TResourceHandle<SceneRenderResource> &scene_resource_handle : world_render_resource.GetBoundScenes()) {
-        scene_resource_handle->GetScene()->GetRenderCollector().ExecuteDrawCalls(
-            frame,
-            camera_resource_handle,
-            nullptr,
-            Bitset((1 << BUCKET_TRANSLUCENT)),
-            &m_cull_data
-        );
-    }
-}
-
-#pragma endregion Deferred pass
 
 } // namespace hyperion

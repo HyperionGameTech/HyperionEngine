@@ -52,6 +52,7 @@ class ScriptingService;
 class AssetManager;
 class DebugDrawer;
 class DeferredRenderer;
+class ViewRenderResource;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;
@@ -95,8 +96,9 @@ public:
     HYP_FORCE_INLINE const RC<AppContext> &GetAppContext() const
         { return m_app_context; }
     
-    HYP_FORCE_INLINE DeferredRenderer *GetDeferredRenderer() const
-        { return m_deferred_renderer.Get(); }
+    // Temporary stopgap
+    HYP_DEPRECATED HYP_FORCE_INLINE ViewRenderResource *GetCurrentView() const
+        { return m_view; }
     
     HYP_FORCE_INLINE const Handle<RenderState> &GetRenderState() const
         { return m_render_state; }
@@ -175,7 +177,9 @@ public:
 
 private:
     void PreFrameUpdate(FrameBase *frame);
-    void RenderDeferred(FrameBase *frame);
+
+    void CreateBlueNoiseBuffer();
+    void CreateSphereSamplesBuffer();
 
     void FindTextureFormatDefaults();
 
@@ -191,7 +195,7 @@ private:
 
     UniquePtr<MaterialDescriptorSetManager>                 m_material_descriptor_set_manager;
 
-    UniquePtr<DeferredRenderer>                             m_deferred_renderer;
+    ViewRenderResource                                      *m_view; // temporary; to be removed after refactoring
 
     UniquePtr<ShaderGlobals>                                m_render_data;
 
